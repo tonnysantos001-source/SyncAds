@@ -59,7 +59,7 @@ const SettingsPage: React.FC = () => {
             <Route path="notifications" element={<NotificationsTab />} />
             <Route path="billing" element={<BillingTab />} />
             <Route path="api-keys" element={<ApiKeysTab />} />
-            <Route path="ai" element={<AiTab />} />
+            <Route path="ai/*" element={<AiTab />} />
           </Routes>
         </div>
       </div>

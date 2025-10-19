@@ -87,6 +87,11 @@ interface AppState {
   // Settings
   aiSystemPrompt: string;
   setAiSystemPrompt: (prompt: string) => void;
+  aiInitialGreetings: string[];
+  setAiInitialGreetings: (greetings: string[]) => void;
+  addAiGreeting: (greeting: string) => void;
+  removeAiGreeting: (index: number) => void;
+  updateAiGreeting: (index: number, greeting: string) => void;
   isTwoFactorEnabled: boolean;
   setTwoFactorEnabled: (enabled: boolean) => void;
   notificationSettings: NotificationSettings;
@@ -509,6 +514,23 @@ export const useStore = create<AppState>()(
       // Settings
       aiSystemPrompt: 'Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.',
       setAiSystemPrompt: (prompt) => set({ aiSystemPrompt: prompt }),
+      
+      aiInitialGreetings: [
+        'Olá! 👋 Sou o SyncAds AI, seu assistente de marketing digital. Como posso ajudar você hoje?',
+        'Oi! Estou aqui para ajudar a otimizar suas campanhas. O que gostaria de fazer?',
+        'Bem-vindo! Pronto para criar campanhas incríveis? Por onde começamos?',
+      ],
+      setAiInitialGreetings: (greetings) => set({ aiInitialGreetings: greetings }),
+      addAiGreeting: (greeting) => set((state) => ({
+        aiInitialGreetings: [...state.aiInitialGreetings, greeting]
+      })),
+      removeAiGreeting: (index) => set((state) => ({
+        aiInitialGreetings: state.aiInitialGreetings.filter((_, i) => i !== index)
+      })),
+      updateAiGreeting: (index, greeting) => set((state) => ({
+        aiInitialGreetings: state.aiInitialGreetings.map((g, i) => i === index ? greeting : g)
+      })),
+      
       isTwoFactorEnabled: false,
       setTwoFactorEnabled: (enabled) => set({ isTwoFactorEnabled: enabled }),
       notificationSettings: initialNotificationSettings,
@@ -524,6 +546,7 @@ export const useStore = create<AppState>()(
         user: state.user,
         connectedIntegrations: state.connectedIntegrations,
         aiSystemPrompt: state.aiSystemPrompt,
+        aiInitialGreetings: state.aiInitialGreetings,
         isTwoFactorEnabled: state.isTwoFactorEnabled,
         notificationSettings: state.notificationSettings,
         // Não persiste mais aiConnections, conversations ou campaigns no localStorage

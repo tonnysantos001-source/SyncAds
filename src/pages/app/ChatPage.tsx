@@ -60,6 +60,7 @@ const ChatPage: React.FC = () => {
     createNewConversation,
     aiConnections,
     aiSystemPrompt,
+    aiInitialGreetings,
     addCampaign,
     user,
   } = useStore();
@@ -75,6 +76,24 @@ const ChatPage: React.FC = () => {
   };
 
   useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
+
+  // Enviar fala inicial quando conversa nova for criada
+  useEffect(() => {
+    if (activeConversation && activeConversation.messages.length === 0 && aiInitialGreetings.length > 0) {
+      // Escolher uma fala aleatória
+      const randomIndex = Math.floor(Math.random() * aiInitialGreetings.length);
+      const greeting = aiInitialGreetings[randomIndex];
+      
+      // Adicionar a fala inicial como mensagem do assistente
+      setTimeout(() => {
+        addMessage(activeConversationId!, { 
+          id: `greeting-${Date.now()}`, 
+          role: 'assistant', 
+          content: greeting 
+        });
+      }, 500); // Pequeno delay para parecer mais natural
+    }
+  }, [activeConversationId, activeConversation?.messages.length]);
 
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
@@ -351,7 +370,13 @@ const ChatPage: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => createNewConversation()}
+              onClick={() => {
+                createNewConversation();
+                toast({
+                  title: "Nova conversa criada!",
+                  description: "Comece a conversar com a IA.",
+                });
+              }}
               title="Nova Conversa"
             >
               <Plus className="h-4 w-4" />
