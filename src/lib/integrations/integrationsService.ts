@@ -63,14 +63,20 @@ class IntegrationsService {
 
     // Armazenar state temporariamente (10 minutos)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('OAuthState')
       .insert({
+        id: crypto.randomUUID(),
         state,
         userId,
         integrationSlug: slug,
-        expiresAt
+        expiresAt,
+        createdAt: new Date().toISOString()
       });
+
+    if (stateInsertError) {
+      throw new Error(`Erro ao armazenar state OAuth: ${stateInsertError.message}`);
+    }
 
     // Construir URL de autorização
     const params = new URLSearchParams({
@@ -136,20 +142,48 @@ class IntegrationsService {
       ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
       : null;
 
-    await supabase
+    // Verificar se já existe
+    const { data: existing } = await supabase
       .from('Integration')
-      .upsert({
-        userId,
-        platform: integrationSlug.toUpperCase(),
-        credentials: {
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-        },
-        isConnected: true,
-        lastSyncAt: new Date().toISOString(),
-      }, {
-        onConflict: 'userId,platform'
-      });
+      .select('id')
+      .eq('userId', userId)
+      .eq('platform', integrationSlug.toUpperCase())
+      .single();
+
+    if (existing) {
+      // Atualizar existente
+      await supabase
+        .from('Integration')
+        .update({
+          credentials: {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+          },
+          isConnected: true,
+          lastSyncAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    } else {
+      // Criar novo com ID
+      const { error: insertError } = await supabase
+        .from('Integration')
+        .insert({
+          id: crypto.randomUUID(),
+          userId,
+          platform: integrationSlug.toUpperCase(),
+          credentials: {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+          },
+          isConnected: true,
+          lastSyncAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+    }
 
     // Remover state usado
     await supabase
