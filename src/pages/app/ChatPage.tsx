@@ -28,7 +28,8 @@ import {
   IntegrationTools,
   integrationControlPrompt,
   detectIntegrationAction,
-  cleanIntegrationBlocksFromResponse
+  cleanIntegrationBlocksFromResponse,
+  detectAuditIntentFromText
 } from '@/lib/ai/integrationTools';
 import { integrationsService } from '@/lib/integrations/integrationsService';
 import { INTEGRATIONS_CONFIG } from '@/lib/integrations/types';
@@ -239,7 +240,13 @@ const ChatPage: React.FC = () => {
         }
 
         // Detectar e executar ações de integração (auditoria, teste, etc)
-        const integrationAction = detectIntegrationAction(response);
+        let integrationAction = detectIntegrationAction(response);
+        
+        // Fallback: se não detectou bloco mas mensagem indica auditoria
+        if (!integrationAction) {
+          integrationAction = detectAuditIntentFromText(userMessage, response);
+        }
+        
         if (integrationAction) {
           const integrationTools = new IntegrationTools(user.id);
           let result;

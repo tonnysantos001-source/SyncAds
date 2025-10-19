@@ -261,7 +261,7 @@ export class IntegrationTools {
       const result: IntegrationAuditResult = {
         platform,
         status,
-        lastSync: data?.lastSync || undefined,
+        lastSync: data?.lastSyncAt || undefined,
         capabilities,
         issues: this.detectIssues(data, platform),
         recommendations: this.getRecommendations(status, platform),
@@ -313,7 +313,7 @@ export class IntegrationTools {
     try {
       const { data, error } = await supabase
         .from('Integration')
-        .select('platform, isConnected, lastSync')
+        .select('platform, isConnected, lastSyncAt')
         .eq('userId', this.userId);
 
       if (error) throw error;
@@ -324,7 +324,7 @@ export class IntegrationTools {
       const statusList = platforms.map(platform => ({
         platform,
         status: statusMap.has(platform) && statusMap.get(platform)?.isConnected ? '✅ Conectada' : '❌ Desconectada',
-        lastSync: statusMap.get(platform)?.lastSync || 'Nunca',
+        lastSync: statusMap.get(platform)?.lastSyncAt || 'Nunca',
       }));
 
       return {
@@ -539,4 +539,51 @@ export function cleanIntegrationBlocksFromResponse(response: string): string {
   return response
     .replace(/```integration-action\s*\n[\s\S]*?```/g, '')
     .trim();
+}
+
+// Detectar intenção de auditoria mesmo sem bloco formal (fallback)
+export function detectAuditIntentFromText(userMessage: string, aiResponse: string): { action: string; platform?: string } | null {
+  const messageLower = userMessage.toLowerCase();
+  const responseLower = aiResponse.toLowerCase();
+  
+  // Se a mensagem do usuário menciona auditoria/status e a IA confirma
+  const isAuditRequest = (
+    (messageLower.includes('auditor') || 
+     messageLower.includes('verificar') || 
+     messageLower.includes('status') ||
+     messageLower.includes('listar')) &&
+    (messageLower.includes('integra') || 
+     messageLower.includes('conex') || 
+     messageLower.includes('plataforma'))
+  );
+
+  const aiConfirmsAudit = (
+    responseLower.includes('vou') && 
+    (responseLower.includes('auditor') || 
+     responseLower.includes('verificar'))
+  );
+
+  if (!isAuditRequest || !aiConfirmsAudit) {
+    return null;
+  }
+
+  // Detectar plataforma específica
+  const platforms: Record<string, string> = {
+    'facebook': 'META_ADS',
+    'instagram': 'META_ADS',
+    'meta': 'META_ADS',
+    'google': 'GOOGLE_ADS',
+    'linkedin': 'LINKEDIN_ADS',
+    'tiktok': 'TIKTOK_ADS',
+    'twitter': 'TWITTER_ADS',
+  };
+
+  for (const [keyword, platform] of Object.entries(platforms)) {
+    if (messageLower.includes(keyword)) {
+      return { action: 'audit', platform };
+    }
+  }
+
+  // Se não especificou plataforma, auditar todas
+  return { action: 'audit_all' };
 }
