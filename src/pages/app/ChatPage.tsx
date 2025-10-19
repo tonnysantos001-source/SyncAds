@@ -263,9 +263,17 @@ const ChatPage: React.FC = () => {
           }
         } catch (error: any) {
           console.error('Erro ao processar integração:', error);
+          
+          // Adicionar mensagem de erro formatada no chat
+          addMessage(activeConversationId, {
+            id: `msg-${Date.now() + 2}`,
+            role: 'assistant',
+            content: `❌ **Erro ao conectar integração**\n\n${error.message || 'Erro ao processar comando de integração'}`
+          });
+          
           toast({
-            title: '❌ Erro',
-            description: error.message || 'Erro ao processar comando de integração',
+            title: '❌ Erro na Integração',
+            description: 'Verifique as instruções no chat',
             variant: 'destructive',
           });
         }

@@ -49,8 +49,16 @@ class IntegrationsService {
       throw new Error('Integração não suporta OAuth');
     }
 
-    if (!config.clientId) {
-      throw new Error(`Client ID não configurado para ${config.name}`);
+    // Validar se Client ID está configurado
+    if (!config.clientId || config.clientId === 'your-google-client-id' || config.clientId === 'your-meta-client-id' || config.clientId === 'your-linkedin-client-id' || config.clientId === 'your-twitter-client-id' || config.clientId === 'your-tiktok-client-id') {
+      throw new Error(
+        `❌ Client ID não configurado para ${config.name}\n\n` +
+        `📝 Para conectar esta integração, você precisa:\n` +
+        `1. Criar uma aplicação OAuth no ${config.name}\n` +
+        `2. Adicionar o Client ID no arquivo .env\n` +
+        `3. Reiniciar o servidor de desenvolvimento\n\n` +
+        `📖 Consulte OAUTH_SETUP.md para instruções detalhadas.`
+      );
     }
 
     // Gerar state único

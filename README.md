@@ -107,7 +107,18 @@ Crie um arquivo `.env` na raiz do projeto:
 ```env
 VITE_SUPABASE_URL=sua-url-do-supabase
 VITE_SUPABASE_ANON_KEY=sua-chave-anonima
+
+# OAuth (Opcional - para integrações reais)
+# Para teste rápido, use valores dummy
+# Para produção, siga OAUTH_SETUP.md
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_META_CLIENT_ID=your-meta-client-id
+VITE_LINKEDIN_CLIENT_ID=your-linkedin-client-id
 ```
+
+**💡 Nota sobre OAuth:**
+- Para **testar** sem configurar: use valores dummy (ex: `test_123`)
+- Para **produção**: consulte `OAUTH_SETUP.md` ou `README_OAUTH.md`
 
 ### **4. Iniciar o Servidor de Desenvolvimento**
 ```bash
