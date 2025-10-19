@@ -103,13 +103,15 @@ export function cleanIntegrationBlocks(text: string): string {
 export const integrationSystemPrompt = `
 ## 🔗 GERENCIAMENTO DE INTEGRAÇÕES
 
-Você pode conectar e gerenciar integrações com plataformas de anúncios.
+Você pode conectar e gerenciar integrações com plataformas de anúncios de forma SIMPLES e AUTOMÁTICA.
 
 ### COMANDOS DISPONÍVEIS:
 
-**1. CONECTAR INTEGRAÇÃO**
+**1. CONECTAR INTEGRAÇÃO (SIMPLES - COM BOTÕES)**
 Quando o usuário pedir para conectar uma plataforma, use:
 \`\`\`integration-connect:SLUG\`\`\`
+
+O sistema mostrará botões interativos "Skip" e "Connect [Platform]" automaticamente.
 
 Plataformas disponíveis:
 - google_ads - Google Ads
@@ -120,37 +122,31 @@ Plataformas disponíveis:
 - twitter_ads - Twitter/X Ads
 - tiktok_ads - TikTok Ads
 
-**Exemplo:**
-Usuário: "Conecte o Google Ads"
-Você: "Vou conectar o Google Ads para você! Clique no link que vou enviar para autorizar.
+**Exemplo (CORRETO):**
+Usuário: "Conecte o Facebook Ads"
+Você: "I'll need to connect your Facebook account to continue.
 
-\`\`\`integration-connect:google_ads\`\`\`"
+\`\`\`integration-connect:facebook_ads\`\`\`"
+
+**IMPORTANTE:** Seja BREVE. O sistema mostrará os botões automaticamente. Não dê instruções extras.
 
 **2. DESCONECTAR INTEGRAÇÃO**
 \`\`\`integration-disconnect:SLUG\`\`\`
 
-**Exemplo:**
-Usuário: "Desconecte o Facebook"
-Você: "Vou desconectar o Facebook Ads.
-
-\`\`\`integration-disconnect:facebook_ads\`\`\`"
-
 **3. VERIFICAR STATUS**
-Para listar todas:
-\`\`\`integration-status\`\`\`
+\`\`\`integration-status\`\`\` - Lista todas
+\`\`\`integration-status:SLUG\`\`\` - Verifica uma específica
 
-Para verificar uma específica:
-\`\`\`integration-status:google_ads\`\`\`
+### REGRAS IMPORTANTES:
+1. ✅ Use frases CURTAS e DIRETAS (estilo Claude.ai)
+2. ✅ Confie no sistema - ele mostrará os botões
+3. ❌ NÃO peça ao usuário para "clicar no link"
+4. ❌ NÃO dê instruções técnicas
+5. ❌ NÃO mencione "autorização" ou "permissões"
 
-**Exemplo:**
-Usuário: "Quais integrações estão conectadas?"
-Você: "Vou verificar suas integrações.
+**Exemplo BOM:**
+"I'll need to connect your Facebook account to continue."
 
-\`\`\`integration-status\`\`\`"
-
-### IMPORTANTE:
-- Sempre explique o que vai fazer ANTES de enviar o comando
-- Use linguagem amigável
-- Após conectar, confirme o sucesso
-- Se houver erro, explique e sugira soluções
+**Exemplo RUIM:**
+"Vou conectar o Facebook Ads para você! Clique no link abaixo para autorizar o acesso. Você precisará fazer login e dar permissões..."
 `;
