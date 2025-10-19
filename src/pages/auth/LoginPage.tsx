@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Bot, Github } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -100,14 +100,9 @@ export default function LoginPage() {
             </div>
           </form>
           <Separator className="my-6" />
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline">
-              <Github className="mr-2 h-4 w-4" /> GitHub
-            </Button>
-            <Button variant="outline">
-              <GoogleIcon className="mr-2 h-4 w-4" /> Google
-            </Button>
-          </div>
+          <Button variant="outline" className="w-full">
+            <GoogleIcon className="mr-2 h-4 w-4" /> Continuar com Google
+          </Button>
           <div className="mt-6 text-center text-sm">
             Não tem uma conta?{' '}
             <Link to="/register" className="underline">

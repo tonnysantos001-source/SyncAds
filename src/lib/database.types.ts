@@ -7,13 +7,55 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
+      AiConnection: {
+        Row: {
+          apiKey: string
+          baseUrl: string | null
+          createdAt: string
+          id: string
+          model: string | null
+          name: string
+          status: string
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          apiKey: string
+          baseUrl?: string | null
+          createdAt?: string
+          id: string
+          model?: string | null
+          name: string
+          status?: string
+          updatedAt: string
+          userId: string
+        }
+        Update: {
+          apiKey?: string
+          baseUrl?: string | null
+          createdAt?: string
+          id?: string
+          model?: string | null
+          name?: string
+          status?: string
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AiConnection_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       AiPersonality: {
         Row: {
           analyticsPrompt: string | null
@@ -264,6 +306,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "Campaign_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ChatConversation: {
+        Row: {
+          createdAt: string
+          id: string
+          title: string
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          createdAt?: string
+          id: string
+          title: string
+          updatedAt: string
+          userId: string
+        }
+        Update: {
+          createdAt?: string
+          id?: string
+          title?: string
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ChatConversation_userId_fkey"
             columns: ["userId"]
             isOneToOne: false
             referencedRelation: "User"

@@ -2,13 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Paperclip, Send, User, Bot, PanelLeftClose, PanelLeftOpen, Trash2 } from 'lucide-react';
+import { Paperclip, Send, User, Bot, PanelLeftClose, PanelLeftOpen, Trash2, Plus } from 'lucide-react';
 import Textarea from 'react-textarea-autosize';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
 import { createAiService, type AiMessage } from '@/lib/ai/openai';
+import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
+import { 
+  AdminTools, 
+  adminSystemPrompt, 
+  detectAdminSQL, 
+  detectAdminAnalyze, 
+  detectAdminIntegration, 
+  detectAdminMetrics,
+  cleanAdminBlocksFromResponse 
+} from '@/lib/ai/adminTools';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,8 +50,11 @@ const ChatPage: React.FC = () => {
     isAssistantTyping,
     setAssistantTyping,
     deleteConversation,
+    createNewConversation,
     aiConnections,
     aiSystemPrompt,
+    addCampaign,
+    user,
   } = useStore();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -87,9 +100,10 @@ const ChatPage: React.FC = () => {
 
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find(c => c.id === activeConversationId);
+      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + aiSystemPrompt;
       const messages: AiMessage[] = [
-        { role: 'system', content: aiSystemPrompt },
-        ...(conversation?.messages || []).slice(-10).map(msg => ({
+        { role: 'system', content: systemMessage },
+        ...(conversation?.messages || []).slice(-20).map(msg => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
         })),
@@ -99,14 +113,109 @@ const ChatPage: React.FC = () => {
       // Chamar IA
       const response = await aiService.chat(messages, {
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
       });
 
+      // Detectar se a IA quer criar uma campanha
+      const campaignIntent = detectCampaignIntent(response);
+      
+      if (campaignIntent) {
+        try {
+          await addCampaign({
+            name: campaignIntent.data.name,
+            platform: campaignIntent.data.platform,
+            status: 'Pausada',
+            budgetTotal: campaignIntent.data.budgetTotal,
+            budgetSpent: 0,
+            impressions: 0,
+            clicks: 0,
+            conversions: 0,
+            startDate: campaignIntent.data.startDate,
+            endDate: campaignIntent.data.endDate || '',
+            ctr: 0,
+            cpc: 0,
+          });
+          
+          toast({
+            title: '🎉 Campanha Criada!',
+            description: `A campanha "${campaignIntent.data.name}" foi criada com sucesso.`,
+          });
+        } catch (error) {
+          console.error('Error creating campaign from AI:', error);
+          toast({
+            title: 'Erro ao criar campanha',
+            description: 'Não foi possível criar a campanha automaticamente.',
+            variant: 'destructive',
+          });
+        }
+      }
+
+      // Processar comandos administrativos (se usuário tem permissão)
+      if (user) {
+        const adminTools = new AdminTools(user.id);
+
+        // Detectar e executar SQL
+        const sqlCommand = detectAdminSQL(response);
+        if (sqlCommand) {
+          const result = await adminTools.executeSQL(sqlCommand);
+          toast({
+            title: result.success ? '✅ SQL Executado' : '❌ Erro SQL',
+            description: result.message,
+            variant: result.success ? 'default' : 'destructive',
+          });
+        }
+
+        // Detectar e executar análise de sistema
+        const analyzeCommand = detectAdminAnalyze(response);
+        if (analyzeCommand) {
+          const result = await adminTools.analyzeSystem(analyzeCommand.type, analyzeCommand.period);
+          toast({
+            title: result.success ? '📊 Análise Concluída' : '❌ Erro',
+            description: result.message,
+            variant: result.success ? 'default' : 'destructive',
+          });
+        }
+
+        // Detectar e executar gerenciamento de integração
+        const integrationCommand = detectAdminIntegration(response);
+        if (integrationCommand) {
+          const result = await adminTools.manageIntegration(
+            integrationCommand.action,
+            integrationCommand.platform,
+            integrationCommand.credentials
+          );
+          toast({
+            title: result.success ? '🔗 Integração Atualizada' : '❌ Erro',
+            description: result.message,
+            variant: result.success ? 'default' : 'destructive',
+          });
+        }
+
+        // Detectar e executar obtenção de métricas
+        const metricsCommand = detectAdminMetrics(response);
+        if (metricsCommand) {
+          const result = await adminTools.getMetrics(
+            metricsCommand.metric,
+            metricsCommand.aggregation,
+            metricsCommand.groupBy
+          );
+          toast({
+            title: result.success ? '📈 Métricas Obtidas' : '❌ Erro',
+            description: result.message,
+            variant: result.success ? 'default' : 'destructive',
+          });
+        }
+      }
+
+      // Limpar blocos de código da resposta antes de exibir
+      let cleanedResponse = cleanCampaignBlockFromResponse(response);
+      cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
+      
       // Adicionar resposta da IA
       addMessage(activeConversationId, { 
         id: `msg-${Date.now() + 1}`, 
         role: 'assistant', 
-        content: response 
+        content: cleanedResponse 
       });
     } catch (error: any) {
       console.error('Erro ao chamar IA:', error);
@@ -161,10 +270,21 @@ const ChatPage: React.FC = () => {
   return (
     <div className="flex h-full">
       {/* Conversations Sidebar */}
-      <Card className={cn("transition-all duration-300 ease-in-out hidden sm:block border-0", sidebarOpen ? "w-1/4 min-w-[250px]" : "w-0 min-w-0 opacity-0")}>
-        <CardContent className="p-2 h-full overflow-y-auto">
-          <h2 className="text-lg font-semibold p-2">Conversas</h2>
-          <div className="space-y-1">
+      <Card className={cn("transition-all duration-300 ease-in-out hidden sm:block border-0", sidebarOpen ? "w-80" : "w-0 min-w-0 opacity-0 overflow-hidden")}>
+
+        <CardContent className="p-2 h-full overflow-y-auto flex flex-col">
+          <div className="flex items-center justify-between p-2 mb-2">
+            <h2 className="text-lg font-semibold">Conversas</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => createNewConversation()}
+              title="Nova Conversa"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="space-y-1 flex-1 overflow-y-auto">
             {conversations.map(conv => (
               <div key={conv.id} className="group relative">
                 <Button

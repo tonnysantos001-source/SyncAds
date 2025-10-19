@@ -16,7 +16,7 @@ export const chatApi = {
         .order('createdAt', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data || [];
     } catch (error) {
       console.error('Get conversation messages error:', error);
       throw error;

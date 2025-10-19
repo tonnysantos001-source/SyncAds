@@ -4,12 +4,10 @@ import {
   categorizedIntegrations, 
   ChatConversation, 
   ChatMessage, 
-  chatConversations as initialConversations,
   Campaign,
-  allCampaigns as initialCampaigns,
 } from '@/data/mocks';
 import { v4 as uuidv4 } from 'uuid';
-import { authApi, campaignsApi } from '@/lib/api';
+import { authApi, campaignsApi, aiConnectionsApi, conversationsApi, chatApi } from '@/lib/api';
 import type { Tables } from '@/lib/database.types';
 
 type IntegrationId = typeof categorizedIntegrations[0]['integrations'][number]['id'];
@@ -36,8 +34,8 @@ export interface AiConnection {
   id: string;
   name: string;
   apiKey: string;
-  baseUrl?: string;
-  model?: string;
+  baseUrl?: string | null;
+  model?: string | null;
   status: 'untested' | 'valid' | 'invalid';
 }
 
@@ -64,8 +62,10 @@ interface AppState {
   conversations: ChatConversation[];
   activeConversationId: string | null;
   setActiveConversationId: (id: string | null) => void;
-  addMessage: (conversationId: string, message: ChatMessage) => void;
-  deleteConversation: (id: string) => void;
+  loadConversations: () => Promise<void>;
+  createNewConversation: (title?: string) => Promise<void>;
+  addMessage: (conversationId: string, message: ChatMessage) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
   isAssistantTyping: boolean;
   setAssistantTyping: (isTyping: boolean) => void;
 
@@ -77,6 +77,13 @@ interface AppState {
   updateCampaignStatus: (id: string, status: Campaign['status']) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
 
+  // AI Connections
+  aiConnections: AiConnection[];
+  loadAiConnections: () => Promise<void>;
+  addAiConnection: (connection: Omit<AiConnection, 'id' | 'status'>) => Promise<void>;
+  updateAiConnection: (id: string, data: Partial<Omit<AiConnection, 'id'>>) => Promise<void>;
+  removeAiConnection: (id: string) => Promise<void>;
+
   // Settings
   aiSystemPrompt: string;
   setAiSystemPrompt: (prompt: string) => void;
@@ -84,10 +91,6 @@ interface AppState {
   setTwoFactorEnabled: (enabled: boolean) => void;
   notificationSettings: NotificationSettings;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
-  aiConnections: AiConnection[];
-  addAiConnection: (connection: Omit<AiConnection, 'id' | 'status'>) => void;
-  updateAiConnection: (id: string, data: Partial<Omit<AiConnection, 'id'>>) => void;
-  removeAiConnection: (id: string) => void;
 }
 
 const initialNotificationSettings: NotificationSettings = {
@@ -122,8 +125,12 @@ export const useStore = create<AppState>()(
               },
               isInitialized: true,
             });
-            // Load user data
-            await get().loadCampaigns();
+            // Load user data from Supabase
+            await Promise.all([
+              get().loadCampaigns(),
+              get().loadAiConnections(),
+              get().loadConversations(),
+            ]);
           } else {
             set({ isInitialized: true });
           }
@@ -149,7 +156,11 @@ export const useStore = create<AppState>()(
                   plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
                 }
               });
-              await get().loadCampaigns();
+              await Promise.all([
+                get().loadCampaigns(),
+                get().loadAiConnections(),
+                get().loadConversations(),
+              ]);
             }
           }
         } catch (error) {
@@ -194,6 +205,7 @@ export const useStore = create<AppState>()(
             isTwoFactorEnabled: false,
             notificationSettings: initialNotificationSettings,
             aiConnections: [],
+            activeConversationId: null,
           });
         } catch (error) {
           console.error('Logout error:', error);
@@ -219,35 +231,125 @@ export const useStore = create<AppState>()(
         } else {
           return { connectedIntegrations: currentIntegrations.filter(i => i !== id) };
         }
-        return {}; // No change
+        return {};
       }),
 
       // Chat
-      conversations: initialConversations,
-      activeConversationId: initialConversations.length > 0 ? initialConversations[0].id : null,
+      conversations: [],
+      activeConversationId: null,
       setActiveConversationId: (id) => set({ activeConversationId: id }),
-      addMessage: (conversationId, message) => set((state) => {
-        const newConversations = state.conversations.map(conv => {
-          if (conv.id === conversationId) {
-            return { ...conv, messages: [...conv.messages, message] };
-          }
-          return conv;
-        });
-        return { conversations: newConversations };
-      }),
-      deleteConversation: (id) => set((state) => {
-        const remainingConversations = state.conversations.filter(conv => conv.id !== id);
-        let newActiveId = state.activeConversationId;
+      
+      loadConversations: async () => {
+        const user = get().user;
+        if (!user) return;
+        try {
+          const dbConversations = await conversationsApi.getConversations(user.id);
+          
+          // Load messages for each conversation
+          const conversationsWithMessages = await Promise.all(
+            dbConversations.map(async (conv) => {
+              const messages = await chatApi.getConversationMessages(conv.id);
+              return {
+                id: conv.id,
+                title: conv.title,
+                messages: messages.map(msg => ({
+                  id: msg.id,
+                  role: msg.role.toLowerCase() as 'user' | 'assistant',
+                  content: msg.content,
+                })),
+              };
+            })
+          );
 
-        if (state.activeConversationId === id) {
-          newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+          set({ 
+            conversations: conversationsWithMessages,
+            activeConversationId: conversationsWithMessages.length > 0 ? conversationsWithMessages[0].id : null,
+          });
+        } catch (error) {
+          console.error('Load conversations error:', error);
         }
+      },
 
-        return { 
-          conversations: remainingConversations,
-          activeConversationId: newActiveId,
-        };
-      }),
+      createNewConversation: async (title?: string) => {
+        const user = get().user;
+        if (!user) return;
+        
+        try {
+          const conversationTitle = title || `Nova Conversa ${new Date().toLocaleDateString()}`;
+          const newConversation = await conversationsApi.createConversation(user.id, conversationTitle);
+          
+          set((state) => ({
+            conversations: [
+              {
+                id: newConversation.id,
+                title: newConversation.title,
+                messages: [],
+              },
+              ...state.conversations,
+            ],
+            activeConversationId: newConversation.id,
+          }));
+        } catch (error) {
+          console.error('Create conversation error:', error);
+          throw error;
+        }
+      },
+
+      addMessage: async (conversationId, message) => {
+        const user = get().user;
+        if (!user) return;
+
+        try {
+          // Add to local state first for immediate feedback
+          set((state) => {
+            const newConversations = state.conversations.map(conv => {
+              if (conv.id === conversationId) {
+                return { ...conv, messages: [...conv.messages, message] };
+              }
+              return conv;
+            });
+            return { conversations: newConversations };
+          });
+
+          // Save to Supabase
+          await chatApi.createMessage(
+            user.id,
+            conversationId,
+            message.role.toUpperCase() as 'USER' | 'ASSISTANT',
+            message.content
+          );
+
+          // Update conversation timestamp
+          await conversationsApi.touchConversation(conversationId);
+        } catch (error) {
+          console.error('Add message error:', error);
+          // Optionally rollback the local change
+        }
+      },
+
+      deleteConversation: async (id) => {
+        try {
+          await conversationsApi.deleteConversation(id);
+          
+          set((state) => {
+            const remainingConversations = state.conversations.filter(conv => conv.id !== id);
+            let newActiveId = state.activeConversationId;
+
+            if (state.activeConversationId === id) {
+              newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+            }
+
+            return { 
+              conversations: remainingConversations,
+              activeConversationId: newActiveId,
+            };
+          });
+        } catch (error) {
+          console.error('Delete conversation error:', error);
+          throw error;
+        }
+      },
+
       isAssistantTyping: false,
       setAssistantTyping: (isTyping) => set({ isAssistantTyping: isTyping }),
 
@@ -258,7 +360,6 @@ export const useStore = create<AppState>()(
         if (!user) return;
         try {
           const data = await campaignsApi.getCampaigns(user.id);
-          // Transform database format to frontend format
           const campaigns: Campaign[] = data.map(c => ({
             id: c.id,
             name: c.name,
@@ -283,7 +384,7 @@ export const useStore = create<AppState>()(
         const user = get().user;
         if (!user) return;
         try {
-          const newCampaign = await campaignsApi.createCampaign(user.id, {
+          await campaignsApi.createCampaign(user.id, {
             name: campaignData.name,
             objective: 'Conversões',
             platform: campaignData.platform === 'Google Ads' ? 'GOOGLE_ADS' : campaignData.platform === 'Meta' ? 'META_ADS' : 'LINKEDIN_ADS',
@@ -344,6 +445,67 @@ export const useStore = create<AppState>()(
         }
       },
 
+      // AI Connections
+      aiConnections: [],
+      
+      loadAiConnections: async () => {
+        const user = get().user;
+        if (!user) return;
+        try {
+          const connections = await aiConnectionsApi.getConnections(user.id);
+          set({ 
+            aiConnections: connections.map(conn => ({
+              id: conn.id,
+              name: conn.name,
+              apiKey: conn.apiKey,
+              baseUrl: conn.baseUrl,
+              model: conn.model,
+              status: conn.status as 'untested' | 'valid' | 'invalid',
+            }))
+          });
+        } catch (error) {
+          console.error('Load AI connections error:', error);
+        }
+      },
+
+      addAiConnection: async (connection) => {
+        const user = get().user;
+        if (!user) return;
+        try {
+          await aiConnectionsApi.createConnection(user.id, {
+            name: connection.name,
+            apiKey: connection.apiKey,
+            baseUrl: connection.baseUrl || null,
+            model: connection.model || null,
+            status: 'untested',
+          });
+          await get().loadAiConnections();
+        } catch (error) {
+          console.error('Add AI connection error:', error);
+          throw error;
+        }
+      },
+
+      updateAiConnection: async (id, data) => {
+        try {
+          await aiConnectionsApi.updateConnection(id, data);
+          await get().loadAiConnections();
+        } catch (error) {
+          console.error('Update AI connection error:', error);
+          throw error;
+        }
+      },
+
+      removeAiConnection: async (id) => {
+        try {
+          await aiConnectionsApi.deleteConnection(id);
+          await get().loadAiConnections();
+        } catch (error) {
+          console.error('Remove AI connection error:', error);
+          throw error;
+        }
+      },
+
       // Settings
       aiSystemPrompt: 'Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.',
       setAiSystemPrompt: (prompt) => set({ aiSystemPrompt: prompt }),
@@ -352,16 +514,6 @@ export const useStore = create<AppState>()(
       notificationSettings: initialNotificationSettings,
       updateNotificationSettings: (settings) => set(state => ({
         notificationSettings: { ...state.notificationSettings, ...settings }
-      })),
-      aiConnections: [],
-      addAiConnection: (connection) => set(state => ({
-        aiConnections: [...state.aiConnections, { ...connection, id: uuidv4(), status: 'untested' }]
-      })),
-      updateAiConnection: (id, data) => set(state => ({
-        aiConnections: state.aiConnections.map(conn => conn.id === id ? { ...conn, ...data } : conn)
-      })),
-      removeAiConnection: (id) => set(state => ({
-        aiConnections: state.aiConnections.filter(conn => conn.id !== id)
       })),
     }),
     {
@@ -374,12 +526,12 @@ export const useStore = create<AppState>()(
         aiSystemPrompt: state.aiSystemPrompt,
         isTwoFactorEnabled: state.isTwoFactorEnabled,
         notificationSettings: state.notificationSettings,
-        aiConnections: state.aiConnections,
+        // Não persiste mais aiConnections, conversations ou campaigns no localStorage
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (!state.campaigns) state.campaigns = initialCampaigns;
-          if (!state.conversations) state.conversations = initialConversations;
+          if (!state.campaigns) state.campaigns = [];
+          if (!state.conversations) state.conversations = [];
           if (!Array.isArray(state.connectedIntegrations)) {
             state.connectedIntegrations = ['google-analytics', 'github'];
           }

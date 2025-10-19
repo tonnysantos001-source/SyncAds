@@ -25,7 +25,7 @@ const ConnectionCard: React.FC<{ connection: AiConnection }> = ({ connection }) 
 
   const handleTest = async () => {
     setIsTesting(true);
-    updateAiConnection(connection.id, { status: 'untested' });
+    await updateAiConnection(connection.id, { status: 'untested' });
     
     try {
       // Criar serviço de IA com as credenciais
@@ -35,21 +35,21 @@ const ConnectionCard: React.FC<{ connection: AiConnection }> = ({ connection }) 
       const result = await aiService.testConnection();
       
       if (result.success) {
-        updateAiConnection(connection.id, { status: 'valid' });
+        await updateAiConnection(connection.id, { status: 'valid' });
         toast({
           title: 'Conexão Válida!',
           description: `A conexão com "${connection.name}" foi bem-sucedida.`,
         });
       } else if (result.isCorsError) {
         // Erro CORS - permitir marcar manualmente como válida
-        updateAiConnection(connection.id, { status: 'valid' });
+        await updateAiConnection(connection.id, { status: 'valid' });
         toast({
           title: '⚠️ Limitação do Navegador (CORS)',
           description: 'Não foi possível testar devido a restrições do navegador, mas a chave foi marcada como válida. Ela será validada ao usar o chat.',
           variant: 'default',
         });
       } else {
-        updateAiConnection(connection.id, { status: 'invalid' });
+        await updateAiConnection(connection.id, { status: 'invalid' });
         toast({
           title: 'Falha no Teste',
           description: result.error || 'Não foi possível conectar com a API. Verifique sua chave e URL base.',
@@ -57,7 +57,7 @@ const ConnectionCard: React.FC<{ connection: AiConnection }> = ({ connection }) 
         });
       }
     } catch (error: any) {
-      updateAiConnection(connection.id, { status: 'invalid' });
+      await updateAiConnection(connection.id, { status: 'invalid' });
       toast({
         title: 'Erro ao Testar Conexão',
         description: error.message || 'Verifique sua chave de API e URL base.',
@@ -68,8 +68,8 @@ const ConnectionCard: React.FC<{ connection: AiConnection }> = ({ connection }) 
     }
   };
 
-  const handleMarkAsValid = () => {
-    updateAiConnection(connection.id, { status: 'valid' });
+  const handleMarkAsValid = async () => {
+    await updateAiConnection(connection.id, { status: 'valid' });
     toast({
       title: 'Marcada como Válida',
       description: 'A chave foi marcada como válida manualmente.',
@@ -191,7 +191,7 @@ export const ApiKeysTab: React.FC = () => {
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
           <p className="text-xs text-muted-foreground">
-            Suas chaves de API são armazenadas de forma segura no seu navegador e nunca são enviadas para nossos servidores.
+            ✅ Suas chaves de API agora são sincronizadas entre todos os seus dispositivos de forma segura.
           </p>
         </CardFooter>
       </Card>

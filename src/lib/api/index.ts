@@ -3,3 +3,5 @@ export * from './campaigns';
 export * from './integrations';
 export * from './chat';
 export * from './notifications';
+export * from './aiConnections';
+export * from './conversations';
