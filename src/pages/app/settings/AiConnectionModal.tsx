@@ -36,10 +36,10 @@ const AI_PROVIDERS = [
 ];
 
 const connectionSchema = z.object({
-  name: z.string().min(1, 'O nome é obrigatório.'),
-  apiKey: z.string().min(1, 'A chave de API é obrigatória.'),
-  baseUrl: z.string().optional().or(z.literal('')),
-  model: z.string().optional().or(z.literal('')),
+  name: z.string().trim().min(1, 'O nome é obrigatório.'),
+  apiKey: z.string().trim().min(1, 'A chave de API é obrigatória.'),
+  baseUrl: z.string().trim().optional().or(z.literal('')),
+  model: z.string().trim().optional().or(z.literal('')),
 });
 
 type ConnectionFormData = z.infer<typeof connectionSchema>;

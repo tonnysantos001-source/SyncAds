@@ -37,6 +37,7 @@
 - Build: `npm install && npm run build`
 - Publish: `dist`
 - Fix: Componente alert.tsx criado (estava faltando)
+- Fix: AiConnectionModal agora faz trim() automático nas chaves (remove espaços)
 
 ## Próximos Passos Técnicos
 - Fase 2: Integrações reais (Google Ads, Meta, LinkedIn)
