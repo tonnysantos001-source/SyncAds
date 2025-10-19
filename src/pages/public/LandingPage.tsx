@@ -12,7 +12,11 @@ import {
   Target,
   BarChart3,
   Bot,
-  X
+  X,
+  Check,
+  CreditCard,
+  Crown,
+  Rocket
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -201,8 +205,374 @@ const LandingPage = () => {
           </div>
         </section>
 
+        {/* Section - Planos e Preços */}
+        <section className="py-20 bg-gradient-to-b from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 relative overflow-hidden">
+          {/* Destaque Checkout Grátis - Floating Banner */}
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-10">
+            <div className="px-8 py-4 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-full shadow-2xl shadow-green-500/50 animate-pulse">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-6 w-6 text-white" />
+                <span className="text-white font-black text-lg">
+                  🎉 CHECKOUT DE PAGAMENTO GRÁTIS EM TODOS OS PLANOS!
+                </span>
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 pt-24">
+            <div className="max-w-7xl mx-auto">
+              {/* Header */}
+              <div className="text-center mb-16">
+                <h2 className="text-4xl sm:text-6xl font-black mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  💎 Escolha Seu <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Plano Perfeito</span>
+                </h2>
+                <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                  Todos os planos incluem <span className="font-bold text-green-600">Checkout Grátis</span> - economize mais de R$ 200/mês em taxas!
+                </p>
+              </div>
+
+              {/* Cards de Planos */}
+              <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
+                {/* Plano Free */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-6 shadow-lg hover:shadow-xl transition-all">
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Grátis</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-5xl font-black text-gray-900 dark:text-white">R$ 0</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>5 campanhas/mês</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>1 conta ativa</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>Relatórios básicos</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/register">Começar Grátis</Link>
+                  </Button>
+                </div>
+
+                {/* Plano Pro */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-blue-500 dark:border-blue-600 p-6 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                  <div className="text-center mb-6">
+                    <div className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full mb-2">
+                      POPULAR
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Pro</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-5xl font-black text-gray-900 dark:text-white">R$ 100</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">20 campanhas/mês</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>Campanhas ilimitadas</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>Análises avançadas</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>Suporte por email</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700" asChild>
+                    <Link to="/register">Começar Agora</Link>
+                  </Button>
+                </div>
+
+                {/* Plano Business */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/50 dark:to-blue-950/50 rounded-2xl border-2 border-purple-500 dark:border-purple-600 p-6 shadow-2xl hover:shadow-3xl transition-all transform hover:-translate-y-2 relative">
+                  <div className="absolute -top-3 -right-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1 rounded-full text-xs font-black shadow-lg animate-bounce">
+                    🔥 RECOMENDADO
+                  </div>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Business</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-5xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">R$ 250</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">52 campanhas/mês</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Tudo ilimitado</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>IA Avançada</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Suporte prioritário</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>1 membro de equipe</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 shadow-lg" asChild>
+                    <Link to="/register">Começar Agora</Link>
+                  </Button>
+                </div>
+
+                {/* Plano Scale */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-orange-500 dark:border-orange-600 p-6 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Scale</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ 1.000</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">240 campanhas/mês</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span>Recursos ilimitados</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span>IA Premium</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span>Suporte Slack</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span>Até 3 membros</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span>2 sub-contas</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700" asChild>
+                    <Link to="/register">Começar Agora</Link>
+                  </Button>
+                </div>
+
+                {/* Plano Growth */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-emerald-500 dark:border-emerald-600 p-6 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                  <div className="text-center mb-6">
+                    <div className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full mb-2">
+                      <Rocket className="h-3 w-3" />
+                      AGÊNCIAS
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Growth</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ 2.500</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">800 campanhas/mês</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>Tudo ilimitado</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>IA Ultra Premium</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>Suporte dedicado</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>Até 5 membros</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>5 sub-contas</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700" asChild>
+                    <Link to="/register">Começar Agora</Link>
+                  </Button>
+                </div>
+
+                {/* Plano Enterprise */}
+                <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-yellow-500 p-6 shadow-2xl hover:shadow-3xl transition-all relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full blur-2xl" />
+                  
+                  <div className="relative text-center mb-6">
+                    <div className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 text-xs font-black rounded-full mb-2">
+                      <Crown className="h-3 w-3" />
+                      VIP
+                    </div>
+                    <h3 className="text-2xl font-black text-white mb-2">Enterprise</h3>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                        Personalizado
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">contato com vendas</p>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">Créditos customizados</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span>Recursos ilimitados</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span>IA Exclusiva</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span>Suporte on-call</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span>Membros ilimitados</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span>Sub-contas ilimitadas</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-white">
+                      <Check className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                      <span className="font-bold text-green-400">✅ Checkout Grátis</span>
+                    </li>
+                  </ul>
+                  
+                  <Button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 hover:from-yellow-500 hover:to-orange-600 font-bold shadow-lg shadow-yellow-500/50" asChild>
+                    <Link to="/register">Falar com Vendas</Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Destaque Checkout Grátis - Card Informativo */}
+              <div className="max-w-4xl mx-auto">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-3xl blur-xl group-hover:blur-2xl transition-all opacity-75" />
+                  <div className="relative p-8 sm:p-12 bg-white dark:bg-gray-900 rounded-3xl border-2 border-green-500 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                      <div className="flex-shrink-0">
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/50">
+                          <CreditCard className="h-10 w-10 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-3">
+                          🎉 Nosso Diferencial: <span className="text-green-600">Checkout 100% Grátis!</span>
+                        </h3>
+                        <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
+                          Enquanto outras plataformas cobram <span className="font-bold text-red-600">R$ 200+/mês</span> só pelo gateway de pagamento, 
+                          <span className="font-bold text-green-600"> nós oferecemos GRÁTIS em todos os planos!</span>
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
+                          <div className="px-4 py-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-500">
+                            <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                              💰 Economize R$ 200+/mês
+                            </p>
+                          </div>
+                          <div className="px-4 py-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-500">
+                            <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                              🚀 Setup instantâneo
+                            </p>
+                          </div>
+                          <div className="px-4 py-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-500">
+                            <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                              ✅ Sem taxas ocultas
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comparação de Economia */}
+              <div className="mt-16 max-w-3xl mx-auto">
+                <div className="p-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl border-2 border-blue-300 dark:border-blue-700">
+                  <h4 className="text-2xl font-black text-center text-gray-900 dark:text-white mb-6">
+                    💡 Comparação Anual: SyncAds vs Concorrentes
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="p-6 bg-red-50 dark:bg-red-950/30 rounded-xl border-2 border-red-300">
+                      <p className="text-lg font-bold text-red-600 mb-2">❌ Outras Plataformas</p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">R$ 3.400/ano</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">R$ 100 plano + R$ 200 checkout</p>
+                    </div>
+                    <div className="p-6 bg-green-50 dark:bg-green-950/30 rounded-xl border-2 border-green-500">
+                      <p className="text-lg font-bold text-green-600 mb-2">✅ SyncAds (Plano Pro)</p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">R$ 1.200/ano</p>
+                      <p className="text-sm text-green-600 dark:text-green-400 font-bold">Economia de R$ 2.200/ano! 🎉</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Section - Comparação (GATILHO DE CONTRASTE) */}
-        <section className="py-20 bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/20 dark:to-gray-900">
+        <section className="py-20 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950/20 dark:to-gray-900">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl sm:text-5xl font-black text-center mb-16" style={{ fontFamily: 'Poppins, sans-serif' }}>
