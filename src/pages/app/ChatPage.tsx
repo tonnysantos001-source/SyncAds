@@ -24,6 +24,12 @@ import {
   cleanIntegrationBlocks,
   integrationSystemPrompt
 } from '@/lib/integrations/integrationParsers';
+import {
+  IntegrationTools,
+  integrationControlPrompt,
+  detectIntegrationAction,
+  cleanIntegrationBlocksFromResponse
+} from '@/lib/ai/integrationTools';
 import { integrationsService } from '@/lib/integrations/integrationsService';
 import { INTEGRATIONS_CONFIG } from '@/lib/integrations/types';
 import {
@@ -126,7 +132,7 @@ const ChatPage: React.FC = () => {
 
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find((c: any) => c.id === activeConversationId);
-      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + aiSystemPrompt;
+      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + aiSystemPrompt;
       const messages: AiMessage[] = [
         { role: 'system', content: systemMessage },
         ...(conversation?.messages || []).slice(-20).map((msg: any) => ({
@@ -230,6 +236,51 @@ const ChatPage: React.FC = () => {
             description: result.message,
             variant: result.success ? 'default' : 'destructive',
           });
+        }
+
+        // Detectar e executar ações de integração (auditoria, teste, etc)
+        const integrationAction = detectIntegrationAction(response);
+        if (integrationAction) {
+          const integrationTools = new IntegrationTools(user.id);
+          let result;
+
+          switch (integrationAction.action) {
+            case 'audit':
+              if (integrationAction.platform) {
+                result = await integrationTools.auditIntegration(integrationAction.platform);
+              }
+              break;
+            case 'audit_all':
+              result = await integrationTools.auditAll();
+              break;
+            case 'list_status':
+              result = await integrationTools.listStatus();
+              break;
+            case 'test':
+            case 'capabilities':
+            case 'diagnose':
+              result = {
+                success: true,
+                message: `Ação "${integrationAction.action}" detectada. Implementação em andamento.`,
+              };
+              break;
+          }
+
+          if (result) {
+            // Adicionar resultado como mensagem da IA
+            const cleanedResponse = cleanIntegrationBlocksFromResponse(response);
+            addMessage(activeConversationId, {
+              id: `msg-${Date.now() + 2}`,
+              role: 'assistant',
+              content: cleanedResponse + '\n\n' + result.message,
+            });
+
+            toast({
+              title: result.success ? '✅ Ação Executada' : '❌ Erro',
+              description: result.success ? 'Auditoria concluída com sucesso' : result.error || 'Erro ao executar ação',
+              variant: result.success ? 'default' : 'destructive',
+            });
+          }
         }
       }
 
