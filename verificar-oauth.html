@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação OAuth - SyncAds</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1877f2;
+            margin-top: 0;
+        }
+        .check {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .check.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .check.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .check.warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .icon {
+            font-size: 24px;
+        }
+        button {
+            background: #1877f2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #166fe5;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #1877f2;
+            margin: 15px 0;
+        }
+        .url-box {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Verificação OAuth - Facebook Ads</h1>
+        <p>Esta página verifica se suas credenciais OAuth estão configuradas corretamente.</p>
+        
+        <button onclick="verificarConfiguracao()">🔍 Verificar Configuração</button>
+        <button onclick="gerarURLOAuth()" id="btnGerarURL" disabled>🔗 Gerar URL OAuth</button>
+        <button onclick="testarOAuth()" id="btnTestar" disabled>🚀 Testar OAuth</button>
+        
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        // Configurações (ATUALIZE AQUI SE NECESSÁRIO)
+        const CONFIG = {
+            clientId: '1907637243430460',
+            redirectUri: 'http://localhost:5173/integrations/callback',
+            scopes: ['ads_management', 'ads_read', 'pages_manage_ads'],
+            authUrl: 'https://www.facebook.com/v18.0/dialog/oauth'
+        };
+
+        function mostrarResultado(tipo, mensagem) {
+            const div = document.createElement('div');
+            div.className = `check ${tipo}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️'
+            };
+            
+            div.innerHTML = `<span class="icon">${icons[tipo]}</span><div>${mensagem}</div>`;
+            document.getElementById('resultados').appendChild(div);
+        }
+
+        function limparResultados() {
+            document.getElementById('resultados').innerHTML = '';
+        }
+
+        function verificarConfiguracao() {
+            limparResultados();
+            
+            mostrarResultado('warning', '<strong>Verificando configuração...</strong>');
+            
+            // 1. Verificar Client ID
+            if (CONFIG.clientId && CONFIG.clientId !== 'your-client-id') {
+                mostrarResultado('success', `<strong>Client ID:</strong> ${CONFIG.clientId}`);
+                document.getElementById('btnGerarURL').disabled = false;
+                document.getElementById('btnTestar').disabled = false;
+            } else {
+                mostrarResultado('error', '<strong>Client ID não configurado!</strong> Edite o arquivo verificar-oauth.html');
+                return;
+            }
+            
+            // 2. Verificar Redirect URI
+            mostrarResultado('success', `<strong>Redirect URI:</strong> ${CONFIG.redirectUri}`);
+            
+            // 3. Verificar Scopes
+            mostrarResultado('success', `<strong>Scopes:</strong> ${CONFIG.scopes.join(', ')}`);
+            
+            // 4. Instruções
+            mostrarResultado('warning', `
+                <strong>⚠️ IMPORTANTE:</strong><br>
+                Antes de testar, configure no Meta for Developers:<br>
+                1. Acesse: <a href="https://developers.facebook.com/apps/${CONFIG.clientId}/settings/basic/" target="_blank">Configurações do App</a><br>
+                2. Role até "URIs de Redirecionamento do OAuth Válidos"<br>
+                3. Adicione: <code>${CONFIG.redirectUri}</code><br>
+                4. Clique em "Salvar Alterações"
+            `);
+        }
+
+        function gerarState() {
+            const state = {
+                platform: 'facebook_ads',
+                userId: 'test-user-' + Date.now(),
+                timestamp: Date.now(),
+                random: Math.random().toString(36).substring(7)
+            };
+            return btoa(JSON.stringify(state));
+        }
+
+        function gerarURLOAuth() {
+            const state = gerarState();
+            
+            const params = new URLSearchParams({
+                client_id: CONFIG.clientId,
+                redirect_uri: CONFIG.redirectUri,
+                response_type: 'code',
+                scope: CONFIG.scopes.join(','),
+                state: state
+            });
+            
+            const url = `${CONFIG.authUrl}?${params.toString()}`;
+            
+            limparResultados();
+            mostrarResultado('success', '<strong>URL OAuth gerada com sucesso!</strong>');
+            
+            const urlBox = document.createElement('div');
+            urlBox.className = 'url-box';
+            urlBox.innerHTML = `<strong>URL:</strong><br>${url}<br><br><button onclick="navigator.clipboard.writeText('${url}')">📋 Copiar</button>`;
+            document.getElementById('resultados').appendChild(urlBox);
+            
+            mostrarResultado('warning', '💡 <strong>Copie esta URL</strong> e cole no navegador para testar, ou use o botão "Testar OAuth" abaixo.');
+        }
+
+        function testarOAuth() {
+            const state = gerarState();
+            
+            // Salvar state no localStorage para validação posterior
+            localStorage.setItem(`oauth_state_facebook_ads_test`, state);
+            
+            const params = new URLSearchParams({
+                client_id: CONFIG.clientId,
+                redirect_uri: CONFIG.redirectUri,
+                response_type: 'code',
+                scope: CONFIG.scopes.join(','),
+                state: state,
+                access_type: 'offline',
+                prompt: 'consent'
+            });
+            
+            const url = `${CONFIG.authUrl}?${params.toString()}`;
+            
+            limparResultados();
+            mostrarResultado('success', '<strong>Abrindo popup OAuth...</strong>');
+            mostrarResultado('warning', `
+                <strong>O que vai acontecer:</strong><br>
+                1. Popup do Facebook abrirá<br>
+                2. Faça login (se necessário)<br>
+                3. Autorize o app SyncAds<br>
+                4. Você será redirecionado para <code>${CONFIG.redirectUri}</code><br>
+                5. Verifique se o callback processou corretamente
+            `);
+            
+            // Abrir popup
+            const width = 600;
+            const height = 700;
+            const left = window.screenX + (window.outerWidth - width) / 2;
+            const top = window.screenY + (window.outerHeight - height) / 2;
+            
+            const popup = window.open(
+                url,
+                'oauth_test',
+                `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+            );
+            
+            if (!popup || popup.closed) {
+                mostrarResultado('error', '❌ <strong>Popup bloqueado!</strong> Permita popups para este site e tente novamente.');
+                // Fallback: abrir em nova aba
+                window.open(url, '_blank');
+            }
+        }
+
+        // Auto-verificar ao carregar
+        window.addEventListener('load', verificarConfiguracao);
+    </script>
+</body>
+</html>

@@ -132,7 +132,7 @@ class IntegrationsService {
       },
       body: new URLSearchParams({
         client_id: config.clientId!,
-        client_secret: process.env.VITE_OAUTH_CLIENT_SECRET || '',
+        client_secret: import.meta.env.VITE_META_CLIENT_SECRET || '',
         code,
         redirect_uri: this.REDIRECT_URI,
         grant_type: 'authorization_code',

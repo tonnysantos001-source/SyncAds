@@ -29,7 +29,7 @@ const REDIRECT_URI = `${window.location.origin}/integrations/callback`;
 export const OAUTH_CONFIGS: Record<string, OAuthProviderConfig> = {
   // Meta (Facebook + Instagram Ads)
   meta_ads: {
-    clientId: '1234567890123456', // TODO: Substituir pelo Client ID real do SyncAds
+    clientId: import.meta.env.VITE_META_CLIENT_ID || '1907637243430460',
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
     scopes: [
@@ -43,7 +43,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthProviderConfig> = {
   },
 
   facebook_ads: {
-    clientId: '1234567890123456', // Mesmo do Meta
+    clientId: import.meta.env.VITE_FACEBOOK_CLIENT_ID || '1907637243430460',
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
     scopes: ['ads_management', 'ads_read', 'pages_manage_ads'],
