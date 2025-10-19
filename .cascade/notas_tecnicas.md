@@ -23,6 +23,12 @@
 - Criação via IA: ✅ única forma
 - Card de instruções adicionado
 
+### Chaves de API
+- Detecção automática de provedor pela chave
+- Padrões suportados: OpenAI (sk-), OpenRouter (sk-or-v1-), Groq (gsk_), Anthropic (sk-ant-), Together AI (hex 64 chars)
+- URL Base e Modelo preenchidos automaticamente
+- UI simplificada - apenas cola a chave
+
 ## Estrutura do Banco
 - User, Campaign, ChatMessage, ChatConversation
 - AiConnection, Integration, Analytics, Notification
