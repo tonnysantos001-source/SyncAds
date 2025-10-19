@@ -183,6 +183,9 @@ const ChatPage: React.FC = () => {
         }
       }
 
+      // Variável para armazenar resultado de auditoria
+      let auditResult = '';
+
       // Processar comandos administrativos (se usuário tem permissão)
       if (user) {
         const adminTools = new AdminTools(user.id);
@@ -274,13 +277,8 @@ const ChatPage: React.FC = () => {
           }
 
           if (result) {
-            // Adicionar resultado como mensagem da IA
-            const cleanedResponse = cleanIntegrationBlocksFromResponse(response);
-            addMessage(activeConversationId, {
-              id: `msg-${Date.now() + 2}`,
-              role: 'assistant',
-              content: cleanedResponse + '\n\n' + result.message,
-            });
+            // Armazenar resultado para adicionar depois
+            auditResult = '\n\n' + result.message;
 
             toast({
               title: result.success ? '✅ Ação Executada' : '❌ Erro',
@@ -360,12 +358,13 @@ const ChatPage: React.FC = () => {
       let cleanedResponse = cleanCampaignBlockFromResponse(response);
       cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
+      cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
       
-      // Adicionar resposta da IA
+      // Adicionar resposta da IA (com resultado de auditoria se houver)
       addMessage(activeConversationId, { 
         id: `msg-${Date.now() + 1}`, 
         role: 'assistant', 
-        content: cleanedResponse 
+        content: cleanedResponse + auditResult 
       });
     } catch (error: any) {
       console.error('Erro ao chamar IA:', error);
