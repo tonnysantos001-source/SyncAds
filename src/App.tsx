@@ -23,6 +23,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Super Admin pages
 const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'));
+const AdminChatPage = lazy(() => import('./pages/super-admin/AdminChatPage'));
 const ClientsPage = lazy(() => import('./pages/super-admin/ClientsPage'));
 const BillingPage = lazy(() => import('./pages/super-admin/BillingPage'));
 const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
@@ -68,6 +69,7 @@ function App() {
             {/* Super Admin Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/super-admin" element={<SuperAdminDashboard />} />
+              <Route path="/super-admin/chat" element={<AdminChatPage />} />
               <Route path="/super-admin/clients" element={<ClientsPage />} />
               <Route path="/super-admin/billing" element={<BillingPage />} />
               <Route path="/super-admin/usage" element={<UsagePage />} />

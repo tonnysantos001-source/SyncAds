@@ -21,7 +21,8 @@ import {
   BarChart3,
   CreditCard,
   Menu,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import Logo from '@/components/Logo';
@@ -35,6 +36,11 @@ const menuItems = [
     label: 'Dashboard',
     icon: LayoutDashboard,
     path: '/super-admin',
+  },
+  {
+    label: 'Chat Admin',
+    icon: MessageSquare,
+    path: '/super-admin/chat',
   },
   {
     label: 'Clientes',

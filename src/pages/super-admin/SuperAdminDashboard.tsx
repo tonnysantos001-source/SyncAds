@@ -295,22 +295,7 @@ export default function SuperAdminDashboard() {
     </SuperAdminLayout>
   );
 }
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Organizações
-                </CardTitle>
-                <CardDescription>Todos os clientes cadastrados no sistema</CardDescription>
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-red-600 hover:bg-red-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova Organização
-                  </Button>
-                </DialogTrigger>
+
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Criar Nova Organização</DialogTitle>
