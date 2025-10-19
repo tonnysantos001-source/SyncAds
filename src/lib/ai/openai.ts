@@ -37,6 +37,7 @@ export class AiService {
   private apiKey: string;
   private baseUrl: string;
   private model: string;
+  private isOpenRouter: boolean;
 
   constructor(apiKey: string, baseUrl?: string, model?: string) {
     this.apiKey = apiKey;
@@ -44,6 +45,23 @@ export class AiService {
     this.baseUrl = baseUrl || 'https://api.openai.com/v1';
     // Se não tiver modelo especificado, usar um padrão genérico
     this.model = model || 'gpt-3.5-turbo';
+    // Detectar se é OpenRouter
+    this.isOpenRouter = this.baseUrl.includes('openrouter.ai');
+  }
+
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`,
+    };
+
+    // OpenRouter requer headers adicionais
+    if (this.isOpenRouter) {
+      headers['HTTP-Referer'] = window.location.origin;
+      headers['X-Title'] = 'SyncAds';
+    }
+
+    return headers;
   }
 
   async chat(messages: AiMessage[], options?: {
@@ -53,10 +71,7 @@ export class AiService {
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           model: this.model,
           messages,
@@ -66,11 +81,18 @@ export class AiService {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(
-          error.error?.message || 
-          `Erro na API: ${response.status} ${response.statusText}`
-        );
+        const errorText = await response.text();
+        let errorMessage = `Erro na API: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorData.message || errorMessage;
+        } catch {
+          // Se não for JSON válido, usar o texto bruto
+          if (errorText) errorMessage = errorText;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data: AiCompletionResponse = await response.json();
@@ -82,6 +104,12 @@ export class AiService {
       return data.choices[0].message.content;
     } catch (error: any) {
       console.error('Erro ao chamar IA:', error);
+      
+      // Melhorar mensagens de erro
+      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+        throw new Error('Não foi possível conectar à API. Verifique sua conexão e se a URL base está correta.');
+      }
+      
       throw new Error(error.message || 'Erro ao se comunicar com a IA');
     }
   }
@@ -97,10 +125,7 @@ export class AiService {
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           model: this.model,
           messages,
@@ -111,11 +136,17 @@ export class AiService {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(
-          error.error?.message || 
-          `Erro na API: ${response.status} ${response.statusText}`
-        );
+        const errorText = await response.text();
+        let errorMessage = `Erro na API: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorData.message || errorMessage;
+        } catch {
+          if (errorText) errorMessage = errorText;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -153,6 +184,11 @@ export class AiService {
       }
     } catch (error: any) {
       console.error('Erro ao fazer stream da IA:', error);
+      
+      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+        throw new Error('Não foi possível conectar à API. Verifique sua conexão e se a URL base está correta.');
+      }
+      
       throw new Error(error.message || 'Erro ao se comunicar com a IA');
     }
   }

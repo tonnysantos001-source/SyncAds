@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useStore, AiConnection } from '@/store/useStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface AiConnectionModalProps {
   isOpen: boolean;
@@ -110,6 +112,18 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
+            {selectedProvider === 'OpenRouter' && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  <strong>OpenRouter:</strong> Obtenha sua chave em{' '}
+                  <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">
+                    openrouter.ai/keys
+                  </a>
+                  . Você ganha $1 de crédito grátis! 🎉
+                </AlertDescription>
+              </Alert>
+            )}
             {!isEditing && (
               <div className="grid gap-2">
                 <Label>Provedor de IA</Label>
