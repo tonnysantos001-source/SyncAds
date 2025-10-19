@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Filter, View, Loader2, Megaphone } from 'lucide-react';
+import { Filter, View, Loader2, Megaphone, Sparkles } from 'lucide-react';
 import { Campaign, CampaignStatus, CampaignPlatform } from '@/data/mocks';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -171,15 +171,28 @@ const CampaignsPage: React.FC = () => {
       {editingCampaign && <EditCampaignModal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen} campaign={editingCampaign} />}
       
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Campanhas</h1>
             <p className="text-muted-foreground">Gerencie todas as suas campanhas em um só lugar.</p>
           </div>
-          <Button onClick={() => setIsNewModalOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nova Campanha
-          </Button>
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Crie campanhas com a IA</h3>
+                  <p className="text-sm text-muted-foreground">
+                    As campanhas agora são criadas automaticamente pela IA no chat. 
+                    Vá para o menu <strong>Chat</strong> e peça para a IA criar uma campanha. 
+                    Exemplo: "Crie uma campanha de Black Friday no Meta com orçamento de R$ 5000"
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -227,13 +240,7 @@ const CampaignsPage: React.FC = () => {
               <EmptyState
                 icon={Megaphone}
                 title="Nenhuma campanha encontrada"
-                description="Parece que não há campanhas que correspondam aos seus filtros. Tente ajustar a busca ou crie uma nova campanha."
-                action={
-                  <Button onClick={() => setIsNewModalOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Criar Primeira Campanha
-                  </Button>
-                }
+                description="Parece que não há campanhas que correspondam aos seus filtros. Peça para a IA criar uma campanha no menu Chat!"
               />
             )}
           </CardContent>
