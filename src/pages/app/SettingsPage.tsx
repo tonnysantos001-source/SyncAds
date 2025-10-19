@@ -4,18 +4,18 @@ import { ProfileTab } from './settings/ProfileTab';
 import { SecurityTab } from './settings/SecurityTab';
 import { NotificationsTab } from './settings/NotificationsTab';
 import { BillingTab } from './settings/BillingTab';
-import { ApiKeysTab } from './settings/ApiKeysTab';
+import { OrganizationAiTab } from './settings/OrganizationAiTab';
 import { AiTab } from './settings/AiTab';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
-import { User, ShieldCheck, Bell, CreditCard, KeyRound, Bot } from 'lucide-react';
+import { User, ShieldCheck, Bell, CreditCard, Bot } from 'lucide-react';
 
 const settingsNav = [
   { path: '', label: 'Perfil', icon: User },
   { path: 'security', label: 'Segurança', icon: ShieldCheck },
   { path: 'notifications', label: 'Notificações', icon: Bell },
   { path: 'billing', label: 'Faturamento', icon: CreditCard },
-  { path: 'api-keys', label: 'Chaves de API', icon: KeyRound },
+  { path: 'org-ai', label: 'Inteligência Artificial', icon: Bot },
   { path: 'ai', label: 'Personalidade IA', icon: Bot },
 ];
 
@@ -58,7 +58,7 @@ const SettingsPage: React.FC = () => {
             <Route path="security" element={<SecurityTab />} />
             <Route path="notifications" element={<NotificationsTab />} />
             <Route path="billing" element={<BillingTab />} />
-            <Route path="api-keys" element={<ApiKeysTab />} />
+            <Route path="org-ai" element={<OrganizationAiTab />} />
             <Route path="ai/*" element={<AiTab />} />
           </Routes>
         </div>

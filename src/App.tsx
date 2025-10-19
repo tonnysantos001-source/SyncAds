@@ -26,6 +26,9 @@ const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDas
 const OrganizationsPage = lazy(() => import('./pages/super-admin/OrganizationsPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
 
+// Team page
+const TeamPage = lazy(() => import('./pages/app/TeamPage'));
+
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
   const isInitialized = useStore((state) => state.isInitialized);
@@ -71,6 +74,7 @@ function App() {
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/integrations" element={<IntegrationsPage />} />
               <Route path="/integrations/callback" element={<IntegrationCallbackPage />} />
+              <Route path="/team" element={<TeamPage />} />
               <Route path="/settings/*" element={<SettingsPage />} />
             </Route>
 

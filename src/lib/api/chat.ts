@@ -102,4 +102,48 @@ export const chatApi = {
       throw error;
     }
   },
+
+  // Call secure Edge Function for AI chat
+  sendSecureMessage: async (
+    message: string,
+    conversationHistory: Array<{ role: string; content: string }>,
+    systemPrompt?: string
+  ) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          message,
+          conversationHistory,
+          systemPrompt
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send message');
+      }
+
+      const data = await response.json();
+      return {
+        response: data.response,
+        tokensUsed: data.tokensUsed,
+        provider: data.provider,
+        model: data.model
+      };
+    } catch (error) {
+      console.error('Send secure message error:', error);
+      throw error;
+    }
+  },
 };

@@ -9,6 +9,7 @@ import {
   X,
   PanelLeft,
   BarChart3,
+  Users,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { Button } from '../ui/button';
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/chat', icon: Bot, label: 'Chat IA' },
   { to: '/integrations', icon: Plug, label: 'Integrações' },
+  { to: '/team', icon: Users, label: 'Equipe' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
