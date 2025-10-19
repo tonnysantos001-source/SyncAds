@@ -2,65 +2,41 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building2, Bot, Users, TrendingUp, AlertCircle, Plus, Search } from 'lucide-react';
+import { Building2, Bot, Users, TrendingUp, AlertCircle, DollarSign, BarChart3, CreditCard, MessageSquare, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 
 interface Stats {
-  totalOrganizations: number;
-  activeOrganizations: number;
+  totalClients: number;
+  activeClients: number;
   totalUsers: number;
   totalRevenue: number;
+  monthlyRevenue: number;
   totalAiConnections: number;
-}
-
-interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  plan: string;
-  status: string;
-  maxUsers: number;
-  maxCampaigns: number;
-  maxChatMessages: number;
-  createdAt: string;
+  totalMessages: number;
+  totalTokens: number;
+  gatewaysConfigured: number;
 }
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({
-    totalOrganizations: 0,
-    activeOrganizations: 0,
+    totalClients: 0,
+    activeClients: 0,
     totalUsers: 0,
     totalRevenue: 0,
+    monthlyRevenue: 0,
     totalAiConnections: 0,
+    totalMessages: 0,
+    totalTokens: 0,
+    gatewaysConfigured: 0,
   });
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [needsMigration, setNeedsMigration] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    plan: 'FREE',
-    maxUsers: 2,
-    maxCampaigns: 5,
-    maxChatMessages: 100,
-  });
 
   useEffect(() => {
     loadStats();
-    loadOrganizations();
   }, []);
 
   const loadStats = async () => {
@@ -97,12 +73,36 @@ export default function SuperAdminDashboard() {
         .from('GlobalAiConnection')
         .select('*', { count: 'exact', head: true });
 
+      // Calcular mensagens
+      const { count: messagesCount } = await supabase
+        .from('ChatMessage')
+        .select('*', { count: 'exact', head: true });
+
+      // MRR simples baseado em planos ativos
+      const planPrices: Record<string, number> = {
+        FREE: 0,
+        STARTER: 49.90,
+        PRO: 199.90,
+        ENTERPRISE: 999.90,
+      };
+
+      const { data: activeOrgsData } = await supabase
+        .from('Organization')
+        .select('plan')
+        .eq('status', 'ACTIVE');
+
+      const mrr = (activeOrgsData || []).reduce((acc, org) => acc + (planPrices[org.plan] || 0), 0);
+
       setStats({
-        totalOrganizations: orgCount || 0,
-        activeOrganizations: activeOrgCount || 0,
+        totalClients: orgCount || 0,
+        activeClients: activeOrgCount || 0,
         totalUsers: userCount || 0,
-        totalRevenue: 0,
+        totalRevenue: mrr * 3, // Simulação de receita total (3 meses)
+        monthlyRevenue: mrr,
         totalAiConnections: aiCount || 0,
+        totalMessages: messagesCount || 0,
+        totalTokens: 0, // TODO: Somar da tabela AiUsage
+        gatewaysConfigured: 2, // TODO: Buscar da tabela PaymentGateway
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -112,148 +112,77 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const loadOrganizations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('Organization')
-        .select('*')
-        .order('createdAt', { ascending: false });
-
-      if (error) throw error;
-      setOrganizations(data || []);
-    } catch (error: any) {
-      console.error('Error loading organizations:', error);
-    }
-  };
-
-  const createOrganization = async () => {
-    try {
-      const { error } = await supabase.from('Organization').insert({
-        name: formData.name,
-        slug: formData.slug,
-        plan: formData.plan,
-        status: 'TRIAL',
-        maxUsers: formData.maxUsers,
-        maxCampaigns: formData.maxCampaigns,
-        maxChatMessages: formData.maxChatMessages,
-        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: '✅ Organização criada!',
-        description: `${formData.name} foi criada com sucesso.`,
-      });
-
-      setIsDialogOpen(false);
-      loadOrganizations();
-      loadStats();
-      
-      setFormData({
-        name: '',
-        slug: '',
-        plan: 'FREE',
-        maxUsers: 2,
-        maxCampaigns: 5,
-        maxChatMessages: 100,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao criar organização',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const updateOrganizationStatus = async (id: string, status: string) => {
-    try {
-      const { error } = await supabase
-        .from('Organization')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Status atualizado',
-        description: `Organização ${status === 'ACTIVE' ? 'ativada' : 'suspensa'}.`,
-      });
-
-      loadOrganizations();
-      loadStats();
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao atualizar status',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const filteredOrganizations = organizations.filter((org) =>
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      ACTIVE: { variant: 'default', label: 'Ativa' },
-      TRIAL: { variant: 'secondary', label: 'Trial' },
-      SUSPENDED: { variant: 'destructive', label: 'Suspensa' },
-      CANCELLED: { variant: 'outline', label: 'Cancelada' },
-    };
-    const config = variants[status] || variants.TRIAL;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const getPlanBadge = (plan: string) => {
-    const colors: Record<string, string> = {
-      FREE: 'bg-gray-100 text-gray-800',
-      STARTER: 'bg-blue-100 text-blue-800',
-      PRO: 'bg-purple-100 text-purple-800',
-      ENTERPRISE: 'bg-emerald-100 text-emerald-800',
-    };
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[plan] || colors.FREE}`}>
-        {plan}
-      </span>
-    );
-  };
+  const quickActions = [
+    {
+      title: 'Clientes',
+      description: 'Gerenciar todas as organizações',
+      icon: Building2,
+      color: 'from-blue-500 to-cyan-500',
+      stats: `${stats.totalClients} clientes`,
+      route: '/super-admin/clients',
+    },
+    {
+      title: 'Faturamento',
+      description: 'Receita e pagamentos',
+      icon: DollarSign,
+      color: 'from-green-500 to-emerald-500',
+      stats: `R$ ${stats.monthlyRevenue.toLocaleString('pt-BR')} MRR`,
+      route: '/super-admin/billing',
+    },
+    {
+      title: 'Uso de IA',
+      description: 'Mensagens e tokens processados',
+      icon: BarChart3,
+      color: 'from-purple-500 to-pink-500',
+      stats: `${stats.totalMessages} mensagens`,
+      route: '/super-admin/usage',
+    },
+    {
+      title: 'Gateways',
+      description: 'Meios de pagamento',
+      icon: CreditCard,
+      color: 'from-orange-500 to-red-500',
+      stats: `${stats.gatewaysConfigured} configurados`,
+      route: '/super-admin/gateways',
+    },
+  ];
 
   const statCards = [
     {
-      title: 'Organizações',
-      value: stats.totalOrganizations,
-      description: `${stats.activeOrganizations} ativas`,
+      title: 'Clientes Ativos',
+      value: stats.activeClients,
+      description: `${stats.totalClients} total`,
       icon: Building2,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      bgColor: 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
+      change: '+12%',
+    },
+    {
+      title: 'MRR',
+      value: `R$ ${stats.monthlyRevenue.toLocaleString('pt-BR')}`,
+      description: 'Receita mensal',
+      icon: DollarSign,
+      color: 'text-green-600',
+      bgColor: 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+      change: '+8%',
     },
     {
       title: 'Usuários',
       value: stats.totalUsers,
       description: 'Total no sistema',
       icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-    },
-    {
-      title: 'Conexões de IA',
-      value: stats.totalAiConnections,
-      description: 'IAs configuradas',
-      icon: Bot,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+      bgColor: 'bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20',
+      change: '+23%',
     },
     {
-      title: 'Receita (MRR)',
-      value: `R$ ${stats.totalRevenue.toLocaleString('pt-BR')}`,
-      description: 'Receita mensal recorrente',
-      icon: TrendingUp,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+      title: 'Mensagens IA',
+      value: stats.totalMessages,
+      description: 'Chat processado',
+      icon: MessageSquare,
+      color: 'text-amber-600',
+      bgColor: 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20',
+      change: '+45%',
     },
   ];
 
@@ -291,36 +220,81 @@ export default function SuperAdminDashboard() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400">Visão geral da plataforma</p>
+        </div>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index}>
+              <Card key={index} className="overflow-hidden">
+                <div className={`h-2 ${stat.bgColor}`} />
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-sm font-medium">
                     {stat.title}
                   </CardTitle>
-                  <div className={`${stat.bgColor} p-2 rounded-lg`}>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
+                  <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                    <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <div className="text-3xl font-bold">
                     {stat.value}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {stat.description}
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
+                    <span className="text-xs font-medium text-green-600">{stat.change}</span>
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
 
-        {/* Organizations Section */}
-        <Card>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Card
+                  key={action.route}
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden relative"
+                  onClick={() => navigate(action.route)}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color}`}>
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                    </div>
+                    <CardTitle className="mt-4">{action.title}</CardTitle>
+                    <CardDescription>{action.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      {action.stats}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </SuperAdminLayout>
+  );
+}
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -374,6 +348,7 @@ export default function SuperAdminDashboard() {
                           <SelectItem value="STARTER">STARTER</SelectItem>
                           <SelectItem value="PRO">PRO</SelectItem>
                           <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
+                          <SelectItem value="DEVELOPER">DEVELOPER</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
