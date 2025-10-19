@@ -25,12 +25,14 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'));
 const OrganizationsPage = lazy(() => import('./pages/super-admin/OrganizationsPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
+const SubscriptionsPage = lazy(() => import('./pages/super-admin/SubscriptionsPage'));
 
 // Team page
 const TeamPage = lazy(() => import('./pages/app/TeamPage'));
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
+  const user = useStore((state) => state.user);
   const isInitialized = useStore((state) => state.isInitialized);
   const initAuth = useStore((state) => state.initAuth);
 
@@ -42,13 +44,16 @@ function App() {
     return <LoadingSpinner />;
   }
 
+  // Determine where to redirect authenticated users
+  const redirectPath = user?.isSuperAdmin ? '/super-admin' : '/dashboard';
+
   return (
     <>
       <Router>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
+            <Route path="/" element={isAuthenticated ? <Navigate to={redirectPath} /> : <Navigate to="/landing" />} />
             <Route path="/landing" element={<LandingPage />} />
 
             {/* Auth Routes (only for non-authenticated users) */}
@@ -63,6 +68,7 @@ function App() {
               <Route path="/super-admin" element={<SuperAdminDashboard />} />
               <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
               <Route path="/super-admin/ai-connections" element={<GlobalAiPage />} />
+              <Route path="/super-admin/subscriptions" element={<SubscriptionsPage />} />
             </Route>
 
             {/* Protected App Routes */}

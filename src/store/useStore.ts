@@ -19,6 +19,7 @@ interface User {
   avatarUrl?: string;
   avatar?: string | null;
   plan: 'Free' | 'Pro' | 'Enterprise';
+  isSuperAdmin?: boolean;
 }
 
 export interface NotificationSettings {
@@ -127,15 +128,18 @@ export const useStore = create<AppState>()(
                 avatarUrl: userData.avatar || undefined,
                 avatar: userData.avatar,
                 plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
+                isSuperAdmin: userData.isSuperAdmin || false,
               },
               isInitialized: true,
             });
-            // Load user data from Supabase
-            await Promise.all([
-              get().loadCampaigns(),
-              get().loadAiConnections(),
-              get().loadConversations(),
-            ]);
+            // Load user data from Supabase (só se NÃO for super admin)
+            if (!userData.isSuperAdmin) {
+              await Promise.all([
+                get().loadCampaigns(),
+                get().loadAiConnections(),
+                get().loadConversations(),
+              ]);
+            }
           } else {
             set({ isInitialized: true });
           }

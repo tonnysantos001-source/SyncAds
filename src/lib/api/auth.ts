@@ -95,7 +95,25 @@ export const authApi = {
 
       if (userError) throw userError;
 
-      return userData;
+      // Check if user is Super Admin (query raw porque SuperAdmin não está em database.types ainda)
+      let isSuperAdmin = false;
+      try {
+        const { data: superAdminCheck, error: superAdminError } = await supabase
+          .from('SuperAdmin' as any)
+          .select('id')
+          .eq('id', user.id)
+          .single();
+        
+        isSuperAdmin = !superAdminError && !!superAdminCheck;
+      } catch (e) {
+        // Tabela pode não existir ainda ou user não é super admin
+        isSuperAdmin = false;
+      }
+
+      return {
+        ...userData,
+        isSuperAdmin,
+      };
     } catch (error) {
       console.error('Get current user error:', error);
       return null;
