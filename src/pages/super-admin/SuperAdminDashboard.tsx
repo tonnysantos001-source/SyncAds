@@ -2,9 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Bot, CreditCard, Users, TrendingUp, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Building2, Bot, Users, TrendingUp, AlertCircle, Plus, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 
 interface Stats {
@@ -15,8 +22,21 @@ interface Stats {
   totalAiConnections: number;
 }
 
+interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  status: string;
+  maxUsers: number;
+  maxCampaigns: number;
+  maxChatMessages: number;
+  createdAt: string;
+}
+
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({
     totalOrganizations: 0,
     activeOrganizations: 0,
@@ -24,11 +44,23 @@ export default function SuperAdminDashboard() {
     totalRevenue: 0,
     totalAiConnections: 0,
   });
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [needsMigration, setNeedsMigration] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    plan: 'FREE',
+    maxUsers: 2,
+    maxCampaigns: 5,
+    maxChatMessages: 100,
+  });
 
   useEffect(() => {
     loadStats();
+    loadOrganizations();
   }, []);
 
   const loadStats = async () => {
@@ -78,6 +110,116 @@ export default function SuperAdminDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadOrganizations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Organization')
+        .select('*')
+        .order('createdAt', { ascending: false });
+
+      if (error) throw error;
+      setOrganizations(data || []);
+    } catch (error: any) {
+      console.error('Error loading organizations:', error);
+    }
+  };
+
+  const createOrganization = async () => {
+    try {
+      const { error } = await supabase.from('Organization').insert({
+        name: formData.name,
+        slug: formData.slug,
+        plan: formData.plan,
+        status: 'TRIAL',
+        maxUsers: formData.maxUsers,
+        maxCampaigns: formData.maxCampaigns,
+        maxChatMessages: formData.maxChatMessages,
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Organização criada!',
+        description: `${formData.name} foi criada com sucesso.`,
+      });
+
+      setIsDialogOpen(false);
+      loadOrganizations();
+      loadStats();
+      
+      setFormData({
+        name: '',
+        slug: '',
+        plan: 'FREE',
+        maxUsers: 2,
+        maxCampaigns: 5,
+        maxChatMessages: 100,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao criar organização',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const updateOrganizationStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('Organization')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Status atualizado',
+        description: `Organização ${status === 'ACTIVE' ? 'ativada' : 'suspensa'}.`,
+      });
+
+      loadOrganizations();
+      loadStats();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar status',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const filteredOrganizations = organizations.filter((org) =>
+    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    org.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { variant: any; label: string }> = {
+      ACTIVE: { variant: 'default', label: 'Ativa' },
+      TRIAL: { variant: 'secondary', label: 'Trial' },
+      SUSPENDED: { variant: 'destructive', label: 'Suspensa' },
+      CANCELLED: { variant: 'outline', label: 'Cancelada' },
+    };
+    const config = variants[status] || variants.TRIAL;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getPlanBadge = (plan: string) => {
+    const colors: Record<string, string> = {
+      FREE: 'bg-gray-100 text-gray-800',
+      STARTER: 'bg-blue-100 text-blue-800',
+      PRO: 'bg-purple-100 text-purple-800',
+      ENTERPRISE: 'bg-emerald-100 text-emerald-800',
+    };
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[plan] || colors.FREE}`}>
+        {plan}
+      </span>
+    );
   };
 
   const statCards = [
@@ -177,68 +319,202 @@ export default function SuperAdminDashboard() {
           })}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Organizações
-              </CardTitle>
-              <CardDescription>
-                Gerenciar clientes e suas configurações
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-red-600 hover:bg-red-700" 
-                onClick={() => navigate('/super-admin/organizations')}
-              >
-                Ver Organizações
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Organizations Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Organizações
+                </CardTitle>
+                <CardDescription>Todos os clientes cadastrados no sistema</CardDescription>
+              </div>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-red-600 hover:bg-red-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Organização
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Organização</DialogTitle>
+                    <DialogDescription>
+                      Adicione um novo cliente ao sistema
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Nome da Organização</Label>
+                      <Input
+                        id="name"
+                        placeholder="Minha Empresa"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="slug">Slug (URL)</Label>
+                      <Input
+                        id="slug"
+                        placeholder="minha-empresa"
+                        value={formData.slug}
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="plan">Plano</Label>
+                      <Select value={formData.plan} onValueChange={(value) => setFormData({ ...formData, plan: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FREE">FREE</SelectItem>
+                          <SelectItem value="STARTER">STARTER</SelectItem>
+                          <SelectItem value="PRO">PRO</SelectItem>
+                          <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="maxUsers">Max Users</Label>
+                        <Input
+                          id="maxUsers"
+                          type="number"
+                          value={formData.maxUsers}
+                          onChange={(e) => setFormData({ ...formData, maxUsers: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="maxCampaigns">Max Campanhas</Label>
+                        <Input
+                          id="maxCampaigns"
+                          type="number"
+                          value={formData.maxCampaigns}
+                          onChange={(e) => setFormData({ ...formData, maxCampaigns: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="maxChatMessages">Max Mensagens</Label>
+                        <Input
+                          id="maxChatMessages"
+                          type="number"
+                          value={formData.maxChatMessages}
+                          onChange={(e) => setFormData({ ...formData, maxChatMessages: parseInt(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button className="bg-red-600 hover:bg-red-700" onClick={createOrganization}>
+                      Criar Organização
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar organizações..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Organização</TableHead>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Limites</TableHead>
+                    <TableHead>Criado em</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrganizations.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        Nenhuma organização encontrada
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredOrganizations.map((org) => (
+                      <TableRow key={org.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{org.name}</div>
+                            <div className="text-sm text-gray-500">{org.slug}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getPlanBadge(org.plan)}</TableCell>
+                        <TableCell>{getStatusBadge(org.status)}</TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {org.maxUsers} users · {org.maxCampaigns} campanhas
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {new Date(org.createdAt).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          {org.status === 'ACTIVE' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateOrganizationStatus(org.id, 'SUSPENDED')}
+                            >
+                              Suspender
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => updateOrganizationStatus(org.id, 'ACTIVE')}
+                            >
+                              Ativar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
-                Conexões de IA
-              </CardTitle>
-              <CardDescription>
-                Adicionar e atribuir IAs globais
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-red-600 hover:bg-red-700" 
-                onClick={() => navigate('/super-admin/ai-connections')}
-              >
-                Gerenciar IAs
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Assinaturas
-              </CardTitle>
-              <CardDescription>
-                Ver pagamentos e status de contas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-red-600 hover:bg-red-700" 
-                onClick={() => navigate('/super-admin/subscriptions')}
-              >
-                Ver Assinaturas
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Link to AI Connections */}
+        <Card className="mt-6 hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              Conexões de IA
+            </CardTitle>
+            <CardDescription>
+              Gerenciar IAs globais e atribuir às organizações
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              className="bg-red-600 hover:bg-red-700" 
+              onClick={() => navigate('/super-admin/ai-connections')}
+            >
+              Gerenciar Conexões de IA
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </SuperAdminLayout>
   );

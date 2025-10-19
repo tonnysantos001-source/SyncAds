@@ -11,9 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { 
-  Building2, 
   Bot, 
-  CreditCard, 
   LayoutDashboard, 
   LogOut,
   Shield,
@@ -21,7 +19,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import Logo from '@/components/Logo';
 
 interface SuperAdminLayoutProps {
   children: ReactNode;
@@ -34,19 +31,9 @@ const menuItems = [
     path: '/super-admin',
   },
   {
-    label: 'Organizações',
-    icon: Building2,
-    path: '/super-admin/organizations',
-  },
-  {
     label: 'Conexões de IA',
     icon: Bot,
     path: '/super-admin/ai-connections',
-  },
-  {
-    label: 'Assinaturas',
-    icon: CreditCard,
-    path: '/super-admin/subscriptions',
   },
 ];
 
