@@ -45,7 +45,17 @@
 - Fix: Componente alert.tsx criado (estava faltando)
 - Fix: AiConnectionModal agora faz trim() automático nas chaves (remove espaços)
 
+## Sistema de Integrações OAuth
+- Estrutura criada: types.ts, integrationsService.ts, integrationParsers.ts
+- Suporta OAuth para: Google Ads, Meta Ads, LinkedIn, Twitter, TikTok, Google Analytics
+- Fluxo: IA detecta comando → Gera URL OAuth → Usuário autoriza → Callback processa
+- Comandos: ```integration-connect:slug```, ```integration-disconnect:slug```, ```integration-status```
+- Página callback: /integrations/callback
+- Migration: add_oauth_state_table.sql (precisa aplicar no Supabase)
+
 ## Próximos Passos Técnicos
-- Fase 2: Integrações reais (Google Ads, Meta, LinkedIn)
-- Criptografar API keys (Supabase Vault)
+- Aplicar migration OAuthState no Supabase
+- Configurar Client IDs das plataformas (env vars)
+- Implementar refresh token automático
+- Criptografar tokens (Supabase Vault)
 - Rate limiting

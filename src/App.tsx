@@ -18,6 +18,7 @@ const AnalyticsPage = lazy(() => import('./pages/app/AnalyticsPage'));
 const ChatPage = lazy(() => import('./pages/app/ChatPage'));
 const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
 const SettingsPage = lazy(() => import('./pages/app/SettingsPage'));
+const IntegrationCallbackPage = lazy(() => import('./pages/IntegrationCallbackPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/integrations" element={<IntegrationsPage />} />
+              <Route path="/integrations/callback" element={<IntegrationCallbackPage />} />
               <Route path="/settings/*" element={<SettingsPage />} />
             </Route>
 

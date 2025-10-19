@@ -20,6 +20,13 @@ import {
   cleanAdminBlocksFromResponse 
 } from '@/lib/ai/adminTools';
 import {
+  detectIntegrationCommand,
+  cleanIntegrationBlocks,
+  integrationSystemPrompt
+} from '@/lib/integrations/integrationParsers';
+import { integrationsService } from '@/lib/integrations/integrationsService';
+import { INTEGRATIONS_CONFIG } from '@/lib/integrations/types';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -99,11 +106,11 @@ const ChatPage: React.FC = () => {
       );
 
       // Preparar histórico de mensagens para contexto
-      const conversation = conversations.find(c => c.id === activeConversationId);
-      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + aiSystemPrompt;
+      const conversation = conversations.find((c: any) => c.id === activeConversationId);
+      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + aiSystemPrompt;
       const messages: AiMessage[] = [
         { role: 'system', content: systemMessage },
-        ...(conversation?.messages || []).slice(-20).map(msg => ({
+        ...(conversation?.messages || []).slice(-20).map((msg: any) => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
         })),
@@ -207,9 +214,67 @@ const ChatPage: React.FC = () => {
         }
       }
 
+      // Processar comandos de integração
+      const integrationCommand = detectIntegrationCommand(response);
+      if (integrationCommand && user) {
+        try {
+          if (integrationCommand.action === 'connect') {
+            const { authUrl } = await integrationsService.generateOAuthUrl(integrationCommand.slug, user.id);
+            const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
+            
+            // Adicionar mensagem com link
+            addMessage(activeConversationId, {
+              id: `msg-${Date.now() + 1}`,
+              role: 'assistant',
+              content: `Para conectar ${config.name}, clique no link abaixo:\n\n🔗 [Autorizar ${config.name}](${authUrl})\n\nO link abrirá em uma nova aba para você autorizar o acesso.`
+            });
+            
+            // Abrir link automaticamente
+            window.open(authUrl, '_blank');
+            
+            toast({
+              title: '🔗 Link de Autorização',
+              description: `Clique no link para conectar ${config.name}`,
+            });
+            return; // Não adicionar resposta duplicada
+          } else if (integrationCommand.action === 'disconnect') {
+            await integrationsService.disconnect(user.id, integrationCommand.slug);
+            const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
+            toast({
+              title: '✅ Desconectado',
+              description: `${config.name} foi desconectado com sucesso.`,
+            });
+          } else if (integrationCommand.action === 'status') {
+            if (integrationCommand.slug) {
+              const status = await integrationsService.getIntegrationStatus(user.id, integrationCommand.slug);
+              const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
+              toast({
+                title: `${config.name}`,
+                description: status?.isConnected ? '✅ Conectado' : '❌ Não conectado',
+              });
+            } else {
+              const integrations = await integrationsService.listIntegrations(user.id);
+              const connected = integrations.filter(i => i.isConnected).length;
+              toast({
+                title: '📊 Status das Integrações',
+                description: `${connected} de ${integrations.length} integrações conectadas`,
+              });
+            }
+          }
+        } catch (error: any) {
+          console.error('Erro ao processar integração:', error);
+          toast({
+            title: '❌ Erro',
+            description: error.message || 'Erro ao processar comando de integração',
+            variant: 'destructive',
+          });
+        }
+      }
+
       // Limpar blocos de código da resposta antes de exibir
       let cleanedResponse = cleanCampaignBlockFromResponse(response);
       cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
+      cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
       
       // Adicionar resposta da IA
       addMessage(activeConversationId, { 
