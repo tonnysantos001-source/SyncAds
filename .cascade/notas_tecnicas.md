@@ -32,6 +32,11 @@
 1. add_admin_functions
 2. enable_rls_all_tables_fixed
 
+## Deploy
+- Netlify configurado com Node.js 20
+- Build: `npm install && npm run build`
+- Publish: `dist`
+
 ## Próximos Passos Técnicos
 - Fase 2: Integrações reais (Google Ads, Meta, LinkedIn)
 - Criptografar API keys (Supabase Vault)
