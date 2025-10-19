@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Bot, Users, TrendingUp, AlertCircle, DollarSign, BarChart3, CreditCard, MessageSquare, ArrowRight } from 'lucide-react';
+import { Building2, AlertCircle, DollarSign, BarChart3, CreditCard, MessageSquare, ArrowRight, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
@@ -91,18 +91,18 @@ export default function SuperAdminDashboard() {
         .select('plan')
         .eq('status', 'ACTIVE');
 
-      const mrr = (activeOrgsData || []).reduce((acc, org) => acc + (planPrices[org.plan] || 0), 0);
+      const mrr = (activeOrgsData || []).reduce((acc: number, org: any) => acc + (planPrices[org.plan] || 0), 0);
 
       setStats({
         totalClients: orgCount || 0,
         activeClients: activeOrgCount || 0,
         totalUsers: userCount || 0,
-        totalRevenue: mrr * 3, // Simulação de receita total (3 meses)
+        totalRevenue: mrr * 3,
         monthlyRevenue: mrr,
         totalAiConnections: aiCount || 0,
         totalMessages: messagesCount || 0,
-        totalTokens: 0, // TODO: Somar da tabela AiUsage
-        gatewaysConfigured: 2, // TODO: Buscar da tabela PaymentGateway
+        totalTokens: 0,
+        gatewaysConfigured: 2,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -291,190 +291,6 @@ export default function SuperAdminDashboard() {
             })}
           </div>
         </div>
-      </div>
-    </SuperAdminLayout>
-  );
-}
-
-                <DialogContent className="sm:max-w-[500px]">
-                  <DialogHeader>
-                    <DialogTitle>Criar Nova Organização</DialogTitle>
-                    <DialogDescription>
-                      Adicione um novo cliente ao sistema
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Nome da Organização</Label>
-                      <Input
-                        id="name"
-                        placeholder="Minha Empresa"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="slug">Slug (URL)</Label>
-                      <Input
-                        id="slug"
-                        placeholder="minha-empresa"
-                        value={formData.slug}
-                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="plan">Plano</Label>
-                      <Select value={formData.plan} onValueChange={(value) => setFormData({ ...formData, plan: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="FREE">FREE</SelectItem>
-                          <SelectItem value="STARTER">STARTER</SelectItem>
-                          <SelectItem value="PRO">PRO</SelectItem>
-                          <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
-                          <SelectItem value="DEVELOPER">DEVELOPER</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="maxUsers">Max Users</Label>
-                        <Input
-                          id="maxUsers"
-                          type="number"
-                          value={formData.maxUsers}
-                          onChange={(e) => setFormData({ ...formData, maxUsers: parseInt(e.target.value) })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="maxCampaigns">Max Campanhas</Label>
-                        <Input
-                          id="maxCampaigns"
-                          type="number"
-                          value={formData.maxCampaigns}
-                          onChange={(e) => setFormData({ ...formData, maxCampaigns: parseInt(e.target.value) })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="maxChatMessages">Max Mensagens</Label>
-                        <Input
-                          id="maxChatMessages"
-                          type="number"
-                          value={formData.maxChatMessages}
-                          onChange={(e) => setFormData({ ...formData, maxChatMessages: parseInt(e.target.value) })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button className="bg-red-600 hover:bg-red-700" onClick={createOrganization}>
-                      Criar Organização
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar organizações..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Organização</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Limites</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrganizations.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        Nenhuma organização encontrada
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredOrganizations.map((org) => (
-                      <TableRow key={org.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{org.name}</div>
-                            <div className="text-sm text-gray-500">{org.slug}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getPlanBadge(org.plan)}</TableCell>
-                        <TableCell>{getStatusBadge(org.status)}</TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {org.maxUsers} users · {org.maxCampaigns} campanhas
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {new Date(org.createdAt).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {org.status === 'ACTIVE' ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateOrganizationStatus(org.id, 'SUSPENDED')}
-                            >
-                              Suspender
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() => updateOrganizationStatus(org.id, 'ACTIVE')}
-                            >
-                              Ativar
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Link to AI Connections */}
-        <Card className="mt-6 hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              Conexões de IA
-            </CardTitle>
-            <CardDescription>
-              Gerenciar IAs globais e atribuir às organizações
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              className="bg-red-600 hover:bg-red-700" 
-              onClick={() => navigate('/super-admin/ai-connections')}
-            >
-              Gerenciar Conexões de IA
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </SuperAdminLayout>
   );
