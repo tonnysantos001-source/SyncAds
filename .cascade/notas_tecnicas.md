@@ -36,6 +36,7 @@
 - Netlify configurado com Node.js 20
 - Build: `npm install && npm run build`
 - Publish: `dist`
+- Fix: Componente alert.tsx criado (estava faltando)
 
 ## Próximos Passos Técnicos
 - Fase 2: Integrações reais (Google Ads, Meta, LinkedIn)
