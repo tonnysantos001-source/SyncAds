@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Bot, Key, Link2, Trash2, Check } from 'lucide-react';
+import { Plus, Bot, Link2, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 
 interface GlobalAiConnection {
   id: string;
@@ -235,25 +236,26 @@ export default function GlobalAiPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <SuperAdminLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-76px)]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        </div>
+      </SuperAdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Conexões de IA Globais
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400">
-                Adicionar e gerenciar IAs que serão atribuídas às organizações
-              </p>
-            </div>
+    <SuperAdminLayout>
+      <div className="p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Conexões de IA Globais
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400">
+              Adicionar e gerenciar IAs que serão atribuídas às organizações
+            </p>
+          </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -333,11 +335,8 @@ export default function GlobalAiPage() {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6 mt-6">
           {aiConnections.map((ai) => (
             <Card key={ai.id}>
               <CardHeader>
@@ -425,9 +424,8 @@ export default function GlobalAiPage() {
             </Card>
           )}
         </div>
-      </main>
 
-      {/* Assignment Dialog */}
+        {/* Assignment Dialog */}
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -468,6 +466,7 @@ export default function GlobalAiPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </SuperAdminLayout>
   );
 }

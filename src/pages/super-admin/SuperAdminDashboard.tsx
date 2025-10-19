@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Bot, CreditCard, Users, TrendingUp, Settings } from 'lucide-react';
+import { Building2, Bot, CreditCard, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 
 interface Stats {
   totalOrganizations: number;
@@ -13,6 +16,7 @@ interface Stats {
 }
 
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     totalOrganizations: 0,
     activeOrganizations: 0,
@@ -21,6 +25,7 @@ export default function SuperAdminDashboard() {
     totalAiConnections: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [needsMigration, setNeedsMigration] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -28,6 +33,17 @@ export default function SuperAdminDashboard() {
 
   const loadStats = async () => {
     try {
+      // Verificar se tabela Organization existe
+      const { error: orgError } = await supabase
+        .from('Organization')
+        .select('*', { count: 'exact', head: true });
+
+      if (orgError && orgError.message.includes('does not exist')) {
+        setNeedsMigration(true);
+        setLoading(false);
+        return;
+      }
+
       // Total organizations
       const { count: orgCount } = await supabase
         .from('Organization')
@@ -53,11 +69,12 @@ export default function SuperAdminDashboard() {
         totalOrganizations: orgCount || 0,
         activeOrganizations: activeOrgCount || 0,
         totalUsers: userCount || 0,
-        totalRevenue: 0, // TODO: Calculate from subscriptions
+        totalRevenue: 0,
         totalAiConnections: aiCount || 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
+      setNeedsMigration(true);
     } finally {
       setLoading(false);
     }
@@ -70,7 +87,7 @@ export default function SuperAdminDashboard() {
       description: `${stats.activeOrganizations} ativas`,
       icon: Building2,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     },
     {
       title: 'Usuários',
@@ -78,7 +95,7 @@ export default function SuperAdminDashboard() {
       description: 'Total no sistema',
       icon: Users,
       color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
     },
     {
       title: 'Conexões de IA',
@@ -86,7 +103,7 @@ export default function SuperAdminDashboard() {
       description: 'IAs configuradas',
       icon: Bot,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
     },
     {
       title: 'Receita (MRR)',
@@ -94,42 +111,45 @@ export default function SuperAdminDashboard() {
       description: 'Receita mensal recorrente',
       icon: TrendingUp,
       color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
     },
   ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <SuperAdminLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-76px)]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        </div>
+      </SuperAdminLayout>
+    );
+  }
+
+  if (needsMigration) {
+    return (
+      <SuperAdminLayout>
+        <div className="p-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Migration Necessária</AlertTitle>
+            <AlertDescription>
+              As tabelas do SaaS ainda não foram criadas. Execute a migration primeiro:
+              <br /><br />
+              <code className="bg-black/10 px-2 py-1 rounded text-sm">
+                supabase_migrations/saas_architecture.sql
+              </code>
+              <br /><br />
+              Veja instruções em: <strong>EXECUTAR_MIGRATION.md</strong>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </SuperAdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Super Admin Panel
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400">
-                Gerencie organizações, IAs e assinaturas
-              </p>
-            </div>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Configurações
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+    <SuperAdminLayout>
+      <div className="p-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statCards.map((stat, index) => {
@@ -159,7 +179,7 @@ export default function SuperAdminDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
@@ -170,13 +190,16 @@ export default function SuperAdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => window.location.href = '/super-admin/organizations'}>
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700" 
+                onClick={() => navigate('/super-admin/organizations')}
+              >
                 Ver Organizações
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
@@ -187,13 +210,16 @@ export default function SuperAdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => window.location.href = '/super-admin/ai-connections'}>
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700" 
+                onClick={() => navigate('/super-admin/ai-connections')}
+              >
                 Gerenciar IAs
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -204,13 +230,16 @@ export default function SuperAdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => window.location.href = '/super-admin/subscriptions'}>
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700" 
+                onClick={() => navigate('/super-admin/subscriptions')}
+              >
                 Ver Assinaturas
               </Button>
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </SuperAdminLayout>
   );
 }
