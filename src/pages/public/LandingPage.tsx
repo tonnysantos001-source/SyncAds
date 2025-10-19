@@ -29,16 +29,28 @@ const LandingPage = () => {
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-3xl -z-10" />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl border-b border-gray-200/50">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-b border-gray-200/50 shadow-sm">
+        {/* Barra Superior - Destaque Checkout Grátis */}
+        <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 py-2">
+          <div className="container mx-auto px-4 sm:px-6">
+            <p className="text-center text-white text-sm sm:text-base font-bold flex items-center justify-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span>🎉 CHECKOUT DE PAGAMENTO 100% GRÁTIS - SEM TAXAS!</span>
+              <Sparkles className="h-4 w-4" />
+            </p>
+          </div>
+        </div>
+        
+        {/* Menu Principal */}
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
             <Logo />
             <nav className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+              <Button variant="outline" size="sm" asChild>
                 <Link to="/login">Entrar</Link>
               </Button>
               <Button size="sm" asChild className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30">
-                <Link to="/register">Começar Grátis</Link>
+                <Link to="/register">Criar Cadastro</Link>
               </Button>
             </nav>
           </div>
@@ -81,15 +93,12 @@ const LandingPage = () => {
 
               {/* CTA Principal */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                <Button size="lg" asChild className="text-lg px-8 py-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-2xl shadow-green-500/50 transform hover:scale-105 transition-all">
+                <Button size="lg" asChild className="text-lg px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all">
                   <Link to="/register" className="flex items-center gap-2">
-                    ✅ TESTAR GRÁTIS POR 14 DIAS
+                    🚀 CRIAR MINHA CONTA AGORA
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
-                <p className="text-sm text-gray-500">
-                  ⚡ Sem cartão de crédito | Cancele quando quiser
-                </p>
               </div>
 
               {/* Social Proof */}
@@ -110,6 +119,38 @@ const LandingPage = () => {
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">2.847+ profissionais economizando</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Empresas que Confiam */}
+              <div className="mt-16">
+                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 uppercase tracking-wider">
+                  Empresas que confiam no SyncAds
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 items-center opacity-60 grayscale hover:grayscale-0 transition-all">
+                  {[
+                    { name: 'Magazine Luiza', abbr: 'MAGALU' },
+                    { name: 'Nubank', abbr: 'NU' },
+                    { name: 'Natura', abbr: 'NATURA' },
+                    { name: 'Ambev', abbr: 'AMBEV' },
+                    { name: 'Itaú', abbr: 'ITAÚ' },
+                    { name: 'Bradesco', abbr: 'BRADESCO' },
+                    { name: 'Petrobras', abbr: 'PETROBRAS' },
+                    { name: 'Vale', abbr: 'VALE' },
+                    { name: 'B3', abbr: 'B3' },
+                    { name: 'Embraer', abbr: 'EMBRAER' },
+                    { name: 'Globo', abbr: 'GLOBO' },
+                    { name: 'Record', abbr: 'RECORD' },
+                    { name: 'Casas Bahia', abbr: 'C.BAHIA' },
+                    { name: 'Renner', abbr: 'RENNER' },
+                    { name: 'Localiza', abbr: 'LOCALIZA' }
+                  ].map((company, i) => (
+                    <div key={i} className="flex items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all">
+                      <span className="text-lg font-black text-gray-700 dark:text-gray-300">
+                        {company.abbr}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -696,11 +737,10 @@ const LandingPage = () => {
                   </div>
                 </div>
 
-                <Button size="lg" asChild className="text-xl px-12 py-8 bg-white text-red-600 hover:bg-gray-100 shadow-2xl transform hover:scale-110 transition-all">
-                  <Link to="/register" className="flex items-center gap-3 font-black">
-                    <DollarSign className="h-6 w-6" />
-                    GARANTIR MINHA VAGA AGORA!
-                    <TrendingUp className="h-6 w-6" />
+                <Button size="default" asChild className="text-base px-8 py-6 bg-white text-red-600 hover:bg-gray-100 shadow-xl transform hover:scale-105 transition-all">
+                  <Link to="/register" className="flex items-center gap-2 font-bold">
+                    CRIAR CONTA AGORA
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
 

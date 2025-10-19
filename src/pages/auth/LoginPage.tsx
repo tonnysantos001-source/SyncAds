@@ -145,13 +145,8 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm">
             Não tem uma conta?{' '}
             <Link to="/register" className="font-semibold text-blue-600 hover:text-purple-600 transition-colors">
-              Criar conta grátis
+              Criar cadastro
             </Link>
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              ✅ 14 dias grátis • Sem cartão de crédito
-            </p>
           </div>
         </CardContent>
       </Card>
