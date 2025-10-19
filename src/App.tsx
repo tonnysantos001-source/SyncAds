@@ -21,6 +21,11 @@ const SettingsPage = lazy(() => import('./pages/app/SettingsPage'));
 const IntegrationCallbackPage = lazy(() => import('./pages/IntegrationCallbackPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Super Admin pages
+const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'));
+const OrganizationsPage = lazy(() => import('./pages/super-admin/OrganizationsPage'));
+const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
+
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
   const isInitialized = useStore((state) => state.isInitialized);
@@ -50,6 +55,13 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             </Route>
             
+            {/* Super Admin Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/super-admin" element={<SuperAdminDashboard />} />
+              <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
+              <Route path="/super-admin/ai-connections" element={<GlobalAiPage />} />
+            </Route>
+
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardPage />} />
