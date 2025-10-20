@@ -8,7 +8,7 @@ import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
-import { createAiService, type AiMessage } from '@/lib/ai/openai';
+import { sendSecureMessage } from '@/lib/api/chat';
 import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
 import { 
   AdminTools, 
@@ -65,7 +65,6 @@ const ChatPage: React.FC = () => {
     setAssistantTyping,
     deleteConversation,
     createNewConversation,
-    aiConnections,
     aiSystemPrompt,
     aiInitialGreetings,
     addCampaign,
@@ -105,18 +104,6 @@ const ChatPage: React.FC = () => {
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
 
-    // Verificar se há uma chave de API configurada
-    const activeConnection = aiConnections.find(conn => conn.status === 'valid');
-    
-    if (!activeConnection) {
-      toast({
-        title: 'Chave de API não configurada',
-        description: 'Configure uma chave de API válida nas configurações para usar o chat com IA.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     const userMessage = input;
     addMessage(activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
     setInput('');
@@ -124,30 +111,18 @@ const ChatPage: React.FC = () => {
     setAssistantTyping(true);
     
     try {
-      // Criar serviço de IA com a chave configurada
-      const aiService = createAiService(
-        activeConnection.apiKey,
-        activeConnection.baseUrl,
-        activeConnection.model
-      );
-
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find((c: any) => c.id === activeConversationId);
       const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + aiSystemPrompt;
-      const messages: AiMessage[] = [
-        { role: 'system', content: systemMessage },
-        ...(conversation?.messages || []).slice(-20).map((msg: any) => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })),
-        { role: 'user', content: userMessage },
-      ];
+      
+      const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-      // Chamar IA
-      const response = await aiService.chat(messages, {
-        temperature: 0.7,
-        max_tokens: 1500,
-      });
+      // Chamar Edge Function segura (protege API keys)
+      const result = await sendSecureMessage(userMessage, conversationHistory, systemMessage);
+      const response = result.response;
 
       // Detectar se a IA quer criar uma campanha
       const campaignIntent = detectCampaignIntent(response);

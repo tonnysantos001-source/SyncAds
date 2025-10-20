@@ -26,6 +26,7 @@ import { UserPlus, Mail, Shield, User as UserIcon, Eye, Trash2 } from 'lucide-re
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useStore } from '@/store/useStore';
+import { invitesApi, PendingInvite } from '@/lib/api/invites';
 
 interface TeamMember {
   id: string;
@@ -39,19 +40,21 @@ interface TeamMember {
 
 export default function TeamPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const { toast } = useToast();
   const user = useStore((state) => state.user);
 
   const [formData, setFormData] = useState({
     email: '',
-    name: '',
-    role: 'MEMBER',
+    role: 'MEMBER' as 'ADMIN' | 'MEMBER' | 'VIEWER',
   });
 
   useEffect(() => {
     loadTeamMembers();
+    loadPendingInvites();
   }, []);
 
   const loadTeamMembers = async () => {
@@ -87,43 +90,74 @@ export default function TeamPage() {
     }
   };
 
+  const loadPendingInvites = async () => {
+    try {
+      const invites = await invitesApi.getPendingInvites();
+      setPendingInvites(invites);
+    } catch (error: any) {
+      console.error('Erro ao carregar convites pendentes:', error);
+    }
+  };
+
   const inviteUser = async () => {
     try {
-      // Get organization ID
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user?.id)
-        .single();
-
-      if (!userData) throw new Error('Organization not found');
-
-      // Create user invite (simplified - in production, send email with invite link)
-      const { data: newUser, error } = await supabase
-        .from('User')
-        .insert({
-          email: formData.email,
-          name: formData.name,
-          organizationId: userData.organizationId,
-          role: formData.role,
-          isActive: false, // Will be active after accepting invite
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      setInviting(true);
+      
+      // Enviar convite via Edge Function
+      const result = await invitesApi.sendInvite(formData.email, formData.role);
 
       toast({
         title: '✅ Convite enviado!',
-        description: `Convite enviado para ${formData.email}`,
+        description: result.message || `Convite enviado para ${formData.email}`,
       });
 
+      // Mostrar URL do convite (em dev)
+      if (result.inviteUrl) {
+        console.log('Invite URL:', result.inviteUrl);
+      }
+
       setIsDialogOpen(false);
-      loadTeamMembers();
-      setFormData({ email: '', name: '', role: 'MEMBER' });
+      loadPendingInvites();
+      setFormData({ email: '', role: 'MEMBER' });
     } catch (error: any) {
       toast({
         title: 'Erro ao convidar usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const cancelInvite = async (inviteId: string) => {
+    try {
+      await invitesApi.cancelInvite(inviteId);
+      toast({
+        title: 'Convite cancelado',
+        description: 'O convite foi cancelado com sucesso.',
+      });
+      loadPendingInvites();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao cancelar convite',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const resendInvite = async (inviteId: string) => {
+    try {
+      const result = await invitesApi.resendInvite(inviteId);
+      toast({
+        title: 'Convite reenviado',
+        description: result.message || 'Novo convite foi enviado.',
+      });
+      loadPendingInvites();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao reenviar convite',
         description: error.message,
         variant: 'destructive',
       });
@@ -236,21 +270,15 @@ export default function TeamPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  placeholder="Nome Completo"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+                <p className="text-xs text-gray-500">
+                  Um convite será enviado para este endereço de email
+                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="role">Permissão</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  onValueChange={(value) => setFormData({ ...formData, role: value as any })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -267,9 +295,9 @@ export default function TeamPage() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={inviteUser}>
+              <Button onClick={inviteUser} disabled={inviting}>
                 <Mail className="h-4 w-4 mr-2" />
-                Enviar Convite
+                {inviting ? 'Enviando...' : 'Enviar Convite'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -364,6 +392,68 @@ export default function TeamPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Convites Pendentes */}
+      {pendingInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Convites Pendentes</CardTitle>
+            <CardDescription>{pendingInvites.length} convite(s) aguardando aceite</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Permissão</TableHead>
+                  <TableHead>Enviado em</TableHead>
+                  <TableHead>Expira em</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingInvites.map((invite) => (
+                  <TableRow key={invite.id}>
+                    <TableCell className="font-medium">{invite.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {invite.role === 'ADMIN' && 'Admin'}
+                        {invite.role === 'MEMBER' && 'Membro'}
+                        {invite.role === 'VIEWER' && 'Visualizador'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(invite.createdAt).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(invite.expiresAt).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => resendInvite(invite.id)}
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Reenviar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => cancelInvite(invite.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
