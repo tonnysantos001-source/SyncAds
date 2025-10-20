@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Breadcrumbs from './Breadcrumbs';
-import MobileBottomNav from './MobileBottomNav';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -23,14 +22,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header setSidebarOpen={setSidebarOpen} />
-          <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 sm:pb-8 overflow-y-auto">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
             <Breadcrumbs />
             <div className="max-w-7xl mx-auto">
               {children}
             </div>
           </main>
         </div>
-        <MobileBottomNav />
       </div>
     </div>
   );
