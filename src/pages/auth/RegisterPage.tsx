@@ -99,14 +99,6 @@ export default function RegisterPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider font-semibold">MARKETING AI</p>
           </div>
           
-          {/* Badge de oferta */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 mb-4">
-            <Sparkles className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-              🎉 14 Dias Grátis - Sem Cartão!
-            </span>
-          </div>
-
           <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Crie sua conta</CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-400">Começe a economizar hoje mesmo</CardDescription>
         </CardHeader>
