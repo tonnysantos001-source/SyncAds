@@ -5,3 +5,4 @@ export * from './chat';
 export * from './notifications';
 export * from './aiConnections';
 export * from './conversations';
+export * from './invites';

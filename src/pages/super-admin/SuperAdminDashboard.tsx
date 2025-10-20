@@ -78,6 +78,13 @@ export default function SuperAdminDashboard() {
         .from('ChatMessage')
         .select('*', { count: 'exact', head: true });
 
+      // Total tokens usados
+      const { data: tokensData } = await supabase
+        .from('AiUsage')
+        .select('tokensUsed');
+
+      const totalTokens = (tokensData || []).reduce((acc: number, usage: any) => acc + (usage.tokensUsed || 0), 0);
+
       // MRR simples baseado em planos ativos
       const planPrices: Record<string, number> = {
         FREE: 0,
@@ -101,7 +108,7 @@ export default function SuperAdminDashboard() {
         monthlyRevenue: mrr,
         totalAiConnections: aiCount || 0,
         totalMessages: messagesCount || 0,
-        totalTokens: 0,
+        totalTokens: totalTokens,
         gatewaysConfigured: 2,
       });
     } catch (error) {
