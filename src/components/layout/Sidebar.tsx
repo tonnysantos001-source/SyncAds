@@ -73,11 +73,10 @@ const navItems: NavItem[] = [
   {
     icon: ShoppingCart,
     label: 'Pedidos',
-    badge: 'Novo',
     subItems: [
       { to: '/orders/all', label: 'Ver todos' },
       { to: '/orders/abandoned-carts', label: 'Carrinhos abandonados' },
-      { to: '/orders/pix-recovered', label: 'Pix Recuperados', badge: 'Novo' },
+      { to: '/orders/pix-recovered', label: 'Pix Recuperados' },
     ],
   },
   {
@@ -100,7 +99,6 @@ const navItems: NavItem[] = [
   {
     icon: Megaphone,
     label: 'Marketing',
-    badge: 'Novo',
     subItems: [
       { to: '/marketing/coupons', label: 'Cupons' },
       { to: '/marketing/order-bump', label: 'Order Bump' },
@@ -208,10 +206,8 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         className={({ isActive }) =>
           cn(
             'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-            'hover:scale-[1.02] hover:shadow-md',
-            isActive
-              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/50'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white',
+            'text-gray-600 dark:text-gray-400',
+            'hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02]',
             isCollapsed && 'justify-center px-3'
           )
         }
