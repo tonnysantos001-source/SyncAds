@@ -4,6 +4,8 @@ export interface SignUpData {
   email: string;
   password: string;
   name: string;
+  cpf?: string;
+  birthDate?: string;
 }
 
 export interface SignInData {
@@ -34,6 +36,9 @@ export const authApi = {
           id: userId,
           email: data.email,
           name: data.name,
+          cpf: data.cpf || null,
+          birthDate: data.birthDate || null,
+          emailVerified: false, // Email precisa ser verificado manualmente
           authProvider: 'EMAIL',
           plan: 'FREE',
           trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial

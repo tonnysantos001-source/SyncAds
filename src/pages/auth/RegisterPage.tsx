@@ -19,6 +19,31 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+
+  // Função para formatar CPF
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return numbers
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    return cpf;
+  };
+
+  // Validar CPF
+  const validateCPF = (cpf: string) => {
+    const numbers = cpf.replace(/\D/g, '');
+    if (numbers.length !== 11) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1{10}$/.test(numbers)) return false;
+    
+    return true; // Validação básica (pode adicionar algoritmo completo depois)
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +66,49 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!validateCPF(cpf)) {
+      toast({
+        title: 'Erro ao criar conta',
+        description: 'CPF inválido.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!birthDate) {
+      toast({
+        title: 'Erro ao criar conta',
+        description: 'Data de nascimento é obrigatória.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Verificar se é maior de 18 anos
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    if (age < 18) {
+      toast({
+        title: 'Erro ao criar conta',
+        description: 'Você precisa ter pelo menos 18 anos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      await register(email, password, name);
+      await register(email, password, name, cpf, birthDate);
       toast({
         title: 'Conta criada com sucesso!',
-        description: 'Bem-vindo ao SyncAds.',
+        description: 'Bem-vindo ao SyncAds. Verifique seu email para desbloquear todos os recursos.',
       });
       navigate('/dashboard');
     } catch (error: any) {
@@ -129,10 +190,35 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="cpf">CPF</Label>
+                <Input 
+                  id="cpf" 
+                  placeholder="000.000.000-00" 
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCPF(e.target.value))}
+                  maxLength={14}
+                  required 
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="birthDate">Data de Nascimento</Label>
+                <Input 
+                  id="birthDate" 
+                  type="date" 
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  required 
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="password">Senha</Label>
                 <Input 
                   id="password" 
                   type="password" 
+                  placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
@@ -144,6 +230,7 @@ export default function RegisterPage() {
                 <Input 
                   id="confirm-password" 
                   type="password" 
+                  placeholder="Digite a senha novamente"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required 

@@ -45,7 +45,7 @@ interface AppState {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, cpf?: string, birthDate?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   initAuth: () => Promise<void>;
@@ -177,9 +177,9 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      register: async (email: string, password: string, name: string) => {
+      register: async (email: string, password: string, name: string, cpf?: string, birthDate?: string) => {
         try {
-          const { user } = await authApi.signUp({ email, password, name });
+          const { user } = await authApi.signUp({ email, password, name, cpf, birthDate });
           if (user) {
             const userData = await authApi.getCurrentUser();
             if (userData) {
