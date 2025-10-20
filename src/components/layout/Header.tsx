@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Search,
-  Moon,
-  Sun,
   LogOut,
   User,
   Settings,
@@ -21,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useTheme } from '../ThemeProvider';
 import { useStore } from '@/store/useStore';
 import { mockNotifications, Notification } from '@/data/notifications';
 import { cn } from '@/lib/utils';
@@ -47,7 +44,6 @@ const NotificationItem: React.FC<{ notification: Notification }> = ({ notificati
 };
 
 const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
-  const { theme, setTheme } = useTheme();
   const user = useStore(state => state.user);
   const logout = useStore(state => state.logout);
   const searchTerm = useStore(state => state.searchTerm);
@@ -141,17 +137,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             </Card>
           </DropdownMenuContent>
         </DropdownMenu>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-110 hover:rotate-12"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

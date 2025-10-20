@@ -121,10 +121,10 @@ const navItems: NavItem[] = [
     ],
   },
   { to: '/integrations', icon: Plug, label: 'Integrações' },
+  { to: '/settings', icon: Settings, label: 'Configurações' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   const toggleMenu = (label: string) => {
@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
     );
   };
 
-  const NavItem: React.FC<{ item: NavItem; isCollapsed: boolean }> = ({ item, isCollapsed }) => {
+  const NavItem: React.FC<{ item: NavItem }> = ({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isExpanded = expandedMenus.includes(item.label);
 
@@ -148,30 +148,25 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               'group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
               'text-white/80',
               'hover:bg-white/10 hover:text-white',
-              isCollapsed && 'justify-center px-3',
               isExpanded && 'bg-white/20 text-white'
             )}
           >
-            <item.icon className={cn("h-5 w-5 transition-transform duration-200", isCollapsed && "h-6 w-6")} />
-            {!isCollapsed && (
-              <>
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.badge && (
-                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                    {item.badge}
-                  </Badge>
-                )}
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4 transition-transform duration-200" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                )}
-              </>
+            <item.icon className="h-5 w-5 transition-transform duration-200" />
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.badge && (
+              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                {item.badge}
+              </Badge>
+            )}
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 transition-transform duration-200" />
+            ) : (
+              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
             )}
           </button>
 
           {/* Submenu */}
-          {!isCollapsed && isExpanded && (
+          {isExpanded && (
             <div className="ml-4 mt-1 border-l-2 border-white/20 pl-4 space-y-1">
               {item.subItems.map((subItem) => (
                 <NavLink
@@ -209,114 +204,68 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
             'text-white/80',
             'hover:bg-white/10 hover:text-white',
-            isActive && 'bg-white/20 text-white',
-            isCollapsed && 'justify-center px-3'
+            isActive && 'bg-white/20 text-white'
           )
         }
       >
-        <item.icon className={cn("h-5 w-5 transition-transform duration-200 group-hover:scale-110", isCollapsed && "h-6 w-6")} />
-        {!isCollapsed && (
-          <>
-            <span>{item.label}</span>
-            {item.badge && (
-              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
-                {item.badge}
-              </Badge>
-            )}
-          </>
+        <item.icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+        <span>{item.label}</span>
+        {item.badge && (
+          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
+            {item.badge}
+          </Badge>
         )}
       </NavLink>
     );
   };
 
   const SidebarContent = () => (
-    <div className={cn("flex h-full max-h-screen flex-col gap-2 bg-[#1a1a1a]", isCollapsed && "items-center")}>
+    <div className="flex h-full max-h-screen flex-col gap-2 bg-[#1a1a1a]">
       {/* Header com Logo */}
       <div
         className={cn(
           "flex h-20 items-center px-6 border-b border-white/10"
         )}
       >
-        {!isCollapsed && (
+        <div className="flex items-center gap-3">
+          {/* Logo SyncAds AI - Similar ao Favicon */}
           <div className="flex items-center gap-3">
-            {/* Logo SyncAds com coração */}
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  {/* Coração branco */}
-                  <path
-                    d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 47,19 50,25 C53,19 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
-                    fill="white"
-                  />
-                  {/* Detalhe rosa */}
-                  <circle cx="70" cy="30" r="18" fill="#EC4899" />
-                </svg>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white text-xl font-bold tracking-tight">SyncAds</span>
-              </div>
+            <div className="relative w-12 h-12">
+              <svg viewBox="0 0 32 32" className="w-full h-full">
+                <defs>
+                  <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: '#3B82F6', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#9333EA', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                {/* Rounded Square Background */}
+                <rect width="32" height="32" rx="8" fill="url(#logoGrad)" />
+                {/* Letter S */}
+                <path
+                  d="M 11 10 Q 9 10 9 12 Q 9 14 11 14 L 21 14 Q 23 14 23 16 Q 23 18 21 18 L 11 22"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                {/* Sparkle */}
+                <circle cx="24" cy="8" r="1.5" fill="#FBBF24" />
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-2xl font-bold tracking-tight">SyncAds AI</span>
             </div>
           </div>
-        )}
-        {isCollapsed && (
-          <div className="w-10 h-10">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <path
-                d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 47,19 50,25 C53,19 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
-                fill="white"
-              />
-              <circle cx="70" cy="30" r="18" fill="#EC4899" />
-            </svg>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Navigation Items */}
-      <div className="flex-1 overflow-y-auto">
-        <nav className={cn("grid items-start gap-2 px-3 py-4", isCollapsed && "px-2")}>
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <nav className="grid items-start gap-2 px-3 py-4 pb-6">
           {navItems.map((item) => (
-            <NavItem key={item.label} item={item} isCollapsed={isCollapsed} />
+            <NavItem key={item.label} item={item} />
           ))}
         </nav>
-      </div>
-
-      {/* Bottom Section */}
-      <div
-        className={cn(
-          "mt-auto p-4 border-t border-white/10"
-        )}
-      >
-        <nav className={cn("grid items-start gap-2", isCollapsed && "px-0")}>
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              cn(
-                'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-                'text-white/80',
-                'hover:bg-white/10 hover:text-white',
-                isActive && 'bg-white/20 text-white',
-                isCollapsed && 'justify-center px-3'
-              )
-            }
-          >
-            <Settings className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
-            {!isCollapsed && <span>Configurações</span>}
-          </NavLink>
-        </nav>
-
-        {/* Collapse Button */}
-        <Button
-          size="icon"
-          variant="outline"
-          className={cn(
-            "w-full hidden sm:flex mt-3 border-white/20 text-white/80",
-            "hover:bg-white/10 hover:text-white hover:border-white/30",
-            "transition-all duration-200"
-          )}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          <PanelLeft className={cn("h-4 w-4 transition-transform duration-300", isCollapsed && "rotate-180")} />
-        </Button>
       </div>
     </div>
   );
@@ -347,11 +296,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
 
       {/* Desktop Sidebar */}
       <aside
-        className={cn(
-          "hidden sm:block border-r border-gray-200/50 dark:border-gray-800/50 transition-all duration-300",
-          "shadow-xl shadow-gray-200/50 dark:shadow-gray-950/50",
-          isCollapsed ? "w-20" : "w-64"
-        )}
+        className="hidden sm:block border-r border-gray-200/50 dark:border-gray-800/50 w-64 shadow-xl shadow-gray-200/50 dark:shadow-gray-950/50"
       >
         <SidebarContent />
       </aside>
