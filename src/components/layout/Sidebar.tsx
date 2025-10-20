@@ -146,9 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={() => toggleMenu(item.label)}
             className={cn(
               'group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-              'hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
+              'text-gray-600 dark:text-gray-400',
+              'hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02]',
               isCollapsed && 'justify-center px-3',
-              isExpanded && 'bg-gray-100 dark:bg-gray-800/50'
+              isExpanded && 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/50'
             )}
           >
             <item.icon className={cn("h-5 w-5 transition-transform duration-200", isCollapsed && "h-6 w-6")} />
@@ -273,10 +274,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             className={({ isActive }) =>
               cn(
                 'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-                'hover:scale-[1.02]',
-                isActive
-                  ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50',
+                'text-gray-600 dark:text-gray-400',
+                'hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02]',
+                isActive && 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/50',
                 isCollapsed && 'justify-center px-3'
               )
             }
