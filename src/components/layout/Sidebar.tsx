@@ -230,24 +230,43 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   const SidebarContent = () => (
-    <div className={cn("flex h-full max-h-screen flex-col gap-2 bg-gradient-to-b from-blue-500 to-purple-600", isCollapsed && "items-center")}>
+    <div className={cn("flex h-full max-h-screen flex-col gap-2 bg-[#1a1a1a]", isCollapsed && "items-center")}>
       {/* Header com Logo */}
       <div
         className={cn(
-          "flex h-16 items-center px-4 lg:px-6 border-b border-white/10"
+          "flex h-20 items-center px-6 border-b border-white/10"
         )}
       >
         {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <Logo />
-            <div className="ml-2 px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold">
-              PRO
+          <div className="flex items-center gap-3">
+            {/* Logo SyncAds com coração */}
+            <div className="flex items-center gap-3">
+              <div className="relative w-10 h-10">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                  {/* Coração branco */}
+                  <path
+                    d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 47,19 50,25 C53,19 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
+                    fill="white"
+                  />
+                  {/* Detalhe rosa */}
+                  <circle cx="70" cy="30" r="18" fill="#EC4899" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white text-xl font-bold tracking-tight">SyncAds</span>
+              </div>
             </div>
           </div>
         )}
         {isCollapsed && (
-          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
-            S
+          <div className="w-10 h-10">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
+              <path
+                d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 47,19 50,25 C53,19 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
+                fill="white"
+              />
+              <circle cx="70" cy="30" r="18" fill="#EC4899" />
+            </svg>
           </div>
         )}
       </div>

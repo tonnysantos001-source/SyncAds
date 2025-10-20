@@ -32,6 +32,7 @@ const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
 const ReportsOverviewPage = lazy(() => import('./pages/app/reports/ReportsOverviewPage'));
 const AudiencePage = lazy(() => import('./pages/app/reports/AudiencePage'));
 const UtmsPage = lazy(() => import('./pages/app/reports/UtmsPage'));
+const AdsPage = lazy(() => import('./pages/app/reports/AdsPage'));
 
 // Orders pages
 const AllOrdersPage = lazy(() => import('./pages/app/orders/AllOrdersPage'));
@@ -118,6 +119,7 @@ function App() {
               <Route path="/reports/overview" element={<ReportsOverviewPage />} />
               <Route path="/reports/audience" element={<AudiencePage />} />
               <Route path="/reports/utms" element={<UtmsPage />} />
+              <Route path="/reports/ads" element={<AdsPage />} />
               
               {/* Orders */}
               <Route path="/orders/all" element={<AllOrdersPage />} />

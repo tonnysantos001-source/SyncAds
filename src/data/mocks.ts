@@ -1,4 +1,4 @@
-import { Bot, BarChart3, Megaphone, Target, DollarSign, Activity, Youtube, Github, Linkedin, Facebook, Globe, Mail, Store, Database, Lightbulb, Search, Anchor, BrainCircuit, Newspaper, Music, FolderKanban, Instagram, Twitter, MessageCircle, PenSquare, LayoutTemplate, Flame, Palette, Slack, Webhook, Server, Sparkles } from 'lucide-react';
+import { Bot, BarChart3, Megaphone, Target, DollarSign, Activity, Youtube, Github, Linkedin, Facebook, Globe, Mail, Store, Database, Lightbulb, Search, Anchor, BrainCircuit, Newspaper, Music, FolderKanban, Instagram, Twitter, MessageCircle, PenSquare, LayoutTemplate, Flame, Palette, Slack, Webhook, Server, Sparkles, Send, Video, Link, ShoppingBag, Calendar, CreditCard, DollarSign as Payment, Wallet, Package, ShoppingCart, TrendingUp, Phone } from 'lucide-react';
 
 // Tipos
 export type CampaignStatus = 'Ativa' | 'Pausada' | 'Concluída';
@@ -294,15 +294,53 @@ export const categorizedIntegrations: IntegrationCategory[] = [
             { id: 'linkedin', name: 'LinkedIn', description: 'Usa o LinkedIn para encontrar leads e compartilhar conteúdo nas páginas da empresa.', logo: Linkedin },
             { id: 'twitter', name: 'Twitter/X', description: 'Usa o Twitter/X para encontrar tópicos interessantes e compartilhar conteúdo.', logo: Twitter },
             { id: 'reddit', name: 'Reddit', description: 'Usa o Reddit para encontrar tópicos interessantes e compartilhar conteúdo.', logo: MessageCircle },
+            { id: 'whatsapp', name: 'WhatsApp', description: 'Integre com WhatsApp Business para enviar mensagens e automações.', logo: Phone },
+            { id: 'telegram', name: 'Telegram', description: 'Envie notificações e mensagens através do Telegram.', logo: Send },
+            { id: 'kwai', name: 'Kwai', description: 'Publique vídeos e gerencie campanhas no Kwai.', logo: Video },
+            { id: 'linktree', name: 'Linktree', description: 'Centralize seus links e integre com sua bio.', logo: Link },
+        ]
+    },
+    {
+        title: "E-commerce & Marketplaces",
+        integrations: [
+            { id: 'vtex', name: 'VTEX', description: 'Integração completa com a plataforma VTEX de e-commerce.', logo: ShoppingBag },
+            { id: 'nuvemshop', name: 'Nuvemshop', description: 'Conecte sua loja Nuvemshop para sincronizar produtos e pedidos.', logo: Store },
+            { id: 'shopify', name: 'Shopify', description: 'Integração com Shopify para gerenciar sua loja online.', logo: ShoppingCart },
+            { id: 'mercado-livre', name: 'Mercado Livre', description: 'Integre com Mercado Livre para gerenciar anúncios e vendas.', logo: ShoppingBag },
+            { id: 'magalu', name: 'Magazine Luiza', description: 'Integração com marketplace da Magazine Luiza.', logo: Store },
+            { id: 'loja-integrada', name: 'Loja Integrada', description: 'Conecte sua Loja Integrada para sincronizar produtos.', logo: ShoppingCart },
+            { id: 'tray', name: 'Tray', description: 'Integração completa com plataforma Tray E-commerce.', logo: Store },
+            { id: 'bling', name: 'Bling', description: 'Sincronize vendas e estoque com Bling ERP.', logo: Package },
+            { id: 'bagy', name: 'Bagy', description: 'Integração com plataforma Bagy de e-commerce.', logo: ShoppingBag },
+            { id: 'yampi', name: 'Yampi', description: 'Conecte sua loja Yampi para gestão de vendas.', logo: ShoppingCart },
+            { id: 'ticto', name: 'Ticto', description: 'Integração com Ticto para eventos e ingressos.', logo: Calendar },
         ]
     },
     {
         title: "Gerenciamento de Conteúdo",
         integrations: [
             { id: 'wordpress', name: 'WordPress', description: 'Usa o WordPress para publicar conteúdo em blogs.', logo: PenSquare, comingSoon: true },
-            { id: 'shopify', name: 'Shopify', description: 'Usa o Shopify para publicar conteúdo em blogs de lojas.', logo: Store },
             { id: 'webflow', name: 'Webflow', description: 'Usa o Webflow para publicar conteúdo em blogs.', logo: LayoutTemplate },
             { id: 'hubspot', name: 'HubSpot', description: 'Usa o HubSpot para publicar conteúdo em blogs.', logo: Flame },
+        ]
+    },
+    {
+        title: "Pagamentos & Financeiro",
+        integrations: [
+            { id: 'mercado-pago', name: 'Mercado Pago', description: 'Processe pagamentos com Mercado Pago.', logo: CreditCard },
+            { id: 'pagseguro', name: 'PagSeguro', description: 'Integração com PagSeguro para pagamentos online.', logo: CreditCard },
+            { id: 'yapay', name: 'Yapay', description: 'Gateway de pagamento Yapay para múltiplas formas de pagamento.', logo: Wallet },
+            { id: 'asaas', name: 'Asaas', description: 'Gestão financeira e cobranças com Asaas.', logo: Payment },
+            { id: 'hotmart', name: 'Hotmart', description: 'Integração com Hotmart para venda de produtos digitais.', logo: ShoppingCart },
+            { id: 'sympla', name: 'Sympla', description: 'Venda e gerencie ingressos de eventos com Sympla.', logo: Calendar },
+        ]
+    },
+    {
+        title: "Marketing & Automação",
+        integrations: [
+            { id: 'rd-station', name: 'RD Station', description: 'Automação de marketing e geração de leads com RD Station.', logo: TrendingUp },
+            { id: 'calendly', name: 'Calendly', description: 'Agendamento de reuniões e integração com calendários.', logo: Calendar },
+            { id: 'minhas-economias', name: 'Minhas Economias', description: 'Integração com plataforma Minhas Economias.', logo: Wallet },
         ]
     },
     {

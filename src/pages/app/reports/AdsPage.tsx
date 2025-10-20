@@ -3,37 +3,35 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-interface UTM {
+interface Ad {
   id: string;
   name: string;
-  sales: string;
+  views: string;
+  clicks: string;
+  ctr: string;
+  cpc: string;
+  cost: string;
+  conversions: string;
   revenue: string;
-  amountPaid: string;
-  totalCart: string;
-  averageCart: string;
-  pixTotal: string;
-  pixAverage: string;
-  boletoTotal: string;
-  boletoAverage: string;
+  roas: string;
 }
 
-const MOCK_UTMS: UTM[] = [
+const MOCK_ADS: Ad[] = [
   {
     id: '1',
-    name: 'tems por pagina',
-    sales: '0',
-    revenue: '0',
-    amountPaid: '0',
-    totalCart: '0',
-    averageCart: '0',
-    pixTotal: '0',
-    pixAverage: '0',
-    boletoTotal: '0',
-    boletoAverage: '0',
+    name: 'nome',
+    views: '0',
+    clicks: '0',
+    ctr: '0%',
+    cpc: '0,00',
+    cost: '0,00',
+    conversions: '0',
+    revenue: '0,00',
+    roas: '0,00',
   },
 ];
 
-const UtmsPage: React.FC = () => {
+const AdsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState('20/10/2025 até 20/10/2025');
 
   return (
@@ -41,23 +39,29 @@ const UtmsPage: React.FC = () => {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">UTM's</h1>
+          <h1 className="text-2xl font-bold text-gray-900">ANÚNCIOS</h1>
           <p className="text-gray-600 mt-1 text-sm">
-            (0 Fonte)
+            (0 Anúncios)
           </p>
           <p className="text-gray-600 text-sm">
-            Acompanhe o desempenho de suas campanhas
+            Acompanhe o desempenho dos seus anúncios
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">UTM's - Sources</span>
           <Input
             value={dateRange}
             readOnly
             className="w-72"
           />
         </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm">Anúncios</Button>
+        <Button variant="outline" size="sm">RENDIMENTO</Button>
+        <Button variant="outline" size="sm">E-MAILS</Button>
       </div>
 
       {/* Tabela */}
@@ -68,72 +72,66 @@ const UtmsPage: React.FC = () => {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    NOME DA UTM
+                    NOME DA CAMPANHA
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    VENDAS
+                    VISUALIZAÇÕES
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    RECEITA LÍQUIDA
+                    CLIQUES
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    VALOR PAGO
+                    CTR
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    CART ÃO TOTAL
+                    CPC
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    CARTÃO PAGO
+                    CUSTO
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    PIX TOTAL
+                    CONVERSÕES
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    PIX PAGO
+                    RECEITA
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    BOLETO TOTAL
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
-                    BOLETO PAGO
+                    ROAS
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {MOCK_UTMS.map((utm) => (
-                  <tr key={utm.id} className="border-b hover:bg-gray-50">
+                {MOCK_ADS.map((ad) => (
+                  <tr key={ad.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap text-gray-900">
                       <div className="flex items-center gap-2">
                         <span className="w-1 h-4 bg-pink-600 rounded"></span>
-                        {utm.name}
+                        {ad.name}
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.sales}
+                      {ad.views}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.revenue}
+                      {ad.clicks}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.amountPaid}
+                      {ad.ctr}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.totalCart}
+                      {ad.cpc}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.averageCart}
+                      {ad.cost}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.pixTotal}
+                      {ad.conversions}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.pixAverage}
+                      {ad.revenue}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.boletoTotal}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-gray-900">
-                      {utm.boletoAverage}
+                      {ad.roas}
                     </td>
                   </tr>
                 ))}
@@ -146,4 +144,4 @@ const UtmsPage: React.FC = () => {
   );
 };
 
-export default UtmsPage;
+export default AdsPage;
