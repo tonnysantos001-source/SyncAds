@@ -58,7 +58,7 @@ const PixelsPage = lazy(() => import('./pages/app/marketing/PixelsPage'));
 
 // Checkout pages
 const CheckoutDiscountsPage = lazy(() => import('./pages/app/checkout/DiscountsPage'));
-const CustomizePage = lazy(() => import('./pages/app/checkout/CustomizePage'));
+const CheckoutCustomizePage = lazy(() => import('./pages/app/checkout/CheckoutCustomizePage'));
 const SocialProofPage = lazy(() => import('./pages/app/checkout/SocialProofPage'));
 const CheckoutGatewaysPage = lazy(() => import('./pages/app/checkout/GatewaysPage'));
 const RedirectPage = lazy(() => import('./pages/app/checkout/RedirectPage'));
@@ -144,7 +144,7 @@ function App() {
               
               {/* Checkout */}
               <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
-              <Route path="/checkout/customize" element={<CustomizePage />} />
+              <Route path="/checkout/customize" element={<CheckoutCustomizePage />} />
               <Route path="/checkout/social-proof" element={<SocialProofPage />} />
               <Route path="/checkout/gateways" element={<CheckoutGatewaysPage />} />
               <Route path="/checkout/redirect" element={<RedirectPage />} />
