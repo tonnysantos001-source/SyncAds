@@ -11,10 +11,8 @@ const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
-const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
-const CampaignsPage = lazy(() => import('./pages/app/CampaignsPage'));
+const UnifiedDashboardPage = lazy(() => import('./pages/app/UnifiedDashboardPage'));
 const CampaignDetailsPage = lazy(() => import('./pages/app/campaigns/CampaignDetailsPage'));
-const AnalyticsPage = lazy(() => import('./pages/app/AnalyticsPage'));
 const ChatPage = lazy(() => import('./pages/app/ChatPage'));
 const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
 const SettingsPage = lazy(() => import('./pages/app/SettingsPage'));
@@ -30,8 +28,6 @@ const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
 const GatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
 
-// Team page
-const TeamPage = lazy(() => import('./pages/app/TeamPage'));
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -79,14 +75,11 @@ function App() {
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/campaigns" element={<CampaignsPage />} />
-              <Route path="/campaigns/:id" element={<CampaignDetailsPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/dashboard" element={<UnifiedDashboardPage />} />
+              <Route path="/campaigns/:id" element={<CampaignDetailsPage />} />
               <Route path="/integrations" element={<IntegrationsPage />} />
               <Route path="/integrations/callback" element={<IntegrationCallbackPage />} />
-              <Route path="/team" element={<TeamPage />} />
               <Route path="/settings/*" element={<SettingsPage />} />
             </Route>
 
