@@ -3,12 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { billingHistory } from '@/data/mocks';
 import { useStore } from '@/store/useStore';
-import { CreditCard, Download, FileText } from 'lucide-react';
+import { CreditCard, Download, FileText, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const BillingTab: React.FC = () => {
   const user = useStore(state => state.user);
+  
+  // TODO: Integrar com Stripe/Asaas quando gateway estiver configurado
+  // const { invoices, loading } = useBillingHistory();
+  const invoices: any[] = []; // Placeholder até gateway estar pronto
 
   return (
     <div className="space-y-6">
@@ -64,8 +68,8 @@ export const BillingTab: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {billingHistory.length > 0 ? (
-                billingHistory.map((invoice) => (
+              {invoices.length > 0 ? (
+                invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{invoice.id}</TableCell>
                     <TableCell>{invoice.date}</TableCell>
@@ -85,7 +89,8 @@ export const BillingTab: React.FC = () => {
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FileText className="h-8 w-8" />
-                      <p>Nenhuma fatura encontrada.</p>
+                      <p>Nenhuma fatura ainda.</p>
+                      <p className="text-sm">As faturas aparecerão aqui quando o pagamento estiver configurado.</p>
                     </div>
                   </TableCell>
                 </TableRow>

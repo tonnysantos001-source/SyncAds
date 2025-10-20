@@ -9,13 +9,20 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { chartData } from '@/data/mocks';
+import { useChartData } from '@/hooks/useChartData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const DashboardChart: React.FC = () => {
+  const { data, loading } = useChartData(12);
+
+  if (loading) {
+    return <Skeleton className="w-full h-[300px]" />;
+  }
+
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
-        data={chartData}
+        data={data}
         margin={{
           top: 5,
           right: 30,

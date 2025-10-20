@@ -1,8 +1,8 @@
 import React, { Suspense, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { dashboardMetrics } from '@/data/mocks';
-import { TrendingUp, TrendingDown, BarChart3, Megaphone, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Megaphone, Sparkles, DollarSign, Target, Activity } from 'lucide-react';
+import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 import { ActiveCampaignsTable } from './dashboard/ActiveCampaignsTable';
 import { DashboardChart } from './dashboard/DashboardChart';
 import { ConversionGoalsCard } from './dashboard/ConversionGoalsCard';
@@ -19,9 +19,33 @@ import { Link } from 'react-router-dom';
 import { NewCampaignModal } from './campaigns/NewCampaignModal';
 import { EmptyState } from '@/components/EmptyState';
 
-const MetricCard: React.FC<{ metric: typeof dashboardMetrics[0] }> = ({ metric }) => {
-  const { icon: Icon, title, value, change, changeType, color } = metric;
+type MetricCardProps = {
+  title: string;
+  value: string | number;
+  change: string;
+  changeType: 'increase' | 'decrease';
+  icon: React.ElementType;
+  color: string;
+  loading?: boolean;
+};
+
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, changeType, icon: Icon, color, loading }) => {
   const isIncrease = changeType === 'increase';
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-8 w-20 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -48,6 +72,7 @@ const MetricCard: React.FC<{ metric: typeof dashboardMetrics[0] }> = ({ metric }
 const UnifiedDashboardPage: React.FC = () => {
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const { campaigns } = useStore();
+  const metrics = useDashboardMetrics();
 
   return (
     <div className="flex-1 space-y-6">
@@ -63,21 +88,45 @@ const UnifiedDashboardPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Métricas Gerais - Sempre visível */}
-      <Suspense fallback={
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-[126px]" />
-          <Skeleton className="h-[126px]" />
-          <Skeleton className="h-[126px]" />
-          <Skeleton className="h-[126px]" />
-        </div>
-      }>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {dashboardMetrics.map((metric) => (
-            <MetricCard key={metric.title} metric={metric} />
-          ))}
-        </div>
-      </Suspense>
+      {/* Métricas Gerais - Dados Reais */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total de Campanhas"
+          value={metrics.totalCampaigns.value}
+          change={metrics.totalCampaigns.change}
+          changeType={metrics.totalCampaigns.changeType}
+          icon={Megaphone}
+          color="bg-blue-500/20 text-blue-500"
+          loading={metrics.loading}
+        />
+        <MetricCard
+          title="Cliques Totais"
+          value={metrics.totalClicks.value.toLocaleString()}
+          change={metrics.totalClicks.change}
+          changeType={metrics.totalClicks.changeType}
+          icon={Target}
+          color="bg-purple-500/20 text-purple-500"
+          loading={metrics.loading}
+        />
+        <MetricCard
+          title="Taxa de Conversão"
+          value={`${metrics.conversionRate.value.toFixed(1)}%`}
+          change={metrics.conversionRate.change}
+          changeType={metrics.conversionRate.changeType}
+          icon={Activity}
+          color="bg-green-500/20 text-green-500"
+          loading={metrics.loading}
+        />
+        <MetricCard
+          title="Receita Total"
+          value={`R$ ${metrics.totalRevenue.value.toLocaleString()}`}
+          change={metrics.totalRevenue.change}
+          changeType={metrics.totalRevenue.changeType}
+          icon={DollarSign}
+          color="bg-amber-500/20 text-amber-500"
+          loading={metrics.loading}
+        />
+      </div>
 
       {/* Tabs de Conteúdo */}
       <Tabs defaultValue="overview" className="space-y-4">
