@@ -28,6 +28,41 @@ const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
 const GatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
 
+// Reports pages
+const ReportsOverviewPage = lazy(() => import('./pages/app/reports/ReportsOverviewPage'));
+const AudiencePage = lazy(() => import('./pages/app/reports/AudiencePage'));
+const UtmsPage = lazy(() => import('./pages/app/reports/UtmsPage'));
+
+// Orders pages
+const AllOrdersPage = lazy(() => import('./pages/app/orders/AllOrdersPage'));
+const AbandonedCartsPage = lazy(() => import('./pages/app/orders/AbandonedCartsPage'));
+const PixRecoveredPage = lazy(() => import('./pages/app/orders/PixRecoveredPage'));
+
+// Products pages
+const AllProductsPage = lazy(() => import('./pages/app/products/AllProductsPage'));
+const CollectionsPage = lazy(() => import('./pages/app/products/CollectionsPage'));
+const KitsPage = lazy(() => import('./pages/app/products/KitsPage'));
+
+// Customers pages
+const AllCustomersPage = lazy(() => import('./pages/app/customers/AllCustomersPage'));
+const LeadsPage = lazy(() => import('./pages/app/customers/LeadsPage'));
+
+// Marketing pages
+const CouponsPage = lazy(() => import('./pages/app/marketing/CouponsPage'));
+const OrderBumpPage = lazy(() => import('./pages/app/marketing/OrderBumpPage'));
+const UpsellPage = lazy(() => import('./pages/app/marketing/UpsellPage'));
+const CrossSellPage = lazy(() => import('./pages/app/marketing/CrossSellPage'));
+const DiscountBannerPage = lazy(() => import('./pages/app/marketing/DiscountBannerPage'));
+const CashbackPage = lazy(() => import('./pages/app/marketing/CashbackPage'));
+const PixelsPage = lazy(() => import('./pages/app/marketing/PixelsPage'));
+
+// Checkout pages
+const CheckoutDiscountsPage = lazy(() => import('./pages/app/checkout/DiscountsPage'));
+const CustomizePage = lazy(() => import('./pages/app/checkout/CustomizePage'));
+const SocialProofPage = lazy(() => import('./pages/app/checkout/SocialProofPage'));
+const CheckoutGatewaysPage = lazy(() => import('./pages/app/checkout/GatewaysPage'));
+const RedirectPage = lazy(() => import('./pages/app/checkout/RedirectPage'));
+
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -78,6 +113,42 @@ function App() {
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/dashboard" element={<UnifiedDashboardPage />} />
               <Route path="/campaigns/:id" element={<CampaignDetailsPage />} />
+              
+              {/* Reports */}
+              <Route path="/reports/overview" element={<ReportsOverviewPage />} />
+              <Route path="/reports/audience" element={<AudiencePage />} />
+              <Route path="/reports/utms" element={<UtmsPage />} />
+              
+              {/* Orders */}
+              <Route path="/orders/all" element={<AllOrdersPage />} />
+              <Route path="/orders/abandoned-carts" element={<AbandonedCartsPage />} />
+              <Route path="/orders/pix-recovered" element={<PixRecoveredPage />} />
+              
+              {/* Products */}
+              <Route path="/products/all" element={<AllProductsPage />} />
+              <Route path="/products/collections" element={<CollectionsPage />} />
+              <Route path="/products/kits" element={<KitsPage />} />
+              
+              {/* Customers */}
+              <Route path="/customers/all" element={<AllCustomersPage />} />
+              <Route path="/customers/leads" element={<LeadsPage />} />
+              
+              {/* Marketing */}
+              <Route path="/marketing/coupons" element={<CouponsPage />} />
+              <Route path="/marketing/order-bump" element={<OrderBumpPage />} />
+              <Route path="/marketing/upsell" element={<UpsellPage />} />
+              <Route path="/marketing/cross-sell" element={<CrossSellPage />} />
+              <Route path="/marketing/discount-banner" element={<DiscountBannerPage />} />
+              <Route path="/marketing/cashback" element={<CashbackPage />} />
+              <Route path="/marketing/pixels" element={<PixelsPage />} />
+              
+              {/* Checkout */}
+              <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
+              <Route path="/checkout/customize" element={<CustomizePage />} />
+              <Route path="/checkout/social-proof" element={<SocialProofPage />} />
+              <Route path="/checkout/gateways" element={<CheckoutGatewaysPage />} />
+              <Route path="/checkout/redirect" element={<RedirectPage />} />
+              
               <Route path="/integrations" element={<IntegrationsPage />} />
               <Route path="/integrations/callback" element={<IntegrationCallbackPage />} />
               <Route path="/settings/*" element={<SettingsPage />} />

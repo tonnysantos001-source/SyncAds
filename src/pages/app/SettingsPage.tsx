@@ -4,15 +4,19 @@ import { ProfileTab } from './settings/ProfileTab';
 import { SecurityTab } from './settings/SecurityTab';
 import { NotificationsTab } from './settings/NotificationsTab';
 import { BillingTab } from './settings/BillingTab';
+import { DomainsTab } from './settings/DomainsTab';
+import { LogisticsTab } from './settings/LogisticsTab';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
-import { User, ShieldCheck, Bell, CreditCard } from 'lucide-react';
+import { User, ShieldCheck, Bell, CreditCard, Globe, Truck } from 'lucide-react';
 
 const settingsNav = [
   { path: '', label: 'Perfil', icon: User },
   { path: 'security', label: 'Segurança', icon: ShieldCheck },
   { path: 'notifications', label: 'Notificações', icon: Bell },
   { path: 'billing', label: 'Faturamento', icon: CreditCard },
+  { path: 'domains', label: 'Domínios', icon: Globe },
+  { path: 'logistics', label: 'Logística', icon: Truck },
 ];
 
 const SettingsPage: React.FC = () => {
@@ -54,6 +58,8 @@ const SettingsPage: React.FC = () => {
             <Route path="security" element={<SecurityTab />} />
             <Route path="notifications" element={<NotificationsTab />} />
             <Route path="billing" element={<BillingTab />} />
+            <Route path="domains" element={<DomainsTab />} />
+            <Route path="logistics" element={<LogisticsTab />} />
           </Routes>
         </div>
       </div>
