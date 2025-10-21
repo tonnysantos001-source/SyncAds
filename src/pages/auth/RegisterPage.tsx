@@ -43,11 +43,6 @@ export default function RegisterPage() {
   };
 
   return (
-      setIsLoading(false);
-    }
-  };
-
-  return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 py-12">
       {/* Background gradients - mesmo da landing */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 -z-10" />
@@ -89,18 +84,17 @@ export default function RegisterPage() {
           <CardDescription className="text-gray-600 dark:text-gray-400">Começe a economizar hoje mesmo</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="full-name">Nome Completo</Label>
+                <Label htmlFor="name">Nome Completo</Label>
                 <Input 
-                  id="full-name" 
+                  id="name" 
                   placeholder="Seu Nome" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required 
-                  disabled={isLoading}
+                  {...register('name')}
+                  disabled={isSubmitting}
                 />
+                {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -108,35 +102,32 @@ export default function RegisterPage() {
                   id="email" 
                   type="email" 
                   placeholder="nome@exemplo.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                  disabled={isLoading}
+                  {...register('email')}
+                  disabled={isSubmitting}
                 />
+                {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cpf">CPF</Label>
                 <Input 
                   id="cpf" 
                   placeholder="000.000.000-00" 
-                  value={cpf}
-                  onChange={(e) => setCpf(formatCPF(e.target.value))}
+                  {...register('cpf')}
                   maxLength={14}
-                  required 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
+                {errors.cpf && <p className="text-sm text-red-600">{errors.cpf.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="birthDate">Data de Nascimento</Label>
                 <Input 
                   id="birthDate" 
                   type="date" 
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
+                  {...register('birthDate')}
                   max={new Date().toISOString().split('T')[0]}
-                  required 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
+                {errors.birthDate && <p className="text-sm text-red-600">{errors.birthDate.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Senha</Label>
@@ -144,30 +135,17 @@ export default function RegisterPage() {
                   id="password" 
                   type="password" 
                   placeholder="Mínimo 6 caracteres"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                  disabled={isLoading}
+                  {...register('password')}
+                  disabled={isSubmitting}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="confirm-password">Confirmar Senha</Label>
-                <Input 
-                  id="confirm-password" 
-                  type="password" 
-                  placeholder="Digite a senha novamente"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required 
-                  disabled={isLoading}
-                />
+                {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
               </div>
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]" 
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 animate-spin" />
                     Criando sua conta...
