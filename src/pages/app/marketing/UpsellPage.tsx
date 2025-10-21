@@ -99,64 +99,134 @@ const UpsellPage = () => {
           <DialogTrigger asChild>
             <Button onClick={() => { setEditingUpsell(null); setFormData({ name: '', triggerProductId: '', upsellProductId: '', title: '', description: '', discountType: 'PERCENTAGE', discountValue: 0, isActive: true }); }}>
               <Plus className="mr-2 h-4 w-4" />Criar Upsell
-              </Button>
-            </div>
-
-            {/* Ilustração */}
-            <div className="flex justify-center">
-              <div className="relative">
-                {/* Smartphone mockup */}
-                <div className="relative">
-                  <div className="w-56 h-96 bg-gray-900 rounded-3xl p-2 shadow-2xl">
-                    <div className="w-full h-full bg-white rounded-2xl overflow-hidden flex flex-col items-center justify-center p-4">
-                      {/* Cabeça de produto */}
-                      <div className="w-20 h-20 bg-gray-800 rounded-full mb-4"></div>
-                      
-                      {/* Setas indicando upgrade */}
-                      <div className="flex items-center gap-2 mb-4">
-                        <svg className="w-6 h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        <div className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <svg className="w-6 h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                      </div>
-
-                      {/* Linhas de texto */}
-                      <div className="space-y-2 w-full">
-                        <div className="h-2 bg-gray-200 rounded w-full"></div>
-                        <div className="h-2 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                      </div>
-                    </div>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingUpsell ? 'Editar Upsell' : 'Novo Upsell'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <Label>Nome Interno</Label>
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                </div>
+                <div>
+                  <Label>Produto Gatilho</Label>
+                  <Select value={formData.triggerProductId} onValueChange={(v) => setFormData({ ...formData, triggerProductId: v })} required>
+                    <SelectTrigger><SelectValue placeholder="Produto que ativa o upsell" /></SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Produto Upsell</Label>
+                  <Select value={formData.upsellProductId} onValueChange={(v) => setFormData({ ...formData, upsellProductId: v })} required>
+                    <SelectTrigger><SelectValue placeholder="Produto oferecido" /></SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Título da Oferta</Label>
+                  <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo Desconto</Label>
+                    <Select value={formData.discountType} onValueChange={(v: any) => setFormData({ ...formData, discountType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PERCENTAGE">Percentual</SelectItem>
+                        <SelectItem value="FIXED_AMOUNT">Valor Fixo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Valor</Label>
+                    <Input type="number" step="0.01" value={formData.discountValue} onChange={(e) => setFormData({ ...formData, discountValue: parseFloat(e.target.value) })} />
                   </div>
                 </div>
-
-                {/* Pessoa ao lado do celular */}
-                <div className="absolute -right-16 bottom-0">
-                  <svg width="100" height="180" viewBox="0 0 100 180" fill="none">
-                    {/* Cabeça */}
-                    <circle cx="50" cy="30" r="15" fill="#000000" />
-                    
-                    {/* Corpo */}
-                    <rect x="40" y="45" width="20" height="35" rx="2" fill="#EC4899" />
-                    
-                    {/* Braços */}
-                    <path d="M40 55 L25 65 L28 70 L43 60 Z" fill="#EC4899" />
-                    <path d="M60 55 L75 65 L72 70 L57 60 Z" fill="#000000" />
-                    
-                    {/* Pernas */}
-                    <path d="M42 80 L38 130 L33 130 L33 135 L43 135 Z" fill="#000000" />
-                    <path d="M58 80 L62 130 L67 130 L67 135 L57 135 Z" fill="#000000" />
-                  </svg>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                  <Label>Ativo</Label>
                 </div>
               </div>
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button type="submit">{editingUpsell ? 'Atualizar' : 'Criar'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Upsells</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{upsells.length}</div></CardContent>
+        </Card>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Buscar upsells..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Lista de Upsells</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+          ) : filteredUpsells.length === 0 ? (
+            <div className="text-center py-12">
+              <TrendingUp className="h-12 w-12 text-muted-foreground mb-4 mx-auto" />
+              <h3 className="text-lg font-semibold">Nenhum upsell encontrado</h3>
+              <p className="text-sm text-muted-foreground mb-4">Comece criando o primeiro upsell</p>
+              <Button onClick={() => setIsDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Criar Primeiro Upsell</Button>
             </div>
-          </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Desconto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUpsells.map((upsell) => (
+                  <TableRow key={upsell.id}>
+                    <TableCell className="font-medium">{upsell.name}</TableCell>
+                    <TableCell>{upsell.title}</TableCell>
+                    <TableCell>{upsell.discountType === 'PERCENTAGE' ? `${upsell.discountValue}%` : `R$ ${upsell.discountValue}`}</TableCell>
+                    <TableCell><Badge variant={upsell.isActive ? 'default' : 'secondary'}>{upsell.isActive ? 'Ativo' : 'Inativo'}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingUpsell(upsell); setFormData(upsell); setIsDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(upsell.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
