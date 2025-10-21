@@ -1,4 +1,4 @@
-import { BarChart3, Search, Anchor, Globe, Facebook, BrainCircuit, Newspaper, Music, Linkedin, FolderKanban, Database, Instagram, Twitter, MessageCircle, Phone, Send, Video, Link, ShoppingBag, Store, ShoppingCart, Package, Calendar, PenSquare, LayoutTemplate, Flame, CreditCard, Wallet, Payment, TrendingUp, Palette, Slack, Mail, Github, Webhook, Server } from 'lucide-react';
+import { BarChart3, Search, Anchor, Globe, Facebook, BrainCircuit, Newspaper, Music, Linkedin, FolderKanban, Database, Instagram, Twitter, MessageCircle, Phone, Send, Video, Link, ShoppingBag, Store, ShoppingCart, Package, Calendar, PenSquare, LayoutTemplate, Flame, CreditCard, Wallet, Banknote, TrendingUp, Palette, Slack, Mail, Github, Webhook, Server } from 'lucide-react';
 
 export type Integration = {
   id: string;
@@ -86,7 +86,7 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCategory[] = [
             { id: 'mercado-pago', name: 'Mercado Pago', description: 'Processe pagamentos com Mercado Pago.', logo: CreditCard },
             { id: 'pagseguro', name: 'PagSeguro', description: 'Integração com PagSeguro para pagamentos online.', logo: CreditCard },
             { id: 'yapay', name: 'Yapay', description: 'Gateway de pagamento Yapay para múltiplas formas de pagamento.', logo: Wallet },
-            { id: 'asaas', name: 'Asaas', description: 'Gestão financeira e cobranças com Asaas.', logo: Payment },
+            { id: 'asaas', name: 'Asaas', description: 'Gestão financeira e cobranças com Asaas.', logo: Banknote },
             { id: 'hotmart', name: 'Hotmart', description: 'Integração com Hotmart para venda de produtos digitais.', logo: ShoppingCart },
             { id: 'sympla', name: 'Sympla', description: 'Venda e gerencie ingressos de eventos com Sympla.', logo: Calendar },
         ]
