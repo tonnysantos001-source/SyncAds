@@ -148,86 +148,102 @@ const CollectionsPage = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Criar Coleção
-              </Button>
-            </div>
-
-            {/* Ilustração */}
-            <div className="flex justify-center">
-              <div className="relative">
-                {/* Quadro com produtos */}
-                <div className="w-72 h-56 border-4 border-gray-900 rounded-lg bg-white p-4 relative">
-                  <div className="grid grid-cols-3 gap-3 h-full">
-                    {/* Item 1 - Vestido */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-8 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L8 6H6v14h12V6h-2l-4-4z" />
-                      </svg>
-                    </div>
-                    {/* Item 2 - Vestido preto */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-8 h-12 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L8 6H6v14h12V6h-2l-4-4z" />
-                      </svg>
-                    </div>
-                    {/* Item 3 - Calça */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-8 h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 2H8l-2 7v11h4V9h4v11h4V9l-2-7z" />
-                      </svg>
-                    </div>
-                    {/* Item 4 - Camisa */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-10 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 3H8l-2 2v3h12V5l-2-2zm0 18H8V9h8v12z" />
-                      </svg>
-                    </div>
-                    {/* Item 5 - Camisa cinza */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-10 h-8 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 3H8l-2 2v3h12V5l-2-2zm0 18H8V9h8v12z" />
-                      </svg>
-                    </div>
-                    {/* Item 6 - Camiseta preta */}
-                    <div className="bg-gray-100 rounded flex items-center justify-center">
-                      <svg className="w-10 h-8 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 3H8l-2 2v3h12V5l-2-2zm0 18H8V9h8v12z" />
-                      </svg>
-                    </div>
-                  </div>
+              <Plus className="mr-2 h-4 w-4" />Criar Coleção
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingCollection ? 'Editar Coleção' : 'Nova Coleção'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <Label>Nome da Coleção</Label>
+                  <Input value={formData.name} onChange={(e) => handleNameChange(e.target.value)} required />
                 </div>
-
-                {/* Caixas no chão */}
-                <div className="absolute -bottom-8 -left-8 flex gap-2">
-                  <div className="w-16 h-12 border-2 border-gray-900 bg-white"></div>
-                  <div className="w-16 h-12 border-2 border-gray-900 bg-white"></div>
+                <div>
+                  <Label>Slug (URL)</Label>
+                  <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} required />
                 </div>
-
-                {/* Pessoa carregando caixa */}
-                <div className="absolute -right-12 top-8">
-                  <svg width="120" height="180" viewBox="0 0 120 180" fill="none">
-                    {/* Cabeça */}
-                    <circle cx="60" cy="30" r="18" fill="#000000" />
-                    
-                    {/* Corpo rosa */}
-                    <rect x="48" y="48" width="24" height="35" rx="2" fill="#EC4899" />
-                    
-                    {/* Braços segurando caixa */}
-                    <path d="M48 58 L30 65 L30 75 L48 68 Z" fill="#EC4899" />
-                    <path d="M72 58 L90 65 L90 75 L72 68 Z" fill="#000000" />
-                    
-                    {/* Caixa na frente */}
-                    <rect x="35" y="60" width="30" height="25" rx="1" fill="white" stroke="#000000" strokeWidth="2" />
-                    
-                    {/* Pernas */}
-                    <path d="M50 83 L45 140 L40 140 L40 146 L50 146 Z" fill="#000000" />
-                    <path d="M70 83 L75 140 L80 140 L80 146 L70 146 Z" fill="#000000" />
-                  </svg>
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                  <Label>Ativa</Label>
                 </div>
               </div>
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button type="submit">{editingCollection ? 'Atualizar' : 'Criar'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Coleções</CardTitle>
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{collections.length}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Coleções Ativas</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{activeCollections}</div></CardContent>
+        </Card>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Buscar coleções..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Lista de Coleções</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+          ) : filteredCollections.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderOpen className="h-12 w-12 text-muted-foreground mb-4 mx-auto" />
+              <h3 className="text-lg font-semibold">Nenhuma coleção encontrada</h3>
+              <p className="text-sm text-muted-foreground mb-4">Comece criando a primeira coleção</p>
+              <Button onClick={() => setIsDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Criar Primeira Coleção</Button>
             </div>
-          </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCollections.map((collection) => (
+                  <TableRow key={collection.id}>
+                    <TableCell className="font-medium">{collection.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{collection.slug}</TableCell>
+                    <TableCell><Badge variant={collection.isActive ? 'default' : 'secondary'}>{collection.isActive ? 'Ativa' : 'Inativa'}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(collection)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(collection.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
