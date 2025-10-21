@@ -1,33 +1,104 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Search, Edit, Trash2, TrendingUp } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { marketingApi } from '@/lib/api/marketingApi';
+import { productsApi } from '@/lib/api/productsApi';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const UpsellPage: React.FC = () => {
-  const handleCadastrar = () => {
-    console.log('Cadastrar upsell');
+const UpsellPage = () => {
+  const [upsells, setUpsells] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUpsell, setEditingUpsell] = useState<any | null>(null);
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    triggerProductId: '',
+    upsellProductId: '',
+    title: '',
+    description: '',
+    discountType: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED_AMOUNT',
+    discountValue: 0,
+    isActive: true,
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      if (!user?.organizationId) return;
+      const [upsellsData, productsData] = await Promise.all([
+        marketingApi.upsells.getAll(user.organizationId),
+        productsApi.list(),
+      ]);
+      setUpsells(upsellsData);
+      setProducts(productsData);
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-6">
-      <Card className="max-w-4xl w-full">
-        <CardContent className="p-12">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Texto e Botão */}
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                  Você ainda não tem nenhum upsell cadastrado.
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Que tal cadastrar seu primeiro upsell para aumentar seu ticket médio?
-                </p>
-              </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user?.organizationId) return;
+      if (editingUpsell) {
+        await marketingApi.upsells.update(editingUpsell.id, formData);
+        toast({ title: 'Upsell atualizado!' });
+      } else {
+        await marketingApi.upsells.create({ ...formData, organizationId: user.organizationId });
+        toast({ title: 'Upsell criado!' });
+      }
+      setIsDialogOpen(false);
+      setEditingUpsell(null);
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
 
-              <Button
-                onClick={handleCadastrar}
-                className="bg-pink-600 hover:bg-pink-700 text-white text-base px-8 py-6 h-auto"
-              >
-                CADASTRAR UPSELL
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deletar upsell?')) return;
+    try {
+      await marketingApi.upsells.delete(id);
+      toast({ title: 'Upsell deletado' });
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const filteredUpsells = upsells.filter((u) => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Upsells</h1>
+          <p className="text-muted-foreground">Aumente o ticket médio com ofertas de upsell</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { setEditingUpsell(null); setFormData({ name: '', triggerProductId: '', upsellProductId: '', title: '', description: '', discountType: 'PERCENTAGE', discountValue: 0, isActive: true }); }}>
+              <Plus className="mr-2 h-4 w-4" />Criar Upsell
               </Button>
             </div>
 

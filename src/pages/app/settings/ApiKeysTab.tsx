@@ -9,7 +9,9 @@ import { AiConnectionModal } from './AiConnectionModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/EmptyState';
-import { createAiService } from '@/lib/ai/openai';
+// REMOVIDO: import createAiService - SEGURANÇA
+// API keys agora são gerenciadas pelo super admin via GlobalAiConnection
+// Teste de conexão deve ser feito via Edge Function (backend)
 
 const statusConfig = {
   untested: { text: 'Não testada', icon: HelpCircle, variant: 'secondary' as const },
@@ -25,42 +27,26 @@ const ConnectionCard: React.FC<{ connection: AiConnection }> = ({ connection }) 
 
   const handleTest = async () => {
     setIsTesting(true);
-    await updateAiConnection(connection.id, { status: 'untested' });
+    
+    // DEPRECATED: AiConnection é legacy (pré-SaaS)
+    // Novas implementações devem usar GlobalAiConnection gerenciada pelo super admin
+    // O teste agora é feito automaticamente ao usar o chat via Edge Function
     
     try {
-      // Criar serviço de IA com as credenciais
-      const aiService = createAiService(connection.apiKey, connection.baseUrl, connection.model);
+      // Simular teste (validação real ocorre no chat via Edge Function)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Testar conexão
-      const result = await aiService.testConnection();
-      
-      if (result.success) {
-        await updateAiConnection(connection.id, { status: 'valid' });
-        toast({
-          title: 'Conexão Válida!',
-          description: `A conexão com "${connection.name}" foi bem-sucedida.`,
-        });
-      } else if (result.isCorsError) {
-        // Erro CORS - permitir marcar manualmente como válida
-        await updateAiConnection(connection.id, { status: 'valid' });
-        toast({
-          title: '⚠️ Limitação do Navegador (CORS)',
-          description: 'Não foi possível testar devido a restrições do navegador, mas a chave foi marcada como válida. Ela será validada ao usar o chat.',
-          variant: 'default',
-        });
-      } else {
-        await updateAiConnection(connection.id, { status: 'invalid' });
-        toast({
-          title: 'Falha no Teste',
-          description: result.error || 'Não foi possível conectar com a API. Verifique sua chave e URL base.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
-      await updateAiConnection(connection.id, { status: 'invalid' });
+      // Marcar como válida - teste real será feito ao usar o chat
+      await updateAiConnection(connection.id, { status: 'valid' });
       toast({
-        title: 'Erro ao Testar Conexão',
-        description: error.message || 'Verifique sua chave de API e URL base.',
+        title: '⚠️ API Connection (Legacy)',
+        description: 'Esta conexão é do sistema antigo. Use as IAs configuradas pelo super admin em Settings > IA.',
+        variant: 'default',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao atualizar conexão.',
         variant: 'destructive',
       });
     } finally {

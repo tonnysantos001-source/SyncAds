@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Settings, CreditCard, Wallet, Building2, CheckCircle2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { gatewaysApi, gatewayConfigApi, Gateway, GatewayConfig } from '@/lib/api/gatewaysApi';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Gateway {
-  id: string;
-  name: string;
-  status?: 'ativo' | 'inativo' | 'download';
-  logoUrl?: string;
-  colorClass: string;
-}
-
-const GATEWAYS: Gateway[] = [
+const OLD_GATEWAYS_MOCK: any[] = [
   { id: 'pix', name: 'Pix', status: 'ativo', colorClass: 'bg-blue-500', logoUrl: 'https://logodownload.org/wp-content/uploads/2020/02/pix-bc-logo.png' },
   { id: 'picpay', name: 'PicPay', status: 'inativo', colorClass: 'bg-green-500', logoUrl: 'https://logodownload.org/wp-content/uploads/2018/05/picpay-logo.png' },
   { id: 'banco-inter', name: 'Banco Inter', colorClass: 'bg-orange-500', logoUrl: 'https://logodownload.org/wp-content/uploads/2020/04/banco-inter-logo.png' },
@@ -92,97 +92,312 @@ const GATEWAYS: Gateway[] = [
   { id: 'vivo', name: 'Vivo', colorClass: 'bg-purple-700', logoUrl: 'https://logodownload.org/wp-content/uploads/2014/05/vivo-logo.png' },
 ];
 
-const GatewaysPage: React.FC = () => {
+const GatewaysPage = () => {
+  const [gateways, setGateways] = useState<Gateway[]>([]);
+  const [configs, setConfigs] = useState<GatewayConfig[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [filterType, setFilterType] = useState<'ALL' | 'PAYMENT_PROCESSOR' | 'WALLET' | 'BANK'>('ALL');
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
 
-  const filteredGateways = GATEWAYS.filter((gateway) =>
-    gateway.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [configForm, setConfigForm] = useState({
+    apiKey: '',
+    secretKey: '',
+    publicKey: '',
+    webhookUrl: '',
+    pixFee: 0,
+    creditCardFee: 0,
+    boletoFee: 0,
+    isTestMode: true,
+    isActive: true,
+  });
+
+  useEffect(() => {
+    loadGateways();
+  }, []);
+
+  const loadGateways = async () => {
+    try {
+      const data = await gatewaysApi.list();
+      setGateways(data);
+      if (user?.organizationId) {
+        const configsData = await gatewayConfigApi.list();
+        setConfigs(configsData);
+      }
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar gateways', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfigureGateway = (gateway: Gateway) => {
+    setSelectedGateway(gateway);
+    const existingConfig = configs.find((c) => c.gatewayId === gateway.id);
+    if (existingConfig) {
+      setConfigForm({
+        apiKey: existingConfig.credentials.apiKey || '',
+        secretKey: existingConfig.credentials.secretKey || '',
+        publicKey: existingConfig.credentials.publicKey || '',
+        webhookUrl: existingConfig.webhookUrl || '',
+        pixFee: existingConfig.pixFee || 0,
+        creditCardFee: existingConfig.creditCardFee || 0,
+        boletoFee: existingConfig.boletoFee || 0,
+        isTestMode: existingConfig.isTestMode,
+        isActive: existingConfig.isActive,
+      });
+    } else {
+      setConfigForm({
+        apiKey: '',
+        secretKey: '',
+        publicKey: '',
+        webhookUrl: '',
+        pixFee: 0,
+        creditCardFee: 0,
+        boletoFee: 0,
+        isTestMode: true,
+        isActive: true,
+      });
+    }
+    setIsConfigDialogOpen(true);
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      if (!user?.organizationId || !selectedGateway) return;
+
+      const existingConfig = configs.find((c) => c.gatewayId === selectedGateway.id);
+      const credentials = {
+        apiKey: configForm.apiKey,
+        secretKey: configForm.secretKey,
+        publicKey: configForm.publicKey,
+      };
+
+      if (existingConfig) {
+        await gatewayConfigApi.update(existingConfig.id, {
+          credentials,
+          webhookUrl: configForm.webhookUrl,
+          pixFee: configForm.pixFee,
+          creditCardFee: configForm.creditCardFee,
+          boletoFee: configForm.boletoFee,
+          isTestMode: configForm.isTestMode,
+          isActive: configForm.isActive,
+        });
+        toast({ title: 'Configuração atualizada!' });
+      } else {
+        await gatewayConfigApi.create({
+          organizationId: user.organizationId,
+          gatewayId: selectedGateway.id,
+          credentials,
+          webhookUrl: configForm.webhookUrl,
+          pixFee: configForm.pixFee,
+          creditCardFee: configForm.creditCardFee,
+          boletoFee: configForm.boletoFee,
+          isTestMode: configForm.isTestMode,
+          isActive: configForm.isActive,
+          isDefault: false,
+        });
+        toast({ title: 'Gateway configurado!', description: 'O gateway está pronto para uso.' });
+      }
+
+      setIsConfigDialogOpen(false);
+      loadGateways();
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const isConfigured = (gatewayId: string) => {
+    return configs.some((c) => c.gatewayId === gatewayId && c.isActive);
+  };
+
+  const filteredGateways = gateways.filter((gateway) => {
+    const matchesSearch = gateway.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'ALL' || gateway.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const popularGateways = filteredGateways.filter((g) => g.isPopular);
+  const otherGateways = filteredGateways.filter((g) => !g.isPopular);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">GATEWAYS</h1>
-        <p className="text-gray-600 mt-2">
-          Todos os gateways de pagamento disponíveis para integração.
+        <h1 className="text-3xl font-bold tracking-tight">Gateways de Pagamento</h1>
+        <p className="text-muted-foreground">
+          Configure e gerencie seus gateways de pagamento ({gateways.length} disponíveis)
         </p>
       </div>
 
-      {/* Barra de busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-        <Input
-          type="text"
-          placeholder="Buscar gateway..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Gateways Configurados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{configs.filter((c) => c.isActive).length}</div>
+          <p className="text-sm text-muted-foreground">de {gateways.length} gateways disponíveis</p>
+        </CardContent>
+      </Card>
 
-      {/* Grid de Gateways */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredGateways.map((gateway) => (
-          <Card key={gateway.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {/* Logo do Gateway */}
-                  <div className={`w-12 h-12 rounded ${gateway.colorClass} flex items-center justify-center flex-shrink-0`}>
-                    {gateway.logoUrl ? (
-                      <img 
-                        src={gateway.logoUrl} 
-                        alt={gateway.name}
-                        className="w-8 h-8 object-contain"
-                      />
-                    ) : (
-                      <span className="text-white font-bold text-lg">
-                        {gateway.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col">
-                    <h3 className="font-medium text-gray-900 text-sm">{gateway.name}</h3>
-                    {gateway.status === 'ativo' && (
-                      <Badge variant="outline" className="text-xs mt-1 w-fit border-gray-300 text-gray-600">
-                        Ativo
-                      </Badge>
-                    )}
-                    {gateway.status === 'inativo' && (
-                      <Badge variant="outline" className="text-xs mt-1 w-fit border-gray-300 text-gray-500">
-                        Inativo
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Botão Download */}
-                {gateway.status === 'download' && (
-                  <Button
-                    size="sm"
-                    className="bg-pink-600 hover:bg-pink-700 text-white text-xs px-3 py-1 h-auto rounded"
-                  >
-                    BAIXAR AGORA
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Mensagem quando não há resultados */}
-      {filteredGateways.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Nenhum gateway encontrado com "{searchTerm}"</p>
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Buscar gateway..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
         </div>
+        <Tabs value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+          <TabsList>
+            <TabsTrigger value="ALL">Todos</TabsTrigger>
+            <TabsTrigger value="PAYMENT_PROCESSOR">Processadores</TabsTrigger>
+            <TabsTrigger value="WALLET">Wallets</TabsTrigger>
+            <TabsTrigger value="BANK">Bancos</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32" />)}
+        </div>
+      ) : (
+        <>
+          {popularGateways.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Gateways Populares</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {popularGateways.map((gateway) => (
+                  <Card key={gateway.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-12 h-12 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            {gateway.type === 'PAYMENT_PROCESSOR' && <CreditCard className="h-6 w-6 text-white" />}
+                            {gateway.type === 'WALLET' && <Wallet className="h-6 w-6 text-white" />}
+                            {gateway.type === 'BANK' && <Building2 className="h-6 w-6 text-white" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold truncate">{gateway.name}</h3>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {gateway.supportsPix && <Badge variant="outline" className="text-xs">PIX</Badge>}
+                              {gateway.supportsCreditCard && <Badge variant="outline" className="text-xs">Cartão</Badge>}
+                              {gateway.supportsBoleto && <Badge variant="outline" className="text-xs">Boleto</Badge>}
+                            </div>
+                            {isConfigured(gateway.id) && (
+                              <div className="flex items-center gap-1 mt-2 text-green-600">
+                                <CheckCircle2 className="h-3 w-3" />
+                                <span className="text-xs font-medium">Configurado</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => handleConfigureGateway(gateway)}>
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {otherGateways.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Outros Gateways</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {otherGateways.map((gateway) => (
+                  <Card key={gateway.id} className="hover:shadow transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold">{gateway.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium truncate">{gateway.name}</h4>
+                            {isConfigured(gateway.id) && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                          </div>
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => handleConfigureGateway(gateway)}>
+                          <Settings className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Botão de ajuda flutuante */}
-      <button className="fixed bottom-6 right-6 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all hover:scale-105">
-        <span className="text-sm font-medium">💬 Precisa de ajuda?</span>
-      </button>
+      <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configurar {selectedGateway?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>API Key *</Label>
+                <Input value={configForm.apiKey} onChange={(e) => setConfigForm({ ...configForm, apiKey: e.target.value })} placeholder="sk_live_xxx" />
+              </div>
+              <div>
+                <Label>Secret Key</Label>
+                <Input value={configForm.secretKey} onChange={(e) => setConfigForm({ ...configForm, secretKey: e.target.value })} placeholder="secret_xxx" />
+              </div>
+              <div>
+                <Label>Public Key</Label>
+                <Input value={configForm.publicKey} onChange={(e) => setConfigForm({ ...configForm, publicKey: e.target.value })} placeholder="pk_live_xxx" />
+              </div>
+              <div>
+                <Label>Webhook URL</Label>
+                <Input value={configForm.webhookUrl} onChange={(e) => setConfigForm({ ...configForm, webhookUrl: e.target.value })} placeholder="https://..." />
+              </div>
+              <div>
+                <Label>Taxa PIX (%)</Label>
+                <Input type="number" step="0.01" value={configForm.pixFee} onChange={(e) => setConfigForm({ ...configForm, pixFee: parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Taxa Cartão (%)</Label>
+                <Input type="number" step="0.01" value={configForm.creditCardFee} onChange={(e) => setConfigForm({ ...configForm, creditCardFee: parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Taxa Boleto (R$)</Label>
+                <Input type="number" step="0.01" value={configForm.boletoFee} onChange={(e) => setConfigForm({ ...configForm, boletoFee: parseFloat(e.target.value) })} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Switch checked={configForm.isTestMode} onCheckedChange={(v) => setConfigForm({ ...configForm, isTestMode: v })} />
+                <Label>Modo de Teste</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={configForm.isActive} onCheckedChange={(v) => setConfigForm({ ...configForm, isActive: v })} />
+                <Label>Ativo</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveConfig}>Salvar Configuração</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {filteredGateways.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Nenhum gateway encontrado</p>
+        </div>
+      )}
     </div>
   );
 };

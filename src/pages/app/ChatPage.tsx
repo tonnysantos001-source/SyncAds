@@ -4,7 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Paperclip, Send, User, Bot, PanelLeftClose, PanelLeftOpen, Trash2, Plus } from 'lucide-react';
 import Textarea from 'react-textarea-autosize';
-import { useStore } from '@/store/useStore';
+import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
+import { useCampaignsStore } from '@/store/campaignsStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
@@ -56,20 +59,26 @@ const MAX_CHARS = 500;
 const ChatPage: React.FC = () => {
   const [input, setInput] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { 
-    addMessage, 
-    conversations, 
-    activeConversationId, 
-    setActiveConversationId,
-    isAssistantTyping,
-    setAssistantTyping,
-    deleteConversation,
-    createNewConversation,
-    aiSystemPrompt,
-    aiInitialGreetings,
-    addCampaign,
-    user,
-  } = useStore();
+  
+  // Auth store
+  const user = useAuthStore((state) => state.user);
+  
+  // Chat store
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore((state) => state.activeConversationId);
+  const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
+  const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
+  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
+  const addMessage = useChatStore((state) => state.addMessage);
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const createNewConversation = useChatStore((state) => state.createNewConversation);
+  
+  // Campaigns store
+  const addCampaign = useCampaignsStore((state) => state.addCampaign);
+  
+  // Settings store
+  const aiSystemPrompt = useSettingsStore((state) => state.aiSystemPrompt);
+  const aiInitialGreetings = useSettingsStore((state) => state.aiInitialGreetings);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,11 +101,13 @@ const ChatPage: React.FC = () => {
       
       // Adicionar a fala inicial como mensagem do assistente
       setTimeout(() => {
-        addMessage(activeConversationId!, { 
-          id: `greeting-${Date.now()}`, 
-          role: 'assistant', 
-          content: greeting 
-        });
+        if (user) {
+          addMessage(user.id, activeConversationId!, { 
+            id: `greeting-${Date.now()}`, 
+            role: 'assistant', 
+            content: greeting 
+          });
+        }
       }, 500); // Pequeno delay para parecer mais natural
     }
   }, [activeConversationId, activeConversation?.messages.length]);
@@ -105,7 +116,9 @@ const ChatPage: React.FC = () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
 
     const userMessage = input;
-    addMessage(activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
+    if (user) {
+      addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
+    }
     setInput('');
     
     setAssistantTyping(true);
@@ -129,10 +142,11 @@ const ChatPage: React.FC = () => {
       
       if (campaignIntent) {
         try {
-          await addCampaign({
-            name: campaignIntent.data.name,
-            platform: campaignIntent.data.platform,
-            status: 'Pausada',
+          if (user) {
+            await addCampaign(user.id, {
+              name: campaignIntent.data.name,
+              platform: campaignIntent.data.platform,
+              status: 'Pausada',
             budgetTotal: campaignIntent.data.budgetTotal,
             budgetSpent: 0,
             impressions: 0,
@@ -144,10 +158,11 @@ const ChatPage: React.FC = () => {
             cpc: 0,
           });
           
-          toast({
-            title: '🎉 Campanha Criada!',
-            description: `A campanha "${campaignIntent.data.name}" foi criada com sucesso.`,
-          });
+            toast({
+              title: '🎉 Campanha Criada!',
+              description: `A campanha "${campaignIntent.data.name}" foi criada com sucesso.`,
+            });
+          }
         } catch (error) {
           console.error('Error creating campaign from AI:', error);
           toast({
@@ -273,11 +288,13 @@ const ChatPage: React.FC = () => {
             const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
             
             // Adicionar mensagem com link
-            addMessage(activeConversationId, {
-              id: `msg-${Date.now() + 1}`,
-              role: 'assistant',
-              content: `Para conectar ${config.name}, clique no link abaixo:\n\n🔗 [Autorizar ${config.name}](${authUrl})\n\nO link abrirá em uma nova aba para você autorizar o acesso.`
-            });
+            if (user) {
+              addMessage(user.id, activeConversationId, {
+                id: `msg-${Date.now() + 1}`,
+                role: 'assistant',
+                content: `Para conectar ${config.name}, clique no link abaixo:\n\n🔗 [Autorizar ${config.name}](${authUrl})\n\nO link abrirá em uma nova aba para você autorizar o acesso.`
+              });
+            }
             
             // Abrir link automaticamente
             window.open(authUrl, '_blank');
@@ -315,11 +332,13 @@ const ChatPage: React.FC = () => {
           console.error('Erro ao processar integração:', error);
           
           // Adicionar mensagem de erro formatada no chat
-          addMessage(activeConversationId, {
-            id: `msg-${Date.now() + 2}`,
-            role: 'assistant',
-            content: `❌ **Erro ao conectar integração**\n\n${error.message || 'Erro ao processar comando de integração'}`
-          });
+          if (user) {
+            addMessage(user.id, activeConversationId, {
+              id: `msg-${Date.now() + 2}`,
+              role: 'assistant',
+              content: `❌ **Erro ao conectar integração**\n\n${error.message || 'Erro ao processar comando de integração'}`
+            });
+          }
           
           toast({
             title: '❌ Erro na Integração',
@@ -336,11 +355,13 @@ const ChatPage: React.FC = () => {
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
       
       // Adicionar resposta da IA (com resultado de auditoria se houver)
-      addMessage(activeConversationId, { 
-        id: `msg-${Date.now() + 1}`, 
-        role: 'assistant', 
-        content: cleanedResponse + auditResult 
-      });
+      if (user) {
+        addMessage(user.id, activeConversationId, { 
+          id: `msg-${Date.now() + 1}`, 
+          role: 'assistant', 
+          content: cleanedResponse + auditResult 
+        });
+      }
     } catch (error: any) {
       console.error('Erro ao chamar IA:', error);
       toast({
@@ -350,11 +371,13 @@ const ChatPage: React.FC = () => {
       });
       
       // Adicionar mensagem de erro no chat
-      addMessage(activeConversationId, { 
-        id: `msg-${Date.now() + 1}`, 
-        role: 'assistant', 
-        content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.' 
-      });
+      if (user) {
+        addMessage(user.id, activeConversationId, { 
+          id: `msg-${Date.now() + 1}`, 
+          role: 'assistant', 
+          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.' 
+        });
+      }
     } finally {
       setAssistantTyping(false);
     }

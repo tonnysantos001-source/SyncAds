@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { categorizedIntegrations, Integration } from '@/data/mocks';
-import { useStore } from '@/store/useStore';
+import { AVAILABLE_INTEGRATIONS, Integration } from '@/config/integrations';
+import { useAuthStore } from '@/store/authStore';
+import { useIntegrationsStore } from '@/store/integrationsStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,42 +12,57 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-const IntegrationCard: React.FC<{ integration: Integration }> = ({ integration }) => {
-  const connectedIntegrations = useStore(state => state.connectedIntegrations);
-  const toggleIntegration = useStore(state => state.toggleIntegration);
+const IntegrationCard: React.FC<{ integration: Integration }> = React.memo(({ integration }) => {
+  const user = useAuthStore((state) => state.user);
+  const { isIntegrationConnected, connectIntegration, disconnectIntegration } = useIntegrationsStore();
   const { toast } = useToast();
-  const isConnected = connectedIntegrations.includes(integration.id);
+  const isConnected = isIntegrationConnected(integration.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const { comingSoon } = integration;
 
-  const handleToggle = (checked: boolean) => {
-    if (comingSoon) return;
+  const handleToggle = async (checked: boolean) => {
+    if (comingSoon || !user) return;
 
     if (checked) {
       setIsModalOpen(true);
     } else {
-      toggleIntegration(integration.id, false);
-      toast({
-        title: "Integração Desconectada",
-        description: `${integration.name} foi desconectado com sucesso.`,
-        variant: "warning",
-      });
+      try {
+        await disconnectIntegration(user.id, integration.id);
+        toast({
+          title: "Integração Desconectada",
+          description: `${integration.name} foi desconectado com sucesso.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível desconectar a integração.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
+    if (!user) return;
+    
     setIsConnecting(true);
-    setTimeout(() => {
-      toggleIntegration(integration.id, true);
+    try {
+      await connectIntegration(user.id, integration.id);
       setIsConnecting(false);
       setIsModalOpen(false);
       toast({
         title: "Integração Conectada!",
         description: `${integration.name} foi conectado com sucesso.`,
-        variant: "success",
       });
-    }, 1000);
+    } catch (error) {
+      setIsConnecting(false);
+      toast({
+        title: "Erro ao Conectar",
+        description: "Não foi possível conectar a integração.",
+        variant: "destructive",
+      });
+    }
   };
 
   const Logo = integration.logo;
@@ -98,16 +114,28 @@ const IntegrationCard: React.FC<{ integration: Integration }> = ({ integration }
       </Dialog>
     </>
   );
-};
+});
+
+IntegrationCard.displayName = 'IntegrationCard';
 
 const IntegrationsPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const loadIntegrations = useIntegrationsStore((state) => state.loadIntegrations);
+
+  // Carregar integrations do Supabase ao montar
+  useEffect(() => {
+    if (user) {
+      loadIntegrations(user.id);
+    }
+  }, [user, loadIntegrations]);
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Integrações</h1>
         <p className="text-muted-foreground">Conecte suas ferramentas e automatize seu fluxo de trabalho.</p>
       </div>
-      {categorizedIntegrations.map(category => (
+      {AVAILABLE_INTEGRATIONS.map(category => (
         <motion.div layout key={category.title} className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">{category.title}</h2>
           <motion.div layout className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

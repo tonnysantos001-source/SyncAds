@@ -1,23 +1,84 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Search, Edit, Trash2, Users, Download, Upload } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { customersApi } from '@/lib/api/customersApi';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Lead {
-  id: string;
-  email: string;
-  registrationDate: string;
-}
-
-const MOCK_LEADS: Lead[] = [
-  // Adicione leads mockados aqui se necessário
-];
-
-const LeadsPage: React.FC = () => {
+const LeadsPage = () => {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<any | null>(null);
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
 
-  const filteredLeads = MOCK_LEADS.filter((lead) =>
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    status: 'NEW' as 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED',
+    source: '',
+  });
+
+  useEffect(() => {
+    loadLeads();
+  }, []);
+
+  const loadLeads = async () => {
+    try {
+      if (!user?.organizationId) return;
+      const data = await customersApi.leads.list(user.organizationId);
+      setLeads(data);
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar leads', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user?.organizationId) return;
+      if (editingLead) {
+        await customersApi.leads.update(editingLead.id, formData);
+        toast({ title: 'Lead atualizado!' });
+      } else {
+        await customersApi.leads.create({ ...formData, organizationId: user.organizationId });
+        toast({ title: 'Lead criado!' });
+      }
+      setIsDialogOpen(false);
+      setEditingLead(null);
+      loadLeads();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deletar lead?')) return;
+    try {
+      await customersApi.leads.delete(id);
+      toast({ title: 'Lead deletado' });
+      loadLeads();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const filteredLeads = leads.filter((l) =>
+    l.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

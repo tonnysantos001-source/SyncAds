@@ -1,35 +1,98 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Search, Edit, Trash2, Package2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { productsApi } from '@/lib/api/productsApi';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const KitsPage: React.FC = () => {
-  const handleCadastrar = () => {
-    console.log('Cadastrar kit de produto');
+const KitsPage = () => {
+  const [kits, setKits] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingKit, setEditingKit] = useState<any | null>(null);
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    isActive: true,
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      if (!user?.organizationId) return;
+      const [kitsData, productsData] = await Promise.all([
+        productsApi.kits.list(user.organizationId),
+        productsApi.list(),
+      ]);
+      setKits(kitsData);
+      setProducts(productsData);
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-6">
-      <Card className="max-w-4xl w-full">
-        <CardContent className="p-12">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Texto e Botão */}
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                  Você ainda não tem nenhum kit de produto cadastrado.
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Que tal cadastrar seu primeiro kit de produtos e começar a fazer suas primeiras vendas?
-                </p>
-              </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user?.organizationId) return;
+      if (editingKit) {
+        await productsApi.kits.update(editingKit.id, formData);
+        toast({ title: 'Kit atualizado!' });
+      } else {
+        await productsApi.kits.create({ ...formData, organizationId: user.organizationId });
+        toast({ title: 'Kit criado!' });
+      }
+      setIsDialogOpen(false);
+      setEditingKit(null);
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
 
-              <Button
-                onClick={handleCadastrar}
-                className="bg-pink-600 hover:bg-pink-700 text-white text-base px-8 py-6 h-auto"
-              >
-                CADASTRAR KIT DE PRODUTO
-              </Button>
-            </div>
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deletar kit?')) return;
+    try {
+      await productsApi.kits.delete(id);
+      toast({ title: 'Kit deletado' });
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const filteredKits = kits.filter((k) => k.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Kits de Produtos</h1>
+          <p className="text-muted-foreground">Crie kits com múltiplos produtos</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { setEditingKit(null); setFormData({ name: '', description: '', price: 0, isActive: true }); }}>
+              <Plus className="mr-2 h-4 w-4" />Criar Kit
 
             {/* Ilustração */}
             <div className="flex justify-center">

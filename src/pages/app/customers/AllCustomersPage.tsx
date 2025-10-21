@@ -1,100 +1,194 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Users, Search, Mail, Phone, DollarSign, ShoppingBag } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { customersApi, Customer } from '@/lib/api/customersApi';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface Customer {
-  id: string;
-  name: string;
-  registrationDate: string;
-}
-
-const MOCK_CUSTOMERS: Customer[] = [
-  // Adicione clientes mockados aqui se necessário
-];
-
-const AllCustomersPage: React.FC = () => {
+const AllCustomersPage = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
 
-  const handleCadastrar = () => {
-    console.log('Cadastrar cliente');
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  useEffect(() => {
+    filterCustomers();
+  }, [searchTerm, customers]);
+
+  const loadCustomers = async () => {
+    try {
+      const data = await customersApi.list();
+      setCustomers(data);
+      setFilteredCustomers(data);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao carregar clientes',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredCustomers = MOCK_CUSTOMERS.filter((customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filterCustomers = () => {
+    if (!searchTerm) {
+      setFilteredCustomers(customers);
+      return;
+    }
+
+    const filtered = customers.filter(
+      (customer) =>
+        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.cpf?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredCustomers(filtered);
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const totalSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0);
+  const totalOrders = customers.reduce((sum, c) => sum + c.totalOrders, 0);
+  const activeCustomers = customers.filter(c => c.status === 'ACTIVE').length;
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">CLIENTES</h1>
-          <p className="text-gray-600 mt-1">
-            Clientes que já compraram em sua loja.
-          </p>
-        </div>
-        <Button
-          onClick={handleCadastrar}
-          className="bg-pink-600 hover:bg-pink-700 text-white"
-        >
-          CADASTRAR CLIENTE
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
+        <p className="text-muted-foreground">
+          Visualize e gerencie todos os clientes da sua loja
+        </p>
       </div>
 
-      {/* Busca */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{customers.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeCustomers}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalOrders}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          type="text"
-          placeholder="Buscar por nome ou e-mail"
+          placeholder="Buscar por nome, email ou CPF..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-9"
         />
       </div>
 
-      {/* Tabela */}
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Data de Cadastro
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Nome Completo
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.length > 0 ? (
-                  filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {customer.registrationDate}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {customer.name}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={2} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-400">
-                        <div className="w-full max-w-md h-16 bg-gray-100 rounded mb-4"></div>
-                        <p className="text-gray-500">Nenhum cliente encontrado</p>
+        <CardHeader>
+          <CardTitle>Lista de Clientes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold">Nenhum cliente encontrado</h3>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead>Pedidos</TableHead>
+                  <TableHead>Total Gasto</TableHead>
+                  <TableHead>Última Compra</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>
+                      <div className="font-medium">{customer.name}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-3 w-3" />
+                          {customer.email}
+                        </div>
+                        {customer.phone && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            {customer.phone}
+                          </div>
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </TableCell>
+                    <TableCell>{customer.totalOrders}</TableCell>
+                    <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
+                    <TableCell>
+                      {customer.lastOrderAt
+                        ? format(new Date(customer.lastOrderAt), 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={customer.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {customer.status === 'ACTIVE' ? 'Ativo' : 'Bloqueado'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

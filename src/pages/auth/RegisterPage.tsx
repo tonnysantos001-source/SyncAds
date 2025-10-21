@@ -1,114 +1,36 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useStore } from '@/store/useStore';
+import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/use-toast';
 import Logo from '@/components/Logo';
+import { registerSchema, type RegisterFormData } from '@/schemas/authSchemas';
 
 export default function RegisterPage() {
-  const { register } = useStore();
+  const { register: registerUser } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
 
-  // Função para formatar CPF
-  const formatCPF = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    return cpf;
-  };
-
-  // Validar CPF
-  const validateCPF = (cpf: string) => {
-    const numbers = cpf.replace(/\D/g, '');
-    if (numbers.length !== 11) return false;
-    
-    // Verifica se todos os dígitos são iguais
-    if (/^(\d)\1{10}$/.test(numbers)) return false;
-    
-    return true; // Validação básica (pode adicionar algoritmo completo depois)
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: 'As senhas não coincidem.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: 'A senha deve ter pelo menos 6 caracteres.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!validateCPF(cpf)) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: 'CPF inválido.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!birthDate) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: 'Data de nascimento é obrigatória.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Verificar se é maior de 18 anos
-    const birth = new Date(birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-
-    if (age < 18) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: 'Você precisa ter pelo menos 18 anos.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      await register(email, password, name, cpf, birthDate);
+      await registerUser(data.email, data.password, data.name, data.cpf, data.birthDate);
       toast({
         title: 'Conta criada com sucesso!',
-        description: 'Bem-vindo ao SyncAds. Verifique seu email para desbloquear todos os recursos.',
+        description: 'Bem-vindo ao SyncAds.',
       });
       navigate('/dashboard');
     } catch (error: any) {
@@ -117,7 +39,10 @@ export default function RegisterPage() {
         description: error.message || 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
+    }
+  };
+
+  return (
       setIsLoading(false);
     }
   };

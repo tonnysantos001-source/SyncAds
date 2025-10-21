@@ -1,15 +1,18 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useStore } from '@/store/useStore';
-import React, { useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
+import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import Logo from '@/components/Logo';
+import { loginSchema, type LoginFormData } from '@/schemas/authSchemas';
 
 // Mock Google Icon
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -24,19 +27,21 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function LoginPage() {
-  const { login } = useStore();
+  const { login } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       toast({
         title: 'Login realizado com sucesso!',
         description: 'Bem-vindo de volta.',
@@ -48,8 +53,6 @@ export default function LoginPage() {
         description: error.message || 'Verifique suas credenciais e tente novamente.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -94,7 +97,7 @@ export default function LoginPage() {
           <CardDescription className="text-gray-600 dark:text-gray-400">Acesse sua conta para continuar</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -102,11 +105,12 @@ export default function LoginPage() {
                   id="email" 
                   type="email" 
                   placeholder="nome@exemplo.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                  disabled={isLoading}
+                  {...register('email')}
+                  disabled={isSubmitting}
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -118,18 +122,19 @@ export default function LoginPage() {
                 <Input 
                   id="password" 
                   type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                  disabled={isLoading}
+                  {...register('password')}
+                  disabled={isSubmitting}
                 />
+                {errors.password && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
+                )}
               </div>
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02]" 
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 animate-spin" />
                     Entrando...

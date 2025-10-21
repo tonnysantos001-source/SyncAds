@@ -1,10 +1,15 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/toaster';
+import { useAuthStore } from './store/authStore';
+import { useCampaignsStore } from './store/campaignsStore';
+import { useChatStore } from './store/chatStore';
+import { useIntegrationsStore } from './store/integrationsStore';
 import { useStore } from './store/useStore';
 import LoadingSpinner from './components/LoadingSpinner';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load pages
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
@@ -66,14 +71,34 @@ const RedirectPage = lazy(() => import('./pages/app/checkout/RedirectPage'));
 
 
 function App() {
-  const isAuthenticated = useStore((state) => state.isAuthenticated);
-  const user = useStore((state) => state.user);
-  const isInitialized = useStore((state) => state.isInitialized);
-  const initAuth = useStore((state) => state.initAuth);
+  // Auth state (novo authStore)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const initAuth = useAuthStore((state) => state.initAuth);
 
+  // Data loaders (novos stores)
+  const loadCampaigns = useCampaignsStore((state) => state.loadCampaigns);
+  const loadConversations = useChatStore((state) => state.loadConversations);
+  const loadIntegrations = useIntegrationsStore((state) => state.loadIntegrations);
+  const loadAiConnections = useStore((state) => state.loadAiConnections);
+
+  // Init auth on mount
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Load user data after authentication (só se não for super admin)
+  useEffect(() => {
+    if (isAuthenticated && user && !user.isSuperAdmin) {
+      Promise.all([
+        loadCampaigns(user.id),
+        loadConversations(user.id),
+        loadIntegrations(user.id),
+        loadAiConnections(user.id),
+      ]);
+    }
+  }, [isAuthenticated, user, loadCampaigns, loadConversations, loadIntegrations, loadAiConnections]);
 
   if (!isInitialized) {
     return <LoadingSpinner />;
@@ -83,7 +108,7 @@ function App() {
   const redirectPath = user?.isSuperAdmin ? '/super-admin' : '/dashboard';
 
   return (
-    <>
+    <ErrorBoundary>
       <Router>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
@@ -162,7 +187,7 @@ function App() {
         </Suspense>
       </Router>
       <Toaster />
-    </>
+    </ErrorBoundary>
   );
 }
 

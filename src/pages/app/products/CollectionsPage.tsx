@@ -1,33 +1,155 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Search, Edit, Trash2, FolderOpen, Package } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { productsApi } from '@/lib/api/productsApi';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const CollectionsPage: React.FC = () => {
-  const handleCadastrar = () => {
-    console.log('Cadastrar coleção');
+const CollectionsPage = () => {
+  const [collections, setCollections] = useState<any[]>([]);
+  const [filteredCollections, setFilteredCollections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<any | null>(null);
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    isActive: true,
+  });
+
+  useEffect(() => {
+    loadCollections();
+  }, []);
+
+  useEffect(() => {
+    filterCollections();
+  }, [searchTerm, collections]);
+
+  const loadCollections = async () => {
+    try {
+      if (!user?.organizationId) return;
+      const data = await productsApi.collections.list(user.organizationId);
+      setCollections(data);
+      setFilteredCollections(data);
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar coleções', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-6">
-      <Card className="max-w-4xl w-full">
-        <CardContent className="p-12">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Texto e Botão */}
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                  Você ainda não tem nenhuma coleção cadastrada.
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Vamos cadastrar sua primeira coleção?
-                </p>
-              </div>
+  const filterCollections = () => {
+    if (!searchTerm) {
+      setFilteredCollections(collections);
+      return;
+    }
+    const filtered = collections.filter((c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.slug.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredCollections(filtered);
+  };
 
-              <Button
-                onClick={handleCadastrar}
-                className="bg-pink-600 hover:bg-pink-700 text-white text-base px-8 py-6 h-auto"
-              >
-                CADASTRAR COLEÇÃO
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData({
+      ...formData,
+      name,
+      slug: editingCollection ? formData.slug : generateSlug(name),
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user?.organizationId) return;
+
+      if (editingCollection) {
+        await productsApi.collections.update(editingCollection.id, formData);
+        toast({ title: 'Coleção atualizada!' });
+      } else {
+        await productsApi.collections.create({
+          ...formData,
+          organizationId: user.organizationId,
+        });
+        toast({ title: 'Coleção criada!', description: 'A coleção está pronta para receber produtos.' });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      loadCollections();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja deletar esta coleção?')) return;
+    try {
+      await productsApi.collections.delete(id);
+      toast({ title: 'Coleção deletada' });
+      loadCollections();
+    } catch (error: any) {
+      toast({ title: 'Erro ao deletar', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleEdit = (collection: any) => {
+    setEditingCollection(collection);
+    setFormData({
+      name: collection.name,
+      slug: collection.slug,
+      description: collection.description || '',
+      isActive: collection.isActive,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setEditingCollection(null);
+    setFormData({
+      name: '',
+      slug: '',
+      description: '',
+      isActive: true,
+    });
+  };
+
+  const activeCollections = collections.filter((c) => c.isActive).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Coleções de Produtos</h1>
+          <p className="text-muted-foreground">Organize seus produtos em coleções</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="mr-2 h-4 w-4" />
+              Criar Coleção
               </Button>
             </div>
 

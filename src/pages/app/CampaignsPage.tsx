@@ -23,7 +23,7 @@ const statusVariantMap: Record<CampaignStatus, 'success' | 'warning' | 'default'
   'Concluída': 'default',
 };
 
-const CampaignCard: React.FC<{ campaign: Campaign; onEdit: (campaign: Campaign) => void; }> = ({ campaign, onEdit }) => {
+const CampaignCard: React.FC<{ campaign: Campaign; onEdit: (campaign: Campaign) => void; }> = React.memo(({ campaign, onEdit }) => {
   const { updateCampaignStatus, deleteCampaign } = useStore();
   const { toast } = useToast();
   const budgetPercentage = (campaign.budgetSpent / campaign.budgetTotal) * 100;
@@ -125,7 +125,9 @@ const CampaignCard: React.FC<{ campaign: Campaign; onEdit: (campaign: Campaign) 
       </Card>
     </motion.div>
   );
-};
+});
+
+CampaignCard.displayName = 'CampaignCard';
 
 const CampaignsPage: React.FC = () => {
   const campaigns = useStore(state => state.campaigns);
