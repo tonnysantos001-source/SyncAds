@@ -119,12 +119,25 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await authApi.signOut();
+          
+          // Limpar COMPLETAMENTE o estado
           set({ 
             isAuthenticated: false, 
             user: null,
+            isInitialized: true,
           });
+          
+          // Limpar localStorage manualmente também
+          localStorage.removeItem('auth-storage');
         } catch (error) {
           console.error('Logout error:', error);
+          // Mesmo com erro, limpar o estado local
+          set({ 
+            isAuthenticated: false, 
+            user: null,
+            isInitialized: true,
+          });
+          localStorage.removeItem('auth-storage');
           throw error;
         }
       },

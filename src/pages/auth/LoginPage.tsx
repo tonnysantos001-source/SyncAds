@@ -27,7 +27,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function LoginPage() {
-  const { login, logout } = useAuthStore();
+  const { login } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -41,11 +41,11 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // Garantir logout completo antes de tentar novo login
-      await logout().catch(() => {});
-      
       // Fazer login
       await login(data.email, data.password);
+      
+      // Aguardar um pouco para garantir que o estado foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Pegar dados atualizados do usuário
       const user = useAuthStore.getState().user;
@@ -57,7 +57,9 @@ export default function LoginPage() {
       
       // Redirecionar para dashboard correto
       const redirectPath = user?.isSuperAdmin ? '/super-admin' : '/dashboard';
-      navigate(redirectPath, { replace: true });
+      
+      // Usar window.location para garantir reload completo
+      window.location.href = redirectPath;
     } catch (error: any) {
       toast({
         title: 'Erro ao fazer login',

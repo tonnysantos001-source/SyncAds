@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useAuthStore } from '@/store/authStore';
 import { useStore } from '@/store/useStore';
 import { mockNotifications, Notification } from '@/data/notifications';
 import { cn } from '@/lib/utils';
@@ -44,15 +45,15 @@ const NotificationItem: React.FC<{ notification: Notification }> = ({ notificati
 };
 
 const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
-  const user = useStore(state => state.user);
-  const logout = useStore(state => state.logout);
+  const user = useAuthStore(state => state.user);
+  const logout = useAuthStore(state => state.logout);
   const searchTerm = useStore(state => state.searchTerm);
   const setSearchTerm = useStore(state => state.setSearchTerm);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/landing');
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/login';
   };
   
   const unreadCount = mockNotifications.filter(n => !n.read).length;
