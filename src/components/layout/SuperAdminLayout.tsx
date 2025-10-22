@@ -89,11 +89,11 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen relative overflow-hidden">
+    <div className="flex h-screen relative overflow-hidden light">
       {/* Background Gradients - Mesmo estilo do painel de clientes */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950" />
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50" />
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl" />
       
       {/* Content */}
       <div className="relative flex h-screen w-full z-10">
@@ -101,13 +101,13 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
-          <div className="flex h-full flex-col bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800">
+          <div className="flex h-full flex-col bg-white/80 backdrop-blur-xl border-r border-gray-200">
             {/* Logo */}
-            <div className="flex h-16 items-center gap-2 border-b border-gray-200 dark:border-gray-800 px-6">
+            <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6">
               <Logo />
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">SyncAds</span>
-                <span className="text-xs text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1">
+                <span className="text-sm font-semibold text-gray-900">SyncAds</span>
+                <span className="text-xs text-purple-600 font-medium flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Super Admin
                 </span>
@@ -136,11 +136,11 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                       isActive
                         ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     <Icon className={`h-5 w-5 ${
-                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600'
                     }`} />
                     <span className="font-medium">{item.label}</span>
                   </Link>
@@ -149,12 +149,12 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
             </nav>
 
             {/* Admin Badge */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-200 dark:border-blue-800">
-                <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-200">
+                <Shield className="h-4 w-4 text-blue-600" />
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white">Área Restrita</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Acesso total ao sistema</p>
+                  <p className="text-xs font-medium text-gray-900">Área Restrita</p>
+                  <p className="text-xs text-gray-500">Acesso total ao sistema</p>
                 </div>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         {/* Main Content */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Top Header */}
-          <header className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+          <header className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
             <div className="flex items-center justify-between h-full px-6">
               <div className="flex items-center gap-4">
                 <Button
@@ -175,7 +175,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h1 className="text-lg font-semibold text-gray-900">
                   Painel Administrativo
                 </h1>
               </div>
@@ -198,7 +198,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                         <p className="text-sm font-medium">{user?.name}</p>
                         <p className="text-xs text-gray-500">{user?.email}</p>
                         <div className="mt-1">
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
                             <Shield className="h-3 w-3 mr-1" />
                             Super Admin
                           </span>

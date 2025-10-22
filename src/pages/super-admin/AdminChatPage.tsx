@@ -109,14 +109,14 @@ export default function AdminChatPage() {
     <SuperAdminLayout>
       <div className="h-[calc(100vh-80px)] flex flex-col">
         {/* Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-4">
+        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
                 <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Chat Administrativo</h1>
+                <h1 className="text-xl font-bold text-gray-900">Chat Administrativo</h1>
                 <p className="text-sm text-gray-500">Chat com IA</p>
               </div>
             </div>
@@ -138,8 +138,8 @@ export default function AdminChatPage() {
                 message.role === 'user'
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                   : message.role === 'system'
-                  ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200'
-                  : 'bg-white dark:bg-gray-800'
+                  ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
+                  : 'bg-white'
               }`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-2">
@@ -164,7 +164,7 @@ export default function AdminChatPage() {
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <Card className="bg-white dark:bg-gray-800">
+              <Card className="bg-white">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -178,7 +178,7 @@ export default function AdminChatPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+        <div className="border-t border-gray-200 p-4 bg-white/80 backdrop-blur-xl">
           <div className="flex gap-2">
             <Textarea
               value={input}
