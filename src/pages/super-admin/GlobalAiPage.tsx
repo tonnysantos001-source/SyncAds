@@ -96,6 +96,15 @@ export default function GlobalAiPage() {
 
   const createAiConnection = async () => {
     try {
+      // Verificar autenticação antes de inserir
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Você precisa estar autenticado. Faça login novamente.');
+      }
+
+      console.log('✅ Usuário autenticado:', user.id, user.email);
+
       const { error } = await supabase.from('GlobalAiConnection').insert({
         name: formData.name,
         provider: formData.provider,
@@ -107,7 +116,10 @@ export default function GlobalAiPage() {
         isActive: true,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro RLS:', error);
+        throw error;
+      }
 
       toast({
         title: '✅ IA adicionada!',
