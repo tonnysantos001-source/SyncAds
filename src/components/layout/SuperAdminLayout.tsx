@@ -77,8 +77,15 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      // Forçar redirect completo (não apenas navigate)
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Mesmo se der erro, redirecionar
+      window.location.href = '/login';
+    }
   };
 
   return (

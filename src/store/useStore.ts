@@ -203,7 +203,13 @@ export const useStore = create<AppState>()(
       },
       logout: async () => {
         try {
+          // 1. Fazer logout do Supabase
           await authApi.signOut();
+          
+          // 2. Limpar TODO o localStorage
+          localStorage.clear();
+          
+          // 3. Resetar o state
           set({ 
             isAuthenticated: false, 
             user: null, 
@@ -215,9 +221,19 @@ export const useStore = create<AppState>()(
             notificationSettings: initialNotificationSettings,
             aiConnections: [],
             activeConversationId: null,
+            isInitialized: false,
           });
+          
+          console.log('✅ Logout completo - localStorage limpo');
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error('❌ Logout error:', error);
+          // Mesmo se der erro, limpar localStorage
+          localStorage.clear();
+          set({ 
+            isAuthenticated: false, 
+            user: null,
+            isInitialized: false,
+          });
           throw error;
         }
       },
