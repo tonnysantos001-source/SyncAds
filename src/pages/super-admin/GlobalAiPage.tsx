@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Bot, Link2, Check } from 'lucide-react';
+import { Plus, Bot, Link2, Check, Trash2, TestTube2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
@@ -166,6 +166,115 @@ export default function GlobalAiPage() {
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar status',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const testAiConnection = async (ai: GlobalAiConnection) => {
+    try {
+      toast({
+        title: '🧪 Testando conexão...',
+        description: `Enviando requisição de teste para ${ai.provider}`,
+      });
+
+      // Testar diretamente com a API do provider
+      let response;
+      const testMessage = 'Responda apenas: OK';
+
+      if (ai.provider === 'OPENAI' || ai.provider === 'OPENROUTER' || ai.provider === 'GROQ' || 
+          ai.provider === 'TOGETHER' || ai.provider === 'FIREWORKS' || ai.provider === 'MISTRAL') {
+        // OpenAI-compatible
+        const baseUrl = ai.baseUrl || 'https://api.openai.com/v1';
+        response = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ai.apiKey}`,
+            ...(ai.provider === 'OPENROUTER' && {
+              'HTTP-Referer': 'https://syncads.com',
+              'X-Title': 'SyncAds',
+            }),
+          },
+          body: JSON.stringify({
+            model: ai.model || 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: testMessage }],
+            max_tokens: 10,
+          }),
+        });
+      } else if (ai.provider === 'ANTHROPIC') {
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ai.apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: ai.model || 'claude-3-opus-20240229',
+            max_tokens: 10,
+            messages: [{ role: 'user', content: testMessage }],
+          }),
+        });
+      } else if (ai.provider === 'GOOGLE') {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${ai.model || 'gemini-pro'}:generateContent?key=${ai.apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: testMessage }] }],
+            }),
+          }
+        );
+      } else {
+        throw new Error(`Provider ${ai.provider} não suportado para teste direto`);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ${response.status}: ${errorText.substring(0, 100)}`);
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: '✅ Conexão funcionando!',
+        description: `${ai.provider} respondeu com sucesso. API Key válida!`,
+      });
+    } catch (error: any) {
+      console.error('Teste falhou:', error);
+      toast({
+        title: '❌ Erro no teste',
+        description: error.message || 'Falha na conexão com o provider',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteAiConnection = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja remover "${name}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('GlobalAiConnection')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: '🗑️ IA removida!',
+        description: `${name} foi removida com sucesso.`,
+      });
+
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao remover IA',
         description: error.message,
         variant: 'destructive',
       });
@@ -463,6 +572,15 @@ export default function GlobalAiPage() {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => testAiConnection(ai)}
+                      title="Testar conexão com a IA"
+                    >
+                      <TestTube2 className="h-4 w-4 mr-2" />
+                      Testar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => openAssignDialog(ai.id)}
                     >
                       <Link2 className="h-4 w-4 mr-2" />
@@ -474,6 +592,14 @@ export default function GlobalAiPage() {
                       onClick={() => toggleAiStatus(ai.id, ai.isActive)}
                     >
                       {ai.isActive ? 'Desativar' : 'Ativar'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteAiConnection(ai.id, ai.name)}
+                      title="Remover IA"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
