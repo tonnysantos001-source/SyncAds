@@ -170,28 +170,23 @@ const ChatPage: React.FC = () => {
     loadGlobalAiConfig();
   }, [user?.organizationId]);
 
-  // Enviar fala inicial quando conversa nova for criada
-  useEffect(() => {
-    // Usar greetings da IA Global se disponível, senão usar fallback
-    const greetings = globalAiConfig?.initialGreetings || aiInitialGreetings;
-    
-    if (activeConversation && activeConversation.messages.length === 0 && greetings.length > 0) {
-      // Escolher uma fala aleatória
-      const randomIndex = Math.floor(Math.random() * greetings.length);
-      const greeting = greetings[randomIndex];
-      
-      // Adicionar a fala inicial como mensagem do assistente
-      setTimeout(() => {
-        if (user) {
-          addMessage(user.id, activeConversationId!, { 
-            id: `greeting-${Date.now()}`, 
-            role: 'assistant', 
-            content: greeting 
-          });
-        }
-      }, 500); // Pequeno delay para parecer mais natural
-    }
-  }, [activeConversationId, activeConversation?.messages.length, globalAiConfig]);
+  // Mensagem inicial removida temporariamente para testes
+  // useEffect(() => {
+  //   const greetings = globalAiConfig?.initialGreetings || aiInitialGreetings;
+  //   if (activeConversation && activeConversation.messages.length === 0 && greetings.length > 0) {
+  //     const randomIndex = Math.floor(Math.random() * greetings.length);
+  //     const greeting = greetings[randomIndex];
+  //     setTimeout(() => {
+  //       if (user) {
+  //         addMessage(user.id, activeConversationId!, { 
+  //           id: `greeting-${Date.now()}`, 
+  //           role: 'assistant', 
+  //           content: greeting 
+  //         });
+  //       }
+  //     }, 500);
+  //   }
+  // }, [activeConversationId, activeConversation?.messages.length, globalAiConfig]);
 
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
