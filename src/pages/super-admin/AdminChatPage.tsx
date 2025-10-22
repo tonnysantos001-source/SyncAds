@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Database, BarChart3, Users, Shield, Loader2 } from 'lucide-react';
+import { Send, Sparkles, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -19,52 +19,11 @@ interface Message {
   };
 }
 
-const ADMIN_SYSTEM_PROMPT = `Você é a IA Administrativa da plataforma SyncAds. Você tem acesso total ao sistema e pode:
-
-**CAPACIDADES:**
-1. 📊 AUDITORIA: Analisar todo o sistema, identificar problemas, gerar relatórios
-2. 💾 BANCO DE DADOS: Consultar qualquer tabela (SELECT apenas, nunca DELETE/UPDATE sem confirmação)
-3. 👥 CLIENTES: Ver detalhes de organizações, usuários, campanhas
-4. 💰 FATURAMENTO: Calcular MRR, ARR, análise de receita
-5. 🤖 USO DE IA: Rastrear tokens, custos, uso por cliente
-6. 📈 MÉTRICAS: Stats em tempo real de toda plataforma
-7. 🔍 INVESTIGAÇÃO: Debugar problemas, analisar logs
-8. 📋 RELATÓRIOS: Gerar insights e recomendações
-
-**COMANDOS ESPECIAIS:**
-- "audite o sistema" → Verifica saúde geral
-- "stats gerais" → Dashboard completo
-- "clientes ativos" → Lista organizações ativas
-- "uso de ia hoje" → Mensagens processadas hoje
-- "top clientes" → Maiores em receita/uso
-- "problemas detectados" → Issues encontrados
-
-**IMPORTANTE:**
-- Seja direto e técnico
-- Mostre números e dados reais
-- Sugira ações quando necessário
-- Nunca execute comandos destrutivos sem confirmação
-- Sempre explique o que vai fazer antes
-
-Responda de forma profissional e focada em ação.`;
-
-const QUICK_ACTIONS = [
-  { icon: BarChart3, label: 'Stats Gerais', prompt: 'Me mostre um resumo completo das stats da plataforma' },
-  { icon: Users, label: 'Clientes Ativos', prompt: 'Liste todos os clientes ativos com suas métricas principais' },
-  { icon: Database, label: 'Auditoria', prompt: 'Faça uma auditoria completa do sistema e identifique possíveis problemas' },
-  { icon: Sparkles, label: 'Uso de IA', prompt: 'Analise o uso de IA hoje: mensagens, tokens e custos' },
-];
+const ADMIN_SYSTEM_PROMPT = `Você é um assistente de IA para administradores. Responda de forma clara e objetiva.`;
 
 export default function AdminChatPage() {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'system',
-      content: '👋 Olá! Sou sua IA Administrativa. Posso te ajudar a gerenciar toda a plataforma SyncAds.\n\n**O que posso fazer:**\n• Auditar o sistema\n• Consultar banco de dados\n• Gerar relatórios\n• Analisar métricas\n• Investigar problemas\n\nO que você gostaria de fazer?',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,142 +33,38 @@ export default function AdminChatPage() {
   }, [messages]);
 
   const executeAdminQuery = async (userMessage: string): Promise<string> => {
-    // Detectar intenção e executar queries apropriadas
-    const lowerMessage = userMessage.toLowerCase();
-
     try {
-      // Stats Gerais
-      if (lowerMessage.includes('stats') || lowerMessage.includes('resumo') || lowerMessage.includes('geral')) {
-        const [orgsResult, usersResult, messagesResult, aisResult] = await Promise.all([
-          supabase.from('Organization').select('*', { count: 'exact', head: true }),
-          supabase.from('User').select('*', { count: 'exact', head: true }),
-          supabase.from('ChatMessage').select('*', { count: 'exact', head: true }),
-          supabase.from('GlobalAiConnection').select('*', { count: 'exact', head: true }),
-        ]);
+      // Chamar Edge Function de chat
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
 
-        const activeOrgs = await supabase
-          .from('Organization')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'ACTIVE');
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          conversationHistory: messages.slice(-10).map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          systemPrompt: ADMIN_SYSTEM_PROMPT,
+        }),
+      });
 
-        return `📊 **STATS GERAIS DA PLATAFORMA**\n\n` +
-          `**Organizações:**\n` +
-          `• Total: ${orgsResult.count || 0}\n` +
-          `• Ativas: ${activeOrgs.count || 0}\n` +
-          `• Taxa de ativação: ${orgsResult.count ? ((activeOrgs.count || 0) / orgsResult.count * 100).toFixed(1) : 0}%\n\n` +
-          `**Usuários:**\n` +
-          `• Total: ${usersResult.count || 0}\n` +
-          `• Média por org: ${orgsResult.count ? ((usersResult.count || 0) / orgsResult.count).toFixed(1) : 0}\n\n` +
-          `**Uso de IA:**\n` +
-          `• Mensagens processadas: ${messagesResult.count || 0}\n` +
-          `• IAs configuradas: ${aisResult.count || 0}\n\n` +
-          `✅ Sistema operacional`;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao processar mensagem');
       }
 
-      // Clientes Ativos
-      if (lowerMessage.includes('clientes') || lowerMessage.includes('organizações')) {
-        const { data: orgs, error } = await supabase
-          .from('Organization')
-          .select('name, slug, plan, status, createdAt')
-          .eq('status', 'ACTIVE')
-          .order('createdAt', { ascending: false })
-          .limit(10);
-
-        if (error) throw error;
-
-        if (!orgs || orgs.length === 0) {
-          return '❌ Nenhum cliente ativo encontrado.';
-        }
-
-        let response = `👥 **CLIENTES ATIVOS** (${orgs.length})\n\n`;
-        orgs.forEach((org, index) => {
-          response += `${index + 1}. **${org.name}**\n`;
-          response += `   • Slug: ${org.slug}\n`;
-          response += `   • Plano: ${org.plan}\n`;
-          response += `   • Criado: ${new Date(org.createdAt).toLocaleDateString('pt-BR')}\n\n`;
-        });
-
-        return response;
-      }
-
-      // Auditoria
-      if (lowerMessage.includes('audit') || lowerMessage.includes('problema') || lowerMessage.includes('verificar')) {
-        const issues: string[] = [];
-
-        // Verificar organizações sem usuários
-        const { data: orgsWithoutUsers } = await supabase
-          .from('Organization')
-          .select('id, name')
-          .not('id', 'in', supabase.from('User').select('organizationId'));
-
-        if (orgsWithoutUsers && orgsWithoutUsers.length > 0) {
-          issues.push(`⚠️ ${orgsWithoutUsers.length} organizações sem usuários`);
-        }
-
-        // Verificar IAs desativadas
-        const { data: inactiveAIs } = await supabase
-          .from('GlobalAiConnection')
-          .select('name')
-          .eq('status', 'INACTIVE');
-
-        if (inactiveAIs && inactiveAIs.length > 0) {
-          issues.push(`⚠️ ${inactiveAIs.length} IAs inativas`);
-        }
-
-        // Verificar organizações em trial expirado
-        const { data: expiredTrials } = await supabase
-          .from('Organization')
-          .select('name')
-          .eq('status', 'TRIAL')
-          .lt('trialEndsAt', new Date().toISOString());
-
-        if (expiredTrials && expiredTrials.length > 0) {
-          issues.push(`⚠️ ${expiredTrials.length} trials expirados`);
-        }
-
-        if (issues.length === 0) {
-          return '✅ **AUDITORIA COMPLETA**\n\nNenhum problema detectado. Sistema operando normalmente!';
-        }
-
-        return `🔍 **AUDITORIA DO SISTEMA**\n\n` +
-          `**Problemas Encontrados:**\n${issues.map(i => `• ${i}`).join('\n')}\n\n` +
-          `**Recomendação:** Revise esses pontos no painel administrativo.`;
-      }
-
-      // Uso de IA
-      if (lowerMessage.includes('uso') || lowerMessage.includes('mensagens') || lowerMessage.includes('token')) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const { count: todayMessages } = await supabase
-          .from('ChatMessage')
-          .select('*', { count: 'exact', head: true })
-          .gte('createdAt', today.toISOString());
-
-        const { count: totalMessages } = await supabase
-          .from('ChatMessage')
-          .select('*', { count: 'exact', head: true });
-
-        return `🤖 **USO DE IA**\n\n` +
-          `**Hoje:**\n` +
-          `• Mensagens: ${todayMessages || 0}\n\n` +
-          `**Total Histórico:**\n` +
-          `• Mensagens: ${totalMessages || 0}\n\n` +
-          `📊 Média diária: ~${totalMessages ? (totalMessages / 30).toFixed(0) : 0} mensagens`;
-      }
-
-      // Resposta padrão
-      return `🤖 Entendi sua solicitação: "${userMessage}"\n\n` +
-        `Posso ajudar com:\n` +
-        `• **stats gerais** - Visão geral da plataforma\n` +
-        `• **clientes ativos** - Lista de organizações\n` +
-        `• **audite o sistema** - Verificação de problemas\n` +
-        `• **uso de ia** - Métricas de processamento\n\n` +
-        `O que você gostaria de fazer?`;
-
+      const data = await response.json();
+      return data.response || 'Sem resposta';
+      
     } catch (error: any) {
-      console.error('Admin query error:', error);
-      return `❌ Erro ao executar consulta: ${error.message}\n\nTente reformular sua pergunta.`;
+      console.error('Admin chat error:', error);
+      return `❌ Erro: ${error.message}`;
     }
   };
 
@@ -250,10 +105,6 @@ export default function AdminChatPage() {
     }
   };
 
-  const handleQuickAction = (prompt: string) => {
-    setInput(prompt);
-  };
-
   return (
     <SuperAdminLayout>
       <div className="h-[calc(100vh-80px)] flex flex-col">
@@ -266,34 +117,13 @@ export default function AdminChatPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Chat Administrativo</h1>
-                <p className="text-sm text-gray-500">IA com acesso total ao sistema</p>
+                <p className="text-sm text-gray-500">Chat com IA</p>
               </div>
             </div>
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
               <Sparkles className="h-3 w-3 mr-1" />
               Online
             </Badge>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {QUICK_ACTIONS.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Button
-                  key={action.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction(action.prompt)}
-                  className="flex items-center gap-2"
-                >
-                  <Icon className="h-4 w-4" />
-                  {action.label}
-                </Button>
-              );
-            })}
           </div>
         </div>
 
