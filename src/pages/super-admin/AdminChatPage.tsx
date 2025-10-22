@@ -155,6 +155,17 @@ export default function AdminChatPage() {
       setMessages(prev => [...prev, assistantMessage]);
         
     } catch (error: any) {
+      console.error('ERRO COMPLETO:', error);
+      
+      // Mostrar erro visual no chat
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: `❌ ERRO DETALHADO:\n\n${error.message}\n\n${error.stack || 'Sem stack trace'}\n\n${JSON.stringify(error, null, 2)}`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      
       toast({
         title: 'Erro ao processar',
         description: error.message,
