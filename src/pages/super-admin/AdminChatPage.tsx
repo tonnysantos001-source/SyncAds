@@ -90,13 +90,13 @@ export default function AdminChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const executeAdminQuery = async (userMessage: string): Promise<string> => {
+  const executeAdminQuery = async (userMessage: string, convId: string): Promise<string> => {
     try {
-      // Chamar Edge Function de chat
+      // Chamar Edge Function de chat-stream (nova com memória)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,11 +104,7 @@ export default function AdminChatPage() {
         },
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: messages.slice(-10).map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          systemPrompt: ADMIN_SYSTEM_PROMPT,
+          conversationId: convId,
         }),
       });
 
@@ -127,18 +123,39 @@ export default function AdminChatPage() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading || !conversationId) return;
+    if (!input.trim() || isLoading) return;
 
     const userContent = input.trim();
     setInput('');
     setIsLoading(true);
 
     try {
+      // Criar conversa se não existir
+      let activeConvId = conversationId;
+      if (!activeConvId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Não autenticado');
+
+        const { data: newConv } = await supabase
+          .from('Conversation')
+          .insert({
+            userId: user.id,
+            title: '🛡️ Admin Chat',
+            lastMessageAt: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (!newConv) throw new Error('Erro ao criar conversa');
+        activeConvId = newConv.id;
+        setConversationId(newConv.id);
+      }
+
       // Salvar mensagem do usuário no banco
       const { data: savedUserMsg, error: userError } = await supabase
         .from('ChatMessage')
         .insert({
-          conversationId,
+          conversationId: activeConvId,
           role: 'user',
           content: userContent
         })
@@ -157,13 +174,13 @@ export default function AdminChatPage() {
       setMessages(prev => [...prev, userMessage]);
 
       // Executar query administrativa
-      const response = await executeAdminQuery(userContent);
+      const response = await executeAdminQuery(userContent, activeConvId);
 
       // Salvar resposta da IA no banco
       const { data: savedAssistantMsg, error: assistantError } = await supabase
         .from('ChatMessage')
         .insert({
-          conversationId,
+          conversationId: activeConvId,
           role: 'assistant',
           content: response
         })
@@ -185,7 +202,7 @@ export default function AdminChatPage() {
       await supabase
         .from('Conversation')
         .update({ lastMessageAt: new Date().toISOString() })
-        .eq('id', conversationId);
+        .eq('id', activeConvId);
         
     } catch (error: any) {
       toast({
