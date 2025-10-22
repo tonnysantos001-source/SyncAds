@@ -424,15 +424,9 @@ serve(async (req) => {
     await supabase
       .from('ChatMessage')
       .insert([
-        { conversationId, role: 'user', content: message },
-        { conversationId, role: 'assistant', content: aiResponse }
+        { conversationId, role: 'user', content: message, userId: user.id },
+        { conversationId, role: 'assistant', content: aiResponse, userId: user.id }
       ])
-
-    // Atualizar timestamp da conversa
-    await supabase
-      .from('Conversation')
-      .update({ lastMessageAt: new Date().toISOString() })
-      .eq('id', conversationId)
 
     return new Response(
       JSON.stringify({ response: aiResponse }),

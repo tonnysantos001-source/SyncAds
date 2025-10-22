@@ -38,7 +38,7 @@ export default function AdminChatPage() {
 
         // Buscar conversa admin existente
         const { data: existingConv } = await supabase
-          .from('Conversation')
+          .from('ChatConversation')
           .select('*')
           .eq('userId', user.id)
           .eq('title', '🛡️ Admin Chat')
@@ -50,7 +50,7 @@ export default function AdminChatPage() {
           // Carregar mensagens
           const { data: msgs } = await supabase
             .from('ChatMessage')
-            .select('*')
+            .select('id, role, content, createdAt, userId')
             .eq('conversationId', existingConv.id)
             .order('createdAt', { ascending: true });
 
@@ -65,11 +65,10 @@ export default function AdminChatPage() {
         } else {
           // Criar nova conversa admin
           const { data: newConv } = await supabase
-            .from('Conversation')
+            .from('ChatConversation')
             .insert({
               userId: user.id,
-              title: '🛡️ Admin Chat',
-              lastMessageAt: new Date().toISOString()
+              title: '🛡️ Admin Chat'
             })
             .select()
             .single();
