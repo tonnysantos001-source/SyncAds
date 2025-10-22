@@ -26,7 +26,65 @@ export default function AdminChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Carregar ou criar conversa administrativa
+  useEffect(() => {
+    const initConversation = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Buscar conversa admin existente
+        const { data: existingConv } = await supabase
+          .from('Conversation')
+          .select('*')
+          .eq('userId', user.id)
+          .eq('title', '🛡️ Admin Chat')
+          .single();
+
+        if (existingConv) {
+          setConversationId(existingConv.id);
+          
+          // Carregar mensagens
+          const { data: msgs } = await supabase
+            .from('ChatMessage')
+            .select('*')
+            .eq('conversationId', existingConv.id)
+            .order('createdAt', { ascending: true });
+
+          if (msgs) {
+            setMessages(msgs.map(m => ({
+              id: m.id,
+              role: m.role as 'user' | 'assistant' | 'system',
+              content: m.content,
+              timestamp: new Date(m.createdAt)
+            })));
+          }
+        } else {
+          // Criar nova conversa admin
+          const { data: newConv } = await supabase
+            .from('Conversation')
+            .insert({
+              userId: user.id,
+              title: '🛡️ Admin Chat',
+              lastMessageAt: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (newConv) {
+            setConversationId(newConv.id);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar conversa:', error);
+      }
+    };
+
+    initConversation();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,31 +127,66 @@ export default function AdminChatPage() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !conversationId) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    const userContent = input.trim();
     setInput('');
     setIsLoading(true);
 
     try {
-      // Executar query administrativa
-      const response = await executeAdminQuery(userMessage.content);
+      // Salvar mensagem do usuário no banco
+      const { data: savedUserMsg, error: userError } = await supabase
+        .from('ChatMessage')
+        .insert({
+          conversationId,
+          role: 'user',
+          content: userContent
+        })
+        .select()
+        .single();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
+      if (userError) throw userError;
+
+      // Adicionar ao estado local
+      const userMessage: Message = {
+        id: savedUserMsg.id,
+        role: 'user',
+        content: savedUserMsg.content,
+        timestamp: new Date(savedUserMsg.createdAt),
       };
+      setMessages(prev => [...prev, userMessage]);
 
+      // Executar query administrativa
+      const response = await executeAdminQuery(userContent);
+
+      // Salvar resposta da IA no banco
+      const { data: savedAssistantMsg, error: assistantError } = await supabase
+        .from('ChatMessage')
+        .insert({
+          conversationId,
+          role: 'assistant',
+          content: response
+        })
+        .select()
+        .single();
+
+      if (assistantError) throw assistantError;
+
+      // Adicionar ao estado local
+      const assistantMessage: Message = {
+        id: savedAssistantMsg.id,
+        role: 'assistant',
+        content: savedAssistantMsg.content,
+        timestamp: new Date(savedAssistantMsg.createdAt),
+      };
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Atualizar lastMessageAt
+      await supabase
+        .from('Conversation')
+        .update({ lastMessageAt: new Date().toISOString() })
+        .eq('id', conversationId);
+        
     } catch (error: any) {
       toast({
         title: 'Erro ao processar',
