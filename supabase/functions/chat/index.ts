@@ -101,13 +101,30 @@ serve(async (req) => {
     let response: string
     let tokensUsed = 0
 
-    if (aiConnection.provider === 'OPENAI') {
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // OpenAI-compatible providers (OpenAI, OpenRouter, Groq, Together, Fireworks, Mistral, Perplexity)
+    const openaiCompatibleProviders = ['OPENAI', 'OPENROUTER', 'GROQ', 'TOGETHER', 'FIREWORKS', 'MISTRAL', 'PERPLEXITY']
+    
+    if (openaiCompatibleProviders.includes(aiConnection.provider)) {
+      // Determine base URL
+      const baseUrl = aiConnection.baseUrl || 'https://api.openai.com/v1'
+      const endpoint = `${baseUrl}/chat/completions`
+      
+      // Determine headers based on provider
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      
+      if (aiConnection.provider === 'OPENROUTER') {
+        headers['Authorization'] = `Bearer ${aiConnection.apiKey}`
+        headers['HTTP-Referer'] = 'https://syncads.com'
+        headers['X-Title'] = 'SyncAds'
+      } else {
+        headers['Authorization'] = `Bearer ${aiConnection.apiKey}`
+      }
+
+      const openaiResponse = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${aiConnection.apiKey}`
-        },
+        headers: headers,
         body: JSON.stringify({
           model: aiConnection.model || 'gpt-4-turbo',
           messages: messages,
@@ -118,12 +135,12 @@ serve(async (req) => {
 
       if (!openaiResponse.ok) {
         const error = await openaiResponse.text()
-        throw new Error(`OpenAI API error: ${error}`)
+        throw new Error(`${aiConnection.provider} API error: ${error}`)
       }
 
       const data = await openaiResponse.json()
       response = data.choices[0].message.content
-      tokensUsed = data.usage.total_tokens
+      tokensUsed = data.usage?.total_tokens || 0
 
     } else if (aiConnection.provider === 'ANTHROPIC') {
       const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -178,6 +195,38 @@ serve(async (req) => {
       const data = await googleResponse.json()
       response = data.candidates[0].content.parts[0].text
       tokensUsed = data.usageMetadata.totalTokenCount || 0
+
+    } else if (aiConnection.provider === 'COHERE') {
+      // Convert messages to Cohere format
+      const chatHistory = messages.slice(1, -1).map(m => ({
+        role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
+        message: m.content
+      }))
+
+      const cohereResponse = await fetch('https://api.cohere.ai/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${aiConnection.apiKey}`
+        },
+        body: JSON.stringify({
+          model: aiConnection.model || 'command-r-plus',
+          message: message,
+          chat_history: chatHistory,
+          preamble: finalSystemPrompt,
+          temperature: aiConnection.temperature || 0.7,
+          max_tokens: aiConnection.maxTokens || 4096
+        })
+      })
+
+      if (!cohereResponse.ok) {
+        const error = await cohereResponse.text()
+        throw new Error(`Cohere API error: ${error}`)
+      }
+
+      const data = await cohereResponse.json()
+      response = data.text
+      tokensUsed = (data.meta?.tokens?.input_tokens || 0) + (data.meta?.tokens?.output_tokens || 0)
 
     } else {
       throw new Error(`Unsupported AI provider: ${aiConnection.provider}`)

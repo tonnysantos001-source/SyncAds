@@ -225,13 +225,73 @@ export default function GlobalAiPage() {
       OPENAI: 'bg-green-100 text-green-800',
       ANTHROPIC: 'bg-orange-100 text-orange-800',
       GOOGLE: 'bg-blue-100 text-blue-800',
+      OPENROUTER: 'bg-indigo-100 text-indigo-800',
+      GROQ: 'bg-red-100 text-red-800',
       COHERE: 'bg-purple-100 text-purple-800',
+      MISTRAL: 'bg-amber-100 text-amber-800',
+      PERPLEXITY: 'bg-cyan-100 text-cyan-800',
+      TOGETHER: 'bg-pink-100 text-pink-800',
+      FIREWORKS: 'bg-yellow-100 text-yellow-800',
     };
     return (
       <span className={`px-2 py-1 rounded text-xs font-medium ${colors[provider] || 'bg-gray-100 text-gray-800'}`}>
         {provider}
       </span>
     );
+  };
+
+  // Provider examples and defaults
+  const providerExamples: Record<string, { model: string; baseUrl: string; description: string }> = {
+    OPENAI: {
+      model: 'gpt-4o-mini',
+      baseUrl: 'https://api.openai.com/v1',
+      description: 'GPT-4, GPT-3.5, DALL-E, Whisper',
+    },
+    ANTHROPIC: {
+      model: 'claude-3-5-sonnet-20241022',
+      baseUrl: 'https://api.anthropic.com/v1',
+      description: 'Claude 3.5 Sonnet, Claude 3 Opus',
+    },
+    GOOGLE: {
+      model: 'gemini-2.0-flash-exp',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1',
+      description: 'Gemini Pro, Gemini Flash',
+    },
+    OPENROUTER: {
+      model: 'openai/gpt-4-turbo',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      description: 'Acesso a 200+ modelos (OpenAI, Anthropic, Google, Meta, etc)',
+    },
+    GROQ: {
+      model: 'llama-3.3-70b-versatile',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      description: 'Llama 3.3, Mixtral - Ultra rápido',
+    },
+    COHERE: {
+      model: 'command-r-plus',
+      baseUrl: 'https://api.cohere.ai/v1',
+      description: 'Command R+, Command R',
+    },
+    MISTRAL: {
+      model: 'mistral-large-latest',
+      baseUrl: 'https://api.mistral.ai/v1',
+      description: 'Mistral Large, Mistral Medium',
+    },
+    PERPLEXITY: {
+      model: 'llama-3.1-sonar-large-128k-online',
+      baseUrl: 'https://api.perplexity.ai',
+      description: 'Sonar Online - IA com busca web',
+    },
+    TOGETHER: {
+      model: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+      baseUrl: 'https://api.together.xyz/v1',
+      description: 'Llama, Qwen, DeepSeek',
+    },
+    FIREWORKS: {
+      model: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
+      baseUrl: 'https://api.fireworks.ai/inference/v1',
+      description: 'Modelos open source otimizados',
+    },
   };
 
   if (loading) {
@@ -284,18 +344,37 @@ export default function GlobalAiPage() {
                     <Label htmlFor="provider">Provider</Label>
                     <Select
                       value={formData.provider}
-                      onValueChange={(value) => setFormData({ ...formData, provider: value })}
+                      onValueChange={(value) => {
+                        const example = providerExamples[value];
+                        setFormData({ 
+                          ...formData, 
+                          provider: value,
+                          model: example?.model || '',
+                          baseUrl: example?.baseUrl || '',
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="OPENAI">OpenAI</SelectItem>
-                        <SelectItem value="ANTHROPIC">Anthropic</SelectItem>
-                        <SelectItem value="GOOGLE">Google</SelectItem>
-                        <SelectItem value="COHERE">Cohere</SelectItem>
+                        <SelectItem value="OPENAI">🤖 OpenAI</SelectItem>
+                        <SelectItem value="ANTHROPIC">🧠 Anthropic (Claude)</SelectItem>
+                        <SelectItem value="GOOGLE">🔵 Google (Gemini)</SelectItem>
+                        <SelectItem value="OPENROUTER">🌐 OpenRouter (200+ modelos)</SelectItem>
+                        <SelectItem value="GROQ">⚡ Groq (Ultra rápido)</SelectItem>
+                        <SelectItem value="MISTRAL">🇫🇷 Mistral AI</SelectItem>
+                        <SelectItem value="COHERE">💜 Cohere</SelectItem>
+                        <SelectItem value="PERPLEXITY">🔍 Perplexity (Web)</SelectItem>
+                        <SelectItem value="TOGETHER">🤝 Together AI</SelectItem>
+                        <SelectItem value="FIREWORKS">🎆 Fireworks AI</SelectItem>
                       </SelectContent>
                     </Select>
+                    {providerExamples[formData.provider] && (
+                      <p className="text-xs text-gray-500">
+                        {providerExamples[formData.provider].description}
+                      </p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="apiKey">API Key</Label>
@@ -308,22 +387,30 @@ export default function GlobalAiPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="model">Modelo (opcional)</Label>
+                    <Label htmlFor="model">Modelo</Label>
                     <Input
                       id="model"
-                      placeholder="gpt-4-turbo"
+                      placeholder={providerExamples[formData.provider]?.model || "gpt-4-turbo"}
                       value={formData.model}
                       onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                     />
+                    <p className="text-xs text-gray-500">
+                      {formData.provider === 'OPENROUTER' 
+                        ? 'Formato: provider/model (ex: openai/gpt-4-turbo, anthropic/claude-3-5-sonnet)'
+                        : 'Nome do modelo a ser usado'}
+                    </p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="baseUrl">Base URL (opcional)</Label>
+                    <Label htmlFor="baseUrl">Base URL</Label>
                     <Input
                       id="baseUrl"
-                      placeholder="https://api.openai.com/v1"
+                      placeholder={providerExamples[formData.provider]?.baseUrl || "https://api.openai.com/v1"}
                       value={formData.baseUrl}
                       onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
                     />
+                    <p className="text-xs text-gray-500">
+                      URL da API do provider
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>
