@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
 import { sendSecureMessage } from '@/lib/api/chat';
+import { supabase } from '@/lib/supabase';
 import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
 import { 
   AdminTools, 
@@ -59,6 +60,10 @@ const MAX_CHARS = 500;
 const ChatPage: React.FC = () => {
   const [input, setInput] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [globalAiConfig, setGlobalAiConfig] = useState<{
+    systemPrompt: string;
+    initialGreetings: string[];
+  } | null>(null);
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -76,7 +81,7 @@ const ChatPage: React.FC = () => {
   // Campaigns store
   const addCampaign = useCampaignsStore((state) => state.addCampaign);
   
-  // Settings store
+  // Settings store (fallback se não houver IA global)
   const aiSystemPrompt = useSettingsStore((state) => state.aiSystemPrompt);
   const aiInitialGreetings = useSettingsStore((state) => state.aiInitialGreetings);
   
@@ -92,12 +97,88 @@ const ChatPage: React.FC = () => {
 
   useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
 
+  // Carregar configuração da IA Global atribuída à organização
+  useEffect(() => {
+    const loadGlobalAiConfig = async () => {
+      if (!user?.organizationId) return;
+
+      try {
+        // Buscar IA ativa atribuída à organização
+        const { data: orgAiConnection, error: orgError } = await supabase
+          .from('OrganizationAiConnection')
+          .select('globalAiConnectionId')
+          .eq('organizationId', user.organizationId)
+          .eq('isDefault', true)
+          .single();
+
+        if (orgError && orgError.code !== 'PGRST116') {
+          console.error('Erro ao buscar IA da organização:', orgError);
+          return;
+        }
+
+        let globalAiId = orgAiConnection?.globalAiConnectionId;
+
+        // Se não encontrou uma padrão, busca qualquer uma ativa
+        if (!globalAiId) {
+          const { data: anyOrgAi } = await supabase
+            .from('OrganizationAiConnection')
+            .select('globalAiConnectionId')
+            .eq('organizationId', user.organizationId)
+            .limit(1)
+            .single();
+          
+          globalAiId = anyOrgAi?.globalAiConnectionId;
+        }
+
+        // Se ainda não encontrou, busca qualquer IA global ativa
+        if (!globalAiId) {
+          const { data: anyGlobalAi } = await supabase
+            .from('GlobalAiConnection')
+            .select('id')
+            .eq('isActive', true)
+            .limit(1)
+            .single();
+          
+          globalAiId = anyGlobalAi?.id;
+        }
+
+        if (globalAiId) {
+          // Buscar configuração da IA
+          const { data: aiConfig, error: aiError } = await supabase
+            .from('GlobalAiConnection')
+            .select('systemPrompt, initialGreetings')
+            .eq('id', globalAiId)
+            .single();
+
+          if (aiError) {
+            console.error('Erro ao buscar config da IA:', aiError);
+            return;
+          }
+
+          if (aiConfig) {
+            setGlobalAiConfig({
+              systemPrompt: aiConfig.systemPrompt || aiSystemPrompt,
+              initialGreetings: aiConfig.initialGreetings || aiInitialGreetings,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar IA Global:', error);
+      }
+    };
+
+    loadGlobalAiConfig();
+  }, [user?.organizationId]);
+
   // Enviar fala inicial quando conversa nova for criada
   useEffect(() => {
-    if (activeConversation && activeConversation.messages.length === 0 && aiInitialGreetings.length > 0) {
+    // Usar greetings da IA Global se disponível, senão usar fallback
+    const greetings = globalAiConfig?.initialGreetings || aiInitialGreetings;
+    
+    if (activeConversation && activeConversation.messages.length === 0 && greetings.length > 0) {
       // Escolher uma fala aleatória
-      const randomIndex = Math.floor(Math.random() * aiInitialGreetings.length);
-      const greeting = aiInitialGreetings[randomIndex];
+      const randomIndex = Math.floor(Math.random() * greetings.length);
+      const greeting = greetings[randomIndex];
       
       // Adicionar a fala inicial como mensagem do assistente
       setTimeout(() => {
@@ -110,7 +191,7 @@ const ChatPage: React.FC = () => {
         }
       }, 500); // Pequeno delay para parecer mais natural
     }
-  }, [activeConversationId, activeConversation?.messages.length]);
+  }, [activeConversationId, activeConversation?.messages.length, globalAiConfig]);
 
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
@@ -126,7 +207,10 @@ const ChatPage: React.FC = () => {
     try {
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find((c: any) => c.id === activeConversationId);
-      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + aiSystemPrompt;
+      
+      // Usar systemPrompt da IA Global se disponível, senão usar fallback
+      const customPrompt = globalAiConfig?.systemPrompt || aiSystemPrompt;
+      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + customPrompt;
       
       const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
         role: msg.role,

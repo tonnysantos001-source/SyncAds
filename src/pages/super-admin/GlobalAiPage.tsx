@@ -13,8 +13,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Bot, Link2, Check, Trash2, TestTube2, AlertCircle } from 'lucide-react';
+import { Plus, Bot, Link2, Check, Trash2, TestTube2, Settings2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
@@ -29,6 +30,8 @@ interface GlobalAiConnection {
   maxTokens: number;
   temperature: number;
   isActive: boolean;
+  systemPrompt?: string;
+  initialGreetings?: string[];
   createdAt: string;
 }
 
@@ -43,7 +46,9 @@ export default function GlobalAiPage() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [selectedAiId, setSelectedAiId] = useState<string>('');
+  const [selectedAi, setSelectedAi] = useState<GlobalAiConnection | null>(null);
   const { toast } = useToast();
 
   // Form state
@@ -333,6 +338,41 @@ export default function GlobalAiPage() {
     }
   };
 
+  const openPromptDialog = (ai: GlobalAiConnection) => {
+    setSelectedAi(ai);
+    setIsPromptDialogOpen(true);
+  };
+
+  const savePromptConfig = async () => {
+    if (!selectedAi) return;
+
+    try {
+      const { error } = await supabase
+        .from('GlobalAiConnection')
+        .update({
+          systemPrompt: selectedAi.systemPrompt,
+          initialGreetings: selectedAi.initialGreetings,
+        })
+        .eq('id', selectedAi.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Configuração salva!',
+        description: 'Prompt e mensagens iniciais atualizados.',
+      });
+
+      setIsPromptDialogOpen(false);
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar configuração',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const toggleOrgSelection = (orgId: string) => {
     setSelectedOrgIds(prev =>
       prev.includes(orgId)
@@ -572,6 +612,15 @@ export default function GlobalAiPage() {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => openPromptDialog(ai)}
+                      title="Configurar prompt e mensagens"
+                    >
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Configurar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => testAiConnection(ai)}
                       title="Testar conexão com a IA"
                     >
@@ -687,6 +736,107 @@ export default function GlobalAiPage() {
             </Button>
             <Button onClick={assignAiToOrganizations}>
               Atribuir para {selectedOrgIds.length} organizações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Prompt Configuration Dialog */}
+      <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configurar IA: {selectedAi?.name}</DialogTitle>
+            <DialogDescription>
+              Configure o prompt de sistema e mensagens iniciais da IA
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* System Prompt */}
+            <div className="space-y-2">
+              <Label htmlFor="systemPrompt">Prompt de Sistema</Label>
+              <Textarea
+                id="systemPrompt"
+                value={selectedAi?.systemPrompt || ''}
+                onChange={(e) =>
+                  setSelectedAi(prev =>
+                    prev ? { ...prev, systemPrompt: e.target.value } : null
+                  )
+                }
+                rows={12}
+                className="font-mono text-sm"
+                placeholder="Digite o prompt de sistema que define o comportamento da IA..."
+              />
+              <p className="text-xs text-gray-500">
+                Este prompt define a personalidade, capacidades e comportamento da IA.
+                Seja específico sobre o que a IA pode fazer.
+              </p>
+            </div>
+
+            {/* Initial Greetings */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Mensagens Iniciais</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newGreetings = [
+                      ...(selectedAi?.initialGreetings || []),
+                      'Nova mensagem inicial'
+                    ];
+                    setSelectedAi(prev =>
+                      prev ? { ...prev, initialGreetings: newGreetings } : null
+                    );
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                {(selectedAi?.initialGreetings || []).map((greeting, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={greeting}
+                      onChange={(e) => {
+                        const newGreetings = [...(selectedAi?.initialGreetings || [])];
+                        newGreetings[index] = e.target.value;
+                        setSelectedAi(prev =>
+                          prev ? { ...prev, initialGreetings: newGreetings } : null
+                        );
+                      }}
+                      placeholder={`Mensagem inicial ${index + 1}`}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        const newGreetings = (selectedAi?.initialGreetings || []).filter(
+                          (_, i) => i !== index
+                        );
+                        setSelectedAi(prev =>
+                          prev ? { ...prev, initialGreetings: newGreetings } : null
+                        );
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              <p className="text-xs text-gray-500">
+                A IA escolherá aleatoriamente uma dessas mensagens para saudar novos usuários.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPromptDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={savePromptConfig}>
+              Salvar Configuração
             </Button>
           </DialogFooter>
         </DialogContent>
