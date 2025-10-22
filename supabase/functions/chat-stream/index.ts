@@ -334,7 +334,7 @@ serve(async (req) => {
       })
     }
 
-    // Chamar IA apropriada baseada no provider
+    // Chamar IA com STREAMING
     let aiResponse = ''
     
     if (aiConfig.provider === 'OPENROUTER') {
@@ -350,7 +350,7 @@ serve(async (req) => {
           model: aiConfig.model || 'openai/gpt-4-turbo',
           messages: requestMessages,
           temperature: aiConfig.temperature || 0.7,
-          stream: false
+          stream: true  // ← ATIVADO!
         })
       })
 
@@ -359,8 +359,38 @@ serve(async (req) => {
         throw new Error(`AI API Error: ${errorText.substring(0, 200)}`)
       }
 
-      const data = await response.json()
-      aiResponse = data.choices[0]?.message?.content || 'Sem resposta'
+      // Processar stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) throw new Error('No response body')
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.choices[0]?.delta?.content || ''
+              aiResponse += content
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      if (!aiResponse) {
+        aiResponse = 'Sem resposta'
+      }
     } 
     else if (aiConfig.provider === 'OPENAI') {
       const baseUrl = aiConfig.baseUrl || 'https://api.openai.com/v1'

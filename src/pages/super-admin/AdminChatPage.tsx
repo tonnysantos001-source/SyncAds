@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Shield, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, Send, Shield, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -130,79 +130,29 @@ export default function AdminChatPage() {
     setIsLoading(true);
 
     try {
-      // Criar conversa se não existir
-      let activeConvId = conversationId;
-      if (!activeConvId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Não autenticado');
+      // Usar ID fixo para admin chat (ou criar se não existir)
+      let activeConvId = conversationId || 'admin-chat-default';
 
-        const { data: newConv } = await supabase
-          .from('Conversation')
-          .insert({
-            userId: user.id,
-            title: '🛡️ Admin Chat',
-            lastMessageAt: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (!newConv) throw new Error('Erro ao criar conversa');
-        activeConvId = newConv.id;
-        setConversationId(newConv.id);
-      }
-
-      // Salvar mensagem do usuário no banco
-      const { data: savedUserMsg, error: userError } = await supabase
-        .from('ChatMessage')
-        .insert({
-          conversationId: activeConvId,
-          role: 'user',
-          content: userContent
-        })
-        .select()
-        .single();
-
-      if (userError) throw userError;
-
-      // Adicionar ao estado local
-      const userMessage: Message = {
-        id: savedUserMsg.id,
+      // Adicionar mensagem do usuário ao estado local (UI imediata)
+      const tempUserMessage: Message = {
+        id: `temp-${Date.now()}`,
         role: 'user',
-        content: savedUserMsg.content,
-        timestamp: new Date(savedUserMsg.createdAt),
+        content: userContent,
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, userMessage]);
+      setMessages(prev => [...prev, tempUserMessage]);
 
-      // Executar query administrativa
+      // Executar query administrativa (Edge Function cuida de tudo)
       const response = await executeAdminQuery(userContent, activeConvId);
 
-      // Salvar resposta da IA no banco
-      const { data: savedAssistantMsg, error: assistantError } = await supabase
-        .from('ChatMessage')
-        .insert({
-          conversationId: activeConvId,
-          role: 'assistant',
-          content: response
-        })
-        .select()
-        .single();
-
-      if (assistantError) throw assistantError;
-
-      // Adicionar ao estado local
+      // Adicionar resposta ao estado local
       const assistantMessage: Message = {
-        id: savedAssistantMsg.id,
+        id: `temp-${Date.now() + 1}`,
         role: 'assistant',
-        content: savedAssistantMsg.content,
-        timestamp: new Date(savedAssistantMsg.createdAt),
+        content: response,
+        timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Atualizar lastMessageAt
-      await supabase
-        .from('Conversation')
-        .update({ lastMessageAt: new Date().toISOString() })
-        .eq('id', activeConvId);
         
     } catch (error: any) {
       toast({
