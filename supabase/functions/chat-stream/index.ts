@@ -213,36 +213,57 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== CHAT STREAM REQUEST START ===')
+    
     const { message, conversationId } = await req.json()
-    
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    console.log('Message:', message?.substring(0, 50))
+    console.log('ConversationId:', conversationId)
 
-    // Get user
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-    if (userError || !user) {
+    if (!message || !conversationId) {
+      console.error('Missing required fields')
+      return new Response(
+        JSON.stringify({ error: 'Missing message or conversationId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('No auth header')
+      throw new Error('Missing auth header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    console.log('Token length:', token.length)
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    console.log('Auth result - User ID:', user?.id, 'Error:', authError?.message)
+
+    if (authError || !user) {
+      console.error('Auth failed:', authError)
       throw new Error('Unauthorized')
     }
 
     // Get user's organization
-    const { data: userData } = await supabase
+    console.log('Fetching user organization...')
+    const { data: userData, error: userError } = await supabase
       .from('User')
       .select('organizationId')
       .eq('id', user.id)
       .single()
 
+    console.log('User data:', userData, 'Error:', userError?.message)
+
     if (!userData?.organizationId) {
+      console.error('No organizationId for user')
       throw new Error('User not associated with an organization')
     }
 
     // Get organization's AI connection
-    const { data: orgAi } = await supabase
+    console.log('Fetching AI config for org:', userData.organizationId)
+    const { data: orgAi, error: aiError } = await supabase
       .from('OrganizationAiConnection')
       .select(`
         id,
@@ -260,11 +281,16 @@ serve(async (req) => {
       .eq('isDefault', true)
       .single()
 
+    console.log('AI Connection found:', !!orgAi, 'Error:', aiError?.message)
+    console.log('GlobalAiConnection:', !!orgAi?.globalAiConnection)
+
     if (!orgAi?.globalAiConnection) {
+      console.error('No AI configured for organization')
       throw new Error('No AI configured')
     }
 
     const aiConfig = orgAi.globalAiConnection as any
+    console.log('AI Config - Provider:', aiConfig.provider, 'Model:', aiConfig.model)
 
     // Buscar histórico de mensagens (últimas 20)
     const { data: messages } = await supabase
