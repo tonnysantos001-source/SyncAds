@@ -237,6 +237,13 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
     console.log('Token length:', token.length)
     
+    // Create Supabase client ✅ FIX: estava faltando criar a instância!
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     console.log('Auth result - User ID:', user?.id, 'Error:', authError?.message)
