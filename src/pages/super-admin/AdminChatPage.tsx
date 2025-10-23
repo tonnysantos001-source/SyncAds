@@ -242,7 +242,9 @@ export default function AdminChatPage() {
                     {message.role === 'system' && (
                       <Sparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                     )}
-                    <div className="flex-1 whitespace-pre-wrap break-words text-sm">
+                    <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
+                      message.role === 'user' ? 'text-white' : 'text-gray-900'
+                    }`}>
                       {message.content}
                     </div>
                   </div>
