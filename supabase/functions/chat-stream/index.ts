@@ -268,12 +268,13 @@ serve(async (req) => {
       throw new Error('User not associated with an organization')
     }
 
-    // Get organization's AI connection
+    // Get organization's AI connection (first active one)
     console.log('Fetching AI config for org:', userData.organizationId)
-    const { data: orgAi, error: aiError } = await supabase
+    const { data: orgAiList, error: aiError } = await supabase
       .from('OrganizationAiConnection')
       .select(`
         id,
+        isDefault,
         globalAiConnection:GlobalAiConnection (
           id,
           provider,
@@ -281,18 +282,26 @@ serve(async (req) => {
           baseUrl,
           model,
           temperature,
-          systemPrompt
+          systemPrompt,
+          isActive
         )
       `)
       .eq('organizationId', userData.organizationId)
-      .eq('isDefault', true)
-      .single()
+      .order('isDefault', { ascending: false })
+      .limit(10)
 
-    console.log('AI Connection found:', !!orgAi, 'Error:', aiError?.message)
-    console.log('GlobalAiConnection:', !!orgAi?.globalAiConnection)
+    console.log('AI Connections found:', orgAiList?.length || 0, 'Error:', aiError?.message)
+
+    // Find first active AI
+    const orgAi = orgAiList?.find(ai => 
+      ai.globalAiConnection && 
+      (ai.globalAiConnection as any).isActive === true
+    )
+
+    console.log('Active AI found:', !!orgAi)
 
     if (!orgAi?.globalAiConnection) {
-      console.error('No AI configured for organization')
+      console.error('No active AI configured for organization')
       throw new Error('No AI configured')
     }
 
