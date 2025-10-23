@@ -156,12 +156,24 @@ export default function AdminChatPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Buscar organizationId do usuário
+      const { data: userData } = await supabase
+        .from('User')
+        .select('organizationId')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData?.organizationId) {
+        throw new Error('Usuário sem organização');
+      }
+
       // Criar nova conversa
       const { data: newConv, error } = await supabase
         .from('ChatConversation')
         .insert({
           userId: user.id,
-          title: `Chat Admin - ${new Date().toLocaleDateString('pt-BR')}`,
+          organizationId: userData.organizationId,
+          title: `🛡️ Admin Chat - ${new Date().toLocaleDateString('pt-BR')}`,
         })
         .select()
         .single();
@@ -334,7 +346,7 @@ export default function AdminChatPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSend();
+                  handleSendMessage();
                 }
               }}
               placeholder="Digite seu comando... (Ex: 'stats gerais', 'audite o sistema', 'clientes ativos')"
@@ -342,7 +354,7 @@ export default function AdminChatPage() {
               disabled={isLoading}
             />
             <Button
-              onClick={handleSend}
+              onClick={handleSendMessage}
               disabled={!input.trim() || isLoading}
               className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
               size="lg"
