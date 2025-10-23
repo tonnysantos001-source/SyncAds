@@ -470,11 +470,14 @@ serve(async (req) => {
 
     // Salvar mensagens no banco
     console.log('Salvando mensagens no banco...')
+    const userMsgId = crypto.randomUUID()
+    const assistantMsgId = crypto.randomUUID()
+    
     const { data: savedMessages, error: insertError } = await supabase
       .from('ChatMessage')
       .insert([
-        { conversationId, role: 'USER', content: message, userId: user.id },
-        { conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
+        { id: userMsgId, conversationId, role: 'USER', content: message, userId: user.id },
+        { id: assistantMsgId, conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
       ])
       .select()
 
