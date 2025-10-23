@@ -1,79 +1,75 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building2, Search, Plus, Users, Calendar, TrendingUp } from 'lucide-react';
+import { Users, Search, MessageSquare, Shield, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
-import { useNavigate } from 'react-router-dom';
 
-interface Client {
+interface UserData {
   id: string;
   name: string;
-  slug: string;
+  email: string;
   plan: string;
-  status: string;
-  maxUsers: number;
-  maxCampaigns: number;
-  maxChatMessages: number;
+  role: string;
+  isActive: boolean;
+  emailVerified: boolean;
   createdAt: string;
   trialEndsAt: string | null;
   _count?: {
-    users: number;
     campaigns: number;
+    messages: number;
   };
 }
 
 export default function ClientsPage() {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [clients, setClients] = useState<Client[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadClients();
+    loadUsers();
   }, []);
 
-  const loadClients = async () => {
+  const loadUsers = async () => {
     try {
-      const { data: orgsData, error } = await supabase
-        .from('Organization')
+      const { data: usersData, error } = await supabase
+        .from('User')
         .select('*')
         .order('createdAt', { ascending: false });
 
       if (error) throw error;
 
-      // Para cada organização, buscar contagem de usuários e campanhas
-      const clientsWithCounts = await Promise.all(
-        (orgsData || []).map(async (org) => {
-          const { count: usersCount } = await supabase
-            .from('User')
-            .select('*', { count: 'exact', head: true })
-            .eq('organizationId', org.id);
-
+      // Para cada usuário, buscar contagem de campanhas e mensagens
+      const usersWithCounts = await Promise.all(
+        (usersData || []).map(async (user: any) => {
           const { count: campaignsCount } = await supabase
             .from('Campaign')
             .select('*', { count: 'exact', head: true })
-            .eq('organizationId', org.id);
+            .eq('userId', user.id);
+
+          const { count: messagesCount } = await supabase
+            .from('ChatConversation')
+            .select('*', { count: 'exact', head: true })
+            .eq('userId', user.id);
 
           return {
-            ...org,
+            ...user,
             _count: {
-              users: usersCount || 0,
               campaigns: campaignsCount || 0,
+              messages: messagesCount || 0,
             },
           };
         })
       );
 
-      setClients(clientsWithCounts);
+      setUsers(usersWithCounts);
     } catch (error: any) {
       toast({
-        title: 'Erro ao carregar clientes',
+        title: 'Erro ao carregar usuários',
         description: error.message,
         variant: 'destructive',
       });
@@ -82,42 +78,35 @@ export default function ClientsPage() {
     }
   };
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: string) => {
+  const getRoleBadge = (role: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
-      ACTIVE: { variant: 'default', label: 'Ativo' },
-      TRIAL: { variant: 'secondary', label: 'Trial' },
-      SUSPENDED: { variant: 'destructive', label: 'Suspenso' },
-      CANCELLED: { variant: 'outline', label: 'Cancelado' },
+      ADMIN: { variant: 'default', label: 'Admin' },
+      MEMBER: { variant: 'secondary', label: 'Membro' },
+      VIEWER: { variant: 'outline', label: 'Visualizador' },
     };
-    const config = variants[status] || variants.TRIAL;
+    const config = variants[role] || variants.MEMBER;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getPlanBadge = (plan: string) => {
-    const colors: Record<string, string> = {
-      FREE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
-      STARTER: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      PRO: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      ENTERPRISE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-    };
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[plan] || colors.FREE}`}>
-        {plan}
-      </span>
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <Badge variant="default">Ativo</Badge>
+    ) : (
+      <Badge variant="destructive">Suspenso</Badge>
     );
   };
 
   const calculateStats = () => {
     return {
-      total: clients.length,
-      active: clients.filter(c => c.status === 'ACTIVE').length,
-      trial: clients.filter(c => c.status === 'TRIAL').length,
-      totalUsers: clients.reduce((acc, c) => acc + (c._count?.users || 0), 0),
+      total: users.length,
+      active: users.filter(u => u.isActive).length,
+      verified: users.filter(u => u.emailVerified).length,
+      totalCampaigns: users.reduce((acc, u) => acc + (u._count?.campaigns || 0), 0),
     };
   };
 
@@ -137,63 +126,54 @@ export default function ClientsPage() {
     <SuperAdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clientes</h1>
-            <p className="text-gray-500 dark:text-gray-400">Gerencie todas as organizações cadastradas</p>
-          </div>
-          <Button 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-            onClick={() => {/* TODO: Abrir dialog criar cliente */}}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Cliente
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Usuários</h1>
+          <p className="text-gray-500 dark:text-gray-400">Todos os usuários cadastrados na plataforma</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Building2 className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+              <Users className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Todas organizações</p>
+              <p className="text-xs text-muted-foreground">Todos cadastrados</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.active}</div>
-              <p className="text-xs text-muted-foreground">Com plano ativo</p>
+              <p className="text-xs text-muted-foreground">Contas ativas</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Em Trial</CardTitle>
-              <Calendar className="h-4 w-4 text-amber-600" />
+              <CardTitle className="text-sm font-medium">Emails Verificados</CardTitle>
+              <Shield className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.trial}</div>
-              <p className="text-xs text-muted-foreground">Período de teste</p>
+              <div className="text-2xl font-bold">{stats.verified}</div>
+              <p className="text-xs text-muted-foreground">Contas verificadas</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-medium">Total Campanhas</CardTitle>
+              <MessageSquare className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">Em todos os clientes</p>
+              <div className="text-2xl font-bold">{stats.totalCampaigns}</div>
+              <p className="text-xs text-muted-foreground">Criadas por todos</p>
             </CardContent>
           </Card>
         </div>
@@ -203,8 +183,8 @@ export default function ClientsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Todos os Clientes</CardTitle>
-                <CardDescription>Lista completa de organizações cadastradas</CardDescription>
+                <CardTitle>Todos os Usuários</CardTitle>
+                <CardDescription>Lista completa de usuários cadastrados</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -213,9 +193,9 @@ export default function ClientsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar por nome ou slug..."
+                  placeholder="Buscar por nome ou email..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: any) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -225,53 +205,43 @@ export default function ClientsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Plano</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Usuários</TableHead>
                     <TableHead>Campanhas</TableHead>
+                    <TableHead>Conversas</TableHead>
                     <TableHead>Criado em</TableHead>
-                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                        Nenhum cliente encontrado
+                        Nenhum usuário encontrado
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredClients.map((client) => (
-                      <TableRow key={client.id}>
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
                         <TableCell>
-                          <div>
-                            <div className="font-medium">{client.name}</div>
-                            <div className="text-sm text-gray-500">{client.slug}</div>
-                          </div>
+                          <div className="font-medium">{user.name}</div>
                         </TableCell>
-                        <TableCell>{getPlanBadge(client.plan)}</TableCell>
-                        <TableCell>{getStatusBadge(client.status)}</TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-600">{user.email}</div>
+                        </TableCell>
+                        <TableCell>{getRoleBadge(user.role)}</TableCell>
+                        <TableCell>{getStatusBadge(user.isActive)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span>{client._count?.users || 0}</span>
+                            <span>{user._count?.campaigns || 0}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {client._count?.campaigns || 0}
+                          {user._count?.messages || 0}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
-                          {new Date(client.createdAt).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/super-admin/clients/${client.id}`)}
-                          >
-                            Ver Detalhes
-                          </Button>
+                          {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                         </TableCell>
                       </TableRow>
                     ))

@@ -243,7 +243,7 @@ export default function TeamPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Equipe</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Gerencie os membros da sua organização
+            Gerencie os membros da equipe
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, AlertCircle, DollarSign, BarChart3, CreditCard, MessageSquare, ArrowRight, Users } from 'lucide-react';
+import { AlertCircle, DollarSign, BarChart3, CreditCard, MessageSquare, ArrowRight, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
@@ -121,11 +121,11 @@ export default function SuperAdminDashboard() {
 
   const quickActions = [
     {
-      title: 'Clientes',
-      description: 'Gerenciar todas as organizações',
-      icon: Building2,
+      title: 'Usuários',
+      description: 'Gerenciar todos os usuários',
+      icon: Users,
       color: 'from-blue-500 to-cyan-500',
-      stats: `${stats.totalClients} clientes`,
+      stats: `${stats.totalUsers} usuários`,
       route: '/super-admin/clients',
     },
     {
@@ -156,10 +156,10 @@ export default function SuperAdminDashboard() {
 
   const statCards = [
     {
-      title: 'Clientes Ativos',
+      title: 'Usuários Ativos',
       value: stats.activeClients,
-      description: `${stats.totalClients} total`,
-      icon: Building2,
+      description: `${stats.totalUsers} total`,
+      icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
       change: '+12%',
