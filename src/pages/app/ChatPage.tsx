@@ -493,168 +493,511 @@ const ChatPage: React.FC = () => {
     });
   };
 
-  return (
-    <div className="flex h-full">
-      {/* Conversations Sidebar */}
-      <Card className={cn("transition-all duration-300 ease-in-out hidden sm:block border-0", sidebarOpen ? "w-80" : "w-0 min-w-0 opacity-0 overflow-hidden")}>
+import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus } from 'lucide-react';
+import Textarea from 'react-textarea-autosize';
+import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import { sendSecureMessage } from '@/lib/api/chat';
+import { supabase } from '@/lib/supabase';
 
-        <CardContent className="p-2 h-full overflow-y-auto flex flex-col">
-          <div className="flex items-center justify-between p-2 mb-2">
-            <h2 className="text-lg font-semibold">Conversas</h2>
+interface Conversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const quickSuggestions = [
+  "Criar campanha de Facebook Ads",
+  "Analisar performance da última semana",
+  "Sugerir otimizações"
+];
+
+const MAX_CHARS = 500;
+
+const ChatPage: React.FC = () => {
+  const [input, setInput] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [globalAiConfig, setGlobalAiConfig] = useState<{
+    systemPrompt: string;
+    initialGreetings: string[];
+  } | null>(null);
+
+  // Auth store
+  const user = useAuthStore((state) => state.user);
+
+  // Chat store
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore((state) => state.activeConversationId);
+  const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
+  const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
+  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
+  const addMessage = useChatStore((state) => state.addMessage);
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const createNewConversation = useChatStore((state) => state.createNewConversation);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
+
+  // Carregar lista de conversas (estilo AdminChatPage)
+  const loadConversations = async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('ChatConversation')
+        .select('id, title, createdAt, updatedAt')
+        .eq('userId', user.id)
+        .order('updatedAt', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Atualizar store com conversas do banco (se necessário)
+      const existingIds = conversations.map(c => c.id);
+      const newConversations = (data || []).filter((conv: any) => !existingIds.includes(conv.id));
+
+      if (newConversations.length > 0) {
+        // Adicionar ao store
+        newConversations.forEach((conv: any) => {
+          useChatStore.getState().addConversation({
+            id: conv.id,
+            title: conv.title,
+            messages: []
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conversas:', error);
+    }
+  };
+
+  // Carregar mensagens de uma conversa específica (SOB DEMANDA)
+  const loadConversationMessages = async (convId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('ChatMessage')
+        .select('id, role, content, createdAt')
+        .eq('conversationId', convId)
+        .order('createdAt', { ascending: true });
+
+      if (error) throw error;
+
+      // Converter para formato do store
+      const loadedMessages = (data || []).map((msg: any) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+      }));
+
+      // Atualizar store
+      useChatStore.getState().setConversationMessages(convId, loadedMessages);
+      setActiveConversationId(convId);
+
+      console.log(`✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`);
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar mensagens.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Delete de conversa (estilo AdminChatPage)
+  const handleDeleteConversation = async (id: string) => {
+    try {
+      // Deletar mensagens primeiro
+      await supabase
+        .from('ChatMessage')
+        .delete()
+        .eq('conversationId', id);
+
+      // Deletar conversa
+      await supabase
+        .from('ChatConversation')
+        .delete()
+        .eq('id', id);
+
+      // Atualizar store
+      deleteConversation(id);
+
+      toast({
+        title: '✅ Conversa deletada!',
+        description: 'Conversa removida com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao deletar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível deletar conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Carregar configuração da IA Global e conversas
+  useEffect(() => {
+    const loadData = async () => {
+      await loadConversations();
+
+      if (!user?.organizationId) return;
+
+      try {
+        // Buscar IA ativa atribuída à organização
+        const { data: orgAiConnection, error: orgError } = await supabase
+          .from('OrganizationAiConnection')
+          .select('globalAiConnectionId')
+          .eq('organizationId', user.organizationId)
+          .eq('isDefault', true)
+          .single();
+
+        if (orgError && orgError.code !== 'PGRST116') {
+          console.error('Erro ao buscar IA da organização:', orgError);
+          return;
+        }
+
+        let globalAiId = orgAiConnection?.globalAiConnectionId;
+
+        // Se não encontrou uma padrão, busca qualquer uma ativa
+        if (!globalAiId) {
+          const { data: anyOrgAi } = await supabase
+            .from('OrganizationAiConnection')
+            .select('globalAiConnectionId')
+            .eq('organizationId', user.organizationId)
+            .limit(1)
+            .single();
+
+          globalAiId = anyOrgAi?.globalAiConnectionId;
+        }
+
+        // Se ainda não encontrou, busca qualquer IA global ativa
+        if (!globalAiId) {
+          const { data: anyGlobalAi } = await supabase
+            .from('GlobalAiConnection')
+            .select('id')
+            .eq('isActive', true)
+            .limit(1)
+            .single();
+
+          globalAiId = anyGlobalAi?.id;
+        }
+
+        if (globalAiId) {
+          // Buscar configuração da IA
+          const { data: aiConfig, error: aiError } = await supabase
+            .from('GlobalAiConnection')
+            .select('systemPrompt, initialGreetings')
+            .eq('id', globalAiId)
+            .single();
+
+          if (aiError) {
+            console.error('Erro ao buscar config da IA:', aiError);
+            return;
+          }
+
+          if (aiConfig) {
+            setGlobalAiConfig({
+              systemPrompt: aiConfig.systemPrompt || '',
+              initialGreetings: aiConfig.initialGreetings || [],
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar IA Global:', error);
+      }
+    };
+
+    loadData();
+  }, [user?.organizationId]);
+
+  const handleSend = async () => {
+    if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) {
+      console.log('Botão desabilitado:', {
+        inputTrim: !input.trim(),
+        activeConversationId: !!activeConversationId,
+        inputLength: input.length
+      });
+      return;
+    }
+
+    const userMessage = input;
+    if (user) {
+      addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
+    }
+    setInput('');
+
+    setAssistantTyping(true);
+
+    try {
+      // Preparar histórico de mensagens para contexto
+      const conversation = conversations.find((c: any) => c.id === activeConversationId);
+
+      // Usar systemPrompt da IA Global se disponível
+      const customPrompt = globalAiConfig?.systemPrompt || 'Você é um assistente útil para gestão de campanhas publicitárias.';
+
+      const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // Chamar Edge Function segura (protege API keys)
+      const result = await sendSecureMessage(userMessage, conversationHistory, customPrompt);
+      const response = result.response;
+
+      // Adicionar resposta da IA
+      if (user) {
+        addMessage(user.id, activeConversationId, {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: response
+        });
+      }
+    } catch (error: any) {
+      console.error('Erro ao chamar IA:', error);
+      toast({
+        title: 'Erro ao gerar resposta',
+        description: error.message || 'Não foi possível obter resposta da IA. Verifique sua chave de API.',
+        variant: 'destructive',
+      });
+
+      // Adicionar mensagem de erro no chat
+      if (user) {
+        addMessage(user.id, activeConversationId, {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.'
+        });
+      }
+    } finally {
+      setAssistantTyping(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      toast({
+        title: "Arquivo Selecionado",
+        description: `O arquivo "${file.name}" está pronto para ser enviado (simulação).`,
+        variant: "info",
+      });
+    }
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  return (
+    <div className="h-[calc(100vh-80px)] flex">
+      {/* SIDEBAR - Conversas Antigas (Estilo AdminChatPage) */}
+      <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden`}>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">Conversas</h2>
             <Button
+              onClick={() => setSidebarOpen(false)}
               variant="ghost"
-              size="icon"
-              onClick={() => {
-                createNewConversation();
-                toast({
-                  title: "Nova conversa criada!",
-                  description: "Comece a conversar com a IA.",
-                });
-              }}
-              title="Nova Conversa"
+              size="sm"
+              className="h-7 w-7 p-0"
             >
-              <Plus className="h-4 w-4" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="space-y-1 flex-1 overflow-y-auto">
-            {conversations.map(conv => (
-              <div key={conv.id} className="group relative">
-                <Button
-                  variant={activeConversationId === conv.id ? 'secondary' : 'ghost'}
-                  className="w-full justify-start truncate pr-8"
-                  onClick={() => setActiveConversationId(conv.id)}
-                >
-                  {conv.title}
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Apagar conversa?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem a certeza que quer apagar a conversa "{conv.title}"? Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        onClick={() => handleDeleteConversation(conv.id)}
-                      >
-                        Apagar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          <Button
+            onClick={() => {
+              createNewConversation();
+              toast({
+                title: "Nova conversa criada!",
+                description: "Comece a conversar com a IA.",
+              });
+            }}
+            className="w-full gap-2"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Conversa
+          </Button>
+        </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col sm:pl-4 h-full">
-        <Card className="flex-1 flex flex-col overflow-hidden rounded-none sm:rounded-2xl border-0">
-          <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="absolute top-20 left-2 hidden sm:flex" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                    {sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{sidebarOpen ? 'Fechar painel' : 'Abrir painel'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {activeConversation ? (
-              <>
-                {activeConversation.messages.map((message) => (
-                  <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
-                    {message.role === 'assistant' && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback><Bot size={18} /></AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className={`rounded-2xl p-3 max-w-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                    {message.role === 'user' && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback><User size={18} /></AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
-                ))}
-                {isAssistantTyping && (
-                  <div className="flex items-start gap-3">
+        {/* Lista de Conversas */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {conversations.map((conv: any) => (
+            <div
+              key={conv.id}
+              className={`group relative flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors ${
+                activeConversationId === conv.id ? 'bg-blue-50 border border-blue-200' : 'bg-white'
+              }`}
+              onClick={() => {
+                if (activeConversationId !== conv.id) {
+                  loadConversationMessages(conv.id);
+                }
+              }}
+            >
+              <MessageSquare className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {conv.title}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {new Date(conv.updatedAt).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              <Button
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  handleDeleteConversation(conv.id);
+                }}
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ÁREA PRINCIPAL DO CHAT */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {!sidebarOpen && (
+                <Button
+                  onClick={() => setSidebarOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              )}
+              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
+                <Bot className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Chat com IA</h1>
+                <p className="text-sm text-gray-500">Assistente inteligente</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {activeConversation ? (
+            <>
+              {activeConversation.messages.map((message: any) => (
+                <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
+                  {message.role === 'assistant' && (
                     <Avatar className="h-8 w-8">
                       <AvatarFallback><Bot size={18} /></AvatarFallback>
                     </Avatar>
-                    <div className="rounded-2xl p-3 bg-muted flex items-center space-x-1">
-                      <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                      <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                      <span className="h-2 w-2 bg-foreground rounded-full animate-bounce"></span>
-                    </div>
+                  )}
+                  <div className={`rounded-2xl p-3 max-w-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p>Selecione ou crie uma conversa para começar.</p>
-              </div>
-            )}
-          </div>
-          
-          <div className="p-2 sm:p-4 border-t bg-card/50 backdrop-blur-sm">
-            <div className="hidden sm:flex gap-2 mb-2">
-              {quickSuggestions.map(s => (
-                <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)}>
-                  {s}
-                </Button>
+                  {message.role === 'user' && (
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback><User size={18} /></AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
               ))}
+              {isAssistantTyping && (
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback><Bot size={18} /></AvatarFallback>
+                  </Avatar>
+                  <div className="rounded-2xl p-3 bg-muted flex items-center space-x-1">
+                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce"></span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p>Selecione ou crie uma conversa para começar.</p>
             </div>
-            <div className="relative">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Digite sua mensagem..."
-                className="w-full resize-none rounded-lg border bg-background p-3 pr-24 min-h-[48px]"
-                minRows={1}
-                maxRows={5}
-                maxLength={MAX_CHARS}
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                <Button type="button" size="icon" variant="ghost" onClick={handleAttachClick}>
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Button type="submit" size="icon" onClick={handleSend} disabled={input.trim() === ''}>
-                  <Send className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-             <p className={cn("text-xs text-right mt-1", input.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground")}>
-                {input.length} / {MAX_CHARS}
-            </p>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-gray-200 p-4 bg-white/80 backdrop-blur-xl">
+          <div className="hidden sm:flex gap-2 mb-2">
+            {quickSuggestions.map(s => (
+              <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)}>
+                {s}
+              </Button>
+            ))}
           </div>
-        </Card>
+          <div className="relative">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Digite sua mensagem..."
+              className="w-full resize-none rounded-lg border bg-background p-3 pr-24 min-h-[48px]"
+              minRows={1}
+              maxRows={5}
+              maxLength={MAX_CHARS}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+              <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+              <Button type="button" size="icon" variant="ghost" onClick={handleAttachClick}>
+                <Paperclip className="h-5 w-5" />
+              </Button>
+              <Button
+                type="submit"
+                size="icon"
+                onClick={handleSend}
+                disabled={input.trim() === '' || !activeConversationId}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+          <p className={cn("text-xs text-right mt-1", input.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground")}>
+            {input.length} / {MAX_CHARS}
+          </p>
+        </div>
       </div>
     </div>
   );

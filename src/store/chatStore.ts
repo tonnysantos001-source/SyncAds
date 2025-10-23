@@ -15,6 +15,8 @@ interface ChatState {
   deleteConversation: (id: string) => Promise<void>;
   setActiveConversationId: (id: string | null) => void;
   setAssistantTyping: (isTyping: boolean) => void;
+  setConversationMessages: (conversationId: string, messages: ChatMessage[]) => void;
+  addConversation: (conversation: ChatConversation) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -129,6 +131,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       throw error;
     }
   },
+
+  // Set Conversation Messages
+  setConversationMessages: (conversationId: string, messages: ChatMessage[]) => set((state) => {
+    const newConversations = state.conversations.map(conv => {
+      if (conv.id === conversationId) {
+        return { ...conv, messages };
+      }
+      return conv;
+    });
+    return { conversations: newConversations };
+  }),
+
+  // Add Conversation
+  addConversation: (conversation: ChatConversation) => set((state) => ({
+    conversations: [...state.conversations, conversation],
+  })),
 
   // Set Active Conversation
   setActiveConversationId: (id: string | null) => set({ activeConversationId: id }),

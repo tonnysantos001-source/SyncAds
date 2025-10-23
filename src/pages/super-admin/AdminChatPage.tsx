@@ -309,8 +309,16 @@ export default function AdminChatPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isLoading || !conversationId) return;
+    if (!input.trim() || isLoading || !conversationId) {
+      console.log('Botão desabilitado:', {
+        inputTrim: !input.trim(),
+        isLoading,
+        conversationId: !!conversationId
+      });
+      return;
+    }
 
+    console.log('Enviando mensagem:', input.trim());
     const userContent = input.trim();
     setInput('');
     setIsLoading(true);
@@ -320,8 +328,9 @@ export default function AdminChatPage() {
       if (!conversationId) {
         throw new Error('Conversa não inicializada');
       }
-      
+
       const activeConvId = conversationId;
+      console.log('Active conversation ID:', activeConvId);
 
       // Adicionar mensagem do usuário ao estado local (UI imediata)
       const tempUserMessage: Message = {
@@ -343,10 +352,10 @@ export default function AdminChatPage() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMessage]);
-        
+
     } catch (error: any) {
       console.error('ERRO COMPLETO:', error);
-      
+
       // Mostrar erro visual no chat
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
@@ -355,7 +364,7 @@ export default function AdminChatPage() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
-      
+
       toast({
         title: 'Erro ao processar',
         description: error.message,
@@ -541,7 +550,7 @@ export default function AdminChatPage() {
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || !conversationId}
                 className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                 size="lg"
               >
