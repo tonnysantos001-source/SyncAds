@@ -163,6 +163,12 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
 function detectIntent(message: string): { tool: string; params?: any } | null {
   const lower = message.toLowerCase()
 
+  // Geração de imagens
+  if ((lower.includes('ger') || lower.includes('cri') || lower.includes('faça') || lower.includes('faz')) && 
+      (lower.includes('imagem') || lower.includes('foto') || lower.includes('banner') || lower.includes('logo'))) {
+    return { tool: 'generate_image', params: { prompt: message } }
+  }
+
   // Web search
   if (lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || 
       lower.includes('google') || lower.includes('internet')) {
@@ -204,6 +210,13 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
   }
 
   return null
+}
+
+// 5. Gerar Imagem (Desabilitado temporariamente - requer configuração DALL-E)
+async function generateImage(ctx: ToolContext, params: { prompt: string }): Promise<string> {
+  return `⚠️ **Geração de imagens temporariamente desabilitada**\n\n` +
+         `Esta funcionalidade será habilitada em breve após configuração do DALL-E.\n` +
+         `Por enquanto, você pode usar o chat normalmente para outras tarefas.`
 }
 
 serve(async (req) => {
@@ -331,6 +344,9 @@ serve(async (req) => {
       console.log('Tool detected:', intent.tool)
       
       switch (intent.tool) {
+        case 'generate_image':
+          toolResult = await generateImage(toolContext, intent.params)
+          break
         case 'web_search':
           toolResult = await webSearch(intent.params)
           break
@@ -351,6 +367,7 @@ serve(async (req) => {
     // Preparar request para IA
     const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente útil.') + '\n\n' +
       'FERRAMENTAS DISPONÍVEIS:\n' +
+      '- Gerar imagens (quando pedir para gerar/criar imagem/foto/banner)\n' +
       '- Buscar na web (quando usuário pedir para pesquisar)\n' +
       '- Listar campanhas (quando pedir para ver campanhas)\n' +
       '- Criar campanhas (quando pedir para criar)\n' +
