@@ -33,8 +33,19 @@ export default function AdminChatPage() {
   useEffect(() => {
     const initConversation = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          console.error('Usuário não autenticado:', authError);
+          toast({
+            title: 'Erro de autenticação',
+            description: 'Você precisa fazer login novamente.',
+            variant: 'destructive',
+          });
+          // Redirecionar para login
+          window.location.href = '/login';
+          return;
+        }
 
         // Buscar conversa admin existente
         const { data: existingConv } = await supabase
@@ -64,10 +75,22 @@ export default function AdminChatPage() {
           }
         } else {
           // Criar nova conversa admin
+          // Buscar organizationId do usuário
+          const { data: userData } = await supabase
+            .from('User')
+            .select('organizationId')
+            .eq('id', user.id)
+            .single();
+
+          if (!userData?.organizationId) {
+            throw new Error('Usuário sem organização');
+          }
+
           const { data: newConv } = await supabase
             .from('ChatConversation')
             .insert({
               userId: user.id,
+              organizationId: userData.organizationId,
               title: '🛡️ Admin Chat'
             })
             .select()
