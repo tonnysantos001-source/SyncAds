@@ -442,15 +442,27 @@ serve(async (req) => {
       if (!aiResponse) {
         aiResponse = 'Sem resposta da IA'
       }
+      
+      console.log('AI Response length:', aiResponse.length)
+      console.log('AI Response preview:', aiResponse.substring(0, 100))
     }
 
     // Salvar mensagens no banco
-    await supabase
+    console.log('Salvando mensagens no banco...')
+    const { data: savedMessages, error: insertError } = await supabase
       .from('ChatMessage')
       .insert([
         { conversationId, role: 'user', content: message, userId: user.id },
         { conversationId, role: 'assistant', content: aiResponse, userId: user.id }
       ])
+      .select()
+
+    if (insertError) {
+      console.error('Erro ao salvar mensagens:', insertError)
+      throw new Error(`Failed to save messages: ${insertError.message}`)
+    }
+    
+    console.log('Mensagens salvas com sucesso:', savedMessages?.length || 0)
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
