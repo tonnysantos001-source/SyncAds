@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Send, Shield, Sparkles, PlusCircle } from 'lucide-react';
+import { Loader2, Send, Shield, Sparkles, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -150,6 +150,34 @@ export default function AdminChatPage() {
     }
   };
 
+  // Função para limpar mensagens
+  const handleClearMessages = async () => {
+    if (!conversationId) return;
+    
+    try {
+      // Deletar todas mensagens da conversa atual
+      await supabase
+        .from('ChatMessage')
+        .delete()
+        .eq('conversationId', conversationId);
+
+      // Limpar mensagens na tela
+      setMessages([]);
+      
+      toast({
+        title: '✅ Mensagens limpas!',
+        description: 'Chat limpo com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao limpar mensagens:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível limpar mensagens.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Função para criar nova conversa
   const handleNewConversation = async () => {
     try {
@@ -167,22 +195,22 @@ export default function AdminChatPage() {
         throw new Error('Usuário sem organização');
       }
 
-      // Criar nova conversa
-      const { data: newConv, error } = await supabase
+      // Criar nova conversa com ID gerado
+      const newId = crypto.randomUUID();
+      const { error } = await supabase
         .from('ChatConversation')
         .insert({
+          id: newId,
           userId: user.id,
           organizationId: userData.organizationId,
           title: `🛡️ Admin Chat - ${new Date().toLocaleDateString('pt-BR')}`,
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
       // Limpar mensagens e atualizar ID
       setMessages([]);
-      setConversationId(newConv.id);
+      setConversationId(newId);
       
       toast({
         title: '✅ Nova conversa criada!',
@@ -192,7 +220,7 @@ export default function AdminChatPage() {
       console.error('Erro ao criar nova conversa:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível criar nova conversa.',
+        description: error.message || 'Não foi possível criar nova conversa.',
         variant: 'destructive',
       });
     }
@@ -268,6 +296,15 @@ export default function AdminChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                onClick={handleClearMessages}
+                variant="outline"
+                size="sm"
+                className="gap-2 hover:bg-red-50 hover:border-red-300"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+                Limpar Chat
+              </Button>
               <Button
                 onClick={handleNewConversation}
                 variant="outline"
