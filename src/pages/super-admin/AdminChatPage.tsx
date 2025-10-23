@@ -47,65 +47,38 @@ export default function AdminChatPage() {
           return;
         }
 
-        // Buscar conversa admin mais recente (independente do título)
-        const { data: conversations } = await supabase
-          .from('ChatConversation')
-          .select('*')
-          .eq('userId', user.id)
-          .order('createdAt', { ascending: false })
-          .limit(1);
-        
-        const existingConv = conversations?.[0];
+        // Buscar organizationId do usuário
+        const { data: userData } = await supabase
+          .from('User')
+          .select('organizationId')
+          .eq('id', user.id)
+          .single();
 
-        if (existingConv) {
-          setConversationId(existingConv.id);
-          
-          // Carregar últimas 50 mensagens para contexto
-          const { data: msgs } = await supabase
-            .from('ChatMessage')
-            .select('id, role, content, createdAt, userId')
-            .eq('conversationId', existingConv.id)
-            .order('createdAt', { ascending: false })
-            .limit(50);
-
-          if (msgs && msgs.length > 0) {
-            // Reverter ordem (mais antigas primeiro)
-            setMessages(msgs.reverse().map(m => ({
-              id: m.id,
-              role: m.role as 'user' | 'assistant' | 'system',
-              content: m.content,
-              timestamp: new Date(m.createdAt)
-            })));
-            
-            console.log(`✅ ${msgs.length} mensagens carregadas do histórico`);
-          }
-        } else {
-          // Criar nova conversa admin
-          // Buscar organizationId do usuário
-          const { data: userData } = await supabase
-            .from('User')
-            .select('organizationId')
-            .eq('id', user.id)
-            .single();
-
-          if (!userData?.organizationId) {
-            throw new Error('Usuário sem organização');
-          }
-
-          const { data: newConv } = await supabase
-            .from('ChatConversation')
-            .insert({
-              userId: user.id,
-              organizationId: userData.organizationId,
-              title: '🛡️ Admin Chat'
-            })
-            .select()
-            .single();
-
-          if (newConv) {
-            setConversationId(newConv.id);
-          }
+        if (!userData?.organizationId) {
+          throw new Error('Usuário sem organização');
         }
+
+        // SEMPRE criar nova conversa (sem histórico)
+        const newId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const { error } = await supabase
+          .from('ChatConversation')
+          .insert({
+            id: newId,
+            userId: user.id,
+            organizationId: userData.organizationId,
+            title: '🛡️ Admin Chat - Fresh',
+            createdAt: now,
+            updatedAt: now
+          });
+
+        if (error) {
+          console.error('Erro ao criar conversa:', error);
+          return;
+        }
+
+        setConversationId(newId);
+        console.log('✅ Nova conversa criada:', newId);
       } catch (error) {
         console.error('Erro ao inicializar conversa:', error);
       }
@@ -197,6 +170,7 @@ export default function AdminChatPage() {
 
       // Criar nova conversa com ID gerado
       const newId = crypto.randomUUID();
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('ChatConversation')
         .insert({
@@ -204,6 +178,8 @@ export default function AdminChatPage() {
           userId: user.id,
           organizationId: userData.organizationId,
           title: `🛡️ Admin Chat - ${new Date().toLocaleDateString('pt-BR')}`,
+          createdAt: now,
+          updatedAt: now
         });
 
       if (error) throw error;
