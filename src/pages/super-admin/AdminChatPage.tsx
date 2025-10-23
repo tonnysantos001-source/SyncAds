@@ -234,8 +234,12 @@ export default function AdminChatPage() {
     setIsLoading(true);
 
     try {
-      // Usar ID fixo para admin chat (ou criar se não existir)
-      let activeConvId = conversationId || 'admin-chat-default';
+      // Verificar se tem conversationId
+      if (!conversationId) {
+        throw new Error('Conversa não inicializada');
+      }
+      
+      const activeConvId = conversationId;
 
       // Adicionar mensagem do usuário ao estado local (UI imediata)
       const tempUserMessage: Message = {
