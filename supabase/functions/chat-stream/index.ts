@@ -268,44 +268,39 @@ serve(async (req) => {
       throw new Error('User not associated with an organization')
     }
 
-    // Get organization's AI connection (first active one)
+    // Get organization's AI connection - SIMPLIFIED 2-STEP APPROACH
     console.log('Fetching AI config for org:', userData.organizationId)
-    const { data: orgAiList, error: aiError } = await supabase
+    
+    // Step 1: Get OrganizationAiConnection
+    const { data: orgAiConn, error: connError } = await supabase
       .from('OrganizationAiConnection')
-      .select(`
-        id,
-        isDefault,
-        globalAiConnection:GlobalAiConnection (
-          id,
-          provider,
-          apiKey,
-          baseUrl,
-          model,
-          temperature,
-          systemPrompt,
-          isActive
-        )
-      `)
+      .select('globalAiConnectionId, isDefault')
       .eq('organizationId', userData.organizationId)
-      .order('isDefault', { ascending: false })
-      .limit(10)
+      .eq('isDefault', true)
+      .maybeSingle()
 
-    console.log('AI Connections found:', orgAiList?.length || 0, 'Error:', aiError?.message)
+    console.log('OrgAiConnection:', !!orgAiConn, 'Error:', connError?.message)
 
-    // Find first active AI
-    const orgAi = orgAiList?.find(ai => 
-      ai.globalAiConnection && 
-      (ai.globalAiConnection as any).isActive === true
-    )
-
-    console.log('Active AI found:', !!orgAi)
-
-    if (!orgAi?.globalAiConnection) {
-      console.error('No active AI configured for organization')
+    if (!orgAiConn) {
+      console.error('No default AI connection for organization')
       throw new Error('No AI configured')
     }
 
-    const aiConfig = orgAi.globalAiConnection as any
+    // Step 2: Get GlobalAiConnection separately
+    const { data: aiConfig, error: aiError } = await supabase
+      .from('GlobalAiConnection')
+      .select('id, provider, apiKey, baseUrl, model, temperature, systemPrompt, isActive')
+      .eq('id', orgAiConn.globalAiConnectionId)
+      .eq('isActive', true)
+      .single()
+
+    console.log('GlobalAI found:', !!aiConfig, 'Error:', aiError?.message)
+
+    if (!aiConfig) {
+      console.error('No active GlobalAI found')
+      throw new Error('No AI configured')
+    }
+
     console.log('AI Config - Provider:', aiConfig.provider, 'Model:', aiConfig.model)
 
     // Buscar histórico de mensagens (últimas 20)
