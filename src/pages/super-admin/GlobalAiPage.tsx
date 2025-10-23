@@ -15,7 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Bot, Link2, Check, Trash2, TestTube2, Settings2, X } from 'lucide-react';
+import { Plus, Bot, Trash2, TestTube2, Settings2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
@@ -35,19 +35,11 @@ interface GlobalAiConnection {
   createdAt: string;
 }
 
-interface Organization {
-  id: string;
-  name: string;
-}
-
 export default function GlobalAiPage() {
   const [aiConnections, setAiConnections] = useState<GlobalAiConnection[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
-  const [selectedAiId, setSelectedAiId] = useState<string>('');
   const [selectedAi, setSelectedAi] = useState<GlobalAiConnection | null>(null);
   const { toast } = useToast();
 
@@ -61,9 +53,6 @@ export default function GlobalAiPage() {
     maxTokens: 4096,
     temperature: 0.7,
   });
-
-  // Assignment state
-  const [selectedOrgIds, setSelectedOrgIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -79,15 +68,6 @@ export default function GlobalAiPage() {
 
       if (aiError) throw aiError;
       setAiConnections(aiData || []);
-
-      // Load organizations
-      const { data: orgData, error: orgError } = await supabase
-        .from('Organization')
-        .select('id, name')
-        .order('name');
-
-      if (orgError) throw orgError;
-      setOrganizations(orgData || []);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
@@ -244,57 +224,6 @@ export default function GlobalAiPage() {
     }
   };
 
-  const openAssignDialog = async (aiId: string) => {
-    setSelectedAiId(aiId);
-    
-    // Load already assigned organizations
-    const { data } = await supabase
-      .from('OrganizationAiConnection')
-      .select('organizationId')
-      .eq('globalAiConnectionId', aiId);
-    
-    setSelectedOrgIds(data?.map(d => d.organizationId) || []);
-    setIsAssignDialogOpen(true);
-  };
-
-  const assignAiToOrganizations = async () => {
-    try {
-      // Remove all existing assignments
-      await supabase
-        .from('OrganizationAiConnection')
-        .delete()
-        .eq('globalAiConnectionId', selectedAiId);
-
-      // Add new assignments
-      const inserts = selectedOrgIds.map(orgId => ({
-        organizationId: orgId,
-        globalAiConnectionId: selectedAiId,
-        isDefault: false,
-      }));
-
-      if (inserts.length > 0) {
-        const { error } = await supabase
-          .from('OrganizationAiConnection')
-          .insert(inserts);
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: '✅ IA atribuída!',
-        description: `IA atribuída para ${selectedOrgIds.length} organizações.`,
-      });
-
-      setIsAssignDialogOpen(false);
-      setSelectedOrgIds([]);
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao atribuir IA',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
   const openPromptDialog = (ai: GlobalAiConnection) => {
     setSelectedAi(ai);
@@ -331,13 +260,6 @@ export default function GlobalAiPage() {
     }
   };
 
-  const toggleOrgSelection = (orgId: string) => {
-    setSelectedOrgIds(prev =>
-      prev.includes(orgId)
-        ? prev.filter(id => id !== orgId)
-        : [...prev, orgId]
-    );
-  };
 
   const getProviderBadge = (provider: string) => {
     const colors: Record<string, string> = {
@@ -585,14 +507,6 @@ export default function GlobalAiPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => openAssignDialog(ai.id)}
-                    >
-                      <Link2 className="h-4 w-4 mr-2" />
-                      Atribuir
-                    </Button>
-                    <Button
-                      size="sm"
                       variant={ai.isActive ? 'outline' : 'default'}
                       onClick={() => toggleAiStatus(ai.id, ai.isActive)}
                     >
@@ -655,47 +569,6 @@ export default function GlobalAiPage() {
           )}
         </div>
 
-        {/* Assignment Dialog */}
-      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Atribuir IA para Organizações</DialogTitle>
-            <DialogDescription>
-              Selecione as organizações que terão acesso a esta IA
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-[400px] overflow-y-auto">
-            {organizations.map((org) => (
-              <div
-                key={org.id}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer"
-                onClick={() => toggleOrgSelection(org.id)}
-              >
-                <div
-                  className={`w-5 h-5 border-2 rounded flex items-center justify-center ${
-                    selectedOrgIds.includes(org.id)
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300'
-                  }`}
-                >
-                  {selectedOrgIds.includes(org.id) && (
-                    <Check className="h-3 w-3 text-white" />
-                  )}
-                </div>
-                <span className="font-medium">{org.name}</span>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={assignAiToOrganizations}>
-              Atribuir para {selectedOrgIds.length} organizações
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Prompt Configuration Dialog */}
       <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
