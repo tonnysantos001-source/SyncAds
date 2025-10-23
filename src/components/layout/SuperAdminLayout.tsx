@@ -101,13 +101,13 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
-          <div className="flex h-full flex-col bg-white/80 backdrop-blur-xl border-r border-gray-200">
+          <div className="flex h-full flex-col bg-gray-900 backdrop-blur-xl border-r border-gray-700">
             {/* Logo */}
-            <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6">
+            <div className="flex h-16 items-center gap-2 border-b border-gray-700 px-6">
               <Logo />
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900">SyncAds</span>
-                <span className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                <span className="text-sm font-semibold text-white">SyncAds</span>
+                <span className="text-xs text-purple-400 font-medium flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Super Admin
                 </span>
@@ -136,11 +136,11 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                       isActive
                         ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-gray-300 hover:bg-gray-700/50'
                     }`}
                   >
                     <Icon className={`h-5 w-5 ${
-                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600'
+                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-400'
                     }`} />
                     <span className="font-medium">{item.label}</span>
                   </Link>
@@ -149,12 +149,12 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
             </nav>
 
             {/* Admin Badge */}
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-200">
-                <Shield className="h-4 w-4 text-blue-600" />
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
+                <Shield className="h-4 w-4 text-blue-400" />
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-900">Área Restrita</p>
-                  <p className="text-xs text-gray-500">Acesso total ao sistema</p>
+                  <p className="text-xs font-medium text-white">Área Restrita</p>
+                  <p className="text-xs text-gray-400">Acesso total ao sistema</p>
                 </div>
               </div>
             </div>

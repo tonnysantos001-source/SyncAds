@@ -47,31 +47,37 @@ export default function AdminChatPage() {
           return;
         }
 
-        // Buscar conversa admin existente
-        const { data: existingConv } = await supabase
+        // Buscar conversa admin mais recente (independente do título)
+        const { data: conversations } = await supabase
           .from('ChatConversation')
           .select('*')
           .eq('userId', user.id)
-          .eq('title', '🛡️ Admin Chat')
-          .single();
+          .order('createdAt', { ascending: false })
+          .limit(1);
+        
+        const existingConv = conversations?.[0];
 
         if (existingConv) {
           setConversationId(existingConv.id);
           
-          // Carregar mensagens
+          // Carregar últimas 50 mensagens para contexto
           const { data: msgs } = await supabase
             .from('ChatMessage')
             .select('id, role, content, createdAt, userId')
             .eq('conversationId', existingConv.id)
-            .order('createdAt', { ascending: true });
+            .order('createdAt', { ascending: false })
+            .limit(50);
 
-          if (msgs) {
-            setMessages(msgs.map(m => ({
+          if (msgs && msgs.length > 0) {
+            // Reverter ordem (mais antigas primeiro)
+            setMessages(msgs.reverse().map(m => ({
               id: m.id,
               role: m.role as 'user' | 'assistant' | 'system',
               content: m.content,
               timestamp: new Date(m.createdAt)
             })));
+            
+            console.log(`✅ ${msgs.length} mensagens carregadas do histórico`);
           }
         } else {
           // Criar nova conversa admin
