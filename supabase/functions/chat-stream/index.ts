@@ -324,11 +324,15 @@ serve(async (req) => {
       .order('createdAt', { ascending: true })
       .limit(20)
 
-    // Construir histórico para contexto
-    const chatHistory = messages?.map(m => ({
-      role: m.role,
-      content: m.content
-    })) || []
+    // Construir histórico para contexto (apenas mensagens válidas)
+    const chatHistory = messages
+      ?.filter(m => m.role && m.content && ['user', 'assistant', 'system'].includes(m.role))
+      .map(m => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: String(m.content)
+      })) || []
+    
+    console.log('Chat history messages:', chatHistory.length)
 
     // ===== EXECUTAR FERRAMENTAS (se necessário) =====
     const toolContext: ToolContext = {
