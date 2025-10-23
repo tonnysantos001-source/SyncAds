@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Send, Shield, Sparkles } from 'lucide-react';
+import { Loader2, Send, Shield, Sparkles, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -150,8 +150,44 @@ export default function AdminChatPage() {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  // Função para criar nova conversa
+  const handleNewConversation = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Criar nova conversa
+      const { data: newConv, error } = await supabase
+        .from('ChatConversation')
+        .insert({
+          userId: user.id,
+          title: `Chat Admin - ${new Date().toLocaleDateString('pt-BR')}`,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Limpar mensagens e atualizar ID
+      setMessages([]);
+      setConversationId(newConv.id);
+      
+      toast({
+        title: '✅ Nova conversa criada!',
+        description: 'Comece um novo chat do zero.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao criar nova conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar nova conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading || !conversationId) return;
 
     const userContent = input.trim();
     setInput('');
@@ -219,10 +255,21 @@ export default function AdminChatPage() {
                 <p className="text-sm text-gray-500">Chat com IA</p>
               </div>
             </div>
-            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Online
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleNewConversation}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Nova Conversa
+              </Button>
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Online
+              </Badge>
+            </div>
           </div>
         </div>
 
