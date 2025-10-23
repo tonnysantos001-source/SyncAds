@@ -374,20 +374,34 @@ serve(async (req) => {
     // Chamar IA com STREAMING
     let aiResponse = ''
     
-    if (aiConfig.provider === 'OPENROUTER') {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // Determinar URL e headers baseado no provider
+    let apiUrl = ''
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${aiConfig.apiKey}`
+    }
+
+    if (aiConfig.provider === 'GROQ') {
+      apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
+    } else if (aiConfig.provider === 'OPENROUTER') {
+      apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
+      headers['HTTP-Referer'] = 'https://syncads.com'
+      headers['X-Title'] = 'SyncAds Admin'
+    } else if (aiConfig.provider === 'OPENAI') {
+      apiUrl = 'https://api.openai.com/v1/chat/completions'
+    } else {
+      throw new Error(`Provider ${aiConfig.provider} not supported`)
+    }
+    
+    if (aiConfig.provider === 'OPENROUTER' || aiConfig.provider === 'GROQ' || aiConfig.provider === 'OPENAI') {
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${aiConfig.apiKey}`,
-          'HTTP-Referer': 'https://syncads.com',
-          'X-Title': 'SyncAds Admin'
-        },
+        headers,
         body: JSON.stringify({
-          model: aiConfig.model || 'openai/gpt-4-turbo',
+          model: aiConfig.model || 'gpt-3.5-turbo',
           messages: requestMessages,
           temperature: aiConfig.temperature || 0.7,
-          stream: true  // ← ATIVADO!
+          stream: true
         })
       })
 
@@ -426,35 +440,8 @@ serve(async (req) => {
       }
 
       if (!aiResponse) {
-        aiResponse = 'Sem resposta'
+        aiResponse = 'Sem resposta da IA'
       }
-    } 
-    else if (aiConfig.provider === 'OPENAI') {
-      const baseUrl = aiConfig.baseUrl || 'https://api.openai.com/v1'
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${aiConfig.apiKey}`
-        },
-        body: JSON.stringify({
-          model: aiConfig.model || 'gpt-3.5-turbo',
-          messages: requestMessages,
-          temperature: aiConfig.temperature || 0.7,
-          stream: false
-        })
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`OpenAI API Error: ${errorText.substring(0, 200)}`)
-      }
-
-      const data = await response.json()
-      aiResponse = data.choices[0]?.message?.content || 'Sem resposta'
-    }
-    else {
-      throw new Error(`Provider ${aiConfig.provider} not supported yet`)
     }
 
     // Salvar mensagens no banco
