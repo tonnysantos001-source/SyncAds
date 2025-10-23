@@ -473,8 +473,8 @@ serve(async (req) => {
     const { data: savedMessages, error: insertError } = await supabase
       .from('ChatMessage')
       .insert([
-        { conversationId, role: 'user', content: message, userId: user.id },
-        { conversationId, role: 'assistant', content: aiResponse, userId: user.id }
+        { conversationId, role: 'USER', content: message, userId: user.id },
+        { conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
       ])
       .select()
 

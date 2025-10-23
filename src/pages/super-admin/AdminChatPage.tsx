@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'USER' | 'ASSISTANT' | 'SYSTEM';
   content: string;
   timestamp: Date;
   metadata?: {
@@ -220,7 +220,7 @@ export default function AdminChatPage() {
       // Adicionar mensagem do usuário ao estado local (UI imediata)
       const tempUserMessage: Message = {
         id: `temp-${Date.now()}`,
-        role: 'user',
+        role: 'USER',
         content: userContent,
         timestamp: new Date(),
       };
@@ -232,7 +232,7 @@ export default function AdminChatPage() {
       // Adicionar resposta ao estado local
       const assistantMessage: Message = {
         id: `temp-${Date.now() + 1}`,
-        role: 'assistant',
+        role: 'ASSISTANT',
         content: response,
         timestamp: new Date(),
       };
@@ -244,7 +244,7 @@ export default function AdminChatPage() {
       // Mostrar erro visual no chat
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
-        role: 'assistant',
+        role: 'ASSISTANT',
         content: `❌ ERRO DETALHADO:\n\n${error.message}\n\n${error.stack || 'Sem stack trace'}\n\n${JSON.stringify(error, null, 2)}`,
         timestamp: new Date(),
       };
@@ -307,31 +307,31 @@ export default function AdminChatPage() {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.role === 'USER' ? 'justify-end' : 'justify-start'}`}
             >
               <Card className={`max-w-[80%] ${
-                message.role === 'user'
+                message.role === 'USER'
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                  : message.role === 'system'
+                  : message.role === 'SYSTEM'
                   ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
                   : 'bg-white'
               }`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-2">
-                    {message.role === 'assistant' && (
+                    {message.role === 'ASSISTANT' && (
                       <Shield className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
                     )}
-                    {message.role === 'system' && (
+                    {message.role === 'SYSTEM' && (
                       <Sparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                     )}
                     <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
-                      message.role === 'user' ? 'text-white' : 'text-gray-900'
+                      message.role === 'USER' ? 'text-white' : 'text-gray-900'
                     }`}>
                       {message.content}
                     </div>
                   </div>
                   <div className={`text-xs mt-2 ${
-                    message.role === 'user' ? 'text-white/70' : 'text-gray-500'
+                    message.role === 'USER' ? 'text-white/70' : 'text-gray-500'
                   }`}>
                     {message.timestamp.toLocaleTimeString('pt-BR')}
                   </div>
