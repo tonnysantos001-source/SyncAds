@@ -159,9 +159,56 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
   }
 }
 
-// Detector de intenção (simples)
+// Detector de intenção (melhorado com comandos)
 function detectIntent(message: string): { tool: string; params?: any } | null {
-  const lower = message.toLowerCase()
+  const lower = message.toLowerCase().trim()
+
+  // ===== COMANDOS ESPECIAIS (começam com /) =====
+  if (lower.startsWith('/')) {
+    if (lower === '/help' || lower === '/ajuda') {
+      return { tool: 'show_help' }
+    }
+    if (lower === '/stats' || lower === '/analytics') {
+      return { tool: 'get_analytics' }
+    }
+    if (lower === '/relatorio' || lower === '/report') {
+      return { tool: 'full_report' }
+    }
+    if (lower === '/campanhas' || lower === '/campaigns') {
+      return { tool: 'list_campaigns' }
+    }
+    if (lower === '/usuarios' || lower === '/users') {
+      return { tool: 'list_users' }
+    }
+    if (lower === '/produtos' || lower === '/products') {
+      return { tool: 'list_products' }
+    }
+  }
+
+  // ===== DETECÇÃO DE INTENÇÃO NATURAL =====
+  
+  // Ajuda
+  if (lower.includes('ajuda') || lower.includes('comandos') || lower.includes('o que você pode fazer')) {
+    return { tool: 'show_help' }
+  }
+
+  // Relatório
+  if ((lower.includes('relatório') || lower.includes('relatorio') || lower.includes('report')) &&
+      (lower.includes('completo') || lower.includes('geral') || lower.includes('full'))) {
+    return { tool: 'full_report' }
+  }
+
+  // Usuários
+  if ((lower.includes('lista') || lower.includes('mostr') || lower.includes('ver') || lower.includes('quantos')) && 
+      (lower.includes('usuário') || lower.includes('usuario') || lower.includes('user'))) {
+    return { tool: 'list_users' }
+  }
+
+  // Produtos
+  if ((lower.includes('lista') || lower.includes('mostr') || lower.includes('ver') || lower.includes('quantos')) && 
+      (lower.includes('produto') || lower.includes('product') || lower.includes('estoque'))) {
+    return { tool: 'list_products' }
+  }
 
   // Geração de imagens
   if ((lower.includes('ger') || lower.includes('cri') || lower.includes('faça') || lower.includes('faz')) && 
@@ -171,7 +218,7 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
 
   // Web search
   if (lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || 
-      lower.includes('google') || lower.includes('internet')) {
+      lower.includes('google') || lower.includes('internet') || lower.startsWith('buscar')) {
     return { tool: 'web_search', params: message }
   }
 
@@ -205,7 +252,8 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
   // Analytics
   if (lower.includes('analytic') || lower.includes('métricas') || 
       lower.includes('estatística') || lower.includes('resumo') || 
-      (lower.includes('como') && lower.includes('está'))) {
+      (lower.includes('como') && lower.includes('está')) ||
+      lower.includes('performance')) {
     return { tool: 'get_analytics' }
   }
 
@@ -217,6 +265,147 @@ async function generateImage(ctx: ToolContext, params: { prompt: string }): Prom
   return `⚠️ **Geração de imagens temporariamente desabilitada**\n\n` +
          `Esta funcionalidade será habilitada em breve após configuração do DALL-E.\n` +
          `Por enquanto, você pode usar o chat normalmente para outras tarefas.`
+}
+
+// 6. Listar Usuários
+async function listUsers(ctx: ToolContext): Promise<string> {
+  try {
+    const { data, error } = await ctx.supabase
+      .from('User')
+      .select('id, email, name, role, isActive, createdAt')
+      .eq('organizationId', ctx.organizationId)
+      .order('createdAt', { ascending: false })
+      .limit(20)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return 'Nenhum usuário encontrado.'
+    }
+
+    const total = data.length
+    const active = data.filter((u: any) => u.isActive).length
+
+    return `👥 **USUÁRIOS** (${total} total, ${active} ativos)\n\n` +
+      data.slice(0, 10).map((u: any, i: number) => 
+        `${i + 1}. **${u.name || u.email}**\n` +
+        `   • Email: ${u.email}\n` +
+        `   • Role: ${u.role}\n` +
+        `   • Status: ${u.isActive ? '✅ Ativo' : '❌ Inativo'}\n` +
+        `   • Cadastro: ${new Date(u.createdAt).toLocaleDateString('pt-BR')}`
+      ).join('\n\n')
+  } catch (error: any) {
+    return `Erro ao listar usuários: ${error.message}`
+  }
+}
+
+// 7. Listar Produtos
+async function listProducts(ctx: ToolContext): Promise<string> {
+  try {
+    const { data, error } = await ctx.supabase
+      .from('Product')
+      .select('id, name, price, stock, isActive')
+      .eq('organizationId', ctx.organizationId)
+      .order('createdAt', { ascending: false })
+      .limit(15)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return 'Nenhum produto encontrado.'
+    }
+
+    return `🛍️ **PRODUTOS** (${data.length} total)\n\n` +
+      data.map((p: any, i: number) => 
+        `${i + 1}. **${p.name}**\n` +
+        `   • Preço: R$ ${p.price || 0}\n` +
+        `   • Estoque: ${p.stock || 0} unidades\n` +
+        `   • Status: ${p.isActive ? '✅ Ativo' : '❌ Inativo'}`
+      ).join('\n\n')
+  } catch (error: any) {
+    return `Erro ao listar produtos: ${error.message}`
+  }
+}
+
+// 8. Relatório Completo
+async function generateFullReport(ctx: ToolContext): Promise<string> {
+  try {
+    // Campanhas
+    const { data: campaigns } = await ctx.supabase
+      .from('Campaign')
+      .select('status, budget')
+      .eq('organizationId', ctx.organizationId)
+
+    const totalCampaigns = campaigns?.length || 0
+    const activeCampaigns = campaigns?.filter((c: any) => c.status === 'ACTIVE').length || 0
+    const totalBudget = campaigns?.reduce((sum: number, c: any) => sum + (c.budget || 0), 0) || 0
+
+    // Usuários
+    const { data: users } = await ctx.supabase
+      .from('User')
+      .select('isActive')
+      .eq('organizationId', ctx.organizationId)
+
+    const totalUsers = users?.length || 0
+    const activeUsers = users?.filter((u: any) => u.isActive).length || 0
+
+    // Produtos
+    const { data: products } = await ctx.supabase
+      .from('Product')
+      .select('stock')
+      .eq('organizationId', ctx.organizationId)
+
+    const totalProducts = products?.length || 0
+    const totalStock = products?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0
+
+    // Chat usage
+    const { data: messages } = await ctx.supabase
+      .from('ChatMessage')
+      .select('id')
+      .gte('createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+    const messagesLast30Days = messages?.length || 0
+
+    return `📊 **RELATÓRIO COMPLETO DA ORGANIZAÇÃO**\n\n` +
+      `**📢 CAMPANHAS**\n` +
+      `• Total: ${totalCampaigns}\n` +
+      `• Ativas: ${activeCampaigns}\n` +
+      `• Budget Total: R$ ${totalBudget.toFixed(2)}\n\n` +
+      `**👥 USUÁRIOS**\n` +
+      `• Total: ${totalUsers}\n` +
+      `• Ativos: ${activeUsers}\n` +
+      `• Taxa de ativação: ${totalUsers > 0 ? ((activeUsers/totalUsers)*100).toFixed(1) : 0}%\n\n` +
+      `**🛍️ PRODUTOS**\n` +
+      `• Total: ${totalProducts}\n` +
+      `• Estoque Total: ${totalStock} unidades\n\n` +
+      `**💬 USO DO CHAT**\n` +
+      `• Mensagens (30 dias): ${messagesLast30Days}\n` +
+      `• Média diária: ${(messagesLast30Days / 30).toFixed(1)} mensagens\n\n` +
+      `📅 Gerado em: ${new Date().toLocaleString('pt-BR')}`
+  } catch (error: any) {
+    return `Erro ao gerar relatório: ${error.message}`
+  }
+}
+
+// 9. Ajuda (Lista de comandos)
+function showHelp(): string {
+  return `📚 **COMANDOS DISPONÍVEIS**\n\n` +
+    `**🔍 Informações:**\n` +
+    `• /stats ou /analytics - Estatísticas gerais\n` +
+    `• /relatorio - Relatório completo\n` +
+    `• /campanhas - Listar campanhas\n` +
+    `• /usuarios - Listar usuários\n` +
+    `• /produtos - Listar produtos\n\n` +
+    `**🛠️ Ações:**\n` +
+    `• "criar campanha [nome]" - Criar nova campanha\n` +
+    `• "buscar [termo]" - Buscar na web\n\n` +
+    `**💡 Dicas:**\n` +
+    `• Você pode fazer perguntas naturalmente!\n` +
+    `• Exemplo: "Quantos usuários temos?"\n` +
+    `• Exemplo: "Como está a performance?"\n` +
+    `• Exemplo: "Pesquise sobre marketing digital"\n\n` +
+    `**ℹ️ Mais informações:**\n` +
+    `• /ajuda ou /help - Mostrar esta mensagem`
 }
 
 serve(async (req) => {
@@ -363,20 +552,40 @@ serve(async (req) => {
         case 'get_analytics':
           toolResult = await getAnalytics(toolContext)
           break
+        case 'list_users':
+          toolResult = await listUsers(toolContext)
+          break
+        case 'list_products':
+          toolResult = await listProducts(toolContext)
+          break
+        case 'full_report':
+          toolResult = await generateFullReport(toolContext)
+          break
+        case 'show_help':
+          toolResult = showHelp()
+          break
       }
 
       console.log('Tool result:', toolResult.substring(0, 100))
     }
 
     // Preparar request para IA
-    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente útil.') + '\n\n' +
-      'FERRAMENTAS DISPONÍVEIS:\n' +
-      '- Gerar imagens (quando pedir para gerar/criar imagem/foto/banner)\n' +
-      '- Buscar na web (quando usuário pedir para pesquisar)\n' +
-      '- Listar campanhas (quando pedir para ver campanhas)\n' +
-      '- Criar campanhas (quando pedir para criar)\n' +
-      '- Ver analytics (quando pedir métricas/resumo)\n\n' +
-      'Se uma ferramenta foi executada, use o resultado fornecido para responder de forma natural e útil.'
+    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente útil para gestão de marketing e campanhas.') + '\n\n' +
+      '🛠️ FERRAMENTAS DISPONÍVEIS:\n' +
+      '• /help ou /ajuda - Lista de comandos\n' +
+      '• /stats ou /analytics - Estatísticas gerais\n' +
+      '• /relatorio - Relatório completo\n' +
+      '• /campanhas - Listar campanhas\n' +
+      '• /usuarios - Listar usuários\n' +
+      '• /produtos - Listar produtos\n' +
+      '• Buscar na web - Pesquisar informações atualizadas\n' +
+      '• Criar campanhas - Criar novas campanhas publicitárias\n' +
+      '• Análises - Métricas e performance\n\n' +
+      '💡 DICAS:\n' +
+      '- Você pode detectar intenções naturalmente (ex: "quantos usuários temos?")\n' +
+      '- Quando uma ferramenta é executada, use o resultado para responder de forma clara e útil\n' +
+      '- Seja conciso mas informativo\n' +
+      '- Use emojis quando apropriado para melhor visualização'
     
     const requestMessages = [
       { role: 'system', content: systemPrompt },
