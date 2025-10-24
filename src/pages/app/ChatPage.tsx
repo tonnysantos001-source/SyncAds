@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Paperclip, Send, User, Bot, PanelLeftClose, PanelLeftOpen, Trash2, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus, Sparkles, Loader2 } from 'lucide-react';
 import Textarea from 'react-textarea-autosize';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
@@ -484,77 +485,13 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleDeleteConversation = (id: string) => {
-    deleteConversation(id);
-    toast({
-        title: "Conversa Apagada",
-        description: "A conversa foi removida do seu histórico.",
-        variant: "destructive",
-    });
-  };
-
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus } from 'lucide-react';
-import Textarea from 'react-textarea-autosize';
-import { useAuthStore } from '@/store/authStore';
-import { useChatStore } from '@/store/chatStore';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/components/ui/use-toast';
-import { sendSecureMessage } from '@/lib/api/chat';
-import { supabase } from '@/lib/supabase';
-
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const quickSuggestions = [
-  "Criar campanha de Facebook Ads",
-  "Analisar performance da última semana",
-  "Sugerir otimizações"
-];
-
-const MAX_CHARS = 500;
-
-const ChatPage: React.FC = () => {
-  const [input, setInput] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [globalAiConfig, setGlobalAiConfig] = useState<{
-    systemPrompt: string;
-    initialGreetings: string[];
-  } | null>(null);
-
-  // Auth store
-  const user = useAuthStore((state) => state.user);
-
-  // Chat store
-  const conversations = useChatStore((state) => state.conversations);
-  const activeConversationId = useChatStore((state) => state.activeConversationId);
-  const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
-  const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
-  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
-  const addMessage = useChatStore((state) => state.addMessage);
-  const deleteConversation = useChatStore((state) => state.deleteConversation);
-  const createNewConversation = useChatStore((state) => state.createNewConversation);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
 
-  // Carregar lista de conversas (estilo AdminChatPage)
+  // Carregar lista de conversas
   const loadConversations = async () => {
     try {
       if (!user) return;
@@ -568,20 +505,7 @@ const ChatPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Atualizar store com conversas do banco (se necessário)
-      const existingIds = conversations.map(c => c.id);
-      const newConversations = (data || []).filter((conv: any) => !existingIds.includes(conv.id));
-
-      if (newConversations.length > 0) {
-        // Adicionar ao store
-        newConversations.forEach((conv: any) => {
-          useChatStore.getState().addConversation({
-            id: conv.id,
-            title: conv.title,
-            messages: []
-          });
-        });
-      }
+      console.log(`✅ ${data?.length || 0} conversas carregadas`);
     } catch (error) {
       console.error('Erro ao carregar conversas:', error);
     }
@@ -621,169 +545,192 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  // Delete de conversa (estilo AdminChatPage)
-  const handleDeleteConversation = async (id: string) => {
+
+  // Inicializar: criar nova conversa E carregar lista (igual AdminChatPage)
+  useEffect(() => {
+    const initConversation = async () => {
+      try {
+        if (!user) {
+          console.error('Usuário não autenticado');
+          toast({
+            title: 'Erro de autenticação',
+            description: 'Você precisa fazer login novamente.',
+            variant: 'destructive',
+          });
+          window.location.href = '/login';
+          return;
+        }
+
+        // Buscar organizationId
+        const { data: userData } = await supabase
+          .from('User')
+          .select('organizationId')
+          .eq('id', user.id)
+          .single();
+
+        if (!userData?.organizationId) {
+          throw new Error('Usuário sem organização');
+        }
+
+        // Criar nova conversa automaticamente
+        const newId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const { error } = await supabase
+          .from('ChatConversation')
+          .insert({
+            id: newId,
+            userId: user.id,
+            organizationId: userData.organizationId,
+            title: '🆕 Nova Conversa',
+            createdAt: now,
+            updatedAt: now
+          });
+
+        if (error) {
+          console.error('Erro ao criar conversa:', error);
+          return;
+        }
+
+        setActiveConversationId(newId);
+        console.log('✅ Nova conversa criada:', newId);
+
+        // Carregar lista de conversas antigas
+        await loadConversations();
+      } catch (error) {
+        console.error('Erro ao inicializar conversa:', error);
+      }
+    };
+
+    initConversation();
+  }, []);
+
+  // Criar nova conversa
+  const handleNewConversation = async () => {
     try {
-      // Deletar mensagens primeiro
-      await supabase
-        .from('ChatMessage')
-        .delete()
-        .eq('conversationId', id);
+      if (!user) return;
 
-      // Deletar conversa
-      await supabase
+      // Buscar organizationId do usuário
+      const { data: userData } = await supabase
+        .from('User')
+        .select('organizationId')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData?.organizationId) {
+        throw new Error('Usuário sem organização');
+      }
+
+      // Criar nova conversa
+      const newId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const { error } = await supabase
         .from('ChatConversation')
-        .delete()
-        .eq('id', id);
+        .insert({
+          id: newId,
+          userId: user.id,
+          organizationId: userData.organizationId,
+          title: '🆕 Nova Conversa',
+          createdAt: now,
+          updatedAt: now
+        });
 
-      // Atualizar store
-      deleteConversation(id);
+      if (error) throw error;
 
+      // Atualizar ID ativo
+      setActiveConversationId(newId);
+      
+      // Recarregar lista de conversas
+      await loadConversations();
+      
       toast({
-        title: '✅ Conversa deletada!',
-        description: 'Conversa removida com sucesso.',
+        title: '✅ Nova conversa criada!',
+        description: 'Comece um novo chat do zero.',
       });
     } catch (error: any) {
-      console.error('Erro ao deletar conversa:', error);
+      console.error('Erro ao criar nova conversa:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível deletar conversa.',
+        description: error.message || 'Não foi possível criar nova conversa.',
         variant: 'destructive',
       });
     }
   };
 
-  // Carregar configuração da IA Global e conversas
-  useEffect(() => {
-    const loadData = async () => {
-      await loadConversations();
-
-      if (!user?.organizationId) return;
-
-      try {
-        // Buscar IA ativa atribuída à organização
-        const { data: orgAiConnection, error: orgError } = await supabase
-          .from('OrganizationAiConnection')
-          .select('globalAiConnectionId')
-          .eq('organizationId', user.organizationId)
-          .eq('isDefault', true)
-          .single();
-
-        if (orgError && orgError.code !== 'PGRST116') {
-          console.error('Erro ao buscar IA da organização:', orgError);
-          return;
-        }
-
-        let globalAiId = orgAiConnection?.globalAiConnectionId;
-
-        // Se não encontrou uma padrão, busca qualquer uma ativa
-        if (!globalAiId) {
-          const { data: anyOrgAi } = await supabase
-            .from('OrganizationAiConnection')
-            .select('globalAiConnectionId')
-            .eq('organizationId', user.organizationId)
-            .limit(1)
-            .single();
-
-          globalAiId = anyOrgAi?.globalAiConnectionId;
-        }
-
-        // Se ainda não encontrou, busca qualquer IA global ativa
-        if (!globalAiId) {
-          const { data: anyGlobalAi } = await supabase
-            .from('GlobalAiConnection')
-            .select('id')
-            .eq('isActive', true)
-            .limit(1)
-            .single();
-
-          globalAiId = anyGlobalAi?.id;
-        }
-
-        if (globalAiId) {
-          // Buscar configuração da IA
-          const { data: aiConfig, error: aiError } = await supabase
-            .from('GlobalAiConnection')
-            .select('systemPrompt, initialGreetings')
-            .eq('id', globalAiId)
-            .single();
-
-          if (aiError) {
-            console.error('Erro ao buscar config da IA:', aiError);
-            return;
-          }
-
-          if (aiConfig) {
-            setGlobalAiConfig({
-              systemPrompt: aiConfig.systemPrompt || '',
-              initialGreetings: aiConfig.initialGreetings || [],
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao carregar IA Global:', error);
-      }
-    };
-
-    loadData();
-  }, [user?.organizationId]);
-
   const handleSend = async () => {
-    if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) {
+    if (!input.trim() || !activeConversationId) {
       console.log('Botão desabilitado:', {
         inputTrim: !input.trim(),
-        activeConversationId: !!activeConversationId,
-        inputLength: input.length
+        activeConversationId: !!activeConversationId
       });
       return;
     }
 
-    const userMessage = input;
-    if (user) {
-      addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
-    }
+    console.log('Enviando mensagem:', input.trim());
+    const userContent = input.trim();
     setInput('');
-
     setAssistantTyping(true);
 
     try {
-      // Preparar histórico de mensagens para contexto
-      const conversation = conversations.find((c: any) => c.id === activeConversationId);
+      if (!activeConversationId) {
+        throw new Error('Conversa não inicializada');
+      }
 
-      // Usar systemPrompt da IA Global se disponível
-      const customPrompt = globalAiConfig?.systemPrompt || 'Você é um assistente útil para gestão de campanhas publicitárias.';
-
-      const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
-      // Chamar Edge Function segura (protege API keys)
-      const result = await sendSecureMessage(userMessage, conversationHistory, customPrompt);
-      const response = result.response;
-
-      // Adicionar resposta da IA
+      // Adicionar mensagem do usuário localmente (UI imediata)
       if (user) {
         addMessage(user.id, activeConversationId, {
-          id: `msg-${Date.now() + 1}`,
-          role: 'assistant',
-          content: response
+          id: `temp-${Date.now()}`,
+          role: 'user',
+          content: userContent
         });
       }
+
+      // Chamar Edge Function chat-stream (que cuida de tudo: salvar, IA, etc)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          message: userContent,
+          conversationId: activeConversationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao processar mensagem');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.response || 'Sem resposta';
+
+      // Adicionar resposta da IA localmente
+      if (user) {
+        addMessage(user.id, activeConversationId, {
+          id: `temp-${Date.now() + 1}`,
+          role: 'assistant',
+          content: aiResponse
+        });
+      }
+
     } catch (error: any) {
-      console.error('Erro ao chamar IA:', error);
+      console.error('ERRO:', error);
       toast({
-        title: 'Erro ao gerar resposta',
-        description: error.message || 'Não foi possível obter resposta da IA. Verifique sua chave de API.',
+        title: 'Erro ao processar',
+        description: error.message,
         variant: 'destructive',
       });
 
-      // Adicionar mensagem de erro no chat
-      if (user) {
+      // Mensagem de erro visual
+      if (user && activeConversationId) {
         addMessage(user.id, activeConversationId, {
-          id: `msg-${Date.now() + 1}`,
+          id: `error-${Date.now()}`,
           role: 'assistant',
-          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.'
+          content: `❌ Erro: ${error.message}`
         });
       }
     } finally {
@@ -831,13 +778,7 @@ const ChatPage: React.FC = () => {
             </Button>
           </div>
           <Button
-            onClick={() => {
-              createNewConversation();
-              toast({
-                title: "Nova conversa criada!",
-                description: "Comece a conversar com a IA.",
-              });
-            }}
+            onClick={handleNewConversation}
             className="w-full gap-2"
             size="sm"
           >
@@ -909,6 +850,10 @@ const ChatPage: React.FC = () => {
                 <p className="text-sm text-gray-500">Assistente inteligente</p>
               </div>
             </div>
+            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Online
+            </Badge>
           </div>
         </div>
 
@@ -917,32 +862,42 @@ const ChatPage: React.FC = () => {
           {activeConversation ? (
             <>
               {activeConversation.messages.map((message: any) => (
-                <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
-                  {message.role === 'assistant' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback><Bot size={18} /></AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={`rounded-2xl p-3 max-w-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                  {message.role === 'user' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback><User size={18} /></AvatarFallback>
-                    </Avatar>
-                  )}
+                <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <Card className={`max-w-[80%] ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                      : 'bg-white'
+                  }`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-2">
+                        {message.role === 'assistant' && (
+                          <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                        )}
+                        <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
+                          message.role === 'user' ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {message.content}
+                        </div>
+                      </div>
+                      <div className={`text-xs mt-2 ${
+                        message.role === 'user' ? 'text-white/70' : 'text-gray-500'
+                      }`}>
+                        {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR') : ''}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
               {isAssistantTyping && (
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback><Bot size={18} /></AvatarFallback>
-                  </Avatar>
-                  <div className="rounded-2xl p-3 bg-muted flex items-center space-x-1">
-                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="h-2 w-2 bg-foreground rounded-full animate-bounce"></span>
-                  </div>
+                <div className="flex justify-start">
+                  <Card className="bg-white">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-gray-500">Processando...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
               <div ref={messagesEndRef} />
