@@ -187,6 +187,34 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
 
   // ===== DETECÇÃO DE INTENÇÃO NATURAL =====
   
+  // Conexão de Integrações (NOVO!)
+  if ((lower.includes('conect') || lower.includes('integr') || lower.includes('vincul') || lower.includes('link')) &&
+      (lower.includes('facebook') || lower.includes('meta') || lower.includes('google') || 
+       lower.includes('linkedin') || lower.includes('tiktok') || lower.includes('twitter') ||
+       lower.includes('canva') || lower.includes('instagram'))) {
+    
+    // Detectar qual plataforma
+    const platforms: Record<string, string> = {
+      'facebook': 'Facebook',
+      'meta': 'Meta Ads',
+      'google': 'Google Ads',
+      'linkedin': 'LinkedIn',
+      'tiktok': 'TikTok',
+      'twitter': 'Twitter',
+      'canva': 'Canva',
+      'instagram': 'Instagram'
+    }
+    
+    for (const [key, name] of Object.entries(platforms)) {
+      if (lower.includes(key)) {
+        return { 
+          tool: 'connect_integration',
+          params: { platform: key, platformName: name }
+        }
+      }
+    }
+  }
+  
   // Ajuda
   if (lower.includes('ajuda') || lower.includes('comandos') || lower.includes('o que você pode fazer')) {
     return { tool: 'show_help' }
@@ -521,6 +549,28 @@ serve(async (req) => {
       console.log('Tool detected:', intent.tool)
       
       switch (intent.tool) {
+        case 'connect_integration':
+          // Retornar resposta especial para o frontend mostrar card de conexão
+          const aiResponse = `🔗 **INTEGRATION_CONNECT:${intent.params.platform}:${intent.params.platformName}** 🔗\n\n` +
+            `Vou te ajudar a conectar sua conta do ${intent.params.platformName}. ` +
+            `Isso vai permitir que você gerencie suas campanhas e anúncios diretamente por aqui!`
+          
+          // Salvar mensagens e retornar imediatamente (sem chamar IA)
+          const userMsgId = crypto.randomUUID()
+          const assistantMsgId = crypto.randomUUID()
+          
+          await supabase
+            .from('ChatMessage')
+            .insert([
+              { id: userMsgId, conversationId, role: 'USER', content: message, userId: user.id },
+              { id: assistantMsgId, conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
+            ])
+          
+          return new Response(
+            JSON.stringify({ response: aiResponse }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+          
         case 'generate_image':
           toolResult = await generateImage(toolContext, intent.params)
           break

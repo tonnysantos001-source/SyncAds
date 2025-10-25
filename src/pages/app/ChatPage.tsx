@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { sendSecureMessage } from '@/lib/api/chat';
 import { supabase } from '@/lib/supabase';
 import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
+import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
 import { 
   AdminTools, 
   adminSystemPrompt, 
@@ -747,33 +748,76 @@ const ChatPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {activeConversation ? (
             <>
-              {activeConversation.messages.map((message: any) => (
-                <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <Card className={`max-w-[80%] ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                      : 'bg-white'
-                  }`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-2">
-                        {message.role === 'assistant' && (
-                          <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
-                        )}
-                        <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
-                          message.role === 'user' ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {message.content}
+              {activeConversation.messages.map((message: any) => {
+                // Detectar se é pedido de conexão de integração
+                const integrationMatch = message.content?.match(/INTEGRATION_CONNECT:(\w+):([^🔗]+)/);
+                
+                if (integrationMatch && message.role === 'assistant') {
+                  const [, platform, platformName] = integrationMatch;
+                  const cleanContent = message.content.replace(/🔗 \*\*INTEGRATION_CONNECT:[^🔗]+🔗\*\* 🔗\n\n/, '');
+                  
+                  return (
+                    <div key={message.id} className="flex justify-start">
+                      <div className="max-w-[80%]">
+                        {/* Mensagem da IA */}
+                        <Card className="bg-white mb-2">
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-2">
+                              <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                              <div className="flex-1 whitespace-pre-wrap break-words text-sm text-gray-900">
+                                {cleanContent}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Card de Conexão */}
+                        <IntegrationConnectionCard
+                          platform={platform}
+                          platformName={platformName.trim()}
+                          onSkip={() => {
+                            // Usuário pulou a conexão
+                            console.log('Conexão pulada:', platform);
+                          }}
+                          onSuccess={() => {
+                            // Conexão bem-sucedida
+                            console.log('Conectado com sucesso:', platform);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Renderização normal de mensagem
+                return (
+                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <Card className={`max-w-[80%] ${
+                      message.role === 'user'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                        : 'bg-white'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-2">
+                          {message.role === 'assistant' && (
+                            <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                          )}
+                          <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
+                            message.role === 'user' ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {message.content}
+                          </div>
                         </div>
-                      </div>
-                      <div className={`text-xs mt-2 ${
-                        message.role === 'user' ? 'text-white/70' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR') : ''}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
+                        <div className={`text-xs mt-2 ${
+                          message.role === 'user' ? 'text-white/70' : 'text-gray-500'
+                        }`}>
+                          {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR') : ''}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })}
               {isAssistantTyping && (
                 <div className="flex justify-start">
                   <Card className="bg-white">
