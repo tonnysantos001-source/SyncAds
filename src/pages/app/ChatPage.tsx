@@ -98,50 +98,26 @@ const ChatPage: React.FC = () => {
 
   useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
 
-  // Carregar configuração da IA Global atribuída à organização
+  // Carregar configuração da IA Global (sem organizações)
   useEffect(() => {
     const loadGlobalAiConfig = async () => {
-      if (!user?.organizationId) return;
+      if (!user) return;
 
       try {
-        // Buscar IA ativa atribuída à organização
-        const { data: orgAiConnection, error: orgError } = await supabase
-          .from('OrganizationAiConnection')
-          .select('globalAiConnectionId')
-          .eq('organizationId', user.organizationId)
-          .eq('isDefault', true)
+        // Buscar QUALQUER IA global ativa (sistema simplificado)
+        const { data: globalAi, error: aiError } = await supabase
+          .from('GlobalAiConnection')
+          .select('id, systemPrompt, initialGreetings')
+          .eq('isActive', true)
+          .limit(1)
           .single();
 
-        if (orgError && orgError.code !== 'PGRST116') {
-          console.error('Erro ao buscar IA da organização:', orgError);
+        if (aiError) {
+          console.error('Erro ao buscar IA:', aiError);
           return;
         }
 
-        let globalAiId = orgAiConnection?.globalAiConnectionId;
-
-        // Se não encontrou uma padrão, busca qualquer uma ativa
-        if (!globalAiId) {
-          const { data: anyOrgAi } = await supabase
-            .from('OrganizationAiConnection')
-            .select('globalAiConnectionId')
-            .eq('organizationId', user.organizationId)
-            .limit(1)
-            .single();
-          
-          globalAiId = anyOrgAi?.globalAiConnectionId;
-        }
-
-        // Se ainda não encontrou, busca qualquer IA global ativa
-        if (!globalAiId) {
-          const { data: anyGlobalAi } = await supabase
-            .from('GlobalAiConnection')
-            .select('id')
-            .eq('isActive', true)
-            .limit(1)
-            .single();
-          
-          globalAiId = anyGlobalAi?.id;
-        }
+        const globalAiId = globalAi?.id;
 
         if (globalAiId) {
           // Buscar configuração da IA

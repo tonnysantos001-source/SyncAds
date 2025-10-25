@@ -118,7 +118,7 @@ export const sendSecureMessage = async (
       throw new Error('No active session');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
