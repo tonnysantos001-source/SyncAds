@@ -742,24 +742,6 @@ const ChatPage: React.FC = () => {
     setInput(suggestion);
   };
 
-  const handleAttachClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      toast({
-        title: "Arquivo Selecionado",
-        description: `O arquivo "${file.name}" está pronto para ser enviado (simulação).`,
-        variant: "info",
-      });
-    }
-    if (event.target) {
-      event.target.value = '';
-    }
-  };
-
   return (
     <div className="h-[calc(100vh-80px)] flex">
       {/* SIDEBAR - Conversas Antigas (Estilo AdminChatPage) */}
