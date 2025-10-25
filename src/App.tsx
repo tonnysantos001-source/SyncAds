@@ -33,6 +33,7 @@ const BillingPage = lazy(() => import('./pages/super-admin/BillingPage'));
 const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
 const GatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
+const OAuthConfigPage = lazy(() => import('./pages/super-admin/OAuthConfigPage'));
 
 // Reports pages
 const ReportsOverviewPage = lazy(() => import('./pages/app/reports/ReportsOverviewPage'));
@@ -134,6 +135,7 @@ function App() {
               <Route path="/super-admin/usage" element={<UsagePage />} />
               <Route path="/super-admin/gateways" element={<GatewaysPage />} />
               <Route path="/super-admin/ai-connections" element={<GlobalAiPage />} />
+              <Route path="/super-admin/oauth-config" element={<OAuthConfigPage />} />
             </Route>
 
             {/* Protected App Routes */}

@@ -22,7 +22,8 @@ import {
   CreditCard,
   Menu,
   X,
-  MessageSquare
+  MessageSquare,
+  Plug
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import Logo from '@/components/Logo';
@@ -66,6 +67,11 @@ const menuItems = [
     label: 'Conexões de IA',
     icon: Bot,
     path: '/super-admin/ai-connections',
+  },
+  {
+    label: 'Integrações OAuth',
+    icon: Plug,
+    path: '/super-admin/oauth-config',
   },
 ];
 
