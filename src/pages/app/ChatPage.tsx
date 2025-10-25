@@ -485,12 +485,6 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
-
   // Carregar lista de conversas
   const loadConversations = async () => {
     try {
