@@ -174,6 +174,9 @@ const ChatPage: React.FC = () => {
     }
     setInput('');
     
+    // Colapsar sidebar ao enviar mensagem (comportamento ChatGPT)
+    setSidebarOpen(false);
+    
     setAssistantTyping(true);
     
     try {
@@ -516,62 +519,27 @@ const ChatPage: React.FC = () => {
   };
 
 
-  // Inicializar: criar nova conversa E carregar lista (igual AdminChatPage)
+  // Carregar conversas existentes ao montar componente
   useEffect(() => {
-    const initConversation = async () => {
-      try {
-        if (!user) {
-          console.error('Usuário não autenticado');
-          toast({
-            title: 'Erro de autenticação',
-            description: 'Você precisa fazer login novamente.',
-            variant: 'destructive',
-          });
-          window.location.href = '/login';
-          return;
-        }
-
-        // Buscar organizationId
-        const { data: userData } = await supabase
-          .from('User')
-          .select('organizationId')
-          .eq('id', user.id)
-          .single();
-
-        if (!userData?.organizationId) {
-          throw new Error('Usuário sem organização');
-        }
-
-        // Criar nova conversa automaticamente
-        const newId = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const { error } = await supabase
-          .from('ChatConversation')
-          .insert({
-            id: newId,
-            userId: user.id,
-            organizationId: userData.organizationId,
-            title: '🆕 Nova Conversa',
-            createdAt: now,
-            updatedAt: now
-          });
-
-        if (error) {
-          console.error('Erro ao criar conversa:', error);
-          return;
-        }
-
-        setActiveConversationId(newId);
-        console.log('✅ Nova conversa criada:', newId);
-
-        // Carregar lista de conversas antigas
-        await loadConversations();
-      } catch (error) {
-        console.error('Erro ao inicializar conversa:', error);
+    const initChat = async () => {
+      if (!user) return;
+      
+      // Carregar lista de conversas
+      await loadConversations();
+      
+      // Se não houver conversas, criar a primeira automaticamente
+      const { data: existingConversations } = await supabase
+        .from('ChatConversation')
+        .select('id')
+        .eq('userId', user.id)
+        .limit(1);
+      
+      if (!existingConversations || existingConversations.length === 0) {
+        await handleNewConversation();
       }
     };
 
-    initConversation();
+    initChat();
   }, []);
 
   // Criar nova conversa
@@ -626,6 +594,45 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  // Deletar conversa
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      // Deletar mensagens primeiro
+      await supabase
+        .from('ChatMessage')
+        .delete()
+        .eq('conversationId', conversationId);
+
+      // Deletar conversa
+      const { error } = await supabase
+        .from('ChatConversation')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      // Se deletou a conversa ativa, limpar
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+      }
+
+      // Recarregar lista
+      await loadConversations();
+
+      toast({
+        title: '🗑️ Conversa deletada',
+        description: 'A conversa foi removida com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao deletar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível deletar a conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-80px)] flex">
       {/* SIDEBAR - Conversas Antigas (Estilo AdminChatPage) */}
@@ -672,8 +679,11 @@ const ChatPage: React.FC = () => {
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {conv.title}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(conv.updatedAt).toLocaleDateString('pt-BR')}
+                {/* Preview da última mensagem (estilo ChatGPT) */}
+                <p className="text-xs text-gray-500 truncate">
+                  {conv.messages && conv.messages.length > 0
+                    ? conv.messages[conv.messages.length - 1].content.substring(0, 50) + '...'
+                    : 'Sem mensagens ainda'}
                 </p>
               </div>
               <Button
