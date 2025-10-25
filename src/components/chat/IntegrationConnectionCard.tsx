@@ -132,27 +132,27 @@ export const IntegrationConnectionCard: React.FC<IntegrationConnectionCardProps>
       )}
 
       {/* Card de Ação */}
-      <Card className="border-2 border-gray-200 bg-gray-50">
-        <CardContent className="p-4">
-          <div className="mb-3">
-            <p className="text-sm text-gray-700">
-              I'll need to connect your {platformName} account to continue.
+      <Card className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="p-5">
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              I'll need to connect your <strong className="text-gray-900">{platformName}</strong> account to continue.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               onClick={() => onSkip?.()}
               variant="ghost"
               disabled={connecting}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all"
             >
               Skip
             </Button>
             <Button
               onClick={handleConnect}
               disabled={connecting}
-              className="bg-gray-900 hover:bg-gray-800 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium shadow-sm hover:shadow transition-all disabled:opacity-60"
             >
               {connecting ? (
                 <>
@@ -160,17 +160,25 @@ export const IntegrationConnectionCard: React.FC<IntegrationConnectionCardProps>
                   Connecting...
                 </>
               ) : (
-                <>Connect {platformName}</>
+                <>
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Connect {platformName}
+                </>
               )}
             </Button>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-100">
             <a
               href="/privacy"
               target="_blank"
-              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              className="text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
               How we handle your data
               <ExternalLink className="h-3 w-3" />
             </a>
