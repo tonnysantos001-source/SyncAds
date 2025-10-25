@@ -574,11 +574,21 @@ const ChatPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Atualizar ID ativo
-      setActiveConversationId(newId);
+      // ADICIONAR IMEDIATAMENTE à lista local (sem esperar reload)
+      const newConversation = {
+        id: newId,
+        userId: user.id,
+        organizationId: userData.organizationId,
+        title: '🆕 Nova Conversa',
+        createdAt: now,
+        updatedAt: now,
+        messages: []  // Nova conversa começa vazia
+      };
+
+      setConversations((prev: any) => [newConversation, ...prev]);
       
-      // Recarregar lista de conversas
-      await loadConversations();
+      // Setar como ativa e limpar mensagens
+      setActiveConversationId(newId);
       
       toast({
         title: '✅ Nova conversa criada!',
