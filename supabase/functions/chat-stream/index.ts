@@ -470,37 +470,21 @@ serve(async (req) => {
       throw new Error('User not associated with an organization')
     }
 
-    // Get organization's AI connection - SIMPLIFIED 2-STEP APPROACH
-    console.log('Fetching AI config for org:', userData.organizationId)
+    // Get AI config - SIMPLIFIED: busca QUALQUER IA ativa (sem dependência de org)
+    console.log('Fetching active AI config...')
     
-    // Step 1: Get OrganizationAiConnection
-    const { data: orgAiConn, error: connError } = await supabase
-      .from('OrganizationAiConnection')
-      .select('globalAiConnectionId, isDefault')
-      .eq('organizationId', userData.organizationId)
-      .eq('isDefault', true)
-      .maybeSingle()
-
-    console.log('OrgAiConnection:', !!orgAiConn, 'Error:', connError?.message)
-
-    if (!orgAiConn) {
-      console.error('No default AI connection for organization')
-      throw new Error('No AI configured')
-    }
-
-    // Step 2: Get GlobalAiConnection separately
     const { data: aiConfig, error: aiError } = await supabase
       .from('GlobalAiConnection')
       .select('id, provider, apiKey, baseUrl, model, temperature, systemPrompt, isActive')
-      .eq('id', orgAiConn.globalAiConnectionId)
       .eq('isActive', true)
-      .single()
+      .limit(1)
+      .maybeSingle()
 
     console.log('GlobalAI found:', !!aiConfig, 'Error:', aiError?.message)
 
     if (!aiConfig) {
-      console.error('No active GlobalAI found')
-      throw new Error('No AI configured')
+      console.error('No active AI found')
+      throw new Error('Nenhuma IA ativa configurada. Contate o administrador.')
     }
 
     console.log('AI Config - Provider:', aiConfig.provider, 'Model:', aiConfig.model)
