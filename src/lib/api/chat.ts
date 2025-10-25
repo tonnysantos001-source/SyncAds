@@ -108,6 +108,7 @@ export const chatApi = {
 // Export sendSecureMessage as a standalone function
 export const sendSecureMessage = async (
   message: string,
+  conversationId: string,
   conversationHistory: Array<{ role: string; content: string }>,
   systemPrompt?: string
 ) => {
@@ -118,6 +119,7 @@ export const sendSecureMessage = async (
       throw new Error('No active session');
     }
 
+    // CRITICAL: Edge Function PRECISA do conversationId!
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
       method: 'POST',
       headers: {
@@ -126,6 +128,7 @@ export const sendSecureMessage = async (
       },
       body: JSON.stringify({
         message,
+        conversationId,  // ← ADICIONADO!
         conversationHistory,
         systemPrompt
       })

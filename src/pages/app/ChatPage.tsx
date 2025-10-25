@@ -192,8 +192,8 @@ const ChatPage: React.FC = () => {
         content: msg.content,
       }));
 
-      // Chamar Edge Function segura (protege API keys)
-      const result = await sendSecureMessage(userMessage, conversationHistory, systemMessage);
+      // Chamar Edge Function segura (protege API keys) - CRITICAL: passar conversationId!
+      const result = await sendSecureMessage(userMessage, activeConversationId, conversationHistory, systemMessage);
       const response = result.response;
 
       // Detectar se a IA quer criar uma campanha
