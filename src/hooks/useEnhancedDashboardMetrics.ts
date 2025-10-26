@@ -62,7 +62,7 @@ export type DashboardMetrics = {
 };
 
 export const useEnhancedDashboardMetrics = () => {
-  const { user } = useStore();
+  const user = useStore((state) => state.user);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalCampaigns: { value: 0, change: '+0%', changeType: 'increase' },
     totalClicks: { value: 0, change: '+0%', changeType: 'increase' },

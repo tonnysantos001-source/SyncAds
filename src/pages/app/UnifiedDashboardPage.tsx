@@ -56,13 +56,15 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, changeTyp
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground flex items-center">
+        <div className="text-3xl font-bold" style={{ color: '#000', fontWeight: 'bold' }}>
+          {value}
+        </div>
+        <p className="text-xs text-muted-foreground flex items-center mt-1">
           <span className={`flex items-center mr-1 ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
             {isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             {change}
           </span>
-          vs. mês passado
+          <span className="ml-1">vs. mês passado</span>
         </p>
       </CardContent>
     </Card>
