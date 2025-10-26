@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DollarSign, ShoppingCart, TrendingUp, Users, Package, CreditCard, Clock, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/authStore';
@@ -17,7 +17,7 @@ interface DashboardData {
   loading: boolean;
 }
 
-const UnifiedDashboardPage: React.FC = () => {
+const NewDashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const [data, setData] = useState<DashboardData>({
     totalRevenue: 0,
@@ -278,4 +278,4 @@ const UnifiedDashboardPage: React.FC = () => {
   );
 };
 
-export default UnifiedDashboardPage;
+export default NewDashboardPage;
