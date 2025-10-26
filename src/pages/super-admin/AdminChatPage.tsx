@@ -200,7 +200,12 @@ export default function AdminChatPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
+      // URL hardcoded para evitar problema de env vars
+      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-stream';
+      
+      console.log('🌐 Calling chat-stream (Admin):', chatUrl);
+      
+      const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
