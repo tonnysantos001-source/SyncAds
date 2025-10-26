@@ -672,8 +672,13 @@ function showHelp(): string {
 }
 
 serve(async (req) => {
-  // Handle CORS
+  console.log('=== INCOMING REQUEST ===')
+  console.log('Method:', req.method)
+  console.log('URL:', req.url)
+  
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight OK')
     return new Response('ok', { headers: corsHeaders })
   }
 

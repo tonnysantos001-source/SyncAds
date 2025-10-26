@@ -120,26 +120,44 @@ export const sendSecureMessage = async (
     }
 
     // CRITICAL: Edge Function PRECISA do conversationId!
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`, {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`;
+    
+    console.log('🌐 Calling chat-stream:', url);
+    console.log('📝 Message:', message?.substring(0, 50));
+    console.log('💬 Conversation ID:', conversationId);
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
       },
       body: JSON.stringify({
         message,
-        conversationId,  // ← ADICIONADO!
+        conversationId,
         conversationHistory,
         systemPrompt
       })
     });
 
+    console.log('📡 Response status:', response.status);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to send message');
+      const errorText = await response.text();
+      console.error('❌ Error response:', errorText);
+      
+      try {
+        const error = JSON.parse(errorText);
+        throw new Error(error.error || error.message || 'Failed to send message');
+      } catch {
+        throw new Error(errorText || 'Failed to send message');
+      }
     }
 
     const data = await response.json();
+    console.log('✅ Response data:', data);
+    
     return {
       response: data.response,
       tokensUsed: data.tokensUsed,
