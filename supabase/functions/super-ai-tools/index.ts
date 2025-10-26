@@ -78,6 +78,9 @@ serve(async (req) => {
       case 'file_downloader':
         result = await executeFileDownloader(parameters, supabaseClient)
         break
+      case 'scrape_products':
+        result = await executeScrapeProducts(parameters, supabaseClient, conversationId)
+        break
       default:
         result = {
           success: false,
@@ -600,4 +603,172 @@ async function executeFileDownloader(params: any, supabase: any): Promise<ToolRe
       steps
     }
   }
+}
+
+// ============================================================================
+// SCRAPE PRODUCTS - Scraping inteligente de produtos
+// ============================================================================
+async function executeScrapeProducts(
+  parameters: any, 
+  supabaseClient: any,
+  conversationId: string
+): Promise<ToolResult> {
+  const steps: any[] = []
+  const { url, format = 'csv' } = parameters
+  
+  try {
+    steps.push({
+      step: 'Iniciando scraping',
+      status: 'running',
+      details: `URL: ${url}`
+    })
+
+    if (!url) {
+      throw new Error('URL não fornecida')
+    }
+
+    // Passo 1: Acessar a página
+    steps.push({
+      step: 'Acessando página web',
+      status: 'running',
+      details: 'Carregando conteúdo'
+    })
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Erro ao acessar página: ${response.status}`)
+    }
+
+    const html = await response.text()
+
+    steps.push({
+      step: 'Página carregada',
+      status: 'completed',
+      details: `${html.length} caracteres recebidos`
+    })
+
+    // Passo 2: Extrair produtos (simplificado)
+    steps.push({
+      step: 'Extraindo produtos',
+      status: 'running',
+      details: 'Analisando HTML'
+    })
+
+    // Extrair informações básicas usando regex (seria melhor usar parser HTML)
+    const products: any[] = []
+    
+    // Procurar por padrões comuns de produtos em e-commerce
+    const productPatterns = [
+      /"name":"([^"]+)"/g,
+      /"title":"([^"]+)"/g,
+      /"price":(\d+\.?\d*)/g,
+      /<h[23][^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)</g,
+      /itemprop="name"[^>]*>([^<]+)</g
+    ]
+
+    for (const pattern of productPatterns) {
+      const matches = html.matchAll(pattern)
+      for (const match of matches) {
+        if (match[1]) {
+          products.push({
+            name: match[1].trim(),
+            extracted: true
+          })
+        }
+      }
+      
+      if (products.length > 0) break
+    }
+
+    steps.push({
+      step: 'Produtos extraídos',
+      status: 'completed',
+      details: `${products.length} produtos encontrados`
+    })
+
+    // Passo 3: Gerar CSV
+    steps.push({
+      step: 'Gerando arquivo CSV',
+      status: 'running',
+      details: 'Criando CSV'
+    })
+
+    const csvContent = generateCSV(products)
+    
+    // Passo 4: Upload para Supabase Storage
+    steps.push({
+      step: 'Fazendo upload para storage',
+      status: 'running',
+      details: 'Enviando para Supabase'
+    })
+
+    const fileName = `produtos_${Date.now()}.csv`
+    const { error: uploadError } = await supabaseClient.storage
+      .from('temp-downloads')
+      .upload(fileName, csvContent, {
+        contentType: 'text/csv'
+      })
+
+    if (uploadError) {
+      throw new Error(`Erro ao fazer upload: ${uploadError.message}`)
+    }
+
+    // Passo 5: Gerar URL assinada
+    const { data: signedUrlData } = await supabaseClient.storage
+      .from('temp-downloads')
+      .createSignedUrl(fileName, 3600) // 1 hora
+
+    steps.push({
+      step: 'Upload concluído',
+      status: 'completed',
+      details: 'Arquivo pronto para download'
+    })
+
+    return {
+      success: true,
+      message: `Scraping concluído com sucesso! ${products.length} produtos extraídos.`,
+      data: {
+        totalProducts: products.length,
+        fileName: fileName,
+        downloadUrl: signedUrlData?.signedUrl,
+        format: format,
+        url: url
+      },
+      steps
+    }
+
+  } catch (error: any) {
+    steps.push({
+      step: 'Erro no scraping',
+      status: 'failed',
+      error: error.message
+    })
+
+    return {
+      success: false,
+      message: `Erro ao fazer scraping: ${error.message}`,
+      steps
+    }
+  }
+}
+
+// Função auxiliar para gerar CSV
+function generateCSV(products: any[]): string {
+  if (products.length === 0) {
+    return 'Nome\nNenhum produto encontrado\n'
+  }
+
+  const headers = ['Nome', 'Extraído']
+  const rows = products.map(p => [
+    `"${p.name}"`,
+    p.extracted ? 'Sim' : 'Não'
+  ])
+
+  return headers.join(',') + '\n' + rows.map(row => row.join(',')).join('\n')
 }
