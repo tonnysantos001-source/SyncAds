@@ -83,20 +83,35 @@ export const useEnhancedDashboardMetrics = () => {
 
     const fetchMetrics = async () => {
       try {
+        console.log('🔍 [Dashboard Metrics] Iniciando carregamento...');
+        console.log('🔍 [Dashboard Metrics] User ID:', user?.id);
+        console.log('🔍 [Dashboard Metrics] User organizationId:', user?.organizationId);
+        
         setMetrics(prev => ({ ...prev, loading: true, error: null }));
 
-        // Buscar usuário e organizationId
-        const { data: userData } = await supabase
-          .from('User')
-          .select('organizationId')
-          .eq('id', user.id)
-          .single();
+        // Usar organizationId do user diretamente se disponível
+        let orgId = user?.organizationId;
+        
+        if (!orgId) {
+          console.error('❌ [Dashboard Metrics] organizationId não encontrado no user');
+          
+          // Tentar buscar do banco
+          const { data: userData } = await supabase
+            .from('User')
+            .select('organizationId')
+            .eq('id', user.id)
+            .single();
 
-        if (!userData?.organizationId) {
-          throw new Error('Organization not found');
+          if (!userData?.organizationId) {
+            console.error('❌ [Dashboard Metrics] organizationId não encontrado no banco também');
+            throw new Error('Organization not found');
+          }
+          
+          console.log('✅ [Dashboard Metrics] organizationId encontrado no banco:', userData.organizationId);
+          orgId = userData.organizationId;
+        } else {
+          console.log('✅ [Dashboard Metrics] Usando organizationId do user:', orgId);
         }
-
-        const orgId = userData.organizationId;
 
         // Buscar dados do mês atual e anterior
         const currentMonth = new Date();
@@ -104,6 +119,8 @@ export const useEnhancedDashboardMetrics = () => {
         const firstDayPreviousMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
         const lastDayPreviousMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
 
+        console.log('🔍 [Dashboard Metrics] Buscando dados para orgId:', orgId);
+        
         // Buscar dados em paralelo
         const [
           currentCampaigns,
@@ -187,6 +204,20 @@ export const useEnhancedDashboardMetrics = () => {
             .gte('createdAt', firstDayPreviousMonth.toISOString())
             .lte('createdAt', lastDayPreviousMonth.toISOString()),
         ]);
+
+        // Verificar erros nas queries
+        console.log('🔍 [Dashboard Metrics] Resultados recebidos:');
+        if (currentCampaigns.error) console.error('❌ [Campaigns] Erro:', currentCampaigns.error);
+        if (currentOrders.error) console.error('❌ [Orders] Erro:', currentOrders.error);
+        if (currentTransactions.error) console.error('❌ [Transactions] Erro:', currentTransactions.error);
+        if (currentCustomers.error) console.error('❌ [Customers] Erro:', currentCustomers.error);
+        if (currentProducts.error) console.error('❌ [Products] Erro:', currentProducts.error);
+
+        console.log('📊 [Campaigns] Dados:', currentCampaigns.data?.length || 0);
+        console.log('📊 [Orders] Dados:', currentOrders.data?.length || 0);
+        console.log('📊 [Transactions] Dados:', currentTransactions.data?.length || 0);
+        console.log('📊 [Customers] Dados:', currentCustomers.data?.length || 0);
+        console.log('📊 [Products] Dados:', currentProducts.data?.length || 0);
 
         // Calcular métricas de campanhas
         const totalCampaigns = currentCampaigns.data?.length || 0;
