@@ -104,18 +104,20 @@ export const authApi = {
 
       if (userError) throw userError;
 
-      // Check if user is Super Admin (query raw porque SuperAdmin não está em database.types ainda)
+      // Check if user is Super Admin
+      // Simplificado: apenas tenta query direta com tratamento silencioso de erros
       let isSuperAdmin = false;
       try {
-        const { data: superAdminCheck, error: superAdminError } = await supabase
-          .from('SuperAdmin' as any)
+        // Query direta com maybeSingle para retornar null se não existir
+        const { data: superAdminCheck } = await supabase
+          .from('SuperAdmin')
           .select('id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
-        isSuperAdmin = !superAdminError && !!superAdminCheck;
+        isSuperAdmin = !!superAdminCheck;
       } catch (e) {
-        // Tabela pode não existir ainda ou user não é super admin
+        // Ignora erro silenciosamente - user não é super admin ou tabela não existe
         isSuperAdmin = false;
       }
 
