@@ -519,6 +519,13 @@ serve(async (req) => {
     }
 
     console.log('AI Config - Provider:', aiConfig.provider, 'Model:', aiConfig.model)
+    console.log('AI Config - API Key length:', aiConfig.apiKey?.length || 0, 'Has key:', !!aiConfig.apiKey)
+
+    // Verificar se API key está configurada
+    if (!aiConfig.apiKey) {
+      console.error('No API key configured')
+      throw new Error('API key não configurada. Configure uma API key válida nas configurações da IA.')
+    }
 
     // Buscar histórico de mensagens (últimas 20)
     const { data: messages } = await supabase
@@ -661,20 +668,40 @@ serve(async (req) => {
     }
     
     if (aiConfig.provider === 'OPENROUTER' || aiConfig.provider === 'GROQ' || aiConfig.provider === 'OPENAI') {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: aiConfig.model || 'gpt-3.5-turbo',
-          messages: requestMessages,
-          temperature: aiConfig.temperature || 0.7,
-          stream: true
+      console.log('Calling AI API:', apiUrl)
+      console.log('Headers:', { ...headers, Authorization: 'Bearer ***hidden***' })
+      
+      let response: Response;
+      
+      try {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: aiConfig.model || 'gpt-3.5-turbo',
+            messages: requestMessages,
+            temperature: aiConfig.temperature || 0.7,
+            stream: true
+          })
         })
-      })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`AI API Error: ${errorText.substring(0, 200)}`)
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('AI API Error Response:', errorText.substring(0, 500))
+          
+          // Tentar parsear erro como JSON
+          try {
+            const errorJson = JSON.parse(errorText)
+            throw new Error(`Erro na API da IA: ${errorJson.error?.message || errorJson.message || 'Erro desconhecido'}`)
+          } catch {
+            throw new Error(`Erro na API da IA: ${errorText.substring(0, 200)}`)
+          }
+        }
+        
+        console.log('AI API Response OK')
+      } catch (error: any) {
+        console.error('Failed to call AI API:', error.message)
+        throw error
       }
 
       // Processar stream
