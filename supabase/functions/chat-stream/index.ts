@@ -285,6 +285,32 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
     return { tool: 'get_analytics' }
   }
 
+  // Web Scraping / Download de produtos
+  if ((lower.includes('baix') || lower.includes('baix') || lower.includes('download') || lower.includes('scraper') || lower.includes('extrair') || lower.includes('pegar')) &&
+      (lower.includes('produto') || lower.includes('item') || lower.includes('site') || lower.match(/http/))) {
+    
+    // Extrair URL da mensagem
+    const urlMatch = message.match(/https?:\/\/[^\s]+/i)
+    const url = urlMatch ? urlMatch[0] : null
+    
+    // Detectar se quer CSV/ZIP
+    const format = lower.includes('csv') ? 'csv' : lower.includes('zip') ? 'zip' : 'csv'
+    
+    return { 
+      tool: 'scrape_products',
+      params: { url, format }
+    }
+  }
+
+  // Geração de arquivo (CSV, ZIP, etc)
+  if ((lower.includes('arquivo') || lower.includes('export') || lower.includes('download')) &&
+      (lower.includes('csv') || lower.includes('zip') || lower.includes('json'))) {
+    return {
+      tool: 'generate_export',
+      params: { format: lower.match(/csv|zip|json/i)?.[0] || 'csv' }
+    }
+  }
+
   return null
 }
 
@@ -353,6 +379,65 @@ async function listProducts(ctx: ToolContext): Promise<string> {
   } catch (error: any) {
     return `Erro ao listar produtos: ${error.message}`
   }
+}
+
+// 9. Scrape Products (Web Scraping)
+async function scrapeProducts(params: { url?: string; format?: string }): Promise<string> {
+  try {
+    const { url, format = 'csv' } = params
+
+    if (!url) {
+      return '❌ Erro: URL não fornecida. Forneça uma URL válida para fazer scraping.'
+    }
+
+    // Chamar Edge Function super-ai-tools
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({
+        toolName: 'scrape_products',
+        parameters: { url, format },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Erro no scraping')
+    }
+
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.message || 'Erro no scraping')
+    }
+
+    // Retornar resultado formatado
+    if (result.data?.downloadUrl) {
+      return `✅ **Scraping concluído!**\n\n` +
+        `📊 Total de produtos encontrados: ${result.data.totalProducts || 0}\n\n` +
+        `📥 **Download disponível:**\n` +
+        `[Baixar ${result.data.fileName || 'produtos.csv'}](${result.data.downloadUrl})\n\n` +
+        `⏰ Link expira em 1 hora`
+    }
+
+    return `✅ Scraping concluído com sucesso!\n\n${result.message}`
+  } catch (error: any) {
+    return `❌ Erro ao fazer scraping: ${error.message}`
+  }
+}
+
+// 10. Generate Export
+async function generateExport(params: { format?: string }): Promise<string> {
+  const { format = 'csv' } = params
+  
+  return `🔄 **Gerando export em ${format.toUpperCase()}...**\n\n` +
+    `Esta funcionalidade está em desenvolvimento. Use a ferramenta de scraping para download direto.`
 }
 
 // 8. Relatório Completo
@@ -601,6 +686,12 @@ serve(async (req) => {
           break
         case 'list_products':
           toolResult = await listProducts(toolContext)
+          break
+        case 'scrape_products':
+          toolResult = await scrapeProducts(intent.params)
+          break
+        case 'generate_export':
+          toolResult = await generateExport(intent.params)
           break
         case 'full_report':
           toolResult = await generateFullReport(toolContext)
