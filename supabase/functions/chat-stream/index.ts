@@ -382,7 +382,7 @@ async function listProducts(ctx: ToolContext): Promise<string> {
 }
 
 // 9. Scrape Products (Web Scraping)
-async function scrapeProducts(params: { url?: string; format?: string }): Promise<string> {
+async function scrapeProducts(params: { url?: string; format?: string }, ctx: ToolContext): Promise<string> {
   try {
     const { url, format = 'csv' } = params
 
@@ -390,9 +390,37 @@ async function scrapeProducts(params: { url?: string; format?: string }): Promis
       return '❌ Erro: URL não fornecida. Forneça uma URL válida para fazer scraping.'
     }
 
+    console.log('🔍 Iniciando scraping em:', url)
+
+    // Retornar progresso detalhado
+    let progressMessages = []
+    
+    // Passo 1: Verificar acesso ao site
+    progressMessages.push('🔍 **Verificando acesso ao site...**')
+    
+    try {
+      const testResponse = await fetch(url, {
+        method: 'HEAD',
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      })
+      
+      if (!testResponse.ok) {
+        progressMessages.push(`⚠️ Página retornou status ${testResponse.status}`)
+      } else {
+        progressMessages.push('✅ Página está acessível!')
+      }
+    } catch (error) {
+      progressMessages.push('⚠️ Não foi possível verificar acesso diretamente')
+    }
+
+    // Passo 2: Analisar estrutura
+    progressMessages.push('🔍 **Analisando estrutura da página...**')
+    
     // Chamar Edge Function super-ai-tools
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    progressMessages.push('🤖 **Chamando ferramentas de scraping...**')
     
     const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
       method: 'POST',
@@ -403,6 +431,8 @@ async function scrapeProducts(params: { url?: string; format?: string }): Promis
       body: JSON.stringify({
         toolName: 'scrape_products',
         parameters: { url, format },
+        userId: ctx.userId,
+        organizationId: ctx.organizationId,
       }),
     })
 
@@ -411,23 +441,29 @@ async function scrapeProducts(params: { url?: string; format?: string }): Promis
       throw new Error(error.message || 'Erro no scraping')
     }
 
+    progressMessages.push('📊 **Extraindo dados dos produtos...**')
+
     const result = await response.json()
 
     if (!result.success) {
       throw new Error(result.message || 'Erro no scraping')
     }
 
-    // Retornar resultado formatado
+    progressMessages.push('💾 **Gerando arquivo CSV...**')
+
+    // Retornar resultado formatado com progresso
     if (result.data?.downloadUrl) {
-      return `✅ **Scraping concluído!**\n\n` +
+      return progressMessages.join('\n\n') + '\n\n' +
+        `✅ **Scraping concluído!**\n\n` +
         `📊 Total de produtos encontrados: ${result.data.totalProducts || 0}\n\n` +
         `📥 **Download disponível:**\n` +
         `[Baixar ${result.data.fileName || 'produtos.csv'}](${result.data.downloadUrl})\n\n` +
         `⏰ Link expira em 1 hora`
     }
 
-    return `✅ Scraping concluído com sucesso!\n\n${result.message}`
+    return progressMessages.join('\n\n') + '\n\n' + `✅ Scraping concluído com sucesso!\n\n${result.message}`
   } catch (error: any) {
+    console.error('❌ Erro no scraping:', error)
     return `❌ Erro ao fazer scraping: ${error.message}`
   }
 }
@@ -688,7 +724,7 @@ serve(async (req) => {
           toolResult = await listProducts(toolContext)
           break
         case 'scrape_products':
-          toolResult = await scrapeProducts(intent.params)
+          toolResult = await scrapeProducts(intent.params, toolContext)
           break
         case 'generate_export':
           toolResult = await generateExport(intent.params)
@@ -736,101 +772,110 @@ serve(async (req) => {
       })
     }
 
-    // Chamar IA com STREAMING
+    // Chamar IA com STREAMING (se não tiver toolResult)
     let aiResponse = ''
     
-    // Determinar URL e headers baseado no provider
-    let apiUrl = ''
-    let headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${aiConfig.apiKey}`
-    }
-
-    if (aiConfig.provider === 'GROQ') {
-      apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
-    } else if (aiConfig.provider === 'OPENROUTER') {
-      apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
-      headers['HTTP-Referer'] = 'https://syncads.com'
-      headers['X-Title'] = 'SyncAds Admin'
-    } else if (aiConfig.provider === 'OPENAI') {
-      apiUrl = 'https://api.openai.com/v1/chat/completions'
-    } else {
-      throw new Error(`Provider ${aiConfig.provider} not supported`)
-    }
-    
-    if (aiConfig.provider === 'OPENROUTER' || aiConfig.provider === 'GROQ' || aiConfig.provider === 'OPENAI') {
-      console.log('Calling AI API:', apiUrl)
-      console.log('Headers:', { ...headers, Authorization: 'Bearer ***hidden***' })
-      
-      let response: Response;
-      
-      try {
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model: aiConfig.model || 'gpt-3.5-turbo',
-            messages: requestMessages,
-            temperature: aiConfig.temperature || 0.7,
-            stream: true
-          })
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('AI API Error Response:', errorText.substring(0, 500))
-          
-          // Tentar parsear erro como JSON
-          try {
-            const errorJson = JSON.parse(errorText)
-            throw new Error(`Erro na API da IA: ${errorJson.error?.message || errorJson.message || 'Erro desconhecido'}`)
-          } catch {
-            throw new Error(`Erro na API da IA: ${errorText.substring(0, 200)}`)
-          }
-        }
-        
-        console.log('AI API Response OK')
-      } catch (error: any) {
-        console.error('Failed to call AI API:', error.message)
-        throw error
+    // Se já tem resultado de ferramenta (especialmente scraping), não precisa chamar IA
+    if (!toolResult) {
+      // Determinar URL e headers baseado no provider
+      let apiUrl = ''
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${aiConfig.apiKey}`
       }
 
-      // Processar stream
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
+      if (aiConfig.provider === 'GROQ') {
+        apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
+      } else if (aiConfig.provider === 'OPENROUTER') {
+        apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
+        headers['HTTP-Referer'] = 'https://syncads.com'
+        headers['X-Title'] = 'SyncAds Admin'
+      } else if (aiConfig.provider === 'OPENAI') {
+        apiUrl = 'https://api.openai.com/v1/chat/completions'
+      } else {
+        throw new Error(`Provider ${aiConfig.provider} not supported`)
+      }
+      
+      if (aiConfig.provider === 'OPENROUTER' || aiConfig.provider === 'GROQ' || aiConfig.provider === 'OPENAI') {
+        console.log('Calling AI API:', apiUrl)
+        console.log('Headers:', { ...headers, Authorization: 'Bearer ***hidden***' })
+        
+        let response: Response;
+        
+        try {
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              model: aiConfig.model || 'gpt-3.5-turbo',
+              messages: requestMessages,
+              temperature: aiConfig.temperature || 0.7,
+              stream: true
+            })
+          })
 
-      if (!reader) throw new Error('No response body')
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n').filter(line => line.trim() !== '')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === '[DONE]') continue
-
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('AI API Error Response:', errorText.substring(0, 500))
+            
+            // Tentar parsear erro como JSON
             try {
-              const parsed = JSON.parse(data)
-              const content = parsed.choices[0]?.delta?.content || ''
-              aiResponse += content
-            } catch (e) {
-              // Ignore parse errors
+              const errorJson = JSON.parse(errorText)
+              throw new Error(`Erro na API da IA: ${errorJson.error?.message || errorJson.message || 'Erro desconhecido'}`)
+            } catch {
+              throw new Error(`Erro na API da IA: ${errorText.substring(0, 200)}`)
+            }
+          }
+          
+          console.log('AI API Response OK')
+        } catch (error: any) {
+          console.error('Failed to call AI API:', error.message)
+          throw error
+        }
+
+        // Processar stream
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+
+        if (!reader) throw new Error('No response body')
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') continue
+
+              try {
+                const parsed = JSON.parse(data)
+                const content = parsed.choices[0]?.delta?.content || ''
+                aiResponse += content
+              } catch (e) {
+                // Ignore parse errors
+              }
             }
           }
         }
       }
-
-      if (!aiResponse) {
-        aiResponse = 'Sem resposta da IA'
-      }
-      
-      console.log('AI Response length:', aiResponse.length)
-      console.log('AI Response preview:', aiResponse.substring(0, 100))
     }
+
+    // Se não chamou IA mas tem toolResult, usar toolResult como resposta
+    if (!aiResponse && toolResult) {
+      aiResponse = toolResult
+    }
+
+    // Fallback apenas se realmente não houver resposta
+    if (!aiResponse) {
+      aiResponse = 'Sem resposta da IA'
+    }
+    
+    console.log('AI Response length:', aiResponse.length)
+    console.log('AI Response preview:', aiResponse.substring(0, 100))
 
     // Salvar mensagens no banco
     console.log('Salvando mensagens no banco...')
