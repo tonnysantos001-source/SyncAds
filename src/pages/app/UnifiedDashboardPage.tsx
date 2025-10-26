@@ -1,8 +1,8 @@
 import React, { Suspense, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, BarChart3, Megaphone, Sparkles, DollarSign, Target, Activity } from 'lucide-react';
-import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
+import { TrendingUp, TrendingDown, BarChart3, Megaphone, Sparkles, DollarSign, Target, Activity, ShoppingCart, CreditCard, Clock, Users, Package } from 'lucide-react';
+import { useEnhancedDashboardMetrics } from '@/hooks/useEnhancedDashboardMetrics';
 import { ActiveCampaignsTable } from './dashboard/ActiveCampaignsTable';
 import { DashboardChart } from './dashboard/DashboardChart';
 import { ConversionGoalsCard } from './dashboard/ConversionGoalsCard';
@@ -72,7 +72,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, changeTyp
 const UnifiedDashboardPage: React.FC = () => {
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const { campaigns } = useStore();
-  const metrics = useDashboardMetrics();
+  const metrics = useEnhancedDashboardMetrics();
 
   return (
     <div className="flex-1 space-y-6">
@@ -89,43 +89,108 @@ const UnifiedDashboardPage: React.FC = () => {
       </div>
 
       {/* Métricas Gerais - Dados Reais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Total de Campanhas"
-          value={metrics.totalCampaigns.value}
-          change={metrics.totalCampaigns.change}
-          changeType={metrics.totalCampaigns.changeType}
-          icon={Megaphone}
-          color="bg-blue-500/20 text-blue-500"
-          loading={metrics.loading}
-        />
-        <MetricCard
-          title="Cliques Totais"
-          value={metrics.totalClicks.value.toLocaleString()}
-          change={metrics.totalClicks.change}
-          changeType={metrics.totalClicks.changeType}
-          icon={Target}
-          color="bg-purple-500/20 text-purple-500"
-          loading={metrics.loading}
-        />
-        <MetricCard
-          title="Taxa de Conversão"
-          value={`${metrics.conversionRate.value.toFixed(1)}%`}
-          change={metrics.conversionRate.change}
-          changeType={metrics.conversionRate.changeType}
-          icon={Activity}
-          color="bg-green-500/20 text-green-500"
-          loading={metrics.loading}
-        />
-        <MetricCard
-          title="Receita Total"
-          value={`R$ ${metrics.totalRevenue.value.toLocaleString()}`}
-          change={metrics.totalRevenue.change}
-          changeType={metrics.totalRevenue.changeType}
-          icon={DollarSign}
-          color="bg-amber-500/20 text-amber-500"
-          loading={metrics.loading}
-        />
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Resumo do Negócio</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            title="Total de Campanhas"
+            value={metrics.totalCampaigns.value}
+            change={metrics.totalCampaigns.change}
+            changeType={metrics.totalCampaigns.changeType}
+            icon={Megaphone}
+            color="bg-blue-500/20 text-blue-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Cliques Totais"
+            value={metrics.totalClicks.value.toLocaleString()}
+            change={metrics.totalClicks.change}
+            changeType={metrics.totalClicks.changeType}
+            icon={Target}
+            color="bg-purple-500/20 text-purple-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Taxa de Conversão"
+            value={`${metrics.conversionRate.value.toFixed(1)}%`}
+            change={metrics.conversionRate.change}
+            changeType={metrics.conversionRate.changeType}
+            icon={Activity}
+            color="bg-green-500/20 text-green-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Receita Total"
+            value={`R$ ${metrics.totalRevenue.value.toLocaleString()}`}
+            change={metrics.totalRevenue.change}
+            changeType={metrics.totalRevenue.changeType}
+            icon={DollarSign}
+            color="bg-amber-500/20 text-amber-500"
+            loading={metrics.loading}
+          />
+        </div>
+        
+        <h2 className="text-xl font-semibold mt-8">Checkout e Vendas</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            title="Total de Pedidos"
+            value={metrics.totalOrders.value}
+            change={metrics.totalOrders.change}
+            changeType={metrics.totalOrders.changeType}
+            icon={ShoppingCart}
+            color="bg-green-500/20 text-green-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Transações"
+            value={metrics.totalTransactions.value}
+            change={metrics.totalTransactions.change}
+            changeType={metrics.totalTransactions.changeType}
+            icon={CreditCard}
+            color="bg-blue-500/20 text-blue-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Pagamentos Pendentes"
+            value={metrics.pendingPayments.valueFormatted}
+            change="Aguardando"
+            changeType="decrease"
+            icon={Clock}
+            color="bg-yellow-500/20 text-yellow-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Taxa de Recuperação"
+            value={`${metrics.recoveryRate.value.toFixed(1)}%`}
+            change={metrics.recoveryRate.change}
+            changeType={metrics.recoveryRate.value >= 50 ? 'increase' : 'decrease'}
+            icon={TrendingUp}
+            color="bg-purple-500/20 text-purple-500"
+            loading={metrics.loading}
+          />
+        </div>
+        
+        <h2 className="text-xl font-semibold mt-8">Clientes e Produtos</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          <MetricCard
+            title="Total de Clientes"
+            value={metrics.totalCustomers.value}
+            change={metrics.totalCustomers.change}
+            changeType={metrics.totalCustomers.changeType}
+            icon={Users}
+            color="bg-indigo-500/20 text-indigo-500"
+            loading={metrics.loading}
+          />
+          <MetricCard
+            title="Total de Produtos"
+            value={metrics.totalProducts.value}
+            change={metrics.totalProducts.change}
+            changeType={metrics.totalProducts.changeType}
+            icon={Package}
+            color="bg-pink-500/20 text-pink-500"
+            loading={metrics.loading}
+          />
+        </div>
       </div>
 
       {/* Tabs de Conteúdo */}
