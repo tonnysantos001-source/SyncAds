@@ -445,9 +445,12 @@ serve(async (req) => {
   try {
     console.log('=== CHAT STREAM REQUEST START ===')
     
-    const { message, conversationId } = await req.json()
+    const body = await req.json()
+    const { message, conversationId, conversationHistory = [], systemPrompt } = body
+    
     console.log('Message:', message?.substring(0, 50))
     console.log('ConversationId:', conversationId)
+    console.log('History length:', conversationHistory?.length || 0)
 
     if (!message || !conversationId) {
       console.error('Missing required fields')
