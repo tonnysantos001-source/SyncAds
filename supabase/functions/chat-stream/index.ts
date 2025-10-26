@@ -14,37 +14,142 @@ interface ToolContext {
   organizationId: string;
 }
 
-// 1. Buscar na Web (Serper API)
+// Cache simples em memória (Edge Functions são stateless, mas ajuda durante execução)
+const cache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_TTL = 3600000 // 1 hora
+
+function getCached(key: string): any | null {
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data
+  }
+  return null
+}
+
+function setCache(key: string, data: any) {
+  cache.set(key, { data, timestamp: Date.now() })
+}
+
+// 1. Buscar na Web com Múltiplos Providers (Exa, Tavily, Serper)
 async function webSearch(query: string): Promise<string> {
   try {
-    const serperKey = Deno.env.get('SERPER_API_KEY')
-    if (!serperKey) {
-      return 'Web search não configurado (falta SERPER_API_KEY)'
+    // Verificar cache primeiro
+    const cached = getCached(`search:${query}`)
+    if (cached) {
+      console.log('📦 Using cached search results')
+      return cached
     }
 
-    const response = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': serperKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ q: query, num: 3 })
-    })
+    // Tentar múltiplos providers em sequência
+    let results = null
 
-    if (!response.ok) {
-      return `Erro ao buscar: ${response.status}`
+    // 1. Tentar Exa AI (mais inteligente)
+    const exaKey = Deno.env.get('EXA_API_KEY')
+    if (exaKey) {
+      try {
+        console.log('🤖 Trying Exa AI Search...')
+        const exaResponse = await fetch('https://api.exa.ai/search', {
+          method: 'POST',
+          headers: {
+            'x-api-key': exaKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: query,
+            numResults: 5,
+            type: 'neural',
+            useAutoprompt: true
+          })
+        })
+
+        if (exaResponse.ok) {
+          const exaData = await exaResponse.json()
+          if (exaData.results && exaData.results.length > 0) {
+            results = exaData.results.map((r: any, i: number) => 
+              `${i + 1}. **${r.title}**\n   ${r.text || r.url}\n   ${r.url}`
+            ).join('\n\n')
+            console.log('✅ Exa AI results found')
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Exa AI failed, trying next provider')
+      }
     }
 
-    const data = await response.json()
-    const results = data.organic?.slice(0, 3) || []
-    
-    if (results.length === 0) {
-      return 'Nenhum resultado encontrado.'
+    // 2. Tentar Tavily (otimizado para agents)
+    if (!results) {
+      const tavilyKey = Deno.env.get('TAVILY_API_KEY')
+      if (tavilyKey) {
+        try {
+          console.log('🔍 Trying Tavily AI...')
+          const tavilyResponse = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_key: tavilyKey,
+              query: query,
+              max_results: 5,
+              include_answer: true
+            })
+          })
+
+          if (tavilyResponse.ok) {
+            const tavilyData = await tavilyResponse.json()
+            if (tavilyData.results && tavilyData.results.length > 0) {
+              results = tavilyData.results.map((r: any, i: number) => 
+                `${i + 1}. **${r.title}**\n   ${r.content}\n   ${r.url}`
+              ).join('\n\n')
+              
+              // Tavily também retorna uma "answer" gerada pela IA
+              if (tavilyData.answer) {
+                results = `💡 **Resposta da IA:**\n${tavilyData.answer}\n\n📚 **Fontes:**\n\n${results}`
+              }
+              
+              console.log('✅ Tavily AI results found')
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Tavily failed, trying next provider')
+        }
+      }
     }
 
-    return results.map((r: any, i: number) => 
-      `${i + 1}. **${r.title}**\n   ${r.snippet}\n   ${r.link}`
-    ).join('\n\n')
+    // 3. Fallback: Serper API (simples e confiável)
+    if (!results) {
+      const serperKey = Deno.env.get('SERPER_API_KEY')
+      if (serperKey) {
+        console.log('🔍 Trying Serper API...')
+        const serperResponse = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ q: query, num: 5 })
+        })
+
+        if (serperResponse.ok) {
+          const serperData = await serperResponse.json()
+          const organic = serperData.organic?.slice(0, 5) || []
+          
+          if (organic.length > 0) {
+            results = organic.map((r: any, i: number) => 
+              `${i + 1}. **${r.title}**\n   ${r.snippet}\n   ${r.link}`
+            ).join('\n\n')
+            console.log('✅ Serper results found')
+          }
+        }
+      }
+    }
+
+    if (!results) {
+      return '❌ Nenhum provider de busca configurado ou todos falharam. Configure EXA_API_KEY, TAVILY_API_KEY ou SERPER_API_KEY.'
+    }
+
+    // Salvar no cache
+    setCache(`search:${query}`, results)
+
+    return results
   } catch (error: any) {
     return `Erro ao buscar: ${error.message}`
   }
@@ -403,58 +508,33 @@ async function scrapeProducts(params: { url?: string; format?: string }, ctx: To
       return '❌ Erro: URL não fornecida. Forneça uma URL válida para fazer scraping.'
     }
 
-    console.log('🔍 Iniciando scraping em:', url)
+    console.log('🔍 Iniciando scraping AVANÇADO em:', url)
 
-    // Retornar progresso detalhado
-    let progressMessages = []
-    
-    // Passo 1: Verificar acesso ao site
-    progressMessages.push('🔍 **Verificando acesso ao site...**')
-    
-    try {
-      const testResponse = await fetch(url, {
-        method: 'HEAD',
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      })
-      
-      if (!testResponse.ok) {
-        progressMessages.push(`⚠️ Página retornou status ${testResponse.status}`)
-      } else {
-        progressMessages.push('✅ Página está acessível!')
-      }
-    } catch (error) {
-      progressMessages.push('⚠️ Não foi possível verificar acesso diretamente')
-    }
-
-    // Passo 2: Analisar estrutura
-    progressMessages.push('🔍 **Analisando estrutura da página...**')
-    
-    // Chamar Edge Function super-ai-tools
+    // Usar Edge Function advanced-scraper
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
     
-    progressMessages.push('🤖 **Chamando ferramentas de scraping...**')
+    console.log('🤖 Chamando advanced-scraper...')
     
-    const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/advanced-scraper`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
-        toolName: 'scrape_products',
-        parameters: { url, format },
+        url,
+        format,
         userId: ctx.userId,
         organizationId: ctx.organizationId,
+        conversationId: ctx.userId // fallback
       }),
     })
 
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || 'Erro no scraping')
+      throw new Error(error.message || 'Erro no scraping avançado')
     }
-
-    progressMessages.push('📊 **Extraindo dados dos produtos...**')
 
     const result = await response.json()
 
@@ -462,22 +542,43 @@ async function scrapeProducts(params: { url?: string; format?: string }, ctx: To
       throw new Error(result.message || 'Erro no scraping')
     }
 
-    progressMessages.push('💾 **Gerando arquivo CSV...**')
-
     // Retornar resultado formatado com progresso
+    let progressMessages = []
+    
+    if (result.steps) {
+      result.steps.forEach((step: any) => {
+        if (step.status === 'completed') {
+          progressMessages.push(`✅ ${step.step}${step.details ? ` - ${step.details}` : ''}`)
+        }
+      })
+    }
+
     if (result.data?.downloadUrl) {
-      return progressMessages.join('\n\n') + '\n\n' +
-        `✅ **Scraping concluído!**\n\n` +
+      return progressMessages.join('\n') + '\n\n' +
+        `✅ **Scraping AVANÇADO concluído!**\n\n` +
         `📊 Total de produtos encontrados: ${result.data.totalProducts || 0}\n\n` +
         `📥 **Download disponível:**\n` +
         `[Baixar ${result.data.fileName || 'produtos.csv'}](${result.data.downloadUrl})\n\n` +
-        `⏰ Link expira em 1 hora`
+        `⏰ Link expira em 1 hora\n\n` +
+        `💡 Preview dos produtos:\n` +
+        result.data.products?.map((p: any, i: number) => 
+          `${i + 1}. ${p.name || 'Sem nome'}${p.price ? ` - R$ ${p.price}` : ''}`
+        ).join('\n')
     }
 
-    return progressMessages.join('\n\n') + '\n\n' + `✅ Scraping concluído com sucesso!\n\n${result.message}`
+    return progressMessages.join('\n') + '\n\n' + `✅ Scraping concluído com sucesso!\n\n${result.message}`
   } catch (error: any) {
     console.error('❌ Erro no scraping:', error)
-    return `❌ Erro ao fazer scraping: ${error.message}`
+    
+    // Tentar scraping básico como fallback
+    console.log('🔄 Tentando scraping básico como fallback...')
+    
+    return `❌ Erro ao fazer scraping avançado: ${error.message}\n\n` +
+      `💡 **Dicas para resolver:**\n` +
+      `- Verifique se a URL está acessível\n` +
+      `- Tente novamente em alguns segundos\n` +
+      `- Ou use uma URL de outro site\n\n` +
+      `Estou trabalhando em uma solução mais robusta!`
   }
 }
 
