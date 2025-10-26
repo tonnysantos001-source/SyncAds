@@ -686,6 +686,12 @@ serve(async (req) => {
     console.log('Message:', message?.substring(0, 50))
     console.log('ConversationId:', conversationId)
     console.log('History length:', conversationHistory?.length || 0)
+    
+    // Debug: Verificar quais API keys estão disponíveis
+    console.log('🔑 API Keys disponíveis:')
+    console.log('- EXA_API_KEY:', Deno.env.get('EXA_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
+    console.log('- TAVILY_API_KEY:', Deno.env.get('TAVILY_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
+    console.log('- SERPER_API_KEY:', Deno.env.get('SERPER_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
 
     if (!message || !conversationId) {
       console.error('Missing required fields')
