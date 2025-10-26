@@ -24,6 +24,10 @@ const SettingsPage = lazy(() => import('./pages/app/SettingsPage'));
 const IntegrationCallbackPage = lazy(() => import('./pages/IntegrationCallbackPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Public Checkout pages
+const PublicCheckoutPage = lazy(() => import('./pages/public/PublicCheckoutPage'));
+const CheckoutSuccessPage = lazy(() => import('./pages/public/CheckoutSuccessPage'));
+
 // Super Admin pages
 const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'));
 const AdminChatPage = lazy(() => import('./pages/super-admin/AdminChatPage'));
@@ -125,6 +129,10 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             </Route>
             
+            {/* Public Checkout Routes */}
+            <Route path="/checkout/:orderId" element={<PublicCheckoutPage />} />
+            <Route path="/checkout/success/:transactionId" element={<CheckoutSuccessPage />} />
+            
             {/* Super Admin Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/super-admin" element={<SuperAdminDashboard />} />
@@ -177,7 +185,7 @@ function App() {
               <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
               <Route path="/checkout/customize" element={<CheckoutCustomizePage />} />
               <Route path="/checkout/social-proof" element={<SocialProofPage />} />
-              <Route path="/checkout/gateways" element={<CheckoutGatewaysPage />} />
+              <Route path="/checkout/gateways" element={<GatewaysPage />} />
               <Route path="/checkout/redirect" element={<RedirectPage />} />
               
               <Route path="/integrations" element={<IntegrationsPage />} />

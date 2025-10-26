@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { gatewaysApi, gatewayConfigApi, Gateway, GatewayConfig } from '@/lib/api/gatewaysApi';
 import { useAuthStore } from '@/store/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/lib/supabase';
 
 const OLD_GATEWAYS_MOCK: any[] = [
   { id: 'pix', name: 'Pix', status: 'ativo', colorClass: 'bg-blue-500', logoUrl: 'https://logodownload.org/wp-content/uploads/2020/02/pix-bc-logo.png' },
@@ -210,6 +211,53 @@ const GatewaysPage = () => {
     }
   };
 
+  const handleTestConnection = async () => {
+    try {
+      if (!selectedGateway) return;
+
+      toast({ 
+        title: 'Testando conexão...', 
+        description: `Testando ${selectedGateway.name}` 
+      });
+
+      const { data, error } = await supabase.functions.invoke('test-gateway', {
+        body: {
+          gatewayId: selectedGateway.id,
+          credentials: {
+            apiKey: configForm.apiKey,
+            secretKey: configForm.secretKey,
+            publicKey: configForm.publicKey,
+          },
+          testMode: configForm.isTestMode
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.success) {
+        toast({ 
+          title: 'Conexão bem-sucedida!', 
+          description: data.message,
+          variant: 'default'
+        });
+      } else {
+        toast({ 
+          title: 'Falha na conexão', 
+          description: data.message,
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      toast({ 
+        title: 'Erro no teste', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   const isConfigured = (gatewayId: string) => {
     return configs.some((c) => c.gatewayId === gatewayId && c.isActive);
   };
@@ -387,6 +435,9 @@ const GatewaysPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={handleTestConnection}>
+              Testar Conexão
+            </Button>
             <Button onClick={handleSaveConfig}>Salvar Configuração</Button>
           </DialogFooter>
         </DialogContent>

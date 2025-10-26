@@ -8,97 +8,97 @@ export interface CheckoutCustomization {
   id: string;
   organizationId: string;
   name: string;
-  logo?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  fontFamily?: string;
-  headerText?: string;
-  footerText?: string;
-  customCss?: string;
-  customJs?: string;
-  isDefault: boolean;
+  theme: {
+    // Cabeçalho
+    logoUrl?: string;
+    logoAlignment?: 'left' | 'center' | 'right';
+    showLogoAtTop?: boolean;
+    faviconUrl?: string;
+    backgroundColor?: string;
+    useGradient?: boolean;
+    
+    // Cores
+    cartBorderColor?: string;
+    quantityCircleColor?: string;
+    quantityTextColor?: string;
+    showCartIcon?: boolean;
+    
+    // Banner
+    bannerEnabled?: boolean;
+    bannerImageUrl?: string;
+    
+    // Carrinho
+    cartDisplay?: 'closed' | 'open';
+    allowCouponEdit?: boolean;
+    
+    // Conteúdo
+    nextStepStyle?: 'rounded' | 'rectangular' | 'oval';
+    showCartReminder?: boolean;
+    primaryButtonTextColor?: string;
+    primaryButtonBackgroundColor?: string;
+    primaryButtonHover?: boolean;
+    primaryButtonFlow?: boolean;
+    highlightedBorderTextColor?: string;
+    checkoutButtonBackgroundColor?: string;
+    checkoutButtonHover?: boolean;
+    checkoutButtonFlow?: boolean;
+    
+    // Rodapé
+    showStoreName?: boolean;
+    showPaymentMethods?: boolean;
+    showCnpjCpf?: boolean;
+    showContactEmail?: boolean;
+    showAddress?: boolean;
+    showPhone?: boolean;
+    showPrivacyPolicy?: boolean;
+    showTermsConditions?: boolean;
+    showReturns?: boolean;
+    footerTextColor?: string;
+    footerBackgroundColor?: string;
+    
+    // Escassez
+    discountTagTextColor?: string;
+    discountTagBackgroundColor?: string;
+    useVisible?: boolean;
+    expirationTime?: number;
+    
+    // Order Bump
+    orderBumpTextColor?: string;
+    orderBumpBackgroundColor?: string;
+    orderBumpPriceColor?: string;
+    orderBumpBorderColor?: string;
+    orderBumpButtonTextColor?: string;
+    orderBumpButtonBackgroundColor?: string;
+    
+    // Barra de Avisos
+    noticeBarTextColor?: string;
+    noticeBarBackgroundColor?: string;
+    noticeBarMessage?: string;
+    
+    // Configurações Gerais
+    navigationSteps?: 1 | 3 | 5;
+    fontFamily?: 'Arial' | 'Roboto' | 'Open Sans';
+    forceRemovalTime?: number;
+    presellPage?: 'cart-in-cart' | 'direct-checkout';
+    language?: 'pt' | 'en' | 'es';
+    currency?: 'BRL' | 'USD' | 'EUR';
+    requestCpfOnlyAtPayment?: boolean;
+    requestBirthDate?: boolean;
+    requestGender?: boolean;
+    disableCarrot?: boolean;
+  };
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CheckoutSection {
   id: string;
-  checkoutId: string;
-  type: 'CONTACT' | 'SHIPPING' | 'PAYMENT' | 'SUMMARY' | 'CUSTOM';
-  name: string;
-  content?: string;
-  position: number;
+  customizationId: string;
+  type: 'HEADER' | 'NOTICE_BAR' | 'BANNER' | 'CART' | 'CONTENT' | 'FOOTER' | 'SCARCITY' | 'ORDER_BUMP';
+  config: Record<string, any>;
+  order: number;
   isVisible: boolean;
-  isRequired: boolean;
-  settings?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Pixel {
-  id: string;
-  organizationId: string;
-  name: string;
-  platform: 'FACEBOOK' | 'GOOGLE' | 'TIKTOK' | 'SNAPCHAT' | 'TWITTER' | 'PINTEREST' | 'CUSTOM';
-  pixelId: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface PixelEvent {
-  id: string;
-  pixelId: string;
-  eventType: 'PAGE_VIEW' | 'ADD_TO_CART' | 'INITIATE_CHECKOUT' | 'PURCHASE' | 'LEAD' | 'CUSTOM';
-  eventName?: string;
-  triggerOn: 'PAGE_LOAD' | 'BUTTON_CLICK' | 'FORM_SUBMIT' | 'CUSTOM';
-  customTrigger?: string;
-  parameters?: Record<string, any>;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface SocialProof {
-  id: string;
-  organizationId: string;
-  type: 'RECENT_PURCHASE' | 'LIVE_VISITORS' | 'REVIEWS' | 'TRUST_BADGE' | 'COUNTDOWN';
-  message?: string;
-  icon?: string;
-  position: 'TOP' | 'BOTTOM' | 'FLOATING';
-  displayDuration?: number;
-  isActive: boolean;
-  settings?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Banner {
-  id: string;
-  organizationId: string;
-  name: string;
-  type: 'ANNOUNCEMENT' | 'PROMOTION' | 'WARNING' | 'INFO';
-  message: string;
-  position: 'TOP' | 'BOTTOM';
-  backgroundColor?: string;
-  textColor?: string;
-  link?: string;
-  isActive: boolean;
-  startsAt?: string;
-  expiresAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Shipping {
-  id: string;
-  organizationId: string;
-  name: string;
-  carrier?: string;
-  method: string;
-  estimatedDays?: number;
-  price: number;
-  freeShippingThreshold?: number;
-  conditions?: Record<string, any>;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,258 +107,343 @@ export interface Shipping {
 // CHECKOUT CUSTOMIZATION API
 // ============================================
 
-export const checkoutCustomizationApi = {
-  async getAll(organizationId: string) {
-    const { data, error } = await supabase
-      .from('CheckoutCustomization')
-      .select('*')
-      .eq('organizationId', organizationId);
-    if (error) throw error;
-    return data as CheckoutCustomization[];
+export const checkoutApi = {
+  // Salvar personalização
+  async saveCustomization(customization: Omit<CheckoutCustomization, 'id' | 'createdAt' | 'updatedAt'>) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .upsert({
+          ...customization,
+          updatedAt: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CheckoutCustomization;
+    } catch (error) {
+      console.error('Error saving checkout customization:', error);
+      throw error;
+    }
   },
 
-  async getDefault(organizationId: string) {
-    const { data, error } = await supabase
-      .from('CheckoutCustomization')
-      .select('*')
-      .eq('organizationId', organizationId)
-      .eq('isDefault', true)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data as CheckoutCustomization | null;
+  // Carregar personalização
+  async loadCustomization(organizationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .select('*')
+        .eq('organizationId', organizationId)
+        .eq('isActive', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data as CheckoutCustomization | null;
+    } catch (error) {
+      console.error('Error loading checkout customization:', error);
+      throw error;
+    }
   },
 
-  async create(customization: Omit<CheckoutCustomization, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('CheckoutCustomization')
-      .insert(customization)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as CheckoutCustomization;
+  // Listar todas as personalizações
+  async listCustomizations(organizationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .select('*')
+        .eq('organizationId', organizationId)
+        .order('createdAt', { ascending: false });
+
+      if (error) throw error;
+      return data as CheckoutCustomization[];
+    } catch (error) {
+      console.error('Error listing checkout customizations:', error);
+      throw error;
+    }
   },
 
-  async update(id: string, updates: Partial<CheckoutCustomization>) {
-    const { data, error } = await supabase
-      .from('CheckoutCustomization')
-      .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as CheckoutCustomization;
+  // Ativar personalização
+  async activateCustomization(id: string) {
+    try {
+      // Primeiro, desativar todas as outras
+      const customization = await supabase
+        .from('CheckoutCustomization')
+        .select('organizationId')
+        .eq('id', id)
+        .single();
+
+      if (customization.data) {
+        await supabase
+          .from('CheckoutCustomization')
+          .update({ isActive: false })
+          .eq('organizationId', customization.data.organizationId);
+      }
+
+      // Ativar esta
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .update({ 
+          isActive: true,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CheckoutCustomization;
+    } catch (error) {
+      console.error('Error activating checkout customization:', error);
+      throw error;
+    }
   },
 
-  async delete(id: string) {
-    const { error } = await supabase
-      .from('CheckoutCustomization')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
+  // Deletar personalização
+  async deleteCustomization(id: string) {
+    try {
+      const { error } = await supabase
+        .from('CheckoutCustomization')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting checkout customization:', error);
+      throw error;
+    }
   },
+
+  // Duplicar personalização
+  async duplicateCustomization(id: string, newName: string) {
+    try {
+      const { data: original, error: fetchError } = await supabase
+        .from('CheckoutCustomization')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .insert({
+          organizationId: original.organizationId,
+          name: newName,
+          theme: original.theme,
+          isActive: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CheckoutCustomization;
+    } catch (error) {
+      console.error('Error duplicating checkout customization:', error);
+      throw error;
+    }
+  },
+
+  // Gerar preview URL
+  async generatePreviewUrl(customization: Partial<CheckoutCustomization>) {
+    try {
+      // Criar uma personalização temporária para preview
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .insert({
+          organizationId: customization.organizationId!,
+          name: `Preview-${Date.now()}`,
+          theme: customization.theme || {},
+          isActive: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      // Retornar URL de preview
+      return `/checkout/preview/${data.id}`;
+    } catch (error) {
+      console.error('Error generating preview URL:', error);
+      throw error;
+    }
+  },
+
+  // Exportar personalização
+  async exportCustomization(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      // Remover campos internos
+      const exportData = {
+        name: data.name,
+        theme: data.theme,
+        exportedAt: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      return exportData;
+    } catch (error) {
+      console.error('Error exporting checkout customization:', error);
+      throw error;
+    }
+  },
+
+  // Importar personalização
+  async importCustomization(organizationId: string, importData: any) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .insert({
+          organizationId,
+          name: `${importData.name} (Importado)`,
+          theme: importData.theme,
+          isActive: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CheckoutCustomization;
+    } catch (error) {
+      console.error('Error importing checkout customization:', error);
+      throw error;
+    }
+  }
 };
 
 // ============================================
-// PIXELS API
+// CHECKOUT SECTIONS API
 // ============================================
 
-export const pixelsApi = {
-  async getAll(organizationId: string) {
-    const { data, error } = await supabase
-      .from('Pixel')
-      .select('*, events:PixelEvent(*)')
-      .eq('organizationId', organizationId);
-    if (error) throw error;
-    return data;
+export const checkoutSectionsApi = {
+  // Salvar seção
+  async saveSection(section: Omit<CheckoutSection, 'id' | 'createdAt' | 'updatedAt'>) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutSection')
+        .upsert({
+          ...section,
+          updatedAt: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CheckoutSection;
+    } catch (error) {
+      console.error('Error saving checkout section:', error);
+      throw error;
+    }
   },
 
-  async create(pixel: Omit<Pixel, 'id' | 'createdAt'>) {
-    const { data, error } = await supabase
-      .from('Pixel')
-      .insert(pixel)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Pixel;
+  // Carregar seções
+  async loadSections(customizationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutSection')
+        .select('*')
+        .eq('customizationId', customizationId)
+        .order('order', { ascending: true });
+
+      if (error) throw error;
+      return data as CheckoutSection[];
+    } catch (error) {
+      console.error('Error loading checkout sections:', error);
+      throw error;
+    }
   },
 
-  async update(id: string, updates: Partial<Pixel>) {
-    const { data, error } = await supabase
-      .from('Pixel')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Pixel;
+  // Atualizar ordem das seções
+  async updateSectionOrder(sections: { id: string; order: number }[]) {
+    try {
+      const updates = sections.map(section => 
+        supabase
+          .from('CheckoutSection')
+          .update({ 
+            order: section.order,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', section.id)
+      );
+
+      await Promise.all(updates);
+    } catch (error) {
+      console.error('Error updating section order:', error);
+      throw error;
+    }
   },
 
-  async delete(id: string) {
-    const { error } = await supabase.from('Pixel').delete().eq('id', id);
-    if (error) throw error;
-  },
+  // Deletar seção
+  async deleteSection(id: string) {
+    try {
+      const { error } = await supabase
+        .from('CheckoutSection')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting checkout section:', error);
+      throw error;
+    }
+  }
 };
 
 // ============================================
-// SOCIAL PROOF API
+// CHECKOUT PREVIEW API
 // ============================================
 
-export const socialProofApi = {
-  async getAll(organizationId: string) {
-    const { data, error } = await supabase
-      .from('SocialProof')
-      .select('*')
-      .eq('organizationId', organizationId);
-    if (error) throw error;
-    return data as SocialProof[];
+export const checkoutPreviewApi = {
+  // Gerar preview HTML
+  async generatePreview(customization: CheckoutCustomization) {
+    try {
+      // Chamar Edge Function para gerar preview
+      const { data, error } = await supabase.functions.invoke('checkout-preview', {
+        body: { customization }
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error generating checkout preview:', error);
+      throw error;
+    }
   },
 
-  async getActive(organizationId: string) {
-    const { data, error } = await supabase
-      .from('SocialProof')
-      .select('*')
-      .eq('organizationId', organizationId)
-      .eq('isActive', true);
-    if (error) throw error;
-    return data as SocialProof[];
-  },
+  // Salvar preview como template
+  async saveAsTemplate(customizationId: string, templateName: string) {
+    try {
+      const { data, error } = await supabase
+        .from('CheckoutCustomization')
+        .select('*')
+        .eq('id', customizationId)
+        .single();
 
-  async create(proof: Omit<SocialProof, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('SocialProof')
-      .insert(proof)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as SocialProof;
-  },
+      if (error) throw error;
 
-  async update(id: string, updates: Partial<SocialProof>) {
-    const { data, error } = await supabase
-      .from('SocialProof')
-      .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as SocialProof;
-  },
+      const { data: template, error: templateError } = await supabase
+        .from('CheckoutCustomization')
+        .insert({
+          organizationId: data.organizationId,
+          name: templateName,
+          theme: data.theme,
+          isActive: false
+        })
+        .select()
+        .single();
 
-  async delete(id: string) {
-    const { error } = await supabase.from('SocialProof').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-// ============================================
-// BANNERS API
-// ============================================
-
-export const bannersApi = {
-  async getAll(organizationId: string) {
-    const { data, error } = await supabase
-      .from('Banner')
-      .select('*')
-      .eq('organizationId', organizationId);
-    if (error) throw error;
-    return data as Banner[];
-  },
-
-  async getActive(organizationId: string) {
-    const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('Banner')
-      .select('*')
-      .eq('organizationId', organizationId)
-      .eq('isActive', true)
-      .or(`startsAt.is.null,startsAt.lte.${now}`)
-      .or(`expiresAt.is.null,expiresAt.gte.${now}`);
-    if (error) throw error;
-    return data as Banner[];
-  },
-
-  async create(banner: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('Banner')
-      .insert(banner)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Banner;
-  },
-
-  async update(id: string, updates: Partial<Banner>) {
-    const { data, error } = await supabase
-      .from('Banner')
-      .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Banner;
-  },
-
-  async delete(id: string) {
-    const { error } = await supabase.from('Banner').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-// ============================================
-// SHIPPING API
-// ============================================
-
-export const shippingApi = {
-  async getAll(organizationId: string) {
-    const { data, error } = await supabase
-      .from('Shipping')
-      .select('*')
-      .eq('organizationId', organizationId);
-    if (error) throw error;
-    return data as Shipping[];
-  },
-
-  async getActive(organizationId: string) {
-    const { data, error } = await supabase
-      .from('Shipping')
-      .select('*')
-      .eq('organizationId', organizationId)
-      .eq('isActive', true);
-    if (error) throw error;
-    return data as Shipping[];
-  },
-
-  async create(shipping: Omit<Shipping, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('Shipping')
-      .insert(shipping)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Shipping;
-  },
-
-  async update(id: string, updates: Partial<Shipping>) {
-    const { data, error } = await supabase
-      .from('Shipping')
-      .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as Shipping;
-  },
-
-  async delete(id: string) {
-    const { error } = await supabase.from('Shipping').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-export default {
-  customization: checkoutCustomizationApi,
-  pixels: pixelsApi,
-  socialProof: socialProofApi,
-  banners: bannersApi,
-  shipping: shippingApi,
+      if (templateError) throw templateError;
+      return template as CheckoutCustomization;
+    } catch (error) {
+      console.error('Error saving checkout template:', error);
+      throw error;
+    }
+  }
 };

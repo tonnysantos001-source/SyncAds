@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Smartphone, Monitor, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,144 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuthStore } from '@/store/authStore';
+import { checkoutApi, CheckoutCustomization } from '@/lib/api/checkoutApi';
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+  
   const [expandedSections, setExpandedSections] = useState<string[]>(['CABEÇALHO']);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [customization, setCustomization] = useState<CheckoutCustomization | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Carregar personalização existente
+  useEffect(() => {
+    if (user?.organizationId) {
+      loadCustomization();
+    }
+  }, [user?.organizationId]);
+
+  const loadCustomization = async () => {
+    try {
+      const data = await checkoutApi.loadCustomization(user!.organizationId);
+      if (data) {
+        setCustomization(data);
+      } else {
+        // Criar personalização padrão
+        const defaultCustomization = {
+          organizationId: user!.organizationId,
+          name: 'Padrão',
+          theme: {
+            logoAlignment: 'left',
+            showLogoAtTop: true,
+            backgroundColor: '#FFFFFF',
+            useGradient: false,
+            cartBorderColor: '#000000',
+            quantityCircleColor: '#FF0080',
+            quantityTextColor: '#FFFFFF',
+            showCartIcon: true,
+            bannerEnabled: false,
+            cartDisplay: 'closed',
+            allowCouponEdit: true,
+            nextStepStyle: 'rounded',
+            showCartReminder: true,
+            primaryButtonTextColor: '#FFFFFF',
+            primaryButtonBackgroundColor: '#FF0080',
+            primaryButtonHover: true,
+            primaryButtonFlow: true,
+            highlightedBorderTextColor: '#FFFFFF',
+            checkoutButtonBackgroundColor: '#0FBA00',
+            checkoutButtonHover: true,
+            checkoutButtonFlow: true,
+            showStoreName: true,
+            showPaymentMethods: true,
+            showCnpjCpf: true,
+            showContactEmail: true,
+            showAddress: true,
+            showPhone: true,
+            showPrivacyPolicy: true,
+            showTermsConditions: true,
+            showReturns: true,
+            footerTextColor: '#3b3b3b',
+            footerBackgroundColor: '#F6F6F6',
+            discountTagTextColor: '#ffffff',
+            discountTagBackgroundColor: '#000000',
+            useVisible: true,
+            expirationTime: 60,
+            orderBumpTextColor: '#666666',
+            orderBumpBackgroundColor: '#FFFFDD',
+            orderBumpPriceColor: '#EE000C',
+            orderBumpBorderColor: '#D0D0D0',
+            orderBumpButtonTextColor: '#FFF',
+            orderBumpButtonBackgroundColor: '#EE000C',
+            noticeBarTextColor: '#FFFFFF',
+            noticeBarBackgroundColor: '#000000',
+            noticeBarMessage: 'Frete grátis para todo o Brasil!',
+            navigationSteps: 5,
+            fontFamily: 'Arial',
+            forceRemovalTime: 60,
+            presellPage: 'cart-in-cart',
+            language: 'pt',
+            currency: 'BRL',
+            requestCpfOnlyAtPayment: false,
+            requestBirthDate: false,
+            requestGender: false,
+            disableCarrot: false
+          },
+          isActive: true
+        };
+        setCustomization(defaultCustomization as CheckoutCustomization);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar personalização:', error);
+      toast({
+        title: 'Erro ao carregar personalização',
+        description: 'Não foi possível carregar as configurações do checkout',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    if (!customization || !user?.organizationId) return;
+
+    setIsSaving(true);
+    try {
+      await checkoutApi.saveCustomization(customization);
+      setHasChanges(false);
+      toast({
+        title: 'Personalização salva!',
+        description: 'Suas configurações foram salvas com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar personalização:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar as configurações',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateTheme = (updates: Partial<CheckoutCustomization['theme']>) => {
+    if (!customization) return;
+    
+    setCustomization({
+      ...customization,
+      theme: {
+        ...customization.theme,
+        ...updates
+      }
+    });
+    setHasChanges(true);
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -101,10 +234,14 @@ const CheckoutCustomizePage: React.FC = () => {
                         <Label className="text-xs text-gray-600">
                           Alinhamento do logo
                         </Label>
-                        <select className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                          <option>Esquerda</option>
-                          <option>Centro</option>
-                          <option>Direita</option>
+                        <select 
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={customization?.theme?.logoAlignment || 'left'}
+                          onChange={(e) => updateTheme({ logoAlignment: e.target.value as 'left' | 'center' | 'right' })}
+                        >
+                          <option value="left">Esquerda</option>
+                          <option value="center">Centro</option>
+                          <option value="right">Direita</option>
                         </select>
                       </div>
 
@@ -113,7 +250,12 @@ const CheckoutCustomizePage: React.FC = () => {
                           Final logo no topo
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <input type="checkbox" className="rounded" />
+                          <input 
+                            type="checkbox" 
+                            className="rounded" 
+                            checked={customization?.theme?.showLogoAtTop || false}
+                            onChange={(e) => updateTheme({ showLogoAtTop: e.target.checked })}
+                          />
                           <span className="text-sm text-gray-600">Ativar</span>
                         </div>
                       </div>
@@ -142,15 +284,25 @@ const CheckoutCustomizePage: React.FC = () => {
                       <div>
                         <Label className="text-xs text-gray-600">Fundo</Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
+                          <div 
+                            className="w-10 h-10 rounded border border-gray-300" 
+                            style={{ backgroundColor: customization?.theme?.backgroundColor || '#FFFFFF' }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FFFFFF"
                             className="flex-1"
+                            value={customization?.theme?.backgroundColor || '#FFFFFF'}
+                            onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
                           />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <input type="checkbox" className="rounded" />
+                          <input 
+                            type="checkbox" 
+                            className="rounded" 
+                            checked={customization?.theme?.useGradient || false}
+                            onChange={(e) => updateTheme({ useGradient: e.target.checked })}
+                          />
                           <span className="text-xs text-gray-600">
                             Aplicar fundo degradê
                           </span>
@@ -825,9 +977,13 @@ const CheckoutCustomizePage: React.FC = () => {
             >
               <Monitor className="h-4 w-4" />
             </Button>
-            <Button className="gap-2 bg-pink-600 hover:bg-pink-700">
+            <Button 
+              className="gap-2 bg-pink-600 hover:bg-pink-700"
+              onClick={handleSave}
+              disabled={isSaving || !hasChanges}
+            >
               <Save className="h-4 w-4" />
-              SALVAR
+              {isSaving ? 'SALVANDO...' : 'SALVAR'}
             </Button>
           </div>
         </div>
