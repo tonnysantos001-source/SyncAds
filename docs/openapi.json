@@ -1,0 +1,299 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SyncAds AI Chat System API",
+    "description": "Multi-provider AI chat system with web search, file generation, and advanced features",
+    "version": "1.0.0",
+    "contact": {
+      "name": "SyncAds Team",
+      "email": "support@syncads.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Chat",
+      "description": "Chat endpoints"
+    },
+    {
+      "name": "Files",
+      "description": "File generation endpoints"
+    },
+    {
+      "name": "Integrations",
+      "description": "Integration management"
+    },
+    {
+      "name": "Metrics",
+      "description": "Analytics and metrics"
+    }
+  ],
+  "paths": {
+    "/chat-stream": {
+      "post": {
+        "summary": "Chat Stream",
+        "description": "Send a message to the AI chat and receive streaming response",
+        "tags": ["Chat"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "User message"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "Conversation ID"
+                  },
+                  "conversationHistory": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["user", "assistant", "system"]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "systemPrompt": {
+                    "type": "string",
+                    "description": "Optional custom system prompt"
+                  }
+                },
+                "required": ["message", "conversationId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": {
+                      "type": "string"
+                    },
+                    "tokensUsed": {
+                      "type": "integer"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing token"
+          },
+          "429": {
+            "description": "Rate Limited - Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "retryAfter": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/file-generator-v2": {
+      "post": {
+        "summary": "Generate Files",
+        "description": "Generate files in various formats (XLSX, PDF, ZIP, etc.)",
+        "tags": ["Files"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "enum": ["json", "csv", "xlsx", "pdf", "html", "markdown", "zip"]
+                  },
+                  "data": {
+                    "type": "object",
+                    "description": "Data to convert to file"
+                  },
+                  "fileName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["format", "data"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "downloadUrl": {
+                          "type": "string"
+                        },
+                        "format": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/advanced-scraper": {
+      "post": {
+        "summary": "Advanced Web Scraper",
+        "description": "Scrape website content with advanced tools",
+        "tags": ["Files"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "selectors": {
+                    "type": "object"
+                  }
+                },
+                "required": ["url"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/generate-zip": {
+      "post": {
+        "summary": "Generate ZIP",
+        "description": "Generate ZIP archive with multiple files",
+        "tags": ["Files"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "object",
+                    "description": "Object with filenames as keys and content as values"
+                  },
+                  "zipName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["files"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
+

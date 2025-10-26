@@ -4,6 +4,13 @@ import { checkRateLimit, createRateLimitResponse } from './_utils/rate-limiter.t
 import { circuitBreaker } from './_utils/circuit-breaker.ts'
 import { fetchWithTimeout } from './_utils/fetch-with-timeout.ts'
 import { retry } from './_utils/retry.ts'
+import { 
+  countConversationTokens, 
+  estimateConversationTokens, 
+  validateTokenLimit,
+  formatTokenCount 
+} from './_utils/token-counter.ts'
+import { callWithFallback } from './_utils/model-fallback.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -915,6 +922,20 @@ serve(async (req) => {
       '- Quando detectar intenção de baixar produtos, execute a ferramenta scraping\n' +
       '- Use o resultado das ferramentas para responder de forma clara\n' +
       '- Seja sarcástica e útil (conforme seu humor característico)'
+    
+    // === TOKEN COUNTING ===
+    const tokenCount = estimateConversationTokens(message, chatHistory, systemPrompt)
+    console.log(`📊 Tokens estimados: ${formatTokenCount(tokenCount)}`)
+    
+    const tokenValidation = validateTokenLimit(tokenCount.tokens, 128000)
+    if (!tokenValidation.valid) {
+      console.error(`❌ Token limit exceeded: ${tokenCount.tokens}/${128000}`)
+      throw new Error('Limite de tokens excedido. Por favor, encurte sua mensagem.')
+    }
+    
+    if (tokenValidation.warning) {
+      console.warn(`⚠️ ${tokenValidation.warning} (${tokenValidation.percentage}%)`)
+    }
     
     const requestMessages = [
       { role: 'system', content: systemPrompt },

@@ -1,5 +1,5 @@
 // ============================================================================
-// FILE GENERATOR - Gerador de arquivos múltiplos (JSON, CSV, XLSX, PDF, HTML, MD)
+// FILE GENERATOR V2 - Gerador de arquivos com XLSX, ZIP reais
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -48,7 +48,7 @@ serve(async (req) => {
     console.log('📄 Generating file:', format)
 
     // Gerar arquivo baseado no formato
-    let fileContent: string
+    let fileContent: string | ArrayBuffer
     let contentType: string
     let extension: string
 
@@ -66,17 +66,15 @@ serve(async (req) => {
         break
 
       case 'xlsx':
-        // Gerar XLSX com SheetJS
         fileContent = await generateXLSX(data)
         contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         extension = 'xlsx'
         break
 
       case 'pdf':
-        // PDF como HTML estilizado (será convertido pelo browser)
         fileContent = generatePDF(data)
-        contentType = 'text/html' // Ou 'application/pdf' quando implementar real
-        extension = 'html' // Temporário
+        contentType = 'text/html'
+        extension = 'html'
         break
 
       case 'html':
@@ -92,7 +90,6 @@ serve(async (req) => {
         break
 
       case 'zip':
-        // Gerar ZIP com JSZip
         fileContent = await generateZIPReal(data)
         contentType = 'application/zip'
         extension = 'zip'
@@ -105,10 +102,20 @@ serve(async (req) => {
     // Upload para Supabase Storage
     const finalFileName = fileName || `arquivo_${Date.now()}.${extension}`
     
+    // Converter ArrayBuffer para Uint8Array se necessário
+    let uploadContent: string | Uint8Array
+    
+    if (fileContent instanceof ArrayBuffer) {
+      uploadContent = new Uint8Array(fileContent)
+    } else {
+      uploadContent = fileContent as string
+    }
+
     const { error: uploadError } = await supabaseClient.storage
       .from('temp-downloads')
-      .upload(finalFileName, fileContent, {
-        contentType
+      .upload(finalFileName, uploadContent, {
+        contentType,
+        upsert: false
       })
 
     if (uploadError) {
@@ -130,7 +137,7 @@ serve(async (req) => {
           fileName: finalFileName,
           downloadUrl: signedUrlData?.signedUrl,
           format,
-          size: fileContent.length
+          size: fileContent instanceof ArrayBuffer ? fileContent.byteLength : fileContent.length
         }
       }),
       { 
@@ -178,7 +185,6 @@ function generateCSV(data: any): string {
 }
 
 function generatePDF(data: any): string {
-  // PDF simples em HTML (seria necessário biblioteca específica)
   const html = `
 <!DOCTYPE html>
 <html>
@@ -202,8 +208,6 @@ function generatePDF(data: any): string {
 </body>
 </html>
   `
-  
-  // Em produção, usar biblioteca real de PDF
   return html
 }
 
@@ -219,39 +223,14 @@ function generateHTML(data: any): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Relatório</title>
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 20px; 
-      background: #f5f5f5;
-    }
-    .container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     h1 { color: #333; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin: 20px 0;
-    }
-    th, td { 
-      padding: 12px; 
-      text-align: left; 
-      border-bottom: 1px solid #ddd;
-    }
-    th { 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
     tr:hover { background-color: #f9f9f9; }
-    .footer { 
-      margin-top: 40px; 
-      text-align: center; 
-      color: #999; 
-      font-size: 12px;
-    }
+    .footer { margin-top: 40px; text-align: center; color: #999; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -259,19 +238,12 @@ function generateHTML(data: any): string {
     <h1>📊 Relatório Gerado</h1>
     <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
     <p><strong>Total de itens:</strong> ${items.length}</p>
-    
-    <table>
-      ${generateTableRows(items)}
-    </table>
-    
-    <div class="footer">
-      Documento gerado automaticamente pelo SyncAds
-    </div>
+    <table>${generateTableRows(items)}</table>
+    <div class="footer">Documento gerado automaticamente pelo SyncAds</div>
   </div>
 </body>
 </html>
   `
-  
   return html
 }
 
@@ -320,30 +292,13 @@ function generateMarkdown(data: any): string {
   return md
 }
 
-async function generateZIP(data: any): Promise<string> {
-  // ZIP simples (por enquanto, concatenar JSON)
-  const timestamp = Date.now()
-  const zipContent = {
-    version: '1.0',
-    timestamp: new Date().toISOString(),
-    files: Array.isArray(data) ? data : [data]
-  }
-  
-  return JSON.stringify(zipContent, null, 2)
-}
-
-/**
- * Gera arquivo XLSX real com SheetJS
- */
 async function generateXLSX(data: any): Promise<ArrayBuffer> {
   const wb = XLSX.utils.book_new()
   
   if (Array.isArray(data) && data.length > 0) {
-    // Dados em array - criar uma aba
     const ws = XLSX.utils.json_to_sheet(data)
     XLSX.utils.book_append_sheet(wb, ws, 'Dados')
   } else if (typeof data === 'object') {
-    // Objeto com múltiplas abas
     for (const [sheetName, sheetData] of Object.entries(data)) {
       if (Array.isArray(sheetData)) {
         const ws = XLSX.utils.json_to_sheet(sheetData)
@@ -352,30 +307,24 @@ async function generateXLSX(data: any): Promise<ArrayBuffer> {
     }
   }
   
-  // Gerar arquivo XLSX
   const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
   return xlsxBuffer
 }
 
-/**
- * Gera arquivo ZIP real com JSZip
- */
 async function generateZIPReal(data: any): Promise<ArrayBuffer> {
   const zip = new JSZip()
   
   if (typeof data === 'object' && data.files) {
-    // Data é um objeto com files: { 'nome.txt': content }
     for (const [filename, content] of Object.entries(data.files)) {
       const contentStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
       zip.file(filename, contentStr)
     }
   } else {
-    // Data é array/objeto único - criar arquivo padrão
     const content = JSON.stringify(data, null, 2)
     zip.file('data.json', content)
   }
   
-  // Gerar ZIP
   const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' })
   return zipBuffer as ArrayBuffer
 }
+
