@@ -18,6 +18,7 @@ import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPro
 import { sarcasticSystemPrompt, getRandomGreeting } from '@/lib/ai/sarcasticPersonality';
 import { WebSearchIndicator, SearchSourcesIndicator } from '@/components/chat/WebSearchIndicator';
 import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
+import { ZipDownloadCard, ZipDownloadList } from '@/components/chat/ZipDownloadCard';
 import { 
   AdminTools, 
   adminSystemPrompt, 
@@ -74,6 +75,7 @@ const ChatPage: React.FC = () => {
   const [webSearchResults, setWebSearchResults] = useState<any[]>([]);
   const [webSearchQuery, setWebSearchQuery] = useState('');
   const [searchSources, setSearchSources] = useState<string[]>([]);
+  const [zipDownloads, setZipDownloads] = useState<any[]>([]);
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -171,6 +173,30 @@ const ChatPage: React.FC = () => {
       }, 500);
     }
   }, [activeConversationId, activeConversation?.messages.length]);
+
+  // Função para detectar e processar downloads de ZIP
+  const processZipDownloads = (content: string) => {
+    // Detectar URLs de download de ZIP nas respostas da IA
+    const zipDownloadRegex = /ZIP_DOWNLOAD:\s*({[^}]+})/g;
+    const matches = content.match(zipDownloadRegex);
+    
+    if (matches) {
+      matches.forEach(match => {
+        try {
+          const jsonStr = match.replace('ZIP_DOWNLOAD:', '').trim();
+          const downloadData = JSON.parse(jsonStr);
+          
+          // Adicionar à lista de downloads
+          setZipDownloads(prev => [...prev, downloadData]);
+        } catch (error) {
+          console.error('Erro ao processar download ZIP:', error);
+        }
+      });
+    }
+    
+    // Remover blocos ZIP_DOWNLOAD do conteúdo exibido
+    return content.replace(zipDownloadRegex, '').trim();
+  };
 
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
@@ -414,8 +440,11 @@ const ChatPage: React.FC = () => {
         }
       }
 
+      // Processar downloads de ZIP antes de limpar a resposta
+      const processedResponse = processZipDownloads(response);
+      
       // Limpar blocos de código da resposta antes de exibir
-      let cleanedResponse = cleanCampaignBlockFromResponse(response);
+      let cleanedResponse = cleanCampaignBlockFromResponse(processedResponse);
       cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
@@ -759,6 +788,13 @@ const ChatPage: React.FC = () => {
                   sources={searchSources}
                   isSearching={isWebSearching}
                 />
+              )}
+              
+              {/* Downloads de ZIP disponíveis */}
+              {zipDownloads.length > 0 && (
+                <div className="mb-4">
+                  <ZipDownloadList downloads={zipDownloads} />
+                </div>
               )}
               
               {activeConversation.messages.map((message: any) => {

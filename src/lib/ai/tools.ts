@@ -399,6 +399,405 @@ export const createShopifyProductTool: Tool = {
 };
 
 // ============================================================================
+// ZIP GENERATION TOOLS
+// ============================================================================
+
+export const generateZipTool: Tool = {
+  name: 'generate_zip',
+  description: 'Gera um arquivo ZIP com múltiplos arquivos para download',
+  parameters: [
+    {
+      name: 'files',
+      type: 'array',
+      description: 'Lista de arquivos para incluir no ZIP',
+      required: true,
+    },
+    {
+      name: 'zipName',
+      type: 'string',
+      description: 'Nome do arquivo ZIP (opcional)',
+      required: false,
+    },
+  ],
+  execute: async (params, context) => {
+    const { files, zipName = 'download.zip' } = params;
+
+    try {
+      // Chamar Edge Function generate-zip
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-zip`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files,
+          zipName
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro ao gerar ZIP');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      return {
+        success: true,
+        message: `Arquivo ZIP gerado com sucesso! Contém ${files.length} arquivo(s).`,
+        data: {
+          downloadUrl: result.downloadUrl,
+          fileName: result.fileName,
+          expiresAt: result.expiresAt,
+          fileCount: files.length
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro ao gerar ZIP: ${error.message}`,
+      };
+    }
+  },
+};
+
+export const generateCampaignReportTool: Tool = {
+  name: 'generate_campaign_report',
+  description: 'Gera um relatório completo de campanha em formato ZIP',
+  parameters: [
+    {
+      name: 'campaignId',
+      type: 'string',
+      description: 'ID da campanha para gerar relatório',
+      required: true,
+    },
+    {
+      name: 'includeAnalytics',
+      type: 'boolean',
+      description: 'Incluir dados de analytics no relatório',
+      required: false,
+    },
+    {
+      name: 'includeAssets',
+      type: 'boolean',
+      description: 'Incluir assets da campanha no ZIP',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { campaignId, includeAnalytics = true, includeAssets = false } = params;
+
+    try {
+      // Buscar dados da campanha
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      
+      // Buscar campanha
+      const campaignResponse = await fetch(`${supabaseUrl}/functions/v1/ai-tools`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolName: 'get_campaign_data',
+          parameters: { campaignId },
+          userId: context?.userId,
+          organizationId: context?.organizationId,
+        }),
+      });
+
+      if (!campaignResponse.ok) {
+        throw new Error('Erro ao buscar dados da campanha');
+      }
+
+      const campaignResult = await campaignResponse.json();
+      if (!campaignResult.success) {
+        throw new Error(campaignResult.message);
+      }
+
+      const campaign = campaignResult.data;
+      const files = [];
+
+      // Relatório em texto
+      const reportContent = `
+RELATÓRIO DE CAMPANHA: ${campaign.name}
+Data: ${new Date().toLocaleDateString('pt-BR')}
+
+INFORMAÇÕES DA CAMPANHA:
+- Nome: ${campaign.name}
+- Status: ${campaign.status}
+- Orçamento: R$ ${campaign.budget || 'N/A'}
+- Data de Início: ${campaign.startDate ? new Date(campaign.startDate).toLocaleDateString('pt-BR') : 'N/A'}
+- Data de Fim: ${campaign.endDate ? new Date(campaign.endDate).toLocaleDateString('pt-BR') : 'N/A'}
+
+ANÁLISE DE PERFORMANCE:
+${includeAnalytics && campaign.analytics ? 
+  campaign.analytics.map((metric: any) => 
+    `- ${metric.metric}: ${metric.value} (${metric.change || 'N/A'})`
+  ).join('\n') : '- Nenhum dado de análise disponível'}
+
+RELATÓRIO GERADO AUTOMATICAMENTE PELO SYNCADS AI
+      `.trim();
+
+      files.push({
+        name: 'relatorio-campanha.txt',
+        content: reportContent,
+        type: 'text'
+      });
+
+      // Dados em JSON
+      files.push({
+        name: 'dados-campanha.json',
+        content: JSON.stringify({
+          campaign,
+          analytics: includeAnalytics ? campaign.analytics : null,
+          generatedAt: new Date().toISOString()
+        }, null, 2),
+        type: 'json'
+      });
+
+      // Dados em CSV (se houver analytics)
+      if (includeAnalytics && campaign.analytics && campaign.analytics.length > 0) {
+        const csvContent = [
+          'Metrica,Valor,Mudanca',
+          ...campaign.analytics.map((metric: any) => 
+            `${metric.metric},${metric.value},${metric.change || 'N/A'}`
+          )
+        ].join('\n');
+
+        files.push({
+          name: 'analytics.csv',
+          content: csvContent,
+          type: 'csv'
+        });
+      }
+
+      // Assets (se solicitado)
+      if (includeAssets && campaign.assets) {
+        for (const asset of campaign.assets) {
+          if (asset.content && asset.type) {
+            files.push({
+              name: asset.name || `asset-${Date.now()}`,
+              content: asset.content,
+              type: asset.type
+            });
+          }
+        }
+      }
+
+      // Gerar ZIP
+      const zipResponse = await fetch(`${supabaseUrl}/functions/v1/generate-zip`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files,
+          zipName: `relatorio-${campaign.name.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.zip`
+        }),
+      });
+
+      if (!zipResponse.ok) {
+        throw new Error('Erro ao gerar ZIP do relatório');
+      }
+
+      const zipResult = await zipResponse.json();
+      
+      if (!zipResult.success) {
+        throw new Error(zipResult.message);
+      }
+
+      return {
+        success: true,
+        message: `Relatório de campanha gerado com sucesso! Contém ${files.length} arquivo(s).`,
+        data: {
+          downloadUrl: zipResult.downloadUrl,
+          fileName: zipResult.fileName,
+          expiresAt: zipResult.expiresAt,
+          fileCount: files.length,
+          campaignName: campaign.name
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro ao gerar relatório: ${error.message}`,
+      };
+    }
+  },
+};
+
+export const generateAnalyticsExportTool: Tool = {
+  name: 'generate_analytics_export',
+  description: 'Gera exportação de dados de analytics em múltiplos formatos',
+  parameters: [
+    {
+      name: 'platform',
+      type: 'string',
+      description: 'Plataforma para exportar dados',
+      required: true,
+      enum: ['META_ADS', 'GOOGLE_ADS', 'ALL'],
+    },
+    {
+      name: 'startDate',
+      type: 'string',
+      description: 'Data inicial (YYYY-MM-DD)',
+      required: true,
+    },
+    {
+      name: 'endDate',
+      type: 'string',
+      description: 'Data final (YYYY-MM-DD)',
+      required: true,
+    },
+    {
+      name: 'formats',
+      type: 'array',
+      description: 'Formatos de exportação',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { platform, startDate, endDate, formats = ['csv', 'json', 'txt'] } = params;
+
+    try {
+      // Buscar dados de analytics
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-tools`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolName: 'get_analytics',
+          parameters: { platform, startDate, endDate },
+          userId: context?.userId,
+          organizationId: context?.organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados de analytics');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      const analyticsData = result.data;
+      const files = [];
+
+      // CSV
+      if (formats.includes('csv') && analyticsData.length > 0) {
+        const csvContent = [
+          'Data,Plataforma,Metrica,Valor,Mudanca',
+          ...analyticsData.map((item: any) => 
+            `${item.date},${item.platform},${item.metric},${item.value},${item.change || 'N/A'}`
+          )
+        ].join('\n');
+
+        files.push({
+          name: 'analytics.csv',
+          content: csvContent,
+          type: 'csv'
+        });
+      }
+
+      // JSON
+      if (formats.includes('json')) {
+        files.push({
+          name: 'analytics.json',
+          content: JSON.stringify({
+            platform,
+            startDate,
+            endDate,
+            data: analyticsData,
+            generatedAt: new Date().toISOString()
+          }, null, 2),
+          type: 'json'
+        });
+      }
+
+      // TXT
+      if (formats.includes('txt')) {
+        const txtContent = `
+EXPORTAÇÃO DE ANALYTICS - ${platform}
+Período: ${startDate} a ${endDate}
+Data de geração: ${new Date().toLocaleDateString('pt-BR')}
+
+DADOS:
+${analyticsData.length > 0 ? 
+  analyticsData.map((item: any) => 
+    `${item.date} | ${item.platform} | ${item.metric}: ${item.value} (${item.change || 'N/A'})`
+  ).join('\n') : 'Nenhum dado encontrado para o período especificado.'}
+
+EXPORTAÇÃO GERADA PELO SYNCADS AI
+        `.trim();
+
+        files.push({
+          name: 'analytics.txt',
+          content: txtContent,
+          type: 'text'
+        });
+      }
+
+      // Gerar ZIP
+      const zipResponse = await fetch(`${supabaseUrl}/functions/v1/generate-zip`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files,
+          zipName: `analytics-${platform.toLowerCase()}-${startDate}-${endDate}.zip`
+        }),
+      });
+
+      if (!zipResponse.ok) {
+        throw new Error('Erro ao gerar ZIP de analytics');
+      }
+
+      const zipResult = await zipResponse.json();
+      
+      if (!zipResult.success) {
+        throw new Error(zipResult.message);
+      }
+
+      return {
+        success: true,
+        message: `Exportação de analytics gerada com sucesso! Contém ${files.length} arquivo(s).`,
+        data: {
+          downloadUrl: zipResult.downloadUrl,
+          fileName: zipResult.fileName,
+          expiresAt: zipResult.expiresAt,
+          fileCount: files.length,
+          platform,
+          period: `${startDate} a ${endDate}`
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro ao gerar exportação: ${error.message}`,
+      };
+    }
+  },
+};
+
+// ============================================================================
 // ANALYTICS TOOLS
 // ============================================================================
 
@@ -494,6 +893,11 @@ export const AVAILABLE_TOOLS: Tool[] = [
   
   // Analytics
   getAnalyticsTool,
+  
+  // ZIP Generation
+  generateZipTool,
+  generateCampaignReportTool,
+  generateAnalyticsExportTool,
 ];
 
 /**
