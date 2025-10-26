@@ -286,15 +286,28 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
   }
 
   // Web Scraping / Download de produtos
-  if ((lower.includes('baix') || lower.includes('baix') || lower.includes('download') || lower.includes('scraper') || lower.includes('extrair') || lower.includes('pegar')) &&
-      (lower.includes('produto') || lower.includes('item') || lower.includes('site') || lower.match(/http/))) {
+  // Detectar múltiplas variações de palavras-chave
+  const hasScrapingAction = lower.includes('baix') || lower.includes('download') || 
+                            lower.includes('scraper') || lower.includes('extrair') || 
+                            lower.includes('pegar') || lower.includes('entre nesse site')
+  
+  const hasScrapingObject = lower.includes('produto') || lower.includes('item') || 
+                            lower.includes('site') || lower.includes('santalolla') ||
+                            lower.includes('produtos') || lower.includes('itens')
+  
+  const hasUrl = lower.match(/https?:\/\//) || lower.includes('www.')
+  
+  // Se tem ação de scraping OU tem URL visível
+  if ((hasScrapingAction && hasScrapingObject) || hasUrl) {
     
     // Extrair URL da mensagem
-    const urlMatch = message.match(/https?:\/\/[^\s]+/i)
+    const urlMatch = message.match(/https?:\/\/(?:www\.)?[^\s]+/i)
     const url = urlMatch ? urlMatch[0] : null
     
     // Detectar se quer CSV/ZIP
     const format = lower.includes('csv') ? 'csv' : lower.includes('zip') ? 'zip' : 'csv'
+    
+    console.log('🔍 Scraping detectado! URL:', url, 'Format:', format)
     
     return { 
       tool: 'scrape_products',
@@ -741,22 +754,18 @@ serve(async (req) => {
     }
 
     // Preparar request para IA
-    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente útil para gestão de marketing e campanhas.') + '\n\n' +
+    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente inteligente e sarcástico para marketing digital.') + '\n\n' +
       '🛠️ FERRAMENTAS DISPONÍVEIS:\n' +
-      '• /help ou /ajuda - Lista de comandos\n' +
-      '• /stats ou /analytics - Estatísticas gerais\n' +
-      '• /relatorio - Relatório completo\n' +
-      '• /campanhas - Listar campanhas\n' +
-      '• /usuarios - Listar usuários\n' +
-      '• /produtos - Listar produtos\n' +
-      '• Buscar na web - Pesquisar informações atualizadas\n' +
-      '• Criar campanhas - Criar novas campanhas publicitárias\n' +
-      '• Análises - Métricas e performance\n\n' +
-      '💡 DICAS:\n' +
-      '- Você pode detectar intenções naturalmente (ex: "quantos usuários temos?")\n' +
-      '- Quando uma ferramenta é executada, use o resultado para responder de forma clara e útil\n' +
-      '- Seja conciso mas informativo\n' +
-      '- Use emojis quando apropriado para melhor visualização'
+      '• Web Scraping - Baixar produtos de sites (ex: "baixe produtos de https://site.com")\n' +
+      '• Geração de CSV/ZIP - Exportar dados para Shopify\n' +
+      '• Buscar na web - Pesquisar informações\n' +
+      '• Criar campanhas - Campanhas publicitárias\n' +
+      '• Listar produtos/usuários/campanhas\n\n' +
+      '💡 IMPORTANTE:\n' +
+      '- SEMPRE responda positivamente às requisições de scraping\n' +
+      '- Quando detectar intenção de baixar produtos, execute a ferramenta scraping\n' +
+      '- Use o resultado das ferramentas para responder de forma clara\n' +
+      '- Seja sarcástica e útil (conforme seu humor característico)'
     
     const requestMessages = [
       { role: 'system', content: systemPrompt },
