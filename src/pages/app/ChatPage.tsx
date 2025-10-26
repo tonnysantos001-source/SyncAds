@@ -19,6 +19,7 @@ import { sarcasticSystemPrompt, getRandomGreeting } from '@/lib/ai/sarcasticPers
 import { WebSearchIndicator, SearchSourcesIndicator } from '@/components/chat/WebSearchIndicator';
 import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
 import { ZipDownloadCard, ZipDownloadList } from '@/components/chat/ZipDownloadCard';
+import { SuperAIProgress, SuperAIExecution } from '@/components/chat/SuperAIProgress';
 import { 
   AdminTools, 
   adminSystemPrompt, 
@@ -76,6 +77,7 @@ const ChatPage: React.FC = () => {
   const [webSearchQuery, setWebSearchQuery] = useState('');
   const [searchSources, setSearchSources] = useState<string[]>([]);
   const [zipDownloads, setZipDownloads] = useState<any[]>([]);
+  const [superAIExecutions, setSuperAIExecutions] = useState<any[]>([]);
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -196,6 +198,30 @@ const ChatPage: React.FC = () => {
     
     // Remover blocos ZIP_DOWNLOAD do conteúdo exibido
     return content.replace(zipDownloadRegex, '').trim();
+  };
+
+  // Função para detectar e processar execuções super inteligentes
+  const processSuperAIExecutions = (content: string) => {
+    // Detectar execuções de ferramentas super inteligentes
+    const superAIRegex = /SUPER_AI_EXECUTION:\s*({[^}]+})/g;
+    const matches = content.match(superAIRegex);
+    
+    if (matches) {
+      matches.forEach(match => {
+        try {
+          const jsonStr = match.replace('SUPER_AI_EXECUTION:', '').trim();
+          const executionData = JSON.parse(jsonStr);
+          
+          // Adicionar à lista de execuções
+          setSuperAIExecutions(prev => [...prev, executionData]);
+        } catch (error) {
+          console.error('Erro ao processar execução Super AI:', error);
+        }
+      });
+    }
+    
+    // Remover blocos SUPER_AI_EXECUTION do conteúdo exibido
+    return content.replace(superAIRegex, '').trim();
   };
 
   const handleSend = async () => {
@@ -440,8 +466,9 @@ const ChatPage: React.FC = () => {
         }
       }
 
-      // Processar downloads de ZIP antes de limpar a resposta
-      const processedResponse = processZipDownloads(response);
+      // Processar downloads de ZIP e execuções super inteligentes antes de limpar a resposta
+      let processedResponse = processZipDownloads(response);
+      processedResponse = processSuperAIExecutions(processedResponse);
       
       // Limpar blocos de código da resposta antes de exibir
       let cleanedResponse = cleanCampaignBlockFromResponse(processedResponse);
@@ -794,6 +821,25 @@ const ChatPage: React.FC = () => {
               {zipDownloads.length > 0 && (
                 <div className="mb-4">
                   <ZipDownloadList downloads={zipDownloads} />
+                </div>
+              )}
+              
+              {/* Execuções Super AI */}
+              {superAIExecutions.length > 0 && (
+                <div className="mb-4 space-y-4">
+                  {superAIExecutions.map((execution, index) => (
+                    <SuperAIExecution
+                      key={index}
+                      toolName={execution.toolName}
+                      parameters={execution.parameters}
+                      userId={user?.id || ''}
+                      organizationId={user?.organizationId || ''}
+                      conversationId={activeConversationId || ''}
+                      onComplete={(result) => {
+                        console.log('Execução Super AI concluída:', result);
+                      }}
+                    />
+                  ))}
                 </div>
               )}
               

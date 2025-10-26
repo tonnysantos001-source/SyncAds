@@ -399,6 +399,376 @@ export const createShopifyProductTool: Tool = {
 };
 
 // ============================================================================
+// SUPER AI TOOLS - Ferramentas Autônomas
+// ============================================================================
+
+export const superWebScraperTool: Tool = {
+  name: 'super_web_scraper',
+  description: 'Scraping inteligente de produtos com múltiplas abordagens e transparência total',
+  parameters: [
+    {
+      name: 'url',
+      type: 'string',
+      description: 'URL do site para fazer scraping',
+      required: true,
+    },
+    {
+      name: 'productSelectors',
+      type: 'object',
+      description: 'Seletores CSS para produtos (opcional)',
+      required: false,
+    },
+    {
+      name: 'downloadFormat',
+      type: 'string',
+      description: 'Formato de download (csv, json, zip)',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { url, productSelectors, downloadFormat = 'csv' } = params;
+
+    try {
+      // Chamar Edge Function super-ai-tools
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolName: 'scrape_products',
+          parameters: { url, productSelectors, downloadFormat },
+          userId: context?.userId,
+          organizationId: context?.organizationId,
+          conversationId: context?.conversationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro no scraping');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      return {
+        success: true,
+        message: result.message,
+        data: {
+          ...result.data,
+          steps: result.steps,
+          nextActions: result.nextActions,
+          downloadUrl: result.data?.downloadUrl,
+          fileName: result.data?.fileName
+        },
+        progress: {
+          status: 'completed',
+          currentStep: 'Scraping concluído',
+          totalSteps: result.steps?.length || 1,
+          currentStepNumber: result.steps?.length || 1,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro no scraping inteligente: ${error.message}`,
+        progress: {
+          status: 'failed',
+          currentStep: 'Erro na execução',
+          totalSteps: 1,
+          currentStepNumber: 1,
+        },
+      };
+    }
+  },
+};
+
+export const browserAutomationTool: Tool = {
+  name: 'browser_automation',
+  description: 'Automação completa do browser com navegação, cliques e extração de dados',
+  parameters: [
+    {
+      name: 'url',
+      type: 'string',
+      description: 'URL para navegar',
+      required: true,
+    },
+    {
+      name: 'actions',
+      type: 'array',
+      description: 'Lista de ações para executar (click, scroll, wait, extract)',
+      required: true,
+    },
+    {
+      name: 'waitTime',
+      type: 'number',
+      description: 'Tempo de espera entre ações (ms)',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { url, actions, waitTime = 3000 } = params;
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolName: 'browser_tool',
+          parameters: { url, actions, waitTime },
+          userId: context?.userId,
+          organizationId: context?.organizationId,
+          conversationId: context?.conversationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro na automação');
+      }
+
+      const result = await response.json();
+      
+      return {
+        success: result.success,
+        message: result.message,
+        data: {
+          ...result.data,
+          steps: result.steps,
+          actions: actions
+        },
+        progress: {
+          status: result.success ? 'completed' : 'failed',
+          currentStep: result.success ? 'Automação concluída' : 'Erro na automação',
+          totalSteps: result.steps?.length || actions.length,
+          currentStepNumber: result.steps?.length || actions.length,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro na automação do browser: ${error.message}`,
+        progress: {
+          status: 'failed',
+          currentStep: 'Erro na execução',
+          totalSteps: 1,
+          currentStepNumber: 1,
+        },
+      };
+    }
+  },
+};
+
+export const pythonDataProcessorTool: Tool = {
+  name: 'python_data_processor',
+  description: 'Processamento avançado de dados usando Python com bibliotecas especializadas',
+  parameters: [
+    {
+      name: 'data',
+      type: 'object',
+      description: 'Dados para processar',
+      required: true,
+    },
+    {
+      name: 'operation',
+      type: 'string',
+      description: 'Tipo de operação (clean, transform, analyze, export)',
+      required: true,
+    },
+    {
+      name: 'libraries',
+      type: 'array',
+      description: 'Bibliotecas Python necessárias',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { data, operation, libraries = [] } = params;
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context?.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolName: 'python_executor',
+          parameters: { data, operation, libraries },
+          userId: context?.userId,
+          organizationId: context?.organizationId,
+          conversationId: context?.conversationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro no processamento');
+      }
+
+      const result = await response.json();
+      
+      return {
+        success: result.success,
+        message: result.message,
+        data: {
+          ...result.data,
+          steps: result.steps,
+          operation,
+          libraries
+        },
+        progress: {
+          status: result.success ? 'completed' : 'failed',
+          currentStep: result.success ? 'Processamento concluído' : 'Erro no processamento',
+          totalSteps: result.steps?.length || 1,
+          currentStepNumber: result.steps?.length || 1,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro no processamento Python: ${error.message}`,
+        progress: {
+          status: 'failed',
+          currentStep: 'Erro na execução',
+          totalSteps: 1,
+          currentStepNumber: 1,
+        },
+      };
+    }
+  },
+};
+
+export const multiToolExecutorTool: Tool = {
+  name: 'multi_tool_executor',
+  description: 'Executa múltiplas ferramentas em sequência para tarefas complexas',
+  parameters: [
+    {
+      name: 'task',
+      type: 'string',
+      description: 'Descrição da tarefa complexa',
+      required: true,
+    },
+    {
+      name: 'tools',
+      type: 'array',
+      description: 'Lista de ferramentas e parâmetros para executar',
+      required: true,
+    },
+    {
+      name: 'strategy',
+      type: 'string',
+      description: 'Estratégia de execução (sequential, parallel, adaptive)',
+      required: false,
+    },
+  ],
+  requiresAuth: true,
+  execute: async (params, context) => {
+    const { task, tools, strategy = 'sequential' } = params;
+
+    try {
+      const results = [];
+      const allSteps = [];
+      
+      for (let i = 0; i < tools.length; i++) {
+        const tool = tools[i];
+        
+        allSteps.push({
+          step: `Executando ${tool.name}`,
+          status: 'running',
+          details: `Ferramenta ${i + 1} de ${tools.length}`
+        });
+
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const response = await fetch(`${supabaseUrl}/functions/v1/super-ai-tools`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${context?.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              toolName: tool.name,
+              parameters: tool.parameters,
+              userId: context?.userId,
+              organizationId: context?.organizationId,
+              conversationId: context?.conversationId,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro na ferramenta ${tool.name}`);
+          }
+
+          const result = await response.json();
+          results.push(result);
+          
+          allSteps.push({
+            step: `${tool.name} concluído`,
+            status: 'completed',
+            details: result.message
+          });
+
+        } catch (error) {
+          allSteps.push({
+            step: `${tool.name} falhou`,
+            status: 'failed',
+            error: error.message
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const totalCount = tools.length;
+
+      return {
+        success: successCount > 0,
+        message: `Execução concluída: ${successCount}/${totalCount} ferramentas executadas com sucesso`,
+        data: {
+          task,
+          strategy,
+          results,
+          successCount,
+          totalCount,
+          steps: allSteps
+        },
+        progress: {
+          status: successCount === totalCount ? 'completed' : 'partial',
+          currentStep: 'Execução multi-ferramenta concluída',
+          totalSteps: tools.length,
+          currentStepNumber: tools.length,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erro na execução multi-ferramenta: ${error.message}`,
+        progress: {
+          status: 'failed',
+          currentStep: 'Erro na execução',
+          totalSteps: 1,
+          currentStepNumber: 1,
+        },
+      };
+    }
+  },
+};
+
+// ============================================================================
 // ZIP GENERATION TOOLS
 // ============================================================================
 
@@ -893,6 +1263,12 @@ export const AVAILABLE_TOOLS: Tool[] = [
   
   // Analytics
   getAnalyticsTool,
+  
+  // Super AI Tools (Autônomas)
+  superWebScraperTool,
+  browserAutomationTool,
+  pythonDataProcessorTool,
+  multiToolExecutorTool,
   
   // ZIP Generation
   generateZipTool,
