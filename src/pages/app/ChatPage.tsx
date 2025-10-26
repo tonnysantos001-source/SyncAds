@@ -15,6 +15,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { sendSecureMessage } from '@/lib/api/chat';
 import { supabase } from '@/lib/supabase';
 import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
+import { sarcasticSystemPrompt, getRandomGreeting } from '@/lib/ai/sarcasticPersonality';
+import { WebSearchIndicator, SearchSourcesIndicator } from '@/components/chat/WebSearchIndicator';
 import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
 import { 
   AdminTools, 
@@ -66,6 +68,12 @@ const ChatPage: React.FC = () => {
     systemPrompt: string;
     initialGreetings: string[];
   } | null>(null);
+  
+  // Estados para pesquisa web
+  const [isWebSearching, setIsWebSearching] = useState(false);
+  const [webSearchResults, setWebSearchResults] = useState<any[]>([]);
+  const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [searchSources, setSearchSources] = useState<string[]>([]);
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -148,23 +156,21 @@ const ChatPage: React.FC = () => {
     loadGlobalAiConfig();
   }, [user?.organizationId]);
 
-  // Mensagem inicial removida temporariamente para testes
-  // useEffect(() => {
-  //   const greetings = globalAiConfig?.initialGreetings || aiInitialGreetings;
-  //   if (activeConversation && activeConversation.messages.length === 0 && greetings.length > 0) {
-  //     const randomIndex = Math.floor(Math.random() * greetings.length);
-  //     const greeting = greetings[randomIndex];
-  //     setTimeout(() => {
-  //       if (user) {
-  //         addMessage(user.id, activeConversationId!, { 
-  //           id: `greeting-${Date.now()}`, 
-  //           role: 'assistant', 
-  //           content: greeting 
-  //         });
-  //       }
-  //     }, 500);
-  //   }
-  // }, [activeConversationId, activeConversation?.messages.length, globalAiConfig]);
+  // Mensagem inicial sarcástica
+  useEffect(() => {
+    if (activeConversation && activeConversation.messages.length === 0) {
+      const greeting = getRandomGreeting();
+      setTimeout(() => {
+        if (user) {
+          addMessage(user.id, activeConversationId!, { 
+            id: `greeting-${Date.now()}`, 
+            role: 'assistant', 
+            content: greeting 
+          });
+        }
+      }, 500);
+    }
+  }, [activeConversationId, activeConversation?.messages.length]);
 
   const handleSend = async () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
@@ -184,8 +190,8 @@ const ChatPage: React.FC = () => {
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find((c: any) => c.id === activeConversationId);
       
-      // Usar systemPrompt da IA Global se disponível, senão usar fallback
-      const customPrompt = globalAiConfig?.systemPrompt || aiSystemPrompt;
+      // Usar systemPrompt da IA Global se disponível, senão usar fallback sarcástico
+      const customPrompt = globalAiConfig?.systemPrompt || sarcasticSystemPrompt;
       const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + customPrompt;
       
       const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
@@ -738,6 +744,23 @@ const ChatPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
           {activeConversation ? (
             <>
+              {/* Indicador de pesquisa web */}
+              {(isWebSearching || webSearchResults.length > 0) && (
+                <WebSearchIndicator
+                  isSearching={isWebSearching}
+                  searchResults={webSearchResults}
+                  searchQuery={webSearchQuery}
+                />
+              )}
+              
+              {/* Indicador de fontes pesquisadas */}
+              {searchSources.length > 0 && (
+                <SearchSourcesIndicator
+                  sources={searchSources}
+                  isSearching={isWebSearching}
+                />
+              )}
+              
               {activeConversation.messages.map((message: any) => {
                 // Detectar se é pedido de conexão de integração
                 const integrationMatch = message.content?.match(/INTEGRATION_CONNECT:(\w+):([^🔗]+)/);
