@@ -705,6 +705,19 @@ serve(async (req) => {
   console.log('Method:', req.method)
   console.log('URL:', req.url)
   
+  // === VALIDAÇÃO DE ENV VARS ===
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
+  const EXA_API_KEY = Deno.env.get('EXA_API_KEY')
+  const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY')
+  const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY')
+  
+  console.log(`${SUPABASE_URL ? '✅' : '❌'} SUPABASE_URL`)
+  console.log(`${SUPABASE_ANON_KEY ? '✅' : '❌'} SUPABASE_ANON_KEY`)
+  console.log(`${EXA_API_KEY ? '✅' : '❌'} EXA_API_KEY`)
+  console.log(`${TAVILY_API_KEY ? '⚠️' : '❌'} TAVILY_API_KEY`)
+  console.log(`${SERPER_API_KEY ? '⚠️' : '❌'} SERPER_API_KEY`)
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     console.log('✅ CORS preflight OK')
