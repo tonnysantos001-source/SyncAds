@@ -1,29 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 
 const DiscountsPage: React.FC = () => {
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
   const [discounts, setDiscounts] = useState({
     creditCard: '',
     pix: '',
     bankSlip: '',
   });
 
-  const handleSave = () => {
-    console.log('Salvando descontos:', discounts);
-    // Aqui você implementaria a lógica de salvar
+  useEffect(() => {
+    if (user?.organizationId) {
+      loadDiscounts();
+    }
+  }, [user?.organizationId]);
+
+  const loadDiscounts = async () => {
+    try {
+      setLoading(true);
+      
+      // Buscar descontos configurados da organização
+      const { data, error } = await supabase
+        .from('PaymentDiscount')
+        .select('*')
+        .eq('organizationId', user?.organizationId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setDiscounts({
+          creditCard: data.creditCard?.toString() || '',
+          pix: data.pix?.toString() || '',
+          bankSlip: data.bankSlip?.toString() || '',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar descontos:', error);
+      toast({
+        title: 'Erro ao carregar descontos',
+        description: 'Não foi possível carregar as configurações',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user?.organizationId) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('PaymentDiscount')
+        .upsert({
+          organizationId: user.organizationId,
+          creditCard: discounts.creditCard ? parseFloat(discounts.creditCard) : null,
+          pix: discounts.pix ? parseFloat(discounts.pix) : null,
+          bankSlip: discounts.bankSlip ? parseFloat(discounts.bankSlip) : null,
+          updatedAt: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Descontos salvos!',
+        description: 'Suas configurações foram salvas com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar descontos:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar os descontos',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    setDiscounts({
-      creditCard: '',
-      pix: '',
-      bankSlip: '',
-    });
+    loadDiscounts();
   };
 
   return (
@@ -119,14 +189,16 @@ const DiscountsPage: React.FC = () => {
               onClick={handleCancel}
               variant="outline"
               className="px-6"
+              disabled={saving || loading}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
               className="bg-pink-600 hover:bg-pink-700 text-white px-6"
+              disabled={saving || loading}
             >
-              Salvar
+              {saving ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </CardContent>

@@ -1,21 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 
 const RedirectPage: React.FC = () => {
+  const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
   const [urls, setUrls] = useState({
     cartao: '',
     boleto: '',
     pix: '',
   });
 
-  const handleSave = () => {
-    console.log('Salvando URLs:', urls);
-    // Aqui você implementaria a lógica de salvar
+  useEffect(() => {
+    if (user?.organizationId) {
+      loadRedirects();
+    }
+  }, [user?.organizationId]);
+
+  const loadRedirects = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('CheckoutRedirect')
+        .select('*')
+        .eq('organizationId', user?.organizationId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setUrls({
+          cartao: data.creditCardUrl || '',
+          boleto: data.bankSlipUrl || '',
+          pix: data.pixUrl || '',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar redirecionamentos:', error);
+      toast({
+        title: 'Erro ao carregar',
+        description: 'Não foi possível carregar as configurações',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user?.organizationId) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('CheckoutRedirect')
+        .upsert({
+          organizationId: user.organizationId,
+          creditCardUrl: urls.cartao,
+          bankSlipUrl: urls.boleto,
+          pixUrl: urls.pix,
+          updatedAt: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'URLs salvas!',
+        description: 'Suas configurações foram salvas com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar URLs:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar as URLs',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -96,8 +169,9 @@ const RedirectPage: React.FC = () => {
             <Button
               onClick={handleSave}
               className="bg-pink-600 hover:bg-pink-700 text-white px-8"
+              disabled={saving || loading}
             >
-              Salvar
+              {saving ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </CardContent>
