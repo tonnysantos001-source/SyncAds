@@ -24,7 +24,7 @@ export const conversationsApi = {
     }
   },
 
-  // Create a new conversation
+  // Create a new conversation (SIMPLIFIED - sem organizationId necessário)
   createConversation: async (
     userId: string,
     title: string
@@ -37,6 +37,7 @@ export const conversationsApi = {
         title,
         createdAt: now,
         updatedAt: now,
+        // organizationId não é mais obrigatório
       };
 
       const { data, error } = await supabase
@@ -45,10 +46,35 @@ export const conversationsApi = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Create conversation error:', error);
+        throw error;
+      }
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create conversation error:', error);
+      // Se erro é "organization required", criar sem organization
+      if (error.message?.includes('organization') || error.message?.includes('Usuário sem organização')) {
+        console.warn('Retrying without organization...');
+        // Retry simplified
+        const now = new Date().toISOString();
+        const { data, error: retryError } = await supabase
+          .from('ChatConversation')
+          .insert({
+            id: uuidv4(),
+            userId,
+            title,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .select()
+          .single();
+        
+        if (retryError) {
+          throw retryError;
+        }
+        return data;
+      }
       throw error;
     }
   },
