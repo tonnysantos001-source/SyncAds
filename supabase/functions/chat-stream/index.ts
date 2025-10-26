@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimit, createRateLimitResponse } from './_utils/rate-limiter.ts'
+import { circuitBreaker } from './_utils/circuit-breaker.ts'
+import { fetchWithTimeout } from './_utils/fetch-with-timeout.ts'
+import { retry } from './_utils/retry.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,24 +47,42 @@ async function webSearch(query: string): Promise<string> {
     // Tentar múltiplos providers em sequência
     let results = null
 
-    // 1. Tentar Exa AI (mais inteligente)
+    // 1. Tentar Exa AI (mais inteligente) - COM RETRY E CIRCUIT BREAKER
     const exaKey = Deno.env.get('EXA_API_KEY')
     if (exaKey) {
       try {
         console.log('🤖 Trying Exa AI Search...')
-        const exaResponse = await fetch('https://api.exa.ai/search', {
-          method: 'POST',
-          headers: {
-            'x-api-key': exaKey,
-            'Content-Type': 'application/json'
+        
+        const exaResponse = await retry(
+          async () => {
+            const cbResult = await circuitBreaker.execute('exa-search', async () => {
+              return await fetchWithTimeout(
+                'https://api.exa.ai/search',
+                {
+                  method: 'POST',
+                  headers: {
+                    'x-api-key': exaKey,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    query: query,
+                    numResults: 5,
+                    type: 'neural',
+                    useAutoprompt: true
+                  })
+                },
+                10000 // 10s timeout
+              )
+            })
+
+            if (!cbResult.success) {
+              throw new Error(cbResult.error || 'Circuit breaker open')
+            }
+
+            return cbResult.data
           },
-          body: JSON.stringify({
-            query: query,
-            numResults: 5,
-            type: 'neural',
-            useAutoprompt: true
-          })
-        })
+          { maxAttempts: 3 }
+        )
 
         if (exaResponse.ok) {
           const exaData = await exaResponse.json()
@@ -731,6 +753,21 @@ serve(async (req) => {
       console.error('Auth failed:', authError)
       throw new Error('Unauthorized')
     }
+
+    // Rate Limiting
+    console.log('⏱️ Checking rate limit...')
+    const rateLimitResult = await checkRateLimit(
+      user.id,
+      'chat-stream',
+      { maxRequests: 100, windowMs: 60000 } // 100 req/min
+    )
+
+    if (!rateLimitResult.allowed) {
+      console.log('❌ Rate limit exceeded')
+      return createRateLimitResponse(rateLimitResult)
+    }
+
+    console.log(`✅ Rate limit OK (${rateLimitResult.remaining}/${rateLimitResult.limit} remaining)`)
 
     // Get user's organization
     console.log('Fetching user organization...')
