@@ -41,6 +41,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               id: msg.id,
               role: msg.role.toLowerCase() as 'user' | 'assistant',
               content: msg.content,
+              timestamp: new Date(msg.createdAt),
             })),
           };
         })
@@ -85,6 +86,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set((state) => {
         const newConversations = state.conversations.map(conv => {
           if (conv.id === conversationId) {
+            // Verificar se a mensagem já existe para evitar duplicação
+            const messageExists = conv.messages.some(msg => msg.id === message.id);
+            if (messageExists) {
+              return conv;
+            }
             return { ...conv, messages: [...conv.messages, message] };
           }
           return conv;
@@ -104,7 +110,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       await conversationsApi.touchConversation(conversationId);
     } catch (error) {
       console.error('Add message error:', error);
-      // Optionally rollback the local change
+      // Rollback the local change on error
+      set((state) => {
+        const newConversations = state.conversations.map(conv => {
+          if (conv.id === conversationId) {
+            return { 
+              ...conv, 
+              messages: conv.messages.filter(msg => msg.id !== message.id) 
+            };
+          }
+          return conv;
+        });
+        return { conversations: newConversations };
+      });
     }
   },
 

@@ -525,8 +525,8 @@ const ChatPage: React.FC = () => {
     const initChat = async () => {
       if (!user) return;
       
-      // Carregar lista de conversas
-      await loadConversations();
+      // Carregar conversas usando o store (que já carrega mensagens)
+      await useChatStore.getState().loadConversations(user.id);
       
       // Se não houver conversas, criar a primeira automaticamente
       const { data: existingConversations } = await supabase
@@ -541,7 +541,7 @@ const ChatPage: React.FC = () => {
     };
 
     initChat();
-  }, []);
+  }, [user]);
 
   // Criar nova conversa
   const handleNewConversation = async () => {
@@ -578,8 +578,8 @@ const ChatPage: React.FC = () => {
       // Setar como ativa imediatamente
       setActiveConversationId(newId);
       
-      // Recarregar conversas para atualizar lista
-      await loadConversations();
+      // Recarregar conversas para atualizar lista usando o store
+      await useChatStore.getState().loadConversations(user.id);
       
       toast({
         title: '✅ Nova conversa criada!',
@@ -618,7 +618,7 @@ const ChatPage: React.FC = () => {
       }
 
       // Recarregar lista
-      await loadConversations();
+      await useChatStore.getState().loadConversations(user.id);
 
       toast({
         title: '🗑️ Conversa deletada',
@@ -719,15 +719,15 @@ const ChatPage: React.FC = () => {
                   <Menu className="h-5 w-5" />
                 </Button>
               )}
-              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
-                <Bot className="h-6 w-6 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
+                <Bot className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Chat com IA</h1>
-                <p className="text-sm text-gray-500">Assistente inteligente</p>
+                <h1 className="text-base sm:text-xl font-bold text-gray-900">Chat com IA</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Assistente inteligente</p>
               </div>
             </div>
-            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
+            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-xs sm:text-sm">
               <Sparkles className="h-3 w-3 mr-1" />
               Online
             </Badge>
@@ -735,7 +735,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
           {activeConversation ? (
             <>
               {activeConversation.messages.map((message: any) => {
@@ -781,20 +781,20 @@ const ChatPage: React.FC = () => {
                 
                 // Renderização normal de mensagem
                 return (
-                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <Card className={`max-w-[80%] ${
+                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+                    <Card className={`max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%] ${
                       message.role === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                         : 'bg-white'
                     }`}>
-                      <CardContent className="p-4">
+                      <CardContent className="p-3 sm:p-4">
                         <div className="flex items-start gap-2">
                           {message.role === 'assistant' && (
-                            <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                            <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-1 flex-shrink-0" />
                           )}
-                          <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
+                          <div className={`flex-1 whitespace-pre-wrap break-words text-xs sm:text-sm ${
                             message.role === 'user' ? 'text-white' : 'text-gray-900'
-                          }`}>
+                          }`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                             {message.content}
                           </div>
                         </div>
@@ -830,10 +830,10 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-200 p-4 bg-white/80 backdrop-blur-xl">
+        <div className="border-t border-gray-200 p-2 sm:p-4 bg-white/80 backdrop-blur-xl">
           <div className="hidden sm:flex gap-2 mb-2">
             {quickSuggestions.map(s => (
-              <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)}>
+              <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)} className="text-xs">
                 {s}
               </Button>
             ))}
@@ -849,23 +849,24 @@ const ChatPage: React.FC = () => {
                 }
               }}
               placeholder="Digite sua mensagem..."
-              className="w-full resize-none rounded-lg border bg-background p-3 pr-24 min-h-[48px]"
+              className="w-full resize-none rounded-lg border bg-background p-2 sm:p-3 pr-16 sm:pr-24 min-h-[40px] sm:min-h-[48px] text-sm"
               minRows={1}
               maxRows={5}
               maxLength={MAX_CHARS}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 flex gap-1">
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-              <Button type="button" size="icon" variant="ghost" onClick={handleAttachClick}>
-                <Paperclip className="h-5 w-5" />
+              <Button type="button" size="icon" variant="ghost" onClick={handleAttachClick} className="h-7 w-7 sm:h-8 sm:w-8">
+                <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 type="submit"
                 size="icon"
                 onClick={handleSend}
                 disabled={input.trim() === '' || !activeConversationId}
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
