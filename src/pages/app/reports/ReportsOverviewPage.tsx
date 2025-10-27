@@ -38,6 +38,13 @@ const ReportsOverviewPage: React.FC = () => {
     }
   }, [user?.organizationId]);
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   const loadCheckoutData = async () => {
     try {
       setMetrics(prev => ({ ...prev, loading: true }));
@@ -98,13 +105,6 @@ const ReportsOverviewPage: React.FC = () => {
       console.error('❌ [Reports] Erro ao carregar dados:', error);
       setMetrics(prev => ({ ...prev, loading: false }));
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
   };
 
   return (
