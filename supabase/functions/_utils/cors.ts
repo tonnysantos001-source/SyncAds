@@ -28,7 +28,7 @@ export function handlePreflightRequest() {
 /**
  * Helper para adicionar headers CORS em qualquer resposta
  */
-export function withCorsHeaders(headers: HeadersInit = {}) {
+export function withCorsHeaders(headers: Record<string, string> = {}) {
   return {
     ...corsHeaders,
     ...headers,
@@ -38,7 +38,7 @@ export function withCorsHeaders(headers: HeadersInit = {}) {
 /**
  * Helper para criar resposta JSON com CORS
  */
-export function jsonResponse(data: any, status: number = 200, extraHeaders: HeadersInit = {}) {
+export function jsonResponse(data: any, status: number = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: withCorsHeaders({
@@ -51,7 +51,7 @@ export function jsonResponse(data: any, status: number = 200, extraHeaders: Head
 /**
  * Helper para criar resposta de erro com CORS
  */
-export function errorResponse(message: string, status: number = 500, extraHeaders: HeadersInit = {}) {
+export function errorResponse(message: string, status: number = 500, extraHeaders: Record<string, string> = {}) {
   return new Response(
     JSON.stringify({ error: message }),
     {

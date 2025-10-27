@@ -19,7 +19,7 @@ export const SUPABASE_CONFIG = {
   // Funções disponíveis
   functions: {
     chat: '/chat',
-    chatStream: '/chat-stream',
+    chatStream: '/chat-stream-simple', // Versão simplificada que funciona com CORS
     superAiTools: '/super-ai-tools',
     advancedScraper: '/advanced-scraper',
     aiTools: '/ai-tools',
