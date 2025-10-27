@@ -191,7 +191,7 @@ function App() {
               <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
               <Route path="/checkout/customize" element={<CheckoutCustomizePage />} />
               <Route path="/checkout/social-proof" element={<SocialProofPage />} />
-              <Route path="/checkout/gateways" element={<GatewaysPage />} />
+              <Route path="/checkout/gateways" element={<CheckoutGatewaysPage />} />
               <Route path="/checkout/redirect" element={<RedirectPage />} />
               
               <Route path="/integrations" element={<IntegrationsPage />} />
