@@ -66,36 +66,43 @@ const UnifiedDashboardPage: React.FC = () => {
     averageTicket: 0,
   });
 
-  useEffect(() => {
-    if (user?.organizationId) {
-      loadDashboardData();
-      loadUserName();
-      checkCheckoutStatus();
-    }
-  }, [user?.organizationId]);
-
-  const checkCheckoutStatus = async () => {
+  const loadUserName = async () => {
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
+      
+      const { data: userData } = await supabase
+        .from('User')
+        .select('name, email')
+        .eq('id', user.id)
+        .single();
 
-      // Verificar se checkout está configurado
-      const [billing, domain, gateway, shipping] = await Promise.all([
-        checkBillingStatus(user.organizationId),
-        checkDomainStatus(user.organizationId),
-        checkGatewayStatus(user.organizationId),
-        checkShippingStatus(user.organizationId)
-      ]);
-
-      setBillingConfigured(billing);
-      setDomainConfigured(domain);
-      setGatewayConfigured(gateway);
-      setShippingConfigured(shipping);
-
-      // Se pelo menos 3 de 4 não estiverem configurados, mostrar onboarding
-      const configuredCount = [billing, domain, gateway, shipping].filter(Boolean).length;
-      setShowCheckoutOnboarding(configuredCount < 3);
+      console.log('🔍 [Dashboard] User data:', userData);
+      
+      if (userData) {
+        // Usar o campo name que foi salvo no cadastro
+        let name = '';
+        
+        if (userData.name) {
+          // Capitalizar primeira letra de cada palavra
+          name = userData.name.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+        } else if (userData.email) {
+          // Pegar parte antes do @ e capitalizar
+          const emailName = userData.email.split('@')[0];
+          name = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          name = 'Usuário';
+        }
+        
+        console.log('✅ [Dashboard] Nome carregado:', name);
+        setUserName(name);
+      }
     } catch (error) {
-      console.error('Erro ao verificar status do checkout:', error);
+      console.error('Erro ao carregar nome:', error);
+      // Fallback para email
+      const fallbackName = user?.email?.split('@')[0] || '';
+      setUserName(fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1));
     }
   };
 
@@ -153,45 +160,38 @@ const UnifiedDashboardPage: React.FC = () => {
     }
   };
 
-  const loadUserName = async () => {
+  const checkCheckoutStatus = async () => {
     try {
-      if (!user?.id) return;
-      
-      const { data: userData } = await supabase
-        .from('User')
-        .select('name, email')
-        .eq('id', user.id)
-        .single();
+      if (!user?.organizationId) return;
 
-      console.log('🔍 [Dashboard] User data:', userData);
-      
-      if (userData) {
-        // Usar o campo name que foi salvo no cadastro
-        let name = '';
-        
-        if (userData.name) {
-          // Capitalizar primeira letra de cada palavra
-          name = userData.name.split(' ').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          ).join(' ');
-        } else if (userData.email) {
-          // Pegar parte antes do @ e capitalizar
-          const emailName = userData.email.split('@')[0];
-          name = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-        } else {
-          name = 'Usuário';
-        }
-        
-        console.log('✅ [Dashboard] Nome carregado:', name);
-        setUserName(name);
-      }
+      // Verificar se checkout está configurado
+      const [billing, domain, gateway, shipping] = await Promise.all([
+        checkBillingStatus(user.organizationId),
+        checkDomainStatus(user.organizationId),
+        checkGatewayStatus(user.organizationId),
+        checkShippingStatus(user.organizationId)
+      ]);
+
+      setBillingConfigured(billing);
+      setDomainConfigured(domain);
+      setGatewayConfigured(gateway);
+      setShippingConfigured(shipping);
+
+      // Se pelo menos 3 de 4 não estiverem configurados, mostrar onboarding
+      const configuredCount = [billing, domain, gateway, shipping].filter(Boolean).length;
+      setShowCheckoutOnboarding(configuredCount < 3);
     } catch (error) {
-      console.error('Erro ao carregar nome:', error);
-      // Fallback para email
-      const fallbackName = user?.email?.split('@')[0] || '';
-      setUserName(fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1));
+      console.error('Erro ao verificar status do checkout:', error);
     }
   };
+
+  useEffect(() => {
+    if (user?.organizationId) {
+      loadDashboardData();
+      loadUserName();
+      checkCheckoutStatus();
+    }
+  }, [user?.organizationId]);
 
   const loadDashboardData = async () => {
     try {
