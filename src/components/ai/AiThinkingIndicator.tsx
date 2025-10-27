@@ -1,20 +1,40 @@
-import { Sparkles, Globe, Download, Code2 } from 'lucide-react';
+import { Sparkles, Globe, Download, Code2, Wifi, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import SonicIcon from './SonicIcon';
 
 interface AiThinkingIndicatorProps {
   isThinking: boolean;
   currentTool?: 'web_search' | 'web_scraping' | 'python_exec' | null;
   reasoning?: string;
   sources?: string[];
+  status?: 'thinking' | 'success' | 'error';
+  connectionStatus?: {
+    platform: string;
+    isConnected: boolean;
+  };
 }
 
 export default function AiThinkingIndicator({ 
   isThinking, 
   currentTool, 
   reasoning,
-  sources 
+  sources,
+  status = 'thinking',
+  connectionStatus
 }: AiThinkingIndicatorProps) {
   if (!isThinking) return null;
+
+  // Determinar emoção do Sonic baseado no status
+  const getEmotion = () => {
+    switch (status) {
+      case 'success':
+        return 'happy';
+      case 'error':
+        return 'angry';
+      default:
+        return 'thinking';
+    }
+  };
 
   const getToolIcon = () => {
     switch (currentTool) {
@@ -46,13 +66,8 @@ export default function AiThinkingIndicator({
     <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
       <div className="flex items-start gap-3">
         {/* Ícone Sonic 3D Azul */}
-        <div className="relative flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg animate-pulse">
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-3xl">🦔</div> {/* Sonic placeholder */}
-            </div>
-          </div>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-ping"></div>
+        <div className="relative flex-shrink-0 flex items-center justify-center">
+          <SonicIcon emotion={getEmotion()} size={48} />
         </div>
 
         {/* Conteúdo */}
@@ -85,6 +100,29 @@ export default function AiThinkingIndicator({
           )}
         </div>
       </div>
+
+      {/* Status de Conexão (se relevante) */}
+      {connectionStatus && (
+        <div className="mt-3 pt-3 border-t border-blue-200">
+          <div className="flex items-center gap-2">
+            {connectionStatus.isConnected ? (
+              <>
+                <Wifi className="h-3 w-3 text-green-500" />
+                <span className="text-xs text-gray-600">
+                  {connectionStatus.platform} conectado
+                </span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3 text-red-500" />
+                <span className="text-xs text-gray-600">
+                  {connectionStatus.platform} não conectado
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -152,7 +152,7 @@ export const IntegrationConnectionCard: React.FC<IntegrationConnectionCardProps>
             <Button
               onClick={handleConnect}
               disabled={connecting}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium shadow-sm hover:shadow transition-all disabled:opacity-60"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-60 disabled:transform-none"
             >
               {connecting ? (
                 <>
@@ -161,10 +161,9 @@ export const IntegrationConnectionCard: React.FC<IntegrationConnectionCardProps>
                 </>
               ) : (
                 <>
-                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <span className="mr-2 text-xl">{getPlatformIcon()}</span>
                   Connect {platformName}
+                  <ExternalLink className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>

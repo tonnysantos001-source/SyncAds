@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus, Sparkles, Loader2 } from 'lucide-react';
+import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus, Sparkles, Loader2, Mic } from 'lucide-react';
 import Textarea from 'react-textarea-autosize';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
@@ -20,6 +20,7 @@ import { WebSearchIndicator, SearchSourcesIndicator } from '@/components/chat/We
 import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
 import { ZipDownloadCard, ZipDownloadList } from '@/components/chat/ZipDownloadCard';
 import { SuperAIProgress, SuperAIExecution } from '@/components/chat/SuperAIProgress';
+import AiThinkingIndicator from '@/components/ai/AiThinkingIndicator';
 import { 
   AdminTools, 
   adminSystemPrompt, 
@@ -78,6 +79,17 @@ const ChatPage: React.FC = () => {
   const [searchSources, setSearchSources] = useState<string[]>([]);
   const [zipDownloads, setZipDownloads] = useState<any[]>([]);
   const [superAIExecutions, setSuperAIExecutions] = useState<any[]>([]);
+  
+  // Estados para indicador de pensamento da IA (consistência com AdminChatPage)
+  const [currentTool, setCurrentTool] = useState<'web_search' | 'web_scraping' | 'python_exec' | null>(null);
+  const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [aiSources, setAiSources] = useState<string[]>([]);
+  
+  // Estados para gravação de áudio
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -228,6 +240,34 @@ const ChatPage: React.FC = () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
 
     const userMessage = input;
+    
+    // Detectar qual ferramenta está sendo usada (consistência com AdminChatPage)
+    const lowerMessage = userMessage.toLowerCase();
+    if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') || 
+        lowerMessage.includes('google') || lowerMessage.includes('internet')) {
+      setCurrentTool('web_search');
+      let query = userMessage;
+      if (lowerMessage.includes('pesquis')) {
+        const match = userMessage.match(/pesquis[ae]\s+(.+)/i);
+        query = match ? match[1] : userMessage;
+      }
+      setAiReasoning(`Pesquisando na web sobre: "${query}"`);
+      setAiSources(['Google Search', 'Exa AI', 'Tavily']);
+    } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') || 
+               lowerMessage.includes('scrape')) {
+      setCurrentTool('web_scraping');
+      const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
+      setAiReasoning(urlMatch ? `Raspando dados de: ${urlMatch[0]}` : 'Raspando dados...');
+    } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
+               lowerMessage.includes('execute código')) {
+      setCurrentTool('python_exec');
+      setAiReasoning('Executando código Python para processar dados...');
+    } else {
+      setCurrentTool(null);
+      setAiReasoning('Processando sua solicitação...');
+      setAiSources([]);
+    }
+    
     if (user) {
       addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
     }
@@ -513,17 +553,187 @@ const ChatPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+  // Função para iniciar gravação de áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+        
+        // Upload do áudio
+        await uploadAudio(audioBlob);
+        
+        // Limpar stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
       toast({
-        title: "Arquivo Selecionado",
-        description: `O arquivo "${file.name}" está pronto para ser enviado (simulação).`,
-        variant: "info",
+        title: "🎤 Gravando...",
+        description: "Clique novamente para parar e enviar.",
+      });
+    } catch (error: any) {
+      console.error('Erro ao iniciar gravação:', error);
+      toast({
+        title: "❌ Erro",
+        description: "Não foi possível acessar o microfone.",
+        variant: "destructive",
       });
     }
-    if (event.target) {
-      event.target.value = '';
+  };
+
+  // Função para parar gravação
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Função para enviar áudio para Supabase Storage
+  const uploadAudio = async (audioBlob: Blob) => {
+    if (!user || !activeConversationId) return;
+
+    try {
+      toast({
+        title: "📤 Enviando áudio...",
+        description: "Aguarde...",
+      });
+
+      // Converter Blob para File
+      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { 
+        type: 'audio/webm' 
+      });
+
+      // Upload para Supabase Storage
+      const fileName = `${user.id}/audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
+      
+      const { data, error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, audioFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+
+      // Adicionar à mensagem
+      const audioInfo = `[🎤 Mensagem de áudio](${publicUrl})`;
+      setInput(prev => prev ? `${prev}\n\n${audioInfo}` : audioInfo);
+
+      toast({
+        title: "✅ Áudio enviado!",
+        description: "O áudio foi adicionado à mensagem.",
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao enviar áudio:', error);
+      toast({
+        title: "❌ Erro",
+        description: "Não foi possível enviar o áudio.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user || !activeConversationId) return;
+
+    try {
+      toast({
+        title: "📤 Upload iniciado",
+        description: `Enviando "${file.name}"...`,
+      });
+
+      // Upload para Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data, error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+
+      // Salvar anexo na tabela ChatAttachment
+      const { error: attachError } = await supabase
+        .from('ChatAttachment')
+        .insert({
+          messageId: '', // Será atualizado quando a mensagem for criada
+          fileName: file.name,
+          fileType: file.type,
+          fileUrl: publicUrl,
+          fileSize: file.size
+        });
+
+      if (attachError) {
+        console.error('Erro ao salvar anexo:', attachError);
+      }
+
+      // Adicionar URL da imagem/arquivo à mensagem
+      const fileInfo = file.type.startsWith('image/') 
+        ? `![${file.name}](${publicUrl})`
+        : `[${file.name}](${publicUrl})`;
+
+      // Enviar mensagem com o arquivo
+      const updatedInput = input ? `${input}\n\n${fileInfo}` : fileInfo;
+      
+      // Limpar input
+      setInput('');
+      
+      // Simular envio da mensagem
+      if (updatedInput.trim() && activeConversationId) {
+        handleSend(); // Usar a função existente que já lida com o envio
+      }
+
+      toast({
+        title: "✅ Arquivo enviado!",
+        description: `${file.name} foi enviado com sucesso.`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao fazer upload:', error);
+      toast({
+        title: "❌ Erro ao enviar arquivo",
+        description: error.message || "Não foi possível enviar o arquivo.",
+        variant: "destructive",
+      });
+    } finally {
+      // Limpar input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -913,6 +1123,16 @@ const ChatPage: React.FC = () => {
                   </div>
                 );
               })}
+              {/* Indicador de pensamento da IA com Sonic */}
+              {isAssistantTyping && (
+                <AiThinkingIndicator 
+                  isThinking={isAssistantTyping}
+                  currentTool={currentTool}
+                  reasoning={aiReasoning}
+                  sources={aiSources}
+                  status="thinking"
+                />
+              )}
               {isAssistantTyping && (
                 <div className="flex justify-start">
                   <Card className="bg-white">
@@ -961,8 +1181,24 @@ const ChatPage: React.FC = () => {
             />
             <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 flex gap-1">
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-              <Button type="button" size="icon" variant="ghost" onClick={handleAttachClick} className="h-7 w-7 sm:h-8 sm:w-8">
+              <Button 
+                type="button" 
+                size="icon" 
+                variant="ghost" 
+                onClick={handleAttachClick} 
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              >
                 <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+              <Button 
+                type="button" 
+                size="icon" 
+                variant="ghost"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={!activeConversationId}
+                className={`h-7 w-7 sm:h-8 sm:w-8 ${isRecording ? 'text-red-500 animate-pulse' : ''}`}
+              >
+                <Mic className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 type="submit"
