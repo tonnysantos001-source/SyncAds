@@ -5,17 +5,23 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ToolStep, ToolResult } from '@/lib/ai/superAITools'
+import ToolStepsIndicator from '@/components/ai/ToolStepsIndicator'
 
 interface SuperAIProgressProps {
-  result: ToolResult
+  result: ToolResult & { 
+    diagnosis?: any
+    templateCSV?: string
+  }
   onDownload?: (downloadUrl: string, fileName: string) => void
   onRetry?: () => void
+  onDownloadTemplate?: (csvContent: string) => void
 }
 
 export const SuperAIProgress: React.FC<SuperAIProgressProps> = ({
   result,
   onDownload,
-  onRetry
+  onRetry,
+  onDownloadTemplate
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(true)
@@ -99,70 +105,11 @@ export const SuperAIProgress: React.FC<SuperAIProgressProps> = ({
           <Progress value={progressPercentage} className="h-2" />
         </div>
 
-        {/* Lista de etapas */}
+        {/* Lista de etapas - Usando novo componente */}
         {result.steps && result.steps.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-gray-700">Etapas de Execução:</h4>
-            <div className="space-y-2">
-              {result.steps.map((step, index) => {
-                const status = getStepStatus(step, index)
-                const isActive = index === currentStepIndex
-                
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
-                      isActive ? 'bg-blue-50 border border-blue-200' : ''
-                    } ${
-                      status === 'completed' ? 'bg-green-50' : ''
-                    } ${
-                      status === 'failed' ? 'bg-red-50' : ''
-                    }`}
-                  >
-                    {getStepIcon(step, index)}
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${
-                          status === 'completed' ? 'text-green-700' :
-                          status === 'failed' ? 'text-red-700' :
-                          status === 'running' ? 'text-blue-700' :
-                          'text-gray-700'
-                        }`}>
-                          {step.step}
-                        </span>
-                        
-                        <Badge 
-                          variant={
-                            status === 'completed' ? 'default' :
-                            status === 'failed' ? 'destructive' :
-                            status === 'running' ? 'secondary' :
-                            'outline'
-                          }
-                          className="text-xs"
-                        >
-                          {status === 'completed' ? 'Concluído' :
-                           status === 'failed' ? 'Falhou' :
-                           status === 'running' ? 'Executando' :
-                           'Pendente'}
-                        </Badge>
-                      </div>
-                      
-                      {step.details && (
-                        <p className="text-xs text-gray-600 mt-1">{step.details}</p>
-                      )}
-                      
-                      {step.error && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <AlertCircle className="h-3 w-3 text-red-500" />
-                          <p className="text-xs text-red-600">{step.error}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <ToolStepsIndicator steps={result.steps} showCode={true} />
           </div>
         )}
 
@@ -190,6 +137,69 @@ export const SuperAIProgress: React.FC<SuperAIProgressProps> = ({
                 {JSON.stringify(result.data, null, 2)}
               </pre>
             </div>
+          </div>
+        )}
+
+        {/* Diagnóstico de Erro */}
+        {result.diagnosis && (
+          <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <h4 className="text-sm font-semibold text-yellow-900">Diagnóstico:</h4>
+                <p className="text-sm text-yellow-800">{result.diagnosis.explanation}</p>
+                
+                {result.diagnosis.solutions && result.diagnosis.solutions.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-yellow-900 mb-1">Soluções sugeridas:</p>
+                    <ul className="space-y-1">
+                      {result.diagnosis.solutions.map((solution: string, idx: number) => (
+                        <li key={idx} className="text-xs text-yellow-700 flex items-start gap-2">
+                          <span>•</span>
+                          <span>{solution}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Template CSV Fallback */}
+        {result.templateCSV && onDownloadTemplate && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-blue-600" />
+                <h4 className="text-sm font-semibold text-blue-900">
+                  Template CSV Gerado
+                </h4>
+              </div>
+            </div>
+            <p className="text-xs text-blue-700 mb-3">
+              Como o site não pôde ser acessado, geramos um template CSV com dados de exemplo que você pode usar.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const blob = new Blob([result.templateCSV!], { type: 'text/csv' })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `produtos-template-${Date.now()}.csv`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+              }}
+              className="w-full"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Baixar Template CSV
+            </Button>
           </div>
         )}
 

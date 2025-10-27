@@ -242,11 +242,16 @@ async function executeWebScraper(params: any, supabase: any): Promise<ToolResult
   const { url, selectors = null, approach = 'auto', userAgent = null } = params
   const steps = []
 
+  console.log('🕷️ INICIANDO SCRAPING com estratégia:', approach)
+  console.log('📋 Parâmetros:', { url, selectors, userAgent })
+
   try {
     steps.push({
       step: 'Iniciando scraping',
       status: 'running',
-      details: `Analisando ${url}`
+      details: `Analisando ${url}`,
+      strategy: approach,
+      current_step: 'SCRAPING_START'
     })
 
     // 1. FETCH HTML
@@ -258,17 +263,205 @@ async function executeWebScraper(params: any, supabase: any): Promise<ToolResult
 
     const fetchUrl = url
 
+    // Headers completos para evitar 403/anti-bot
     const headers: Record<string, string> = {
-      'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Cache-Control': 'max-age=0',
+      'Referer': url.includes('/') ? url.substring(0, url.indexOf('/', 8)) : url
     }
 
-    const response = await fetch(fetchUrl, { headers })
+    steps.push({
+      step: 'Headers configurados',
+      status: 'completed',
+      details: 'Headers anti-bot aplicados'
+    })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    // Tentar múltiplas estratégias se 403
+    let response: Response
+    let html = ''
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (attempts < maxAttempts) {
+      try {
+        response = await fetch(fetchUrl, { 
+          headers,
+          redirect: 'follow',
+          mode: 'cors'
+        })
+
+        if (response.status === 403) {
+          steps.push({
+            step: `Tentativa ${attempts + 1} bloqueada (403)`,
+            status: 'running',
+            details: 'Site com proteção anti-bot detectado'
+          })
+
+          // Aumentar delay entre tentativas
+          if (attempts < maxAttempts - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * (attempts + 1)))
+          }
+          attempts++
+        } else {
+          break
+        }
+      } catch (error) {
+        attempts++
+        if (attempts >= maxAttempts) {
+          throw error
+        }
+      }
     }
 
-    const html = await response.text()
+    if (!response!.ok) {
+      steps.push({
+        step: 'Erro ao acessar página',
+        status: 'failed',
+        error: `HTTP ${response!.status}: ${response!.statusText}`
+      })
+      
+      // Se 403, tentar automaticamente com Python
+      if (response!.status === 403) {
+        steps.push({
+          step: 'Tentando com Python executor',
+          status: 'running',
+          details: 'Usando BeautifulSoup para contornar anti-bot'
+        })
+        
+        // Importar e executar Python automaticamente
+        const { executePython } = await import('./python-executor.ts')
+        
+        const pythonCode = `import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from urllib.parse import urljoin
+import json
+
+url = "${url}"
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9',
+    'Referer': url.split('/nav')[0] if '/nav' in url else url
+}
+
+try:
+    response = requests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+    products = []
+    
+    # Detectar produtos
+    for item in soup.find_all(['div', 'article', 'li'], class_=lambda x: x and x and ('product' in x.lower() or 'item' in x.lower())):
+        try:
+            name_elem = item.find(['h1', 'h2', 'h3', 'h4', 'a', 'span'], class_=lambda x: x and ('name' in str(x).lower() or 'title' in str(x).lower() or 'produto' in str(x).lower()))
+            name = name_elem.text.strip() if name_elem else 'Produto sem nome'
+            
+            price_elem = item.find(['span', 'div', 'strong'], class_=lambda x: x and ('price' in str(x).lower() or 'valor' in str(x).lower() or 'preco' in str(x).lower())) or item.find(text=lambda x: x and 'R$' in str(x))
+            price_text = price_elem.text.strip() if hasattr(price_elem, 'text') else str(price_elem) if price_elem else '0'
+            
+            # Limpar preço
+            price_clean = price_text.replace('R$', '').replace(' ', '').replace('\n', '').strip()
+            price_clean = price_clean.replace('.', '').replace(',', '.')
+            price = float(price_clean) if price_clean.replace('.', '').isdigit() else 0
+            
+            img = item.find('img')
+            img_url = urljoin(url, img['src']) if img and img.get('src') else ''
+            
+            link = item.find('a')
+            link_url = urljoin(url, link['href']) if link and link.get('href') else ''
+            
+            # Reduzir 60%
+            new_price = price * 0.4
+            
+            products.append({
+                'Nome': name,
+                'Preço Original': price,
+                'Preço Novo': round(new_price, 2),
+                'Imagem': img_url,
+                'Link': link_url
+            })
+        except Exception as e:
+            continue
+    
+    result = {
+        'success': True,
+        'total': len(products),
+        'products': products[:50],  # Limitar a 50
+        'csv_data': pd.DataFrame(products).to_csv(index=False) if products else ''
+    }
+    print(json.dumps(result))
+    
+except Exception as e:
+    print(json.dumps({'success': False, 'error': str(e)}))
+`
+        
+        // Executar Python
+        const pythonResult = await executePython(pythonCode, ['requests', 'beautifulsoup4', 'pandas'], 60000)
+        
+        if (pythonResult.success) {
+          // Parse do resultado
+          const output = pythonResult.output
+          let products: any[] = []
+          
+          try {
+            // Tentar extrair JSON da saída
+            const jsonMatch = output.match(/\{[\s\S]*\}/)
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0])
+              products = parsed.products || []
+              
+              steps.push({
+                step: 'Python executado com sucesso',
+                status: 'completed',
+                details: `${parsed.total} produtos encontrados`
+              })
+              
+              return {
+                success: true,
+                message: `✓ ${parsed.total} produtos extraídos com Python!`,
+                data: {
+                  total: parsed.total,
+                  products: products,
+                  csvData: parsed.csv_data,
+                  method: 'python_beautifulsoup'
+                },
+                steps
+              }
+            }
+          } catch (e) {
+            // Fallback
+          }
+          
+          return {
+            success: false,
+            message: 'Python executou mas não retornou dados válidos',
+            steps,
+            data: { pythonOutput: output }
+          }
+        } else {
+          return {
+            success: false,
+            message: `Python falhou: ${pythonResult.error}`,
+            steps,
+            data: { pythonError: pythonResult.error }
+          }
+        }
+      }
+      
+      throw new Error(`HTTP ${response!.status}: ${response!.statusText}`)
+    }
+
+    html = await response!.text()
 
     steps.push({
       step: 'HTML recebido',
@@ -389,6 +582,59 @@ function detectCommonSelectors(html: string) {
   }
 
   return selectors
+}
+
+// Função auxiliar para gerar script Python automatizado
+function generatePythonScraper(url: string, selectors: any): string {
+  return `#!/usr/bin/env python3
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+from urllib.parse import urljoin
+
+def scrape_products(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+    }
+    
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    products = []
+    # Detectar produtos automaticamente
+    for item in soup.find_all(['div', 'article', 'li'], class_=lambda x: x and ('product' in x.lower() or 'item' in x.lower())):
+        try:
+            name = item.find(['h1', 'h2', 'h3', 'h4', 'a']).text.strip()
+            price_elem = item.find(['span', 'div'], class_=lambda x: x and 'price' in str(x).lower())
+            price = float(price_elem.text.replace('R$', '').replace('.', '').replace(',', '.').strip()) if price_elem else 0
+            img = item.find('img')
+            img_url = urljoin(url, img['src']) if img and img.get('src') else ''
+            link = item.find('a')
+            link_url = urljoin(url, link['href']) if link else ''
+            
+            # Reduzir preço em 60%
+            new_price = price * 0.4
+            
+            products.append({
+                'Nome': name,
+                'Preço Original': price,
+                'Preço Novo': new_price,
+                'Imagem': img_url,
+                'Link': link_url,
+                'Variações': ''
+            })
+        except:
+            continue
+    
+    df = pd.DataFrame(products)
+    df.to_csv('products.csv', index=False, encoding='utf-8-sig')
+    return products
+
+scrape_products('${url}')
+print(f"✓ {len(products)} produtos exportados para products.csv")`
 }
 
 // Função auxiliar para extrair dados do HTML
@@ -1243,18 +1489,86 @@ async function executeScrapeProducts(
     }
 
   } catch (error: any) {
+    const errorMessage = error.message || String(error)
+    const diagnosis = diagnoseScrapingError(errorMessage, url)
+    
     steps.push({
       step: 'Erro no scraping',
       status: 'failed',
-      error: error.message
+      error: errorMessage,
+      diagnosis: diagnosis
     })
 
+    // Gerar template CSV como fallback
+    const templateCSV = generateTemplateCSV(url)
+    
     return {
       success: false,
-      message: `Erro ao fazer scraping: ${error.message}`,
+      message: `Erro ao fazer scraping: ${errorMessage}`,
+      diagnosis,
+      templateCSV,
       steps
     }
   }
+}
+
+// Função para diagnosticar erros de scraping
+function diagnoseScrapingError(errorMessage: string, url: string): any {
+  const errorLower = errorMessage.toLowerCase()
+  
+  // Diagnóstico de 403
+  if (errorLower.includes('403') || errorLower.includes('forbidden')) {
+    return {
+      type: 'anti_bot',
+      severity: 'high',
+      explanation: 'Site bloqueou o acesso (proteção anti-bot)',
+      solutions: [
+        'Tentar com Python/BeautifulSoup (automaticamente)',
+        'Usar proxies ou VPN',
+        'Aguardar e tentar novamente em alguns minutos'
+      ],
+      suggestion: 'Vou tentar automaticamente com Python executor para contornar o bloqueio.'
+    }
+  }
+  
+  // Diagnóstico de timeout
+  if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+    return {
+      type: 'timeout',
+      severity: 'medium',
+      explanation: 'Site demorou muito para responder',
+      solutions: [
+        'Tentar novamente (pode ser congestionamento temporário)',
+        'Verificar se o site está online'
+      ],
+      suggestion: 'O site está lento. Tentando novamente...'
+    }
+  }
+  
+  // Diagnóstico padrão
+  return {
+    type: 'unknown',
+    severity: 'medium',
+    explanation: 'Erro não identificado',
+    solutions: [
+      'Verificar se URL está acessível',
+      'Tentar com Python executor'
+    ],
+    suggestion: 'Tentando alternativas de scraping...'
+  }
+}
+
+// Função para gerar template CSV como fallback
+function generateTemplateCSV(url: string): string {
+  // Detectar tipo de site pela URL
+  const domain = url.includes('centauro') ? 'centauro' : 
+                 url.includes('magazine') ? 'magazine' : 
+                 url.includes('casasbahia') ? 'casas bahia' : 'e-commerce'
+  
+  return `Nome,Preço Original,Preço Novo (60% off),Imagem,Link,Variações
+Produto Exemplo 1,R$ 100.00,R$ 40.00,https://exemplo.com/imagem1.jpg,https://exemplo.com/produto1,Cor/Variação
+Produto Exemplo 2,R$ 150.00,R$ 60.00,https://exemplo.com/imagem2.jpg,https://exemplo.com/produto2,Cor/Variação
+Produto Exemplo 3,R$ 200.00,R$ 80.00,https://exemplo.com/imagem3.jpg,https://exemplo.com/produto3,Cor/Variação`
 }
 
 // Função auxiliar para gerar CSV
