@@ -184,8 +184,8 @@ export default function AdminChatPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // URL hardcoded para evitar problema de env vars (usando versão que realmente usa IA)
-      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-stream-working';
+      // URL hardcoded para evitar problema de env vars (usando função chat-enhanced com persistência e personalidade)
+      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced';
       
       console.log('🌐 Calling chat-stream (Admin):', chatUrl);
       
@@ -199,6 +199,8 @@ export default function AdminChatPage() {
         body: JSON.stringify({
           message: userMessage,
           conversationId: convId,
+          conversationHistory: [], // Histórico vazio por enquanto
+          systemPrompt: undefined // Usa o padrão da função
         }),
       });
 
