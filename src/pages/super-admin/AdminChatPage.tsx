@@ -208,7 +208,21 @@ export default function AdminChatPage() {
       }
 
       const data = await response.json();
-      return data.response || 'Sem resposta';
+      console.log('📦 Response data:', data);
+      
+      // Verificar se houve erro na resposta
+      if (data.error) {
+        console.error('❌ Erro na resposta:', data.error);
+        return `⚠️ ${data.response || data.error}`;
+      }
+      
+      // Retornar resposta ou mensagem de fallback
+      if (!data.response || data.response === 'Sem resposta da IA') {
+        console.error('❌ IA não retornou resposta válida');
+        return '⚠️ IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.';
+      }
+      
+      return data.response;
       
     } catch (error: any) {
       console.error('Admin chat error:', error);

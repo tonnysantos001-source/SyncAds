@@ -73,18 +73,23 @@ serve(async (req) => {
       .single()
 
     if (orgAiError || !orgAi) {
+      console.log('⚠️ Não encontrou orgAi, tentando Global AI...')
+      
       // Fallback: usar qualquer IA global ativa
-      const { data: globalAi } = await supabase
+      const { data: globalAi, error: globalAiError } = await supabase
         .from('GlobalAiConnection')
         .select('*')
         .eq('isActive', true)
         .limit(1)
-        .single()
+        .maybeSingle()
 
-      if (!globalAi) {
+      console.log('Global AI encontrado:', globalAi?.name, 'Error:', globalAiError?.message)
+
+      if (!globalAi || !globalAi.apiKey) {
+        console.log('❌ Nenhuma IA configurada com API key')
         return new Response(JSON.stringify({ 
           error: 'No AI configured',
-          response: '⚠️ Nenhuma IA configurada. Configure uma IA nas configurações de IA.' 
+          response: '⚠️ Nenhuma IA configurada. Configure uma IA em Configurações > IA Global.' 
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -94,15 +99,27 @@ serve(async (req) => {
       // Use Global AI
       const finalSystemPrompt = 'Você é um assistente de IA inteligente. Responda de forma clara e objetiva.'
       
+      console.log('🤖 Chamando IA:', globalAi.provider, globalAi.model)
+      
+      // Build correct API URL
+      let apiUrl = 'https://api.openai.com/v1/chat/completions'
+      if (globalAi.baseUrl) {
+        apiUrl = globalAi.baseUrl.endsWith('/') 
+          ? `${globalAi.baseUrl}chat/completions`
+          : `${globalAi.baseUrl}/chat/completions`
+      }
+      
+      console.log('🔗 URL da API:', apiUrl)
+      
       // Call OpenAI-compatible API
-      const aiResponse = await fetch(globalAi.baseUrl || 'https://api.openai.com/v1/chat/completions', {
+      const aiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${globalAi.apiKey}`
         },
         body: JSON.stringify({
-          model: globalAi.model || 'gpt-4',
+          model: globalAi.model || 'gpt-4-turbo',
           messages: [
             { role: 'system', content: finalSystemPrompt },
             { role: 'user', content: message }
@@ -112,8 +129,21 @@ serve(async (req) => {
         })
       })
 
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text()
+        console.error('❌ Erro na API:', errorText)
+        return new Response(JSON.stringify({ 
+          response: '⚠️ Erro ao chamar IA. Verifique as configurações de API key.' 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       const aiData = await aiResponse.json()
       const response = aiData.choices?.[0]?.message?.content || 'Sem resposta da IA'
+      
+      console.log('✅ Resposta recebida:', response.substring(0, 50))
 
       return new Response(JSON.stringify({ response }), {
         status: 200,
