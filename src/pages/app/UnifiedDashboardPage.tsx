@@ -159,20 +159,21 @@ const UnifiedDashboardPage: React.FC = () => {
       
       const { data: userData } = await supabase
         .from('User')
-        .select('name, firstName, lastName, email')
+        .select('name, email')
         .eq('id', user.id)
         .single();
 
-      console.log('User data:', userData);
+      console.log('🔍 [Dashboard] User data:', userData);
       
       if (userData) {
-        // Tentar firstName + lastName, senão name, senão email
+        // Usar o campo name que foi salvo no cadastro
         let name = '';
         
-        if (userData.firstName && userData.lastName) {
-          name = `${userData.firstName} ${userData.lastName}`;
-        } else if (userData.name) {
-          name = userData.name;
+        if (userData.name) {
+          // Capitalizar primeira letra de cada palavra
+          name = userData.name.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
         } else if (userData.email) {
           // Pegar parte antes do @ e capitalizar
           const emailName = userData.email.split('@')[0];
@@ -181,7 +182,7 @@ const UnifiedDashboardPage: React.FC = () => {
           name = 'Usuário';
         }
         
-        console.log('Nome carregado:', name);
+        console.log('✅ [Dashboard] Nome carregado:', name);
         setUserName(name);
       }
     } catch (error) {
@@ -396,314 +397,6 @@ const UnifiedDashboardPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Stats Cards (apenas se tudo configurado) */}
-      {!showCheckoutOnboarding && (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total de Campanhas */}
-              <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Campanhas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-          <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{data.totalCampaigns}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Campanhas ativas e concluídas</p>
-                </CardContent>
-              </Card>
-
-        {/* Total de Pedidos */}
-              <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{data.totalOrders}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">{data.paidOrders} pagos</p>
-                </CardContent>
-              </Card>
-            
-        {/* Receita Total */}
-              <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-amber-600" />
-                </CardHeader>
-                <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{formatCurrency(data.totalRevenue)}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">De todos os pedidos pagos</p>
-                </CardContent>
-              </Card>
-
-        {/* Total de Transações */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Transações</CardTitle>
-            <CreditCard className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{data.totalTransactions}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Transações de pagamento</p>
-          </CardContent>
-        </Card>
-
-        {/* Total de Clientes */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-            <Users className="h-4 w-4 text-indigo-600" />
-                  </CardHeader>
-          <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{data.totalCustomers}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Clientes cadastrados</p>
-                  </CardContent>
-                </Card>
-
-        {/* Total de Produtos */}
-            <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <Package className="h-4 w-4 text-pink-600" />
-              </CardHeader>
-              <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{data.totalProducts}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Produtos cadastrados</p>
-              </CardContent>
-            </Card>
-
-        {/* Pagamentos Pendentes */}
-              <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pagamentos Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-                </CardHeader>
-                <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">{formatCurrency(data.pendingPayments)}</div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Aguardando pagamento</p>
-                </CardContent>
-              </Card>
-
-        {/* Taxa de Conversão */}
-              <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-            {data.loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-3xl font-bold text-gray-900">
-                {data.totalOrders > 0 
-                  ? `${((data.paidOrders / data.totalOrders) * 100).toFixed(1)}%`
-                  : '0%'
-                }
-                        </div>
-            )}
-            <p className="text-xs text-gray-600 mt-1">Pedidos pagos vs totais</p>
-                </CardContent>
-              </Card>
-      </div>
-      )}
-
-      {/* Gráficos de Métricas de Pagamento */}
-      {!showCheckoutOnboarding && !data.loading && paymentMetrics.totalTransactions > 0 && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Gráfico Pizza - Status das Transações */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                Status das Transações
-              </CardTitle>
-              <CardDescription>Distribuição de pagamentos por status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center">
-                <Pie
-                  data={{
-                    labels: ['Pagos', 'Pendentes', 'Falhados'],
-                    datasets: [{
-                      data: [
-                        paymentMetrics.paidTransactions,
-                        paymentMetrics.pendingTransactions,
-                        paymentMetrics.failedTransactions
-                      ],
-                      backgroundColor: [
-                        'rgb(34, 197, 94)', // green
-                        'rgb(251, 191, 36)', // yellow
-                        'rgb(239, 68, 68)', // red
-                      ],
-                      borderWidth: 2,
-                      borderColor: '#ffffff'
-                    }]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Gráfico Pizza - Receita por Método */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-purple-600" />
-                Receita por Método de Pagamento
-              </CardTitle>
-              <CardDescription>Distribuição de receita por meio de pagamento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center">
-                {Object.keys(paymentMetrics.revenueByMethod).length > 0 ? (
-                  <Pie
-                    data={{
-                      labels: Object.keys(paymentMetrics.revenueByMethod),
-                      datasets: [{
-                        data: Object.values(paymentMetrics.revenueByMethod),
-                        backgroundColor: [
-                          'rgb(59, 130, 246)', // blue
-                          'rgb(16, 185, 129)', // green
-                          'rgb(139, 92, 246)', // purple
-                          'rgb(236, 72, 153)', // pink
-                          'rgb(249, 115, 22)', // orange
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                      }]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: function(context) {
-                              const value = context.parsed;
-                              return formatCurrency(value);
-                            }
-                          }
-                        }
-                      },
-                    }}
-                  />
-                ) : (
-                  <p className="text-gray-500">Sem dados de receita por método</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Métricas de Performance */}
-      {!data.loading && paymentMetrics.totalTransactions > 0 && (
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Taxa de Conversão */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {paymentMetrics.conversionRate.toFixed(1)}%
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                {paymentMetrics.paidTransactions} de {paymentMetrics.totalTransactions} transações
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Ticket Médio */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">
-                {formatCurrency(paymentMetrics.averageTicket)}
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Valor médio por transação
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Total de Receita */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
-                {formatCurrency(data.totalRevenue)}
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                De todas as transações pagas
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Alert se não houver dados */}
-      {!data.loading && data.totalOrders === 0 && data.totalCampaigns === 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div>
-                <h3 className="font-semibold text-yellow-900">Nenhum dado encontrado</h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Comece criando campanhas e fazendo vendas para ver dados aqui.
-                </p>
-            </div>
-          </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
-
-export default UnifiedDashboardPage;
