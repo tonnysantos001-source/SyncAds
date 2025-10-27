@@ -77,7 +77,7 @@ export default function CheckoutOnboardingPage() {
           description: 'Verifique seu domínio. Deve ser o mesmo utilizado na Shopify, WooCommerce ou na sua landing page.',
           icon: Monitor,
           status: domainStatus ? 'completed' : 'pending',
-          route: '/checkout/domain'
+          route: domainStatus ? '/checkout/domain' : '/checkout/domain'
         },
         {
           id: 'gateway',
@@ -93,7 +93,7 @@ export default function CheckoutOnboardingPage() {
           description: 'Crie métodos de entrega para ser exibido no seu checkout.',
           icon: Truck,
           status: shippingStatus ? 'completed' : 'pending',
-          route: '/checkout/shipping'
+          route: shippingStatus ? '/checkout/shipping' : '/checkout/shipping'
         }
       ];
 

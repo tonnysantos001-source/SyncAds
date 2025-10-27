@@ -35,7 +35,7 @@ const OrganizationsPage = lazy(() => import('./pages/super-admin/OrganizationsPa
 const ClientsPage = lazy(() => import('./pages/super-admin/ClientsPage'));
 const BillingPage = lazy(() => import('./pages/super-admin/BillingPage'));
 const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
-const GatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
+const SuperAdminGatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
 const OAuthConfigPage = lazy(() => import('./pages/super-admin/OAuthConfigPage'));
 
@@ -75,6 +75,8 @@ const SocialProofPage = lazy(() => import('./pages/app/checkout/SocialProofPage'
 const CheckoutGatewaysPage = lazy(() => import('./pages/app/checkout/GatewaysPage'));
 const RedirectPage = lazy(() => import('./pages/app/checkout/RedirectPage'));
 const CheckoutOnboardingPage = lazy(() => import('./pages/app/CheckoutOnboardingPage'));
+const DomainValidationPage = lazy(() => import('./pages/app/DomainValidationPage'));
+const ShippingPage = lazy(() => import('./pages/app/ShippingPage'));
 
 
 function App() {
@@ -142,7 +144,7 @@ function App() {
               <Route path="/super-admin/clients" element={<ClientsPage />} />
               <Route path="/super-admin/billing" element={<BillingPage />} />
               <Route path="/super-admin/usage" element={<UsagePage />} />
-              <Route path="/super-admin/gateways" element={<GatewaysPage />} />
+              <Route path="/super-admin/gateways" element={<SuperAdminGatewaysPage />} />
               <Route path="/super-admin/ai-connections" element={<GlobalAiPage />} />
               <Route path="/super-admin/oauth-config" element={<OAuthConfigPage />} />
             </Route>
@@ -184,6 +186,8 @@ function App() {
               
               {/* Checkout */}
               <Route path="/onboarding" element={<CheckoutOnboardingPage />} />
+              <Route path="/checkout/domain" element={<DomainValidationPage />} />
+              <Route path="/checkout/shipping" element={<ShippingPage />} />
               <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
               <Route path="/checkout/customize" element={<CheckoutCustomizePage />} />
               <Route path="/checkout/social-proof" element={<SocialProofPage />} />
