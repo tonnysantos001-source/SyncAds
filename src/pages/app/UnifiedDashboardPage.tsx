@@ -147,7 +147,7 @@ const UnifiedDashboardPage: React.FC = () => {
   }, [user?.organizationId]);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 max-w-4xl mx-auto">
       {/* Header com Saudação Personalizada */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
@@ -156,90 +156,112 @@ const UnifiedDashboardPage: React.FC = () => {
         <p className="text-gray-600 mt-1">Seja bem vindo</p>
       </div>
 
-      {/* Card de Onboarding do Checkout */}
+      {/* Instrução Principal */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Para ativar seu checkout você precisa concluir todos passos abaixo:
+        </h2>
+      </div>
+
+      {/* Cards de Onboarding */}
       {!isLoading && (
-        <Card className="border-2 bg-white">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Para ativar seu checkout você precisa concluir todos passos abaixo:
-            </h2>
-
-            <div className="space-y-4">
-              {/* Faturamento */}
-              <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex-shrink-0">
-                  <CreditCard className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Faturamento</h3>
-                  <p className="text-sm text-gray-600">Adicione um cartão de crédito em sua conta</p>
-                </div>
-                <div className="flex-shrink-0">
-                  {billingConfigured ? (
-                    <div className="h-5 w-5 rounded-full bg-green-500"></div>
-                  ) : (
-                    <div className="h-5 w-5 rounded-full bg-red-500"></div>
-                  )}
-                </div>
-              </div>
-
-              {/* Domínio */}
-              <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex-shrink-0">
-                  <Monitor className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Domínio</h3>
-                  <p className="text-sm text-gray-600">Verifique seu domínio. Deve ser o mesmo utilizado na Shopify, WooCommerce ou na sua landing page.</p>
-                </div>
-                <div className="flex-shrink-0">
-                  {domainConfigured ? (
-                    <div className="h-5 w-5 rounded-full bg-green-500"></div>
-                  ) : (
-                    <div className="h-5 w-5 rounded-full bg-red-500"></div>
-                  )}
-                </div>
-              </div>
-
-              {/* Gateway */}
-              <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex-shrink-0">
-                  <DollarSign className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Gateway</h3>
-                  <p className="text-sm text-gray-600">Configure os meios de pagamentos que serão exibidos em sua loja.</p>
-                </div>
-                <div className="flex-shrink-0">
-                  {gatewayConfigured ? (
-                    <div className="h-5 w-5 rounded-full bg-green-500"></div>
-                  ) : (
-                    <div className="h-5 w-5 rounded-full bg-red-500"></div>
-                  )}
-                </div>
-              </div>
-
-              {/* Frete */}
-              <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex-shrink-0">
-                  <Truck className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Frete</h3>
-                  <p className="text-sm text-gray-600">Crie métodos de entrega para ser exibido no seu checkout.</p>
-                </div>
-                <div className="flex-shrink-0">
-                  {shippingConfigured ? (
-                    <div className="h-5 w-5 rounded-full bg-green-500"></div>
-                  ) : (
-                    <div className="h-5 w-5 rounded-full bg-red-500"></div>
-                  )}
-                </div>
-              </div>
+        <div className="space-y-4">
+          {/* Faturamento */}
+          <div className={`
+            flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer
+            ${billingConfigured ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-pink-300'}
+          `}>
+            <div className="flex-shrink-0">
+              <CreditCard className="h-8 w-8 text-pink-500" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">Faturamento</h3>
+              <p className="text-sm text-gray-600">Adicione um cartão de crédito em sua conta</p>
+            </div>
+            <div className="flex-shrink-0 pt-1">
+              {billingConfigured ? (
+                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+              )}
+            </div>
+          </div>
+
+          {/* Domínio */}
+          <div className={`
+            flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer
+            ${domainConfigured ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-pink-300'}
+          `}>
+            <div className="flex-shrink-0">
+              <Monitor className="h-8 w-8 text-pink-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">Domínio</h3>
+              <p className="text-sm text-gray-600">Verifique seu domínio. Deve ser o mesmo utilizado na Shopify, WooCommerce ou na sua landing page.</p>
+            </div>
+            <div className="flex-shrink-0 pt-1">
+              {domainConfigured ? (
+                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+              )}
+            </div>
+          </div>
+
+          {/* Gateway */}
+          <div className={`
+            flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer
+            ${gatewayConfigured ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-pink-300'}
+          `}>
+            <div className="flex-shrink-0">
+              <DollarSign className="h-8 w-8 text-pink-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">Gateway</h3>
+              <p className="text-sm text-gray-600">Configure os meios de pagamentos que serão exibidos em sua loja.</p>
+            </div>
+            <div className="flex-shrink-0 pt-1">
+              {gatewayConfigured ? (
+                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+              )}
+            </div>
+          </div>
+
+          {/* Frete */}
+          <div className={`
+            flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer
+            ${shippingConfigured ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200 hover:border-pink-300'}
+          `}>
+            <div className="flex-shrink-0">
+              <Truck className="h-8 w-8 text-pink-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">Frete</h3>
+              <p className="text-sm text-gray-600">Crie métodos de entrega para ser exibido no seu checkout.</p>
+            </div>
+            <div className="flex-shrink-0 pt-1">
+              {shippingConfigured ? (
+                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Link de Ajuda */}
+      <div className="text-center pt-4">
+        <p className="text-sm text-gray-600">
+          Caso tenha alguma dúvida,{' '}
+          <a href="#" className="underline text-gray-900 hover:text-pink-600">
+            visite nossa central de ajuda
+          </a>
+          .
+        </p>
+      </div>
     </div>
   );
 };
