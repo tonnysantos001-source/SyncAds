@@ -187,7 +187,14 @@ export default function AdminChatPage() {
       // URL hardcoded para evitar problema de env vars (usando função chat-enhanced com persistência e personalidade)
       const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced';
       
+      // Converter mensagens para formato conversationHistory
+      const history = messages.map(msg => ({
+        role: msg.role.toLowerCase(), // USER, ASSISTANT, SYSTEM → user, assistant, system
+        content: msg.content
+      }));
+      
       console.log('🌐 Calling chat-stream (Admin):', chatUrl);
+      console.log('📜 History length:', history.length);
       
       const response = await fetch(chatUrl, {
         method: 'POST',
@@ -199,7 +206,7 @@ export default function AdminChatPage() {
         body: JSON.stringify({
           message: userMessage,
           conversationId: convId,
-          conversationHistory: [], // Histórico vazio por enquanto
+          conversationHistory: history, // ✅ ENVIA HISTÓRICO COMPLETO
           systemPrompt: undefined // Usa o padrão da função
         }),
       });
