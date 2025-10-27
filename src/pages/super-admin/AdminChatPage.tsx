@@ -130,7 +130,7 @@ export default function AdminChatPage() {
     }
   };
 
-  // Inicializar: criar nova conversa E carregar lista
+  // Inicializar: apenas carregar conversas existentes (NÃO criar nova!)
   useEffect(() => {
     const initConversation = async () => {
       try {
@@ -147,41 +147,25 @@ export default function AdminChatPage() {
           return;
         }
 
-        // Buscar organizationId
-        const { data: userData } = await supabase
-          .from('User')
-          .select('organizationId')
-          .eq('id', user.id)
+        // APENAS carregar conversas existentes (NÃO criar nova!)
+        await loadConversations();
+        
+        // Se houver conversas, carregar a primeira automaticamente
+        const { data, error } = await supabase
+          .from('ChatConversation')
+          .select('id, title, createdAt, updatedAt')
+          .eq('userId', user.id)
+          .order('updatedAt', { ascending: false })
+          .limit(1)
           .single();
 
-        if (!userData?.organizationId) {
-          throw new Error('Usuário sem organização');
+        if (data) {
+          console.log('✅ Carregando conversa existente:', data.id);
+          setConversationId(data.id);
+          await loadConversationMessages(data.id);
+        } else {
+          console.log('📋 Nenhuma conversa existente. Use "Nova Conversa" para começar.');
         }
-
-        // Criar nova conversa
-        const newId = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const { error } = await supabase
-          .from('ChatConversation')
-          .insert({
-            id: newId,
-            userId: user.id,
-            organizationId: userData.organizationId,
-            title: '🆕 Nova Conversa',
-            createdAt: now,
-            updatedAt: now
-          });
-
-        if (error) {
-          console.error('Erro ao criar conversa:', error);
-          return;
-        }
-
-        setConversationId(newId);
-        console.log('✅ Nova conversa criada:', newId);
-
-        // Carregar lista de conversas antigas
-        await loadConversations();
       } catch (error) {
         console.error('Erro ao inicializar conversa:', error);
       }
@@ -200,8 +184,8 @@ export default function AdminChatPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // URL hardcoded para evitar problema de env vars (usando versão simples que funciona)
-      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-stream-simple';
+      // URL hardcoded para evitar problema de env vars (usando versão que realmente usa IA)
+      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-stream-working';
       
       console.log('🌐 Calling chat-stream (Admin):', chatUrl);
       
