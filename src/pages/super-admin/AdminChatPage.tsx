@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import AiThinkingIndicator from '@/components/ai/AiThinkingIndicator';
 
 interface Message {
   id: string;
@@ -16,6 +17,10 @@ interface Message {
   metadata?: {
     stats?: any;
     query?: string;
+    oauthAction?: {
+      platform: string;
+      action: 'connect';
+    };
   };
 }
 
@@ -28,6 +33,24 @@ interface Conversation {
 
 const ADMIN_SYSTEM_PROMPT = `Você é um assistente de IA para administradores. Responda de forma clara e objetiva.`;
 
+// Função para detectar comandos OAuth na resposta da IA
+function detectOAuthCommand(response: string): string | null {
+  const lowerResponse = response.toLowerCase();
+  
+  if (lowerResponse.includes('conecte facebook') || lowerResponse.includes('conecte o facebook') || 
+      lowerResponse.includes('facebook ads')) {
+    return 'facebook';
+  } else if (lowerResponse.includes('conecte google') || lowerResponse.includes('google ads')) {
+    return 'google';
+  } else if (lowerResponse.includes('conecte linkedin')) {
+    return 'linkedin';
+  } else if (lowerResponse.includes('conecte tiktok')) {
+    return 'tiktok';
+  }
+  
+  return null;
+}
+
 export default function AdminChatPage() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,6 +60,11 @@ export default function AdminChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Estados para indicador de pensamento da IA
+  const [currentTool, setCurrentTool] = useState<'web_search' | 'web_scraping' | 'python_exec' | null>(null);
+  const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [aiSources, setAiSources] = useState<string[]>([]);
 
   // Carregar lista de conversas antigas
   const loadConversations = async () => {
@@ -180,6 +208,46 @@ export default function AdminChatPage() {
 
   const executeAdminQuery = async (userMessage: string, convId: string): Promise<string> => {
     try {
+      // Detectar qual ferramenta está sendo usada
+      const lowerMessage = userMessage.toLowerCase();
+      let detectedTool: 'web_search' | 'web_scraping' | 'python_exec' | null = null;
+      let detectedReasoning = '';
+      let detectedSources: string[] = [];
+
+      if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') || 
+          lowerMessage.includes('google') || lowerMessage.includes('internet')) {
+        detectedTool = 'web_search';
+        // Extrair query
+        let query = userMessage;
+        if (lowerMessage.includes('pesquis')) {
+          const match = userMessage.match(/pesquis[ae]\s+(.+)/i);
+          query = match ? match[1] : userMessage;
+        }
+        detectedReasoning = `Pesquisando na web sobre: "${query}"`;
+        setCurrentTool('web_search');
+        setAiReasoning(detectedReasoning);
+        setAiSources(['Google Search', 'Exa AI', 'Tavily']);
+      } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') || 
+                 lowerMessage.includes('scrape')) {
+        detectedTool = 'web_scraping';
+        const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
+        const url = urlMatch ? urlMatch[0] : 'URL não especificada';
+        detectedReasoning = `Raspando dados de: ${url}`;
+        setCurrentTool('web_scraping');
+        setAiReasoning(detectedReasoning);
+        setAiSources([url]);
+      } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
+                 lowerMessage.includes('execute código')) {
+        detectedTool = 'python_exec';
+        detectedReasoning = 'Executando código Python para processar dados...';
+        setCurrentTool('python_exec');
+        setAiReasoning(detectedReasoning);
+      } else {
+        setCurrentTool(null);
+        setAiReasoning('Processando sua solicitação...');
+        setAiSources([]);
+      }
+
       // Chamar Edge Function de chat-stream (nova com memória)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
@@ -231,10 +299,21 @@ export default function AdminChatPage() {
         return '⚠️ IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.';
       }
       
+      // Limpar estados de pensamento
+      setCurrentTool(null);
+      setAiReasoning('');
+      setAiSources([]);
+      
       return data.response;
       
     } catch (error: any) {
       console.error('Admin chat error:', error);
+      
+      // Limpar estados de pensamento mesmo em erro
+      setCurrentTool(null);
+      setAiReasoning('');
+      setAiSources([]);
+      
       return `❌ Erro: ${error.message}`;
     }
   };
@@ -262,6 +341,57 @@ export default function AdminChatPage() {
       toast({
         title: 'Erro',
         description: 'Não foi possível limpar mensagens.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para conectar OAuth
+  const handleOAuthConnect = async (platform: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Chamar função oauth-init
+      const oauthUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/oauth-init';
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) throw new Error('Não autenticado');
+
+      const response = await fetch(oauthUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E'
+        },
+        body: JSON.stringify({
+          platform,
+          redirectUrl: `${window.location.origin}/integrations/callback`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao iniciar OAuth');
+      }
+
+      const { authUrl } = await response.json();
+      
+      // Abrir em nova aba
+      window.open(authUrl, '_blank');
+      
+      toast({
+        title: '🔗 Autorização Necessária',
+        description: `Abra a nova aba para autorizar ${platform}`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro OAuth:', error);
+      toast({
+        title: 'Erro ao conectar',
+        description: error.message,
         variant: 'destructive',
       });
     }
@@ -357,12 +487,21 @@ export default function AdminChatPage() {
       // Executar query administrativa (Edge Function cuida de tudo)
       const response = await executeAdminQuery(userContent, activeConvId);
 
+      // Detectar comandos OAuth na resposta
+      const oauthPlatform = detectOAuthCommand(response);
+      
       // Adicionar resposta ao estado local
       const assistantMessage: Message = {
         id: `temp-${Date.now() + 1}`,
         role: 'ASSISTANT',
         content: response,
         timestamp: new Date(),
+        metadata: oauthPlatform ? {
+          oauthAction: {
+            platform: oauthPlatform,
+            action: 'connect'
+          }
+        } : undefined
       };
       setMessages(prev => [...prev, assistantMessage]);
 
@@ -515,11 +654,24 @@ export default function AdminChatPage() {
                       {message.role === 'SYSTEM' && (
                         <Sparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                       )}
-                      <div className={`flex-1 whitespace-pre-wrap break-words text-sm ${
+                    <div className="flex-1">
+                      <div className={`whitespace-pre-wrap break-words text-sm ${
                         message.role === 'USER' ? 'text-white' : 'text-gray-900'
                       }`}>
                         {message.content}
                       </div>
+                      
+                      {/* Botão OAuth se necessário */}
+                      {message.metadata?.oauthAction && (
+                        <Button
+                          onClick={() => handleOAuthConnect(message.metadata!.oauthAction!.platform)}
+                          className="mt-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                          size="sm"
+                        >
+                          Conectar {message.metadata.oauthAction.platform}
+                        </Button>
+                      )}
+                    </div>
                     </div>
                     <div className={`text-xs mt-2 ${
                       message.role === 'USER' ? 'text-white/70' : 'text-gray-500'
@@ -530,6 +682,15 @@ export default function AdminChatPage() {
                 </Card>
               </div>
             ))}
+            {/* Indicador de pensamento da IA */}
+            {isLoading && (
+              <AiThinkingIndicator 
+                isThinking={isLoading}
+                currentTool={currentTool}
+                reasoning={aiReasoning}
+                sources={aiSources}
+              />
+            )}
             {isLoading && (
               <div className="flex justify-start">
                 <Card className="bg-white">

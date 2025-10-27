@@ -239,11 +239,61 @@ serve(async (req) => {
     
     // Detectar execução Python
     if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
-        lowerMessage.includes('execute código') || lowerMessage.includes('processar dados')) {
+        lowerMessage.includes('execute código') || lowerMessage.includes('processar dados') ||
+        lowerMessage.includes('execute python')) {
       console.log('🐍 Detectou intenção de execução Python')
       
-      toolResult = `🐍 **Execução Python detectada**\n\n` +
-        `Vou executar o código Python que você solicitar para processar os dados.`
+      // Extrair código Python do texto ou usar código padrão
+      let pythonCode = ''
+      const codeMatch = message.match(/```python\s*([\s\S]*?)```/i)
+      if (codeMatch) {
+        pythonCode = codeMatch[1]
+      } else if (lowerMessage.includes('calcule')) {
+        // Extrair números e operação
+        const calcMatch = message.match(/calcule\s+([\d+\-*/().\s]+)/i)
+        if (calcMatch) {
+          pythonCode = `result = ${calcMatch[1]}\nprint(result)`
+        }
+      } else {
+        pythonCode = 'print("Código Python será executado aqui")'
+      }
+      
+      try {
+        console.log('🐍 Chamando Python execution para:', pythonCode.substring(0, 50))
+        const pythonUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/super-ai-tools`
+        const pythonResponse = await fetch(pythonUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            toolName: 'python_executor',
+            parameters: { 
+              code: pythonCode,
+              libraries: ['pandas', 'numpy', 'requests'] 
+            },
+            userId: user.id,
+            organizationId: userData.organizationId,
+            conversationId
+          })
+        })
+        
+        if (pythonResponse.ok) {
+          const pythonData = await pythonResponse.json()
+          toolResult = `🐍 **Python Executado:**\n\n` +
+            `Código: \`\`\`python\n${pythonCode}\n\`\`\`\n\n` +
+            `Resultado: ${JSON.stringify(pythonData, null, 2)}`
+        } else {
+          toolResult = `🐍 **Execução Python solicitada**\n\n` +
+            `Detectei intenção de executar código Python.\n` +
+            `Por favor, envie o código que deseja executar.`
+        }
+      } catch (error) {
+        console.error('Erro ao chamar Python:', error)
+        toolResult = `🐍 **Execução Python detectada**\n\n` +
+          `Pretendo executar: ${pythonCode.substring(0, 100)}...`
+      }
     }
 
     // Call appropriate AI provider
