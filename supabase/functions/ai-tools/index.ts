@@ -139,47 +139,152 @@ serve(async (req) => {
 // HELPER FUNCTIONS
 // ============================================================================
 
-async function executeWebSearch(params: { query: string; maxResults?: number }) {
-  const { query, maxResults = 5 } = params;
+async function executeWebSearch(params: { query: string; maxResults?: number; provider?: string }) {
+  const { query, maxResults = 5, provider = 'auto' } = params;
 
-  // Usar Serper API (alternativa ao Google)
-  // https://serper.dev/
-  const serperApiKey = Deno.env.get('SERPER_API_KEY');
+  console.log(`🔍 Web Search: ${query} via ${provider}`);
 
-  if (!serperApiKey) {
-    return {
-      success: false,
-      message: 'SERPER_API_KEY não configurada',
-    };
+  // 1. TENTAR EXA AI (mais inteligente e neural)
+  const exaKey = Deno.env.get('EXA_API_KEY');
+  if ((provider === 'auto' || provider === 'exa') && exaKey) {
+    try {
+      console.log('🤖 Tentando Exa AI...');
+      const exaResponse = await fetch('https://api.exa.ai/search', {
+        method: 'POST',
+        headers: {
+          'x-api-key': exaKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: query,
+          numResults: maxResults,
+          type: 'neural',
+          useAutoprompt: true
+        })
+      });
+
+      if (exaResponse.ok) {
+        const exaData = await exaResponse.json();
+        if (exaData.results && exaData.results.length > 0) {
+          console.log('✅ Exa AI retornou resultados');
+          return {
+            success: true,
+            message: `Encontrados ${exaData.results.length} resultados (Exa AI)`,
+            data: {
+              query,
+              provider: 'Exa AI',
+              results: exaData.results.map((r: any) => ({
+                title: r.title,
+                url: r.url,
+                snippet: r.text || r.excerpt,
+              })),
+              answerBox: exaData.autopromptUsed,
+            },
+          };
+        }
+      }
+    } catch (error) {
+      console.error('❌ Exa AI error:', error);
+    }
   }
 
-  const response = await fetch('https://google.serper.dev/search', {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': serperApiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      q: query,
-      num: maxResults,
-    }),
-  });
+  // 2. TENTAR TAVILY (otimizado para LLMs)
+  const tavilyKey = Deno.env.get('TAVILY_API_KEY');
+  if ((provider === 'auto' || provider === 'tavily') && tavilyKey) {
+    try {
+      console.log('🔬 Tentando Tavily...');
+      const tavilyResponse = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          api_key: tavilyKey,
+          query: query,
+          search_depth: 'basic',
+          include_answer: true,
+          include_images: false,
+        })
+      });
 
-  const data = await response.json();
+      if (tavilyResponse.ok) {
+        const tavilyData = await tavilyResponse.json();
+        if (tavilyData.results && tavilyData.results.length > 0) {
+          console.log('✅ Tavily retornou resultados');
+          return {
+            success: true,
+            message: `Encontrados ${tavilyData.results.length} resultados (Tavily)`,
+            data: {
+              query,
+              provider: 'Tavily',
+              results: tavilyData.results.slice(0, maxResults).map((r: any) => ({
+                title: r.title,
+                url: r.url,
+                snippet: r.content,
+              })),
+              answerBox: tavilyData.answer,
+            },
+          };
+        }
+      }
+    } catch (error) {
+      console.error('❌ Tavily error:', error);
+    }
+  }
 
+  // 3. TENTAR SERPER (fallback)
+  const serperApiKey = Deno.env.get('SERPER_API_KEY');
+  if ((provider === 'auto' || provider === 'serper') && serperApiKey) {
+    try {
+      console.log('🔍 Tentando Serper...');
+      const serperResponse = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': serperApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: query,
+          num: maxResults,
+        }),
+      });
+
+      if (serperResponse.ok) {
+        const serperData = await serperResponse.json();
+        console.log('✅ Serper retornou resultados');
+        return {
+          success: true,
+          message: `Encontrados ${serperData.organic?.length || 0} resultados (Serper)`,
+          data: {
+            query,
+            provider: 'Serper',
+            results: serperData.organic?.map((item: any) => ({
+              title: item.title,
+              url: item.link,
+              snippet: item.snippet,
+            })) || [],
+            answerBox: serperData.answerBox,
+            knowledgeGraph: serperData.knowledgeGraph,
+          },
+        };
+      }
+    } catch (error) {
+      console.error('❌ Serper error:', error);
+    }
+  }
+
+  // TODOS FALHARAM
   return {
-    success: true,
-    message: `Encontrados ${data.organic?.length || 0} resultados`,
+    success: false,
+    message: '❌ Nenhum provider de web search configurado. Configure EXA_API_KEY, TAVILY_API_KEY ou SERPER_API_KEY.',
     data: {
       query,
-      results: data.organic?.map((item: any) => ({
-        title: item.title,
-        url: item.link,
-        snippet: item.snippet,
-      })) || [],
-      answerBox: data.answerBox,
-      knowledgeGraph: data.knowledgeGraph,
-    },
+      providers_available: {
+        exa: !!Deno.env.get('EXA_API_KEY'),
+        tavily: !!Deno.env.get('TAVILY_API_KEY'),
+        serper: !!Deno.env.get('SERPER_API_KEY'),
+      }
+    }
   };
 }
 
