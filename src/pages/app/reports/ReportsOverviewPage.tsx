@@ -1,9 +1,112 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Calendar, Download, Info } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface CheckoutMetrics {
+  totalRevenue: number;
+  totalOrders: number;
+  approvedRevenue: number;
+  refundedRevenue: number;
+  netProfit: number;
+  totalShipping: number;
+  avgTicket: number;
+  conversionRate: number;
+  loading: boolean;
+}
 
 const ReportsOverviewPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const [metrics, setMetrics] = useState<CheckoutMetrics>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    approvedRevenue: 0,
+    refundedRevenue: 0,
+    netProfit: 0,
+    totalShipping: 0,
+    avgTicket: 0,
+    conversionRate: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    if (user?.organizationId) {
+      loadCheckoutData();
+    }
+  }, [user?.organizationId]);
+
+  const loadCheckoutData = async () => {
+    try {
+      setMetrics(prev => ({ ...prev, loading: true }));
+      
+      const orgId = user?.organizationId;
+
+      // Buscar dados de checkout
+      const [
+        { data: orders },
+        { data: transactions }
+      ] = await Promise.all([
+        supabase.from('Order').select('total, status, shippingCost').eq('organizationId', orgId),
+        supabase.from('Transaction').select('amount, status, paymentMethod').eq('organizationId', orgId)
+      ]);
+
+      console.log('📊 [Reports] Dados carregados:', { orders, transactions });
+
+      // Calcular métricas
+      const totalRevenue = orders?.filter(o => o.status === 'PAID')
+        .reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+      
+      const totalOrders = orders?.length || 0;
+      const paidOrders = orders?.filter(o => o.status === 'PAID').length || 0;
+      
+      const approvedRevenue = transactions?.filter(t => t.status === 'PAID')
+        .reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      
+      const refundedRevenue = transactions?.filter(t => t.status === 'REFUNDED')
+        .reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      
+      const totalShipping = orders?.filter(o => o.status === 'PAID')
+        .reduce((sum, o) => sum + (o.shippingCost || 0), 0) || 0;
+      
+      const avgTicket = paidOrders > 0 ? totalRevenue / paidOrders : 0;
+      const conversionRate = totalOrders > 0 ? (paidOrders / totalOrders) * 100 : 0;
+      const netProfit = approvedRevenue - refundedRevenue;
+
+      setMetrics({
+        totalRevenue,
+        totalOrders,
+        approvedRevenue,
+        refundedRevenue,
+        netProfit,
+        totalShipping,
+        avgTicket,
+        conversionRate,
+        loading: false,
+      });
+
+      console.log('✅ [Reports] Métricas calculadas:', {
+        totalRevenue: formatCurrency(totalRevenue),
+        totalOrders,
+        netProfit: formatCurrency(netProfit),
+        avgTicket: formatCurrency(avgTicket),
+        conversionRate: conversionRate.toFixed(2) + '%'
+      });
+    } catch (error) {
+      console.error('❌ [Reports] Erro ao carregar dados:', error);
+      setMetrics(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
@@ -45,9 +148,21 @@ const ReportsOverviewPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Receita líquida</p>
-              <p className="text-3xl font-bold">0,00 (0)</p>
+              {metrics.loading ? (
+                <Skeleton className="h-9 w-32" />
+              ) : (
+                <p className="text-3xl font-bold">
+                  {formatCurrency(metrics.totalRevenue)} ({metrics.totalOrders})
+                </p>
+              )}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-500">% 0%</span>
+                {metrics.loading ? (
+                  <Skeleton className="h-4 w-12" />
+                ) : (
+                  <span className="text-gray-500">
+                    Aprovados: {metrics.totalOrders} pedidos
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
@@ -58,25 +173,45 @@ const ReportsOverviewPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm text-gray-300">Lucro Líquido</p>
-              <p className="text-3xl font-bold">0,00</p>
+              {metrics.loading ? (
+                <Skeleton className="h-9 w-24" />
+              ) : (
+                <p className="text-3xl font-bold">{formatCurrency(metrics.netProfit)}</p>
+              )}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-400">% 0%</span>
+                {metrics.loading ? (
+                  <Skeleton className="h-4 w-12" />
+                ) : (
+                  <span className="text-gray-400">
+                    Aprovado: {formatCurrency(metrics.approvedRevenue)}
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 3 - Investimento */}
+        {/* Card 3 - Ticket Médio */}
         <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <p className="text-sm text-gray-600">Investimento</p>
+                <p className="text-sm text-gray-600">Ticket Médio</p>
                 <Info className="w-4 h-4 text-gray-400" />
               </div>
-              <p className="text-3xl font-bold">0,00</p>
+              {metrics.loading ? (
+                <Skeleton className="h-9 w-24" />
+              ) : (
+                <p className="text-3xl font-bold">{formatCurrency(metrics.avgTicket)}</p>
+              )}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-500">% 0%</span>
+                {metrics.loading ? (
+                  <Skeleton className="h-4 w-12" />
+                ) : (
+                  <span className="text-gray-500">
+                    Conversão: {metrics.conversionRate.toFixed(1)}%
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
