@@ -159,23 +159,36 @@ const UnifiedDashboardPage: React.FC = () => {
       
       const { data: userData } = await supabase
         .from('User')
-        .select('name, firstName, lastName')
+        .select('name, firstName, lastName, email')
         .eq('id', user.id)
         .single();
 
+      console.log('User data:', userData);
+      
       if (userData) {
         // Tentar firstName + lastName, senão name, senão email
-        const name = userData.firstName && userData.lastName 
-          ? `${userData.firstName} ${userData.lastName}`
-          : userData.name 
-          ? userData.name
-          : user?.email?.split('@')[0] || 'Usuário';
+        let name = '';
+        
+        if (userData.firstName && userData.lastName) {
+          name = `${userData.firstName} ${userData.lastName}`;
+        } else if (userData.name) {
+          name = userData.name;
+        } else if (userData.email) {
+          // Pegar parte antes do @ e capitalizar
+          const emailName = userData.email.split('@')[0];
+          name = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          name = 'Usuário';
+        }
+        
+        console.log('Nome carregado:', name);
         setUserName(name);
       }
     } catch (error) {
       console.error('Erro ao carregar nome:', error);
       // Fallback para email
-      setUserName(user?.email?.split('@')[0] || 'Usuário');
+      const fallbackName = user?.email?.split('@')[0] || '';
+      setUserName(fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1));
     }
   };
 
@@ -301,58 +314,91 @@ const UnifiedDashboardPage: React.FC = () => {
         <p className="text-gray-600 mt-1">Seja bem vindo</p>
       </div>
 
-      {/* Subtítulo */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">Visão geral completa do seu negócio</h2>
-      </div>
+      {/* Card de Onboarding do Checkout (sempre mostrar) */}
+      <Card className="border-2 bg-white">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Para ativar seu checkout você precisa concluir todos passos abaixo:
+          </h2>
 
-      {/* Card de Onboarding do Checkout (se necessário) */}
-      {showCheckoutOnboarding && (
-        <Card className="border-2 border-green-500 bg-green-50">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  🎉 Ative seu checkout para começar a vender!
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Complete a configuração do checkout em poucos passos para começar a receber pagamentos.
-                </p>
-                <div className="flex gap-2">
-                  {!billingConfigured && (
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      Faturamento pendente
-                    </Badge>
-                  )}
-                  {!domainConfigured && (
-                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                      Domínio pendente
-                    </Badge>
-                  )}
-                  {!gatewayConfigured && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      Gateway pendente
-                    </Badge>
-                  )}
-                  {!shippingConfigured && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      Frete pendente
-                    </Badge>
-                  )}
-                </div>
+          <div className="space-y-4">
+            {/* Faturamento */}
+            <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex-shrink-0">
+                <CreditCard className="h-6 w-6 text-blue-600" />
               </div>
-              <Button
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => window.location.href = '/onboarding'}
-              >
-                Configurar Agora
-              </Button>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Faturamento</h3>
+                <p className="text-sm text-gray-600">Adicione um cartão de crédito em sua conta</p>
+              </div>
+              <div className="flex-shrink-0">
+                {billingConfigured ? (
+                  <div className="h-5 w-5 rounded-full bg-green-500"></div>
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-red-500"></div>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Stats Cards */}
+            {/* Domínio */}
+            <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex-shrink-0">
+                <Monitor className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Domínio</h3>
+                <p className="text-sm text-gray-600">Verifique seu domínio. Deve ser o mesmo utilizado na Shopify, WooCommerce ou na sua landing page.</p>
+              </div>
+              <div className="flex-shrink-0">
+                {domainConfigured ? (
+                  <div className="h-5 w-5 rounded-full bg-green-500"></div>
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-red-500"></div>
+                )}
+              </div>
+            </div>
+
+            {/* Gateway */}
+            <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Gateway</h3>
+                <p className="text-sm text-gray-600">Configure os meios de pagamentos que serão exibidos em sua loja.</p>
+              </div>
+              <div className="flex-shrink-0">
+                {gatewayConfigured ? (
+                  <div className="h-5 w-5 rounded-full bg-green-500"></div>
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-red-500"></div>
+                )}
+              </div>
+            </div>
+
+            {/* Frete */}
+            <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex-shrink-0">
+                <Truck className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Frete</h3>
+                <p className="text-sm text-gray-600">Crie métodos de entrega para ser exibido no seu checkout.</p>
+              </div>
+              <div className="flex-shrink-0">
+                {shippingConfigured ? (
+                  <div className="h-5 w-5 rounded-full bg-green-500"></div>
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-red-500"></div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Cards (apenas se tudo configurado) */}
+      {!showCheckoutOnboarding && (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {/* Total de Campanhas */}
               <Card>
@@ -487,9 +533,10 @@ const UnifiedDashboardPage: React.FC = () => {
                 </CardContent>
               </Card>
       </div>
+      )}
 
       {/* Gráficos de Métricas de Pagamento */}
-      {!data.loading && paymentMetrics.totalTransactions > 0 && (
+      {!showCheckoutOnboarding && !data.loading && paymentMetrics.totalTransactions > 0 && (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Gráfico Pizza - Status das Transações */}
           <Card>
