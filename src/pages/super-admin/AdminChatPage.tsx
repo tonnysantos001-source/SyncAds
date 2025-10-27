@@ -484,11 +484,11 @@ export default function AdminChatPage() {
       };
       setMessages(prev => [...prev, tempUserMessage]);
 
+      // Detectar OAuth NA MENSAGEM DO USUÁRIO (antes de chamar IA)
+      const oauthPlatform = detectOAuthCommand(userContent);
+      
       // Executar query administrativa (Edge Function cuida de tudo)
       const response = await executeAdminQuery(userContent, activeConvId);
-
-      // Detectar comandos OAuth na resposta
-      const oauthPlatform = detectOAuthCommand(response);
       
       // Adicionar resposta ao estado local
       const assistantMessage: Message = {
