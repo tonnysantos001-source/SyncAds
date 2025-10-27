@@ -1,16 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { checkRateLimit, createRateLimitResponse } from './_utils/rate-limiter.ts'
-import { circuitBreaker } from './_utils/circuit-breaker.ts'
-import { fetchWithTimeout } from './_utils/fetch-with-timeout.ts'
-import { retry } from './_utils/retry.ts'
+import { checkRateLimit, createRateLimitResponse } from '../_utils/rate-limiter.ts'
+import { circuitBreaker } from '../_utils/circuit-breaker.ts'
+import { fetchWithTimeout } from '../_utils/fetch-with-timeout.ts'
+import { retry } from '../_utils/retry.ts'
 import { 
   countConversationTokens, 
   estimateConversationTokens, 
   validateTokenLimit,
   formatTokenCount 
-} from './_utils/token-counter.ts'
-import { callWithFallback } from './_utils/model-fallback.ts'
+} from '../_utils/token-counter.ts'
+import { callWithFallback } from '../_utils/model-fallback.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -707,6 +707,20 @@ serve(async (req) => {
   console.log('Method:', req.method)
   console.log('URL:', req.url)
   
+  // Handle CORS preflight FIRST
+  if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight OK')
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Max-Age': '86400',
+      },
+    })
+  }
+  
   // === VALIDAÇÃO DE ENV VARS ===
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
   const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
@@ -719,12 +733,6 @@ serve(async (req) => {
   console.log(`${EXA_API_KEY ? '✅' : '❌'} EXA_API_KEY`)
   console.log(`${TAVILY_API_KEY ? '⚠️' : '❌'} TAVILY_API_KEY`)
   console.log(`${SERPER_API_KEY ? '⚠️' : '❌'} SERPER_API_KEY`)
-  
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    console.log('✅ CORS preflight OK')
-    return new Response('ok', { headers: corsHeaders })
-  }
 
   try {
     console.log('=== CHAT STREAM REQUEST START ===')

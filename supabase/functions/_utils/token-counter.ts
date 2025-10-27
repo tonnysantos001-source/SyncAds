@@ -5,7 +5,8 @@
 // Por: SYNCADS
 // ============================================================================
 
-import { encoding_for_model, get_encoding } from 'https://deno.land/x/js_tiktoken@1.0.7/mod.ts';
+// Removendo import de tiktoken para evitar erros de dependência
+// Usando estimativa simples em vez disso
 
 export interface MessageRole {
   role: 'system' | 'user' | 'assistant';
@@ -26,34 +27,15 @@ export interface TokenCount {
 const encoderCache: Map<string, any> = new Map();
 
 /**
- * Conta tokens para modelos OpenAI (usando tiktoken)
+ * Conta tokens para modelos OpenAI (estimativa simples)
  */
 export function countTokensOpenAI(
   text: string,
   model: string = 'gpt-4'
 ): number {
-  try {
-    // Obter ou criar encoder para o modelo
-    let encoder = encoderCache.get(model);
-    
-    if (!encoder) {
-      try {
-        encoder = encoding_for_model(model);
-        encoderCache.set(model, encoder);
-      } catch (error) {
-        console.warn(`⚠️ Modelo ${model} não encontrado, usando cl100k_base`);
-        encoder = get_encoding('cl100k_base');
-        encoderCache.set(model, encoder);
-      }
-    }
-
-    // Contar tokens
-    const tokens = encoder.encode(text);
-    return tokens.length;
-  } catch (error: any) {
-    console.error('Erro ao contar tokens OpenAI:', error.message);
-    return estimateTokens(text);
-  }
+  // Estimativa simples: ~4 caracteres = 1 token
+  // Esta é uma aproximação, não é exata
+  return estimateTokens(text);
 }
 
 /**
@@ -97,41 +79,26 @@ export function estimateConversationTokens(
   conversationHistory: MessageRole[] = [],
   systemPrompt?: string
 ): TokenCount {
-  try {
-    // Contar tokens do system prompt
-    let total = systemPrompt ? countTokensOpenAI(systemPrompt) : 0;
-
-    // Contar tokens do histórico
-    for (const msg of conversationHistory) {
-      const fullText = `${msg.role}: ${msg.content}`;
-      total += countTokensOpenAI(fullText);
-    }
-
-    // Contar tokens da mensagem atual
-    total += countTokensOpenAI(currentMessage);
-
-    // Adicionar overhead de formatação (~50 tokens)
-    total += 50;
-
-    return {
-      tokens: total,
-      estimated: false,
-    };
-  } catch (error: any) {
-    console.error('Erro ao contar tokens da conversa:', error.message);
-
-    // Fallback para estimativa genérica
-    const estimated = estimateTokens(
-      (systemPrompt || '') +
-      conversationHistory.map(m => m.content).join(' ') +
-      currentMessage
-    );
-
-    return {
-      tokens: estimated,
-      estimated: true,
-    };
+  // Estimativa genérica (sem tiktoken)
+  let total = 0;
+  
+  if (systemPrompt) {
+    total += estimateTokens(systemPrompt);
   }
+
+  for (const msg of conversationHistory) {
+    total += estimateTokens(msg.content);
+  }
+
+  total += estimateTokens(currentMessage);
+
+  // Adicionar overhead de formatação (~50 tokens)
+  total += 50;
+
+  return {
+    tokens: total,
+    estimated: true,
+  };
 }
 
 /**
