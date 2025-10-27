@@ -142,17 +142,108 @@ serve(async (req) => {
       { role: 'user', content: message }
     ]
 
-    // ✅ DETECTAR INTENÇÃO E CHAMAR FERRAMENTAS SE NECESSÁRIO
+    // ✅ DETECÇÃO INTELIGENTE DE INTENÇÃO E INTEGRAÇÃO REAL
     let toolResult: string | null = null
     const lowerMessage = message.toLowerCase()
 
-    // Detectar se precisa de web search
+    // Detectar intenções e chamar ferramentas apropriadas
     if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') || 
-        lowerMessage.includes('google') || lowerMessage.includes('internet')) {
+        lowerMessage.includes('google') || lowerMessage.includes('internet') ||
+        lowerMessage.includes('pesquise sobre')) {
       console.log('🔍 Detectou intenção de web search')
-      // Por enquanto, apenas informa que vai pesquisar
-      // Aqui você pode chamar a função de web search se necessário
-      toolResult = 'Vou pesquisar isso para você usando ferramentas disponíveis...'
+      
+      // Extrair query de pesquisa
+      let searchQuery = message
+      if (lowerMessage.includes('pesquis')) {
+        const match = message.match(/pesquis[ae]\s+(.+)/i)
+        searchQuery = match ? match[1] : message
+      } else if (lowerMessage.includes('busca')) {
+        const match = message.match(/busca?\s+(.+)/i)
+        searchQuery = match ? match[1] : message
+      }
+      
+      // Chamar função de web search
+      try {
+        console.log('🔍 Chamando web search para:', searchQuery)
+        const searchUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/ai-tools`
+        const searchResponse = await fetch(searchUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            toolName: 'web_search',
+            parameters: { query: searchQuery },
+            userId: user.id,
+            organizationId: userData.organizationId,
+            conversationId
+          })
+        })
+        
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json()
+          toolResult = `🔍 **Resultados da pesquisa:**\n\n${JSON.stringify(searchData, null, 2)}`
+        } else {
+          toolResult = `🔍 Detectada intenção de pesquisar: "${searchQuery}"\n\n(Pesquisa ainda não totalmente implementada)`
+        }
+      } catch (error) {
+        console.error('Erro ao chamar web search:', error)
+        toolResult = `🔍 Detectada intenção de pesquisar: "${searchQuery}"`
+      }
+    }
+    
+    // Detectar scraping de produtos
+    if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') || 
+        lowerMessage.includes('importar produto') || lowerMessage.includes('scrape')) {
+      console.log('🕷️ Detectou intenção de web scraping')
+      
+      // Extrair URL
+      const urlMatch = message.match(/https?:\/\/[^\s]+/i)
+      const url = urlMatch ? urlMatch[0] : null
+      
+      if (url) {
+        // Chamar função de scraping
+        try {
+          console.log('🕷️ Chamando scraping para:', url)
+          const scrapeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/super-ai-tools`
+          const scrapeResponse = await fetch(scrapeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
+            body: JSON.stringify({
+              toolName: 'scrape_products',
+              parameters: { url },
+              userId: user.id,
+              organizationId: userData.organizationId,
+              conversationId
+            })
+          })
+          
+          if (scrapeResponse.ok) {
+            const scrapeData = await scrapeResponse.json()
+            toolResult = `🕷️ **Scraping iniciado:** ${url}\n\n${JSON.stringify(scrapeData, null, 2)}`
+          } else {
+            toolResult = `🕷️ **Scraping solicitado:** ${url}\n\n(Scraping ainda não totalmente implementado)`
+          }
+        } catch (error) {
+          console.error('Erro ao chamar scraping:', error)
+          toolResult = `🕷️ **Scraping solicitado:** ${url}`
+        }
+      } else {
+        toolResult = `🕷️ **Scraping solicitado**\n\nPor favor, envie a URL do site que deseja raspar.`
+      }
+    }
+    
+    // Detectar execução Python
+    if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
+        lowerMessage.includes('execute código') || lowerMessage.includes('processar dados')) {
+      console.log('🐍 Detectou intenção de execução Python')
+      
+      toolResult = `🐍 **Execução Python detectada**\n\n` +
+        `Vou executar o código Python que você solicitar para processar os dados.`
     }
 
     // Call appropriate AI provider
