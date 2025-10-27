@@ -1,40 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, ShoppingCart, TrendingUp, Users, Package, CreditCard, Clock, AlertCircle, PieChart, Activity, Monitor, Truck } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+import { CreditCard, Monitor, DollarSign, Truck } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
-import { Pie } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-interface DashboardData {
-  totalRevenue: number;
-  totalOrders: number;
-  totalCustomers: number;
-  totalProducts: number;
-  totalTransactions: number;
-  totalCampaigns: number;
-  pendingPayments: number;
-  paidOrders: number;
-  loading: boolean;
-}
-
-interface PaymentMetrics {
-  totalTransactions: number;
-  paidTransactions: number;
-  pendingTransactions: number;
-  failedTransactions: number;
-  revenueByMethod: Record<string, number>;
-  conversionRate: number;
-  averageTicket: number;
-}
 
 const UnifiedDashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
