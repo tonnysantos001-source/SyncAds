@@ -38,6 +38,12 @@ interface PaymentMetrics {
 
 const UnifiedDashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const [userName, setUserName] = useState<string>('');
+  const [showCheckoutOnboarding, setShowCheckoutOnboarding] = useState(false);
+  const [billingConfigured, setBillingConfigured] = useState(false);
+  const [domainConfigured, setDomainConfigured] = useState(false);
+  const [gatewayConfigured, setGatewayConfigured] = useState(false);
+  const [shippingConfigured, setShippingConfigured] = useState(false);
   const [data, setData] = useState<DashboardData>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -63,8 +69,115 @@ const UnifiedDashboardPage: React.FC = () => {
   useEffect(() => {
     if (user?.organizationId) {
       loadDashboardData();
+      loadUserName();
+      checkCheckoutStatus();
     }
   }, [user?.organizationId]);
+
+  const checkCheckoutStatus = async () => {
+    try {
+      if (!user?.organizationId) return;
+
+      // Verificar se checkout está configurado
+      const [billing, domain, gateway, shipping] = await Promise.all([
+        checkBillingStatus(user.organizationId),
+        checkDomainStatus(user.organizationId),
+        checkGatewayStatus(user.organizationId),
+        checkShippingStatus(user.organizationId)
+      ]);
+
+      setBillingConfigured(billing);
+      setDomainConfigured(domain);
+      setGatewayConfigured(gateway);
+      setShippingConfigured(shipping);
+
+      // Se pelo menos 3 de 4 não estiverem configurados, mostrar onboarding
+      const configuredCount = [billing, domain, gateway, shipping].filter(Boolean).length;
+      setShowCheckoutOnboarding(configuredCount < 3);
+    } catch (error) {
+      console.error('Erro ao verificar status do checkout:', error);
+    }
+  };
+
+  const checkBillingStatus = async (orgId: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase
+        .from('Organization')
+        .select('subscriptionId, stripeCustomerId')
+        .eq('id', orgId)
+        .single();
+      return !!(data?.subscriptionId && data?.stripeCustomerId);
+    } catch {
+      return false;
+    }
+  };
+
+  const checkDomainStatus = async (orgId: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase
+        .from('Organization')
+        .select('domain, domainVerified')
+        .eq('id', orgId)
+        .single();
+      return !!(data?.domain && data?.domainVerified);
+    } catch {
+      return false;
+    }
+  };
+
+  const checkGatewayStatus = async (orgId: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase
+        .from('GatewayConfig')
+        .select('id')
+        .eq('organizationId', orgId)
+        .eq('isActive', true)
+        .limit(1);
+      return (data?.length || 0) > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const checkShippingStatus = async (orgId: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase
+        .from('ShippingMethod')
+        .select('id')
+        .eq('organizationId', orgId)
+        .eq('isActive', true)
+        .limit(1);
+      return (data?.length || 0) > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const loadUserName = async () => {
+    try {
+      if (!user?.id) return;
+      
+      const { data: userData } = await supabase
+        .from('User')
+        .select('name, firstName, lastName')
+        .eq('id', user.id)
+        .single();
+
+      if (userData) {
+        // Tentar firstName + lastName, senão name, senão email
+        const name = userData.firstName && userData.lastName 
+          ? `${userData.firstName} ${userData.lastName}`
+          : userData.name 
+          ? userData.name
+          : user?.email?.split('@')[0] || 'Usuário';
+        setUserName(name);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar nome:', error);
+      // Fallback para email
+      setUserName(user?.email?.split('@')[0] || 'Usuário');
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -180,11 +293,64 @@ const UnifiedDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-        <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Visão geral completa do seu negócio</p>
+      {/* Header com Saudação Personalizada */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {userName ? `Olá ${userName},` : 'Olá,'}
+        </h1>
+        <p className="text-gray-600 mt-1">Seja bem vindo</p>
       </div>
+
+      {/* Subtítulo */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">Visão geral completa do seu negócio</h2>
+      </div>
+
+      {/* Card de Onboarding do Checkout (se necessário) */}
+      {showCheckoutOnboarding && (
+        <Card className="border-2 border-green-500 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  🎉 Ative seu checkout para começar a vender!
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Complete a configuração do checkout em poucos passos para começar a receber pagamentos.
+                </p>
+                <div className="flex gap-2">
+                  {!billingConfigured && (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                      Faturamento pendente
+                    </Badge>
+                  )}
+                  {!domainConfigured && (
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                      Domínio pendente
+                    </Badge>
+                  )}
+                  {!gatewayConfigured && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      Gateway pendente
+                    </Badge>
+                  )}
+                  {!shippingConfigured && (
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      Frete pendente
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => window.location.href = '/onboarding'}
+              >
+                Configurar Agora
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
