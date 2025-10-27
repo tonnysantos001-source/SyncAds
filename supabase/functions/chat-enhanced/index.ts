@@ -38,8 +38,11 @@ serve(async (req) => {
       throw new Error('User not associated with an organization')
     }
 
-    // Get organization's default AI connection
-    const { data: orgAi, error: orgAiError } = await supabase
+    // Try to get organization's AI connection first
+    let aiConnection: any = null
+    let customSystemPrompt: string | null = null
+
+    const { data: orgAi } = await supabase
       .from('OrganizationAiConnection')
       .select(`
         id,
@@ -59,24 +62,42 @@ serve(async (req) => {
       `)
       .eq('organizationId', userData.organizationId)
       .eq('isDefault', true)
-      .single()
+      .maybeSingle()
 
-    if (orgAiError || !orgAi) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'No AI configured',
-          message: 'Sua organização não tem uma IA configurada. Contate o administrador.'
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    // If organization has AI connection, use it
+    if (orgAi && orgAi.globalAiConnection) {
+      aiConnection = orgAi.globalAiConnection
+      customSystemPrompt = orgAi.customSystemPrompt
+    } else {
+      // Fallback: Use any active Global AI
+      console.log('⚠️ Não encontrou AI da organização, usando Global AI...')
+      
+      const { data: globalAi } = await supabase
+        .from('GlobalAiConnection')
+        .select('*')
+        .eq('isActive', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (!globalAi || !globalAi.apiKey) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'No AI configured',
+            message: '⚠️ Nenhuma IA configurada. Configure uma IA em Configurações > IA Global.'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      aiConnection = globalAi
+      console.log('✅ Usando Global AI:', globalAi.name)
     }
 
-    const aiConnection = orgAi.globalAiConnection as any
-
-    if (!aiConnection.isActive) {
+    // Apenas verificar isActive se a conexão tiver essa propriedade
+    if (aiConnection.isActive === false) {
       throw new Error('AI connection is not active')
     }
 
@@ -93,7 +114,7 @@ serve(async (req) => {
       💡 Use as ferramentas quando necessário, mas sempre explique o que está fazendo.`
 
     // Use custom system prompt if available, otherwise use provided one or default
-    const finalSystemPrompt = orgAi.customSystemPrompt || systemPrompt || defaultSystemPrompt
+    const finalSystemPrompt = customSystemPrompt || systemPrompt || defaultSystemPrompt
 
     // Salvar mensagem do usuário no banco
     const userMsgId = crypto.randomUUID()
