@@ -74,6 +74,7 @@ const CheckoutCustomizePage = lazy(() => import('./pages/app/checkout/CheckoutCu
 const SocialProofPage = lazy(() => import('./pages/app/checkout/SocialProofPage'));
 const CheckoutGatewaysPage = lazy(() => import('./pages/app/checkout/GatewaysPage'));
 const RedirectPage = lazy(() => import('./pages/app/checkout/RedirectPage'));
+const CheckoutOnboardingPage = lazy(() => import('./pages/app/CheckoutOnboardingPage'));
 
 
 function App() {
@@ -182,6 +183,7 @@ function App() {
               <Route path="/marketing/pixels" element={<PixelsPage />} />
               
               {/* Checkout */}
+              <Route path="/onboarding" element={<CheckoutOnboardingPage />} />
               <Route path="/checkout/discounts" element={<CheckoutDiscountsPage />} />
               <Route path="/checkout/customize" element={<CheckoutCustomizePage />} />
               <Route path="/checkout/social-proof" element={<SocialProofPage />} />
