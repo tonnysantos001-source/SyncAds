@@ -19,11 +19,16 @@ export const SUPABASE_CONFIG = {
   // Funções disponíveis
   functions: {
     chat: '/chat',
-    chatStream: '/chat-stream-simple', // Versão simplificada que funciona com CORS
+    chatStream: '/chat-enhanced', // IA híbrida completa
     superAiTools: '/super-ai-tools',
     advancedScraper: '/advanced-scraper',
     aiTools: '/ai-tools',
     generateImage: '/generate-image',
+    generateVideo: '/generate-video',
+    aiAdvisor: '/ai-advisor',
+    advancedAnalytics: '/advanced-analytics',
+    contentAssistant: '/content-assistant',
+    automationEngine: '/automation-engine',
     generateZip: '/generate-zip',
   }
 } as const;
@@ -73,9 +78,17 @@ export const FEATURES = {
     enabled: true,
     providers: ['dalle', 'midjourney', 'stable-diffusion'] as const,
   },
+  aiVideoGeneration: {
+    enabled: true,
+    providers: ['runway', 'pika', 'stable-video'] as const,
+  },
   superAiTools: {
     enabled: true,
-    tools: ['browser_tool', 'web_scraper', 'python_executor', 'api_caller'] as const,
+    tools: ['browser_tool', 'web_scraper', 'python_executor', 'javascript_executor', 'database_query', 'email_sender'] as const,
+  },
+  aiAdvisor: {
+    enabled: true,
+    capabilities: ['tips', 'warnings', 'opportunities', 'improvements'] as const,
   },
 } as const;
 

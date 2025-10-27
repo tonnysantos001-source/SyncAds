@@ -89,16 +89,35 @@ serve(async (req) => {
       )
     }
 
-    // 6. Chamar DALL-E 3
-    const openaiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiKey) {
-      throw new Error('OPENAI_API_KEY not configured')
+    // 6. Buscar API Key da tabela GlobalAiConnection (configuração visual)
+    const { data: aiConfig, error: aiError } = await supabase
+      .from('GlobalAiConnection')
+      .select('apiKey, provider, model, baseUrl')
+      .eq('provider', 'OPENAI')
+      .eq('isActive', true)
+      .limit(1)
+      .single()
+
+    if (aiError || !aiConfig) {
+      return new Response(
+        JSON.stringify({
+          error: 'OpenAI não configurada. Adicione uma conexão de IA no painel Super Admin.',
+          hint: 'Acesse /super-admin/ai-connections e adicione uma IA com provider OPENAI'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
+    const openaiKey = aiConfig.apiKey
+
+    const baseUrl = aiConfig.baseUrl || 'https://api.openai.com/v1'
+    const dalleResponse = await fetch(`${baseUrl}/images/generations`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiKey}`,
+        'Authorization': 'Bearer ' + openaiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
