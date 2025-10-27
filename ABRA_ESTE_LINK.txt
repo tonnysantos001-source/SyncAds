@@ -1,0 +1,19 @@
+🔗 COLE ESTE LINK NO NAVEGADOR:
+
+https://supabase.com/dashboard/project/ovskepqggmxlfckxqgbr/settings/api
+
+E siga as instruções no arquivo: COMO_CONFIGURAR_ALLOWED_ORIGINS.md
+
+
+📋 RESUMO DO QUE FAZER:
+
+1. Cole este link no navegador e abra
+2. Role até "Allowed Origins"
+3. Cole: https://syncads-dun.vercel.app
+4. Clique em "Add URL" ou "Save"
+5. Pronto!
+
+
+❓ PRECISA DE AJUDA?
+Abra o arquivo: COMO_CONFIGURAR_ALLOWED_ORIGINS.md
+

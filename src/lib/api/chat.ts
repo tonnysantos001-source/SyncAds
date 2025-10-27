@@ -119,9 +119,11 @@ export const sendSecureMessage = async (
       throw new Error('No active session');
     }
 
-    // CRITICAL: Edge Function PRECISA do conversationId!
-    // HARDCODED URL para garantir que funciona (mesmo se env vars não carregarem)
-    const url = `https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-stream`;
+    // Importar configuração centralizada
+    const { SUPABASE_CONFIG } = await import('../config');
+    
+    // Construir URL da Edge Function
+    const url = `${SUPABASE_CONFIG.functionsUrl}${SUPABASE_CONFIG.functions.chatStream}`;
     
     console.log('🌐 Calling chat-stream:', url);
     console.log('📝 Message:', message?.substring(0, 50));
@@ -132,7 +134,7 @@ export const sendSecureMessage = async (
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E'
+        'apikey': SUPABASE_CONFIG.anonKey
       },
       body: JSON.stringify({
         message,

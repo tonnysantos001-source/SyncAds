@@ -11,13 +11,7 @@ import {
   formatTokenCount 
 } from '../_utils/token-counter.ts'
 import { callWithFallback } from '../_utils/model-fallback.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
-}
+import { corsHeaders, handlePreflightRequest, isOriginAllowed, jsonResponse, errorResponse } from '../_utils/cors.ts'
 
 // ==================== FERRAMENTAS ====================
 
@@ -710,15 +704,7 @@ serve(async (req) => {
   // Handle CORS preflight FIRST
   if (req.method === 'OPTIONS') {
     console.log('✅ CORS preflight OK')
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        'Access-Control-Max-Age': '86400',
-      },
-    })
+    return handlePreflightRequest()
   }
   
   // === VALIDAÇÃO DE ENV VARS ===
