@@ -11,7 +11,7 @@ import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 interface UsageData {
   clientId: string;
   clientName: string;
-  clientSlug: string;
+  clientSlug: string; // Agora é o email do usuário
   plan: string;
   totalMessages: number;
   totalTokens: number;
@@ -32,75 +32,79 @@ export default function UsagePage() {
 
   const loadUsageData = async () => {
     try {
-      // ✅ OTIMIZADO: Uma única query com joins ao invés de N+1
-      const { data: orgs, error: orgsError } = await supabase
-        .from('Organization')
-        .select(`
-          id,
-          name,
-          slug,
-          plan,
-          createdAt,
-          OrganizationAiConnection (
-            globalAi:GlobalAiConnection (
-              provider
-            )
-          )
-        `)
+      // ✅ SIMPLIFICADO: Buscar usuários ao invés de organizações
+      const { data: users, error: usersError } = await supabase
+        .from('User')
+        .select('id, name, email, plan, createdAt')
         .order('createdAt', { ascending: false });
 
-      if (orgsError) throw orgsError;
+      if (usersError) throw usersError;
 
-      // Buscar aggregações de uso para todas as orgs de uma vez
-      const orgIds = (orgs || []).map(org => org.id);
+      const userIds = (users || []).map(user => user.id);
       
-      // Buscar contagem de mensagens para todas as orgs
-      const { data: messagesCounts } = await supabase
+      // Buscar contagem de mensagens por usuário
+      const { data: conversations } = await supabase
         .from('ChatConversation')
-        .select('organizationId, ChatMessage(count)')
-        .in('organizationId', orgIds);
+        .select('userId, id')
+        .in('userId', userIds);
 
-      // Buscar dados de AI Usage para todas as orgs
+      // Contar mensagens por conversação
+      const conversationIds = (conversations || []).map(c => c.id);
+      const { data: messages } = await supabase
+        .from('ChatMessage')
+        .select('conversationId')
+        .in('conversationId', conversationIds);
+
+      // Criar mapa de mensagens por usuário
+      const messagesMap = new Map<string, number>();
+      (conversations || []).forEach(conv => {
+        const count = (messages || []).filter(m => m.conversationId === conv.id).length;
+        const current = messagesMap.get(conv.userId) || 0;
+        messagesMap.set(conv.userId, current + count);
+      });
+
+      // Buscar dados de AI Usage por usuário
       const { data: aiUsageData } = await supabase
         .from('AiUsage')
-        .select('organizationId, totalTokens, estimatedCost, createdAt')
-        .in('organizationId', orgIds)
+        .select('userId, totalTokens, estimatedCost, createdAt')
+        .in('userId', userIds)
         .order('createdAt', { ascending: false });
-
-      // Criar maps para lookup rápido
-      const messagesMap = new Map<string, number>();
-      (messagesCounts || []).forEach(conv => {
-        const current = messagesMap.get(conv.organizationId) || 0;
-        messagesMap.set(conv.organizationId, current + (conv.ChatMessage?.[0]?.count || 0));
-      });
 
       const aiUsageMap = new Map<string, any>();
       (aiUsageData || []).forEach(usage => {
-        if (!aiUsageMap.has(usage.organizationId)) {
-          aiUsageMap.set(usage.organizationId, usage);
+        if (!aiUsageMap.has(usage.userId)) {
+          aiUsageMap.set(usage.userId, usage);
         }
       });
 
-      // Transformar dados
-      const usage: UsageData[] = (orgs || []).map(org => {
-        const aiUsage = aiUsageMap.get(org.id);
-        const aiConn = org.OrganizationAiConnection?.[0];
+      // Buscar provider da IA global ativa
+      const { data: globalAi } = await supabase
+        .from('GlobalAiConnection')
+        .select('provider')
+        .eq('isActive', true)
+        .limit(1)
+        .maybeSingle();
+
+      // Transformar dados por usuário
+      const usage: UsageData[] = (users || []).map(user => {
+        const aiUsage = aiUsageMap.get(user.id);
         
         return {
-          clientId: org.id,
-          clientName: org.name,
-          clientSlug: org.slug,
-          plan: org.plan,
-          totalMessages: messagesMap.get(org.id) || 0,
+          clientId: user.id,
+          clientName: user.name || 'Sem nome',
+          clientSlug: user.email || '',
+          plan: user.plan || 'FREE',
+          totalMessages: messagesMap.get(user.id) || 0,
           totalTokens: aiUsage?.totalTokens || 0,
           estimatedCost: aiUsage?.estimatedCost || 0,
-          aiProvider: aiConn?.globalAi?.provider || 'N/A',
+          aiProvider: globalAi?.provider || 'N/A',
           lastUsed: aiUsage?.createdAt || null,
         };
       });
 
       setUsageData(usage);
     } catch (error: any) {
+      console.error('Error loading usage data:', error);
       toast({
         title: 'Erro ao carregar uso de IA',
         description: error.message,
@@ -219,14 +223,14 @@ export default function UsagePage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Média por Cliente</CardTitle>
+              <CardTitle className="text-sm font-medium">Média por Usuário</CardTitle>
               <TrendingUp className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {Math.round(totals.avgMessagesPerClient)}
               </div>
-              <p className="text-xs text-muted-foreground">Mensagens / cliente</p>
+              <p className="text-xs text-muted-foreground">Mensagens / usuário</p>
             </CardContent>
           </Card>
         </div>
@@ -236,7 +240,7 @@ export default function UsagePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Uso de IA por Cliente</CardTitle>
+                <CardTitle>Uso de IA por Usuário</CardTitle>
                 <CardDescription>Detalhes de mensagens, tokens e custos</CardDescription>
               </div>
             </div>
@@ -245,12 +249,12 @@ export default function UsagePage() {
             <div className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar cliente..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                  <Input
+                    placeholder="Buscar usuário..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
               </div>
             </div>
 
@@ -258,7 +262,7 @@ export default function UsagePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
+                    <TableHead>Usuário</TableHead>
                     <TableHead>Plano</TableHead>
                     <TableHead>Provider</TableHead>
                     <TableHead>Mensagens</TableHead>
