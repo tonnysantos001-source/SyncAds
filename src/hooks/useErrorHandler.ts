@@ -8,7 +8,7 @@
 import { useToast } from '@/components/ui/use-toast';
 import { useCallback } from 'react';
 import { handleError, AppError, withRetry, RetryOptions } from '@/lib/errors';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/store/authStore'; // ✅ CORRIGIDO: store (singular)
 
 export function useErrorHandler() {
   const { toast } = useToast();
