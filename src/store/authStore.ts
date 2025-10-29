@@ -37,7 +37,10 @@ export const useAuthStore = create<AuthState>()(
       // Init Auth - Verifica autenticação ao carregar app
       initAuth: async () => {
         try {
+          console.log('🔄 [AUTH] InitAuth iniciado...');
           const userData = await authApi.getCurrentUser();
+          console.log('🔄 [AUTH] User data:', userData);
+          
           if (userData) {
             set({ 
               isAuthenticated: true, 
@@ -52,11 +55,13 @@ export const useAuthStore = create<AuthState>()(
               },
               isInitialized: true,
             });
+            console.log('✅ [AUTH] InitAuth OK! isSuperAdmin:', userData.isSuperAdmin);
           } else {
             set({ isInitialized: true });
+            console.log('⚠️ [AUTH] Nenhum usuário autenticado');
           }
         } catch (error) {
-          console.error('Init auth error:', error);
+          console.error('❌ [AUTH] Init auth error:', error);
           set({ isInitialized: true });
         }
       },
@@ -64,12 +69,18 @@ export const useAuthStore = create<AuthState>()(
       // Login
       login: async (email: string, password: string) => {
         try {
+          console.log('🔐 [AUTH] Login iniciado...');
           const { user } = await authApi.signIn({ email, password });
+          console.log('🔐 [AUTH] Supabase auth OK:', !!user);
+          
           if (user) {
             const userData = await authApi.getCurrentUser();
+            console.log('🔐 [AUTH] User data:', userData);
+            
             if (userData) {
               set({ 
-                isAuthenticated: true, 
+                isAuthenticated: true,
+                isInitialized: true, // ✅ FIX: adicionar isInitialized
                 user: {
                   id: userData.id,
                   name: userData.name,
@@ -80,10 +91,11 @@ export const useAuthStore = create<AuthState>()(
                   isSuperAdmin: userData.isSuperAdmin || false,
                 }
               });
+              console.log('✅ [AUTH] Login completo! isSuperAdmin:', userData.isSuperAdmin);
             }
           }
         } catch (error) {
-          console.error('Login error:', error);
+          console.error('❌ [AUTH] Login error:', error);
           throw error;
         }
       },
