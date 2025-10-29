@@ -780,6 +780,32 @@ QUALQUER ASSUNTO:
       }
     }
 
+    // ==================== TOOL CALLING PARA GROQ ====================
+    const groqTools = [
+      {
+        type: "function",
+        function: {
+          name: "web_scraping",
+          description: "Raspa produtos de um site e-commerce. Use quando o usuário pedir para baixar/raspar produtos de uma URL.",
+          parameters: {
+            type: "object",
+            properties: {
+              url: {
+                type: "string",
+                description: "URL completa do site para raspar"
+              },
+              format: {
+                type: "string",
+                enum: ["csv", "json", "text"],
+                default: "csv"
+              }
+            },
+            required: ["url"]
+          }
+        }
+      }
+    ]
+
     // Call appropriate AI provider
     let response: string
     let tokensUsed = 0
@@ -805,15 +831,25 @@ QUALQUER ASSUNTO:
         headers['Authorization'] = `Bearer ${aiConnection.apiKey}`
       }
 
+      // ✅ GROQ: Usar tool calling NATIVO
+      const requestBody: any = {
+        model: aiConnection.model || 'gpt-4-turbo',
+        messages: messages,
+        temperature: aiConnection.temperature || 0.7,
+        max_tokens: aiConnection.maxTokens || 4096
+      }
+
+      // ✅ Se for GROQ, adicionar ferramentas
+      if (aiConnection.provider === 'GROQ') {
+        requestBody.tools = groqTools
+        requestBody.tool_choice = "auto"
+        console.log('🛠️  [GROQ] Tool calling habilitado')
+      }
+
       const openaiResponse = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({
-          model: aiConnection.model || 'gpt-4-turbo',
-          messages: messages,
-          temperature: aiConnection.temperature || 0.7,
-          max_tokens: aiConnection.maxTokens || 4096
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!openaiResponse.ok) {
@@ -822,8 +858,100 @@ QUALQUER ASSUNTO:
       }
 
       const data = await openaiResponse.json()
-      response = data.choices[0].message.content
-      tokensUsed = data.usage?.total_tokens || 0
+      const assistantMessage = data.choices[0].message
+
+      // ✅ PROCESSAR TOOL CALLS SE GROQ SOLICITOU
+      if (aiConnection.provider === 'GROQ' && assistantMessage.tool_calls) {
+        console.log(`🛠️  [GROQ] Modelo solicitou ${assistantMessage.tool_calls.length} ferramenta(s)`)
+
+        for (const toolCall of assistantMessage.tool_calls) {
+          const functionName = toolCall.function.name
+          const functionArgs = JSON.parse(toolCall.function.arguments)
+
+          console.log(`🔧 [TOOL] Executando: ${functionName}`, functionArgs)
+
+          if (functionName === 'web_scraping') {
+            const url = functionArgs.url
+            const format = functionArgs.format || 'csv'
+
+            console.log(`🕷️  [WEB_SCRAPING] Iniciando scraping de: ${url}`)
+
+            try {
+              const scrapeResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/web-scraper`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+                },
+                body: JSON.stringify({ url })
+              })
+
+              if (!scrapeResponse.ok) {
+                const error = await scrapeResponse.text()
+                toolResult = `Erro ao raspar o site: ${error}`
+              } else {
+                const scrapeData = await scrapeResponse.json()
+                const products = scrapeData.products || []
+
+                if (products.length > 0) {
+                  const headers = Object.keys(products[0]).join(',')
+                  const rows = products.map((p: any) => Object.values(p).join(',')).join('\n')
+                  const csv = `${headers}\n${rows}`
+
+                  toolResult = `✅ Raspagem concluída! ${products.length} produtos encontrados.\n\n📄 CSV:\n\`\`\`csv\n${csv.substring(0, 500)}...\n\`\`\`\n\nTotal de ${products.length} produtos!`
+                } else {
+                  toolResult = "Nenhum produto encontrado no site."
+                }
+
+                console.log(`✅ [WEB_SCRAPING] ${products.length} produtos encontrados`)
+              }
+            } catch (error: any) {
+              console.error('❌ [WEB_SCRAPING] Erro:', error.message)
+              toolResult = `Erro ao executar scraping: ${error.message}`
+            }
+          }
+        }
+
+        // ✅ ENVIAR RESULTADO DE VOLTA AO GROQ
+        const messagesWithTools = [
+          ...messages,
+          assistantMessage,
+          {
+            role: "tool",
+            tool_call_id: assistantMessage.tool_calls[0].id,
+            name: assistantMessage.tool_calls[0].function.name,
+            content: toolResult || "Ferramenta executada"
+          }
+        ]
+
+        console.log('🔄 [GROQ] Enviando resultados das ferramentas de volta...')
+
+        const finalResponse = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            model: aiConnection.model || 'llama-3.3-70b-versatile',
+            messages: messagesWithTools,
+            temperature: aiConnection.temperature || 0.7,
+            max_tokens: aiConnection.maxTokens || 4096
+          })
+        })
+
+        if (!finalResponse.ok) {
+          const error = await finalResponse.text()
+          throw new Error(`GROQ final API error: ${error}`)
+        }
+
+        const finalData = await finalResponse.json()
+        response = finalData.choices[0].message.content
+        tokensUsed = (data.usage?.total_tokens || 0) + (finalData.usage?.total_tokens || 0)
+
+        console.log('✅ [GROQ] Resposta final gerada com tool calling')
+      } else {
+        // Resposta normal sem tool calling
+        response = assistantMessage.content || data.choices[0].message.content
+        tokensUsed = data.usage?.total_tokens || 0
+      }
 
     } else if (aiConnection.provider === 'ANTHROPIC') {
       const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
