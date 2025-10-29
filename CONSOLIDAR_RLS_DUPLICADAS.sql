@@ -17,6 +17,8 @@ BEGIN
     DROP POLICY IF EXISTS "Users can read own data" ON "User";
     DROP POLICY IF EXISTS "Users can update own data" ON "User";
     DROP POLICY IF EXISTS "Users can delete own data" ON "User";
+    DROP POLICY IF EXISTS "Users can view their own profile" ON "User";
+    DROP POLICY IF EXISTS "Users can update their own profile" ON "User";
     
     -- Garantir que as otimizadas existem
     IF NOT EXISTS (
@@ -25,7 +27,7 @@ BEGIN
     ) THEN
         CREATE POLICY user_select_own ON "User"
             FOR SELECT
-            USING ((select auth.uid())::text = "userId");
+            USING ((select auth.uid())::text = id);
     END IF;
 
     IF NOT EXISTS (
@@ -34,7 +36,7 @@ BEGIN
     ) THEN
         CREATE POLICY user_update_own ON "User"
             FOR UPDATE
-            USING ((select auth.uid())::text = "userId");
+            USING ((select auth.uid())::text = id);
     END IF;
 
     IF NOT EXISTS (
@@ -43,7 +45,7 @@ BEGIN
     ) THEN
         CREATE POLICY user_delete_own ON "User"
             FOR DELETE
-            USING ((select auth.uid())::text = "userId");
+            USING ((select auth.uid())::text = id);
     END IF;
 
     RAISE NOTICE '✅ User policies consolidated';
