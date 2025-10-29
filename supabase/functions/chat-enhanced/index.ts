@@ -926,20 +926,46 @@ QUALQUER ASSUNTO:
 
         console.log('🔄 [GROQ] Enviando resultados das ferramentas de volta...')
 
-        const finalResponse = await fetch(endpoint, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({
-            model: aiConnection.model || 'llama-3.3-70b-versatile',
-            messages: messagesWithTools,
-            temperature: aiConnection.temperature || 0.7,
-            max_tokens: aiConnection.maxTokens || 4096
-          })
-        })
+        // ✅ Retry automático para rate limit
+        let finalResponse: Response | null = null
+        let retryCount = 0
+        const maxRetries = 3
 
-        if (!finalResponse.ok) {
-          const error = await finalResponse.text()
-          throw new Error(`GROQ final API error: ${error}`)
+        while (retryCount < maxRetries) {
+          finalResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+              model: aiConnection.model || 'llama-3.3-70b-versatile',
+              messages: messagesWithTools,
+              temperature: aiConnection.temperature || 0.7,
+              max_tokens: aiConnection.maxTokens || 4096
+            })
+          })
+
+          if (finalResponse.ok) {
+            break // Sucesso!
+          }
+
+          // Verificar se é rate limit
+          const errorText = await finalResponse.text()
+          if (finalResponse.status === 429 || errorText.includes('rate_limit')) {
+            retryCount++
+            const waitTime = Math.pow(2, retryCount) * 1000 // Exponential backoff: 2s, 4s, 8s
+            console.log(`⏳ [GROQ] Rate limit atingido. Retry ${retryCount}/${maxRetries} em ${waitTime/1000}s...`)
+            
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, waitTime))
+              continue
+            }
+          }
+          
+          // Outro tipo de erro
+          throw new Error(`GROQ final API error: ${errorText}`)
+        }
+
+        if (!finalResponse || !finalResponse.ok) {
+          throw new Error('GROQ final API error: Max retries exceeded')
         }
 
         const finalData = await finalResponse.json()
