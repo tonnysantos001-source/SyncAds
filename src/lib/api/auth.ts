@@ -39,13 +39,12 @@ export const authApi = {
           name: data.name,
           cpf: data.cpf || null,
           birthDate: data.birthDate || null,
-          emailVerified: false, // Email precisa ser verificado manualmente
+          emailVerified: false,
           authProvider: 'EMAIL',
           plan: 'FREE',
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
-          organizationId: GLOBAL_ORGANIZATION_ID, // ✅ Adiciona automaticamente na org global
-          role: 'MEMBER', // ✅ Define role padrão
-          isActive: true, // ✅ Ativo por padrão
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          role: 'MEMBER',
+          isActive: true,
           createdAt: now,
           updatedAt: now,
         });

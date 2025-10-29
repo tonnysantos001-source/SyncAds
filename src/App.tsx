@@ -110,7 +110,6 @@ function App() {
         id: user.id,
         email: user.email || undefined,
         name: user.name || undefined,
-        organizationId: user.organizationId || undefined,
       });
     } else {
       clearSentryUser();

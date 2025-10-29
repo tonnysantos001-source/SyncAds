@@ -19,7 +19,6 @@ interface User {
   avatarUrl?: string;
   avatar?: string | null;
   plan: 'Free' | 'Pro' | 'Enterprise';
-  organizationId?: string;
   isSuperAdmin?: boolean;
 }
 
@@ -129,7 +128,6 @@ export const useStore = create<AppState>()(
                 avatarUrl: userData.avatar || undefined,
                 avatar: userData.avatar,
                 plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
-                organizationId: userData.organizationId,
                 isSuperAdmin: userData.isSuperAdmin || false,
               },
               isInitialized: true,
@@ -165,7 +163,6 @@ export const useStore = create<AppState>()(
                   avatarUrl: userData.avatar || undefined,
                   avatar: userData.avatar,
                   plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
-                  organizationId: userData.organizationId,
                 }
               });
               await Promise.all([
@@ -195,7 +192,6 @@ export const useStore = create<AppState>()(
                   avatarUrl: userData.avatar || undefined,
                   avatar: userData.avatar,
                   plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
-                  organizationId: userData.organizationId,
                 }
               });
             }
