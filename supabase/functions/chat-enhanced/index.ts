@@ -939,7 +939,9 @@ QUALQUER ASSUNTO:
               model: aiConnection.model || 'llama-3.3-70b-versatile',
               messages: messagesWithTools,
               temperature: aiConnection.temperature || 0.7,
-              max_tokens: aiConnection.maxTokens || 4096
+              max_tokens: aiConnection.maxTokens || 4096,
+              tools: [], // ✅ Desabilitar ferramentas na segunda chamada
+              tool_choice: "none" // ✅ Explicitamente não usar ferramentas
             })
           })
 
