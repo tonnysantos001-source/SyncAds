@@ -33,7 +33,6 @@ export default function SuperAdminDashboard() {
     gatewaysConfigured: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [needsMigration, setNeedsMigration] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -41,32 +40,18 @@ export default function SuperAdminDashboard() {
 
   const loadStats = async () => {
     try {
-      // Verificar se tabela Organization existe
-      const { error: orgError } = await supabase
-        .from('Organization')
-        .select('*', { count: 'exact', head: true });
-
-      if (orgError && orgError.message.includes('does not exist')) {
-        setNeedsMigration(true);
-        setLoading(false);
-        return;
-      }
-
-      // Total organizations
-      const { count: orgCount } = await supabase
-        .from('Organization')
-        .select('*', { count: 'exact', head: true });
-
-      // Active organizations
-      const { count: activeOrgCount } = await supabase
-        .from('Organization')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'ACTIVE');
-
+      // ✅ SIMPLIFICADO: Buscar apenas usuários (sem organizações)
+      
       // Total users
       const { count: userCount } = await supabase
         .from('User')
         .select('*', { count: 'exact', head: true });
+
+      // Active users (que estão isActive)
+      const { count: activeUserCount } = await supabase
+        .from('User')
+        .select('*', { count: 'exact', head: true })
+        .eq('isActive', true);
 
       // Total AI connections
       const { count: aiCount } = await supabase
@@ -81,11 +66,11 @@ export default function SuperAdminDashboard() {
       // Total tokens usados
       const { data: tokensData } = await supabase
         .from('AiUsage')
-        .select('tokensUsed');
+        .select('totalTokens');
 
-      const totalTokens = (tokensData || []).reduce((acc: number, usage: any) => acc + (usage.tokensUsed || 0), 0);
+      const totalTokens = (tokensData || []).reduce((acc: number, usage: any) => acc + (usage.totalTokens || 0), 0);
 
-      // MRR simples baseado em planos ativos
+      // MRR simples baseado em planos de usuários ativos
       const planPrices: Record<string, number> = {
         FREE: 0,
         STARTER: 49.90,
@@ -93,27 +78,32 @@ export default function SuperAdminDashboard() {
         ENTERPRISE: 999.90,
       };
 
-      const { data: activeOrgsData } = await supabase
-        .from('Organization')
+      const { data: activeUsersData } = await supabase
+        .from('User')
         .select('plan')
-        .eq('status', 'ACTIVE');
+        .eq('isActive', true);
 
-      const mrr = (activeOrgsData || []).reduce((acc: number, org: any) => acc + (planPrices[org.plan] || 0), 0);
+      const mrr = (activeUsersData || []).reduce((acc: number, user: any) => acc + (planPrices[user.plan] || 0), 0);
+
+      // Contar gateways configurados
+      const { count: gatewaysCount } = await supabase
+        .from('Gateway')
+        .select('*', { count: 'exact', head: true })
+        .eq('isActive', true);
 
       setStats({
-        totalClients: orgCount || 0,
-        activeClients: activeOrgCount || 0,
+        totalClients: userCount || 0, // Agora é total de usuários
+        activeClients: activeUserCount || 0, // Usuários ativos
         totalUsers: userCount || 0,
-        totalRevenue: mrr * 3,
+        totalRevenue: mrr * 3, // Estimativa trimestral
         monthlyRevenue: mrr,
         totalAiConnections: aiCount || 0,
         totalMessages: messagesCount || 0,
         totalTokens: totalTokens,
-        gatewaysConfigured: 2,
+        gatewaysConfigured: gatewaysCount || 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
-      setNeedsMigration(true);
     } finally {
       setLoading(false);
     }
@@ -203,27 +193,6 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  if (needsMigration) {
-    return (
-      <SuperAdminLayout>
-        <div className="p-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Migration Necessária</AlertTitle>
-            <AlertDescription>
-              As tabelas do SaaS ainda não foram criadas. Execute a migration primeiro:
-              <br /><br />
-              <code className="bg-black/10 px-2 py-1 rounded text-sm">
-                supabase_migrations/saas_architecture.sql
-              </code>
-              <br /><br />
-              Veja instruções em: <strong>EXECUTAR_MIGRATION.md</strong>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </SuperAdminLayout>
-    );
-  }
 
   return (
     <SuperAdminLayout>
