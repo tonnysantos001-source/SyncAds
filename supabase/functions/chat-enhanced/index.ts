@@ -720,7 +720,7 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+                  'Authorization': authHeader // ✅ FIX: Usar token do usuário autenticado
                 },
                 body: JSON.stringify({ url })
               })
