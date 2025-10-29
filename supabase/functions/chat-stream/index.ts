@@ -1132,11 +1132,7 @@ serve(async (req) => {
 
     // Preparar request para IA
     const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente inteligente para marketing digital.') + '\n\n' +
-      '💡 CAPACIDADES:\n' +
-      '- Você pode ajudar com análise de campanhas, produtos, usuários e relatórios\n' +
-      '- Quando o usuário pedir para baixar/raspar produtos de um site, confirme que está processando\n' +
-      '- Se informações de ferramentas foram fornecidas, use-as para responder de forma clara\n' +
-      '- Seja sempre útil e direto nas respostas'
+      'Você pode ajudar com análise de campanhas, produtos, usuários e relatórios. Seja sempre útil e direto nas respostas.'
     
     // === TOKEN COUNTING ===
     const tokenCount = estimateConversationTokens(message, chatHistory, systemPrompt)
@@ -1158,18 +1154,28 @@ serve(async (req) => {
       { role: 'user', content: message }
     ]
 
-    // Se teve resultado de ferramenta, adicionar ao contexto
-    if (toolResult) {
-      requestMessages.push({
-        role: 'system',
-        content: `RESULTADO DA FERRAMENTA:\n${toolResult}\n\nUse este resultado para responder ao usuário de forma clara e útil.`
+    // ✅ SOLUÇÃO RADICAL: Se tem resultado de scraping/busca, retornar DIRETO sem chamar IA
+    if (toolResult && (intent?.action === 'scrape_products' || intent?.action === 'search_google' || 
+        intent?.action === 'search_youtube' || intent?.action === 'search_news' || 
+        intent?.action === 'scrape_website' || intent?.action === 'execute_python')) {
+      
+      console.log('✅ Retornando resultado direto sem chamar IA (evitar tool calling)')
+      
+      // Salvar mensagens no banco
+      await supabase.from('ChatMessage').insert([
+        { conversationId, role: 'user', content: message },
+        { conversationId, role: 'assistant', content: toolResult }
+      ])
+      
+      return new Response(toolResult, {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
       })
     }
 
-    // Chamar IA com STREAMING (se não tiver toolResult)
+    // Chamar IA com STREAMING (apenas para mensagens normais SEM ferramentas)
     let aiResponse = ''
     
-    // Se já tem resultado de ferramenta (especialmente scraping), não precisa chamar IA
     if (!toolResult) {
       // Determinar URL e headers baseado no provider
       let apiUrl = ''
