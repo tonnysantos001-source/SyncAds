@@ -613,13 +613,12 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
               format: {
                 type: "string",
                 enum: ["csv", "json", "text"],
-                description: "Formato de saída desejado",
-                default: "csv"
+                description: "Formato de saída desejado"
               }
             },
-            required: ["url"]
-          },
-          strict: true // ✅ Modo estrito do GROQ
+            required: ["url"],
+            additionalProperties: false // ✅ CRÍTICO: GROQ exige isso!
+          }
         }
       }
     ]
