@@ -12,6 +12,14 @@ import {
 } from '../_utils/token-counter.ts'
 import { callWithFallback } from '../_utils/model-fallback.ts'
 import { corsHeaders, handlePreflightRequest, isOriginAllowed, jsonResponse, errorResponse } from '../_utils/cors.ts'
+import {
+  searchGoogle,
+  searchYouTube,
+  searchNews,
+  searchImages,
+  searchShopping,
+  searchPlaces,
+} from '../_utils/search-tools.ts'
 
 // ==================== FERRAMENTAS ====================
 
@@ -375,9 +383,43 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
     return { tool: 'generate_image', params: { prompt: message } }
   }
 
-  // Web search
+  // ===== NOVAS FERRAMENTAS =====
+
+  // YouTube search
+  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || lower.includes('video')) &&
+      (lower.includes('youtube') || lower.includes('vídeo'))) {
+    // Extrair query
+    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|no youtube|vídeos?\s+(sobre|de)?/gi, '').trim();
+    return { tool: 'youtube_search', params: { query } };
+  }
+
+  // News search
+  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur')) &&
+      (lower.includes('notícia') || lower.includes('noticia') || lower.includes('news'))) {
+    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|notícias?\s+(sobre|de)?/gi, '').trim();
+    return { tool: 'news_search', params: { query } };
+  }
+
+  // Google search (mais específico)
+  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur')) &&
+      (lower.includes('google') || lower.includes('na internet'))) {
+    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|no google|na internet/gi, '').trim();
+    return { tool: 'google_search', params: { query } };
+  }
+
+  // Python execution
+  if (lower.includes('execut') && lower.includes('python') || 
+      lower.includes('código python') || lower.includes('script python')) {
+    // Extrair código Python (entre ``` ou depois de ":")
+    const codeMatch = message.match(/```python\n([\s\S]*?)```/i) || 
+                      message.match(/```\n([\s\S]*?)```/i);
+    const code = codeMatch ? codeMatch[1] : '';
+    return { tool: 'python_execute', params: { code } };
+  }
+
+  // Web search genérico (fallback)
   if (lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || 
-      lower.includes('google') || lower.includes('internet') || lower.startsWith('buscar')) {
+      lower.includes('internet') || lower.startsWith('buscar')) {
     return { tool: 'web_search', params: message }
   }
 
@@ -617,6 +659,173 @@ async function generateExport(params: { format?: string }): Promise<string> {
 }
 
 // 8. Relatório Completo
+// ========== NOVAS FERRAMENTAS ==========
+
+/**
+ * Pesquisa no Google
+ */
+async function searchGoogleTool(query: string): Promise<string> {
+  try {
+    const results = await searchGoogle(query, 10);
+    
+    if (results.length === 0) {
+      return '❌ Nenhum resultado encontrado no Google.';
+    }
+    
+    let response = `🔍 **Resultados do Google para "${query}"**\n\n`;
+    
+    results.forEach((result, i) => {
+      response += `${i + 1}. **${result.title}**\n`;
+      response += `   ${result.snippet}\n`;
+      response += `   🔗 ${result.link}\n\n`;
+    });
+    
+    return response;
+  } catch (error: any) {
+    console.error('Erro na pesquisa Google:', error);
+    return `❌ Erro ao pesquisar no Google: ${error.message}`;
+  }
+}
+
+/**
+ * Pesquisa no YouTube
+ */
+async function searchYouTubeTool(query: string): Promise<string> {
+  try {
+    const results = await searchYouTube(query, 10);
+    
+    if (results.length === 0) {
+      return '❌ Nenhum vídeo encontrado no YouTube.';
+    }
+    
+    let response = `🎥 **Vídeos do YouTube para "${query}"**\n\n`;
+    
+    results.forEach((result, i) => {
+      response += `${i + 1}. **${result.title}**\n`;
+      response += `   ${result.snippet}\n`;
+      response += `   🔗 ${result.link}\n`;
+      if (result.thumbnail) {
+        response += `   📸 Thumbnail: ${result.thumbnail}\n`;
+      }
+      response += `\n`;
+    });
+    
+    return response;
+  } catch (error: any) {
+    console.error('Erro na pesquisa YouTube:', error);
+    return `❌ Erro ao pesquisar no YouTube: ${error.message}`;
+  }
+}
+
+/**
+ * Pesquisa de Notícias
+ */
+async function searchNewsTool(query: string): Promise<string> {
+  try {
+    const results = await searchNews(query, 10);
+    
+    if (results.length === 0) {
+      return '❌ Nenhuma notícia encontrada.';
+    }
+    
+    let response = `📰 **Notícias sobre "${query}"**\n\n`;
+    
+    results.forEach((result, i) => {
+      response += `${i + 1}. **${result.title}**\n`;
+      response += `   ${result.snippet}\n`;
+      if (result.date) {
+        response += `   📅 ${result.date}\n`;
+      }
+      response += `   🔗 ${result.link}\n\n`;
+    });
+    
+    return response;
+  } catch (error: any) {
+    console.error('Erro na pesquisa de notícias:', error);
+    return `❌ Erro ao pesquisar notícias: ${error.message}`;
+  }
+}
+
+/**
+ * Scraping melhorado de website
+ */
+async function scrapeWebsiteTool(url: string): Promise<string> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/web-scraper`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      return `❌ Erro ao fazer scraping: ${data.error}`;
+    }
+    
+    const { title, description, products, prices, detectedType } = data.data;
+    
+    let result = `🔍 **Scraping de ${url}**\n\n`;
+    result += `**Título:** ${title}\n`;
+    result += `**Descrição:** ${description}\n`;
+    result += `**Tipo:** ${detectedType}\n\n`;
+    
+    if (products && products.length > 0) {
+      result += `**Produtos encontrados (${products.length}):**\n`;
+      products.slice(0, 10).forEach((p: any, i: number) => {
+        result += `${i + 1}. ${p.name} - R$ ${p.price}\n`;
+      });
+    }
+    
+    if (prices && prices.length > 0) {
+      result += `\n**Preços detectados:** ${prices.slice(0, 5).join(', ')}\n`;
+    }
+    
+    return result;
+  } catch (error: any) {
+    console.error('Erro no scraping:', error);
+    return `❌ Erro ao fazer scraping: ${error.message}`;
+  }
+}
+
+/**
+ * Executar código Python
+ */
+async function executePythonTool(code: string, packages: string[] = []): Promise<string> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/python-executor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ code, packages }),
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      return `❌ Erro ao executar Python: ${data.error}`;
+    }
+    
+    return `✅ Código Python preparado para execução.\n\n` +
+           `📦 Packages: ${packages.join(', ') || 'Nenhum'}\n\n` +
+           `💡 Use Pyodide no frontend para executar este código.`;
+  } catch (error: any) {
+    console.error('Erro ao executar Python:', error);
+    return `❌ Erro ao executar Python: ${error.message}`;
+  }
+}
+
 async function generateFullReport(ctx: ToolContext): Promise<string> {
   try {
     // Campanhas
@@ -887,6 +1096,21 @@ serve(async (req) => {
           break
         case 'web_search':
           toolResult = await webSearch(intent.params)
+          break
+        case 'google_search':
+          toolResult = await searchGoogleTool(intent.params.query)
+          break
+        case 'youtube_search':
+          toolResult = await searchYouTubeTool(intent.params.query)
+          break
+        case 'news_search':
+          toolResult = await searchNewsTool(intent.params.query)
+          break
+        case 'scrape_website':
+          toolResult = await scrapeWebsiteTool(intent.params.url)
+          break
+        case 'python_execute':
+          toolResult = await executePythonTool(intent.params.code, intent.params.packages)
           break
         case 'list_campaigns':
           toolResult = await listCampaigns(toolContext)
