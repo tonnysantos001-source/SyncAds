@@ -1131,18 +1131,12 @@ serve(async (req) => {
     }
 
     // Preparar request para IA
-    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente inteligente e sarcástico para marketing digital.') + '\n\n' +
-      '🛠️ FERRAMENTAS DISPONÍVEIS:\n' +
-      '• Web Scraping - Baixar produtos de sites (ex: "baixe produtos de https://site.com")\n' +
-      '• Geração de CSV/ZIP - Exportar dados para Shopify\n' +
-      '• Buscar na web - Pesquisar informações\n' +
-      '• Criar campanhas - Campanhas publicitárias\n' +
-      '• Listar produtos/usuários/campanhas\n\n' +
-      '💡 IMPORTANTE:\n' +
-      '- SEMPRE responda positivamente às requisições de scraping\n' +
-      '- Quando detectar intenção de baixar produtos, execute a ferramenta scraping\n' +
-      '- Use o resultado das ferramentas para responder de forma clara\n' +
-      '- Seja sarcástica e útil (conforme seu humor característico)'
+    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente inteligente para marketing digital.') + '\n\n' +
+      '💡 CAPACIDADES:\n' +
+      '- Você pode ajudar com análise de campanhas, produtos, usuários e relatórios\n' +
+      '- Quando o usuário pedir para baixar/raspar produtos de um site, confirme que está processando\n' +
+      '- Se informações de ferramentas foram fornecidas, use-as para responder de forma clara\n' +
+      '- Seja sempre útil e direto nas respostas'
     
     // === TOKEN COUNTING ===
     const tokenCount = estimateConversationTokens(message, chatHistory, systemPrompt)
