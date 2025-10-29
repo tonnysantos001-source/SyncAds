@@ -1204,7 +1204,9 @@ serve(async (req) => {
               model: aiConfig.model || 'gpt-3.5-turbo',
               messages: requestMessages,
               temperature: aiConfig.temperature || 0.7,
-              stream: true
+              stream: true,
+              tool_choice: "none", // ✅ FIX: Desabilitar tool calling explicitamente
+              tools: [] // ✅ FIX: Lista vazia de ferramentas
             })
           })
 
