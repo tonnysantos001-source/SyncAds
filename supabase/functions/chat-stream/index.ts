@@ -26,8 +26,7 @@ import {
 interface ToolContext {
   supabase: any;
   userId: string;
-  organizationId: string;
-  conversationId?: string; // ✅ ADICIONADO: para rastrear conversação em ferramentas
+  conversationId?: string;
 }
 
 // Cache simples em memória (Edge Functions são stateless, mas ajuda durante execução)
@@ -195,7 +194,7 @@ async function listCampaigns(ctx: ToolContext): Promise<string> {
     const { data, error } = await ctx.supabase
       .from('Campaign')
       .select('id, name, platform, status, budget, objective')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
       .order('createdAt', { ascending: false })
       .limit(10)
 
@@ -260,7 +259,7 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
     const { data: campaigns, error: campaignsError } = await ctx.supabase
       .from('Campaign')
       .select('status')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
 
     if (campaignsError) throw campaignsError
 
@@ -273,7 +272,7 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
     const { data: products } = await ctx.supabase
       .from('Product')
       .select('id')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
 
     const totalProducts = products?.length || 0
 
@@ -513,7 +512,7 @@ async function listUsers(ctx: ToolContext): Promise<string> {
     const { data, error } = await ctx.supabase
       .from('User')
       .select('id, email, name, role, isActive, createdAt')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
       .order('createdAt', { ascending: false })
       .limit(20)
 
@@ -545,7 +544,7 @@ async function listProducts(ctx: ToolContext): Promise<string> {
     const { data, error } = await ctx.supabase
       .from('Product')
       .select('id, name, price, stock, isActive')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
       .order('createdAt', { ascending: false })
       .limit(15)
 
@@ -832,7 +831,7 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
     const { data: campaigns } = await ctx.supabase
       .from('Campaign')
       .select('status, budget')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
 
     const totalCampaigns = campaigns?.length || 0
     const activeCampaigns = campaigns?.filter((c: any) => c.status === 'ACTIVE').length || 0
@@ -842,7 +841,7 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
     const { data: users } = await ctx.supabase
       .from('User')
       .select('isActive')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
 
     const totalUsers = users?.length || 0
     const activeUsers = users?.filter((u: any) => u.isActive).length || 0
@@ -851,7 +850,7 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
     const { data: products } = await ctx.supabase
       .from('Product')
       .select('stock')
-      .eq('organizationId', ctx.organizationId)
+      .eq('userId', ctx.userId)
 
     const totalProducts = products?.length || 0
     const totalStock = products?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0
@@ -995,20 +994,8 @@ serve(async (req) => {
 
     console.log(`✅ Rate limit OK (${rateLimitResult.remaining}/${rateLimitResult.limit} remaining)`)
 
-    // Get user's organization
-    console.log('Fetching user organization...')
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId')
-      .eq('id', user.id)
-      .single()
-
-    console.log('User data:', userData, 'Error:', userError?.message)
-
-    if (!userData?.organizationId) {
-      console.error('No organizationId for user')
-      throw new Error('User not associated with an organization')
-    }
+    // ✅ SIMPLIFICADO: Não usamos mais organizações
+    console.log('User authenticated:', user.id)
 
     // Get AI config - SIMPLIFIED: busca QUALQUER IA ativa (sem dependência de org)
     console.log('Fetching active AI config...')
@@ -1058,8 +1045,7 @@ serve(async (req) => {
     const toolContext: ToolContext = {
       supabase,
       userId: user.id,
-      organizationId: userData.organizationId,
-      conversationId: conversationId // ✅ ADICIONADO: passar conversationId para as ferramentas
+      conversationId: conversationId
     }
 
     const intent = detectIntent(message)
