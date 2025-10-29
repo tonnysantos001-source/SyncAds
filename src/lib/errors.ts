@@ -5,6 +5,8 @@
 // com categorização, logging e mensagens user-friendly
 // ============================================
 
+import { captureError as sentryCaptureError, addBreadcrumb, setContext } from './sentry';
+
 export enum ErrorType {
   // Network & API
   NETWORK_ERROR = 'NETWORK_ERROR',
@@ -326,8 +328,8 @@ class ErrorLogger {
       this.logs = this.logs.slice(0, this.maxLogs);
     }
 
-    // TODO: Send to Sentry or analytics service
-    // this.sendToSentry(log);
+    // ✅ Send to Sentry
+    this.sendToSentry(log);
   }
 
   getLogs(limit = 20): ErrorLog[] {
@@ -338,15 +340,40 @@ class ErrorLogger {
     this.logs = [];
   }
 
-  // TODO: Implement Sentry integration
   private sendToSentry(log: ErrorLog) {
-    // Sentry.captureException(new Error(log.message), {
-    //   level: 'error',
-    //   tags: {
-    //     errorType: log.type,
-    //   },
-    //   extra: log,
-    // });
+    // Set context for better debugging
+    setContext('error_details', {
+      type: log.type,
+      code: log.code,
+      statusCode: log.statusCode,
+      url: log.url,
+    });
+
+    // Add breadcrumb
+    addBreadcrumb(
+      log.userMessage,
+      'error',
+      {
+        type: log.type,
+        code: log.code,
+        statusCode: log.statusCode,
+      }
+    );
+
+    // Capture exception in Sentry
+    const error = new Error(log.message);
+    error.name = log.type;
+
+    sentryCaptureError(error, {
+      type: log.type,
+      code: log.code,
+      statusCode: log.statusCode,
+      userMessage: log.userMessage,
+      details: log.details,
+      userId: log.userId,
+      organizationId: log.organizationId,
+      url: log.url,
+    });
   }
 }
 

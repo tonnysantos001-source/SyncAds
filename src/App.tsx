@@ -10,6 +10,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import { initSentry, setUser as setSentryUser, clearUser as clearSentryUser } from './lib/sentry';
 
 // Lazy load pages
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
@@ -92,10 +93,29 @@ function App() {
   const loadIntegrations = useIntegrationsStore((state) => state.loadIntegrations);
   const loadAiConnections = useStore((state) => state.loadAiConnections);
 
+  // Init Sentry on mount
+  useEffect(() => {
+    initSentry();
+  }, []);
+
   // Init auth on mount
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Update Sentry user context when user changes
+  useEffect(() => {
+    if (user) {
+      setSentryUser({
+        id: user.id,
+        email: user.email || undefined,
+        name: user.name || undefined,
+        organizationId: user.organizationId || undefined,
+      });
+    } else {
+      clearSentryUser();
+    }
+  }, [user]);
 
   // Load user data after authentication (só se não for super admin)
   useEffect(() => {

@@ -7,20 +7,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    css: true,
+    setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'src/test/',
+        'tests/',
+        '**/*.config.ts',
         '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData',
-        'src/main.tsx',
       ],
     },
+    testTimeout: 10000, // 10s para testes que fazem chamadas de rede
   },
   resolve: {
     alias: {
