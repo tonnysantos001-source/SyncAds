@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCard, Plus, Check, X, Settings } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
-import { gatewaysApi } from '@/lib/api/gatewaysApi'; // ✅ ADICIONADO: import da API real
+import { gatewaysApi } from '@/lib/api/gatewaysApi';
+import { useErrorHandler } from '@/hooks/useErrorHandler'; // ✅ NOVO: Error handling padronizado
 
 interface Gateway {
   id: string;
@@ -31,7 +31,7 @@ const GATEWAY_PROVIDERS = [
 ];
 
 export default function GatewaysPage() {
-  const { toast } = useToast();
+  const { showError, showSuccess, executeWithErrorHandling } = useErrorHandler();
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,17 +47,15 @@ export default function GatewaysPage() {
   }, []);
 
   const loadGateways = async () => {
-    try {
-      setLoading(true);
-      
-      // ✅ CORRIGIDO: Usar API real ao invés de mock
+    setLoading(true);
+    
+    const result = await executeWithErrorHandling(async () => {
       const gateways = await gatewaysApi.list();
       
       // Buscar contagem de transações para cada gateway
       const gatewaysWithStats = await Promise.all(
         gateways.map(async (gateway) => {
           try {
-            // Contar transações deste gateway
             const { count } = await supabase
               .from('Transaction')
               .select('*', { count: 'exact', head: true })
@@ -72,8 +70,7 @@ export default function GatewaysPage() {
               createdAt: gateway.createdAt,
               transactionsCount: count || 0,
             };
-          } catch (error) {
-            console.error(`Erro ao buscar stats do gateway ${gateway.id}:`, error);
+          } catch {
             return {
               id: gateway.id,
               name: gateway.name,
@@ -87,38 +84,36 @@ export default function GatewaysPage() {
         })
       );
       
-      setGateways(gatewaysWithStats);
-    } catch (error: any) {
-      console.error('Erro ao carregar gateways:', error);
-      toast({
-        title: 'Erro ao carregar gateways',
-        description: error.message || 'Não foi possível carregar os gateways',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+      return gatewaysWithStats;
+    }, {
+      errorMessage: 'Não foi possível carregar os gateways',
+    });
+    
+    if (result) {
+      setGateways(result);
     }
+    
+    setLoading(false);
   };
 
   const createGateway = async () => {
-    try {
-      if (!formData.name || !formData.provider || !formData.publicKey || !formData.secretKey) {
-        toast({
-          title: 'Campos obrigatórios',
-          description: 'Preencha todos os campos',
-          variant: 'destructive',
-        });
-        return;
-      }
+    // Validação
+    if (!formData.name || !formData.provider || !formData.publicKey || !formData.secretKey) {
+      showError(
+        new Error('Campos obrigatórios'),
+        'Preencha todos os campos'
+      );
+      return;
+    }
 
-      // ✅ CORRIGIDO: Salvar no banco usando API real
+    const result = await executeWithErrorHandling(async () => {
       const { data, error } = await supabase
         .from('Gateway')
         .insert({
           name: formData.name,
           type: formData.provider,
           apiKey: formData.publicKey,
-          secretKey: formData.secretKey, // Será encriptado automaticamente no banco
+          secretKey: formData.secretKey,
           isActive: true,
           createdAt: new Date().toISOString(),
         })
@@ -126,12 +121,13 @@ export default function GatewaysPage() {
         .single();
       
       if (error) throw error;
+      return data;
+    }, {
+      successMessage: `${formData.name} foi configurado com sucesso.`,
+      errorMessage: 'Não foi possível adicionar o gateway',
+    });
 
-      toast({
-        title: '✅ Gateway adicionado!',
-        description: `${formData.name} foi configurado com sucesso.`,
-      });
-
+    if (result) {
       setIsDialogOpen(false);
       setFormData({
         name: '',
@@ -139,41 +135,26 @@ export default function GatewaysPage() {
         publicKey: '',
         secretKey: '',
       });
-
       loadGateways();
-    } catch (error: any) {
-      console.error('Erro ao adicionar gateway:', error);
-      toast({
-        title: 'Erro ao adicionar gateway',
-        description: error.message || 'Não foi possível adicionar o gateway',
-        variant: 'destructive',
-      });
     }
   };
 
   const toggleGatewayStatus = async (gatewayId: string, isActive: boolean) => {
-    try {
-      // ✅ CORRIGIDO: Atualizar no banco usando API real
+    const result = await executeWithErrorHandling(async () => {
       const { error } = await supabase
         .from('Gateway')
         .update({ isActive, updatedAt: new Date().toISOString() })
         .eq('id', gatewayId);
       
       if (error) throw error;
+      return true;
+    }, {
+      successMessage: isActive ? 'Gateway ativado' : 'Gateway desativado',
+      errorMessage: 'Não foi possível atualizar o status',
+    });
 
-      toast({
-        title: isActive ? '✅ Gateway ativado' : '⏸️ Gateway desativado',
-        description: 'Status atualizado com sucesso',
-      });
-
+    if (result) {
       loadGateways();
-    } catch (error: any) {
-      console.error('Erro ao atualizar status:', error);
-      toast({
-        title: 'Erro ao atualizar status',
-        description: error.message || 'Não foi possível atualizar o status',
-        variant: 'destructive',
-      });
     }
   };
 

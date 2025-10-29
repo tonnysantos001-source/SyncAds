@@ -32,53 +32,73 @@ export default function UsagePage() {
 
   const loadUsageData = async () => {
     try {
-      // Buscar todas organizações
+      // ✅ OTIMIZADO: Uma única query com joins ao invés de N+1
       const { data: orgs, error: orgsError } = await supabase
         .from('Organization')
-        .select('*')
+        .select(`
+          id,
+          name,
+          slug,
+          plan,
+          createdAt,
+          OrganizationAiConnection (
+            globalAi:GlobalAiConnection (
+              provider
+            )
+          )
+        `)
         .order('createdAt', { ascending: false });
 
       if (orgsError) throw orgsError;
 
-      // Para cada organização, buscar dados de uso
-      const usagePromises = (orgs || []).map(async (org) => {
-        // Contar conversas/mensagens
-        const { count: messagesCount } = await supabase
-          .from('ChatMessage')
-          .select('*, conversation:ChatConversation!inner(*)', { count: 'exact', head: true })
-          .eq('conversation.organizationId', org.id);
+      // Buscar aggregações de uso para todas as orgs de uma vez
+      const orgIds = (orgs || []).map(org => org.id);
+      
+      // Buscar contagem de mensagens para todas as orgs
+      const { data: messagesCounts } = await supabase
+        .from('ChatConversation')
+        .select('organizationId, ChatMessage(count)')
+        .in('organizationId', orgIds);
 
-        // Buscar dados de AiUsage se existir
-        const { data: aiUsageData } = await supabase
-          .from('AiUsage')
-          .select('*')
-          .eq('organizationId', org.id)
-          .order('createdAt', { ascending: false })
-          .limit(1)
-          .single();
+      // Buscar dados de AI Usage para todas as orgs
+      const { data: aiUsageData } = await supabase
+        .from('AiUsage')
+        .select('organizationId, totalTokens, estimatedCost, createdAt')
+        .in('organizationId', orgIds)
+        .order('createdAt', { ascending: false });
 
-        // Buscar IA atribuída à org
-        const { data: orgAi } = await supabase
-          .from('OrganizationAiConnection')
-          .select('*, globalAi:GlobalAiConnection(*)')
-          .eq('organizationId', org.id)
-          .limit(1)
-          .single();
+      // Criar maps para lookup rápido
+      const messagesMap = new Map<string, number>();
+      (messagesCounts || []).forEach(conv => {
+        const current = messagesMap.get(conv.organizationId) || 0;
+        messagesMap.set(conv.organizationId, current + (conv.ChatMessage?.[0]?.count || 0));
+      });
 
+      const aiUsageMap = new Map<string, any>();
+      (aiUsageData || []).forEach(usage => {
+        if (!aiUsageMap.has(usage.organizationId)) {
+          aiUsageMap.set(usage.organizationId, usage);
+        }
+      });
+
+      // Transformar dados
+      const usage: UsageData[] = (orgs || []).map(org => {
+        const aiUsage = aiUsageMap.get(org.id);
+        const aiConn = org.OrganizationAiConnection?.[0];
+        
         return {
           clientId: org.id,
           clientName: org.name,
           clientSlug: org.slug,
           plan: org.plan,
-          totalMessages: messagesCount || 0,
-          totalTokens: aiUsageData?.totalTokens || 0,
-          estimatedCost: aiUsageData?.estimatedCost || 0,
-          aiProvider: orgAi?.globalAi?.provider || 'N/A',
-          lastUsed: aiUsageData?.createdAt || null,
+          totalMessages: messagesMap.get(org.id) || 0,
+          totalTokens: aiUsage?.totalTokens || 0,
+          estimatedCost: aiUsage?.estimatedCost || 0,
+          aiProvider: aiConn?.globalAi?.provider || 'N/A',
+          lastUsed: aiUsage?.createdAt || null,
         };
       });
 
-      const usage = await Promise.all(usagePromises);
       setUsageData(usage);
     } catch (error: any) {
       toast({
