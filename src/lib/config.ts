@@ -7,14 +7,16 @@
 
 // Configuração do Supabase
 export const SUPABASE_CONFIG = {
-  // URL do Supabase (prioridade: env var > fallback hardcoded)
-  url: import.meta.env.VITE_SUPABASE_URL || 'https://ovskepqggmxlfckxqgbr.supabase.co',
+  // URL do Supabase (OBRIGATÓRIO via env var)
+  url: import.meta.env.VITE_SUPABASE_URL || '',
   
-  // Anon Key do Supabase (prioridade: env var > fallback hardcoded)
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E',
+  // Anon Key do Supabase (OBRIGATÓRIO via env var)
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   
-  // URL base para Edge Functions
-  functionsUrl: 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1',
+  // URL base para Edge Functions (derivada da URL principal)
+  get functionsUrl() {
+    return this.url ? `${this.url}/functions/v1` : '';
+  },
   
   // Funções disponíveis
   functions: {

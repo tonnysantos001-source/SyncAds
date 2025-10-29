@@ -19,6 +19,7 @@ interface ToolContext {
   supabase: any;
   userId: string;
   organizationId: string;
+  conversationId?: string; // ✅ ADICIONADO: para rastrear conversação em ferramentas
 }
 
 // Cache simples em memória (Edge Functions são stateless, mas ajuda durante execução)
@@ -552,7 +553,7 @@ async function scrapeProducts(params: { url?: string; format?: string }, ctx: To
         format,
         userId: ctx.userId,
         organizationId: ctx.organizationId,
-        conversationId: ctx.userId // fallback
+        conversationId: ctx.conversationId // ✅ CORRIGIDO: usar conversationId do contexto
       }),
     })
 
@@ -848,7 +849,8 @@ serve(async (req) => {
     const toolContext: ToolContext = {
       supabase,
       userId: user.id,
-      organizationId: userData.organizationId
+      organizationId: userData.organizationId,
+      conversationId: conversationId // ✅ ADICIONADO: passar conversationId para as ferramentas
     }
 
     const intent = detectIntent(message)
