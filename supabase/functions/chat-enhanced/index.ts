@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, handlePreflightRequest } from '../_utils/cors.ts'
+import { rateLimitByUser } from '../_utils/rate-limiter.ts'
 
 serve(async (req) => {
   // Handle CORS
@@ -25,6 +26,12 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
     if (userError || !user) {
       throw new Error('Unauthorized')
+    }
+
+    // ✅ Rate limiting - 10 mensagens por minuto por usuário
+    const rateLimitResponse = await rateLimitByUser(user.id, 'AI_CHAT');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     // Get user's organization
