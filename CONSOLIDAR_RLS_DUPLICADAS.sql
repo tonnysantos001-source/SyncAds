@@ -4,7 +4,7 @@
 -- Remove políticas RLS duplicadas e consolida em uma única política por operação
 -- ============================================
 
-\echo '🔍 Analisando políticas RLS duplicadas...'
+-- 🔍 Analisando políticas RLS duplicadas...
 
 -- ============================================
 -- 1. REMOVER POLÍTICAS DUPLICADAS
@@ -299,7 +299,7 @@ END $$;
 -- 2. VERIFICAR RESULTADO
 -- ============================================
 
-\echo '📊 Verificando políticas consolidadas...'
+-- 📊 Verificando políticas consolidadas...
 
 SELECT 
     schemaname,
@@ -318,10 +318,10 @@ WHERE schemaname = 'public'
     AND tablename IN ('User', 'Campaign', 'Analytics', 'ChatConversation', 'ChatMessage', 'Integration', 'ApiKey', 'Notification', 'AiConnection', 'AiPersonality')
 ORDER BY tablename, operation, policyname;
 
-\echo '✅ Consolidação de políticas RLS concluída!'
-\echo '📈 Benefícios:'
-\echo '   - Políticas mais claras e organizadas'
-\echo '   - Melhor performance (sem conflitos)'
-\echo '   - Fácil manutenção'
-\echo '   - Nomenclatura padronizada'
+-- ✅ Consolidação de políticas RLS concluída!
+-- 📈 Benefícios:
+--    - Políticas mais claras e organizadas
+--    - Melhor performance (sem conflitos)
+--    - Fácil manutenção
+--    - Nomenclatura padronizada
 
