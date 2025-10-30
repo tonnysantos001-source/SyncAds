@@ -34,7 +34,7 @@ const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDas
 const AdminChatPage = lazy(() => import('./pages/super-admin/AdminChatPage'));
 // OrganizationsPage REMOVIDO - não usamos mais organizações
 const ClientsPage = lazy(() => import('./pages/super-admin/ClientsPage'));
-const BillingPage = lazy(() => import('./pages/super-admin/BillingPage'));
+const SuperAdminBillingPage = lazy(() => import('./pages/super-admin/BillingPage'));
 const UsagePage = lazy(() => import('./pages/super-admin/UsagePage'));
 const SuperAdminGatewaysPage = lazy(() => import('./pages/super-admin/GatewaysPage'));
 const GlobalAiPage = lazy(() => import('./pages/super-admin/GlobalAiPage'));
@@ -45,6 +45,9 @@ const ReportsOverviewPage = lazy(() => import('./pages/app/reports/ReportsOvervi
 const AudiencePage = lazy(() => import('./pages/app/reports/AudiencePage'));
 const UtmsPage = lazy(() => import('./pages/app/reports/UtmsPage'));
 const AdsPage = lazy(() => import('./pages/app/reports/AdsPage'));
+
+// Standalone pages (not in Settings)
+const BillingPage = lazy(() => import('./pages/app/BillingPage'));
 
 // Orders pages
 const AllOrdersPage = lazy(() => import('./pages/app/orders/AllOrdersPage'));
@@ -163,7 +166,7 @@ function App() {
               <Route path="/super-admin/chat" element={<AdminChatPage />} />
               {/* OrganizationsPage REMOVIDO - não usamos mais organizações */}
               <Route path="/super-admin/clients" element={<ClientsPage />} />
-              <Route path="/super-admin/billing" element={<BillingPage />} />
+              <Route path="/super-admin/billing" element={<SuperAdminBillingPage />} />
               <Route path="/super-admin/usage" element={<UsagePage />} />
               <Route path="/super-admin/gateways" element={<SuperAdminGatewaysPage />} />
               <Route path="/super-admin/ai-connections" element={<GlobalAiPage />} />
@@ -180,6 +183,9 @@ function App() {
               <Route path="/reports/audience" element={<AudiencePage />} />
               <Route path="/reports/utms" element={<UtmsPage />} />
               <Route path="/reports/ads" element={<AdsPage />} />
+              
+              {/* Billing (standalone page) */}
+              <Route path="/billing" element={<BillingPage />} />
               
               {/* Orders */}
               <Route path="/orders/all" element={<AllOrdersPage />} />

@@ -9,11 +9,11 @@ const breadcrumbNameMap: { [key: string]: string } = {
   '/analytics': 'Analytics',
   '/chat': 'Chat IA',
   '/integrations': 'Integrações',
+  '/billing': 'Faturamento',
   '/settings': 'Configurações',
   '/settings/profile': 'Perfil',
   '/settings/security': 'Segurança',
   '/settings/notifications': 'Notificações',
-  '/settings/billing': 'Faturamento',
   '/settings/api-keys': 'Chaves de API',
   '/settings/ai': 'Personalidade IA',
 };

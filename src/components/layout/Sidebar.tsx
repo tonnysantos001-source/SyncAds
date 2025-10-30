@@ -121,6 +121,7 @@ const navItems: NavItem[] = [
     ],
   },
   { to: '/integrations', icon: Plug, label: 'Integrações' },
+  { to: '/billing', icon: CreditCard, label: 'Faturamento' },
   { to: '/settings', icon: Settings, label: 'Configurações' },
 ];
 

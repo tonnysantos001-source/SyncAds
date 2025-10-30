@@ -45,7 +45,7 @@ export default function CheckoutOnboardingPage() {
           description: 'Configure seu plano e método de pagamento',
           icon: CreditCard,
           completed: billingCompleted,
-          route: '/settings/billing'
+          route: '/billing'
         },
         {
           id: 'domain',
