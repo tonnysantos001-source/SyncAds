@@ -133,7 +133,9 @@ function App() {
   }
 
   // Determine where to redirect authenticated users
-  const redirectPath = user?.isSuperAdmin ? '/super-admin' : '/dashboard';
+  // Super Admin vai direto para /super-admin
+  // Usuários normais vão para /onboarding (página inicial de checkout)
+  const redirectPath = user?.isSuperAdmin ? '/super-admin' : '/onboarding';
 
   return (
     <ErrorBoundary>
