@@ -34,79 +34,49 @@ serve(async (req) => {
       return rateLimitResponse;
     }
 
-    // Get user's organization
-    const { data: userData, error: userDataError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
-
-    if (userDataError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
-
-    // Try to get organization's AI connection first
-    let aiConnection: any = null
-    let customSystemPrompt: string | null = null
-
-    const { data: orgAi } = await supabase
-      .from('OrganizationAiConnection')
-      .select(`
-        id,
-        isDefault,
-        customSystemPrompt,
-        globalAiConnection:GlobalAiConnection (
-          id,
-          name,
-          provider,
-          apiKey,
-          baseUrl,
-          model,
-          maxTokens,
-          temperature,
-          isActive
-        )
-      `)
-      .eq('organizationId', userData.organizationId)
-      .eq('isDefault', true)
+    // ✅ SISTEMA SIMPLIFICADO: SEM ORGANIZAÇÕES
+    // Todos os usuários usam a GlobalAiConnection configurada pelo Super Admin
+    console.log('🔍 Buscando GlobalAiConnection ativa...')
+    
+    const { data: aiConnection, error: aiError } = await supabase
+      .from('GlobalAiConnection')
+      .select('*')
+      .eq('isActive', true)
+      .limit(1)
       .maybeSingle()
 
-    // If organization has AI connection, use it
-    if (orgAi && orgAi.globalAiConnection) {
-      aiConnection = orgAi.globalAiConnection
-      customSystemPrompt = orgAi.customSystemPrompt
-    } else {
-      // Fallback: Use any active Global AI
-      console.log('⚠️ Não encontrou AI da organização, usando Global AI...')
-      
-      const { data: globalAi } = await supabase
-        .from('GlobalAiConnection')
-        .select('*')
-        .eq('isActive', true)
-        .limit(1)
-        .maybeSingle()
-
-      if (!globalAi || !globalAi.apiKey) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'No AI configured',
-            message: '⚠️ Nenhuma IA configurada. Configure uma IA em Configurações > IA Global.'
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
-
-      aiConnection = globalAi
-      console.log('✅ Usando Global AI:', globalAi.name)
+    if (aiError) {
+      console.error('❌ Erro ao buscar IA:', aiError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Database error',
+          message: 'Erro ao buscar configuração de IA.'
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    // Apenas verificar isActive se a conexão tiver essa propriedade
-    if (aiConnection.isActive === false) {
-      throw new Error('AI connection is not active')
+    if (!aiConnection || !aiConnection.apiKey) {
+      console.warn('⚠️ Nenhuma IA ativa configurada')
+      return new Response(
+        JSON.stringify({ 
+          error: 'No AI configured',
+          message: '⚠️ Nenhuma IA configurada. Configure uma IA em Configurações > IA Global.'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
+
+    console.log('✅ Usando GlobalAiConnection:', aiConnection.name)
+    
+    // System prompt customizado (se existir no GlobalAiConnection)
+    const customSystemPrompt = aiConnection.systemPrompt || null
 
     // ✅ SYSTEM PROMPT FOCADO - SEM EXECUÇÃO DE CÓDIGO
     const defaultSystemPrompt = `Você é uma assistente de IA superinteligente para o sistema SyncAds, 
@@ -295,7 +265,7 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
           },
           body: JSON.stringify({
             type: 'general',
-            context: { userId: user.id, organizationId: userData.organizationId }
+            context: { userId: user.id }
           })
         })
         
@@ -475,7 +445,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
             toolName: 'web_search',
             parameters: { query: searchQuery },
             userId: user.id,
-            organizationId: userData.organizationId,
             conversationId
           })
         })
@@ -516,7 +485,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
               toolName: 'scrape_products',
               parameters: { url },
               userId: user.id,
-              organizationId: userData.organizationId,
               conversationId
             })
           })
@@ -573,7 +541,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
               libraries: ['pandas', 'numpy', 'requests'] 
             },
             userId: user.id,
-            organizationId: userData.organizationId,
             conversationId
           })
         })
@@ -944,9 +911,8 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       .update({ updatedAt: new Date().toISOString() })
       .eq('id', conversationId)
 
-    // Track AI usage (async, don't wait)
+    // Track AI usage (async, don't wait) - Sistema simplificado sem organizações
     supabase.from('AiUsage').upsert({
-      organizationId: userData.organizationId,
       userId: user.id,
       globalAiConnectionId: aiConnection.id,
       messageCount: 1,
@@ -954,7 +920,7 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       month: new Date().toISOString().substring(0, 7), // YYYY-MM
       cost: (tokensUsed / 1000) * 0.01 // Estimate: $0.01 per 1K tokens
     }, {
-      onConflict: 'organizationId,userId,globalAiConnectionId,month'
+      onConflict: 'userId,globalAiConnectionId,month'
     })
 
     return new Response(
