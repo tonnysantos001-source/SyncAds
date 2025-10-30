@@ -9,7 +9,6 @@ import { AlertCircle, CheckCircle2, Copy, Loader2, ArrowLeft, ExternalLink } fro
 import { supabase } from '@/lib/supabase';
 import { SUPABASE_CONFIG } from '@/lib/config';
 import { useToast } from '@/components/ui/use-toast';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Select,
   SelectContent,
@@ -226,18 +225,16 @@ export default function DomainValidationPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     );
   }
 
   // Se não tem domínios, mostrar tela de adicionar
   if (domains.length === 0) {
     return (
-      <DashboardLayout>
+      <div>
         <div className="p-6 sm:p-8 max-w-4xl mx-auto">
           {/* Mensagem principal */}
           <div className="text-center py-16">
@@ -314,7 +311,7 @@ export default function DomainValidationPage() {
             </div>
           )}
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
@@ -323,7 +320,7 @@ export default function DomainValidationPage() {
   const fullDomain = `${domain.subdomain}.${domain.domain}`;
 
   return (
-    <DashboardLayout>
+    <div>
       <div className="p-6 sm:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -497,7 +494,7 @@ export default function DomainValidationPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 

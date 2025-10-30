@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Edit, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Select,
   SelectContent,
@@ -220,16 +219,14 @@ export default function ShippingPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
+    <div>
       <div className="p-6 sm:p-8 max-w-7xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -424,7 +421,7 @@ export default function ShippingPage() {
           </Card>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 

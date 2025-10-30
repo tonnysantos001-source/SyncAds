@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CreditCard, Monitor, DollarSign, Truck, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 
 interface OnboardingStep {
@@ -159,11 +158,9 @@ export default function CheckoutOnboardingPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     );
   }
 
@@ -171,73 +168,71 @@ export default function CheckoutOnboardingPage() {
   const userName = user?.name || user?.email?.split('@')[0] || 'usuário';
 
   return (
-    <DashboardLayout>
-      <div className="p-6 sm:p-8 max-w-4xl mx-auto">
-        {/* Welcome Section */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Olá {userName},
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Seja bem vindo</p>
-        </div>
+    <div className="p-6 sm:p-8 max-w-4xl mx-auto">
+      {/* Welcome Section */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Olá {userName},
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Seja bem vindo</p>
+      </div>
 
-        {/* Main Instructions */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Para ativar seu checkout você precisa concluir todos passos abaixo:
-          </h2>
-        </div>
+      {/* Main Instructions */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          Para ativar seu checkout você precisa concluir todos passos abaixo:
+        </h2>
+      </div>
 
-        {/* Steps with Green/Red indicators */}
-        <div className="space-y-4">
-          {steps.map((step) => {
-            const StepIcon = step.icon;
-            
-            return (
-              <div
-                key={step.id}
-                className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-all"
-                onClick={() => navigate(step.route)}
-              >
-                {/* Icon */}
-                <div className="flex-shrink-0">
-                  <StepIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {step.description}
-                  </p>
-                </div>
-
-                {/* Status Indicator - Green/Red dot */}
-                <div className="flex-shrink-0 pt-1">
-                  <div className={`h-3 w-3 rounded-full ${
-                    step.completed ? 'bg-green-500' : 'bg-red-500'
-                  }`} 
-                  title={step.completed ? 'Concluído' : 'Pendente'}
-                  />
-                </div>
+      {/* Steps with Green/Red indicators */}
+      <div className="space-y-4">
+        {steps.map((step) => {
+          const StepIcon = step.icon;
+          
+          return (
+            <div
+              key={step.id}
+              className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+              onClick={() => navigate(step.route)}
+            >
+              {/* Icon */}
+              <div className="flex-shrink-0">
+                <StepIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
               </div>
-            );
-          })}
-        </div>
 
-        {/* Help Link */}
-        <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          Caso tenha alguma dúvida,{' '}
-          <button 
-            onClick={() => navigate('/help')}
-            className="underline hover:text-gray-900 dark:hover:text-white"
-          >
-            visite nossa central de ajuda
-          </button>
-          .
-        </div>
+              {/* Content */}
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                  {step.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Status Indicator - Green/Red dot */}
+              <div className="flex-shrink-0 pt-1">
+                <div className={`h-3 w-3 rounded-full ${
+                  step.completed ? 'bg-green-500' : 'bg-red-500'
+                }`} 
+                title={step.completed ? 'Concluído' : 'Pendente'}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Help Link */}
+      <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+        Caso tenha alguma dúvida,{' '}
+        <button 
+          onClick={() => navigate('/help')}
+          className="underline hover:text-gray-900 dark:hover:text-white"
+        >
+          visite nossa central de ajuda
+        </button>
+        .
       </div>
 
       {/* Floating Help Button */}
@@ -249,7 +244,7 @@ export default function CheckoutOnboardingPage() {
           Precisa de ajuda?
         </button>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
