@@ -42,10 +42,10 @@ export default function CheckoutOnboardingPage() {
         {
           id: 'billing',
           title: 'Faturamento',
-          description: 'Adicione um cartão de crédito em sua conta',
+          description: 'Configure seu plano e método de pagamento',
           icon: CreditCard,
           completed: billingCompleted,
-          route: '/settings?tab=billing'
+          route: '/settings/billing'
         },
         {
           id: 'domain',
