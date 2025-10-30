@@ -1,90 +1,67 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Loader2, CreditCard, Monitor, DollarSign, Truck } from 'lucide-react';
+import { CreditCard, Monitor, DollarSign, Truck, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
+import { useAuthStore } from '@/store/authStore';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingStep {
   id: string;
   title: string;
   description: string;
   icon: React.ElementType;
-  status: 'pending' | 'completed' | 'active';
-  route?: string;
+  completed: boolean;
+  route: string;
 }
 
 export default function CheckoutOnboardingPage() {
-  const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) return;
-
-      setUser(currentUser);
-
-      // Buscar organizationId
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (userData?.organizationId) {
-        setOrganizationId(userData.organizationId);
-        await loadOnboardingStatus(userData.organizationId);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
+    if (user?.id) {
+      loadOnboardingStatus();
     }
-  };
+  }, [user?.id]);
 
-  const loadOnboardingStatus = async (orgId: string) => {
+  const loadOnboardingStatus = async () => {
+    if (!user?.id) return;
+    
     try {
-      // Buscar status de cada step
-      const [billingStatus, domainStatus, gatewayStatus, shippingStatus] = await Promise.all([
-        checkBillingStatus(orgId),
-        checkDomainStatus(orgId),
-        checkGatewayStatus(orgId),
-        checkShippingStatus(orgId)
+      // Buscar status de cada etapa em paralelo
+      const [billingCompleted, domainCompleted, gatewayCompleted, shippingCompleted] = await Promise.all([
+        checkBillingStatus(),
+        checkDomainStatus(),
+        checkGatewayStatus(),
+        checkShippingStatus()
       ]);
 
-      const initialSteps: OnboardingStep[] = [
+      const onboardingSteps: OnboardingStep[] = [
         {
           id: 'billing',
           title: 'Faturamento',
           description: 'Adicione um cartão de crédito em sua conta',
           icon: CreditCard,
-          status: billingStatus ? 'completed' : 'pending',
+          completed: billingCompleted,
           route: '/settings?tab=billing'
         },
         {
           id: 'domain',
           title: 'Domínio',
-          description: 'Verifique seu domínio. Deve ser o mesmo utilizado na Shopify, WooCommerce ou na sua landing page.',
+          description: 'Verifique seu domínio. Deve ser o mesmo utilizado na shopify, woocommerce ou na sua landing page.',
           icon: Monitor,
-          status: domainStatus ? 'completed' : 'pending',
-          route: domainStatus ? '/checkout/domain' : '/checkout/domain'
+          completed: domainCompleted,
+          route: '/checkout/domain'
         },
         {
           id: 'gateway',
           title: 'Gateway',
           description: 'Configure os meios de pagamentos que serão exibidos em sua loja.',
           icon: DollarSign,
-          status: gatewayStatus ? 'completed' : 'pending',
+          completed: gatewayCompleted,
           route: '/checkout/gateways'
         },
         {
@@ -92,95 +69,91 @@ export default function CheckoutOnboardingPage() {
           title: 'Frete',
           description: 'Crie métodos de entrega para ser exibido no seu checkout.',
           icon: Truck,
-          status: shippingStatus ? 'completed' : 'pending',
-          route: shippingStatus ? '/checkout/shipping' : '/checkout/shipping'
+          completed: shippingCompleted,
+          route: '/checkout/shipping'
         }
       ];
 
-      setSteps(initialSteps);
+      setSteps(onboardingSteps);
     } catch (error) {
-      console.error('Erro ao carregar status:', error);
+      console.error('Erro ao carregar status de onboarding:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const checkBillingStatus = async (orgId: string): Promise<boolean> => {
+  // ✅ SISTEMA SIMPLIFICADO: Verificações baseadas apenas no userId
+  const checkBillingStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    
     try {
-      const { data: organization } = await supabase
-        .from('Organization')
-        .select('subscriptionId, stripeCustomerId')
-        .eq('id', orgId)
+      // Verificar se usuário tem cartão de crédito cadastrado
+      const { data: userData } = await supabase
+        .from('User')
+        .select('stripeCustomerId, subscriptionId')
+        .eq('id', user.id)
         .single();
 
-      return !!(organization?.subscriptionId && organization?.stripeCustomerId);
+      return !!(userData?.stripeCustomerId && userData?.subscriptionId);
     } catch (error) {
+      console.error('Erro ao verificar billing:', error);
       return false;
     }
   };
 
-  const checkDomainStatus = async (orgId: string): Promise<boolean> => {
+  const checkDomainStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    
     try {
-      const { data: orgData } = await supabase
-        .from('Organization')
+      // Verificar se usuário tem domínio verificado
+      const { data: userData } = await supabase
+        .from('User')
         .select('domain, domainVerified')
-        .eq('id', orgId)
+        .eq('id', user.id)
         .single();
 
-      return !!(orgData?.domain && orgData?.domainVerified);
+      return !!(userData?.domain && userData?.domainVerified);
     } catch (error) {
+      console.error('Erro ao verificar domínio:', error);
       return false;
     }
   };
 
-  const checkGatewayStatus = async (orgId: string): Promise<boolean> => {
+  const checkGatewayStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    
     try {
-      const { data: gatewayConfigs } = await supabase
+      // Verificar se usuário tem pelo menos 1 gateway configurado e ativo
+      const { data: gateways } = await supabase
         .from('GatewayConfig')
         .select('id, isActive')
-        .eq('organizationId', orgId)
+        .eq('userId', user.id)
         .eq('isActive', true)
         .limit(1);
 
-      return (gatewayConfigs?.length || 0) > 0;
+      return (gateways?.length || 0) > 0;
     } catch (error) {
+      console.error('Erro ao verificar gateway:', error);
       return false;
     }
   };
 
-  const checkShippingStatus = async (orgId: string): Promise<boolean> => {
+  const checkShippingStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    
     try {
-      // Verificar se existe alguma tabela de Shipping
-      const { data: shippingConfigs } = await supabase
+      // Verificar se usuário tem pelo menos 1 método de frete configurado
+      const { data: shippingMethods } = await supabase
         .from('ShippingMethod')
         .select('id')
-        .eq('organizationId', orgId)
+        .eq('userId', user.id)
         .limit(1);
 
-      return (shippingConfigs?.length || 0) > 0;
+      return (shippingMethods?.length || 0) > 0;
     } catch (error) {
-      // Se tabela não existir, retornar false
+      console.error('Erro ao verificar frete:', error);
+      // Se tabela não existir ainda, retornar false
       return false;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'active':
-        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
-      default:
-        return <div className="h-5 w-5 rounded-full bg-gray-300" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 border-green-500';
-      case 'active':
-        return 'bg-blue-100 border-blue-500';
-      default:
-        return 'bg-gray-50 border-gray-300';
     }
   };
 
@@ -194,103 +167,87 @@ export default function CheckoutOnboardingPage() {
     );
   }
 
+  // Get user's first name from email
+  const userName = user?.name || user?.email?.split('@')[0] || 'usuário';
+
   return (
     <DashboardLayout>
       <div className="p-6 sm:p-8 max-w-4xl mx-auto">
         {/* Welcome Section */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Olá {user?.email?.split('@')[0]?.split('.')[0]},
+            Olá {userName},
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">Seja bem vindo</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Seja bem vindo</p>
         </div>
 
         {/* Main Instructions */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Para ativar seu checkout você precisa concluir todos passos abaixo:
           </h2>
         </div>
 
-        {/* Steps */}
+        {/* Steps with Green/Red indicators */}
         <div className="space-y-4">
-          {steps.map((step, index) => (
-            <Card
-              key={step.id}
-              className={`border-2 transition-all ${getStatusColor(step.status)}`}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    {/* Icon */}
-                    <div className={`rounded-lg p-3 ${
-                      step.status === 'completed' ? 'bg-green-100' :
-                      step.status === 'active' ? 'bg-blue-100' :
-                      'bg-gray-100'
-                    }`}>
-                      <step.icon className={`h-6 w-6 ${
-                        step.status === 'completed' ? 'text-green-600' :
-                        step.status === 'active' ? 'text-blue-600' :
-                        'text-gray-400'
-                      }`} />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        {step.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Status Icon */}
-                  <div className="flex-shrink-0 ml-4">
-                    {getStatusIcon(step.status)}
-                  </div>
+          {steps.map((step) => {
+            const StepIcon = step.icon;
+            
+            return (
+              <div
+                key={step.id}
+                className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                onClick={() => navigate(step.route)}
+              >
+                {/* Icon */}
+                <div className="flex-shrink-0">
+                  <StepIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
                 </div>
 
-                {/* Action Button */}
-                {step.route && (
-                  <div className="mt-4">
-                    <Button
-                      variant={step.status === 'completed' ? 'outline' : 'default'}
-                      className="w-full"
-                      onClick={() => {
-                        if (step.route) {
-                          window.location.href = step.route;
-                        }
-                      }}
-                    >
-                      {step.status === 'completed' ? 'Configurar' : 'Configurar agora'}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                {/* Content */}
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {step.description}
+                  </p>
+                </div>
+
+                {/* Status Indicator - Green/Red dot */}
+                <div className="flex-shrink-0 pt-1">
+                  <div className={`h-3 w-3 rounded-full ${
+                    step.completed ? 'bg-green-500' : 'bg-red-500'
+                  }`} 
+                  title={step.completed ? 'Concluído' : 'Pendente'}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Help Link */}
         <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          Caso tenha alguma dúvida, visite nossa{' '}
-          <a href="/help" className="underline hover:text-gray-900 dark:hover:text-white">
-            central de ajuda
-          </a>
+          Caso tenha alguma dúvida,{' '}
+          <button 
+            onClick={() => navigate('/help')}
+            className="underline hover:text-gray-900 dark:hover:text-white"
+          >
+            visite nossa central de ajuda
+          </button>
           .
         </div>
       </div>
 
       {/* Floating Help Button */}
-      <div className="fixed bottom-6 right-6">
-        <Button 
-          className="rounded-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg"
-          onClick={() => toast({ title: 'Em construção', description: 'Chat de ajuda em breve!' })}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          className="rounded-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 shadow-lg transition-colors"
+          onClick={() => navigate('/chat')}
         >
           Precisa de ajuda?
-        </Button>
+        </button>
       </div>
     </DashboardLayout>
   );
