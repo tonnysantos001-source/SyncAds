@@ -11,7 +11,7 @@ const NotFoundPage: React.FC = () => {
         Desculpe, a página que você está procurando não existe.
       </p>
       <Button asChild className="mt-8">
-        <Link to="/dashboard">Voltar para o Dashboard</Link>
+        <Link to="/onboarding">Voltar para Início</Link>
       </Button>
     </div>
   );

@@ -32,7 +32,7 @@ export default function RegisterPage() {
         title: 'Conta criada com sucesso!',
         description: 'Bem-vindo ao SyncAds.',
       });
-      navigate('/dashboard');
+      navigate('/onboarding');
     } catch (error: any) {
       toast({
         title: 'Erro ao criar conta',

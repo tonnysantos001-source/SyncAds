@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calendar, Download, Info } from 'lucide-react';
+import { RefreshCw, Calendar, Download, Info, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNavigate } from 'react-router-dom';
 
 interface CheckoutMetrics {
   totalRevenue: number;
@@ -19,6 +20,7 @@ interface CheckoutMetrics {
 }
 
 const ReportsOverviewPage: React.FC = () => {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [metrics, setMetrics] = useState<CheckoutMetrics>({
     totalRevenue: 0,
@@ -32,11 +34,20 @@ const ReportsOverviewPage: React.FC = () => {
     loading: true,
   });
 
+  const [checkoutSetup, setCheckoutSetup] = useState({
+    billing: false,
+    domain: false,
+    gateway: false,
+    shipping: false,
+    loading: true,
+  });
+
   useEffect(() => {
-    if (user?.organizationId) {
+    if (user?.id) {
       loadCheckoutData();
+      loadCheckoutSetupStatus();
     }
-  }, [user?.organizationId]);
+  }, [user?.id]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -49,15 +60,20 @@ const ReportsOverviewPage: React.FC = () => {
     try {
       setMetrics(prev => ({ ...prev, loading: true }));
       
-      const orgId = user?.organizationId;
+      const userId = user?.id;
 
-      // Buscar dados de checkout
+      if (!userId) {
+        setMetrics(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
+      // ✅ SISTEMA SIMPLIFICADO: Buscar dados baseado no userId
       const [
         { data: orders },
         { data: transactions }
       ] = await Promise.all([
-        supabase.from('Order').select('total, status, shippingCost').eq('organizationId', orgId),
-        supabase.from('Transaction').select('amount, status, paymentMethod').eq('organizationId', orgId)
+        supabase.from('Order').select('total, status, shippingCost').eq('userId', userId),
+        supabase.from('Transaction').select('amount, status, paymentMethod').eq('userId', userId)
       ]);
 
       console.log('📊 [Reports] Dados carregados:', { orders, transactions });
@@ -107,6 +123,87 @@ const ReportsOverviewPage: React.FC = () => {
     }
   };
 
+  const loadCheckoutSetupStatus = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const [billingCompleted, domainCompleted, gatewayCompleted, shippingCompleted] = await Promise.all([
+        checkBillingStatus(),
+        checkDomainStatus(),
+        checkGatewayStatus(),
+        checkShippingStatus()
+      ]);
+
+      setCheckoutSetup({
+        billing: billingCompleted,
+        domain: domainCompleted,
+        gateway: gatewayCompleted,
+        shipping: shippingCompleted,
+        loading: false,
+      });
+    } catch (error) {
+      console.error('❌ [Reports] Erro ao verificar setup:', error);
+      setCheckoutSetup(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const checkBillingStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    try {
+      const { data: userData } = await supabase
+        .from('User')
+        .select('stripeCustomerId, subscriptionId')
+        .eq('id', user.id)
+        .single();
+      return !!(userData?.stripeCustomerId && userData?.subscriptionId);
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const checkDomainStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    try {
+      const { data: userData } = await supabase
+        .from('User')
+        .select('domain, domainVerified')
+        .eq('id', user.id)
+        .single();
+      return !!(userData?.domain && userData?.domainVerified);
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const checkGatewayStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    try {
+      const { data: gateways } = await supabase
+        .from('GatewayConfig')
+        .select('id, isActive')
+        .eq('userId', user.id)
+        .eq('isActive', true)
+        .limit(1);
+      return (gateways?.length || 0) > 0;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const checkShippingStatus = async (): Promise<boolean> => {
+    if (!user?.id) return false;
+    try {
+      const { data: shippingMethods } = await supabase
+        .from('ShippingMethod')
+        .select('id')
+        .eq('userId', user.id)
+        .limit(1);
+      return (shippingMethods?.length || 0) > 0;
+    } catch (error) {
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
@@ -140,6 +237,54 @@ const ReportsOverviewPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Card de Status do Checkout - Só aparece se tiver algo pendente */}
+      {!checkoutSetup.loading && (!checkoutSetup.billing || !checkoutSetup.domain || !checkoutSetup.gateway || !checkoutSetup.shipping) && (
+        <Card className="border-pink-200 bg-pink-50">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-pink-600" />
+                  Configure seu Checkout
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Complete o onboarding para ativar seu checkout e começar a vender
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {!checkoutSetup.billing && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-pink-200">
+                      ❌ Faturamento
+                    </span>
+                  )}
+                  {!checkoutSetup.domain && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-pink-200">
+                      ❌ Domínio
+                    </span>
+                  )}
+                  {!checkoutSetup.gateway && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-pink-200">
+                      ❌ Gateway
+                    </span>
+                  )}
+                  {!checkoutSetup.shipping && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-pink-200">
+                      ❌ Frete
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/onboarding')}
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                size="sm"
+              >
+                Configurar <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Cards de Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

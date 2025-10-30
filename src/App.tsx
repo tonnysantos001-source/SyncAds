@@ -173,7 +173,6 @@ function App() {
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/chat" element={<ChatPage />} />
-              <Route path="/dashboard" element={<UnifiedDashboardPage />} />
               <Route path="/campaigns/:id" element={<CampaignDetailsPage />} />
               
               {/* Reports */}

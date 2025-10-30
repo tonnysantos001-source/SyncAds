@@ -41,7 +41,7 @@ interface ShippingMethod {
   estimatedDays: number;
   isActive: boolean;
   isDefault: boolean;
-  organizationId: string;
+  userId: string;
 }
 
 export default function ShippingPage() {
@@ -70,19 +70,11 @@ export default function ShippingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) return;
-
-      // Buscar métodos de frete
+      // ✅ SISTEMA SIMPLIFICADO: Buscar por userId
       const { data, error } = await supabase
         .from('ShippingMethod')
         .select('*')
-        .eq('organizationId', userData.organizationId)
+        .eq('userId', user.id)
         .order('createdAt', { ascending: false });
 
       if (error) throw error;
@@ -105,14 +97,7 @@ export default function ShippingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) return;
-
+      // ✅ SISTEMA SIMPLIFICADO: Sem organizationId
       if (editingMethod) {
         // Atualizar
         const { error } = await supabase
@@ -132,7 +117,7 @@ export default function ShippingPage() {
           .from('ShippingMethod')
           .insert({
             ...formData,
-            organizationId: userData.organizationId
+            userId: user.id
           });
 
         if (error) throw error;

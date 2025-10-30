@@ -13,7 +13,7 @@ const NotFoundPage: React.FC = () => {
         Oops! A página que você está procurando não existe. Pode ter sido movida ou deletada.
       </p>
       <Button asChild>
-        <Link to="/dashboard">Voltar para o Dashboard</Link>
+        <Link to="/onboarding">Voltar para Início</Link>
       </Button>
     </div>
   );

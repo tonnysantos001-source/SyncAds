@@ -53,31 +53,21 @@ export default function DomainValidationPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar organizationId
+      // ✅ SISTEMA SIMPLIFICADO: Buscar domínio do usuário diretamente
       const { data: userData } = await supabase
         .from('User')
-        .select('organizationId')
+        .select('domain, domainVerified')
         .eq('id', user.id)
         .single();
 
-      if (!userData?.organizationId) return;
-
-      // Buscar domínios da organização
-      const { data: orgData } = await supabase
-        .from('Organization')
-        .select('domain, domainVerified')
-        .eq('id', userData.organizationId)
-        .single();
-
-      if (orgData?.domain) {
-        // Simular estrutura de domínios (por enquanto)
-        // TODO: Criar tabela Domain quando necessário
+      if (userData?.domain) {
+        // Estrutura de domínios simplificada
         setDomains([{
           id: '1',
-          domain: orgData.domain,
+          domain: userData.domain,
           subdomain: 'checkout',
-          cnameRecord: generateCNAME(orgData.domain),
-          verified: orgData.domainVerified || false,
+          cnameRecord: generateCNAME(userData.domain),
+          verified: userData.domainVerified || false,
           sslConfigured: false,
           createdAt: new Date().toISOString()
         }]);
@@ -111,27 +101,19 @@ export default function DomainValidationPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) return;
-
       const cnameRecord = generateCNAME(newDomain.domain);
       const fullDomain = `${newDomain.subdomain}.${newDomain.domain}`;
 
-      // Atualizar organização com o domínio
+      // ✅ SISTEMA SIMPLIFICADO: Atualizar usuário com o domínio
       const { error } = await supabase
-        .from('Organization')
+        .from('User')
         .update({
           domain: fullDomain,
           domainVerified: false,
           domainVerificationToken: crypto.randomUUID(),
           domainVerificationMethod: 'DNS'
         })
-        .eq('id', userData.organizationId);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -160,14 +142,7 @@ export default function DomainValidationPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) return;
-
+      // ✅ SISTEMA SIMPLIFICADO: Sem organizationId
       // Chamar Edge Function de verificação
       const { data: session } = await supabase.auth.getSession();
       
@@ -221,22 +196,15 @@ export default function DomainValidationPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) return;
-
+      // ✅ SISTEMA SIMPLIFICADO: Atualizar usuário diretamente
       const { error } = await supabase
-        .from('Organization')
+        .from('User')
         .update({
           domain: null,
           domainVerified: false,
           domainVerificationToken: null
         })
-        .eq('id', userData.organizationId);
+        .eq('id', user.id);
 
       if (error) throw error;
 

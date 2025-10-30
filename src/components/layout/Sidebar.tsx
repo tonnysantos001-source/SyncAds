@@ -60,7 +60,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: '/chat', icon: Bot, label: 'Chat IA' },
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Página inicial' },
+  { to: '/onboarding', icon: Home, label: 'Página inicial' },
   {
     icon: BarChart3,
     label: 'Relatórios',

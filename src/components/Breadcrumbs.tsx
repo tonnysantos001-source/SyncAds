@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const breadcrumbNameMap: { [key: string]: string } = {
-  '/dashboard': 'Dashboard',
+  '/onboarding': 'Página Inicial',
   '/campaigns': 'Campanhas',
   '/analytics': 'Analytics',
   '/chat': 'Chat IA',
@@ -20,7 +20,7 @@ const Breadcrumbs = () => {
     <nav aria-label="Breadcrumb" className="mb-4 hidden md:block">
       <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
         <li>
-          <Link to="/dashboard" className="hover:text-foreground">
+          <Link to="/onboarding" className="hover:text-foreground">
             Início
           </Link>
         </li>
