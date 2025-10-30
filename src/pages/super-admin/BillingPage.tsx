@@ -1,31 +1,100 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, Search, TrendingUp, CreditCard, Calendar, ArrowUpRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  DollarSign, 
+  Search, 
+  TrendingUp, 
+  CreditCard, 
+  FileText,
+  Download,
+  Calendar,
+  Users
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-interface BillingData {
-  clientId: string;
-  clientName: string;
-  clientSlug: string;
-  plan: string;
+interface SubscriptionWithUser {
+  id: string;
+  userId: string;
   status: string;
-  mrr: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  usedAiMessages: number;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  plan: {
+    id: string;
+    name: string;
+    price: number;
+    maxAiMessages: number;
+  };
+}
+
+interface Invoice {
+  id: string;
+  userId: string;
+  invoiceNumber: string;
+  amount: number;
+  status: string;
+  paidAt: string | null;
+  createdAt: string;
+  user: {
+    name: string;
+    email: string;
+  };
+}
+
+interface Stats {
   totalRevenue: number;
-  lastPayment: string | null;
-  nextPayment: string | null;
+  monthlyRevenue: number;
+  activeSubscriptions: number;
+  totalInvoices: number;
+  paidInvoices: number;
+  pendingInvoices: number;
 }
 
 export default function BillingPage() {
   const { toast } = useToast();
-  const [billingData, setBillingData] = useState<BillingData[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'subscriptions' | 'invoices'>('subscriptions');
+  
+  const [subscriptions, setSubscriptions] = useState<SubscriptionWithUser[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    activeSubscriptions: 0,
+    totalInvoices: 0,
+    paidInvoices: 0,
+    pendingInvoices: 0,
+  });
 
   useEffect(() => {
     loadBillingData();
@@ -33,39 +102,60 @@ export default function BillingPage() {
 
   const loadBillingData = async () => {
     try {
-      // Buscar todas organizações
-      const { data: orgs, error } = await supabase
-        .from('Organization')
-        .select('*')
+      setLoading(true);
+
+      // Load subscriptions with user and plan data
+      const { data: subsData, error: subsError } = await supabase
+        .from('Subscription')
+        .select(`
+          *,
+          user:userId (id, name, email),
+          plan:planId (id, name, price, maxAiMessages)
+        `)
         .order('createdAt', { ascending: false });
 
-      if (error) throw error;
+      if (subsError) throw subsError;
 
-      // Calcular MRR baseado no plano
-      const planPrices: Record<string, number> = {
-        FREE: 0,
-        STARTER: 49.90,
-        PRO: 199.90,
-        ENTERPRISE: 999.90,
-      };
+      // Load invoices with user data
+      const { data: invoicesData, error: invoicesError } = await supabase
+        .from('Invoice')
+        .select(`
+          *,
+          user:userId (name, email)
+        `)
+        .order('createdAt', { ascending: false });
 
-      const billing: BillingData[] = (orgs || []).map((org) => ({
-        clientId: org.id,
-        clientName: org.name,
-        clientSlug: org.slug,
-        plan: org.plan,
-        status: org.status,
-        mrr: org.status === 'ACTIVE' ? planPrices[org.plan] || 0 : 0,
-        totalRevenue: 0, // TODO: Calcular da tabela de pagamentos
-        lastPayment: null,
-        nextPayment: org.status === 'ACTIVE' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
-      }));
+      if (invoicesError) throw invoicesError;
 
-      setBillingData(billing);
-    } catch (error: any) {
+      setSubscriptions(subsData || []);
+      setInvoices(invoicesData || []);
+
+      // Calculate stats
+      const activeSubscriptions = (subsData || []).filter(s => s.status === 'active').length;
+      const monthlyRevenue = (subsData || [])
+        .filter(s => s.status === 'active')
+        .reduce((sum, s) => sum + (s.plan?.price || 0), 0);
+      
+      const paidInvoices = (invoicesData || []).filter(i => i.status === 'paid').length;
+      const pendingInvoices = (invoicesData || []).filter(i => i.status === 'open' || i.status === 'draft').length;
+      const totalRevenue = (invoicesData || [])
+        .filter(i => i.status === 'paid')
+        .reduce((sum, i) => sum + i.amount, 0);
+
+      setStats({
+        totalRevenue,
+        monthlyRevenue,
+        activeSubscriptions,
+        totalInvoices: invoicesData?.length || 0,
+        paidInvoices,
+        pendingInvoices,
+      });
+
+    } catch (error) {
+      console.error('Error loading billing data:', error);
       toast({
-        title: 'Erro ao carregar faturamento',
-        description: error.message,
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar os dados de faturamento.',
         variant: 'destructive',
       });
     } finally {
@@ -73,58 +163,55 @@ export default function BillingPage() {
     }
   };
 
-  const filteredData = billingData.filter((item) =>
-    item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.clientSlug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const calculateTotals = () => {
-    return {
-      totalMRR: billingData.reduce((acc, item) => acc + item.mrr, 0),
-      activeClients: billingData.filter(item => item.status === 'ACTIVE').length,
-      totalRevenue: billingData.reduce((acc, item) => acc + item.totalRevenue, 0),
-      avgRevenuePerClient: billingData.length > 0 
-        ? billingData.reduce((acc, item) => acc + item.mrr, 0) / billingData.filter(item => item.status === 'ACTIVE').length
-        : 0,
-    };
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(price);
   };
 
-  const totals = calculateTotals();
-
-  const getPlanBadge = (plan: string) => {
-    const colors: Record<string, string> = {
-      FREE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
-      STARTER: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      PRO: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      ENTERPRISE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-    };
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[plan] || colors.FREE}`}>
-        {plan}
-      </span>
-    );
+  const formatDate = (date: string | null) => {
+    if (!date) return '-';
+    return format(new Date(date), 'dd/MM/yyyy', { locale: ptBR });
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      ACTIVE: { variant: 'default', label: 'Ativo' },
-      TRIAL: { variant: 'secondary', label: 'Trial' },
-      SUSPENDED: { variant: 'destructive', label: 'Suspenso' },
-      CANCELLED: { variant: 'outline', label: 'Cancelado' },
+    const variants: Record<string, { label: string; className: string }> = {
+      active: { label: 'Ativa', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+      trialing: { label: 'Trial', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      past_due: { label: 'Atrasada', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+      canceled: { label: 'Cancelada', className: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' },
+      paid: { label: 'Paga', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+      open: { label: 'Aberta', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      draft: { label: 'Rascunho', className: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' },
+      void: { label: 'Cancelada', className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
     };
-    const config = variants[status] || variants.TRIAL;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+
+    const variant = variants[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    return <Badge className={variant.className}>{variant.label}</Badge>;
   };
 
-  if (loading) {
-    return (
-      <SuperAdminLayout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </SuperAdminLayout>
-    );
-  }
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    const matchesSearch = 
+      sub.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sub.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sub.plan?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || sub.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = 
+      inv.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || inv.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <SuperAdminLayout>
@@ -132,139 +219,259 @@ export default function BillingPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Faturamento</h1>
-          <p className="text-gray-500 dark:text-gray-400">Acompanhe a receita e pagamentos dos clientes</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Gerencie assinaturas e faturas dos clientes
+          </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">MRR Total</CardTitle>
+              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
               <DollarSign className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {totals.totalMRR.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-xs text-muted-foreground">Receita mensal recorrente</p>
+              <div className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.paidInvoices} faturas pagas
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clientes Pagantes</CardTitle>
+              <CardTitle className="text-sm font-medium">MRR</CardTitle>
               <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totals.activeClients}</div>
-              <p className="text-xs text-muted-foreground">Com plano ativo</p>
+              <div className="text-2xl font-bold">{formatPrice(stats.monthlyRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Receita mensal recorrente
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-              <CreditCard className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {totals.avgRevenuePerClient.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-xs text-muted-foreground">Por cliente</p>
+              <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Clientes com planos ativos
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">ARR Projetado</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+              <CardTitle className="text-sm font-medium">Faturas Pendentes</CardTitle>
+              <FileText className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {(totals.totalMRR * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-xs text-muted-foreground">Receita anual</p>
+              <div className="text-2xl font-bold">{stats.pendingInvoices}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aguardando pagamento
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Billing Table */}
+        {/* Filters and Tabs */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Faturamento por Cliente</CardTitle>
-                <CardDescription>Detalhes de pagamento e receita</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex gap-2">
+                <Button
+                  variant={activeTab === 'subscriptions' ? 'default' : 'outline'}
+                  onClick={() => setActiveTab('subscriptions')}
+                  className={activeTab === 'subscriptions' ? 'bg-pink-600 hover:bg-pink-700' : ''}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Assinaturas
+                </Button>
+                <Button
+                  variant={activeTab === 'invoices' ? 'default' : 'outline'}
+                  onClick={() => setActiveTab('invoices')}
+                  className={activeTab === 'invoices' ? 'bg-pink-600 hover:bg-pink-700' : ''}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Faturas
+                </Button>
+              </div>
+
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {activeTab === 'subscriptions' ? (
+                      <>
+                        <SelectItem value="active">Ativa</SelectItem>
+                        <SelectItem value="trialing">Trial</SelectItem>
+                        <SelectItem value="canceled">Cancelada</SelectItem>
+                        <SelectItem value="past_due">Atrasada</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="paid">Paga</SelectItem>
+                        <SelectItem value="open">Aberta</SelectItem>
+                        <SelectItem value="draft">Rascunho</SelectItem>
+                        <SelectItem value="void">Cancelada</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar cliente..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
 
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>MRR</TableHead>
-                    <TableHead>Receita Total</TableHead>
-                    <TableHead>Próximo Pagamento</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredData.length === 0 ? (
+          <CardContent>
+            {activeTab === 'subscriptions' ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        Nenhum dado de faturamento encontrado
-                      </TableCell>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Uso IA</TableHead>
+                      <TableHead>Renovação</TableHead>
+                      <TableHead>Criado em</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredData.map((item) => (
-                      <TableRow key={item.clientId}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{item.clientName}</div>
-                            <div className="text-sm text-gray-500">{item.clientSlug}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getPlanBadge(item.plan)}</TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-green-600">
-                            R$ {item.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          R$ {item.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          {item.nextPayment ? (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Calendar className="h-4 w-4 text-gray-400" />
-                              {new Date(item.nextPayment).toLocaleDateString('pt-BR')}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          Carregando...
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : filteredSubscriptions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          Nenhuma assinatura encontrada
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredSubscriptions.map((sub) => (
+                        <TableRow key={sub.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {sub.user?.name || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {sub.user?.email || 'N/A'}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{sub.plan?.name || 'N/A'}</Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {formatPrice(sub.plan?.price || 0)}/mês
+                          </TableCell>
+                          <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <span className="font-medium">{sub.usedAiMessages}</span>
+                              <span className="text-gray-500">
+                                {' '}/ {sub.plan?.maxAiMessages === 0 ? '∞' : sub.plan?.maxAiMessages}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {formatDate(sub.currentPeriodEnd)}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                            {formatDate(sub.createdAt)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fatura</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Pago em</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredInvoices.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          Nenhuma fatura encontrada
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredInvoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">
+                            {invoice.invoiceNumber}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {invoice.user?.name || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {invoice.user?.email || 'N/A'}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {formatPrice(invoice.amount)}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                          <TableCell className="text-sm">
+                            {formatDate(invoice.paidAt)}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                            {formatDate(invoice.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

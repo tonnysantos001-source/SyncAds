@@ -150,12 +150,27 @@ const ReportsOverviewPage: React.FC = () => {
   const checkBillingStatus = async (): Promise<boolean> => {
     if (!user?.id) return false;
     try {
+      // Verificar se usuário tem um plano atribuído (mesmo que gratuito)
       const { data: userData } = await supabase
         .from('User')
-        .select('stripeCustomerId, subscriptionId')
+        .select('currentPlanId')
         .eq('id', user.id)
         .single();
-      return !!(userData?.stripeCustomerId && userData?.subscriptionId);
+
+      // Se tem plano atribuído, billing está OK
+      if (userData?.currentPlanId) {
+        return true;
+      }
+
+      // Verificar se tem subscrição ativa (mesmo gratuita)
+      const { data: subscription } = await supabase
+        .from('Subscription')
+        .select('id, status')
+        .eq('userId', user.id)
+        .eq('status', 'active')
+        .single();
+
+      return !!subscription;
     } catch (error) {
       return false;
     }
