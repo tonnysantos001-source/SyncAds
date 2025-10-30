@@ -272,32 +272,32 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
 
   return (
     <>
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar Overlay */}
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/60 transition-opacity sm:hidden',
+          'fixed inset-0 z-40 bg-black/60 transition-opacity md:hidden',
           sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         onClick={() => setSidebarOpen(false)}
       />
+      
+      {/* Mobile Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 transform border-r bg-background transition-transform duration-300 ease-in-out sm:hidden',
+          'fixed inset-y-0 left-0 z-50 w-64 transform border-r transition-transform duration-300 ease-in-out md:hidden',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="p-4 absolute top-0 right-0">
+        <div className="p-4 absolute top-0 right-0 z-50">
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6 text-white" />
           </Button>
         </div>
         <SidebarContent />
       </div>
 
-      {/* Desktop Sidebar */}
-      <aside
-        className="hidden sm:block border-r border-gray-200/50 dark:border-gray-800/50 w-64 shadow-xl shadow-gray-200/50 dark:shadow-gray-950/50"
-      >
+      {/* Desktop Sidebar - Sempre visível em telas maiores */}
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-gray-200/50 dark:border-gray-800/50 shadow-xl shadow-gray-200/50 dark:shadow-gray-950/50">
         <SidebarContent />
       </aside>
     </>
