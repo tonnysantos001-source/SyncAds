@@ -1,0 +1,608 @@
+// ============================================
+// LISTA COMPLETA DE GATEWAYS DE PAGAMENTO
+// Baseado na Adoorei e principais do mercado
+// ============================================
+
+export interface GatewayConfig {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string; // URL da logo
+  type: 'nacional' | 'global' | 'both';
+  status: 'active' | 'inactive';
+  description: string;
+  features: string[];
+  paymentMethods: ('credit_card' | 'debit_card' | 'pix' | 'boleto' | 'wallet')[];
+  configFields: {
+    name: string;
+    label: string;
+    type: 'text' | 'password' | 'select' | 'checkbox';
+    required: boolean;
+    placeholder?: string;
+    options?: { label: string; value: string }[];
+  }[];
+  apiDocs: string;
+  testMode: boolean;
+}
+
+// ============================================
+// GATEWAYS BRASILEIROS (MAIS POPULARES)
+// ============================================
+
+export const gatewaysList: GatewayConfig[] = [
+  // 1. MERCADO PAGO
+  {
+    id: 'mercadopago',
+    name: 'Mercado Pago',
+    slug: 'mercadopago',
+    logo: 'https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large_plus.png',
+    type: 'both',
+    status: 'inactive',
+    description: 'Gateway de pagamento líder na América Latina',
+    features: ['Pix', 'Cartão de Crédito', 'Boleto', 'QR Code', 'Link de Pagamento'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'publicKey',
+        label: 'Public Key',
+        type: 'text',
+        required: true,
+        placeholder: 'APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'accessToken',
+        label: 'Access Token',
+        type: 'password',
+        required: true,
+        placeholder: 'APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'testMode',
+        label: 'Modo de Teste',
+        type: 'checkbox',
+        required: false,
+      },
+    ],
+    apiDocs: 'https://www.mercadopago.com.br/developers/pt/docs',
+    testMode: true,
+  },
+
+  // 2. STRIPE
+  {
+    id: 'stripe',
+    name: 'Stripe',
+    slug: 'stripe',
+    logo: 'https://images.ctfassets.net/fzn2n1nzq965/HTTOloNPhisV9P4hlMPNA/cacf1bb88b9fc492dfad34378d844280/Stripe_icon_-_square.svg',
+    type: 'global',
+    status: 'inactive',
+    description: 'Gateway de pagamento global mais usado no mundo',
+    features: ['Cartão de Crédito', 'Pix', 'Boleto', 'Apple Pay', 'Google Pay'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'publishableKey',
+        label: 'Publishable Key',
+        type: 'text',
+        required: true,
+        placeholder: 'pk_live_xxxxxxxxxxxxxxxxxxxx',
+      },
+      {
+        name: 'secretKey',
+        label: 'Secret Key',
+        type: 'password',
+        required: true,
+        placeholder: 'sk_live_xxxxxxxxxxxxxxxxxxxx',
+      },
+      {
+        name: 'webhookSecret',
+        label: 'Webhook Secret',
+        type: 'password',
+        required: false,
+        placeholder: 'whsec_xxxxxxxxxxxxxxxxxxxx',
+      },
+      {
+        name: 'testMode',
+        label: 'Modo de Teste',
+        type: 'checkbox',
+        required: false,
+      },
+    ],
+    apiDocs: 'https://stripe.com/docs',
+    testMode: true,
+  },
+
+  // 3. PAGSEGURO
+  {
+    id: 'pagseguro',
+    name: 'PagSeguro',
+    slug: 'pagseguro',
+    logo: 'https://assets.pagseguro.com.br/ps-public-assets/brand/logo-pagseguro.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Solução completa de pagamentos online do Brasil',
+    features: ['Pix', 'Cartão', 'Boleto', 'Débito Online', 'Split de Pagamento'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'email',
+        label: 'Email da Conta',
+        type: 'text',
+        required: true,
+        placeholder: 'seu-email@exemplo.com',
+      },
+      {
+        name: 'token',
+        label: 'Token',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Sandbox', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://dev.pagseguro.uol.com.br/reference/api-reference',
+    testMode: true,
+  },
+
+  // 4. ASAAS
+  {
+    id: 'asaas',
+    name: 'Asaas',
+    slug: 'asaas',
+    logo: 'https://www.asaas.com/images/logo-asaas.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Plataforma completa de cobranças e pagamentos',
+    features: ['Pix', 'Boleto', 'Cartão de Crédito', 'Link de Pagamento', 'Recorrência'],
+    paymentMethods: ['credit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: '$aact_YTU5YTE0M2M2N2I4MTliNzk0YTI5N2U5MzY',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Sandbox', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://docs.asaas.com/',
+    testMode: true,
+  },
+
+  // 5. PAGAR.ME
+  {
+    id: 'pagarme',
+    name: 'Pagar.me',
+    slug: 'pagarme',
+    logo: 'https://avatars.githubusercontent.com/u/3846050?s=200&v=4',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Gateway brasileiro com foco em desenvolvedores',
+    features: ['Pix', 'Cartão', 'Boleto', 'Split', 'Antifraude'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'sk_test_xxxxxxxxxxxxxxxxxxxx',
+      },
+      {
+        name: 'encryptionKey',
+        label: 'Encryption Key',
+        type: 'password',
+        required: true,
+        placeholder: 'ek_test_xxxxxxxxxxxxxxxxxxxx',
+      },
+    ],
+    apiDocs: 'https://docs.pagar.me/',
+    testMode: true,
+  },
+
+  // 6. CIELO
+  {
+    id: 'cielo',
+    name: 'Cielo',
+    slug: 'cielo',
+    logo: 'https://www.cielo.com.br/assets/images/logo-cielo.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Maior adquirente do Brasil',
+    features: ['Cartão de Crédito', 'Cartão de Débito', 'Pix', 'Link de Pagamento'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix'],
+    configFields: [
+      {
+        name: 'merchantId',
+        label: 'Merchant ID',
+        type: 'text',
+        required: true,
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'merchantKey',
+        label: 'Merchant Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Sandbox', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://developercielo.github.io/manual/cielo-ecommerce',
+    testMode: true,
+  },
+
+  // 7. PAYPAL
+  {
+    id: 'paypal',
+    name: 'PayPal',
+    slug: 'paypal',
+    logo: 'https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg',
+    type: 'global',
+    status: 'inactive',
+    description: 'Gateway de pagamento global mais conhecido',
+    features: ['Cartão de Crédito', 'Carteira Digital', 'PayPal Credit', 'Venmo'],
+    paymentMethods: ['credit_card', 'wallet'],
+    configFields: [
+      {
+        name: 'clientId',
+        label: 'Client ID',
+        type: 'text',
+        required: true,
+        placeholder: 'AxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxX',
+      },
+      {
+        name: 'clientSecret',
+        label: 'Client Secret',
+        type: 'password',
+        required: true,
+        placeholder: 'ExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Live', value: 'production' },
+          { label: 'Sandbox', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://developer.paypal.com/docs/api/overview/',
+    testMode: true,
+  },
+
+  // 8. PICPAY
+  {
+    id: 'picpay',
+    name: 'PicPay',
+    slug: 'picpay',
+    logo: 'https://logodownload.org/wp-content/uploads/2020/02/picpay-logo-0.png',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Carteira digital brasileira',
+    features: ['Carteira Digital', 'QR Code', 'Pix', 'Cashback'],
+    paymentMethods: ['wallet', 'pix'],
+    configFields: [
+      {
+        name: 'picpayToken',
+        label: 'PicPay Token',
+        type: 'password',
+        required: true,
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'sellerToken',
+        label: 'Seller Token',
+        type: 'password',
+        required: true,
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+    ],
+    apiDocs: 'https://ecommerce.picpay.com/doc/',
+    testMode: true,
+  },
+
+  // 9. REDE
+  {
+    id: 'rede',
+    name: 'Rede',
+    slug: 'rede',
+    logo: 'https://www.userede.com.br/Content/images/logo-rede.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Adquirente do Itaú',
+    features: ['Cartão de Crédito', 'Cartão de Débito', 'Pix'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix'],
+    configFields: [
+      {
+        name: 'pv',
+        label: 'PV (Número do estabelecimento)',
+        type: 'text',
+        required: true,
+        placeholder: '1234567890',
+      },
+      {
+        name: 'token',
+        label: 'Token',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Homologação', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://www.userede.com.br/desenvolvedores',
+    testMode: true,
+  },
+
+  // 10. GETNET
+  {
+    id: 'getnet',
+    name: 'GetNet',
+    slug: 'getnet',
+    logo: 'https://site.getnet.com.br/wp-content/themes/getnet/assets/images/logo-getnet.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Adquirente do Santander',
+    features: ['Cartão de Crédito', 'Cartão de Débito', 'Pix', 'Boleto'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix', 'boleto'],
+    configFields: [
+      {
+        name: 'sellerId',
+        label: 'Seller ID',
+        type: 'text',
+        required: true,
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'clientId',
+        label: 'Client ID',
+        type: 'text',
+        required: true,
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      },
+      {
+        name: 'clientSecret',
+        label: 'Client Secret',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Homologação', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://developers.getnet.com.br/api',
+    testMode: true,
+  },
+
+  // 11. STONE
+  {
+    id: 'stone',
+    name: 'Stone',
+    slug: 'stone',
+    logo: 'https://www.stone.com.br/wp-content/themes/stone/images/logo-stone.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Adquirente e banking digital',
+    features: ['Cartão de Crédito', 'Cartão de Débito', 'Pix'],
+    paymentMethods: ['credit_card', 'debit_card', 'pix'],
+    configFields: [
+      {
+        name: 'stoneCode',
+        label: 'Stone Code',
+        type: 'text',
+        required: true,
+        placeholder: '123456789',
+      },
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+    ],
+    apiDocs: 'https://docs.stone.com.br/',
+    testMode: true,
+  },
+
+  // 12. IUGU
+  {
+    id: 'iugu',
+    name: 'Iugu',
+    slug: 'iugu',
+    logo: 'https://iugu.com/assets/images/logo.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Solução completa de pagamentos recorrentes',
+    features: ['Cartão de Crédito', 'Boleto', 'Pix', 'Assinaturas', 'Split'],
+    paymentMethods: ['credit_card', 'boleto', 'pix'],
+    configFields: [
+      {
+        name: 'apiToken',
+        label: 'API Token',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'accountId',
+        label: 'Account ID',
+        type: 'text',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'testMode',
+        label: 'Modo de Teste',
+        type: 'checkbox',
+        required: false,
+      },
+    ],
+    apiDocs: 'https://dev.iugu.com/reference',
+    testMode: true,
+  },
+
+  // 13. VINDI
+  {
+    id: 'vindi',
+    name: 'Vindi',
+    slug: 'vindi',
+    logo: 'https://vindi.com.br/wp-content/uploads/2021/10/logo-vindi.svg',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Plataforma de pagamentos recorrentes',
+    features: ['Cartão', 'Boleto', 'Pix', 'Assinaturas', 'Gestão de cobranças'],
+    paymentMethods: ['credit_card', 'boleto', 'pix'],
+    configFields: [
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+    ],
+    apiDocs: 'https://vindi.github.io/api-docs/dist/',
+    testMode: true,
+  },
+
+  // 14. WIRECARD (MOIP)
+  {
+    id: 'wirecard',
+    name: 'Wirecard (Moip)',
+    slug: 'wirecard',
+    logo: 'https://logodownload.org/wp-content/uploads/2020/11/moip-logo.png',
+    type: 'nacional',
+    status: 'inactive',
+    description: 'Solução completa de pagamentos online',
+    features: ['Cartão', 'Boleto', 'Débito Online', 'Carteira Digital'],
+    paymentMethods: ['credit_card', 'debit_card', 'boleto', 'wallet'],
+    configFields: [
+      {
+        name: 'token',
+        label: 'Token',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'key',
+        label: 'Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'environment',
+        label: 'Ambiente',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Produção', value: 'production' },
+          { label: 'Sandbox', value: 'sandbox' },
+        ],
+      },
+    ],
+    apiDocs: 'https://dev.moip.com.br/reference',
+    testMode: true,
+  },
+
+  // 15. SAFETYPAY
+  {
+    id: 'safetypay',
+    name: 'SafetyPay',
+    slug: 'safetypay',
+    logo: 'https://www.safetypay.com/images/logo-safetypay.svg',
+    type: 'global',
+    status: 'inactive',
+    description: 'Solução de pagamento online segura para América Latina',
+    features: ['Transferência Bancária', 'Cash', 'Wallet'],
+    paymentMethods: ['debit_card', 'wallet'],
+    configFields: [
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+      {
+        name: 'signatureKey',
+        label: 'Signature Key',
+        type: 'password',
+        required: true,
+        placeholder: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      },
+    ],
+    apiDocs: 'https://developer.safetypay.com/',
+    testMode: true,
+  },
+];
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+export const getGatewayBySlug = (slug: string): GatewayConfig | undefined => {
+  return gatewaysList.find((g) => g.slug === slug);
+};
+
+export const getActiveGateways = (): GatewayConfig[] => {
+  return gatewaysList.filter((g) => g.status === 'active');
+};
+
+export const getGatewaysByType = (type: 'nacional' | 'global' | 'both'): GatewayConfig[] => {
+  return gatewaysList.filter((g) => g.type === type || g.type === 'both');
+};
+
+export const getGatewaysByPaymentMethod = (
+  method: 'credit_card' | 'debit_card' | 'pix' | 'boleto' | 'wallet'
+): GatewayConfig[] => {
+  return gatewaysList.filter((g) => g.paymentMethods.includes(method));
+};
+
