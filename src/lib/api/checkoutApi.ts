@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface CheckoutCustomization {
   id: string;
-  organizationId: string;
+  userId: string; // ✅ MUDOU: organizationId → userId
   name: string;
   theme: {
     // Cabeçalho
@@ -128,13 +128,13 @@ export const checkoutApi = {
     }
   },
 
-  // Carregar personalização
-  async loadCustomization(organizationId: string) {
+  // ✅ Carregar personalização por userId
+  async loadCustomization(userId: string) {
     try {
       const { data, error } = await supabase
         .from('CheckoutCustomization')
         .select('*')
-        .eq('organizationId', organizationId)
+        .eq('userId', userId)
         .eq('isActive', true)
         .single();
 
@@ -146,13 +146,13 @@ export const checkoutApi = {
     }
   },
 
-  // Listar todas as personalizações
-  async listCustomizations(organizationId: string) {
+  // ✅ Listar todas as personalizações por userId
+  async listCustomizations(userId: string) {
     try {
       const { data, error } = await supabase
         .from('CheckoutCustomization')
         .select('*')
-        .eq('organizationId', organizationId)
+        .eq('userId', userId)
         .order('createdAt', { ascending: false });
 
       if (error) throw error;
@@ -169,7 +169,7 @@ export const checkoutApi = {
       // Primeiro, desativar todas as outras
       const customization = await supabase
         .from('CheckoutCustomization')
-        .select('organizationId')
+        .select('userId')
         .eq('id', id)
         .single();
 
@@ -177,7 +177,7 @@ export const checkoutApi = {
         await supabase
           .from('CheckoutCustomization')
           .update({ isActive: false })
-          .eq('organizationId', customization.data.organizationId);
+          .eq('userId', customization.data.userId);
       }
 
       // Ativar esta
@@ -228,7 +228,7 @@ export const checkoutApi = {
       const { data, error } = await supabase
         .from('CheckoutCustomization')
         .insert({
-          organizationId: original.organizationId,
+          userId: original.userId,
           name: newName,
           theme: original.theme,
           isActive: false
@@ -251,7 +251,7 @@ export const checkoutApi = {
       const { data, error } = await supabase
         .from('CheckoutCustomization')
         .insert({
-          organizationId: customization.organizationId!,
+          userId: customization.userId!,
           name: `Preview-${Date.now()}`,
           theme: customization.theme || {},
           isActive: false
@@ -295,13 +295,13 @@ export const checkoutApi = {
     }
   },
 
-  // Importar personalização
-  async importCustomization(organizationId: string, importData: any) {
+  // ✅ Importar personalização por userId
+  async importCustomization(userId: string, importData: any) {
     try {
       const { data, error } = await supabase
         .from('CheckoutCustomization')
         .insert({
-          organizationId,
+          userId,
           name: `${importData.name} (Importado)`,
           theme: importData.theme,
           isActive: false
@@ -431,7 +431,7 @@ export const checkoutPreviewApi = {
       const { data: template, error: templateError } = await supabase
         .from('CheckoutCustomization')
         .insert({
-          organizationId: data.organizationId,
+          userId: data.userId,
           name: templateName,
           theme: data.theme,
           isActive: false

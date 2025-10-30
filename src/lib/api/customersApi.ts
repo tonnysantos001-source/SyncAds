@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface Customer {
   id: string;
-  organizationId: string;
+  userId: string;
   email: string;
   name: string;
   phone?: string;
@@ -43,7 +43,7 @@ export interface CustomerAddress {
 
 export interface Lead {
   id: string;
-  organizationId: string;
+  userId: string;
   email: string;
   name?: string;
   phone?: string;

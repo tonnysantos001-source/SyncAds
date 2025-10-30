@@ -17,7 +17,6 @@ interface FileRequest {
   data: any;
   fileName?: string;
   userId: string;
-  organizationId: string;
   conversationId: string;
 }
 
@@ -43,7 +42,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { format, data, fileName, userId, organizationId, conversationId }: FileRequest = await req.json()
+    const { format, data, fileName, userId, conversationId }: FileRequest = await req.json()
 
     console.log('📄 Generating file:', format)
 

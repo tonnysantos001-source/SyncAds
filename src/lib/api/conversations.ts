@@ -24,7 +24,7 @@ export const conversationsApi = {
     }
   },
 
-  // Create a new conversation (SIMPLIFIED - sem organizationId necessário)
+  // Create a new conversation (SIMPLIFIED - sem userId necessário)
   createConversation: async (
     userId: string,
     title: string
@@ -37,7 +37,7 @@ export const conversationsApi = {
         title,
         createdAt: now,
         updatedAt: now,
-        // organizationId não é mais obrigatório
+        // userId não é mais obrigatório
       };
 
       const { data, error } = await supabase

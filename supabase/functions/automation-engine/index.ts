@@ -54,17 +54,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // Buscar dados do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
-
+    // ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
     // Parsear body
     const body = await req.json()
     const { 
@@ -73,7 +63,7 @@ serve(async (req) => {
       configuration = {}
     } = body
 
-    console.log('Automation request:', { action, workflowId, organizationId: userData.organizationId })
+    console.log('Automation request:', { action, workflowId, userId: user.id })
 
     const suggestions: any[] = []
     const workflows: any[] = []
@@ -82,7 +72,7 @@ serve(async (req) => {
     const { data: orders, error: ordersError } = await supabase
       .from('Order')
       .select('*')
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .limit(100)
 
     if (!ordersError && orders) {
@@ -126,7 +116,7 @@ serve(async (req) => {
       const { data: abandonedCarts, error: cartsError } = await supabase
         .from('AbandonedCart')
         .select('*')
-        .eq('organizationId', userData.organizationId)
+        .eq('userId', user.id)
         .limit(100)
 
       if (!cartsError && abandonedCarts && abandonedCarts.length > 0) {

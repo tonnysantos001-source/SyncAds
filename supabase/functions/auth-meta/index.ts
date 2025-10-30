@@ -17,7 +17,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { code, organizationId, userId } = await req.json()
+    const { code, userId } = await req.json()
 
     if (!code) {
       throw new Error('Authorization code required')
@@ -51,7 +51,6 @@ serve(async (req) => {
     const { error } = await supabase
       .from('Integration')
       .upsert({
-        organizationId,
         userId,
         platform: 'META_ADS',
         accessToken: tokenData.access_token,

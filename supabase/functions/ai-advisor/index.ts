@@ -47,17 +47,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // 3. Buscar dados do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
-
+    // 3. ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
     // 4. Parsear body
     const body = await req.json()
     const { 
@@ -65,7 +55,7 @@ serve(async (req) => {
       context = {}
     } = body
 
-    console.log('Generating tips:', { userId: user.id, organizationId: userData.organizationId, type })
+    console.log('Generating tips:', { userId: user.id, type })
 
     // 5. Análise de dados para gerar dicas
     const tips: Tip[] = []
@@ -75,7 +65,7 @@ serve(async (req) => {
       const { data: campaigns, error: campaignError } = await supabase
         .from('Campaign')
         .select('*')
-        .eq('organizationId', userData.organizationId)
+        .eq('userId', user.id)
         .limit(100)
 
       if (!campaignError && campaigns) {
@@ -143,7 +133,7 @@ serve(async (req) => {
       const { data: orders, error: ordersError } = await supabase
         .from('Order')
         .select('*')
-        .eq('organizationId', userData.organizationId)
+        .eq('userId', user.id)
         .limit(1000)
 
       if (!ordersError && orders) {

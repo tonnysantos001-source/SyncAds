@@ -51,15 +51,7 @@ serve(async (req) => {
     }
 
     // Buscar dados do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
+    // ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
 
     // Parsear body
     const body = await req.json()

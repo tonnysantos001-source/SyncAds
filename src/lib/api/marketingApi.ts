@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface Coupon {
   id: string;
-  organizationId: string;
+  userId: string;
   code: string;
   name: string;
   description?: string;
@@ -35,7 +35,7 @@ export interface CouponUsage {
 
 export interface Discount {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   description?: string;
   type: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'BUY_X_GET_Y';
@@ -55,7 +55,7 @@ export interface Discount {
 
 export interface OrderBump {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   productId: string;
   title: string;
@@ -70,7 +70,7 @@ export interface OrderBump {
 
 export interface Upsell {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   fromProductId: string;
   toProductId: string;
@@ -86,7 +86,7 @@ export interface Upsell {
 
 export interface CrossSell {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   productId: string;
   relatedProductIds: string[];
@@ -106,11 +106,11 @@ export interface CrossSell {
 
 export const couponsApi = {
   // Get all coupons
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('Coupon')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -130,12 +130,12 @@ export const couponsApi = {
   },
 
   // Get coupon by code
-  async getByCode(code: string, organizationId: string) {
+  async getByCode(code: string, userId: string) {
     const { data, error } = await supabase
       .from('Coupon')
       .select('*')
       .eq('code', code.toUpperCase())
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .single();
 
     if (error) {
@@ -146,8 +146,8 @@ export const couponsApi = {
   },
 
   // Validate coupon
-  async validate(code: string, organizationId: string, customerId?: string) {
-    const coupon = await couponsApi.getByCode(code, organizationId);
+  async validate(code: string, userId: string, customerId?: string) {
+    const coupon = await couponsApi.getByCode(code, userId);
     
     if (!coupon) return { valid: false, error: 'Coupon not found' };
     if (!coupon.isActive) return { valid: false, error: 'Coupon is inactive' };
@@ -234,12 +234,12 @@ export const couponsApi = {
   },
 
   // Get active coupons
-  async getActive(organizationId: string) {
+  async getActive(userId: string) {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('Coupon')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .eq('isActive', true)
       .or(`startsAt.is.null,startsAt.lte.${now}`)
       .or(`expiresAt.is.null,expiresAt.gte.${now}`)
@@ -298,11 +298,11 @@ export const couponUsageApi = {
 
 export const discountsApi = {
   // Get all discounts
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('Discount')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('priority', { ascending: false });
 
     if (error) throw error;
@@ -310,12 +310,12 @@ export const discountsApi = {
   },
 
   // Get active discounts
-  async getActive(organizationId: string) {
+  async getActive(userId: string) {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('Discount')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .eq('isActive', true)
       .or(`startsAt.is.null,startsAt.lte.${now}`)
       .or(`expiresAt.is.null,expiresAt.gte.${now}`)
@@ -367,11 +367,11 @@ export const discountsApi = {
 
 export const orderBumpsApi = {
   // Get all order bumps
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('OrderBump')
       .select('*, product:Product(*)')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -379,11 +379,11 @@ export const orderBumpsApi = {
   },
 
   // Get active order bumps
-  async getActive(organizationId: string, position?: string) {
+  async getActive(userId: string, position?: string) {
     let query = supabase
       .from('OrderBump')
       .select('*, product:Product(*)')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .eq('isActive', true);
 
     if (position) {
@@ -438,7 +438,7 @@ export const orderBumpsApi = {
 
 export const upsellsApi = {
   // Get all upsells
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('Upsell')
       .select(`
@@ -446,7 +446,7 @@ export const upsellsApi = {
         fromProduct:Product!Upsell_fromProductId_fkey(*),
         toProduct:Product!Upsell_toProductId_fkey(*)
       `)
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -513,11 +513,11 @@ export const upsellsApi = {
 
 export const crossSellsApi = {
   // Get all cross-sells
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('CrossSell')
       .select('*, product:Product(*)')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;

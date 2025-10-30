@@ -7,7 +7,6 @@ interface ToolExecution {
   toolName: string;
   parameters: any;
   userId: string;
-  organizationId: string;
   conversationId: string;
 }
 
@@ -52,7 +51,7 @@ serve(async (req) => {
       )
     }
 
-    const { toolName, parameters, userId, organizationId, conversationId }: ToolExecution = await req.json()
+    const { toolName, parameters, userId, conversationId }: ToolExecution = await req.json()
 
     let result: ToolResult
 

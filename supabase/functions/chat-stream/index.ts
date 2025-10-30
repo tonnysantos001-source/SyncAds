@@ -227,7 +227,7 @@ async function createCampaign(ctx: ToolContext, params: {
     const { data, error } = await ctx.supabase
       .from('Campaign')
       .insert({
-        organizationId: ctx.organizationId,
+        userId: ctx.userId,
         name: params.name,
         platform: params.platform.toUpperCase(),
         budget: params.budget || 100,
@@ -284,7 +284,7 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
 
     const messagesLastWeek = messages?.length || 0
 
-    return `📊 **ANALYTICS DA ORGANIZAÇÃO**\n\n` +
+    return `📊 **ANALYTICS DO USUÁRIO**\n\n` +
       `**Campanhas:**\n` +
       `• Total: ${total}\n` +
       `• Ativas: ${active}\n` +
@@ -593,8 +593,7 @@ async function scrapeProducts(params: { url?: string; format?: string }, ctx: To
         url,
         format,
         userId: ctx.userId,
-        organizationId: ctx.organizationId,
-        conversationId: ctx.conversationId // ✅ CORRIGIDO: usar conversationId do contexto
+        conversationId: ctx.conversationId
       }),
     })
 
@@ -863,7 +862,7 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
 
     const messagesLast30Days = messages?.length || 0
 
-    return `📊 **RELATÓRIO COMPLETO DA ORGANIZAÇÃO**\n\n` +
+    return `📊 **RELATÓRIO COMPLETO DO USUÁRIO**\n\n` +
       `**📢 CAMPANHAS**\n` +
       `• Total: ${totalCampaigns}\n` +
       `• Ativas: ${activeCampaigns}\n` +

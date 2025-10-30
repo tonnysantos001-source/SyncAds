@@ -26,7 +26,7 @@ import { corsHeaders } from '../_utils/cors.ts'
 // ===== INTERFACES =====
 
 interface PaymentRequest {
-  organizationId: string;
+  userId: string; // ✅ MUDOU: organizationId → userId
   orderId: string;
   amount: number;
   currency?: string;
@@ -84,7 +84,7 @@ async function processStripePayment(
       currency: request.currency || 'brl',
       payment_method_types: request.paymentMethod === 'credit_card' ? ['card'] : ['boleto'],
       metadata: {
-        organizationId: request.organizationId,
+        userId: request.userId,
         orderId: request.orderId,
       },
       receipt_email: request.customer.email,
@@ -145,7 +145,7 @@ async function processMercadoPagoPayment(
       },
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook/mercadopago`,
       metadata: {
-        organization_id: request.organizationId,
+        user_id: request.userId,
         order_id: request.orderId,
       },
     }
@@ -352,31 +352,31 @@ serve(async (req) => {
     const paymentRequest: PaymentRequest = await req.json()
 
     // Validação
-    if (!paymentRequest.organizationId || !paymentRequest.orderId || !paymentRequest.amount) {
-      throw new Error('Missing required fields: organizationId, orderId, amount')
+    if (!paymentRequest.userId || !paymentRequest.orderId || !paymentRequest.amount) {
+      throw new Error('Missing required fields: userId, orderId, amount')
     }
 
     if (paymentRequest.amount <= 0) {
       throw new Error('Amount must be greater than 0')
     }
 
-    // Buscar gateway configurado para esta organização
+    // Buscar gateway configurado para este usuário
     const { data: gatewayConfigs, error: gatewayError } = await supabaseClient
       .from('GatewayConfig')
       .select('*, Gateway(*)')
-      .eq('organizationId', paymentRequest.organizationId)
+      .eq('userId', paymentRequest.userId)
       .eq('isActive', true)
       .eq('isDefault', true)
       .limit(1)
 
     if (gatewayError || !gatewayConfigs || gatewayConfigs.length === 0) {
-      throw new Error('No active gateway configured for this organization')
+      throw new Error('No active gateway configured for this user')
     }
 
     const gatewayConfig = gatewayConfigs[0]
     const gateway = gatewayConfig.Gateway
 
-    console.log(`Processing payment via ${gateway.type} for organization ${paymentRequest.organizationId}`)
+    console.log(`Processing payment via ${gateway.type} for user ${paymentRequest.userId}`)
 
     // Processar pagamento de acordo com o gateway
     let paymentResponse: PaymentResponse
@@ -405,7 +405,7 @@ serve(async (req) => {
     const { data: transaction, error: transactionError } = await supabaseClient
       .from('Transaction')
       .insert({
-        organizationId: paymentRequest.organizationId,
+        userId: paymentRequest.userId,
         orderId: paymentRequest.orderId,
         gatewayId: gateway.id,
         amount: paymentRequest.amount,

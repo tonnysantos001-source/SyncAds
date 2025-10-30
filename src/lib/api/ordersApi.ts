@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface Order {
   id: string;
-  organizationId: string;
+  userId: string;
   orderNumber: string;
   customerId: string;
   cartId?: string;
@@ -71,7 +71,7 @@ export interface OrderHistory {
 
 export const ordersApi = {
   // Get all orders
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('Order')
       .select(`
@@ -79,7 +79,7 @@ export const ordersApi = {
         items:OrderItem(*),
         history:OrderHistory(*)
       `)
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;

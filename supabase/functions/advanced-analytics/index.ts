@@ -52,16 +52,7 @@ serve(async (req) => {
     }
 
     // Buscar dados do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
-
+    // ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
     // Parsear body
     const body = await req.json()
     const { 
@@ -69,7 +60,7 @@ serve(async (req) => {
       timeframe = '30d'
     } = body
 
-    console.log('Generating analytics:', { userId: user.id, organizationId: userData.organizationId, type, timeframe })
+    console.log('Generating analytics:', { userId: user.id, type, timeframe })
 
     const insights: any[] = []
     const metrics: any = {}
@@ -78,7 +69,7 @@ serve(async (req) => {
     const { data: orders, error: ordersError } = await supabase
       .from('Order')
       .select('*')
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .order('createdAt', { ascending: false })
       .limit(1000)
 
@@ -160,7 +151,7 @@ serve(async (req) => {
     const { data: products, error: productsError } = await supabase
       .from('Product')
       .select('*')
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .limit(1000)
 
     if (!productsError && products) {
@@ -188,7 +179,7 @@ serve(async (req) => {
     const { data: customers, error: customersError } = await supabase
       .from('Customer')
       .select('*')
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .limit(1000)
 
     if (!customersError && customers) {

@@ -27,45 +27,20 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // Get user's organization
-    const { data: userData, error: userDataError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
+    // ✅ SISTEMA SIMPLIFICADO: SEM ORGANIZAÇÕES
+    // Buscar GlobalAiConnection ativa (configurada pelo Super Admin)
+    const { data: aiConnection, error: aiError } = await supabase
+      .from('GlobalAiConnection')
+      .select('*')
+      .eq('isActive', true)
+      .limit(1)
+      .maybeSingle()
 
-    if (userDataError || !userData?.organizationId) {
-      throw new Error('User not associated with an organization')
-    }
-
-    // Get organization's default AI connection
-    const { data: orgAi, error: orgAiError } = await supabase
-      .from('OrganizationAiConnection')
-      .select(`
-        id,
-        isDefault,
-        customSystemPrompt,
-        globalAiConnection:GlobalAiConnection (
-          id,
-          name,
-          provider,
-          apiKey,
-          baseUrl,
-          model,
-          maxTokens,
-          temperature,
-          isActive
-        )
-      `)
-      .eq('organizationId', userData.organizationId)
-      .eq('isDefault', true)
-      .single()
-
-    if (orgAiError || !orgAi) {
+    if (aiError || !aiConnection) {
       return new Response(
         JSON.stringify({ 
           error: 'No AI configured',
-          message: 'Sua organização não tem uma IA configurada. Contate o administrador.'
+          message: 'Nenhuma IA ativa configurada. Contate o administrador.'
         }),
         { 
           status: 400, 
@@ -74,14 +49,12 @@ serve(async (req) => {
       )
     }
 
-    const aiConnection = orgAi.globalAiConnection as any
-
     if (!aiConnection.isActive) {
       throw new Error('AI connection is not active')
     }
 
-    // Use custom system prompt if available, otherwise use provided one
-    const finalSystemPrompt = orgAi.customSystemPrompt || systemPrompt || 'You are a helpful marketing assistant.'
+    // Use system prompt from AI connection or provided one
+    const finalSystemPrompt = aiConnection.systemPrompt || systemPrompt || 'You are a helpful marketing assistant.'
 
     // Build messages array
     const messages = [
@@ -228,9 +201,8 @@ serve(async (req) => {
       throw new Error(`Unsupported AI provider: ${aiConnection.provider}`)
     }
 
-    // Track AI usage (async, don't wait)
+    // Track AI usage (async, don't wait) - Sistema simplificado sem organizações
     supabase.from('AiUsage').upsert({
-      organizationId: userData.organizationId,
       userId: user.id,
       globalAiConnectionId: aiConnection.id,
       messageCount: 1,
@@ -238,7 +210,7 @@ serve(async (req) => {
       month: new Date().toISOString().substring(0, 7), // YYYY-MM
       cost: (tokensUsed / 1000) * 0.01 // Estimate: $0.01 per 1K tokens
     }, {
-      onConflict: 'organizationId,userId,globalAiConnectionId,month'
+      onConflict: 'userId,globalAiConnectionId,month'
     })
 
     return new Response(

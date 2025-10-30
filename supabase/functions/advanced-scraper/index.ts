@@ -37,7 +37,6 @@ interface ScrapeRequest {
   url: string;
   format?: 'csv' | 'json' | 'zip';
   userId: string;
-  organizationId: string;
   conversationId: string;
 }
 
@@ -63,7 +62,7 @@ serve(async (req) => {
 
     console.log('✅ Supabase client created')
 
-    const { url, format = 'csv', userId, organizationId, conversationId }: ScrapeRequest = await req.json()
+    const { url, format = 'csv', userId, conversationId }: ScrapeRequest = await req.json()
 
     console.log('🔍 Starting advanced scraping for:', url)
 

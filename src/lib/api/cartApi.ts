@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface Cart {
   id: string;
-  organizationId: string;
+  userId: string;
   sessionId?: string;
   customerId?: string;
   currency: string;
@@ -41,7 +41,7 @@ export interface CartItem {
 
 export interface AbandonedCart {
   id: string;
-  organizationId: string;
+  userId: string;
   cartId: string;
   customerEmail?: string;
   customerName?: string;
@@ -357,11 +357,11 @@ export const cartItemsApi = {
 
 export const abandonedCartApi = {
   // Get all abandoned carts
-  async getAll(organizationId: string) {
+  async getAll(userId: string) {
     const { data, error } = await supabase
       .from('AbandonedCart')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -426,11 +426,11 @@ export const abandonedCartApi = {
   },
 
   // Get unrecovered carts
-  async getUnrecovered(organizationId: string) {
+  async getUnrecovered(userId: string) {
     const { data, error } = await supabase
       .from('AbandonedCart')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .eq('recovered', false)
       .order('createdAt', { ascending: false });
 
@@ -439,11 +439,11 @@ export const abandonedCartApi = {
   },
 
   // Get carts needing recovery email
-  async getNeedingEmail(organizationId: string) {
+  async getNeedingEmail(userId: string) {
     const { data, error } = await supabase
       .from('AbandonedCart')
       .select('*')
-      .eq('organizationId', organizationId)
+      .eq('userId', userId)
       .eq('recoveryEmailSent', false)
       .eq('recovered', false)
       .order('createdAt', { ascending: false });

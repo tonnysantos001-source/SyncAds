@@ -228,7 +228,7 @@ async function handleOrderCreate(data: ShopifyWebhookData, integration: any, sup
       .from('Order')
       .upsert({
         id: data.id.toString(),
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         shopifyOrderId: data.id,
         orderNumber: data.order_number,
         name: data.name,
@@ -259,7 +259,7 @@ async function handleOrderCreate(data: ShopifyWebhookData, integration: any, sup
     if (data.line_items && data.line_items.length > 0) {
       const orderItems = data.line_items.map(item => ({
         orderId: data.id.toString(),
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         shopifyLineItemId: item.id,
         productId: item.product_id.toString(),
         variantId: item.variant_id.toString(),
@@ -290,7 +290,7 @@ async function handleOrderCreate(data: ShopifyWebhookData, integration: any, sup
     await supabaseClient
       .from('WebhookLog')
       .insert({
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         source: 'shopify',
         topic,
         data: data,
@@ -315,7 +315,7 @@ async function handleOrderCreate(data: ShopifyWebhookData, integration: any, sup
     await supabaseClient
       .from('WebhookLog')
       .insert({
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         source: 'shopify',
         topic,
         data: data,
@@ -364,7 +364,7 @@ async function handleOrderUpdate(data: ShopifyWebhookData, integration: any, sup
     await supabaseClient
       .from('WebhookLog')
       .insert({
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         source: 'shopify',
         topic,
         data: data,
@@ -430,7 +430,7 @@ async function handleOrderPaid(data: ShopifyWebhookData, integration: any, supab
     await supabaseClient
       .from('WebhookLog')
       .insert({
-        organizationId: integration.organizationId,
+        userId: integration.userId,
         source: 'shopify',
         topic,
         data: data,

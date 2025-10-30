@@ -26,7 +26,7 @@ export interface Gateway {
 
 export interface GatewayConfig {
   id: string;
-  organizationId: string;
+  userId: string; // ✅ MUDOU: organizationId → userId
   gatewayId: string;
   credentials: Record<string, any>;
   isActive: boolean;
@@ -44,7 +44,7 @@ export interface GatewayConfig {
 
 export interface Transaction {
   id: string;
-  organizationId: string;
+  userId: string; // ✅ MUDOU: organizationId → userId
   orderId: string;
   gatewayId: string;
   transactionId?: string;
@@ -237,7 +237,7 @@ export const gatewayConfigApi = {
         await supabase
           .from('GatewayConfig')
           .update({ isDefault: false })
-          .eq('organizationId', config.organizationId);
+          .eq('userId', config.userId);
       }
 
       const { data, error } = await supabase
@@ -261,7 +261,7 @@ export const gatewayConfigApi = {
       if (updates.isDefault) {
         const config = await supabase
           .from('GatewayConfig')
-          .select('organizationId')
+          .select('userId')
           .eq('id', id)
           .single();
 
@@ -269,7 +269,7 @@ export const gatewayConfigApi = {
           await supabase
             .from('GatewayConfig')
             .update({ isDefault: false })
-            .eq('organizationId', config.data.organizationId);
+            .eq('userId', config.data.userId);
         }
       }
 

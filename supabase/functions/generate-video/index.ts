@@ -35,19 +35,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // 3. Buscar organizationId do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData) {
-      throw new Error('User not found')
-    }
-
-    const organizationId = userData.organizationId
-
+    // 3. ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
     // 4. Parsear body
     const body = await req.json()
     const { 
@@ -60,7 +48,7 @@ serve(async (req) => {
       throw new Error('Prompt is required')
     }
 
-    console.log('Generating video:', { organizationId, prompt, duration, quality })
+    console.log('Generating video:', { userId: user.id, prompt, duration, quality })
 
     // 5. Verificar quota (se sistema de quotas estiver implementado)
     // Por enquanto, pular check de quota para vídeos
@@ -121,7 +109,6 @@ serve(async (req) => {
       const { data: mediaRecord, error: insertError } = await supabase
         .from('MediaGeneration')
         .insert({
-          organizationId: organizationId,
           userId: user.id,
           type: 'VIDEO',
           provider: 'RUNWAY',
@@ -173,7 +160,7 @@ serve(async (req) => {
     const videoBlob = await videoResponse.blob()
     const videoBuffer = await videoBlob.arrayBuffer()
 
-    const fileName = `${organizationId}/${Date.now()}-${crypto.randomUUID()}.mp4`
+    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.mp4`
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('media-generations')

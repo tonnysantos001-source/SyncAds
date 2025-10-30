@@ -34,20 +34,11 @@ serve(async (req) => {
 
     const { action, params } = await req.json()
 
-    // Buscar organizationId
-    const { data: userData } = await supabase
-      .from('User')
-      .select('organizationId')
-      .eq('id', user.id)
-      .single()
-
-    if (!userData) throw new Error('User not found')
-
-    // Buscar access token Meta
+    // ✅ SISTEMA SIMPLIFICADO: Buscar integração Meta por userId
     const { data: integration } = await supabase
       .from('Integration')
       .select('accessToken, metadata')
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .eq('platform', 'META_ADS')
       .eq('isActive', true)
       .single()

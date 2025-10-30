@@ -36,14 +36,18 @@ serve(async (req) => {
     }
 
     // Get user's organization
-    const { data: userData, error: userDataError } = await supabase
-      .from('User')
-      .select('organizationId, role')
-      .eq('id', user.id)
-      .single()
+    // ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
+    
+    // Buscar GlobalAiConnection ativa
+    const { data: aiConnection, error: aiError } = await supabase
+      .from('GlobalAiConnection')
+      .select('*')
+      .eq('isActive', true)
+      .limit(1)
+      .maybeSingle()
 
-    if (userDataError || !userData?.organizationId) {
-      return new Response(JSON.stringify({ error: 'User not associated with an organization' }), {
+    if (aiError || !aiConnection) {
+      return new Response(JSON.stringify({ error: 'No active AI connection' }), {
         status: 400,
         headers: corsHeaders,
       })
@@ -68,7 +72,7 @@ serve(async (req) => {
           isActive
         )
       `)
-      .eq('organizationId', userData.organizationId)
+      .eq('userId', user.id)
       .eq('isDefault', true)
       .single()
 

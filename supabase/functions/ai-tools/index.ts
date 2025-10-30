@@ -10,7 +10,6 @@ interface ToolRequest {
   toolName: string;
   parameters: any;
   userId: string;
-  organizationId: string;
   conversationId: string;
 }
 
@@ -38,7 +37,7 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { toolName, parameters, userId, organizationId, conversationId }: ToolRequest = await req.json();
+    const { toolName, parameters, userId, conversationId }: ToolRequest = await req.json();
 
     console.log(`Executing tool: ${toolName}`, parameters);
 
@@ -106,7 +105,7 @@ serve(async (req) => {
     // ========================================================================
 
     else if (toolName === 'get_analytics') {
-      result = await getAnalytics(parameters, userId, organizationId, supabase);
+      result = await getAnalytics(parameters, userId, supabase);
     }
 
     // ========================================================================
@@ -404,7 +403,7 @@ async function createShopifyProduct(params: any, credentials: any) {
   };
 }
 
-async function getAnalytics(params: any, userId: string, organizationId: string, supabase: any) {
+async function getAnalytics(params: any, userId: string, supabase: any) {
   const { platform, startDate, endDate } = params;
 
   // Buscar campanhas do Supabase

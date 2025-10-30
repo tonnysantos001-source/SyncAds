@@ -36,19 +36,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // 3. Buscar organizationId do usuário
-    const { data: userData, error: userError } = await supabase
-      .from('User')
-      .select('organizationId')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData) {
-      throw new Error('User not found')
-    }
-
-    const organizationId = userData.organizationId
-
+    // 3. ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
     // 4. Parsear body
     const body = await req.json()
     const { 
@@ -61,12 +49,12 @@ serve(async (req) => {
       throw new Error('Prompt is required')
     }
 
-    console.log('Generating image:', { organizationId, prompt, size, quality })
+    console.log('Generating image:', { userId: user.id, prompt, size, quality })
 
-    // 5. Verificar quota
+    // 5. Verificar quota (simplificado)
     const { data: quotaCheck, error: quotaError } = await supabase
       .rpc('check_and_use_quota', {
-        org_id: organizationId,
+        user_id: user.id,
         quota_type: 'images',
         amount: 1
       })
@@ -148,7 +136,7 @@ serve(async (req) => {
     const imageBuffer = await imageBlob.arrayBuffer()
 
     // 8. Upload para Supabase Storage
-    const fileName = `${organizationId}/${Date.now()}-${crypto.randomUUID()}.png`
+    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.png`
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('media-generations')

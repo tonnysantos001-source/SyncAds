@@ -81,23 +81,15 @@ serve(async (req) => {
         })
       }
 
-      // Update organization
-      const { data: userData } = await supabaseClient
+      // ✅ SISTEMA SIMPLIFICADO: Atualizar User diretamente
+      await supabaseClient
         .from('User')
-        .select('organizationId')
+        .update({
+          domain: fullDomain,
+          domainVerified: true,
+          updatedAt: new Date().toISOString()
+        })
         .eq('id', user.id)
-        .single()
-
-      if (userData?.organizationId) {
-        await supabaseClient
-          .from('Organization')
-          .update({
-            domainVerified: true,
-            domainVerificationToken: null,
-            updatedAt: new Date().toISOString()
-          })
-          .eq('id', userData.organizationId)
-      }
 
       return jsonResponse({
         verified: true,

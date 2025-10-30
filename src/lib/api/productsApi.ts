@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 
 export interface Product {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   slug: string;
   description?: string;
@@ -61,7 +61,7 @@ export interface ProductImage {
 
 export interface Category {
   id: string;
-  organizationId: string;
+  userId: string;
   name: string;
   slug: string;
   description?: string;
