@@ -170,7 +170,7 @@ const ChatPage: React.FC = () => {
     };
 
     loadGlobalAiConfig();
-  }, [user?.organizationId]);
+  }, [user?.id]); // ✅ Removido organizationId
 
   // Mensagem inicial sarcástica
   useEffect(() => {
@@ -820,18 +820,8 @@ const ChatPage: React.FC = () => {
     try {
       if (!user) return;
 
-      // Buscar organizationId do usuário
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) {
-        throw new Error('Usuário sem organização');
-      }
-
-      // Criar nova conversa
+      // ✅ SISTEMA SIMPLIFICADO: SEM ORGANIZAÇÕES
+      // Criar nova conversa direto com userId
       const newId = crypto.randomUUID();
       const now = new Date().toISOString();
       const { error } = await supabase
@@ -839,7 +829,6 @@ const ChatPage: React.FC = () => {
         .insert({
           id: newId,
           userId: user.id,
-          organizationId: userData.organizationId,
           title: '🆕 Nova Conversa',
           createdAt: now,
           updatedAt: now
@@ -1043,7 +1032,6 @@ const ChatPage: React.FC = () => {
                       toolName={execution.toolName}
                       parameters={execution.parameters}
                       userId={user?.id || ''}
-                      organizationId={user?.organizationId || ''}
                       conversationId={activeConversationId || ''}
                       onComplete={(result) => {
                         console.log('Execução Super AI concluída:', result);

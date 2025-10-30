@@ -2064,7 +2064,6 @@ export type Database = {
           expiresAt: string
           id: string
           invitedBy: string | null
-          organizationId: string | null
           role: string
           status: string
         }
@@ -2075,7 +2074,6 @@ export type Database = {
           expiresAt: string
           id: string
           invitedBy?: string | null
-          organizationId?: string | null
           role: string
           status?: string
         }
@@ -2086,7 +2084,6 @@ export type Database = {
           expiresAt?: string
           id?: string
           invitedBy?: string | null
-          organizationId?: string | null
           role?: string
           status?: string
         }

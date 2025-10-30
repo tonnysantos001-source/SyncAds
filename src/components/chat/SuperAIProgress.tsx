@@ -243,7 +243,6 @@ interface SuperAIExecutionProps {
   toolName: string
   parameters: any
   userId: string
-  organizationId: string
   conversationId: string
   onComplete?: (result: ToolResult) => void
 }
@@ -252,7 +251,6 @@ export const SuperAIExecution: React.FC<SuperAIExecutionProps> = ({
   toolName,
   parameters,
   userId,
-  organizationId,
   conversationId,
   onComplete
 }) => {
@@ -271,7 +269,6 @@ export const SuperAIExecution: React.FC<SuperAIExecutionProps> = ({
           toolName,
           parameters,
           userId,
-          organizationId,
           conversationId
         }
       })
