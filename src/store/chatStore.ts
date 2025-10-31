@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { conversationsApi, chatApi } from '@/lib/api';
 import { ChatConversation, ChatMessage } from '@/data/mocks';
+import { withMobileFix } from '@/lib/mobile-fix';
 
 interface ChatState {
   // Estado
@@ -28,12 +29,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Load Conversations
   loadConversations: async (userId: string) => {
     try {
-      const dbConversations = await conversationsApi.getConversations(userId);
+      // Usar o wrapper de correção para mobile
+      const dbConversations = await withMobileFix(() => 
+        conversationsApi.getConversations(userId)
+      );
       
       // Load messages for each conversation
       const conversationsWithMessages = await Promise.all(
         dbConversations.map(async (conv) => {
-          const messages = await chatApi.getConversationMessages(conv.id);
+          // Usar o wrapper de correção para mobile
+          const messages = await withMobileFix(() => 
+            chatApi.getConversationMessages(conv.id)
+          );
           return {
             id: conv.id,
             title: conv.title,
@@ -60,7 +67,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   createNewConversation: async (userId: string, title?: string) => {
     try {
       const conversationTitle = title || `Nova Conversa ${new Date().toLocaleDateString()}`;
-      const newConversation = await conversationsApi.createConversation(userId, conversationTitle);
+      const newConversation = await withMobileFix(() => 
+        conversationsApi.createConversation(userId, conversationTitle)
+      );
       
       set((state) => ({
         conversations: [
@@ -99,15 +108,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       // Save to Supabase
-      await chatApi.createMessage(
-        userId,
-        conversationId,
-        message.role.toUpperCase() as 'USER' | 'ASSISTANT',
-        message.content
+      await withMobileFix(() => 
+        chatApi.createMessage(
+          userId,
+          conversationId,
+          message.role.toUpperCase() as 'USER' | 'ASSISTANT',
+          message.content
+        )
       );
 
       // Update conversation timestamp
-      await conversationsApi.touchConversation(conversationId);
+      await withMobileFix(() => 
+        conversationsApi.touchConversation(conversationId)
+      );
     } catch (error) {
       console.error('Add message error:', error);
       // Rollback the local change on error
@@ -129,7 +142,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Delete Conversation
   deleteConversation: async (id: string) => {
     try {
-      await conversationsApi.deleteConversation(id);
+      await withMobileFix(() => 
+        conversationsApi.deleteConversation(id)
+      );
       
       set((state) => {
         const remainingConversations = state.conversations.filter(conv => conv.id !== id);
