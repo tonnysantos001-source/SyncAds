@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useCampaignsStore } from '@/store/campaignsStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useChatSync } from '@/hooks/chat/useChatSync';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
@@ -21,14 +22,14 @@ import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnecti
 import { ZipDownloadCard, ZipDownloadList } from '@/components/chat/ZipDownloadCard';
 import { SuperAIProgress, SuperAIExecution } from '@/components/chat/SuperAIProgress';
 import AiThinkingIndicator from '@/components/ai/AiThinkingIndicator';
-import { 
-  AdminTools, 
-  adminSystemPrompt, 
-  detectAdminSQL, 
-  detectAdminAnalyze, 
-  detectAdminIntegration, 
+import {
+  AdminTools,
+  adminSystemPrompt,
+  detectAdminSQL,
+  detectAdminAnalyze,
+  detectAdminIntegration,
   detectAdminMetrics,
-  cleanAdminBlocksFromResponse 
+  cleanAdminBlocksFromResponse
 } from '@/lib/ai/adminTools';
 import {
   detectIntegrationCommand,
@@ -71,7 +72,7 @@ const ChatPage: React.FC = () => {
     systemPrompt: string;
     initialGreetings: string[];
   } | null>(null);
-  
+
   // Estados para pesquisa web
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [webSearchResults, setWebSearchResults] = useState<any[]>([]);
@@ -79,21 +80,21 @@ const ChatPage: React.FC = () => {
   const [searchSources, setSearchSources] = useState<string[]>([]);
   const [zipDownloads, setZipDownloads] = useState<any[]>([]);
   const [superAIExecutions, setSuperAIExecutions] = useState<any[]>([]);
-  
+
   // Estados para indicador de pensamento da IA (consistência com AdminChatPage)
   const [currentTool, setCurrentTool] = useState<'web_search' | 'web_scraping' | 'python_exec' | null>(null);
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [aiSources, setAiSources] = useState<string[]>([]);
-  
+
   // Estados para gravação de áudio
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  
+
   // Auth store
   const user = useAuthStore((state) => state.user);
-  
+
   // Chat store
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore((state) => state.activeConversationId);
@@ -103,17 +104,24 @@ const ChatPage: React.FC = () => {
   const addMessage = useChatStore((state) => state.addMessage);
   const deleteConversation = useChatStore((state) => state.deleteConversation);
   const createNewConversation = useChatStore((state) => state.createNewConversation);
-  
+
   // Campaigns store
   const addCampaign = useCampaignsStore((state) => state.addCampaign);
-  
+
   // Settings store (fallback se não houver IA global)
   const aiSystemPrompt = useSettingsStore((state) => state.aiSystemPrompt);
   const aiInitialGreetings = useSettingsStore((state) => state.aiInitialGreetings);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  // Hook de sincronização de chat (mobile + desktop)
+  useChatSync({
+    syncInterval: 30000, // 30 segundos
+    syncOnFocus: true,
+    syncOnOnline: true,
+  });
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
@@ -178,10 +186,10 @@ const ChatPage: React.FC = () => {
       const greeting = getRandomGreeting();
       setTimeout(() => {
         if (user) {
-          addMessage(user.id, activeConversationId!, { 
-            id: `greeting-${Date.now()}`, 
-            role: 'assistant', 
-            content: greeting 
+          addMessage(user.id, activeConversationId!, {
+            id: `greeting-${Date.now()}`,
+            role: 'assistant',
+            content: greeting
           });
         }
       }, 500);
@@ -193,13 +201,13 @@ const ChatPage: React.FC = () => {
     // Detectar URLs de download de ZIP nas respostas da IA
     const zipDownloadRegex = /ZIP_DOWNLOAD:\s*({[^}]+})/g;
     const matches = content.match(zipDownloadRegex);
-    
+
     if (matches) {
       matches.forEach(match => {
         try {
           const jsonStr = match.replace('ZIP_DOWNLOAD:', '').trim();
           const downloadData = JSON.parse(jsonStr);
-          
+
           // Adicionar à lista de downloads
           setZipDownloads(prev => [...prev, downloadData]);
         } catch (error) {
@@ -207,7 +215,7 @@ const ChatPage: React.FC = () => {
         }
       });
     }
-    
+
     // Remover blocos ZIP_DOWNLOAD do conteúdo exibido
     return content.replace(zipDownloadRegex, '').trim();
   };
@@ -217,13 +225,13 @@ const ChatPage: React.FC = () => {
     // Detectar execuções de ferramentas super inteligentes
     const superAIRegex = /SUPER_AI_EXECUTION:\s*({[^}]+})/g;
     const matches = content.match(superAIRegex);
-    
+
     if (matches) {
       matches.forEach(match => {
         try {
           const jsonStr = match.replace('SUPER_AI_EXECUTION:', '').trim();
           const executionData = JSON.parse(jsonStr);
-          
+
           // Adicionar à lista de execuções
           setSuperAIExecutions(prev => [...prev, executionData]);
         } catch (error) {
@@ -231,7 +239,7 @@ const ChatPage: React.FC = () => {
         }
       });
     }
-    
+
     // Remover blocos SUPER_AI_EXECUTION do conteúdo exibido
     return content.replace(superAIRegex, '').trim();
   };
@@ -240,10 +248,10 @@ const ChatPage: React.FC = () => {
     if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
 
     const userMessage = input;
-    
+
     // Detectar qual ferramenta está sendo usada (consistência com AdminChatPage)
     const lowerMessage = userMessage.toLowerCase();
-    if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') || 
+    if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') ||
         lowerMessage.includes('google') || lowerMessage.includes('internet')) {
       setCurrentTool('web_search');
       let query = userMessage;
@@ -253,12 +261,12 @@ const ChatPage: React.FC = () => {
       }
       setAiReasoning(`Pesquisando na web sobre: "${query}"`);
       setAiSources(['Google Search', 'Exa AI', 'Tavily']);
-    } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') || 
+    } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') ||
                lowerMessage.includes('scrape')) {
       setCurrentTool('web_scraping');
       const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
       setAiReasoning(urlMatch ? `Raspando dados de: ${urlMatch[0]}` : 'Raspando dados...');
-    } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
+    } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') ||
                lowerMessage.includes('execute código')) {
       setCurrentTool('python_exec');
       setAiReasoning('Executando código Python para processar dados...');
@@ -267,25 +275,25 @@ const ChatPage: React.FC = () => {
       setAiReasoning('Processando sua solicitação...');
       setAiSources([]);
     }
-    
+
     if (user) {
       addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
     }
     setInput('');
-    
+
     // Colapsar sidebar ao enviar mensagem (comportamento ChatGPT)
     setSidebarOpen(false);
-    
+
     setAssistantTyping(true);
-    
+
     try {
       // Preparar histórico de mensagens para contexto
       const conversation = conversations.find((c: any) => c.id === activeConversationId);
-      
+
       // Usar systemPrompt da IA Global se disponível, senão usar fallback sarcástico
       const customPrompt = globalAiConfig?.systemPrompt || sarcasticSystemPrompt;
       const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + customPrompt;
-      
+
       const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
         role: msg.role,
         content: msg.content,
@@ -297,7 +305,7 @@ const ChatPage: React.FC = () => {
 
       // Detectar se a IA quer criar uma campanha
       const campaignIntent = detectCampaignIntent(response);
-      
+
       if (campaignIntent) {
         try {
           if (user) {
@@ -315,7 +323,7 @@ const ChatPage: React.FC = () => {
             ctr: 0,
             cpc: 0,
           });
-          
+
             toast({
               title: '🎉 Campanha Criada!',
               description: `A campanha "${campaignIntent.data.name}" foi criada com sucesso.`,
@@ -392,12 +400,12 @@ const ChatPage: React.FC = () => {
 
         // Detectar e executar ações de integração (auditoria, teste, etc)
         let integrationAction = detectIntegrationAction(response);
-        
+
         // Fallback: se não detectou bloco mas mensagem indica auditoria
         if (!integrationAction) {
           integrationAction = detectAuditIntentFromText(userMessage, response);
         }
-        
+
         if (integrationAction) {
           const integrationTools = new IntegrationTools(user.id);
           let result;
@@ -444,7 +452,7 @@ const ChatPage: React.FC = () => {
           if (integrationCommand.action === 'connect') {
             const { authUrl } = await integrationsService.generateOAuthUrl(integrationCommand.slug, user.id);
             const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
-            
+
             // Adicionar mensagem com link
             if (user) {
               addMessage(user.id, activeConversationId, {
@@ -457,10 +465,10 @@ const ChatPage: React.FC = () => {
 O link abrirá em uma nova aba para você autorizar o acesso.`
               });
             }
-            
+
             // Abrir link automaticamente
             window.open(authUrl, '_blank');
-            
+
             toast({
               title: '🔗 Link de Autorização',
               description: `Clique no link para conectar ${config.name}`,
@@ -492,7 +500,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
           }
         } catch (error: any) {
           console.error('Erro ao processar integração:', error);
-          
+
           // Adicionar mensagem de erro formatada no chat
           if (user) {
             addMessage(user.id, activeConversationId, {
@@ -501,7 +509,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
               content: `❌ **Erro ao conectar integração**\n\n${error.message || 'Erro ao processar comando de integração'}`
             });
           }
-          
+
           toast({
             title: '❌ Erro na Integração',
             description: 'Verifique as instruções no chat',
@@ -513,19 +521,19 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       // Processar downloads de ZIP e execuções super inteligentes antes de limpar a resposta
       let processedResponse = processZipDownloads(response);
       processedResponse = processSuperAIExecutions(processedResponse);
-      
+
       // Limpar blocos de código da resposta antes de exibir
       let cleanedResponse = cleanCampaignBlockFromResponse(processedResponse);
       cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
-      
+
       // Adicionar resposta da IA (com resultado de auditoria se houver)
       if (user) {
-        addMessage(user.id, activeConversationId, { 
-          id: `msg-${Date.now() + 1}`, 
-          role: 'assistant', 
-          content: cleanedResponse + auditResult 
+        addMessage(user.id, activeConversationId, {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: cleanedResponse + auditResult
         });
       }
     } catch (error: any) {
@@ -535,13 +543,13 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
         description: error.message || 'Não foi possível obter resposta da IA. Verifique sua chave de API.',
         variant: 'destructive',
       });
-      
+
       // Adicionar mensagem de erro no chat
       if (user) {
-        addMessage(user.id, activeConversationId, { 
-          id: `msg-${Date.now() + 1}`, 
-          role: 'assistant', 
-          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.' 
+        addMessage(user.id, activeConversationId, {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.'
         });
       }
     } finally {
@@ -574,10 +582,10 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setAudioBlob(audioBlob);
-        
+
         // Upload do áudio
         await uploadAudio(audioBlob);
-        
+
         // Limpar stream
         stream.getTracks().forEach(track => track.stop());
       };
@@ -618,13 +626,13 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       });
 
       // Converter Blob para File
-      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { 
-        type: 'audio/webm' 
+      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, {
+        type: 'audio/webm'
       });
 
       // Upload para Supabase Storage
       const fileName = `${user.id}/audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
-      
+
       const { data, error: uploadError } = await supabase.storage
         .from('chat-attachments')
         .upload(fileName, audioFile, {
@@ -673,7 +681,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       // Upload para Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
+
       const { data, error: uploadError } = await supabase.storage
         .from('chat-attachments')
         .upload(fileName, file, {
@@ -706,16 +714,16 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       }
 
       // Adicionar URL da imagem/arquivo à mensagem
-      const fileInfo = file.type.startsWith('image/') 
+      const fileInfo = file.type.startsWith('image/')
         ? `![${file.name}](${publicUrl})`
         : `[${file.name}](${publicUrl})`;
 
       // Enviar mensagem com o arquivo
       const updatedInput = input ? `${input}\n\n${fileInfo}` : fileInfo;
-      
+
       // Limpar input
       setInput('');
-      
+
       // Simular envio da mensagem
       if (updatedInput.trim() && activeConversationId) {
         handleSend(); // Usar a função existente que já lida com o envio
@@ -800,17 +808,17 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
   useEffect(() => {
     const initChat = async () => {
       if (!user) return;
-      
+
       // Carregar conversas usando o store (que já carrega mensagens)
       await useChatStore.getState().loadConversations(user.id);
-      
+
       // Se não houver conversas, criar a primeira automaticamente
       const { data: existingConversations } = await supabase
         .from('ChatConversation')
         .select('id')
         .eq('userId', user.id)
         .limit(1);
-      
+
       if (!existingConversations || existingConversations.length === 0) {
         await handleNewConversation();
       }
@@ -842,10 +850,10 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
 
       // Setar como ativa imediatamente
       setActiveConversationId(newId);
-      
+
       // Recarregar conversas para atualizar lista usando o store
       await useChatStore.getState().loadConversations(user.id);
-      
+
       toast({
         title: '✅ Nova conversa criada!',
         description: 'Comece um novo chat do zero.',
@@ -903,8 +911,8 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
     <div className="h-[calc(100vh-80px)] flex flex-col md:flex-row">
       {/* SIDEBAR - Conversas Antigas (Mobile: Overlay, Desktop: Sidebar) */}
       <div className={`${
-        sidebarOpen 
-          ? 'fixed md:relative inset-0 md:inset-auto w-full md:w-72 z-50 md:z-auto' 
+        sidebarOpen
+          ? 'fixed md:relative inset-0 md:inset-auto w-full md:w-72 z-50 md:z-auto'
           : 'hidden md:w-0'
       } transition-all duration-300 bg-gray-50 md:border-r border-gray-200 flex flex-col overflow-hidden`}>
         {/* Sidebar Header */}
@@ -1013,7 +1021,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                   searchQuery={webSearchQuery}
                 />
               )}
-              
+
               {/* Indicador de fontes pesquisadas */}
               {searchSources.length > 0 && (
                 <SearchSourcesIndicator
@@ -1021,14 +1029,14 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                   isSearching={isWebSearching}
                 />
               )}
-              
+
               {/* Downloads de ZIP disponíveis */}
               {zipDownloads.length > 0 && (
                 <div className="mb-4">
                   <ZipDownloadList downloads={zipDownloads} />
                 </div>
               )}
-              
+
               {/* Execuções Super AI */}
               {superAIExecutions.length > 0 && (
                 <div className="mb-4 space-y-4">
@@ -1046,15 +1054,15 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                   ))}
                 </div>
               )}
-              
+
               {activeConversation.messages.map((message: any) => {
                 // Detectar se é pedido de conexão de integração
                 const integrationMatch = message.content?.match(/INTEGRATION_CONNECT:(\w+):([^🔗]+)/);
-                
+
                 if (integrationMatch && message.role === 'assistant') {
                   const [, platform, platformName] = integrationMatch;
                   const cleanContent = message.content.replace(/🔗 \*\*INTEGRATION_CONNECT:[^🔗]+🔗\*\* 🔗\n\n/, '');
-                  
+
                   return (
                     <div key={message.id} className="flex justify-start">
                       <div className="max-w-[80%]">
@@ -1069,7 +1077,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                             </div>
                           </CardContent>
                         </Card>
-                        
+
                         {/* Card de Conexão */}
                         <IntegrationConnectionCard
                           platform={platform}
@@ -1087,7 +1095,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                     </div>
                   );
                 }
-                
+
                 // Renderização normal de mensagem
                 return (
                   <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
@@ -1119,7 +1127,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
               })}
               {/* Indicador de pensamento da IA com Sonic */}
               {isAssistantTyping && (
-                <AiThinkingIndicator 
+                <AiThinkingIndicator
                   isThinking={isAssistantTyping}
                   currentTool={currentTool}
                   reasoning={aiReasoning}
@@ -1178,11 +1186,11 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      type="button" 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={handleAttachClick} 
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleAttachClick}
                       className="h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation"
                     >
                       <Paperclip className="h-4 w-4" />
@@ -1191,13 +1199,13 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                   <TooltipContent>Anexar arquivo</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      type="button" 
-                      size="icon" 
+                    <Button
+                      type="button"
+                      size="icon"
                       variant="ghost"
                       onClick={isRecording ? stopRecording : startRecording}
                       disabled={!activeConversationId}
@@ -1209,7 +1217,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                   <TooltipContent>Gravar áudio</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <Button
                 type="submit"
                 size="icon"

@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { conversationsApi, chatApi } from '@/lib/api';
-import { ChatConversation, ChatMessage } from '@/data/mocks';
-import { withMobileFix } from '@/lib/mobile-fix';
+import { create } from "zustand";
+import { conversationsApi, chatApi } from "@/lib/api";
+import { ChatConversation, ChatMessage } from "@/data/mocks";
+import { withValidSession } from "@/lib/supabase";
 
 interface ChatState {
   // Estado
@@ -12,11 +12,18 @@ interface ChatState {
   // Actions
   loadConversations: (userId: string) => Promise<void>;
   createNewConversation: (userId: string, title?: string) => Promise<void>;
-  addMessage: (userId: string, conversationId: string, message: ChatMessage) => Promise<void>;
+  addMessage: (
+    userId: string,
+    conversationId: string,
+    message: ChatMessage,
+  ) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   setActiveConversationId: (id: string | null) => void;
   setAssistantTyping: (isTyping: boolean) => void;
-  setConversationMessages: (conversationId: string, messages: ChatMessage[]) => void;
+  setConversationMessages: (
+    conversationId: string,
+    messages: ChatMessage[],
+  ) => void;
   addConversation: (conversation: ChatConversation) => void;
 }
 
@@ -30,47 +37,51 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadConversations: async (userId: string) => {
     try {
       // Usar o wrapper de correção para mobile
-      const dbConversations = await withMobileFix(() => 
-        conversationsApi.getConversations(userId)
+      const dbConversations = await withValidSession(() =>
+        conversationsApi.getConversations(userId),
       );
-      
+
       // Load messages for each conversation
       const conversationsWithMessages = await Promise.all(
         dbConversations.map(async (conv) => {
           // Usar o wrapper de correção para mobile
-          const messages = await withMobileFix(() => 
-            chatApi.getConversationMessages(conv.id)
+          const messages = await withValidSession(() =>
+            chatApi.getConversationMessages(conv.id),
           );
           return {
             id: conv.id,
             title: conv.title,
-            messages: messages.map(msg => ({
+            messages: messages.map((msg) => ({
               id: msg.id,
-              role: msg.role.toLowerCase() as 'user' | 'assistant',
+              role: msg.role.toLowerCase() as "user" | "assistant",
               content: msg.content,
               timestamp: new Date(msg.createdAt),
             })),
           };
-        })
+        }),
       );
 
-      set({ 
+      set({
         conversations: conversationsWithMessages,
-        activeConversationId: conversationsWithMessages.length > 0 ? conversationsWithMessages[0].id : null,
+        activeConversationId:
+          conversationsWithMessages.length > 0
+            ? conversationsWithMessages[0].id
+            : null,
       });
     } catch (error) {
-      console.error('Load conversations error:', error);
+      console.error("Load conversations error:", error);
     }
   },
 
   // Create New Conversation
   createNewConversation: async (userId: string, title?: string) => {
     try {
-      const conversationTitle = title || `Nova Conversa ${new Date().toLocaleDateString()}`;
-      const newConversation = await withMobileFix(() => 
-        conversationsApi.createConversation(userId, conversationTitle)
+      const conversationTitle =
+        title || `Nova Conversa ${new Date().toLocaleDateString()}`;
+      const newConversation = await withValidSession(() =>
+        conversationsApi.createConversation(userId, conversationTitle),
       );
-      
+
       set((state) => ({
         conversations: [
           {
@@ -83,20 +94,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
         activeConversationId: newConversation.id,
       }));
     } catch (error) {
-      console.error('Create conversation error:', error);
+      console.error("Create conversation error:", error);
       throw error;
     }
   },
 
   // Add Message
-  addMessage: async (userId: string, conversationId: string, message: ChatMessage) => {
+  addMessage: async (
+    userId: string,
+    conversationId: string,
+    message: ChatMessage,
+  ) => {
     try {
       // Add to local state first for immediate feedback
       set((state) => {
-        const newConversations = state.conversations.map(conv => {
+        const newConversations = state.conversations.map((conv) => {
           if (conv.id === conversationId) {
             // Verificar se a mensagem já existe para evitar duplicação
-            const messageExists = conv.messages.some(msg => msg.id === message.id);
+            const messageExists = conv.messages.some(
+              (msg) => msg.id === message.id,
+            );
             if (messageExists) {
               return conv;
             }
@@ -108,28 +125,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       // Save to Supabase
-      await withMobileFix(() => 
+      await withValidSession(() =>
         chatApi.createMessage(
           userId,
           conversationId,
-          message.role.toUpperCase() as 'USER' | 'ASSISTANT',
-          message.content
-        )
+          message.role.toUpperCase() as "USER" | "ASSISTANT",
+          message.content,
+        ),
       );
 
       // Update conversation timestamp
-      await withMobileFix(() => 
-        conversationsApi.touchConversation(conversationId)
+      await withValidSession(() =>
+        conversationsApi.touchConversation(conversationId),
       );
     } catch (error) {
-      console.error('Add message error:', error);
+      console.error("Add message error:", error);
       // Rollback the local change on error
       set((state) => {
-        const newConversations = state.conversations.map(conv => {
+        const newConversations = state.conversations.map((conv) => {
           if (conv.id === conversationId) {
-            return { 
-              ...conv, 
-              messages: conv.messages.filter(msg => msg.id !== message.id) 
+            return {
+              ...conv,
+              messages: conv.messages.filter((msg) => msg.id !== message.id),
             };
           }
           return conv;
@@ -142,48 +159,55 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Delete Conversation
   deleteConversation: async (id: string) => {
     try {
-      await withMobileFix(() => 
-        conversationsApi.deleteConversation(id)
-      );
-      
+      await withValidSession(() => conversationsApi.deleteConversation(id));
+
       set((state) => {
-        const remainingConversations = state.conversations.filter(conv => conv.id !== id);
+        const remainingConversations = state.conversations.filter(
+          (conv) => conv.id !== id,
+        );
         let newActiveId = state.activeConversationId;
 
         if (state.activeConversationId === id) {
-          newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+          newActiveId =
+            remainingConversations.length > 0
+              ? remainingConversations[0].id
+              : null;
         }
 
-        return { 
+        return {
           conversations: remainingConversations,
           activeConversationId: newActiveId,
         };
       });
     } catch (error) {
-      console.error('Delete conversation error:', error);
+      console.error("Delete conversation error:", error);
       throw error;
     }
   },
 
   // Set Conversation Messages
-  setConversationMessages: (conversationId: string, messages: ChatMessage[]) => set((state) => {
-    const newConversations = state.conversations.map(conv => {
-      if (conv.id === conversationId) {
-        return { ...conv, messages };
-      }
-      return conv;
-    });
-    return { conversations: newConversations };
-  }),
+  setConversationMessages: (conversationId: string, messages: ChatMessage[]) =>
+    set((state) => {
+      const newConversations = state.conversations.map((conv) => {
+        if (conv.id === conversationId) {
+          return { ...conv, messages };
+        }
+        return conv;
+      });
+      return { conversations: newConversations };
+    }),
 
   // Add Conversation
-  addConversation: (conversation: ChatConversation) => set((state) => ({
-    conversations: [...state.conversations, conversation],
-  })),
+  addConversation: (conversation: ChatConversation) =>
+    set((state) => ({
+      conversations: [...state.conversations, conversation],
+    })),
 
   // Set Active Conversation
-  setActiveConversationId: (id: string | null) => set({ activeConversationId: id }),
+  setActiveConversationId: (id: string | null) =>
+    set({ activeConversationId: id }),
 
   // Set Assistant Typing
-  setAssistantTyping: (isTyping: boolean) => set({ isAssistantTyping: isTyping }),
+  setAssistantTyping: (isTyping: boolean) =>
+    set({ isAssistantTyping: isTyping }),
 }));
