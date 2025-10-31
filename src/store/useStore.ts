@@ -1,16 +1,15 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { 
-  categorizedIntegrations, 
-  ChatConversation, 
-  ChatMessage, 
-  Campaign,
-} from '@/data/mocks';
-import { v4 as uuidv4 } from 'uuid';
-import { authApi, campaignsApi, aiConnectionsApi, conversationsApi, chatApi } from '@/lib/api';
-import type { Tables } from '@/lib/database.types';
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { ChatConversation, ChatMessage, Campaign } from "@/data/mocks";
+import {
+  authApi,
+  campaignsApi,
+  aiConnectionsApi,
+  conversationsApi,
+  chatApi,
+} from "@/lib/api";
 
-type IntegrationId = typeof categorizedIntegrations[0]['integrations'][number]['id'];
+type IntegrationId = string;
 
 interface User {
   id: string;
@@ -18,7 +17,7 @@ interface User {
   email: string;
   avatarUrl?: string;
   avatar?: string | null;
-  plan: 'Free' | 'Pro' | 'Enterprise';
+  plan: "Free" | "Pro" | "Enterprise";
   isSuperAdmin?: boolean;
 }
 
@@ -37,7 +36,7 @@ export interface AiConnection {
   apiKey: string;
   baseUrl?: string | null;
   model?: string | null;
-  status: 'untested' | 'valid' | 'invalid';
+  status: "untested" | "valid" | "invalid";
 }
 
 interface AppState {
@@ -45,7 +44,13 @@ interface AppState {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, cpf?: string, birthDate?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    cpf?: string,
+    birthDate?: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   initAuth: () => Promise<void>;
@@ -73,16 +78,27 @@ interface AppState {
   // Campaigns
   campaigns: Campaign[];
   loadCampaigns: () => Promise<void>;
-  addCampaign: (campaign: Omit<Campaign, 'id'>) => Promise<void>;
-  updateCampaign: (id: string, campaignData: Partial<Campaign>) => Promise<void>;
-  updateCampaignStatus: (id: string, status: Campaign['status']) => Promise<void>;
+  addCampaign: (campaign: Omit<Campaign, "id">) => Promise<void>;
+  updateCampaign: (
+    id: string,
+    campaignData: Partial<Campaign>,
+  ) => Promise<void>;
+  updateCampaignStatus: (
+    id: string,
+    status: Campaign["status"],
+  ) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
 
   // AI Connections
   aiConnections: AiConnection[];
   loadAiConnections: () => Promise<void>;
-  addAiConnection: (connection: Omit<AiConnection, 'id' | 'status'>) => Promise<void>;
-  updateAiConnection: (id: string, data: Partial<Omit<AiConnection, 'id'>>) => Promise<void>;
+  addAiConnection: (
+    connection: Omit<AiConnection, "id" | "status">,
+  ) => Promise<void>;
+  updateAiConnection: (
+    id: string,
+    data: Partial<Omit<AiConnection, "id">>,
+  ) => Promise<void>;
   removeAiConnection: (id: string) => Promise<void>;
 
   // Settings
@@ -119,15 +135,20 @@ export const useStore = create<AppState>()(
         try {
           const userData = await authApi.getCurrentUser();
           if (userData) {
-            set({ 
-              isAuthenticated: true, 
+            set({
+              isAuthenticated: true,
               user: {
                 id: userData.id,
                 name: userData.name,
                 email: userData.email,
                 avatarUrl: userData.avatar || undefined,
                 avatar: userData.avatar,
-                plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
+                plan:
+                  userData.plan === "PRO"
+                    ? "Pro"
+                    : userData.plan === "FREE"
+                      ? "Free"
+                      : "Enterprise",
                 isSuperAdmin: userData.isSuperAdmin || false,
               },
               isInitialized: true,
@@ -144,7 +165,7 @@ export const useStore = create<AppState>()(
             set({ isInitialized: true });
           }
         } catch (error) {
-          console.error('Init auth error:', error);
+          console.error("Init auth error:", error);
           set({ isInitialized: true });
         }
       },
@@ -154,16 +175,21 @@ export const useStore = create<AppState>()(
           if (user) {
             const userData = await authApi.getCurrentUser();
             if (userData) {
-              set({ 
-                isAuthenticated: true, 
+              set({
+                isAuthenticated: true,
                 user: {
                   id: userData.id,
                   name: userData.name,
                   email: userData.email,
                   avatarUrl: userData.avatar || undefined,
                   avatar: userData.avatar,
-                  plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
-                }
+                  plan:
+                    userData.plan === "PRO"
+                      ? "Pro"
+                      : userData.plan === "FREE"
+                        ? "Free"
+                        : "Enterprise",
+                },
               });
               await Promise.all([
                 get().loadCampaigns(),
@@ -173,31 +199,48 @@ export const useStore = create<AppState>()(
             }
           }
         } catch (error) {
-          console.error('Login error:', error);
+          console.error("Login error:", error);
           throw error;
         }
       },
-      register: async (email: string, password: string, name: string, cpf?: string, birthDate?: string) => {
+      register: async (
+        email: string,
+        password: string,
+        name: string,
+        cpf?: string,
+        birthDate?: string,
+      ) => {
         try {
-          const { user } = await authApi.signUp({ email, password, name, cpf, birthDate });
+          const { user } = await authApi.signUp({
+            email,
+            password,
+            name,
+            cpf,
+            birthDate,
+          });
           if (user) {
             const userData = await authApi.getCurrentUser();
             if (userData) {
-              set({ 
-                isAuthenticated: true, 
+              set({
+                isAuthenticated: true,
                 user: {
                   id: userData.id,
                   name: userData.name,
                   email: userData.email,
                   avatarUrl: userData.avatar || undefined,
                   avatar: userData.avatar,
-                  plan: userData.plan === 'PRO' ? 'Pro' : userData.plan === 'FREE' ? 'Free' : 'Enterprise',
-                }
+                  plan:
+                    userData.plan === "PRO"
+                      ? "Pro"
+                      : userData.plan === "FREE"
+                        ? "Free"
+                        : "Enterprise",
+                },
               });
             }
           }
         } catch (error) {
-          console.error('Register error:', error);
+          console.error("Register error:", error);
           throw error;
         }
       },
@@ -205,71 +248,81 @@ export const useStore = create<AppState>()(
         try {
           // 1. Fazer logout do Supabase
           await authApi.signOut();
-          
+
           // 2. Limpar TODO o localStorage
           localStorage.clear();
-          
+
           // 3. Resetar o state
-          set({ 
-            isAuthenticated: false, 
-            user: null, 
+          set({
+            isAuthenticated: false,
+            user: null,
             campaigns: [],
             conversations: [],
             connectedIntegrations: [],
-            searchTerm: '',
+            searchTerm: "",
             isTwoFactorEnabled: false,
             notificationSettings: initialNotificationSettings,
             aiConnections: [],
             activeConversationId: null,
             isInitialized: false,
           });
-          
-          console.log('✅ Logout completo - localStorage limpo');
+
+          console.log("✅ Logout completo - localStorage limpo");
         } catch (error) {
-          console.error('❌ Logout error:', error);
+          console.error("❌ Logout error:", error);
           // Mesmo se der erro, limpar localStorage
           localStorage.clear();
-          set({ 
-            isAuthenticated: false, 
+          set({
+            isAuthenticated: false,
             user: null,
             isInitialized: false,
           });
           throw error;
         }
       },
-      updateUser: (userData) => set((state) => ({
-        user: state.user ? { ...state.user, ...userData } : null
-      })),
+      updateUser: (userData) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...userData } : null,
+        })),
 
       // Global Search
-      searchTerm: '',
+      searchTerm: "",
       setSearchTerm: (term) => set({ searchTerm: term }),
 
       // Integrations
-      connectedIntegrations: ['google-analytics', 'github'],
-      toggleIntegration: (id, connect) => set((state) => {
-        const currentIntegrations = Array.isArray(state.connectedIntegrations) ? state.connectedIntegrations : [];
-        if (connect) {
-          if (!currentIntegrations.includes(id)) {
-            return { connectedIntegrations: [...currentIntegrations, id] };
+      connectedIntegrations: ["google-analytics", "github"],
+      toggleIntegration: (id, connect) =>
+        set((state) => {
+          const currentIntegrations = Array.isArray(state.connectedIntegrations)
+            ? state.connectedIntegrations
+            : [];
+          if (connect) {
+            if (!currentIntegrations.includes(id)) {
+              return { connectedIntegrations: [...currentIntegrations, id] };
+            }
+          } else {
+            return {
+              connectedIntegrations: currentIntegrations.filter(
+                (i) => i !== id,
+              ),
+            };
           }
-        } else {
-          return { connectedIntegrations: currentIntegrations.filter(i => i !== id) };
-        }
-        return {};
-      }),
+          return {};
+        }),
 
       // Chat
       conversations: [],
       activeConversationId: null,
       setActiveConversationId: (id) => set({ activeConversationId: id }),
-      
+
       loadConversations: async () => {
         const user = get().user;
         if (!user) return;
         try {
-          const dbConversations = await conversationsApi.getConversations(user.id);
-          
+          const dbConversations = await conversationsApi.getConversations(
+            user.id,
+          );
+
           // Load messages for each conversation
           const conversationsWithMessages = await Promise.all(
             dbConversations.map(async (conv) => {
@@ -277,32 +330,39 @@ export const useStore = create<AppState>()(
               return {
                 id: conv.id,
                 title: conv.title,
-                messages: messages.map(msg => ({
+                messages: messages.map((msg) => ({
                   id: msg.id,
-                  role: msg.role.toLowerCase() as 'user' | 'assistant',
+                  role: msg.role.toLowerCase() as "user" | "assistant",
                   content: msg.content,
                 })),
               };
-            })
+            }),
           );
 
-          set({ 
+          set({
             conversations: conversationsWithMessages,
-            activeConversationId: conversationsWithMessages.length > 0 ? conversationsWithMessages[0].id : null,
+            activeConversationId:
+              conversationsWithMessages.length > 0
+                ? conversationsWithMessages[0].id
+                : null,
           });
         } catch (error) {
-          console.error('Load conversations error:', error);
+          console.error("Load conversations error:", error);
         }
       },
 
       createNewConversation: async (title?: string) => {
         const user = get().user;
         if (!user) return;
-        
+
         try {
-          const conversationTitle = title || `Nova Conversa ${new Date().toLocaleDateString()}`;
-          const newConversation = await conversationsApi.createConversation(user.id, conversationTitle);
-          
+          const conversationTitle =
+            title || `Nova Conversa ${new Date().toLocaleDateString()}`;
+          const newConversation = await conversationsApi.createConversation(
+            user.id,
+            conversationTitle,
+          );
+
           set((state) => ({
             conversations: [
               {
@@ -315,7 +375,7 @@ export const useStore = create<AppState>()(
             activeConversationId: newConversation.id,
           }));
         } catch (error) {
-          console.error('Create conversation error:', error);
+          console.error("Create conversation error:", error);
           throw error;
         }
       },
@@ -327,7 +387,7 @@ export const useStore = create<AppState>()(
         try {
           // Add to local state first for immediate feedback
           set((state) => {
-            const newConversations = state.conversations.map(conv => {
+            const newConversations = state.conversations.map((conv) => {
               if (conv.id === conversationId) {
                 return { ...conv, messages: [...conv.messages, message] };
               }
@@ -340,14 +400,14 @@ export const useStore = create<AppState>()(
           await chatApi.createMessage(
             user.id,
             conversationId,
-            message.role.toUpperCase() as 'USER' | 'ASSISTANT',
-            message.content
+            message.role.toUpperCase() as "USER" | "ASSISTANT",
+            message.content,
           );
 
           // Update conversation timestamp
           await conversationsApi.touchConversation(conversationId);
         } catch (error) {
-          console.error('Add message error:', error);
+          console.error("Add message error:", error);
           // Optionally rollback the local change
         }
       },
@@ -355,22 +415,27 @@ export const useStore = create<AppState>()(
       deleteConversation: async (id) => {
         try {
           await conversationsApi.deleteConversation(id);
-          
+
           set((state) => {
-            const remainingConversations = state.conversations.filter(conv => conv.id !== id);
+            const remainingConversations = state.conversations.filter(
+              (conv) => conv.id !== id,
+            );
             let newActiveId = state.activeConversationId;
 
             if (state.activeConversationId === id) {
-              newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+              newActiveId =
+                remainingConversations.length > 0
+                  ? remainingConversations[0].id
+                  : null;
             }
 
-            return { 
+            return {
               conversations: remainingConversations,
               activeConversationId: newActiveId,
             };
           });
         } catch (error) {
-          console.error('Delete conversation error:', error);
+          console.error("Delete conversation error:", error);
           throw error;
         }
       },
@@ -385,24 +450,36 @@ export const useStore = create<AppState>()(
         if (!user) return;
         try {
           const data = await campaignsApi.getCampaigns(user.id);
-          const campaigns: Campaign[] = data.map(c => ({
+          const campaigns: Campaign[] = data.map((c) => ({
             id: c.id,
             name: c.name,
-            status: c.status === 'ACTIVE' ? 'Ativa' : c.status === 'PAUSED' ? 'Pausada' : 'Concluída',
-            platform: c.platform === 'GOOGLE_ADS' ? 'Google Ads' : c.platform === 'META_ADS' ? 'Meta' : 'LinkedIn',
+            status:
+              c.status === "ACTIVE"
+                ? "Ativa"
+                : c.status === "PAUSED"
+                  ? "Pausada"
+                  : "Concluída",
+            platform:
+              c.platform === "GOOGLE_ADS"
+                ? "Google Ads"
+                : c.platform === "META_ADS"
+                  ? "Meta"
+                  : "LinkedIn",
             budgetSpent: c.budgetSpent,
             budgetTotal: c.budgetTotal,
             impressions: c.impressions,
             clicks: c.clicks,
             conversions: c.conversions,
-            startDate: new Date(c.startDate).toISOString().split('T')[0],
-            endDate: c.endDate ? new Date(c.endDate).toISOString().split('T')[0] : '',
+            startDate: new Date(c.startDate).toISOString().split("T")[0],
+            endDate: c.endDate
+              ? new Date(c.endDate).toISOString().split("T")[0]
+              : "",
             ctr: c.ctr,
             cpc: c.cpc,
           }));
           set({ campaigns });
         } catch (error) {
-          console.error('Load campaigns error:', error);
+          console.error("Load campaigns error:", error);
         }
       },
       addCampaign: async (campaignData) => {
@@ -411,14 +488,26 @@ export const useStore = create<AppState>()(
         try {
           await campaignsApi.createCampaign(user.id, {
             name: campaignData.name,
-            objective: 'Conversões',
-            platform: campaignData.platform === 'Google Ads' ? 'GOOGLE_ADS' : campaignData.platform === 'Meta' ? 'META_ADS' : 'LINKEDIN_ADS',
-            status: campaignData.status === 'Ativa' ? 'ACTIVE' : campaignData.status === 'Pausada' ? 'PAUSED' : 'COMPLETED',
+            objective: "Conversões",
+            platform:
+              campaignData.platform === "Google Ads"
+                ? "GOOGLE_ADS"
+                : campaignData.platform === "Meta"
+                  ? "META_ADS"
+                  : "LINKEDIN_ADS",
+            status:
+              campaignData.status === "Ativa"
+                ? "ACTIVE"
+                : campaignData.status === "Pausada"
+                  ? "PAUSED"
+                  : "COMPLETED",
             budgetTotal: campaignData.budgetTotal,
             budgetSpent: campaignData.budgetSpent || 0,
             budgetDaily: campaignData.budgetTotal / 30,
             startDate: new Date(campaignData.startDate).toISOString(),
-            endDate: campaignData.endDate ? new Date(campaignData.endDate).toISOString() : null,
+            endDate: campaignData.endDate
+              ? new Date(campaignData.endDate).toISOString()
+              : null,
             targeting: {},
             impressions: campaignData.impressions || 0,
             clicks: campaignData.clicks || 0,
@@ -429,7 +518,7 @@ export const useStore = create<AppState>()(
           });
           await get().loadCampaigns();
         } catch (error) {
-          console.error('Add campaign error:', error);
+          console.error("Add campaign error:", error);
           throw error;
         }
       },
@@ -437,26 +526,40 @@ export const useStore = create<AppState>()(
         try {
           await campaignsApi.updateCampaign(id, {
             ...(campaignData.name && { name: campaignData.name }),
-            ...(campaignData.status && { 
-              status: campaignData.status === 'Ativa' ? 'ACTIVE' : campaignData.status === 'Pausada' ? 'PAUSED' : 'COMPLETED'
+            ...(campaignData.status && {
+              status:
+                campaignData.status === "Ativa"
+                  ? "ACTIVE"
+                  : campaignData.status === "Pausada"
+                    ? "PAUSED"
+                    : "COMPLETED",
             }),
-            ...(campaignData.budgetTotal && { budgetTotal: campaignData.budgetTotal }),
-            ...(campaignData.budgetSpent !== undefined && { budgetSpent: campaignData.budgetSpent }),
+            ...(campaignData.budgetTotal && {
+              budgetTotal: campaignData.budgetTotal,
+            }),
+            ...(campaignData.budgetSpent !== undefined && {
+              budgetSpent: campaignData.budgetSpent,
+            }),
           });
           await get().loadCampaigns();
         } catch (error) {
-          console.error('Update campaign error:', error);
+          console.error("Update campaign error:", error);
           throw error;
         }
       },
       updateCampaignStatus: async (id, status) => {
         try {
           await campaignsApi.updateCampaign(id, {
-            status: status === 'Ativa' ? 'ACTIVE' : status === 'Pausada' ? 'PAUSED' : 'COMPLETED'
+            status:
+              status === "Ativa"
+                ? "ACTIVE"
+                : status === "Pausada"
+                  ? "PAUSED"
+                  : "COMPLETED",
           });
           await get().loadCampaigns();
         } catch (error) {
-          console.error('Update campaign status error:', error);
+          console.error("Update campaign status error:", error);
           throw error;
         }
       },
@@ -465,31 +568,31 @@ export const useStore = create<AppState>()(
           await campaignsApi.deleteCampaign(id);
           await get().loadCampaigns();
         } catch (error) {
-          console.error('Delete campaign error:', error);
+          console.error("Delete campaign error:", error);
           throw error;
         }
       },
 
       // AI Connections
       aiConnections: [],
-      
+
       loadAiConnections: async () => {
         const user = get().user;
         if (!user) return;
         try {
           const connections = await aiConnectionsApi.getConnections(user.id);
-          set({ 
-            aiConnections: connections.map(conn => ({
+          set({
+            aiConnections: connections.map((conn) => ({
               id: conn.id,
               name: conn.name,
               apiKey: conn.apiKey,
               baseUrl: conn.baseUrl,
               model: conn.model,
-              status: conn.status as 'untested' | 'valid' | 'invalid',
-            }))
+              status: conn.status as "untested" | "valid" | "invalid",
+            })),
           });
         } catch (error) {
-          console.error('Load AI connections error:', error);
+          console.error("Load AI connections error:", error);
         }
       },
 
@@ -502,11 +605,11 @@ export const useStore = create<AppState>()(
             apiKey: connection.apiKey,
             baseUrl: connection.baseUrl || null,
             model: connection.model || null,
-            status: 'untested',
+            status: "untested",
           });
           await get().loadAiConnections();
         } catch (error) {
-          console.error('Add AI connection error:', error);
+          console.error("Add AI connection error:", error);
           throw error;
         }
       },
@@ -516,7 +619,7 @@ export const useStore = create<AppState>()(
           await aiConnectionsApi.updateConnection(id, data);
           await get().loadAiConnections();
         } catch (error) {
-          console.error('Update AI connection error:', error);
+          console.error("Update AI connection error:", error);
           throw error;
         }
       },
@@ -526,40 +629,50 @@ export const useStore = create<AppState>()(
           await aiConnectionsApi.deleteConnection(id);
           await get().loadAiConnections();
         } catch (error) {
-          console.error('Remove AI connection error:', error);
+          console.error("Remove AI connection error:", error);
           throw error;
         }
       },
 
       // Settings
-      aiSystemPrompt: 'Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.',
+      aiSystemPrompt:
+        "Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.",
       setAiSystemPrompt: (prompt) => set({ aiSystemPrompt: prompt }),
-      
+
       aiInitialGreetings: [
-        'Olá! 👋 Sou o SyncAds AI, seu assistente de marketing digital. Como posso ajudar você hoje?',
-        'Oi! Estou aqui para ajudar a otimizar suas campanhas. O que gostaria de fazer?',
-        'Bem-vindo! Pronto para criar campanhas incríveis? Por onde começamos?',
+        "Olá! 👋 Sou o SyncAds AI, seu assistente de marketing digital. Como posso ajudar você hoje?",
+        "Oi! Estou aqui para ajudar a otimizar suas campanhas. O que gostaria de fazer?",
+        "Bem-vindo! Pronto para criar campanhas incríveis? Por onde começamos?",
       ],
-      setAiInitialGreetings: (greetings) => set({ aiInitialGreetings: greetings }),
-      addAiGreeting: (greeting) => set((state) => ({
-        aiInitialGreetings: [...state.aiInitialGreetings, greeting]
-      })),
-      removeAiGreeting: (index) => set((state) => ({
-        aiInitialGreetings: state.aiInitialGreetings.filter((_, i) => i !== index)
-      })),
-      updateAiGreeting: (index, greeting) => set((state) => ({
-        aiInitialGreetings: state.aiInitialGreetings.map((g, i) => i === index ? greeting : g)
-      })),
-      
+      setAiInitialGreetings: (greetings) =>
+        set({ aiInitialGreetings: greetings }),
+      addAiGreeting: (greeting) =>
+        set((state) => ({
+          aiInitialGreetings: [...state.aiInitialGreetings, greeting],
+        })),
+      removeAiGreeting: (index) =>
+        set((state) => ({
+          aiInitialGreetings: state.aiInitialGreetings.filter(
+            (_, i) => i !== index,
+          ),
+        })),
+      updateAiGreeting: (index, greeting) =>
+        set((state) => ({
+          aiInitialGreetings: state.aiInitialGreetings.map((g, i) =>
+            i === index ? greeting : g,
+          ),
+        })),
+
       isTwoFactorEnabled: false,
       setTwoFactorEnabled: (enabled) => set({ isTwoFactorEnabled: enabled }),
       notificationSettings: initialNotificationSettings,
-      updateNotificationSettings: (settings) => set(state => ({
-        notificationSettings: { ...state.notificationSettings, ...settings }
-      })),
+      updateNotificationSettings: (settings) =>
+        set((state) => ({
+          notificationSettings: { ...state.notificationSettings, ...settings },
+        })),
     }),
     {
-      name: 'marketing-ai-storage',
+      name: "marketing-ai-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
@@ -576,7 +689,7 @@ export const useStore = create<AppState>()(
           if (!state.campaigns) state.campaigns = [];
           if (!state.conversations) state.conversations = [];
           if (!Array.isArray(state.connectedIntegrations)) {
-            state.connectedIntegrations = ['google-analytics', 'github'];
+            state.connectedIntegrations = ["google-analytics", "github"];
           }
           if (!state.notificationSettings) {
             state.notificationSettings = initialNotificationSettings;
@@ -586,6 +699,6 @@ export const useStore = create<AppState>()(
           }
         }
       },
-    }
-  )
+    },
+  ),
 );

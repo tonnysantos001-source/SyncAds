@@ -1,7 +1,13 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { AlertTriangle, Home, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 interface Props {
   children: ReactNode;
@@ -28,16 +34,24 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log erro para serviço de monitoramento (Sentry, LogRocket, etc)
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+    // Log erro para serviço de monitoramento
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+
     this.setState({
       error,
       errorInfo,
     });
 
-    // TODO: Enviar para serviço de monitoramento
-    // Sentry.captureException(error, { extra: errorInfo });
+    // ✅ Enviar para Sentry
+    if (typeof window !== "undefined" && (window as any).Sentry) {
+      (window as any).Sentry.captureException(error, {
+        contexts: {
+          react: {
+            componentStack: errorInfo.componentStack,
+          },
+        },
+      });
+    }
   }
 
   handleReset = () => {
@@ -49,7 +63,7 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   handleGoHome = () => {
-    window.location.href = '/dashboard';
+    window.location.href = "/dashboard";
   };
 
   handleReload = () => {
@@ -69,13 +83,14 @@ class ErrorBoundary extends Component<Props, State> {
                 Ops! Algo deu errado
               </CardTitle>
               <CardDescription className="text-base">
-                Encontramos um erro inesperado. Não se preocupe, seus dados estão seguros.
+                Encontramos um erro inesperado. Não se preocupe, seus dados
+                estão seguros.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
               {/* Detalhes do Erro (apenas em desenvolvimento) */}
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === "development" && this.state.error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
                   <h3 className="font-semibold text-red-900 text-sm">
                     Detalhes do Erro (Desenvolvimento):
@@ -104,7 +119,9 @@ class ErrorBoundary extends Component<Props, State> {
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                   <li>Recarregue a página para tentar novamente</li>
                   <li>Volte para a página inicial</li>
-                  <li>Se o problema persistir, entre em contato com o suporte</li>
+                  <li>
+                    Se o problema persistir, entre em contato com o suporte
+                  </li>
                 </ul>
               </div>
 
@@ -131,7 +148,7 @@ class ErrorBoundary extends Component<Props, State> {
               {/* Link para Suporte */}
               <div className="text-center text-sm text-gray-600">
                 <p>
-                  Precisa de ajuda?{' '}
+                  Precisa de ajuda?{" "}
                   <a
                     href="mailto:suporte@syncads.com"
                     className="text-blue-600 hover:underline font-medium"
