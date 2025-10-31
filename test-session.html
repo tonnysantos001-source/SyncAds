@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Session</title>
+</head>
+<body>
+    <h1>Supabase Session Test</h1>
+    <button onclick="checkSession()">Check Session</button>
+    <button onclick="clearSession()">Clear Session</button>
+    <button onclick="reload()">Reload</button>
+    <pre id="output"></pre>
+    
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const supabase = createClient(
+            'https://ovskepqggmxlfckxqgbr.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk1NDY5MzQsImV4cCI6MjA0NTEyMjkzNH0.Kg66g7L8EzqK1ssmJV8cZ6K5p6-Y8bRJ9kXjVkWOYBc'
+        );
+        
+        window.checkSession = async () => {
+            const { data, error } = await supabase.auth.getSession();
+            document.getElementById('output').textContent = JSON.stringify({ data, error }, null, 2);
+        };
+        
+        window.clearSession = async () => {
+            await supabase.auth.signOut();
+            localStorage.clear();
+            document.getElementById('output').textContent = 'Session cleared!';
+        };
+        
+        window.reload = () => {
+            window.location.reload();
+        };
+        
+        // Auto check on load
+        checkSession();
+    </script>
+</body>
+</html>

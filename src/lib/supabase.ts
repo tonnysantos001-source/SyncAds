@@ -128,3 +128,31 @@ supabase.auth.onAuthStateChange((event, session) => {
     console.log("🔄 Token renovado automaticamente");
   }
 });
+
+/**
+ * Inicializa e restaura a sessão ao carregar a página
+ */
+const initializeSession = async () => {
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error("❌ Erro ao carregar sessão:", error);
+      return;
+    }
+
+    if (session) {
+      console.log("✅ Sessão restaurada com sucesso");
+    } else {
+      console.log("ℹ️ Nenhuma sessão ativa");
+    }
+  } catch (error) {
+    console.error("❌ Erro ao inicializar sessão:", error);
+  }
+};
+
+// Inicializar sessão automaticamente ao carregar o módulo
+initializeSession();

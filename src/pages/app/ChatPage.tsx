@@ -1,27 +1,62 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Paperclip, Send, User, Bot, Menu, X, MessageSquare, Trash2, Plus, Sparkles, Loader2, Mic } from 'lucide-react';
-import Textarea from 'react-textarea-autosize';
-import { useAuthStore } from '@/store/authStore';
-import { useChatStore } from '@/store/chatStore';
-import { useCampaignsStore } from '@/store/campaignsStore';
-import { useSettingsStore } from '@/store/settingsStore';
-import { useChatSync } from '@/hooks/chat/useChatSync';
-import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useToast } from '@/components/ui/use-toast';
-import { sendSecureMessage } from '@/lib/api/chat';
-import { supabase } from '@/lib/supabase';
-import { detectCampaignIntent, cleanCampaignBlockFromResponse, campaignSystemPrompt } from '@/lib/ai/campaignParser';
-import { sarcasticSystemPrompt, getRandomGreeting } from '@/lib/ai/sarcasticPersonality';
-import { WebSearchIndicator, SearchSourcesIndicator } from '@/components/chat/WebSearchIndicator';
-import { IntegrationConnectionCard } from '@/components/chat/IntegrationConnectionCard';
-import { ZipDownloadCard, ZipDownloadList } from '@/components/chat/ZipDownloadCard';
-import { SuperAIProgress, SuperAIExecution } from '@/components/chat/SuperAIProgress';
-import AiThinkingIndicator from '@/components/ai/AiThinkingIndicator';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Paperclip,
+  Send,
+  User,
+  Bot,
+  Menu,
+  X,
+  MessageSquare,
+  Trash2,
+  Plus,
+  Sparkles,
+  Loader2,
+  Mic,
+} from "lucide-react";
+import Textarea from "react-textarea-autosize";
+import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
+import { useCampaignsStore } from "@/store/campaignsStore";
+import { useSettingsStore } from "@/store/settingsStore";
+import { useChatSync } from "@/hooks/chat/useChatSync";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/components/ui/use-toast";
+import { sendSecureMessage } from "@/lib/api/chat";
+import { supabase } from "@/lib/supabase";
+import {
+  detectCampaignIntent,
+  cleanCampaignBlockFromResponse,
+  campaignSystemPrompt,
+} from "@/lib/ai/campaignParser";
+import {
+  sarcasticSystemPrompt,
+  getRandomGreeting,
+} from "@/lib/ai/sarcasticPersonality";
+import {
+  WebSearchIndicator,
+  SearchSourcesIndicator,
+} from "@/components/chat/WebSearchIndicator";
+import { IntegrationConnectionCard } from "@/components/chat/IntegrationConnectionCard";
+import {
+  ZipDownloadCard,
+  ZipDownloadList,
+} from "@/components/chat/ZipDownloadCard";
+import {
+  SuperAIProgress,
+  SuperAIExecution,
+} from "@/components/chat/SuperAIProgress";
+import AiThinkingIndicator from "@/components/ai/AiThinkingIndicator";
 import {
   AdminTools,
   adminSystemPrompt,
@@ -29,22 +64,22 @@ import {
   detectAdminAnalyze,
   detectAdminIntegration,
   detectAdminMetrics,
-  cleanAdminBlocksFromResponse
-} from '@/lib/ai/adminTools';
+  cleanAdminBlocksFromResponse,
+} from "@/lib/ai/adminTools";
 import {
   detectIntegrationCommand,
   cleanIntegrationBlocks,
-  integrationSystemPrompt
-} from '@/lib/integrations/integrationParsers';
+  integrationSystemPrompt,
+} from "@/lib/integrations/integrationParsers";
 import {
   IntegrationTools,
   integrationControlPrompt,
   detectIntegrationAction,
   cleanIntegrationBlocksFromResponse,
-  detectAuditIntentFromText
-} from '@/lib/ai/integrationTools';
-import { integrationsService } from '@/lib/integrations/integrationsService';
-import { INTEGRATIONS_CONFIG } from '@/lib/integrations/types';
+  detectAuditIntentFromText,
+} from "@/lib/ai/integrationTools";
+import { integrationsService } from "@/lib/integrations/integrationsService";
+import { INTEGRATIONS_CONFIG } from "@/lib/integrations/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,18 +90,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 const quickSuggestions = [
   "Criar campanha de Facebook Ads",
   "Analisar performance da última semana",
-  "Sugerir otimizações"
+  "Sugerir otimizações",
 ];
 
 const MAX_CHARS = 500;
 
 const ChatPage: React.FC = () => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [globalAiConfig, setGlobalAiConfig] = useState<{
     systemPrompt: string;
@@ -76,14 +111,16 @@ const ChatPage: React.FC = () => {
   // Estados para pesquisa web
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [webSearchResults, setWebSearchResults] = useState<any[]>([]);
-  const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [webSearchQuery, setWebSearchQuery] = useState("");
   const [searchSources, setSearchSources] = useState<string[]>([]);
   const [zipDownloads, setZipDownloads] = useState<any[]>([]);
   const [superAIExecutions, setSuperAIExecutions] = useState<any[]>([]);
 
   // Estados para indicador de pensamento da IA (consistência com AdminChatPage)
-  const [currentTool, setCurrentTool] = useState<'web_search' | 'web_scraping' | 'python_exec' | null>(null);
-  const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [currentTool, setCurrentTool] = useState<
+    "web_search" | "web_scraping" | "python_exec" | null
+  >(null);
+  const [aiReasoning, setAiReasoning] = useState<string>("");
   const [aiSources, setAiSources] = useState<string[]>([]);
 
   // Estados para gravação de áudio
@@ -94,28 +131,48 @@ const ChatPage: React.FC = () => {
 
   // Auth store
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const navigate = useNavigate();
 
   // Chat store
   const conversations = useChatStore((state) => state.conversations);
-  const activeConversationId = useChatStore((state) => state.activeConversationId);
-  const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId,
+  );
+  const setActiveConversationId = useChatStore(
+    (state) => state.setActiveConversationId,
+  );
   const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
   const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
   const addMessage = useChatStore((state) => state.addMessage);
   const deleteConversation = useChatStore((state) => state.deleteConversation);
-  const createNewConversation = useChatStore((state) => state.createNewConversation);
+  const createNewConversation = useChatStore(
+    (state) => state.createNewConversation,
+  );
 
   // Campaigns store
   const addCampaign = useCampaignsStore((state) => state.addCampaign);
 
   // Settings store (fallback se não houver IA global)
   const aiSystemPrompt = useSettingsStore((state) => state.aiSystemPrompt);
-  const aiInitialGreetings = useSettingsStore((state) => state.aiInitialGreetings);
+  const aiInitialGreetings = useSettingsStore(
+    (state) => state.aiInitialGreetings,
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
+
+  // Verificar autenticação e redirecionar se necessário
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      console.warn("⚠️ Usuário não autenticado, redirecionando para login...");
+      navigate("/login", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,14 +188,14 @@ const ChatPage: React.FC = () => {
       try {
         // Buscar QUALQUER IA global ativa (sistema simplificado)
         const { data: globalAi, error: aiError } = await supabase
-          .from('GlobalAiConnection')
-          .select('id, systemPrompt, initialGreetings')
-          .eq('isActive', true)
+          .from("GlobalAiConnection")
+          .select("id, systemPrompt, initialGreetings")
+          .eq("isActive", true)
           .limit(1)
           .single();
 
         if (aiError) {
-          console.error('Erro ao buscar IA:', aiError);
+          console.error("Erro ao buscar IA:", aiError);
           return;
         }
 
@@ -147,13 +204,13 @@ const ChatPage: React.FC = () => {
         if (globalAiId) {
           // Buscar configuração da IA
           const { data: aiConfig, error: aiError } = await supabase
-            .from('GlobalAiConnection')
-            .select('systemPrompt, initialGreetings')
-            .eq('id', globalAiId)
+            .from("GlobalAiConnection")
+            .select("systemPrompt, initialGreetings")
+            .eq("id", globalAiId)
             .single();
 
           if (aiError) {
-            console.error('Erro ao buscar config da IA:', aiError);
+            console.error("Erro ao buscar config da IA:", aiError);
             return;
           }
 
@@ -165,7 +222,7 @@ const ChatPage: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar IA Global:', error);
+        console.error("Erro ao carregar IA Global:", error);
       }
     };
 
@@ -180,8 +237,8 @@ const ChatPage: React.FC = () => {
         if (user) {
           addMessage(user.id, activeConversationId!, {
             id: `greeting-${Date.now()}`,
-            role: 'assistant',
-            content: greeting
+            role: "assistant",
+            content: greeting,
           });
         }
       }, 500);
@@ -195,21 +252,21 @@ const ChatPage: React.FC = () => {
     const matches = content.match(zipDownloadRegex);
 
     if (matches) {
-      matches.forEach(match => {
+      matches.forEach((match) => {
         try {
-          const jsonStr = match.replace('ZIP_DOWNLOAD:', '').trim();
+          const jsonStr = match.replace("ZIP_DOWNLOAD:", "").trim();
           const downloadData = JSON.parse(jsonStr);
 
           // Adicionar à lista de downloads
-          setZipDownloads(prev => [...prev, downloadData]);
+          setZipDownloads((prev) => [...prev, downloadData]);
         } catch (error) {
-          console.error('Erro ao processar download ZIP:', error);
+          console.error("Erro ao processar download ZIP:", error);
         }
       });
     }
 
     // Remover blocos ZIP_DOWNLOAD do conteúdo exibido
-    return content.replace(zipDownloadRegex, '').trim();
+    return content.replace(zipDownloadRegex, "").trim();
   };
 
   // Função para detectar e processar execuções super inteligentes
@@ -219,59 +276,80 @@ const ChatPage: React.FC = () => {
     const matches = content.match(superAIRegex);
 
     if (matches) {
-      matches.forEach(match => {
+      matches.forEach((match) => {
         try {
-          const jsonStr = match.replace('SUPER_AI_EXECUTION:', '').trim();
+          const jsonStr = match.replace("SUPER_AI_EXECUTION:", "").trim();
           const executionData = JSON.parse(jsonStr);
 
           // Adicionar à lista de execuções
-          setSuperAIExecutions(prev => [...prev, executionData]);
+          setSuperAIExecutions((prev) => [...prev, executionData]);
         } catch (error) {
-          console.error('Erro ao processar execução Super AI:', error);
+          console.error("Erro ao processar execução Super AI:", error);
         }
       });
     }
 
     // Remover blocos SUPER_AI_EXECUTION do conteúdo exibido
-    return content.replace(superAIRegex, '').trim();
+    return content.replace(superAIRegex, "").trim();
   };
 
   const handleSend = async () => {
-    if (input.trim() === '' || !activeConversationId || input.length > MAX_CHARS) return;
+    if (
+      input.trim() === "" ||
+      !activeConversationId ||
+      input.length > MAX_CHARS
+    )
+      return;
 
     const userMessage = input;
 
     // Detectar qual ferramenta está sendo usada (consistência com AdminChatPage)
     const lowerMessage = userMessage.toLowerCase();
-    if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') ||
-        lowerMessage.includes('google') || lowerMessage.includes('internet')) {
-      setCurrentTool('web_search');
+    if (
+      lowerMessage.includes("pesquis") ||
+      lowerMessage.includes("busca") ||
+      lowerMessage.includes("google") ||
+      lowerMessage.includes("internet")
+    ) {
+      setCurrentTool("web_search");
       let query = userMessage;
-      if (lowerMessage.includes('pesquis')) {
+      if (lowerMessage.includes("pesquis")) {
         const match = userMessage.match(/pesquis[ae]\s+(.+)/i);
         query = match ? match[1] : userMessage;
       }
       setAiReasoning(`Pesquisando na web sobre: "${query}"`);
-      setAiSources(['Google Search', 'Exa AI', 'Tavily']);
-    } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') ||
-               lowerMessage.includes('scrape')) {
-      setCurrentTool('web_scraping');
+      setAiSources(["Google Search", "Exa AI", "Tavily"]);
+    } else if (
+      lowerMessage.includes("baix") ||
+      lowerMessage.includes("rasp") ||
+      lowerMessage.includes("scrape")
+    ) {
+      setCurrentTool("web_scraping");
       const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
-      setAiReasoning(urlMatch ? `Raspando dados de: ${urlMatch[0]}` : 'Raspando dados...');
-    } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') ||
-               lowerMessage.includes('execute código')) {
-      setCurrentTool('python_exec');
-      setAiReasoning('Executando código Python para processar dados...');
+      setAiReasoning(
+        urlMatch ? `Raspando dados de: ${urlMatch[0]}` : "Raspando dados...",
+      );
+    } else if (
+      lowerMessage.includes("python") ||
+      lowerMessage.includes("calcule") ||
+      lowerMessage.includes("execute código")
+    ) {
+      setCurrentTool("python_exec");
+      setAiReasoning("Executando código Python para processar dados...");
     } else {
       setCurrentTool(null);
-      setAiReasoning('Processando sua solicitação...');
+      setAiReasoning("Processando sua solicitação...");
       setAiSources([]);
     }
 
     if (user) {
-      addMessage(user.id, activeConversationId, { id: `msg-${Date.now()}`, role: 'user', content: userMessage });
+      addMessage(user.id, activeConversationId, {
+        id: `msg-${Date.now()}`,
+        role: "user",
+        content: userMessage,
+      });
     }
-    setInput('');
+    setInput("");
 
     // Colapsar sidebar ao enviar mensagem (comportamento ChatGPT)
     setSidebarOpen(false);
@@ -280,19 +358,38 @@ const ChatPage: React.FC = () => {
 
     try {
       // Preparar histórico de mensagens para contexto
-      const conversation = conversations.find((c: any) => c.id === activeConversationId);
+      const conversation = conversations.find(
+        (c: any) => c.id === activeConversationId,
+      );
 
       // Usar systemPrompt da IA Global se disponível, senão usar fallback sarcástico
-      const customPrompt = globalAiConfig?.systemPrompt || sarcasticSystemPrompt;
-      const systemMessage = adminSystemPrompt + '\n\n' + campaignSystemPrompt + '\n\n' + integrationSystemPrompt + '\n\n' + integrationControlPrompt + '\n\n' + customPrompt;
+      const customPrompt =
+        globalAiConfig?.systemPrompt || sarcasticSystemPrompt;
+      const systemMessage =
+        adminSystemPrompt +
+        "\n\n" +
+        campaignSystemPrompt +
+        "\n\n" +
+        integrationSystemPrompt +
+        "\n\n" +
+        integrationControlPrompt +
+        "\n\n" +
+        customPrompt;
 
-      const conversationHistory = (conversation?.messages || []).slice(-20).map((msg: any) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const conversationHistory = (conversation?.messages || [])
+        .slice(-20)
+        .map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
       // Chamar Edge Function segura (protege API keys) - CRITICAL: passar conversationId!
-      const result = await sendSecureMessage(userMessage, activeConversationId, conversationHistory, systemMessage);
+      const result = await sendSecureMessage(
+        userMessage,
+        activeConversationId,
+        conversationHistory,
+        systemMessage,
+      );
       const response = result.response;
 
       // Detectar se a IA quer criar uma campanha
@@ -304,35 +401,35 @@ const ChatPage: React.FC = () => {
             await addCampaign(user.id, {
               name: campaignIntent.data.name,
               platform: campaignIntent.data.platform,
-              status: 'Pausada',
-            budgetTotal: campaignIntent.data.budgetTotal,
-            budgetSpent: 0,
-            impressions: 0,
-            clicks: 0,
-            conversions: 0,
-            startDate: campaignIntent.data.startDate,
-            endDate: campaignIntent.data.endDate || '',
-            ctr: 0,
-            cpc: 0,
-          });
+              status: "Pausada",
+              budgetTotal: campaignIntent.data.budgetTotal,
+              budgetSpent: 0,
+              impressions: 0,
+              clicks: 0,
+              conversions: 0,
+              startDate: campaignIntent.data.startDate,
+              endDate: campaignIntent.data.endDate || "",
+              ctr: 0,
+              cpc: 0,
+            });
 
             toast({
-              title: '🎉 Campanha Criada!',
+              title: "🎉 Campanha Criada!",
               description: `A campanha "${campaignIntent.data.name}" foi criada com sucesso.`,
             });
           }
         } catch (error) {
-          console.error('Error creating campaign from AI:', error);
+          console.error("Error creating campaign from AI:", error);
           toast({
-            title: 'Erro ao criar campanha',
-            description: 'Não foi possível criar a campanha automaticamente.',
-            variant: 'destructive',
+            title: "Erro ao criar campanha",
+            description: "Não foi possível criar a campanha automaticamente.",
+            variant: "destructive",
           });
         }
       }
 
       // Variável para armazenar resultado de auditoria
-      let auditResult = '';
+      let auditResult = "";
 
       // Processar comandos administrativos (se usuário tem permissão)
       if (user) {
@@ -343,20 +440,23 @@ const ChatPage: React.FC = () => {
         if (sqlCommand) {
           const result = await adminTools.executeSQL(sqlCommand);
           toast({
-            title: result.success ? '✅ SQL Executado' : '❌ Erro SQL',
+            title: result.success ? "✅ SQL Executado" : "❌ Erro SQL",
             description: result.message,
-            variant: result.success ? 'default' : 'destructive',
+            variant: result.success ? "default" : "destructive",
           });
         }
 
         // Detectar e executar análise de sistema
         const analyzeCommand = detectAdminAnalyze(response);
         if (analyzeCommand) {
-          const result = await adminTools.analyzeSystem(analyzeCommand.type, analyzeCommand.period);
+          const result = await adminTools.analyzeSystem(
+            analyzeCommand.type,
+            analyzeCommand.period,
+          );
           toast({
-            title: result.success ? '📊 Análise Concluída' : '❌ Erro',
+            title: result.success ? "📊 Análise Concluída" : "❌ Erro",
             description: result.message,
-            variant: result.success ? 'default' : 'destructive',
+            variant: result.success ? "default" : "destructive",
           });
         }
 
@@ -366,12 +466,12 @@ const ChatPage: React.FC = () => {
           const result = await adminTools.manageIntegration(
             integrationCommand.action,
             integrationCommand.platform,
-            integrationCommand.credentials
+            integrationCommand.credentials,
           );
           toast({
-            title: result.success ? '🔗 Integração Atualizada' : '❌ Erro',
+            title: result.success ? "🔗 Integração Atualizada" : "❌ Erro",
             description: result.message,
-            variant: result.success ? 'default' : 'destructive',
+            variant: result.success ? "default" : "destructive",
           });
         }
 
@@ -381,12 +481,12 @@ const ChatPage: React.FC = () => {
           const result = await adminTools.getMetrics(
             metricsCommand.metric,
             metricsCommand.aggregation,
-            metricsCommand.groupBy
+            metricsCommand.groupBy,
           );
           toast({
-            title: result.success ? '📈 Métricas Obtidas' : '❌ Erro',
+            title: result.success ? "📈 Métricas Obtidas" : "❌ Erro",
             description: result.message,
-            variant: result.success ? 'default' : 'destructive',
+            variant: result.success ? "default" : "destructive",
           });
         }
 
@@ -403,20 +503,22 @@ const ChatPage: React.FC = () => {
           let result;
 
           switch (integrationAction.action) {
-            case 'audit':
+            case "audit":
               if (integrationAction.platform) {
-                result = await integrationTools.auditIntegration(integrationAction.platform);
+                result = await integrationTools.auditIntegration(
+                  integrationAction.platform,
+                );
               }
               break;
-            case 'audit_all':
+            case "audit_all":
               result = await integrationTools.auditAll();
               break;
-            case 'list_status':
+            case "list_status":
               result = await integrationTools.listStatus();
               break;
-            case 'test':
-            case 'capabilities':
-            case 'diagnose':
+            case "test":
+            case "capabilities":
+            case "diagnose":
               result = {
                 success: true,
                 message: `Ação "${integrationAction.action}" detectada. Implementação em andamento.`,
@@ -426,12 +528,14 @@ const ChatPage: React.FC = () => {
 
           if (result) {
             // Armazenar resultado para adicionar depois
-            auditResult = '\n\n' + result.message;
+            auditResult = "\n\n" + result.message;
 
             toast({
-              title: result.success ? '✅ Ação Executada' : '❌ Erro',
-              description: result.success ? 'Auditoria concluída com sucesso' : result.error || 'Erro ao executar ação',
-              variant: result.success ? 'default' : 'destructive',
+              title: result.success ? "✅ Ação Executada" : "❌ Erro",
+              description: result.success
+                ? "Auditoria concluída com sucesso"
+                : result.error || "Erro ao executar ação",
+              variant: result.success ? "default" : "destructive",
             });
           }
         }
@@ -441,71 +545,86 @@ const ChatPage: React.FC = () => {
       const integrationCommand = detectIntegrationCommand(response);
       if (integrationCommand && user) {
         try {
-          if (integrationCommand.action === 'connect') {
-            const { authUrl } = await integrationsService.generateOAuthUrl(integrationCommand.slug, user.id);
+          if (integrationCommand.action === "connect") {
+            const { authUrl } = await integrationsService.generateOAuthUrl(
+              integrationCommand.slug,
+              user.id,
+            );
             const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
 
             // Adicionar mensagem com link
             if (user) {
               addMessage(user.id, activeConversationId, {
                 id: `msg-${Date.now() + 1}`,
-                role: 'assistant',
+                role: "assistant",
                 content: `Para conectar ${config.name}, clique no link abaixo:
 
 🔗 [Autorizar ${config.name}](${authUrl})
 
-O link abrirá em uma nova aba para você autorizar o acesso.`
+O link abrirá em uma nova aba para você autorizar o acesso.`,
               });
             }
 
             // Abrir link automaticamente
-            window.open(authUrl, '_blank');
+            window.open(authUrl, "_blank");
 
             toast({
-              title: '🔗 Link de Autorização',
+              title: "🔗 Link de Autorização",
               description: `Clique no link para conectar ${config.name}`,
             });
             return; // Não adicionar resposta duplicada
-          } else if (integrationCommand.action === 'disconnect') {
-            await integrationsService.disconnect(user.id, integrationCommand.slug);
+          } else if (integrationCommand.action === "disconnect") {
+            await integrationsService.disconnect(
+              user.id,
+              integrationCommand.slug,
+            );
             const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
             toast({
-              title: '✅ Desconectado',
+              title: "✅ Desconectado",
               description: `${config.name} foi desconectado com sucesso.`,
             });
-          } else if (integrationCommand.action === 'status') {
+          } else if (integrationCommand.action === "status") {
             if (integrationCommand.slug) {
-              const status = await integrationsService.getIntegrationStatus(user.id, integrationCommand.slug);
+              const status = await integrationsService.getIntegrationStatus(
+                user.id,
+                integrationCommand.slug,
+              );
               const config = INTEGRATIONS_CONFIG[integrationCommand.slug];
               toast({
                 title: `${config.name}`,
-                description: status?.isConnected ? '✅ Conectado' : '❌ Não conectado',
+                description: status?.isConnected
+                  ? "✅ Conectado"
+                  : "❌ Não conectado",
               });
             } else {
-              const integrations = await integrationsService.listIntegrations(user.id);
-              const connected = integrations.filter(i => i.isConnected).length;
+              const integrations = await integrationsService.listIntegrations(
+                user.id,
+              );
+              const connected = integrations.filter(
+                (i) => i.isConnected,
+              ).length;
               toast({
-                title: '📊 Status das Integrações',
+                title: "📊 Status das Integrações",
                 description: `${connected} de ${integrations.length} integrações conectadas`,
               });
             }
           }
         } catch (error: any) {
-          console.error('Erro ao processar integração:', error);
+          console.error("Erro ao processar integração:", error);
 
           // Adicionar mensagem de erro formatada no chat
           if (user) {
             addMessage(user.id, activeConversationId, {
               id: `msg-${Date.now() + 2}`,
-              role: 'assistant',
-              content: `❌ **Erro ao conectar integração**\n\n${error.message || 'Erro ao processar comando de integração'}`
+              role: "assistant",
+              content: `❌ **Erro ao conectar integração**\n\n${error.message || "Erro ao processar comando de integração"}`,
             });
           }
 
           toast({
-            title: '❌ Erro na Integração',
-            description: 'Verifique as instruções no chat',
-            variant: 'destructive',
+            title: "❌ Erro na Integração",
+            description: "Verifique as instruções no chat",
+            variant: "destructive",
           });
         }
       }
@@ -524,24 +643,27 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       if (user) {
         addMessage(user.id, activeConversationId, {
           id: `msg-${Date.now() + 1}`,
-          role: 'assistant',
-          content: cleanedResponse + auditResult
+          role: "assistant",
+          content: cleanedResponse + auditResult,
         });
       }
     } catch (error: any) {
-      console.error('Erro ao chamar IA:', error);
+      console.error("Erro ao chamar IA:", error);
       toast({
-        title: 'Erro ao gerar resposta',
-        description: error.message || 'Não foi possível obter resposta da IA. Verifique sua chave de API.',
-        variant: 'destructive',
+        title: "Erro ao gerar resposta",
+        description:
+          error.message ||
+          "Não foi possível obter resposta da IA. Verifique sua chave de API.",
+        variant: "destructive",
       });
 
       // Adicionar mensagem de erro no chat
       if (user) {
         addMessage(user.id, activeConversationId, {
           id: `msg-${Date.now() + 1}`,
-          role: 'assistant',
-          content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.'
+          role: "assistant",
+          content:
+            "❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, verifique se sua chave de API está configurada corretamente nas configurações.",
         });
       }
     } finally {
@@ -572,14 +694,16 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
         setAudioBlob(audioBlob);
 
         // Upload do áudio
         await uploadAudio(audioBlob);
 
         // Limpar stream
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
@@ -590,7 +714,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
         description: "Clique novamente para parar e enviar.",
       });
     } catch (error: any) {
-      console.error('Erro ao iniciar gravação:', error);
+      console.error("Erro ao iniciar gravação:", error);
       toast({
         title: "❌ Erro",
         description: "Não foi possível acessar o microfone.",
@@ -619,17 +743,17 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
 
       // Converter Blob para File
       const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, {
-        type: 'audio/webm'
+        type: "audio/webm",
       });
 
       // Upload para Supabase Storage
       const fileName = `${user.id}/audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
 
       const { data, error: uploadError } = await supabase.storage
-        .from('chat-attachments')
+        .from("chat-attachments")
         .upload(fileName, audioFile, {
-          cacheControl: '3600',
-          upsert: false
+          cacheControl: "3600",
+          upsert: false,
         });
 
       if (uploadError) {
@@ -637,21 +761,20 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       }
 
       // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-attachments')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("chat-attachments").getPublicUrl(fileName);
 
       // Adicionar à mensagem
       const audioInfo = `[🎤 Mensagem de áudio](${publicUrl})`;
-      setInput(prev => prev ? `${prev}\n\n${audioInfo}` : audioInfo);
+      setInput((prev) => (prev ? `${prev}\n\n${audioInfo}` : audioInfo));
 
       toast({
         title: "✅ Áudio enviado!",
         description: "O áudio foi adicionado à mensagem.",
       });
-
     } catch (error: any) {
-      console.error('Erro ao enviar áudio:', error);
+      console.error("Erro ao enviar áudio:", error);
       toast({
         title: "❌ Erro",
         description: "Não foi possível enviar o áudio.",
@@ -660,7 +783,9 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !user || !activeConversationId) return;
 
@@ -671,14 +796,14 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       });
 
       // Upload para Supabase Storage
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data, error: uploadError } = await supabase.storage
-        .from('chat-attachments')
+        .from("chat-attachments")
         .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
+          cacheControl: "3600",
+          upsert: false,
         });
 
       if (uploadError) {
@@ -686,27 +811,27 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       }
 
       // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-attachments')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("chat-attachments").getPublicUrl(fileName);
 
       // Salvar anexo na tabela ChatAttachment
       const { error: attachError } = await supabase
-        .from('ChatAttachment')
+        .from("ChatAttachment")
         .insert({
-          messageId: '', // Será atualizado quando a mensagem for criada
+          messageId: "", // Será atualizado quando a mensagem for criada
           fileName: file.name,
           fileType: file.type,
           fileUrl: publicUrl,
-          fileSize: file.size
+          fileSize: file.size,
         });
 
       if (attachError) {
-        console.error('Erro ao salvar anexo:', attachError);
+        console.error("Erro ao salvar anexo:", attachError);
       }
 
       // Adicionar URL da imagem/arquivo à mensagem
-      const fileInfo = file.type.startsWith('image/')
+      const fileInfo = file.type.startsWith("image/")
         ? `![${file.name}](${publicUrl})`
         : `[${file.name}](${publicUrl})`;
 
@@ -714,7 +839,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       const updatedInput = input ? `${input}\n\n${fileInfo}` : fileInfo;
 
       // Limpar input
-      setInput('');
+      setInput("");
 
       // Simular envio da mensagem
       if (updatedInput.trim() && activeConversationId) {
@@ -725,9 +850,8 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
         title: "✅ Arquivo enviado!",
         description: `${file.name} foi enviado com sucesso.`,
       });
-
     } catch (error: any) {
-      console.error('Erro ao fazer upload:', error);
+      console.error("Erro ao fazer upload:", error);
       toast({
         title: "❌ Erro ao enviar arquivo",
         description: error.message || "Não foi possível enviar o arquivo.",
@@ -736,7 +860,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
     } finally {
       // Limpar input
       if (event.target) {
-        event.target.value = '';
+        event.target.value = "";
       }
     }
   };
@@ -747,17 +871,17 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('ChatConversation')
-        .select('id, title, createdAt, updatedAt')
-        .eq('userId', user.id)
-        .order('updatedAt', { ascending: false })
+        .from("ChatConversation")
+        .select("id, title, createdAt, updatedAt")
+        .eq("userId", user.id)
+        .order("updatedAt", { ascending: false })
         .limit(20);
 
       if (error) throw error;
 
       console.log(`✅ ${data?.length || 0} conversas carregadas`);
     } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
+      console.error("Erro ao carregar conversas:", error);
     }
   };
 
@@ -765,17 +889,17 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
   const loadConversationMessages = async (convId: string) => {
     try {
       const { data, error } = await supabase
-        .from('ChatMessage')
-        .select('id, role, content, createdAt')
-        .eq('conversationId', convId)
-        .order('createdAt', { ascending: true });
+        .from("ChatMessage")
+        .select("id, role, content, createdAt")
+        .eq("conversationId", convId)
+        .order("createdAt", { ascending: true });
 
       if (error) throw error;
 
       // Converter para formato do store
       const loadedMessages = (data || []).map((msg: any) => ({
         id: msg.id,
-        role: msg.role as 'user' | 'assistant',
+        role: msg.role as "user" | "assistant",
         content: msg.content,
         timestamp: new Date(msg.createdAt),
       }));
@@ -784,17 +908,18 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       useChatStore.getState().setConversationMessages(convId, loadedMessages);
       setActiveConversationId(convId);
 
-      console.log(`✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`);
+      console.log(
+        `✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`,
+      );
     } catch (error) {
-      console.error('Erro ao carregar mensagens:', error);
+      console.error("Erro ao carregar mensagens:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar mensagens.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível carregar mensagens.",
+        variant: "destructive",
       });
     }
   };
-
 
   // Carregar conversas existentes ao montar componente
   useEffect(() => {
@@ -806,9 +931,9 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
 
       // Se não houver conversas, criar a primeira automaticamente
       const { data: existingConversations } = await supabase
-        .from('ChatConversation')
-        .select('id')
-        .eq('userId', user.id)
+        .from("ChatConversation")
+        .select("id")
+        .eq("userId", user.id)
         .limit(1);
 
       if (!existingConversations || existingConversations.length === 0) {
@@ -828,15 +953,13 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       // Criar nova conversa direto com userId
       const newId = crypto.randomUUID();
       const now = new Date().toISOString();
-      const { error } = await supabase
-        .from('ChatConversation')
-        .insert({
-          id: newId,
-          userId: user.id,
-          title: '🆕 Nova Conversa',
-          createdAt: now,
-          updatedAt: now
-        });
+      const { error } = await supabase.from("ChatConversation").insert({
+        id: newId,
+        userId: user.id,
+        title: "🆕 Nova Conversa",
+        createdAt: now,
+        updatedAt: now,
+      });
 
       if (error) throw error;
 
@@ -847,15 +970,15 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       await useChatStore.getState().loadConversations(user.id);
 
       toast({
-        title: '✅ Nova conversa criada!',
-        description: 'Comece um novo chat do zero.',
+        title: "✅ Nova conversa criada!",
+        description: "Comece um novo chat do zero.",
       });
     } catch (error: any) {
-      console.error('Erro ao criar nova conversa:', error);
+      console.error("Erro ao criar nova conversa:", error);
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível criar nova conversa.',
-        variant: 'destructive',
+        title: "Erro",
+        description: error.message || "Não foi possível criar nova conversa.",
+        variant: "destructive",
       });
     }
   };
@@ -865,15 +988,15 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
     try {
       // Deletar mensagens primeiro
       await supabase
-        .from('ChatMessage')
+        .from("ChatMessage")
         .delete()
-        .eq('conversationId', conversationId);
+        .eq("conversationId", conversationId);
 
       // Deletar conversa
       const { error } = await supabase
-        .from('ChatConversation')
+        .from("ChatConversation")
         .delete()
-        .eq('id', conversationId);
+        .eq("id", conversationId);
 
       if (error) throw error;
 
@@ -886,15 +1009,15 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
       await useChatStore.getState().loadConversations(user.id);
 
       toast({
-        title: '🗑️ Conversa deletada',
-        description: 'A conversa foi removida com sucesso.',
+        title: "🗑️ Conversa deletada",
+        description: "A conversa foi removida com sucesso.",
       });
     } catch (error: any) {
-      console.error('Erro ao deletar conversa:', error);
+      console.error("Erro ao deletar conversa:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível deletar a conversa.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível deletar a conversa.",
+        variant: "destructive",
       });
     }
   };
@@ -902,11 +1025,13 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
   return (
     <div className="h-[calc(100vh-80px)] flex flex-col md:flex-row">
       {/* SIDEBAR - Conversas Antigas (Mobile: Overlay, Desktop: Sidebar) */}
-      <div className={`${
-        sidebarOpen
-          ? 'fixed md:relative inset-0 md:inset-auto w-full md:w-72 z-50 md:z-auto'
-          : 'hidden md:w-0'
-      } transition-all duration-300 bg-gray-50 md:border-r border-gray-200 flex flex-col overflow-hidden`}>
+      <div
+        className={`${
+          sidebarOpen
+            ? "fixed md:relative inset-0 md:inset-auto w-full md:w-72 z-50 md:z-auto"
+            : "hidden md:w-0"
+        } transition-all duration-300 bg-gray-50 md:border-r border-gray-200 flex flex-col overflow-hidden`}
+      >
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -936,7 +1061,9 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
             <div
               key={conv.id}
               className={`group relative flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors ${
-                activeConversationId === conv.id ? 'bg-blue-50 border border-blue-200' : 'bg-white'
+                activeConversationId === conv.id
+                  ? "bg-blue-50 border border-blue-200"
+                  : "bg-white"
               }`}
               onClick={() => {
                 if (activeConversationId !== conv.id) {
@@ -952,8 +1079,11 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                 {/* Preview da última mensagem (estilo ChatGPT) */}
                 <p className="text-xs text-gray-500 truncate">
                   {conv.messages && conv.messages.length > 0
-                    ? conv.messages[conv.messages.length - 1].content.substring(0, 50) + '...'
-                    : 'Sem mensagens ainda'}
+                    ? conv.messages[conv.messages.length - 1].content.substring(
+                        0,
+                        50,
+                      ) + "..."
+                    : "Sem mensagens ainda"}
                 </p>
               </div>
               <Button
@@ -984,14 +1114,22 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                 size="sm"
                 className="h-8 w-8 md:h-9 md:w-9 p-0 flex-shrink-0"
               >
-                {sidebarOpen ? <X className="h-4 w-4 md:h-5 md:w-5" /> : <Menu className="h-4 w-4 md:h-5 md:w-5" />}
+                {sidebarOpen ? (
+                  <X className="h-4 w-4 md:h-5 md:w-5" />
+                ) : (
+                  <Menu className="h-4 w-4 md:h-5 md:w-5" />
+                )}
               </Button>
               <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
                 <Bot className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-base sm:text-xl font-bold text-gray-900">Chat com IA</h1>
-                <p className="text-xs sm:text-sm text-gray-500">Assistente inteligente</p>
+                <h1 className="text-base sm:text-xl font-bold text-gray-900">
+                  Chat com IA
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Assistente inteligente
+                </p>
               </div>
             </div>
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-xs sm:text-sm">
@@ -1037,10 +1175,10 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                       key={index}
                       toolName={execution.toolName}
                       parameters={execution.parameters}
-                      userId={user?.id || ''}
-                      conversationId={activeConversationId || ''}
+                      userId={user?.id || ""}
+                      conversationId={activeConversationId || ""}
                       onComplete={(result) => {
-                        console.log('Execução Super AI concluída:', result);
+                        console.log("Execução Super AI concluída:", result);
                       }}
                     />
                   ))}
@@ -1049,11 +1187,16 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
 
               {activeConversation.messages.map((message: any) => {
                 // Detectar se é pedido de conexão de integração
-                const integrationMatch = message.content?.match(/INTEGRATION_CONNECT:(\w+):([^🔗]+)/);
+                const integrationMatch = message.content?.match(
+                  /INTEGRATION_CONNECT:(\w+):([^🔗]+)/,
+                );
 
-                if (integrationMatch && message.role === 'assistant') {
+                if (integrationMatch && message.role === "assistant") {
                   const [, platform, platformName] = integrationMatch;
-                  const cleanContent = message.content.replace(/🔗 \*\*INTEGRATION_CONNECT:[^🔗]+🔗\*\* 🔗\n\n/, '');
+                  const cleanContent = message.content.replace(
+                    /🔗 \*\*INTEGRATION_CONNECT:[^🔗]+🔗\*\* 🔗\n\n/,
+                    "",
+                  );
 
                   return (
                     <div key={message.id} className="flex justify-start">
@@ -1076,11 +1219,11 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                           platformName={platformName.trim()}
                           onSkip={() => {
                             // Usuário pulou a conexão
-                            console.log('Conexão pulada:', platform);
+                            console.log("Conexão pulada:", platform);
                           }}
                           onSuccess={() => {
                             // Conexão bem-sucedida
-                            console.log('Conectado com sucesso:', platform);
+                            console.log("Conectado com sucesso:", platform);
                           }}
                         />
                       </div>
@@ -1090,27 +1233,49 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
 
                 // Renderização normal de mensagem
                 return (
-                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
-                    <Card className={`w-full max-w-[90%] sm:max-w-[85%] md:max-w-[75%] lg:max-w-[70%] ${
-                      message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                        : 'bg-white'
-                    }`}>
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} mb-3`}
+                  >
+                    <Card
+                      className={`w-full max-w-[90%] sm:max-w-[85%] md:max-w-[75%] lg:max-w-[70%] ${
+                        message.role === "user"
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                          : "bg-white"
+                      }`}
+                    >
                       <CardContent className="p-3 md:p-4">
                         <div className="flex items-start gap-2">
-                          {message.role === 'assistant' && (
+                          {message.role === "assistant" && (
                             <Bot className="h-4 w-4 md:h-5 md:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                           )}
-                          <div className={`flex-1 whitespace-pre-wrap break-words text-sm md:text-base ${
-                            message.role === 'user' ? 'text-white' : 'text-gray-900'
-                          }`} style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}>
+                          <div
+                            className={`flex-1 whitespace-pre-wrap break-words text-sm md:text-base ${
+                              message.role === "user"
+                                ? "text-white"
+                                : "text-gray-900"
+                            }`}
+                            style={{
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
+                              maxWidth: "100%",
+                            }}
+                          >
                             {message.content}
                           </div>
                         </div>
-                        <div className={`text-xs mt-2 ${
-                          message.role === 'user' ? 'text-white/70' : 'text-gray-500'
-                        }`}>
-                          {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR') : ''}
+                        <div
+                          className={`text-xs mt-2 ${
+                            message.role === "user"
+                              ? "text-white/70"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {message.timestamp
+                            ? new Date(message.timestamp).toLocaleTimeString(
+                                "pt-BR",
+                              )
+                            : ""}
                         </div>
                       </CardContent>
                     </Card>
@@ -1133,7 +1298,9 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-gray-500">Processando...</span>
+                        <span className="text-sm text-gray-500">
+                          Processando...
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1151,8 +1318,14 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
         {/* Input */}
         <div className="border-t border-gray-200 p-3 md:p-4 bg-white/80 backdrop-blur-xl flex-shrink-0">
           <div className="hidden sm:flex gap-2 mb-2">
-            {quickSuggestions.map(s => (
-              <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)} className="text-xs">
+            {quickSuggestions.map((s) => (
+              <Button
+                key={s}
+                variant="outline"
+                size="sm"
+                onClick={() => handleSuggestionClick(s)}
+                className="text-xs"
+              >
                 {s}
               </Button>
             ))}
@@ -1162,7 +1335,11 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  window.innerWidth > 768
+                ) {
                   e.preventDefault();
                   handleSend();
                 }
@@ -1174,7 +1351,12 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
               maxLength={MAX_CHARS}
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-              <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1201,7 +1383,7 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                       variant="ghost"
                       onClick={isRecording ? stopRecording : startRecording}
                       disabled={!activeConversationId}
-                      className={`h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation ${isRecording ? 'text-red-500 animate-pulse' : ''}`}
+                      className={`h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation ${isRecording ? "text-red-500 animate-pulse" : ""}`}
                     >
                       <Mic className="h-4 w-4" />
                     </Button>
@@ -1214,14 +1396,21 @@ O link abrirá em uma nova aba para você autorizar o acesso.`
                 type="submit"
                 size="icon"
                 onClick={handleSend}
-                disabled={input.trim() === '' || !activeConversationId}
+                disabled={input.trim() === "" || !activeConversationId}
                 className="h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <p className={cn("text-xs text-right mt-1", input.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              "text-xs text-right mt-1",
+              input.length > MAX_CHARS
+                ? "text-destructive"
+                : "text-muted-foreground",
+            )}
+          >
             {input.length} / {MAX_CHARS}
           </p>
         </div>
