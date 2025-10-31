@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { conversationsApi, chatApi } from "@/lib/api";
 import { ChatConversation, ChatMessage } from "@/data/mocks";
-import { withValidSession } from "@/lib/supabase";
 
 interface ChatState {
   // Estado
@@ -36,18 +35,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Load Conversations
   loadConversations: async (userId: string) => {
     try {
-      // Usar o wrapper de correção para mobile
-      const dbConversations = await withValidSession(() =>
-        conversationsApi.getConversations(userId),
-      );
+      // Carregar conversas
+      const dbConversations = await conversationsApi.getConversations(userId);
 
       // Load messages for each conversation
       const conversationsWithMessages = await Promise.all(
         dbConversations.map(async (conv) => {
-          // Usar o wrapper de correção para mobile
-          const messages = await withValidSession(() =>
-            chatApi.getConversationMessages(conv.id),
-          );
+          // Carregar mensagens
+          const messages = await chatApi.getConversationMessages(conv.id);
           return {
             id: conv.id,
             title: conv.title,
@@ -78,8 +73,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const conversationTitle =
         title || `Nova Conversa ${new Date().toLocaleDateString()}`;
-      const newConversation = await withValidSession(() =>
-        conversationsApi.createConversation(userId, conversationTitle),
+      const newConversation = await conversationsApi.createConversation(
+        userId,
+        conversationTitle,
       );
 
       set((state) => ({
@@ -125,19 +121,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       // Save to Supabase
-      await withValidSession(() =>
-        chatApi.createMessage(
-          userId,
-          conversationId,
-          message.role.toUpperCase() as "USER" | "ASSISTANT",
-          message.content,
-        ),
+      await chatApi.createMessage(
+        userId,
+        conversationId,
+        message.role.toUpperCase() as "USER" | "ASSISTANT",
+        message.content,
       );
 
       // Update conversation timestamp
-      await withValidSession(() =>
-        conversationsApi.touchConversation(conversationId),
-      );
+      await conversationsApi.touchConversation(conversationId);
     } catch (error) {
       console.error("Add message error:", error);
       // Rollback the local change on error
@@ -159,7 +151,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Delete Conversation
   deleteConversation: async (id: string) => {
     try {
-      await withValidSession(() => conversationsApi.deleteConversation(id));
+      await conversationsApi.deleteConversation(id);
 
       set((state) => {
         const remainingConversations = state.conversations.filter(

@@ -115,14 +115,6 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  
-  // Hook de sincronização de chat (mobile + desktop)
-  useChatSync({
-    syncInterval: 30000, // 30 segundos
-    syncOnFocus: true,
-    syncOnOnline: true,
-  });
-
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
   const scrollToBottom = () => {
