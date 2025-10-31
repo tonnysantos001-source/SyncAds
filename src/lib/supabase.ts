@@ -2,55 +2,28 @@ import { createClient } from "@supabase/supabase-js";
 import { Database } from "./database.types";
 import { SUPABASE_CONFIG } from "./config";
 
-// Detectar se é dispositivo móvel
-const isMobileDevice = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent,
-  );
-};
-
-// Configuração otimizada para mobile
-const getSupabaseConfig = () => {
-  const isMobile = isMobileDevice();
-
-  return {
+// Configuração básica do Supabase com persistência de sessão
+export const supabase = createClient<Database>(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.anonKey,
+  {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      // Para mobile, ser mais agressivo com refresh
-      ...(isMobile && {
-        storage: localStorage,
-        storageKey: "syncads-auth-token",
-        flowType: "pkce" as const,
-      }),
-    },
-    global: {
-      headers: {
-        "x-client-info": isMobile ? "syncads-mobile" : "syncads-web",
-      },
+      storage: localStorage,
+      storageKey: "supabase.auth.token",
     },
     db: {
       schema: "public",
     },
-    // Para mobile, tentar reconectar automaticamente
-    ...(isMobile && {
-      realtime: {
-        params: {
-          eventsPerSecond: 2,
-        },
-      },
-    }),
-  };
-};
-
-export const supabase = createClient<Database>(
-  SUPABASE_CONFIG.url,
-  SUPABASE_CONFIG.anonKey,
-  getSupabaseConfig(),
+  },
 );
 
-// Função para garantir que a sessão está válida antes de qualquer operação
+/**
+ * Verifica se a sessão atual é válida
+ * @returns true se a sessão está válida, false caso contrário
+ */
 export const ensureValidSession = async (): Promise<boolean> => {
   try {
     const {
@@ -73,8 +46,8 @@ export const ensureValidSession = async (): Promise<boolean> => {
     const now = Math.floor(Date.now() / 1000);
     const timeUntilExpiry = expiresAt - now;
 
-    if (timeUntilExpiry < 300) {
-      // Menos de 5 minutos
+    // Só renovar se realmente estiver perto de expirar
+    if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
       console.log("🔄 Token próximo de expirar, renovando...");
       const { data: refreshData, error: refreshError } =
         await supabase.auth.refreshSession();
@@ -99,10 +72,14 @@ export const ensureValidSession = async (): Promise<boolean> => {
   }
 };
 
-// Wrapper para operações do Supabase que garante sessão válida
+/**
+ * Wrapper para operações do Supabase que garante sessão válida
+ * @param operation - Função a ser executada
+ * @param retries - Número máximo de tentativas (padrão: 2)
+ */
 export const withValidSession = async <T>(
   operation: () => Promise<T>,
-  retries = 3,
+  retries = 2,
 ): Promise<T> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -124,7 +101,8 @@ export const withValidSession = async <T>(
         attempt < retries &&
         (error.message?.includes("JWT") ||
           error.message?.includes("session") ||
-          error.message?.includes("auth"))
+          error.message?.includes("auth") ||
+          error.code === "PGRST301")
       ) {
         console.log("🔄 Tentando renovar sessão e repetir operação...");
         await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
@@ -138,54 +116,15 @@ export const withValidSession = async <T>(
   throw new Error("Falha após todas as tentativas");
 };
 
-// Listener para mudanças de autenticação
+/**
+ * Listener para mudanças de autenticação
+ */
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log("🔐 Auth state changed:", event);
-
   if (event === "SIGNED_OUT") {
     console.log("👋 Usuário deslogado");
-    localStorage.removeItem("syncads-auth-token");
   } else if (event === "SIGNED_IN") {
-    console.log("👋 Usuário logado");
+    console.log("👤 Usuário logado");
   } else if (event === "TOKEN_REFRESHED") {
     console.log("🔄 Token renovado automaticamente");
-  } else if (event === "USER_UPDATED") {
-    console.log("👤 Usuário atualizado");
   }
 });
-
-// Inicialização: verificar e restaurar sessão no mobile
-if (isMobileDevice()) {
-  console.log("📱 Dispositivo móvel detectado, inicializando sessão...");
-
-  // Verificar sessão imediatamente
-  ensureValidSession().then((isValid) => {
-    if (isValid) {
-      console.log("✅ Sessão válida restaurada");
-    } else {
-      console.warn("⚠️ Sessão inválida ou expirada");
-    }
-  });
-
-  // Configurar verificação periódica da sessão (a cada 3 minutos)
-  setInterval(
-    () => {
-      ensureValidSession().catch((error) => {
-        console.error("❌ Erro na verificação periódica:", error);
-      });
-    },
-    3 * 60 * 1000,
-  );
-
-  // Verificar sessão quando o app volta ao foco
-  window.addEventListener("focus", () => {
-    console.log("👀 App voltou ao foco, verificando sessão...");
-    ensureValidSession();
-  });
-
-  // Verificar sessão quando volta online
-  window.addEventListener("online", () => {
-    console.log("🌐 Voltou online, verificando sessão...");
-    ensureValidSession();
-  });
-}

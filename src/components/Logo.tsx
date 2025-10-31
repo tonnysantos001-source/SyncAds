@@ -1,10 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useStore } from '@/store/useStore';
+import React from "react";
+import { Link } from "react-router-dom";
+import { useStore } from "@/store/useStore";
 
 const Logo = () => {
-  const isAuthenticated = useStore(state => state.isAuthenticated);
-  const to = isAuthenticated ? '/dashboard' : '/';
+  const isAuthenticated = useStore((state) => state.isAuthenticated);
+  const to = isAuthenticated ? "/onboarding" : "/";
 
   return (
     <Link to={to} className="flex items-center gap-3 group">
@@ -17,7 +17,7 @@ const Logo = () => {
           <div className="absolute -top-1 -right-1 h-2 w-2 bg-yellow-400 rounded-full animate-pulse" />
         </div>
       </div>
-      
+
       {/* Logo Text */}
       <div className="flex flex-col">
         <span className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
