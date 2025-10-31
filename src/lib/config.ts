@@ -21,7 +21,7 @@ export const SUPABASE_CONFIG = {
   // Funções disponíveis
   functions: {
     chat: '/chat',
-    chatStream: '/chat-enhanced', // IA híbrida completa
+    chatStream: '/chat-enhanced', // ✅ IA híbrida completa com persistência
     superAiTools: '/super-ai-tools',
     advancedScraper: '/advanced-scraper',
     aiTools: '/ai-tools',

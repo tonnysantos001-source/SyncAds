@@ -450,7 +450,11 @@ const ChatPage: React.FC = () => {
               addMessage(user.id, activeConversationId, {
                 id: `msg-${Date.now() + 1}`,
                 role: 'assistant',
-                content: `Para conectar ${config.name}, clique no link abaixo:\n\n🔗 [Autorizar ${config.name}](${authUrl})\n\nO link abrirá em uma nova aba para você autorizar o acesso.`
+                content: `Para conectar ${config.name}, clique no link abaixo:
+
+🔗 [Autorizar ${config.name}](${authUrl})
+
+O link abrirá em uma nova aba para você autorizar o acesso.`
               });
             }
             
@@ -896,9 +900,13 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex">
-      {/* SIDEBAR - Conversas Antigas (Estilo AdminChatPage) */}
-      <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden`}>
+    <div className="h-[calc(100vh-80px)] flex flex-col md:flex-row">
+      {/* SIDEBAR - Conversas Antigas (Mobile: Overlay, Desktop: Sidebar) */}
+      <div className={`${
+        sidebarOpen 
+          ? 'fixed md:relative inset-0 md:inset-auto w-full md:w-72 z-50 md:z-auto' 
+          : 'hidden md:w-0'
+      } transition-all duration-300 bg-gray-50 md:border-r border-gray-200 flex flex-col overflow-hidden`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -965,21 +973,19 @@ const ChatPage: React.FC = () => {
       </div>
 
       {/* ÁREA PRINCIPAL DO CHAT */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 w-full">
         {/* Header */}
-        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl p-4">
-          <div className="flex items-center justify-between">
+        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl p-3 md:p-4">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              {!sidebarOpen && (
-                <Button
-                  onClick={() => setSidebarOpen(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
+              <Button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 md:h-9 md:w-9 p-0 flex-shrink-0"
+              >
+                {sidebarOpen ? <X className="h-4 w-4 md:h-5 md:w-5" /> : <Menu className="h-4 w-4 md:h-5 md:w-5" />}
+              </Button>
               <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
                 <Bot className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
@@ -996,7 +1002,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 overscroll-contain">
           {activeConversation ? (
             <>
               {/* Indicador de pesquisa web */}
@@ -1084,20 +1090,20 @@ const ChatPage: React.FC = () => {
                 
                 // Renderização normal de mensagem
                 return (
-                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-                    <Card className={`max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%] ${
+                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
+                    <Card className={`w-full max-w-[90%] sm:max-w-[85%] md:max-w-[75%] lg:max-w-[70%] ${
                       message.role === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                         : 'bg-white'
                     }`}>
-                      <CardContent className="p-3 sm:p-4">
+                      <CardContent className="p-3 md:p-4">
                         <div className="flex items-start gap-2">
                           {message.role === 'assistant' && (
-                            <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-1 flex-shrink-0" />
+                            <Bot className="h-4 w-4 md:h-5 md:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                           )}
-                          <div className={`flex-1 whitespace-pre-wrap break-words text-xs sm:text-sm ${
+                          <div className={`flex-1 whitespace-pre-wrap break-words text-sm md:text-base ${
                             message.role === 'user' ? 'text-white' : 'text-gray-900'
-                          }`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                          }`} style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}>
                             {message.content}
                           </div>
                         </div>
@@ -1143,7 +1149,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-200 p-2 sm:p-4 bg-white/80 backdrop-blur-xl">
+        <div className="border-t border-gray-200 p-3 md:p-4 bg-white/80 backdrop-blur-xl flex-shrink-0">
           <div className="hidden sm:flex gap-2 mb-2">
             {quickSuggestions.map(s => (
               <Button key={s} variant="outline" size="sm" onClick={() => handleSuggestionClick(s)} className="text-xs">
@@ -1156,46 +1162,62 @@ const ChatPage: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
                   e.preventDefault();
                   handleSend();
                 }
               }}
               placeholder="Digite sua mensagem..."
-              className="w-full resize-none rounded-lg border bg-background p-2 sm:p-3 pr-16 sm:pr-24 min-h-[40px] sm:min-h-[48px] text-sm"
+              className="w-full resize-none rounded-lg border bg-background p-3 pr-20 md:pr-24 min-h-[44px] md:min-h-[48px] text-sm md:text-base"
               minRows={1}
-              maxRows={5}
+              maxRows={window.innerWidth < 768 ? 3 : 5}
               maxLength={MAX_CHARS}
             />
-            <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-              <Button 
-                type="button" 
-                size="icon" 
-                variant="ghost" 
-                onClick={handleAttachClick} 
-                className="h-7 w-7 sm:h-8 sm:w-8"
-              >
-                <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-              <Button 
-                type="button" 
-                size="icon" 
-                variant="ghost"
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={!activeConversationId}
-                className={`h-7 w-7 sm:h-8 sm:w-8 ${isRecording ? 'text-red-500 animate-pulse' : ''}`}
-              >
-                <Mic className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={handleAttachClick} 
+                      className="h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Anexar arquivo</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={!activeConversationId}
+                      className={`h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation ${isRecording ? 'text-red-500 animate-pulse' : ''}`}
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Gravar áudio</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
               <Button
                 type="submit"
                 size="icon"
                 onClick={handleSend}
                 disabled={input.trim() === '' || !activeConversationId}
-                className="h-7 w-7 sm:h-8 sm:w-8"
+                className="h-8 w-8 md:h-9 md:w-9 flex-shrink-0 touch-manipulation"
               >
-                <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
