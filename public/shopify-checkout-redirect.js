@@ -1,355 +1,493 @@
 /**
- * SyncAds Checkout Redirect for Shopify
- *
- * Este script intercepta o processo de checkout da Shopify
- * e redireciona para o checkout customizado do SyncAds
- *
- * Instruções de instalação:
- * 1. No Admin da Shopify, vá em: Online Store > Themes > Actions > Edit code
- * 2. Abra o arquivo theme.liquid
- * 3. Adicione antes do </body>:
- *    <script src="https://seu-dominio.com/shopify-checkout-redirect.js"></script>
+ * SyncAds Checkout Redirect for Shopify v2.0
+ * Intercepta e redireciona para checkout customizado
  */
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
-  // ===== CONFIGURAÇÃO =====
   const CONFIG = {
-    // URL da sua Edge Function (substitua com sua URL real)
-    API_URL: 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/shopify-create-order',
-
-    // URL do seu frontend (substitua com sua URL real)
-    FRONTEND_URL: 'https://syncads-dun.vercel.app',
-
-    // Shop domain (será detectado automaticamente)
-    SHOP_DOMAIN: window.Shopify ? window.Shopify.shop : '',
-
-    // Debug mode
-    DEBUG: true
+    API_URL:
+      "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/shopify-create-order",
+    FRONTEND_URL: "https://syncads-dun.vercel.app",
+    SHOP_DOMAIN: window.Shopify ? window.Shopify.shop : "",
+    DEBUG: true,
+    ENABLED: true,
   };
 
-  // ===== UTILITÁRIOS =====
+  // Estado global
+  const state = {
+    processing: false,
+    intercepted: new Set(),
+  };
+
   function log(...args) {
-    if (CONFIG.DEBUG) {
-      console.log('[SyncAds Checkout]', ...args);
-    }
+    if (CONFIG.DEBUG) console.log("[SyncAds]", ...args);
   }
 
   function logError(...args) {
-    console.error('[SyncAds Checkout ERROR]', ...args);
+    console.error("[SyncAds ERROR]", ...args);
   }
 
-  // ===== DETECTAR PRODUTO ATUAL =====
-  function getCurrentProduct() {
+  // Bloquear navegação para checkout Shopify
+  function blockShopifyCheckout() {
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (state, title, url) {
+      if (url && url.includes("/checkout")) {
+        log("Blocked pushState to checkout");
+        return;
+      }
+      return originalPushState.apply(history, arguments);
+    };
+
+    history.replaceState = function (state, title, url) {
+      if (url && url.includes("/checkout")) {
+        log("Blocked replaceState to checkout");
+        return;
+      }
+      return originalReplaceState.apply(history, arguments);
+    };
+
+    // Bloquear navegação direta
+    window.addEventListener("beforeunload", function (e) {
+      if (state.processing) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+  }
+
+  // Obter dados do produto
+  function getProductData() {
     try {
-      // Tentar obter dados do produto da página
-      const productJson = document.querySelector('script[type="application/json"][data-product-json]');
+      // Método 1: JSON no DOM
+      const productJson = document.querySelector("[data-product-json]");
       if (productJson) {
-        return JSON.parse(productJson.textContent);
+        const data = JSON.parse(productJson.textContent);
+        log("Product data from DOM JSON:", data);
+        return data;
       }
 
-      // Alternativa: usar window.ShopifyAnalytics
-      if (window.ShopifyAnalytics && window.ShopifyAnalytics.meta && window.ShopifyAnalytics.meta.product) {
-        return window.ShopifyAnalytics.meta.product;
+      // Método 2: ShopifyAnalytics
+      if (window.ShopifyAnalytics?.meta?.product) {
+        const data = window.ShopifyAnalytics.meta.product;
+        log("Product data from ShopifyAnalytics:", data);
+        return data;
       }
 
-      // Alternativa: buscar no meta tag
-      const productMeta = document.querySelector('meta[property="og:product"]');
-      if (productMeta) {
-        return {
-          id: productMeta.getAttribute('content'),
-          title: document.querySelector('meta[property="og:title"]')?.getAttribute('content'),
-          price: document.querySelector('meta[property="og:price:amount"]')?.getAttribute('content')
+      // Método 3: Meta tags
+      const productId = document.querySelector(
+        'meta[property="product:id"]',
+      )?.content;
+      const productTitle = document.querySelector(
+        'meta[property="og:title"]',
+      )?.content;
+      const productPrice = document.querySelector(
+        'meta[property="product:price:amount"]',
+      )?.content;
+
+      if (productId && productTitle) {
+        const data = {
+          id: productId,
+          title: productTitle,
+          price: productPrice,
         };
+        log("Product data from meta tags:", data);
+        return data;
+      }
+
+      // Método 4: window.__PRODUCT__
+      if (window.__PRODUCT__) {
+        log("Product data from window.__PRODUCT__:", window.__PRODUCT__);
+        return window.__PRODUCT__;
       }
 
       return null;
     } catch (error) {
-      logError('Error getting current product:', error);
+      logError("Error getting product data:", error);
       return null;
     }
   }
 
-  // ===== OBTER VARIANTE SELECIONADA =====
   function getSelectedVariant() {
     try {
-      // Buscar select de variantes
-      const variantSelect = document.querySelector('select[name="id"]');
-      if (variantSelect) {
-        return variantSelect.value;
-      }
+      // Método 1: Select
+      const select = document.querySelector('select[name="id"]');
+      if (select?.value) return select.value;
 
-      // Buscar radio buttons de variantes
-      const variantRadio = document.querySelector('input[name="id"]:checked');
-      if (variantRadio) {
-        return variantRadio.value;
-      }
+      // Método 2: Radio
+      const radio = document.querySelector('input[name="id"]:checked');
+      if (radio?.value) return radio.value;
 
-      // Buscar no formulário de produto
-      const form = document.querySelector('form[action*="/cart/add"]');
-      if (form) {
-        const idInput = form.querySelector('input[name="id"]');
-        if (idInput) {
-          return idInput.value;
-        }
-      }
+      // Método 3: Hidden input
+      const hidden = document.querySelector('input[name="id"][type="hidden"]');
+      if (hidden?.value) return hidden.value;
+
+      // Método 4: Data attribute
+      const variantBtn = document.querySelector("[data-variant-id]");
+      if (variantBtn) return variantBtn.dataset.variantId;
 
       return null;
     } catch (error) {
-      logError('Error getting selected variant:', error);
+      logError("Error getting variant:", error);
       return null;
     }
   }
 
-  // ===== OBTER QUANTIDADE =====
   function getQuantity() {
     try {
-      const qtyInput = document.querySelector('input[name="quantity"]');
-      return qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+      const qtyInput = document.querySelector(
+        'input[name="quantity"], input[type="number"]',
+      );
+      return qtyInput ? Math.max(1, parseInt(qtyInput.value) || 1) : 1;
     } catch (error) {
       return 1;
     }
   }
 
-  // ===== CRIAR PEDIDO NO SYNCADS =====
-  async function createSyncAdsOrder(productData) {
-    try {
-      log('Creating order in SyncAds...', productData);
-
-      const response = await fetch(CONFIG.API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          shopDomain: CONFIG.SHOP_DOMAIN,
-          products: [productData],
-          customer: {
-            email: null, // Será preenchido no checkout
-            firstName: null,
-            lastName: null,
-            phone: null
-          },
-          metadata: {
-            source: 'shopify_product_page',
-            userAgent: navigator.userAgent,
-            referrer: document.referrer
-          }
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to create order');
-      }
-
-      log('Order created successfully:', result);
-      return result;
-    } catch (error) {
-      logError('Failed to create order:', error);
-      throw error;
-    }
-  }
-
-  // ===== REDIRECIONAR PARA CHECKOUT =====
-  function redirectToCheckout(checkoutUrl) {
-    log('Redirecting to checkout:', checkoutUrl);
-
-    // Mostrar loading
-    showLoading();
-
-    // Redirecionar
-    window.location.href = checkoutUrl;
-  }
-
-  // ===== MOSTRAR LOADING =====
   function showLoading() {
-    // Criar overlay de loading
-    const overlay = document.createElement('div');
-    overlay.id = 'syncads-loading-overlay';
+    // Remover loading anterior se existir
+    const existing = document.getElementById("syncads-loading");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "syncads-loading";
     overlay.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.8);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 99999;
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
 
-    const spinner = document.createElement('div');
-    spinner.style.cssText = `
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3498db;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
+    overlay.innerHTML = `
+      <div style="text-align: center;">
+        <div style="
+          border: 5px solid #f3f3f3;
+          border-top: 5px solid #667eea;
+          border-radius: 50%;
+          width: 60px;
+          height: 60px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 20px;
+        "></div>
+        <p style="color: white; font-size: 18px; font-weight: 600; margin: 0;">
+          Redirecionando para o checkout...
+        </p>
+        <p style="color: #ccc; font-size: 14px; margin: 10px 0 0;">
+          Por favor, aguarde
+        </p>
+      </div>
     `;
 
-    // Adicionar CSS para animação
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
+    const style = document.createElement("style");
+    style.textContent =
+      "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }";
     document.head.appendChild(style);
 
-    overlay.appendChild(spinner);
     document.body.appendChild(overlay);
   }
 
-  // ===== PROCESSAR COMPRA =====
-  async function processPurchase(event) {
+  function hideLoading() {
+    const overlay = document.getElementById("syncads-loading");
+    if (overlay) overlay.remove();
+  }
+
+  async function createOrder(productData) {
     try {
+      log("Creating order...", productData);
+
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          shopDomain: CONFIG.SHOP_DOMAIN,
+          products: [productData],
+          customer: {
+            email: null,
+            firstName: null,
+            lastName: null,
+            phone: null,
+          },
+          metadata: {
+            source: "shopify_product_page",
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+            timestamp: new Date().toISOString(),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create order");
+      }
+
+      log("Order created successfully:", result);
+      return result;
+    } catch (error) {
+      logError("Failed to create order:", error);
+      throw error;
+    }
+  }
+
+  async function handlePurchase(event) {
+    if (!CONFIG.ENABLED) {
+      log("SyncAds checkout disabled, allowing default behavior");
+      return;
+    }
+
+    // Prevenir todos os comportamentos padrão
+    if (event) {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
 
-      log('Purchase initiated...');
+    if (state.processing) {
+      log("Already processing, ignoring duplicate click");
+      return false;
+    }
 
-      // Obter dados do produto
-      const product = getCurrentProduct();
+    state.processing = true;
+    showLoading();
+
+    try {
+      log("Purchase initiated");
+
+      const product = getProductData();
       if (!product) {
-        logError('Product data not found');
-        alert('Não foi possível obter dados do produto. Por favor, recarregue a página.');
-        return;
+        throw new Error(
+          "Produto não encontrado. Por favor, recarregue a página.",
+        );
       }
 
       const variantId = getSelectedVariant();
       const quantity = getQuantity();
 
-      // Encontrar variante
       let variant = null;
       if (product.variants && variantId) {
-        variant = product.variants.find(v => v.id == variantId);
+        variant = product.variants.find(
+          (v) => String(v.id) === String(variantId),
+        );
       }
 
-      // Se não encontrou variante, usar primeira disponível ou dados do produto
       if (!variant && product.variants && product.variants.length > 0) {
         variant = product.variants[0];
       }
 
-      // Preparar dados do produto
+      // Calcular preço (converter de centavos se necessário)
+      let price = 0;
+      if (variant) {
+        price = variant.price > 1000 ? variant.price / 100 : variant.price;
+      } else if (product.price) {
+        price = product.price > 1000 ? product.price / 100 : product.price;
+      }
+
       const productData = {
-        productId: product.id ? String(product.id) : '',
-        variantId: variant ? String(variant.id) : variantId ? String(variantId) : '',
+        productId: String(product.id || ""),
+        variantId: variant
+          ? String(variant.id)
+          : variantId
+            ? String(variantId)
+            : null,
         name: variant ? `${product.title} - ${variant.title}` : product.title,
-        price: variant ? (variant.price / 100) : (product.price / 100),
+        price: price,
         quantity: quantity,
-        image: product.featured_image || (product.images && product.images[0]) || '',
-        sku: variant ? variant.sku : ''
+        image:
+          product.featured_image ||
+          product.image ||
+          (product.images && product.images[0]) ||
+          "",
+        sku: variant?.sku || "",
       };
 
-      log('Product data prepared:', productData);
+      log("Product data prepared:", productData);
 
-      // Criar pedido no SyncAds
-      const result = await createSyncAdsOrder(productData);
+      const result = await createOrder(productData);
 
-      // Redirecionar para checkout
       if (result.checkoutUrl) {
-        redirectToCheckout(result.checkoutUrl);
+        log("Redirecting to:", result.checkoutUrl);
+
+        // Garantir redirecionamento
+        setTimeout(() => {
+          window.location.href = result.checkoutUrl;
+        }, 500);
       } else {
-        throw new Error('Checkout URL not received');
+        throw new Error("URL do checkout não foi recebida");
       }
-
     } catch (error) {
-      logError('Error processing purchase:', error);
-
-      // Remover loading se existir
-      const overlay = document.getElementById('syncads-loading-overlay');
-      if (overlay) {
-        overlay.remove();
-      }
-
-      alert('Erro ao processar compra. Por favor, tente novamente.');
+      logError("Purchase error:", error);
+      hideLoading();
+      state.processing = false;
+      alert(
+        `Erro ao processar compra:\n${error.message}\n\nPor favor, tente novamente.`,
+      );
     }
+
+    return false;
   }
 
-  // ===== INTERCEPTAR BOTÕES DE COMPRA =====
-  function interceptCheckoutButtons() {
-    log('Intercepting checkout buttons...');
+  function interceptButton(button) {
+    if (!button || state.intercepted.has(button)) return;
 
-    // Seletores comuns de botões de compra na Shopify
-    const buttonSelectors = [
+    log("Intercepting button:", button);
+    state.intercepted.add(button);
+
+    // Clonar para remover listeners anteriores
+    const newButton = button.cloneNode(true);
+    button.parentNode?.replaceChild(newButton, button);
+
+    // Adicionar novos listeners
+    newButton.addEventListener("click", handlePurchase, true);
+    newButton.addEventListener("submit", handlePurchase, true);
+
+    // Atualizar texto se for botão de carrinho
+    const text = newButton.textContent.toLowerCase();
+    if (text.includes("cart") || text.includes("carrinho")) {
+      newButton.textContent = newButton.textContent
+        .replace(/add to cart/gi, "Comprar")
+        .replace(/carrinho/gi, "Comprar");
+    }
+
+    return newButton;
+  }
+
+  function interceptAllButtons() {
+    log("Scanning for buttons...");
+
+    const selectors = [
       'button[name="add"]',
       'button[type="submit"][name="add"]',
       'input[type="submit"][name="add"]',
-      'button.product-form__submit',
+      "button.product-form__submit",
       'button[data-action="add-to-cart"]',
-      '.btn-add-to-cart',
-      '[data-add-to-cart]'
+      ".btn-add-to-cart",
+      "[data-add-to-cart]",
+      'form[action*="/cart/add"] button[type="submit"]',
+      'form[action*="/cart/add"] input[type="submit"]',
+      ".shopify-payment-button button",
+      "button.shopify-payment-button__button",
+      "[data-shopify-payment-button]",
+      '.product-form button[type="submit"]',
     ];
 
-    buttonSelectors.forEach(selector => {
+    let count = 0;
+    selectors.forEach((selector) => {
       const buttons = document.querySelectorAll(selector);
-      buttons.forEach(button => {
-        // Verificar se já foi interceptado
-        if (button.dataset.syncadsIntercepted) {
-          return;
-        }
-
-        log('Intercepting button:', button);
-
-        // Marcar como interceptado
-        button.dataset.syncadsIntercepted = 'true';
-
-        // Remover event listeners antigos (se possível)
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-
-        // Adicionar novo event listener
-        newButton.addEventListener('click', processPurchase, true);
-
-        // Mudar texto do botão (opcional)
-        if (newButton.textContent.toLowerCase().includes('cart')) {
-          newButton.textContent = newButton.textContent.replace(/cart/i, 'Comprar');
-        }
+      buttons.forEach((button) => {
+        interceptButton(button);
+        count++;
       });
+    });
+
+    log(`Intercepted ${count} buttons`);
+  }
+
+  function interceptForms() {
+    const forms = document.querySelectorAll('form[action*="/cart/add"]');
+    forms.forEach((form) => {
+      if (form.dataset.syncadsIntercepted) return;
+      form.dataset.syncadsIntercepted = "true";
+
+      form.addEventListener("submit", handlePurchase, true);
+      log("Intercepted form:", form);
     });
   }
 
-  // ===== INICIALIZAR =====
   function init() {
-    log('Initializing SyncAds Checkout Redirect...');
-    log('Shop:', CONFIG.SHOP_DOMAIN);
-
-    // Verificar se estamos em uma página de produto
-    if (!window.Shopify || !window.Shopify.shop) {
-      log('Not a Shopify store, script disabled');
+    if (!window.Shopify) {
+      log("Not a Shopify store");
       return;
     }
 
-    // Aguardar DOM carregar
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', interceptCheckoutButtons);
-    } else {
-      interceptCheckoutButtons();
-    }
+    log("=".repeat(50));
+    log("SyncAds Checkout Redirect v2.0 Initialized");
+    log("Shop:", CONFIG.SHOP_DOMAIN);
+    log("Frontend:", CONFIG.FRONTEND_URL);
+    log("=".repeat(50));
 
-    // Re-interceptar após AJAX (temas modernos)
+    blockShopifyCheckout();
+    interceptAllButtons();
+    interceptForms();
+
+    // Observar mudanças no DOM
     const observer = new MutationObserver((mutations) => {
+      let shouldReintercept = false;
+
       mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length) {
-          interceptCheckoutButtons();
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) {
+              // Element node
+              shouldReintercept = true;
+            }
+          });
         }
       });
+
+      if (shouldReintercept) {
+        interceptAllButtons();
+        interceptForms();
+      }
     });
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
 
-    log('SyncAds Checkout Redirect initialized successfully!');
+    // Re-interceptar periodicamente (fallback)
+    setInterval(() => {
+      interceptAllButtons();
+      interceptForms();
+    }, 2000);
+
+    log("✅ Ready to intercept purchases!");
   }
 
-  // Iniciar
-  init();
+  // Aguardar DOM
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  // Expor controles globais (debug)
+  window.SyncAdsCheckout = {
+    version: "2.0",
+    config: CONFIG,
+    state: state,
+    enable: () => {
+      CONFIG.ENABLED = true;
+      log("Enabled");
+    },
+    disable: () => {
+      CONFIG.ENABLED = false;
+      log("Disabled");
+    },
+    reintercept: () => {
+      interceptAllButtons();
+      interceptForms();
+    },
+    getProduct: getProductData,
+    test: handlePurchase,
+  };
 })();
