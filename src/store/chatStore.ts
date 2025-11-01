@@ -102,36 +102,53 @@ export const useChatStore = create<ChatState>((set, get) => ({
     message: ChatMessage,
   ) => {
     try {
+      console.log("📝 [ChatStore] Adicionando mensagem:", {
+        id: message.id,
+        role: message.role,
+        contentPreview: message.content.substring(0, 50),
+        conversationId,
+      });
+
       // Add to local state first for immediate feedback
       set((state) => {
         const newConversations = state.conversations.map((conv) => {
           if (conv.id === conversationId) {
-            // Verificar se a mensagem já existe para evitar duplicação
-            const messageExists = conv.messages.some(
+            // Verificar se a mensagem já existe
+            const existingMessageIndex = conv.messages.findIndex(
               (msg) => msg.id === message.id,
             );
-            if (messageExists) {
-              return conv;
+
+            if (existingMessageIndex >= 0) {
+              // Atualizar mensagem existente (para streaming)
+              console.log(
+                "🔄 [ChatStore] Atualizando mensagem existente:",
+                message.id,
+              );
+              const updatedMessages = [...conv.messages];
+              updatedMessages[existingMessageIndex] = message;
+              return { ...conv, messages: updatedMessages };
+            } else {
+              // Adicionar nova mensagem
+              console.log(
+                "➕ [ChatStore] Adicionando nova mensagem:",
+                message.id,
+              );
+              return { ...conv, messages: [...conv.messages, message] };
             }
-            return { ...conv, messages: [...conv.messages, message] };
           }
           return conv;
         });
         return { conversations: newConversations };
       });
 
-      // Save to Supabase
-      await chatApi.createMessage(
-        userId,
-        conversationId,
-        message.role.toUpperCase() as "USER" | "ASSISTANT",
-        message.content,
+      // ✅ NÃO salvar no banco durante streaming
+      // A Edge Function (chat-enhanced) já salva as mensagens no banco
+      // O frontend apenas atualiza o estado local para UX imediata
+      console.log(
+        "💾 [ChatStore] Mensagem adicionada ao estado local (Edge Function salvará no banco)",
       );
-
-      // Update conversation timestamp
-      await conversationsApi.touchConversation(conversationId);
     } catch (error) {
-      console.error("Add message error:", error);
+      console.error("❌ [ChatStore] Erro ao adicionar mensagem:", error);
       // Rollback the local change on error
       set((state) => {
         const newConversations = state.conversations.map((conv) => {
