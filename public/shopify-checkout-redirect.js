@@ -122,17 +122,20 @@
     drawer.style.cssText = `
       position: fixed;
       top: 0;
-      right: -100%;
-      width: 100%;
-      max-width: 450px;
+      right: 0;
+      width: 90%;
+      max-width: 480px;
       height: 100vh;
-      background: white;
-      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+      border-left: 1px solid rgba(0, 0, 0, 0.08);
       z-index: 999999;
-      transition: right 0.3s ease-in-out;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
 
     drawer.innerHTML = `
@@ -176,20 +179,24 @@
       </div>
 
       <!-- Items List -->
+      <!-- Items Container -->
       <div id="syncads-cart-items" style="
         flex: 1;
         overflow-y: auto;
-        padding: 16px;
-        background: #f9fafb;
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.9) 100%);
       ">
         <!-- Items serão inseridos aqui -->
       </div>
 
       <!-- Footer -->
       <div style="
-        padding: 20px 24px;
-        border-top: 2px solid #e5e7eb;
-        background: white;
+        padding: 24px 20px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <span style="font-size: 16px; font-weight: 600; color: #374151;">Subtotal:</span>
@@ -199,27 +206,48 @@
         </div>
         <button id="syncads-checkout-btn" style="
           width: 100%;
-          padding: 16px;
+          padding: 18px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
           border: none;
-          border-radius: 12px;
-          font-size: 16px;
-          font-weight: 700;
+          border-radius: 14px;
+          font-size: 17px;
+          font-weight: 800;
           cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'">
-          Finalizar Compra
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+          position: relative;
+          overflow: hidden;
+          letter-spacing: 0.3px;
+        " onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(102, 126, 234, 0.5)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)'">
+          <span style="position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            Finalizar Compra
+          </span>
         </button>
-        <p style="
-          margin-top: 12px;
+        <div style="
+          margin-top: 16px;
           text-align: center;
-          font-size: 12px;
-          color: #6b7280;
         ">
-          Checkout seguro via SyncAds
-        </p>
+          <p style="
+            font-size: 11px;
+            color: #9ca3af;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+          ">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span style="font-weight: 600;">Checkout 100% seguro via SyncAds</span>
+          </p>
+        </div>
       </div>
     `;
 
@@ -234,12 +262,13 @@
       left: 0;
       width: 100%;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       z-index: 999998;
       opacity: 0;
       visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-      backdrop-filter: blur(2px);
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     `;
     document.body.appendChild(overlay);
 
@@ -295,18 +324,30 @@
           justify-content: center;
           height: 100%;
           text-align: center;
-          padding: 40px 20px;
+          padding: 60px 20px;
         ">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom: 16px;">
-            <circle cx="9" cy="21" r="1"/>
-            <circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-          </svg>
-          <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #374151;">
+          <div style="
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed rgba(102, 126, 234, 0.3);
+          ">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" style="opacity: 0.8;">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+          </div>
+          <h3 style="margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #1f2937; letter-spacing: -0.5px;">
             Carrinho Vazio
           </h3>
-          <p style="margin: 0; font-size: 14px; color: #6b7280;">
-            Adicione produtos para começar
+          <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
+            Adicione produtos incríveis<br/>para começar sua compra
           </p>
         </div>
       `;
@@ -321,31 +362,36 @@
       .map(
         (item) => `
       <div style="
-        background: white;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 14px;
+        margin-bottom: 14px;
         display: flex;
-        gap: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.2s;
-      " onmouseover="this.style.boxShadow='0 4px 8px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'">
+        gap: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      " onmouseover="this.style.boxShadow='0 8px 16px rgba(102, 126, 234, 0.15)'; this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(102, 126, 234, 0.3)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(0)'; this.style.borderColor='rgba(0, 0, 0, 0.05)'">
         <!-- Imagem -->
         <div style="
-          width: 80px;
-          height: 80px;
-          border-radius: 8px;
+          width: 90px;
+          height: 90px;
+          border-radius: 12px;
           overflow: hidden;
           flex-shrink: 0;
-          background: #f3f4f6;
+          background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
           display: flex;
           align-items: center;
           justify-content: center;
+          border: 2px solid rgba(102, 126, 234, 0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         ">
           ${
             item.image
-              ? `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;">`
-              : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
+              ? `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">`
+              : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5">
                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                    <circle cx="8.5" cy="8.5" r="1.5"/>
                    <polyline points="21 15 16 10 5 21"/>
@@ -356,65 +402,65 @@
         <!-- Info -->
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #1f2937; line-height: 1.3;">
+            <h4 style="margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #111827; line-height: 1.3; letter-spacing: -0.2px;">
               ${item.name}
             </h4>
             ${
               item.sku
-                ? `<p style="margin: 0; font-size: 12px; color: #6b7280;">SKU: ${item.sku}</p>`
+                ? `<p style="margin: 0 0 4px; font-size: 11px; color: #9ca3af; font-weight: 600; letter-spacing: 0.3px;">SKU: ${item.sku}</p>`
                 : ""
             }
+            <p style="margin: 4px 0 0; font-size: 16px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+              R$ ${item.price.toFixed(2)}
+            </p>
           </div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
             <!-- Quantidade -->
-            <div style="display: flex; align-items: center; gap: 8px; background: #f3f4f6; border-radius: 8px; padding: 4px;">
+            <div style="display: flex; align-items: center; gap: 10px; background: rgba(102, 126, 234, 0.08); border-radius: 10px; padding: 6px; border: 1px solid rgba(102, 126, 234, 0.15);">
               <button onclick="window.SyncAdsCart.updateQuantity('${item.variantId}', ${item.quantity - 1})" style="
-                width: 28px;
-                height: 28px;
+                width: 32px;
+                height: 32px;
                 border: none;
                 background: white;
                 color: #667eea;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
-                font-weight: 700;
-                transition: background 0.2s;
-              " onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#667eea'">
+                font-size: 20px;
+                font-weight: 800;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              " onmouseover="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; this.style.color='white'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.color='#667eea'; this.style.transform='scale(1)'">
                 −
               </button>
               <span style="
-                min-width: 24px;
+                min-width: 28px;
                 text-align: center;
-                font-size: 14px;
-                font-weight: 600;
+                font-size: 15px;
+                font-weight: 800;
                 color: #1f2937;
               ">${item.quantity}</span>
               <button onclick="window.SyncAdsCart.updateQuantity('${item.variantId}', ${item.quantity + 1})" style="
-                width: 28px;
-                height: 28px;
+                width: 32px;
+                height: 32px;
                 border: none;
                 background: white;
                 color: #667eea;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
-                font-weight: 700;
-                transition: background 0.2s;
-              " onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#667eea'">
+                font-size: 20px;
+                font-weight: 800;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              " onmouseover="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; this.style.color='white'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.color='#667eea'; this.style.transform='scale(1)'">
                 +
               </button>
             </div>
-
-            <!-- Preço e Remover -->
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span style="font-size: 16px; font-weight: 700; color: #667eea;">
-                R$ ${(item.price * item.quantity).toFixed(2)}
               </span>
               <button onclick="window.SyncAdsCart.removeFromCart('${item.variantId}')" style="
                 width: 32px;
