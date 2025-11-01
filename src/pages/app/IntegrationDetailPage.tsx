@@ -506,8 +506,87 @@ const IntegrationDetailPage: React.FC = () => {
 
       {/* Alerta Crítico para Shopify */}
 
-      {/* Instruções Compactas */}
-      {config.manual.length > 0 && !isConnected && (
+      {/* Instruções Shopify - Sempre Visíveis */}
+      {config.id === "shopify" && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Card 1: Baixar Script */}
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-600" />
+                Passo 1: Baixar Script
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Baixe o arquivo{" "}
+                <code className="bg-gray-100 px-1 rounded text-xs">
+                  shopify-checkout-redirect.js
+                </code>{" "}
+                e faça upload em: <strong>Assets</strong> →{" "}
+                <strong>Add a new asset</strong> no editor do seu tema Shopify.
+              </p>
+              <Button
+                variant="default"
+                className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
+                onClick={() =>
+                  window.open(
+                    "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
+                    "_blank",
+                  )
+                }
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir Script
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Copiar Código */}
+          <Card className="border-2 border-green-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Copy className="h-5 w-5 text-green-600" />
+                Passo 2: Inserir no Tema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Abra <strong>Layout/theme.liquid</strong> e cole este código
+                logo <strong>acima da tag</strong>{" "}
+                <code className="bg-gray-100 px-1 rounded text-xs">
+                  &lt;/body&gt;
+                </code>{" "}
+                no final do arquivo.
+              </p>
+              <div className="bg-gray-900 rounded p-2 mb-2">
+                <code className="text-xs text-green-400 font-mono break-all">
+                  {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
+                </code>
+              </div>
+              <Button
+                variant="default"
+                className="w-full gap-2 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
+                  );
+                  toast({
+                    title: "✅ Código Copiado!",
+                    description: "Cole no theme.liquid acima da tag </body>",
+                  });
+                }}
+              >
+                <Copy className="h-4 w-4" />
+                Copiar Código
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Instruções Compactas (outras integrações) */}
+      {config.manual.length > 0 && !isConnected && config.id !== "shopify" && (
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm space-y-3">
