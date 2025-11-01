@@ -185,6 +185,7 @@ export const shopifyIntegrationApi = {
     apiSecret: string,
   ) {
     try {
+      const session = await supabase.auth.getSession();
       const user = await supabase.auth.getUser();
       const userId = user.data.user?.id;
 
@@ -200,12 +201,36 @@ export const shopifyIntegrationApi = {
       // Extrair shopName do domain
       const shopName = shopDomain.replace(".myshopify.com", "");
 
-      // Testar conexão primeiro
-      const testResult = await this.testConnection(shopDomain, accessToken);
-      if (!testResult.success) {
+      // Validar via Edge Function (evita CORS)
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth?action=validate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.data.session?.access_token}`,
+            },
+            body: JSON.stringify({
+              shopDomain,
+              accessToken,
+            }),
+          },
+        );
+
+        const result = await response.json();
+
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error || "Erro ao validar credenciais com Shopify",
+          };
+        }
+      } catch (error: any) {
+        console.error("Error validating Shopify credentials:", error);
         return {
           success: false,
-          error: testResult.message || "Erro ao validar credenciais",
+          error: "Erro ao validar credenciais. Verifique se estão corretas.",
         };
       }
 
@@ -239,37 +264,46 @@ export const shopifyIntegrationApi = {
     }
   },
 
-  // Testar conexão
+  // Testar conexão via Edge Function (evita CORS)
   async testConnection(shopDomain: string, accessToken: string) {
     try {
+      const session = await supabase.auth.getSession();
+
       // Garantir que o domínio tem .myshopify.com
       const domain = shopDomain.includes(".myshopify.com")
         ? shopDomain
         : `${shopDomain}.myshopify.com`;
-      const shopUrl = `https://${domain}`;
-      const response = await fetch(`${shopUrl}/admin/api/2023-10/shop.json`, {
-        headers: {
-          "X-Shopify-Access-Token": accessToken,
-          "Content-Type": "application/json",
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth?action=validate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            shopDomain: domain,
+            accessToken,
+          }),
+        },
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        return {
+          success: true,
+          message: result.message || "Conectado com sucesso",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || "Erro ao validar credenciais",
+        };
       }
-
-      const shopData = await response.json();
-      return {
-        success: true,
-        message: `Conectado com sucesso à loja ${shopData.shop.name}`,
-        data: {
-          shopName: shopData.shop.name,
-          domain: shopData.shop.domain,
-          currency: shopData.shop.currency,
-          timezone: shopData.shop.timezone,
-        },
-      };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         message: `Erro ao conectar com Shopify: ${error.message}`,

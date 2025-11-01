@@ -55,7 +55,10 @@ function log(level: string, message: string, data?: any) {
 }
 
 // ===== VALIDAR HMAC =====
-async function validateHmac(query: URLSearchParams, hmac: string): Promise<boolean> {
+async function validateHmac(
+  query: URLSearchParams,
+  hmac: string,
+): Promise<boolean> {
   try {
     // Remover hmac e signature dos params
     const params = new URLSearchParams(query);
@@ -78,7 +81,7 @@ async function validateHmac(query: URLSearchParams, hmac: string): Promise<boole
       keyData,
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
 
     const signature = await crypto.subtle.sign("HMAC", key, messageData);
@@ -97,7 +100,7 @@ async function validateHmac(query: URLSearchParams, hmac: string): Promise<boole
 // ===== CONFIGURAR WEBHOOKS =====
 async function setupWebhooks(
   shop: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<any[]> {
   const webhookUrl = `${SUPABASE_URL}/functions/v1/shopify-webhook`;
   const topics = [
@@ -135,7 +138,7 @@ async function setupWebhooks(
               format: "json",
             },
           }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -145,7 +148,9 @@ async function setupWebhooks(
           success: true,
           webhookId: data.webhook.id,
         });
-        log("info", `Webhook configured: ${topic}`, { webhookId: data.webhook.id });
+        log("info", `Webhook configured: ${topic}`, {
+          webhookId: data.webhook.id,
+        });
       } else {
         const errorData = await response.json();
         results.push({
@@ -153,7 +158,9 @@ async function setupWebhooks(
           success: false,
           error: errorData,
         });
-        log("warn", `Failed to configure webhook: ${topic}`, { error: errorData });
+        log("warn", `Failed to configure webhook: ${topic}`, {
+          error: errorData,
+        });
       }
     } catch (error) {
       results.push({
@@ -161,7 +168,9 @@ async function setupWebhooks(
         success: false,
         error: error.message,
       });
-      log("error", `Error configuring webhook: ${topic}`, { error: error.message });
+      log("error", `Error configuring webhook: ${topic}`, {
+        error: error.message,
+      });
     }
   }
 
@@ -230,7 +239,7 @@ serve(async (req) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -260,8 +269,103 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
+    }
+
+    // ===== ACTION: VALIDATE (Validar Credenciais) =====
+    if (action === "validate") {
+      try {
+        const body = await req.json();
+        const { shopDomain, accessToken } = body;
+
+        if (!shopDomain || !accessToken) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "shopDomain and accessToken are required",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        // Normalizar domínio
+        const domain = shopDomain.includes(".myshopify.com")
+          ? shopDomain
+          : `${shopDomain}.myshopify.com`;
+
+        log("info", "Validating Shopify credentials", { domain });
+
+        // Testar conexão com Shopify
+        const shopResponse = await fetch(
+          `https://${domain}/admin/api/2024-01/shop.json`,
+          {
+            headers: {
+              "X-Shopify-Access-Token": accessToken,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!shopResponse.ok) {
+          const errorText = await shopResponse.text();
+          log("error", "Failed to validate Shopify credentials", {
+            status: shopResponse.status,
+            error: errorText,
+          });
+
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Credenciais inválidas. Status: ${shopResponse.status}`,
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const shopData = await shopResponse.json();
+
+        log("info", "Shopify credentials validated successfully", {
+          shopName: shopData.shop.name,
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Conectado com sucesso à loja ${shopData.shop.name}`,
+            data: {
+              shopName: shopData.shop.name,
+              domain: shopData.shop.domain,
+              currency: shopData.shop.currency,
+              timezone: shopData.shop.timezone,
+            },
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      } catch (error) {
+        log("error", "Error validating Shopify credentials", {
+          error: error.message,
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Erro ao validar credenciais: ${error.message}`,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     // ===== ACTION: CALLBACK (Processar OAuth) =====
@@ -282,7 +386,7 @@ serve(async (req) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -300,7 +404,7 @@ serve(async (req) => {
           {
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -319,7 +423,7 @@ serve(async (req) => {
             client_secret: SHOPIFY_API_SECRET,
             code,
           }),
-        }
+        },
       );
 
       if (!tokenResponse.ok) {
@@ -334,7 +438,7 @@ serve(async (req) => {
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -349,7 +453,7 @@ serve(async (req) => {
             "X-Shopify-Access-Token": access_token,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!shopResponse.ok) {
@@ -362,7 +466,7 @@ serve(async (req) => {
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -378,9 +482,9 @@ serve(async (req) => {
       let organizationId = null;
 
       if (authHeader) {
-        const { data: { user } } = await supabase.auth.getUser(
-          authHeader.replace("Bearer ", "")
-        );
+        const {
+          data: { user },
+        } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
         userId = user?.id;
         organizationId = user?.user_metadata?.organizationId;
       }
@@ -402,7 +506,7 @@ serve(async (req) => {
           {
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -419,7 +523,9 @@ serve(async (req) => {
             accessToken: access_token,
             scope: scope,
             isActive: true,
-            isTestMode: shopData.plan_name === "trial" || shopData.plan_name === "affiliate",
+            isTestMode:
+              shopData.plan_name === "trial" ||
+              shopData.plan_name === "affiliate",
             metadata: {
               shopData: {
                 name: shopData.name,
@@ -432,7 +538,7 @@ serve(async (req) => {
           },
           {
             onConflict: "organizationId,shopName",
-          }
+          },
         )
         .select()
         .single();
@@ -451,7 +557,7 @@ serve(async (req) => {
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -473,7 +579,10 @@ serve(async (req) => {
         })
         .eq("id", integration.id);
 
-      log("info", `Webhooks configured: ${webhooksConfigured}/${webhookResults.length}`);
+      log(
+        "info",
+        `Webhooks configured: ${webhooksConfigured}/${webhookResults.length}`,
+      );
 
       // Iniciar sincronização inicial (não aguardar)
       startInitialSync(integration.id);
@@ -496,7 +605,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -514,7 +623,7 @@ serve(async (req) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -535,7 +644,7 @@ serve(async (req) => {
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -552,7 +661,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -570,7 +679,7 @@ serve(async (req) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -590,7 +699,7 @@ serve(async (req) => {
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -601,7 +710,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -615,7 +724,7 @@ serve(async (req) => {
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error: any) {
     const duration = Date.now() - startTime;
@@ -634,7 +743,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
