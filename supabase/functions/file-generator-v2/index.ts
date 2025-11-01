@@ -13,11 +13,17 @@ const corsHeaders = {
 }
 
 interface FileRequest {
-  format: 'json' | 'csv' | 'xlsx' | 'pdf' | 'html' | 'markdown' | 'zip';
-  data: any;
+  // Formato novo (simplificado)
   fileName?: string;
-  userId: string;
-  conversationId: string;
+  content?: string;
+  fileType?: 'csv' | 'json' | 'txt' | 'text';
+
+  // Formato antigo (compatibilidade)
+  format?: 'json' | 'csv' | 'xlsx' | 'pdf' | 'html' | 'markdown' | 'zip';
+  data?: any;
+
+  userId?: string;
+  conversationId?: string;
 }
 
 serve(async (req) => {
@@ -42,78 +48,126 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { format, data, fileName, userId, conversationId }: FileRequest = await req.json()
+    const body: FileRequest = await req.json()
 
-    console.log('📄 Generating file:', format)
+    console.log('📄 Generating file:', body.fileType || body.format)
 
     // Gerar arquivo baseado no formato
     let fileContent: string | ArrayBuffer
     let contentType: string
     let extension: string
+    let finalFileName: string
 
-    switch (format) {
-      case 'json':
-        fileContent = JSON.stringify(data, null, 2)
-        contentType = 'application/json'
-        extension = 'json'
-        break
+    // FORMATO NOVO (simplificado - preferencial)
+    if (body.content !== undefined && body.fileType) {
+      const fileType = body.fileType === 'text' ? 'txt' : body.fileType
 
-      case 'csv':
-        fileContent = generateCSV(data)
-        contentType = 'text/csv'
-        extension = 'csv'
-        break
+      switch (fileType) {
+        case 'csv':
+          fileContent = body.content
+          contentType = 'text/csv'
+          extension = 'csv'
+          break
 
-      case 'xlsx':
-        fileContent = await generateXLSX(data)
-        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        extension = 'xlsx'
-        break
+        case 'json':
+          fileContent = body.content
+          contentType = 'application/json'
+          extension = 'json'
+          break
 
-      case 'pdf':
-        fileContent = generatePDF(data)
-        contentType = 'text/html'
-        extension = 'html'
-        break
+        case 'txt':
+          fileContent = body.content
+          contentType = 'text/plain'
+          extension = 'txt'
+          break
 
-      case 'html':
-        fileContent = generateHTML(data)
-        contentType = 'text/html'
-        extension = 'html'
-        break
+        default:
+          throw new Error(`Tipo de arquivo não suportado: ${fileType}`)
+      }
 
-      case 'markdown':
-        fileContent = generateMarkdown(data)
-        contentType = 'text/markdown'
-        extension = 'md'
-        break
-
-      case 'zip':
-        fileContent = await generateZIPReal(data)
-        contentType = 'application/zip'
-        extension = 'zip'
-        break
-
-      default:
-        throw new Error(`Formato não suportado: ${format}`)
+      finalFileName = body.fileName || `arquivo_${Date.now()}.${extension}`
     }
+    // FORMATO ANTIGO (compatibilidade)
+    else if (body.format && body.data !== undefined) {
+      switch (body.format) {
+        case 'json':
+          fileContent = JSON.stringify(body.data, null, 2)
+          contentType = 'application/json'
+          extension = 'json'
+          break
+
+        case 'csv':
+          fileContent = generateCSV(body.data)
+          contentType = 'text/csv'
+          extension = 'csv'
+          break
+
+        case 'xlsx':
+          fileContent = await generateXLSX(body.data)
+          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          extension = 'xlsx'
+          break
+
+        case 'pdf':
+          fileContent = generatePDF(body.data)
+          contentType = 'text/html'
+          extension = 'html'
+          break
+
+        case 'html':
+          fileContent = generateHTML(body.data)
+          contentType = 'text/html'
+          extension = 'html'
+          break
+
+        case 'markdown':
+          fileContent = generateMarkdown(body.data)
+          contentType = 'text/markdown'
+          extension = 'md'
+          break
+
+        case 'zip':
+          fileContent = await generateZIPReal(body.data)
+          contentType = 'application/zip'
+          extension = 'zip'
+          break
+
+        default:
+          throw new Error(`Formato não suportado: ${body.format}`)
+      }
+
+      finalFileName = body.fileName || `arquivo_${Date.now()}.${extension}`
+    } else {
+      throw new Error('Formato inválido. Use: { fileName, content, fileType } ou { format, data }')
+    }
+</text>
+
+<old_text line=100>
+    // Upload para Supabase Storage
+    const finalFileName = fileName || `arquivo_${Date.now()}.${extension}`
+
+    // Converter ArrayBuffer para Uint8Array se necessário
 
     // Upload para Supabase Storage
     const finalFileName = fileName || `arquivo_${Date.now()}.${extension}`
-    
+
     // Converter ArrayBuffer para Uint8Array se necessário
     let uploadContent: string | Uint8Array
-    
+
     if (fileContent instanceof ArrayBuffer) {
       uploadContent = new Uint8Array(fileContent)
     } else {
       uploadContent = fileContent as string
     }
 
+    // Upload para storage com path único por usuário
+    const uploadPath = user.id ? `${user.id}/${finalFileName}` : finalFileName
+
     const { error: uploadError } = await supabaseClient.storage
       .from('temp-downloads')
-      .upload(finalFileName, uploadContent, {
+      .upload(uploadPath, uploadContent, {
         contentType,
+        cacheControl: '3600',
         upsert: false
       })
 
@@ -121,27 +175,34 @@ serve(async (req) => {
       throw new Error(`Upload failed: ${uploadError.message}`)
     }
 
-    // Gerar URL assinada
-    const { data: signedUrlData } = await supabaseClient.storage
+    // Gerar URL assinada (expira em 1 hora)
+    const { data: signedUrlData, error: urlError } = await supabaseClient.storage
       .from('temp-downloads')
-      .createSignedUrl(finalFileName, 3600)
+      .createSignedUrl(uploadPath, 3600)
 
-    console.log('✅ File generated successfully')
+    if (urlError || !signedUrlData?.signedUrl) {
+      throw new Error('Failed to generate download URL')
+    }
+
+    console.log('✅ File generated successfully:', signedUrlData.signedUrl)
+
+    const responseFormat = body.fileType || body.format || extension
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Arquivo ${format.toUpperCase()} gerado com sucesso!`,
-        data: {
-          fileName: finalFileName,
-          downloadUrl: signedUrlData?.signedUrl,
-          format,
-          size: fileContent instanceof ArrayBuffer ? fileContent.byteLength : fileContent.length
-        }
+        message: `Arquivo ${responseFormat.toUpperCase()} gerado com sucesso!`,
+        fileName: finalFileName,
+        downloadUrl: signedUrlData.signedUrl,
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        size: fileContent instanceof ArrayBuffer ? fileContent.byteLength : fileContent.length,
+        format: responseFormat
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+</text>
+
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
@@ -152,9 +213,9 @@ serve(async (req) => {
         success: false,
         message: `Erro ao gerar arquivo: ${error.message}`
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
@@ -170,7 +231,7 @@ function generateCSV(data: any): string {
   }
 
   const headers = Object.keys(data[0])
-  const rows = data.map(item => 
+  const rows = data.map(item =>
     headers.map(h => {
       const value = item[h]
       if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
@@ -213,7 +274,7 @@ function generatePDF(data: any): string {
 function generateHTML(data: any): string {
   const isArray = Array.isArray(data)
   const items = isArray ? data : [data]
-  
+
   let html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -248,13 +309,13 @@ function generateHTML(data: any): string {
 
 function generateTableRows(items: any[]): string {
   if (items.length === 0) return '<tr><td colspan="3">Nenhum dado encontrado</td></tr>'
-  
+
   const headers = Object.keys(items[0])
-  
+
   let html = '<thead><tr>'
   headers.forEach(h => html += `<th>${h}</th>`)
   html += '</tr></thead><tbody>'
-  
+
   items.forEach(item => {
     html += '<tr>'
     headers.forEach(h => {
@@ -263,7 +324,7 @@ function generateTableRows(items: any[]): string {
     })
     html += '</tr>'
   })
-  
+
   html += '</tbody>'
   return html
 }
@@ -271,29 +332,29 @@ function generateTableRows(items: any[]): string {
 function generateMarkdown(data: any): string {
   const isArray = Array.isArray(data)
   const items = isArray ? data : [data]
-  
+
   let md = '# Relatório Gerado\n\n'
   md += `**Data:** ${new Date().toLocaleString('pt-BR')}\n\n`
   md += `**Total de itens:** ${items.length}\n\n`
-  
+
   if (items.length > 0) {
     md += '## Dados\n\n'
     md += '| ' + Object.keys(items[0]).join(' | ') + ' |\n'
     md += '| ' + Object.keys(items[0]).map(() => '---').join(' | ') + ' |\n'
-    
+
     items.forEach(item => {
-      md += '| ' + Object.values(item).map(v => 
+      md += '| ' + Object.values(item).map(v =>
         typeof v === 'object' ? JSON.stringify(v) : v
       ).join(' | ') + ' |\n'
     })
   }
-  
+
   return md
 }
 
 async function generateXLSX(data: any): Promise<ArrayBuffer> {
   const wb = XLSX.utils.book_new()
-  
+
   if (Array.isArray(data) && data.length > 0) {
     const ws = XLSX.utils.json_to_sheet(data)
     XLSX.utils.book_append_sheet(wb, ws, 'Dados')
@@ -305,14 +366,14 @@ async function generateXLSX(data: any): Promise<ArrayBuffer> {
       }
     }
   }
-  
+
   const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
   return xlsxBuffer
 }
 
 async function generateZIPReal(data: any): Promise<ArrayBuffer> {
   const zip = new JSZip()
-  
+
   if (typeof data === 'object' && data.files) {
     for (const [filename, content] of Object.entries(data.files)) {
       const contentStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
@@ -322,8 +383,7 @@ async function generateZIPReal(data: any): Promise<ArrayBuffer> {
     const content = JSON.stringify(data, null, 2)
     zip.file('data.json', content)
   }
-  
+
   const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' })
   return zipBuffer as ArrayBuffer
 }
-

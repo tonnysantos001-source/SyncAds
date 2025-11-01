@@ -5,8 +5,8 @@
 // Configure UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN nos secrets
 // ============================================
 
-const UPSTASH_URL = Deno.env.get('UPSTASH_REDIS_REST_URL');
-const UPSTASH_TOKEN = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+const UPSTASH_URL = Deno.env.get("UPSTASH_REDIS_REST_URL");
+const UPSTASH_TOKEN = Deno.env.get("UPSTASH_REDIS_REST_TOKEN");
 
 export interface RateLimitConfig {
   limit: number; // Número máximo de requisições
@@ -24,11 +24,11 @@ export interface RateLimitResult {
  */
 export async function checkRateLimit(
   key: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): Promise<RateLimitResult> {
   // Se Upstash não estiver configurado, permitir (modo desenvolvimento)
   if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-    console.warn('⚠️  Upstash Redis not configured - rate limiting disabled');
+    console.warn("⚠️  Upstash Redis not configured - rate limiting disabled");
     return {
       allowed: true,
       remaining: config.limit,
@@ -49,7 +49,7 @@ export async function checkRateLimit(
     });
 
     if (!incrResponse.ok) {
-      throw new Error('Failed to increment counter');
+      throw new Error("Failed to increment counter");
     }
 
     const incrData = await incrResponse.json();
@@ -77,10 +77,10 @@ export async function checkRateLimit(
     return {
       allowed: count <= config.limit,
       remaining: Math.max(0, config.limit - count),
-      resetAt: now + (ttl * 1000),
+      resetAt: now + ttl * 1000,
     };
   } catch (error) {
-    console.error('❌ Rate limit check failed:', error);
+    console.error("❌ Rate limit check failed:", error);
     // Em caso de erro, permitir a requisição
     return {
       allowed: true,
@@ -95,27 +95,29 @@ export async function checkRateLimit(
  */
 export async function rateLimitMiddleware(
   identifier: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): Promise<Response | null> {
   const result = await checkRateLimit(identifier, config);
 
   if (!result.allowed) {
     return new Response(
       JSON.stringify({
-        error: 'Rate limit exceeded',
+        error: "Rate limit exceeded",
         message: `Too many requests. Please try again in ${Math.ceil((result.resetAt - Date.now()) / 1000)} seconds.`,
         resetAt: result.resetAt,
       }),
       {
         status: 429,
         headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Limit': config.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.resetAt.toString(),
-          'Retry-After': Math.ceil((result.resetAt - Date.now()) / 1000).toString(),
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": config.limit.toString(),
+          "X-RateLimit-Remaining": result.remaining.toString(),
+          "X-RateLimit-Reset": result.resetAt.toString(),
+          "Retry-After": Math.ceil(
+            (result.resetAt - Date.now()) / 1000,
+          ).toString(),
         },
-      }
+      },
     );
   }
 
@@ -168,12 +170,9 @@ export const RATE_LIMITS = {
  */
 export async function rateLimitByUser(
   userId: string,
-  action: keyof typeof RATE_LIMITS
+  action: keyof typeof RATE_LIMITS,
 ): Promise<Response | null> {
-  return rateLimitMiddleware(
-    `user:${userId}:${action}`,
-    RATE_LIMITS[action]
-  );
+  return rateLimitMiddleware(`user:${userId}:${action}`, RATE_LIMITS[action]);
 }
 
 /**
@@ -181,12 +180,9 @@ export async function rateLimitByUser(
  */
 export async function rateLimitByIP(
   ip: string,
-  action: keyof typeof RATE_LIMITS
+  action: keyof typeof RATE_LIMITS,
 ): Promise<Response | null> {
-  return rateLimitMiddleware(
-    `ip:${ip}:${action}`,
-    RATE_LIMITS[action]
-  );
+  return rateLimitMiddleware(`ip:${ip}:${action}`, RATE_LIMITS[action]);
 }
 
 /**
@@ -194,10 +190,7 @@ export async function rateLimitByIP(
  */
 export async function rateLimitByOrg(
   orgId: string,
-  action: keyof typeof RATE_LIMITS
+  action: keyof typeof RATE_LIMITS,
 ): Promise<Response | null> {
-  return rateLimitMiddleware(
-    `org:${orgId}:${action}`,
-    RATE_LIMITS[action]
-  );
+  return rateLimitMiddleware(`org:${orgId}:${action}`, RATE_LIMITS[action]);
 }
