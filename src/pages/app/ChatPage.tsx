@@ -165,32 +165,50 @@ const ChatPage: React.FC = () => {
 
   // Função para limpar logs técnicos e JSON da resposta
   const cleanTechnicalLogs = (text: string): string => {
-    // Remover JSON completos (incluindo nested)
-    let cleaned = text.replace(/\{[^{}]*"success"[^{}]*\}/g, "");
+    if (!text || typeof text !== "string") return text;
 
-    // Remover blocos de resultados de pesquisa
+    let cleaned = text;
+
+    // Remover apenas JSON no INÍCIO da resposta (primeiras 3 linhas)
+    const lines = cleaned.split("\n");
+    const firstLines = lines.slice(0, 3).join("\n");
+
+    // Se começa com JSON, remover
+    if (firstLines.match(/^\s*\{[\s\S]*?"success"[\s\S]*?\}/)) {
+      cleaned = cleaned.replace(/^\s*\{[\s\S]*?"success"[\s\S]*?\}\s*/, "");
+    }
+
+    // Remover linhas isoladas que são apenas propriedades JSON (não no meio do texto)
     cleaned = cleaned.replace(
-      /\*\*Resultados da pesquisa:\*\*[^]*?(?=\n\n|$)/g,
+      /^\s*"(success|message|data|error)":\s*.+$/gm,
       "",
     );
 
-    // Remover JSON multi-linha
-    cleaned = cleaned.replace(/\{\s*\n\s*"[^"]+"\s*:[^}]+\}/g, "");
+    // Remover blocos "Resultados da pesquisa:" se não tiver conteúdo depois
+    cleaned = cleaned.replace(/\*\*Resultados da pesquisa:\*\*\s*\n\s*\n/g, "");
 
-    // Remover linhas que começam com "success", "message", "data", "query", "provider", "results"
-    cleaned = cleaned.replace(
-      /^\s*"?(success|message|data|query|provider|results|snippet|url|title)"?\s*:/gm,
-      "",
-    );
-
-    // Remover chaves e colchetes órfãos
-    cleaned = cleaned.replace(/^\s*[\{\}\[\],]\s*$/gm, "");
+    // Remover chaves/colchetes órfãos em linhas isoladas
+    cleaned = cleaned.replace(/^\s*[\{\}\[\]]\s*$/gm, "");
 
     // Remover múltiplas linhas vazias
     cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
 
-    // Remover espaços no início/fim
-    return cleaned.trim();
+    // Trim
+    cleaned = cleaned.trim();
+
+    // Se ficou vazio ou só com pontuação, retornar texto original
+    if (
+      !cleaned ||
+      cleaned.length < 10 ||
+      /^[\s\{\}\[\]\,\:\"]+$/.test(cleaned)
+    ) {
+      console.warn(
+        "⚠️ cleanTechnicalLogs removeu todo conteúdo, retornando original",
+      );
+      return text;
+    }
+
+    return cleaned;
   };
 
   // Função para fazer streaming da resposta tipo ChatGPT
@@ -703,18 +721,30 @@ O link abrirá em uma nova aba para você autorizar o acesso.`,
         }
       }
 
+      // DEBUG: Log da resposta original
+      console.log("📝 Resposta original da IA:", response.substring(0, 200));
+
       // Processar downloads de ZIP e execuções super inteligentes antes de limpar a resposta
       let processedResponse = processZipDownloads(response);
       processedResponse = processSuperAIExecutions(processedResponse);
+      console.log(
+        "📦 Após processar ZIP:",
+        processedResponse.substring(0, 200),
+      );
 
       // Limpar blocos de código da resposta antes de exibir
       let cleanedResponse = cleanCampaignBlockFromResponse(processedResponse);
       cleanedResponse = cleanAdminBlocksFromResponse(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
+      console.log("🧹 Após limpar blocos:", cleanedResponse.substring(0, 200));
 
       // Limpar completamente JSON e logs técnicos
       cleanedResponse = cleanTechnicalLogs(cleanedResponse);
+      console.log(
+        "🔧 Após cleanTechnicalLogs:",
+        cleanedResponse.substring(0, 200),
+      );
 
       // Formatar resposta para ficar bonita (emojis, markdown, etc)
       const finalResponse = formatAIResponse(cleanedResponse + auditResult, {
@@ -723,6 +753,10 @@ O link abrirá em uma nova aba para você autorizar o acesso.`,
         removeTechnicalLogs: true,
         addSectionDividers: false,
       });
+      console.log(
+        "✨ Resposta final formatada:",
+        finalResponse.substring(0, 200),
+      );
 
       // Adicionar resposta da IA com streaming tipo ChatGPT
       if (user) {
