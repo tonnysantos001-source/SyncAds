@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Shopify Create Order API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status.pending {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .response-box {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .log-box {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry .time {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        .log-entry .message {
+            color: #374151;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .checkout-link {
+            display: block;
+            margin-top: 15px;
+            padding: 15px;
+            background: #10b981;
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .checkout-link:hover {
+            background: #059669;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box p {
+            color: #1e40af;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Teste - Shopify Create Order API</h1>
+            <p style="color: #666; margin-top: 10px;">Teste a criação de pedidos da Shopify para o checkout SyncAds</p>
+            <div style="margin-top: 15px;">
+                <span id="statusBadge" class="status pending">Aguardando teste</span>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <p><strong>📋 Como usar:</strong> Preencha os dados do produto abaixo e clique em "Criar Pedido". O sistema irá criar um pedido no banco de dados e retornar a URL do checkout.</p>
+        </div>
+
+        <div class="grid">
+            <!-- Formulário -->
+            <div class="card">
+                <h2>📦 Dados do Produto</h2>
+
+                <div class="form-group">
+                    <label>Shop Domain</label>
+                    <input type="text" id="shopDomain" value="syncads-ai.myshopify.com" placeholder="sua-loja.myshopify.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Product ID</label>
+                    <input type="text" id="productId" value="12345" placeholder="12345">
+                </div>
+
+                <div class="form-group">
+                    <label>Nome do Produto</label>
+                    <input type="text" id="productName" value="Camisa Teste SyncAds" placeholder="Nome do produto">
+                </div>
+
+                <div class="form-group">
+                    <label>Preço (R$)</label>
+                    <input type="number" id="productPrice" value="99.90" step="0.01" placeholder="99.90">
+                </div>
+
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="productQuantity" value="1" min="1" placeholder="1">
+                </div>
+
+                <div class="form-group">
+                    <label>URL da Imagem (opcional)</label>
+                    <input type="text" id="productImage" value="https://via.placeholder.com/300" placeholder="https://...">
+                </div>
+
+                <div class="btn-group">
+                    <button onclick="testCreateOrder()">🚀 Criar Pedido</button>
+                    <button class="btn-secondary" onclick="clearLogs()">🗑️ Limpar Logs</button>
+                </div>
+
+                <div class="form-group">
+                    <label>API URL</label>
+                    <input type="text" id="apiUrl" value="https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/shopify-create-order" placeholder="API URL">
+                </div>
+            </div>
+
+            <!-- Response -->
+            <div class="card">
+                <h2>📤 Resposta da API</h2>
+                <div id="response" class="response-box">Aguardando requisição...</div>
+                <div id="checkoutLink"></div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>📝 Console de Logs</h2>
+            <div id="logs" class="log-box">
+                <div class="log-entry">
+                    <span class="time">[Aguardando]</span>
+                    <span class="message">Pronto para testar...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let logCount = 0;
+
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString('pt-BR');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+
+            let color = '#374151';
+            if (type === 'success') color = '#10b981';
+            if (type === 'error') color = '#ef4444';
+            if (type === 'warning') color = '#f59e0b';
+
+            logEntry.innerHTML = `
+                <span class="time">[${time}]</span>
+                <span class="message" style="color: ${color}">${message}</span>
+            `;
+
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            logCount++;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = `
+                <div class="log-entry">
+                    <span class="time">[${new Date().toLocaleTimeString('pt-BR')}]</span>
+                    <span class="message">Logs limpos</span>
+                </div>
+            `;
+            logCount = 0;
+        }
+
+        function updateStatus(status, message) {
+            const badge = document.getElementById('statusBadge');
+            badge.className = `status ${status}`;
+            badge.textContent = message;
+        }
+
+        async function testCreateOrder() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⏳ Criando...';
+
+            const responseDiv = document.getElementById('response');
+            const checkoutLinkDiv = document.getElementById('checkoutLink');
+
+            responseDiv.textContent = 'Enviando requisição...';
+            checkoutLinkDiv.innerHTML = '';
+
+            try {
+                // Coletar dados do formulário
+                const shopDomain = document.getElementById('shopDomain').value;
+                const productId = document.getElementById('productId').value;
+                const productName = document.getElementById('productName').value;
+                const productPrice = parseFloat(document.getElementById('productPrice').value);
+                const productQuantity = parseInt(document.getElementById('productQuantity').value);
+                const productImage = document.getElementById('productImage').value;
+                const apiUrl = document.getElementById('apiUrl').value;
+
+                addLog('Iniciando teste de criação de pedido...', 'info');
+                addLog(`Shop: ${shopDomain}`, 'info');
+                addLog(`Produto: ${productName} (R$ ${productPrice.toFixed(2)})`, 'info');
+
+                const payload = {
+                    shopDomain: shopDomain,
+                    products: [{
+                        productId: productId,
+                        variantId: null,
+                        name: productName,
+                        price: productPrice,
+                        quantity: productQuantity,
+                        image: productImage,
+                        sku: 'TEST-SKU-001'
+                    }],
+                    customer: {
+                        email: 'teste@syncads.com.br',
+                        firstName: 'Cliente',
+                        lastName: 'Teste',
+                        phone: '11999999999'
+                    },
+                    metadata: {
+                        source: 'test_page',
+                        testMode: true
+                    }
+                };
+
+                addLog('Payload preparado, enviando requisição...', 'info');
+                console.log('Payload:', payload);
+
+                updateStatus('pending', 'Enviando requisição...');
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                addLog(`Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+                if (response.ok && data.success) {
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addLog('✅ Pedido criado com sucesso!', 'success');
+                    addLog(`Order ID: ${data.orderId}`, 'success');
+                    addLog(`Order Number: ${data.orderNumber}`, 'success');
+                    addLog(`Checkout URL: ${data.checkoutUrl}`, 'success');
+
+                    // Mostrar link do checkout
+                    checkoutLinkDiv.innerHTML = `
+                        <a href="${data.checkoutUrl}" target="_blank" class="checkout-link">
+                            🛒 Abrir Checkout (${data.orderNumber})
+                        </a>
+                    `;
+
+                    updateStatus('success', '✅ Pedido criado com sucesso!');
+                } else {
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addLog('❌ Erro ao criar pedido', 'error');
+                    addLog(`Erro: ${data.error || 'Erro desconhecido'}`, 'error');
+                    if (data.details) {
+                        addLog(`Detalhes: ${data.details}`, 'error');
+                    }
+                    if (data.hint) {
+                        addLog(`Dica: ${data.hint}`, 'warning');
+                    }
+                    updateStatus('error', '❌ Erro ao criar pedido');
+                }
+
+            } catch (error) {
+                responseDiv.textContent = `ERRO: ${error.message}\n\nStack: ${error.stack}`;
+                addLog(`❌ Erro de requisição: ${error.message}`, 'error');
+                console.error('Error:', error);
+                updateStatus('error', '❌ Erro de requisição');
+            } finally {
+                button.disabled = false;
+                button.textContent = '🚀 Criar Pedido';
+            }
+        }
+
+        // Adicionar log inicial
+        addLog('Página carregada e pronta para testes', 'success');
+        addLog('Configure os dados do produto e clique em "Criar Pedido"', 'info');
+    </script>
+</body>
+</html>

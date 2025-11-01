@@ -13,7 +13,8 @@ import { corsHeaders } from "../_utils/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://syncads-dun.vercel.app";
+const FRONTEND_URL =
+  Deno.env.get("FRONTEND_URL") || "https://syncads-dun.vercel.app";
 
 interface ShopifyProduct {
   productId: string;
@@ -45,6 +46,14 @@ function log(level: string, message: string, data?: any) {
     data,
   };
   console.log(JSON.stringify(logEntry));
+}
+
+function generateOrderNumber(): string {
+  const timestamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `ORD-${timestamp}-${random}`;
 }
 
 serve(async (req) => {
@@ -120,42 +129,87 @@ serve(async (req) => {
     }
 
     // Calcular totais
-    const subtotal = products.reduce(
-      (sum, p) => sum + p.price * p.quantity,
-      0,
-    );
-    const tax = subtotal * 0.17; // 17% de impostos (ajustar conforme necessário)
-    const shipping = 0; // Calcular frete se necessário
+    const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+    const tax = subtotal * 0.17; // 17% de impostos
+    const shipping = 0; // Será calculado no checkout
     const total = subtotal + tax + shipping;
 
-    // Gerar ID único para o pedido
+    // Gerar IDs
     const orderId = crypto.randomUUID();
+    const customerId = crypto.randomUUID(); // Cliente temporário
+    const orderNumber = generateOrderNumber();
+
+    // Preparar dados do cliente
+    const customerEmail = customer?.email || "nao-informado@syncads.com.br";
+    const customerName =
+      customer?.firstName && customer?.lastName
+        ? `${customer.firstName} ${customer.lastName}`
+        : customer?.firstName || "Cliente";
+    const customerPhone = customer?.phone || "";
+
+    // Preparar items (formato jsonb)
+    const items = products.map((p) => ({
+      productId: p.productId,
+      variantId: p.variantId || null,
+      name: p.name,
+      price: p.price,
+      quantity: p.quantity,
+      image: p.image || null,
+      sku: p.sku || null,
+      total: p.price * p.quantity,
+    }));
+
+    // Endereço padrão (será preenchido no checkout)
+    const shippingAddress = {
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "BR",
+    };
 
     // Criar pedido no banco
     const { data: order, error: orderError } = await supabase
       .from("Order")
       .insert({
         id: orderId,
+        orderNumber: orderNumber,
+        customerId: customerId,
         userId: integration.userId,
-        organizationId: integration.organizationId || null,
-        status: "PENDING",
-        totalAmount: total,
+        customerEmail: customerEmail,
+        customerName: customerName,
+        customerPhone: customerPhone || null,
+        customerCpf: null,
+        shippingAddress: shippingAddress,
+        billingAddress: null,
+        items: items,
         subtotal: subtotal,
+        discount: 0,
+        shipping: shipping,
         tax: tax,
-        shippingCost: shipping,
-        currency: "BRL",
+        total: total,
+        couponCode: null,
+        couponDiscount: null,
+        paymentMethod: "PENDING", // Será escolhido no checkout
         paymentStatus: "PENDING",
-        customerEmail: customer?.email || null,
-        customerName:
-          customer?.firstName && customer?.lastName
-            ? `${customer.firstName} ${customer.lastName}`
-            : customer?.firstName || null,
-        customerPhone: customer?.phone || null,
+        paidAt: null,
+        status: "PENDING",
+        trackingCode: null,
+        shippingCarrier: null,
+        shippedAt: null,
+        deliveredAt: null,
+        utmSource: metadata?.referrer || null,
+        utmMedium: "shopify",
+        utmCampaign: "shopify_checkout",
+        notes: null,
         metadata: {
           source: "shopify",
           shopDomain: shopDomain,
           shopifyIntegrationId: integration.id,
-          products: products,
+          originalProducts: products,
           ...metadata,
         },
         createdAt: new Date().toISOString(),
@@ -165,12 +219,18 @@ serve(async (req) => {
       .single();
 
     if (orderError) {
-      log("error", "Failed to create order", { error: orderError });
+      log("error", "Failed to create order", {
+        error: orderError,
+        message: orderError.message,
+        details: orderError.details,
+        hint: orderError.hint,
+      });
       return new Response(
         JSON.stringify({
           success: false,
           error: "Failed to create order",
           details: orderError.message,
+          hint: orderError.hint,
         }),
         {
           status: 500,
@@ -179,34 +239,12 @@ serve(async (req) => {
       );
     }
 
-    // Criar itens do pedido
-    const orderItems = products.map((product) => ({
-      orderId: orderId,
-      productId: product.productId,
-      productName: product.name,
-      quantity: product.quantity,
-      unitPrice: product.price,
-      totalPrice: product.price * product.quantity,
-      metadata: {
-        variantId: product.variantId,
-        image: product.image,
-        sku: product.sku,
-      },
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("OrderItem")
-      .insert(orderItems);
-
-    if (itemsError) {
-      log("warn", "Failed to create order items", { error: itemsError });
-    }
-
     // Gerar URL do checkout
     const checkoutUrl = `${FRONTEND_URL}/checkout/${orderId}`;
 
     log("info", "Order created successfully", {
       orderId,
+      orderNumber,
       checkoutUrl,
       total,
       duration: Date.now() - startTime,
@@ -216,15 +254,18 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         orderId: orderId,
+        orderNumber: orderNumber,
         checkoutUrl: checkoutUrl,
         order: {
           id: orderId,
+          orderNumber: orderNumber,
           total: total,
           subtotal: subtotal,
           tax: tax,
           shipping: shipping,
           currency: "BRL",
           status: "PENDING",
+          items: items,
         },
       }),
       {
