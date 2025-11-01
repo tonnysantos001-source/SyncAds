@@ -66,6 +66,7 @@ import {
   detectAdminMetrics,
   cleanAdminBlocksFromResponse,
 } from "@/lib/ai/adminTools";
+import { formatAIResponse } from "@/lib/ai/formatting/responseFormatter";
 import {
   detectIntegrationCommand,
   cleanIntegrationBlocks,
@@ -161,6 +162,79 @@ const ChatPage: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Função para limpar logs técnicos e JSON da resposta
+  const cleanTechnicalLogs = (text: string): string => {
+    // Remover JSON completos (incluindo nested)
+    let cleaned = text.replace(/\{[^{}]*"success"[^{}]*\}/g, "");
+
+    // Remover blocos de resultados de pesquisa
+    cleaned = cleaned.replace(
+      /\*\*Resultados da pesquisa:\*\*[^]*?(?=\n\n|$)/g,
+      "",
+    );
+
+    // Remover JSON multi-linha
+    cleaned = cleaned.replace(/\{\s*\n\s*"[^"]+"\s*:[^}]+\}/g, "");
+
+    // Remover linhas que começam com "success", "message", "data", "query", "provider", "results"
+    cleaned = cleaned.replace(
+      /^\s*"?(success|message|data|query|provider|results|snippet|url|title)"?\s*:/gm,
+      "",
+    );
+
+    // Remover chaves e colchetes órfãos
+    cleaned = cleaned.replace(/^\s*[\{\}\[\],]\s*$/gm, "");
+
+    // Remover múltiplas linhas vazias
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
+    // Remover espaços no início/fim
+    return cleaned.trim();
+  };
+
+  // Função para fazer streaming da resposta tipo ChatGPT
+  const streamAssistantResponse = async (
+    userId: string,
+    conversationId: string,
+    fullContent: string,
+  ) => {
+    const messageId = `msg-${Date.now() + 1}`;
+    let displayedContent = "";
+
+    // Adicionar mensagem vazia inicialmente
+    addMessage(userId, conversationId, {
+      id: messageId,
+      role: "assistant",
+      content: "",
+    });
+
+    // Streaming: adicionar texto gradualmente (como ChatGPT)
+    const words = fullContent.split(" ");
+    const chunkSize = 2; // palavras por vez (mais rápido)
+
+    for (let i = 0; i < words.length; i += chunkSize) {
+      const chunk = words.slice(i, i + chunkSize).join(" ");
+      displayedContent += (i > 0 ? " " : "") + chunk;
+
+      // Atualizar mensagem
+      addMessage(userId, conversationId, {
+        id: messageId,
+        role: "assistant",
+        content: displayedContent,
+      });
+
+      // Delay para efeito de digitação (20ms = mais natural)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    // Garantir que todo o conteúdo foi adicionado
+    addMessage(userId, conversationId, {
+      id: messageId,
+      role: "assistant",
+      content: fullContent,
+    });
+  };
   const { toast } = useToast();
   const activeConversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -639,13 +713,24 @@ O link abrirá em uma nova aba para você autorizar o acesso.`,
       cleanedResponse = cleanIntegrationBlocks(cleanedResponse);
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
 
-      // Adicionar resposta da IA (com resultado de auditoria se houver)
+      // Limpar completamente JSON e logs técnicos
+      cleanedResponse = cleanTechnicalLogs(cleanedResponse);
+
+      // Formatar resposta para ficar bonita (emojis, markdown, etc)
+      const finalResponse = formatAIResponse(cleanedResponse + auditResult, {
+        addEmojis: true,
+        improveMarkdown: true,
+        removeTechnicalLogs: true,
+        addSectionDividers: false,
+      });
+
+      // Adicionar resposta da IA com streaming tipo ChatGPT
       if (user) {
-        addMessage(user.id, activeConversationId, {
-          id: `msg-${Date.now() + 1}`,
-          role: "assistant",
-          content: cleanedResponse + auditResult,
-        });
+        await streamAssistantResponse(
+          user.id,
+          activeConversationId,
+          finalResponse,
+        );
       }
     } catch (error: any) {
       console.error("Erro ao chamar IA:", error);
