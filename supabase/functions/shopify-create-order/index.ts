@@ -136,7 +136,7 @@ serve(async (req) => {
 
     // Gerar IDs
     const orderId = crypto.randomUUID();
-    const customerId = crypto.randomUUID(); // Cliente temporário
+    const customerId = null; // Sem cliente no momento, será preenchido no checkout
     const orderNumber = generateOrderNumber();
 
     // Preparar dados do cliente
