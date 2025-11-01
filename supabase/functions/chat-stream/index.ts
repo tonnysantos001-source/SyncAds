@@ -1,17 +1,26 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { checkRateLimit, createRateLimitResponse } from '../_utils/rate-limiter.ts'
-import { circuitBreaker } from '../_utils/circuit-breaker.ts'
-import { fetchWithTimeout } from '../_utils/fetch-with-timeout.ts'
-import { retry } from '../_utils/retry.ts'
-import { 
-  countConversationTokens, 
-  estimateConversationTokens, 
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  checkRateLimit,
+  createRateLimitResponse,
+} from "../_utils/rate-limiter.ts";
+import { circuitBreaker } from "../_utils/circuit-breaker.ts";
+import { fetchWithTimeout } from "../_utils/fetch-with-timeout.ts";
+import { retry } from "../_utils/retry.ts";
+import {
+  countConversationTokens,
+  estimateConversationTokens,
   validateTokenLimit,
-  formatTokenCount 
-} from '../_utils/token-counter.ts'
-import { callWithFallback } from '../_utils/model-fallback.ts'
-import { corsHeaders, handlePreflightRequest, isOriginAllowed, jsonResponse, errorResponse } from '../_utils/cors.ts'
+  formatTokenCount,
+} from "../_utils/token-counter.ts";
+import { callWithFallback } from "../_utils/model-fallback.ts";
+import {
+  corsHeaders,
+  handlePreflightRequest,
+  isOriginAllowed,
+  jsonResponse,
+  errorResponse,
+} from "../_utils/cors.ts";
 import {
   searchGoogle,
   searchYouTube,
@@ -19,7 +28,7 @@ import {
   searchImages,
   searchShopping,
   searchPlaces,
-} from '../_utils/search-tools.ts'
+} from "../_utils/search-tools.ts";
 
 // ==================== FERRAMENTAS ====================
 
@@ -30,161 +39,173 @@ interface ToolContext {
 }
 
 // Cache simples em memória (Edge Functions são stateless, mas ajuda durante execução)
-const cache = new Map<string, { data: any, timestamp: number }>()
-const CACHE_TTL = 3600000 // 1 hora
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 3600000; // 1 hora
 
 function getCached(key: string): any | null {
-  const cached = cache.get(key)
+  const cached = cache.get(key);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data
+    return cached.data;
   }
-  return null
+  return null;
 }
 
 function setCache(key: string, data: any) {
-  cache.set(key, { data, timestamp: Date.now() })
+  cache.set(key, { data, timestamp: Date.now() });
 }
 
 // 1. Buscar na Web com Múltiplos Providers (Exa, Tavily, Serper)
 async function webSearch(query: string): Promise<string> {
   try {
     // Verificar cache primeiro
-    const cached = getCached(`search:${query}`)
+    const cached = getCached(`search:${query}`);
     if (cached) {
-      console.log('📦 Using cached search results')
-      return cached
+      console.log("📦 Using cached search results");
+      return cached;
     }
 
     // Tentar múltiplos providers em sequência
-    let results = null
+    let results = null;
 
     // 1. Tentar Exa AI (mais inteligente) - COM RETRY E CIRCUIT BREAKER
-    const exaKey = Deno.env.get('EXA_API_KEY')
+    const exaKey = Deno.env.get("EXA_API_KEY");
     if (exaKey) {
       try {
-        console.log('🤖 Trying Exa AI Search...')
-        
+        console.log("🤖 Trying Exa AI Search...");
+
         const exaResponse = await retry(
           async () => {
-            const cbResult = await circuitBreaker.execute('exa-search', async () => {
-              return await fetchWithTimeout(
-                'https://api.exa.ai/search',
-                {
-                  method: 'POST',
-                  headers: {
-                    'x-api-key': exaKey,
-                    'Content-Type': 'application/json'
+            const cbResult = await circuitBreaker.execute(
+              "exa-search",
+              async () => {
+                return await fetchWithTimeout(
+                  "https://api.exa.ai/search",
+                  {
+                    method: "POST",
+                    headers: {
+                      "x-api-key": exaKey,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      query: query,
+                      numResults: 5,
+                      type: "neural",
+                      useAutoprompt: true,
+                    }),
                   },
-                  body: JSON.stringify({
-                    query: query,
-                    numResults: 5,
-                    type: 'neural',
-                    useAutoprompt: true
-                  })
-                },
-                10000 // 10s timeout
-              )
-            })
+                  10000, // 10s timeout
+                );
+              },
+            );
 
             if (!cbResult.success) {
-              throw new Error(cbResult.error || 'Circuit breaker open')
+              throw new Error(cbResult.error || "Circuit breaker open");
             }
 
-            return cbResult.data
+            return cbResult.data;
           },
-          { maxAttempts: 3 }
-        )
+          { maxAttempts: 3 },
+        );
 
         if (exaResponse.ok) {
-          const exaData = await exaResponse.json()
+          const exaData = await exaResponse.json();
           if (exaData.results && exaData.results.length > 0) {
-            results = exaData.results.map((r: any, i: number) => 
-              `${i + 1}. **${r.title}**\n   ${r.text || r.url}\n   ${r.url}`
-            ).join('\n\n')
-            console.log('✅ Exa AI results found')
+            results = exaData.results
+              .map(
+                (r: any, i: number) =>
+                  `${i + 1}. **${r.title}**\n   ${r.text || r.url}\n   ${r.url}`,
+              )
+              .join("\n\n");
+            console.log("✅ Exa AI results found");
           }
         }
       } catch (error) {
-        console.log('⚠️ Exa AI failed, trying next provider')
+        console.log("⚠️ Exa AI failed, trying next provider");
       }
     }
 
     // 2. Tentar Tavily (otimizado para agents)
     if (!results) {
-      const tavilyKey = Deno.env.get('TAVILY_API_KEY')
+      const tavilyKey = Deno.env.get("TAVILY_API_KEY");
       if (tavilyKey) {
         try {
-          console.log('🔍 Trying Tavily AI...')
-          const tavilyResponse = await fetch('https://api.tavily.com/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          console.log("🔍 Trying Tavily AI...");
+          const tavilyResponse = await fetch("https://api.tavily.com/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               api_key: tavilyKey,
               query: query,
               max_results: 5,
-              include_answer: true
-            })
-          })
+              include_answer: true,
+            }),
+          });
 
           if (tavilyResponse.ok) {
-            const tavilyData = await tavilyResponse.json()
+            const tavilyData = await tavilyResponse.json();
             if (tavilyData.results && tavilyData.results.length > 0) {
-              results = tavilyData.results.map((r: any, i: number) => 
-                `${i + 1}. **${r.title}**\n   ${r.content}\n   ${r.url}`
-              ).join('\n\n')
-              
+              results = tavilyData.results
+                .map(
+                  (r: any, i: number) =>
+                    `${i + 1}. **${r.title}**\n   ${r.content}\n   ${r.url}`,
+                )
+                .join("\n\n");
+
               // Tavily também retorna uma "answer" gerada pela IA
               if (tavilyData.answer) {
-                results = `💡 **Resposta da IA:**\n${tavilyData.answer}\n\n📚 **Fontes:**\n\n${results}`
+                results = `💡 **Resposta da IA:**\n${tavilyData.answer}\n\n📚 **Fontes:**\n\n${results}`;
               }
-              
-              console.log('✅ Tavily AI results found')
+
+              console.log("✅ Tavily AI results found");
             }
           }
         } catch (error) {
-          console.log('⚠️ Tavily failed, trying next provider')
+          console.log("⚠️ Tavily failed, trying next provider");
         }
       }
     }
 
     // 3. Fallback: Serper API (simples e confiável)
     if (!results) {
-      const serperKey = Deno.env.get('SERPER_API_KEY')
+      const serperKey = Deno.env.get("SERPER_API_KEY");
       if (serperKey) {
-        console.log('🔍 Trying Serper API...')
-        const serperResponse = await fetch('https://google.serper.dev/search', {
-          method: 'POST',
+        console.log("🔍 Trying Serper API...");
+        const serperResponse = await fetch("https://google.serper.dev/search", {
+          method: "POST",
           headers: {
-            'X-API-KEY': serperKey,
-            'Content-Type': 'application/json',
+            "X-API-KEY": serperKey,
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ q: query, num: 5 })
-        })
+          body: JSON.stringify({ q: query, num: 5 }),
+        });
 
         if (serperResponse.ok) {
-          const serperData = await serperResponse.json()
-          const organic = serperData.organic?.slice(0, 5) || []
-          
+          const serperData = await serperResponse.json();
+          const organic = serperData.organic?.slice(0, 5) || [];
+
           if (organic.length > 0) {
-            results = organic.map((r: any, i: number) => 
-              `${i + 1}. **${r.title}**\n   ${r.snippet}\n   ${r.link}`
-            ).join('\n\n')
-            console.log('✅ Serper results found')
+            results = organic
+              .map(
+                (r: any, i: number) =>
+                  `${i + 1}. **${r.title}**\n   ${r.snippet}\n   ${r.link}`,
+              )
+              .join("\n\n");
+            console.log("✅ Serper results found");
           }
         }
       }
     }
 
     if (!results) {
-      return '❌ Nenhum provider de busca configurado ou todos falharam. Configure EXA_API_KEY, TAVILY_API_KEY ou SERPER_API_KEY.'
+      return "❌ Nenhum provider de busca configurado ou todos falharam. Configure EXA_API_KEY, TAVILY_API_KEY ou SERPER_API_KEY.";
     }
 
     // Salvar no cache
-    setCache(`search:${query}`, results)
+    setCache(`search:${query}`, results);
 
-    return results
+    return results;
   } catch (error: any) {
-    return `Erro ao buscar: ${error.message}`
+    return `Erro ao buscar: ${error.message}`;
   }
 }
 
@@ -192,63 +213,71 @@ async function webSearch(query: string): Promise<string> {
 async function listCampaigns(ctx: ToolContext): Promise<string> {
   try {
     const { data, error } = await ctx.supabase
-      .from('Campaign')
-      .select('id, name, platform, status, budget, objective')
-      .eq('userId', ctx.userId)
-      .order('createdAt', { ascending: false })
-      .limit(10)
+      .from("Campaign")
+      .select("id, name, platform, status, budget, objective")
+      .eq("userId", ctx.userId)
+      .order("createdAt", { ascending: false })
+      .limit(10);
 
-    if (error) throw error
+    if (error) throw error;
 
     if (!data || data.length === 0) {
-      return 'Nenhuma campanha encontrada.'
+      return "Nenhuma campanha encontrada.";
     }
 
-    return data.map((c: any, i: number) => 
-      `${i + 1}. **${c.name}**\n` +
-      `   • Plataforma: ${c.platform}\n` +
-      `   • Status: ${c.status}\n` +
-      `   • Budget: R$ ${c.budget || 0}\n` +
-      `   • Objetivo: ${c.objective || 'N/A'}`
-    ).join('\n\n')
+    return data
+      .map(
+        (c: any, i: number) =>
+          `${i + 1}. **${c.name}**\n` +
+          `   • Plataforma: ${c.platform}\n` +
+          `   • Status: ${c.status}\n` +
+          `   • Budget: R$ ${c.budget || 0}\n` +
+          `   • Objetivo: ${c.objective || "N/A"}`,
+      )
+      .join("\n\n");
   } catch (error: any) {
-    return `Erro ao listar campanhas: ${error.message}`
+    return `Erro ao listar campanhas: ${error.message}`;
   }
 }
 
 // 3. Criar Campanha
-async function createCampaign(ctx: ToolContext, params: {
-  name: string;
-  platform: string;
-  budget?: number;
-  objective?: string;
-}): Promise<string> {
+async function createCampaign(
+  ctx: ToolContext,
+  params: {
+    name: string;
+    platform: string;
+    budget?: number;
+    objective?: string;
+  },
+): Promise<string> {
   try {
     const { data, error } = await ctx.supabase
-      .from('Campaign')
+      .from("Campaign")
       .insert({
         userId: ctx.userId,
         name: params.name,
         platform: params.platform.toUpperCase(),
         budget: params.budget || 100,
-        objective: params.objective || 'CONVERSIONS',
-        status: 'DRAFT',
+        objective: params.objective || "CONVERSIONS",
+        status: "DRAFT",
         startDate: new Date().toISOString(),
       })
       .select()
-      .single()
+      .single();
 
-    if (error) throw error
+    if (error) throw error;
 
-    return `✅ Campanha criada com sucesso!\n\n` +
+    return (
+      `✅ Campanha criada com sucesso!\n\n` +
       `**${data.name}**\n` +
       `• ID: ${data.id}\n` +
       `• Plataforma: ${data.platform}\n` +
       `• Budget: R$ ${data.budget}\n` +
       `• Status: ${data.status}\n\n` +
       `A campanha está em rascunho. Você pode editá-la e ativá-la quando estiver pronta.`
+    );
   } catch (error: any) {
-    return `Erro ao criar campanha: ${error.message}`
+    return `Erro ao criar campanha: ${error.message}`;
   }
 }
 
@@ -257,34 +286,41 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
   try {
     // Campanhas ativas
     const { data: campaigns, error: campaignsError } = await ctx.supabase
-      .from('Campaign')
-      .select('status')
-      .eq('userId', ctx.userId)
+      .from("Campaign")
+      .select("status")
+      .eq("userId", ctx.userId);
 
-    if (campaignsError) throw campaignsError
+    if (campaignsError) throw campaignsError;
 
-    const total = campaigns?.length || 0
-    const active = campaigns?.filter((c: any) => c.status === 'ACTIVE').length || 0
-    const draft = campaigns?.filter((c: any) => c.status === 'DRAFT').length || 0
-    const paused = campaigns?.filter((c: any) => c.status === 'PAUSED').length || 0
+    const total = campaigns?.length || 0;
+    const active =
+      campaigns?.filter((c: any) => c.status === "ACTIVE").length || 0;
+    const draft =
+      campaigns?.filter((c: any) => c.status === "DRAFT").length || 0;
+    const paused =
+      campaigns?.filter((c: any) => c.status === "PAUSED").length || 0;
 
     // Produtos
     const { data: products } = await ctx.supabase
-      .from('Product')
-      .select('id')
-      .eq('userId', ctx.userId)
+      .from("Product")
+      .select("id")
+      .eq("userId", ctx.userId);
 
-    const totalProducts = products?.length || 0
+    const totalProducts = products?.length || 0;
 
     // Mensagens do chat
     const { data: messages } = await ctx.supabase
-      .from('ChatMessage')
-      .select('id')
-      .gte('createdAt', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .from("ChatMessage")
+      .select("id")
+      .gte(
+        "createdAt",
+        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      );
 
-    const messagesLastWeek = messages?.length || 0
+    const messagesLastWeek = messages?.length || 0;
 
-    return `📊 **ANALYTICS DO USUÁRIO**\n\n` +
+    return (
+      `📊 **ANALYTICS DO USUÁRIO**\n\n` +
       `**Campanhas:**\n` +
       `• Total: ${total}\n` +
       `• Ativas: ${active}\n` +
@@ -292,249 +328,372 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
       `• Pausadas: ${paused}\n\n` +
       `**Produtos:** ${totalProducts}\n\n` +
       `**Uso do Chat:** ${messagesLastWeek} mensagens nos últimos 7 dias`
+    );
   } catch (error: any) {
-    return `Erro ao buscar analytics: ${error.message}`
+    return `Erro ao buscar analytics: ${error.message}`;
   }
 }
 
 // Detector de intenção (melhorado com comandos)
 function detectIntent(message: string): { tool: string; params?: any } | null {
-  const lower = message.toLowerCase().trim()
+  const lower = message.toLowerCase().trim();
 
   // ===== COMANDOS ESPECIAIS (começam com /) =====
-  if (lower.startsWith('/')) {
-    if (lower === '/help' || lower === '/ajuda') {
-      return { tool: 'show_help' }
+  if (lower.startsWith("/")) {
+    if (lower === "/help" || lower === "/ajuda") {
+      return { tool: "show_help" };
     }
-    if (lower === '/stats' || lower === '/analytics') {
-      return { tool: 'get_analytics' }
+    if (lower === "/stats" || lower === "/analytics") {
+      return { tool: "get_analytics" };
     }
-    if (lower === '/relatorio' || lower === '/report') {
-      return { tool: 'full_report' }
+    if (lower === "/relatorio" || lower === "/report") {
+      return { tool: "full_report" };
     }
-    if (lower === '/campanhas' || lower === '/campaigns') {
-      return { tool: 'list_campaigns' }
+    if (lower === "/campanhas" || lower === "/campaigns") {
+      return { tool: "list_campaigns" };
     }
-    if (lower === '/usuarios' || lower === '/users') {
-      return { tool: 'list_users' }
+    if (lower === "/usuarios" || lower === "/users") {
+      return { tool: "list_users" };
     }
-    if (lower === '/produtos' || lower === '/products') {
-      return { tool: 'list_products' }
+    if (lower === "/produtos" || lower === "/products") {
+      return { tool: "list_products" };
     }
   }
 
   // ===== DETECÇÃO DE INTENÇÃO NATURAL =====
-  
+
   // Conexão de Integrações (NOVO!)
-  if ((lower.includes('conect') || lower.includes('integr') || lower.includes('vincul') || lower.includes('link')) &&
-      (lower.includes('facebook') || lower.includes('meta') || lower.includes('google') || 
-       lower.includes('linkedin') || lower.includes('tiktok') || lower.includes('twitter') ||
-       lower.includes('canva') || lower.includes('instagram'))) {
-    
+  if (
+    (lower.includes("conect") ||
+      lower.includes("integr") ||
+      lower.includes("vincul") ||
+      lower.includes("link")) &&
+    (lower.includes("facebook") ||
+      lower.includes("meta") ||
+      lower.includes("google") ||
+      lower.includes("linkedin") ||
+      lower.includes("tiktok") ||
+      lower.includes("twitter") ||
+      lower.includes("canva") ||
+      lower.includes("instagram"))
+  ) {
     // Detectar qual plataforma
     const platforms: Record<string, string> = {
-      'facebook': 'Facebook',
-      'meta': 'Meta Ads',
-      'google': 'Google Ads',
-      'linkedin': 'LinkedIn',
-      'tiktok': 'TikTok',
-      'twitter': 'Twitter',
-      'canva': 'Canva',
-      'instagram': 'Instagram'
-    }
-    
+      facebook: "Facebook",
+      meta: "Meta Ads",
+      google: "Google Ads",
+      linkedin: "LinkedIn",
+      tiktok: "TikTok",
+      twitter: "Twitter",
+      canva: "Canva",
+      instagram: "Instagram",
+    };
+
     for (const [key, name] of Object.entries(platforms)) {
       if (lower.includes(key)) {
-        return { 
-          tool: 'connect_integration',
-          params: { platform: key, platformName: name }
-        }
+        return {
+          tool: "connect_integration",
+          params: { platform: key, platformName: name },
+        };
       }
     }
   }
-  
+
   // Ajuda
-  if (lower.includes('ajuda') || lower.includes('comandos') || lower.includes('o que você pode fazer')) {
-    return { tool: 'show_help' }
+  if (
+    lower.includes("ajuda") ||
+    lower.includes("comandos") ||
+    lower.includes("o que você pode fazer")
+  ) {
+    return { tool: "show_help" };
   }
 
   // Relatório
-  if ((lower.includes('relatório') || lower.includes('relatorio') || lower.includes('report')) &&
-      (lower.includes('completo') || lower.includes('geral') || lower.includes('full'))) {
-    return { tool: 'full_report' }
+  if (
+    (lower.includes("relatório") ||
+      lower.includes("relatorio") ||
+      lower.includes("report")) &&
+    (lower.includes("completo") ||
+      lower.includes("geral") ||
+      lower.includes("full"))
+  ) {
+    return { tool: "full_report" };
   }
 
   // Usuários
-  if ((lower.includes('lista') || lower.includes('mostr') || lower.includes('ver') || lower.includes('quantos')) && 
-      (lower.includes('usuário') || lower.includes('usuario') || lower.includes('user'))) {
-    return { tool: 'list_users' }
+  if (
+    (lower.includes("lista") ||
+      lower.includes("mostr") ||
+      lower.includes("ver") ||
+      lower.includes("quantos")) &&
+    (lower.includes("usuário") ||
+      lower.includes("usuario") ||
+      lower.includes("user"))
+  ) {
+    return { tool: "list_users" };
   }
 
   // Produtos
-  if ((lower.includes('lista') || lower.includes('mostr') || lower.includes('ver') || lower.includes('quantos')) && 
-      (lower.includes('produto') || lower.includes('product') || lower.includes('estoque'))) {
-    return { tool: 'list_products' }
+  if (
+    (lower.includes("lista") ||
+      lower.includes("mostr") ||
+      lower.includes("ver") ||
+      lower.includes("quantos")) &&
+    (lower.includes("produto") ||
+      lower.includes("product") ||
+      lower.includes("estoque"))
+  ) {
+    return { tool: "list_products" };
   }
 
   // Geração de imagens
-  if ((lower.includes('ger') || lower.includes('cri') || lower.includes('faça') || lower.includes('faz')) && 
-      (lower.includes('imagem') || lower.includes('foto') || lower.includes('banner') || lower.includes('logo'))) {
-    return { tool: 'generate_image', params: { prompt: message } }
+  if (
+    (lower.includes("ger") ||
+      lower.includes("cri") ||
+      lower.includes("faça") ||
+      lower.includes("faz")) &&
+    (lower.includes("imagem") ||
+      lower.includes("foto") ||
+      lower.includes("banner") ||
+      lower.includes("logo"))
+  ) {
+    return { tool: "generate_image", params: { prompt: message } };
   }
 
   // ===== NOVAS FERRAMENTAS =====
 
   // YouTube search
-  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || lower.includes('video')) &&
-      (lower.includes('youtube') || lower.includes('vídeo'))) {
+  if (
+    (lower.includes("pesquis") ||
+      lower.includes("busca") ||
+      lower.includes("procur") ||
+      lower.includes("video")) &&
+    (lower.includes("youtube") || lower.includes("vídeo"))
+  ) {
     // Extrair query
-    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|no youtube|vídeos?\s+(sobre|de)?/gi, '').trim();
-    return { tool: 'youtube_search', params: { query } };
+    const query = message
+      .replace(
+        /pesquis\w*|busca\w*|procur\w*|no youtube|vídeos?\s+(sobre|de)?/gi,
+        "",
+      )
+      .trim();
+    return { tool: "youtube_search", params: { query } };
   }
 
   // News search
-  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur')) &&
-      (lower.includes('notícia') || lower.includes('noticia') || lower.includes('news'))) {
-    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|notícias?\s+(sobre|de)?/gi, '').trim();
-    return { tool: 'news_search', params: { query } };
+  if (
+    (lower.includes("pesquis") ||
+      lower.includes("busca") ||
+      lower.includes("procur")) &&
+    (lower.includes("notícia") ||
+      lower.includes("noticia") ||
+      lower.includes("news"))
+  ) {
+    const query = message
+      .replace(/pesquis\w*|busca\w*|procur\w*|notícias?\s+(sobre|de)?/gi, "")
+      .trim();
+    return { tool: "news_search", params: { query } };
   }
 
   // Google search (mais específico)
-  if ((lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur')) &&
-      (lower.includes('google') || lower.includes('na internet'))) {
-    const query = message.replace(/pesquis\w*|busca\w*|procur\w*|no google|na internet/gi, '').trim();
-    return { tool: 'google_search', params: { query } };
+  if (
+    (lower.includes("pesquis") ||
+      lower.includes("busca") ||
+      lower.includes("procur")) &&
+    (lower.includes("google") || lower.includes("na internet"))
+  ) {
+    const query = message
+      .replace(/pesquis\w*|busca\w*|procur\w*|no google|na internet/gi, "")
+      .trim();
+    return { tool: "google_search", params: { query } };
   }
 
   // Python execution
-  if (lower.includes('execut') && lower.includes('python') || 
-      lower.includes('código python') || lower.includes('script python')) {
+  if (
+    (lower.includes("execut") && lower.includes("python")) ||
+    lower.includes("código python") ||
+    lower.includes("script python")
+  ) {
     // Extrair código Python (entre ``` ou depois de ":")
-    const codeMatch = message.match(/```python\n([\s\S]*?)```/i) || 
-                      message.match(/```\n([\s\S]*?)```/i);
-    const code = codeMatch ? codeMatch[1] : '';
-    return { tool: 'python_execute', params: { code } };
+    const codeMatch =
+      message.match(/```python\n([\s\S]*?)```/i) ||
+      message.match(/```\n([\s\S]*?)```/i);
+    const code = codeMatch ? codeMatch[1] : "";
+    return { tool: "python_execute", params: { code } };
   }
 
   // Web search genérico (fallback)
-  if (lower.includes('pesquis') || lower.includes('busca') || lower.includes('procur') || 
-      lower.includes('internet') || lower.startsWith('buscar')) {
-    return { tool: 'web_search', params: message }
+  if (
+    lower.includes("pesquis") ||
+    lower.includes("busca") ||
+    lower.includes("procur") ||
+    lower.includes("internet") ||
+    lower.startsWith("buscar")
+  ) {
+    return { tool: "web_search", params: message };
   }
 
   // Listar campanhas
-  if ((lower.includes('lista') || lower.includes('mostr') || lower.includes('ver')) && 
-      lower.includes('campanha')) {
-    return { tool: 'list_campaigns' }
+  if (
+    (lower.includes("lista") ||
+      lower.includes("mostr") ||
+      lower.includes("ver")) &&
+    lower.includes("campanha")
+  ) {
+    return { tool: "list_campaigns" };
   }
 
   // Criar campanha
-  if ((lower.includes('cri') || lower.includes('faz') || lower.includes('nova')) && 
-      lower.includes('campanha')) {
+  if (
+    (lower.includes("cri") ||
+      lower.includes("faz") ||
+      lower.includes("nova")) &&
+    lower.includes("campanha")
+  ) {
     // Tentar extrair informações
-    const platforms = ['meta', 'facebook', 'instagram', 'google', 'linkedin', 'tiktok', 'twitter']
-    const platform = platforms.find(p => lower.includes(p)) || 'META'
-    
+    const platforms = [
+      "meta",
+      "facebook",
+      "instagram",
+      "google",
+      "linkedin",
+      "tiktok",
+      "twitter",
+    ];
+    const platform = platforms.find((p) => lower.includes(p)) || "META";
+
     // Extrair nome (após "campanha")
-    const nameMatch = message.match(/campanha\s+["']?([^"'\n]+)["']?/i)
-    const name = nameMatch?.[1]?.trim() || 'Nova Campanha'
+    const nameMatch = message.match(/campanha\s+["']?([^"'\n]+)["']?/i);
+    const name = nameMatch?.[1]?.trim() || "Nova Campanha";
 
     // Extrair budget
-    const budgetMatch = message.match(/(?:budget|orçamento|valor)\s*:?\s*(?:R\$)?\s*(\d+)/i)
-    const budget = budgetMatch ? parseInt(budgetMatch[1]) : 100
+    const budgetMatch = message.match(
+      /(?:budget|orçamento|valor)\s*:?\s*(?:R\$)?\s*(\d+)/i,
+    );
+    const budget = budgetMatch ? parseInt(budgetMatch[1]) : 100;
 
-    return { 
-      tool: 'create_campaign', 
-      params: { name, platform, budget }
-    }
+    return {
+      tool: "create_campaign",
+      params: { name, platform, budget },
+    };
   }
 
   // Analytics
-  if (lower.includes('analytic') || lower.includes('métricas') || 
-      lower.includes('estatística') || lower.includes('resumo') || 
-      (lower.includes('como') && lower.includes('está')) ||
-      lower.includes('performance')) {
-    return { tool: 'get_analytics' }
+  if (
+    lower.includes("analytic") ||
+    lower.includes("métricas") ||
+    lower.includes("estatística") ||
+    lower.includes("resumo") ||
+    (lower.includes("como") && lower.includes("está")) ||
+    lower.includes("performance")
+  ) {
+    return { tool: "get_analytics" };
   }
 
   // Web Scraping / Download de produtos
   // Detectar múltiplas variações de palavras-chave
-  const hasScrapingAction = lower.includes('baix') || lower.includes('download') || 
-                            lower.includes('scraper') || lower.includes('extrair') || 
-                            lower.includes('pegar') || lower.includes('entre nesse site')
-  
-  const hasScrapingObject = lower.includes('produto') || lower.includes('item') || 
-                            lower.includes('site') || lower.includes('santalolla') ||
-                            lower.includes('produtos') || lower.includes('itens')
-  
-  const hasUrl = lower.match(/https?:\/\//) || lower.includes('www.')
-  
+  const hasScrapingAction =
+    lower.includes("baix") ||
+    lower.includes("download") ||
+    lower.includes("scraper") ||
+    lower.includes("extrair") ||
+    lower.includes("pegar") ||
+    lower.includes("entre nesse site");
+
+  const hasScrapingObject =
+    lower.includes("produto") ||
+    lower.includes("item") ||
+    lower.includes("site") ||
+    lower.includes("santalolla") ||
+    lower.includes("produtos") ||
+    lower.includes("itens");
+
+  const hasUrl = lower.match(/https?:\/\//) || lower.includes("www.");
+
   // Se tem ação de scraping OU tem URL visível
   if ((hasScrapingAction && hasScrapingObject) || hasUrl) {
-    
     // Extrair URL da mensagem
-    const urlMatch = message.match(/https?:\/\/(?:www\.)?[^\s]+/i)
-    const url = urlMatch ? urlMatch[0] : null
-    
+    const urlMatch = message.match(/https?:\/\/(?:www\.)?[^\s]+/i);
+    const url = urlMatch ? urlMatch[0] : null;
+
     // Detectar se quer CSV/ZIP
-    const format = lower.includes('csv') ? 'csv' : lower.includes('zip') ? 'zip' : 'csv'
-    
-    console.log('🔍 Scraping detectado! URL:', url, 'Format:', format)
-    
-    return { 
-      tool: 'scrape_products',
-      params: { url, format }
-    }
+    const format = lower.includes("csv")
+      ? "csv"
+      : lower.includes("zip")
+        ? "zip"
+        : "csv";
+
+    console.log("🔍 Scraping detectado! URL:", url, "Format:", format);
+
+    return {
+      tool: "scrape_products",
+      params: { url, format },
+    };
   }
 
   // Geração de arquivo (CSV, ZIP, etc)
-  if ((lower.includes('arquivo') || lower.includes('export') || lower.includes('download')) &&
-      (lower.includes('csv') || lower.includes('zip') || lower.includes('json'))) {
+  if (
+    (lower.includes("arquivo") ||
+      lower.includes("export") ||
+      lower.includes("download")) &&
+    (lower.includes("csv") || lower.includes("zip") || lower.includes("json"))
+  ) {
     return {
-      tool: 'generate_export',
-      params: { format: lower.match(/csv|zip|json/i)?.[0] || 'csv' }
-    }
+      tool: "generate_export",
+      params: { format: lower.match(/csv|zip|json/i)?.[0] || "csv" },
+    };
   }
 
-  return null
+  return null;
 }
 
 // 5. Gerar Imagem (Desabilitado temporariamente - requer configuração DALL-E)
-async function generateImage(ctx: ToolContext, params: { prompt: string }): Promise<string> {
-  return `⚠️ **Geração de imagens temporariamente desabilitada**\n\n` +
-         `Esta funcionalidade será habilitada em breve após configuração do DALL-E.\n` +
-         `Por enquanto, você pode usar o chat normalmente para outras tarefas.`
+async function generateImage(
+  ctx: ToolContext,
+  params: { prompt: string },
+): Promise<string> {
+  return (
+    `⚠️ **Geração de imagens temporariamente desabilitada**\n\n` +
+    `Esta funcionalidade será habilitada em breve após configuração do DALL-E.\n` +
+    `Por enquanto, você pode usar o chat normalmente para outras tarefas.`
+  );
 }
 
 // 6. Listar Usuários
 async function listUsers(ctx: ToolContext): Promise<string> {
   try {
     const { data, error } = await ctx.supabase
-      .from('User')
-      .select('id, email, name, role, isActive, createdAt')
-      .eq('userId', ctx.userId)
-      .order('createdAt', { ascending: false })
-      .limit(20)
+      .from("User")
+      .select("id, email, name, role, isActive, createdAt")
+      .eq("userId", ctx.userId)
+      .order("createdAt", { ascending: false })
+      .limit(20);
 
-    if (error) throw error
+    if (error) throw error;
 
     if (!data || data.length === 0) {
-      return 'Nenhum usuário encontrado.'
+      return "Nenhum usuário encontrado.";
     }
 
-    const total = data.length
-    const active = data.filter((u: any) => u.isActive).length
+    const total = data.length;
+    const active = data.filter((u: any) => u.isActive).length;
 
-    return `👥 **USUÁRIOS** (${total} total, ${active} ativos)\n\n` +
-      data.slice(0, 10).map((u: any, i: number) => 
-        `${i + 1}. **${u.name || u.email}**\n` +
-        `   • Email: ${u.email}\n` +
-        `   • Role: ${u.role}\n` +
-        `   • Status: ${u.isActive ? '✅ Ativo' : '❌ Inativo'}\n` +
-        `   • Cadastro: ${new Date(u.createdAt).toLocaleDateString('pt-BR')}`
-      ).join('\n\n')
+    return (
+      `👥 **USUÁRIOS** (${total} total, ${active} ativos)\n\n` +
+      data
+        .slice(0, 10)
+        .map(
+          (u: any, i: number) =>
+            `${i + 1}. **${u.name || u.email}**\n` +
+            `   • Email: ${u.email}\n` +
+            `   • Role: ${u.role}\n` +
+            `   • Status: ${u.isActive ? "✅ Ativo" : "❌ Inativo"}\n` +
+            `   • Cadastro: ${new Date(u.createdAt).toLocaleDateString("pt-BR")}`,
+        )
+        .join("\n\n")
+    );
   } catch (error: any) {
-    return `Erro ao listar usuários: ${error.message}`
+    return `Erro ao listar usuários: ${error.message}`;
   }
 }
 
@@ -542,118 +701,145 @@ async function listUsers(ctx: ToolContext): Promise<string> {
 async function listProducts(ctx: ToolContext): Promise<string> {
   try {
     const { data, error } = await ctx.supabase
-      .from('Product')
-      .select('id, name, price, stock, isActive')
-      .eq('userId', ctx.userId)
-      .order('createdAt', { ascending: false })
-      .limit(15)
+      .from("Product")
+      .select("id, name, price, stock, isActive")
+      .eq("userId", ctx.userId)
+      .order("createdAt", { ascending: false })
+      .limit(15);
 
-    if (error) throw error
+    if (error) throw error;
 
     if (!data || data.length === 0) {
-      return 'Nenhum produto encontrado.'
+      return "Nenhum produto encontrado.";
     }
 
-    return `🛍️ **PRODUTOS** (${data.length} total)\n\n` +
-      data.map((p: any, i: number) => 
-        `${i + 1}. **${p.name}**\n` +
-        `   • Preço: R$ ${p.price || 0}\n` +
-        `   • Estoque: ${p.stock || 0} unidades\n` +
-        `   • Status: ${p.isActive ? '✅ Ativo' : '❌ Inativo'}`
-      ).join('\n\n')
+    return (
+      `🛍️ **PRODUTOS** (${data.length} total)\n\n` +
+      data
+        .map(
+          (p: any, i: number) =>
+            `${i + 1}. **${p.name}**\n` +
+            `   • Preço: R$ ${p.price || 0}\n` +
+            `   • Estoque: ${p.stock || 0} unidades\n` +
+            `   • Status: ${p.isActive ? "✅ Ativo" : "❌ Inativo"}`,
+        )
+        .join("\n\n")
+    );
   } catch (error: any) {
-    return `Erro ao listar produtos: ${error.message}`
+    return `Erro ao listar produtos: ${error.message}`;
   }
 }
 
 // 9. Scrape Products (Web Scraping)
-async function scrapeProducts(params: { url?: string; format?: string }, ctx: ToolContext): Promise<string> {
+async function scrapeProducts(
+  params: { url?: string; format?: string },
+  ctx: ToolContext,
+): Promise<string> {
   try {
-    const { url, format = 'csv' } = params
+    const { url, format = "csv" } = params;
 
     if (!url) {
-      return '❌ Erro: URL não fornecida. Forneça uma URL válida para fazer scraping.'
+      return "❌ Erro: URL não fornecida. Forneça uma URL válida para fazer scraping.";
     }
 
-    console.log('🔍 Iniciando scraping AVANÇADO em:', url)
+    console.log("🔍 Iniciando scraping AVANÇADO em:", url);
 
     // Usar Edge Function advanced-scraper
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    
-    console.log('🤖 Chamando advanced-scraper...')
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/advanced-scraper`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    console.log("🤖 Chamando advanced-scraper...");
+
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/advanced-scraper`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({
+          url,
+          format,
+          userId: ctx.userId,
+          conversationId: ctx.conversationId,
+        }),
       },
-      body: JSON.stringify({
-        url,
-        format,
-        userId: ctx.userId,
-        conversationId: ctx.conversationId
-      }),
-    })
+    );
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erro no scraping avançado')
+      const error = await response.json();
+      throw new Error(error.message || "Erro no scraping avançado");
     }
 
-    const result = await response.json()
+    const result = await response.json();
 
     if (!result.success) {
-      throw new Error(result.message || 'Erro no scraping')
+      throw new Error(result.message || "Erro no scraping");
     }
 
     // Retornar resultado formatado com progresso
-    let progressMessages = []
-    
+    let progressMessages = [];
+
     if (result.steps) {
       result.steps.forEach((step: any) => {
-        if (step.status === 'completed') {
-          progressMessages.push(`✅ ${step.step}${step.details ? ` - ${step.details}` : ''}`)
+        if (step.status === "completed") {
+          progressMessages.push(
+            `✅ ${step.step}${step.details ? ` - ${step.details}` : ""}`,
+          );
         }
-      })
+      });
     }
 
     if (result.data?.downloadUrl) {
-      return progressMessages.join('\n') + '\n\n' +
+      return (
+        progressMessages.join("\n") +
+        "\n\n" +
         `✅ **Scraping AVANÇADO concluído!**\n\n` +
         `📊 Total de produtos encontrados: ${result.data.totalProducts || 0}\n\n` +
         `📥 **Download disponível:**\n` +
-        `[Baixar ${result.data.fileName || 'produtos.csv'}](${result.data.downloadUrl})\n\n` +
+        `[Baixar ${result.data.fileName || "produtos.csv"}](${result.data.downloadUrl})\n\n` +
         `⏰ Link expira em 1 hora\n\n` +
         `💡 Preview dos produtos:\n` +
-        result.data.products?.map((p: any, i: number) => 
-          `${i + 1}. ${p.name || 'Sem nome'}${p.price ? ` - R$ ${p.price}` : ''}`
-        ).join('\n')
+        result.data.products
+          ?.map(
+            (p: any, i: number) =>
+              `${i + 1}. ${p.name || "Sem nome"}${p.price ? ` - R$ ${p.price}` : ""}`,
+          )
+          .join("\n")
+      );
     }
 
-    return progressMessages.join('\n') + '\n\n' + `✅ Scraping concluído com sucesso!\n\n${result.message}`
+    return (
+      progressMessages.join("\n") +
+      "\n\n" +
+      `✅ Scraping concluído com sucesso!\n\n${result.message}`
+    );
   } catch (error: any) {
-    console.error('❌ Erro no scraping:', error)
-    
+    console.error("❌ Erro no scraping:", error);
+
     // Tentar scraping básico como fallback
-    console.log('🔄 Tentando scraping básico como fallback...')
-    
-    return `❌ Erro ao fazer scraping avançado: ${error.message}\n\n` +
+    console.log("🔄 Tentando scraping básico como fallback...");
+
+    return (
+      `❌ Erro ao fazer scraping avançado: ${error.message}\n\n` +
       `💡 **Dicas para resolver:**\n` +
       `- Verifique se a URL está acessível\n` +
       `- Tente novamente em alguns segundos\n` +
       `- Ou use uma URL de outro site\n\n` +
       `Estou trabalhando em uma solução mais robusta!`
+    );
   }
 }
 
 // 10. Generate Export
 async function generateExport(params: { format?: string }): Promise<string> {
-  const { format = 'csv' } = params
-  
-  return `🔄 **Gerando export em ${format.toUpperCase()}...**\n\n` +
+  const { format = "csv" } = params;
+
+  return (
+    `🔄 **Gerando export em ${format.toUpperCase()}...**\n\n` +
     `Esta funcionalidade está em desenvolvimento. Use a ferramenta de scraping para download direto.`
+  );
 }
 
 // 8. Relatório Completo
@@ -665,22 +851,22 @@ async function generateExport(params: { format?: string }): Promise<string> {
 async function searchGoogleTool(query: string): Promise<string> {
   try {
     const results = await searchGoogle(query, 10);
-    
+
     if (results.length === 0) {
-      return '❌ Nenhum resultado encontrado no Google.';
+      return "❌ Nenhum resultado encontrado no Google.";
     }
-    
+
     let response = `🔍 **Resultados do Google para "${query}"**\n\n`;
-    
+
     results.forEach((result, i) => {
       response += `${i + 1}. **${result.title}**\n`;
       response += `   ${result.snippet}\n`;
       response += `   🔗 ${result.link}\n\n`;
     });
-    
+
     return response;
   } catch (error: any) {
-    console.error('Erro na pesquisa Google:', error);
+    console.error("Erro na pesquisa Google:", error);
     return `❌ Erro ao pesquisar no Google: ${error.message}`;
   }
 }
@@ -691,13 +877,13 @@ async function searchGoogleTool(query: string): Promise<string> {
 async function searchYouTubeTool(query: string): Promise<string> {
   try {
     const results = await searchYouTube(query, 10);
-    
+
     if (results.length === 0) {
-      return '❌ Nenhum vídeo encontrado no YouTube.';
+      return "❌ Nenhum vídeo encontrado no YouTube.";
     }
-    
+
     let response = `🎥 **Vídeos do YouTube para "${query}"**\n\n`;
-    
+
     results.forEach((result, i) => {
       response += `${i + 1}. **${result.title}**\n`;
       response += `   ${result.snippet}\n`;
@@ -707,10 +893,10 @@ async function searchYouTubeTool(query: string): Promise<string> {
       }
       response += `\n`;
     });
-    
+
     return response;
   } catch (error: any) {
-    console.error('Erro na pesquisa YouTube:', error);
+    console.error("Erro na pesquisa YouTube:", error);
     return `❌ Erro ao pesquisar no YouTube: ${error.message}`;
   }
 }
@@ -721,13 +907,13 @@ async function searchYouTubeTool(query: string): Promise<string> {
 async function searchNewsTool(query: string): Promise<string> {
   try {
     const results = await searchNews(query, 10);
-    
+
     if (results.length === 0) {
-      return '❌ Nenhuma notícia encontrada.';
+      return "❌ Nenhuma notícia encontrada.";
     }
-    
+
     let response = `📰 **Notícias sobre "${query}"**\n\n`;
-    
+
     results.forEach((result, i) => {
       response += `${i + 1}. **${result.title}**\n`;
       response += `   ${result.snippet}\n`;
@@ -736,10 +922,10 @@ async function searchNewsTool(query: string): Promise<string> {
       }
       response += `   🔗 ${result.link}\n\n`;
     });
-    
+
     return response;
   } catch (error: any) {
-    console.error('Erro na pesquisa de notícias:', error);
+    console.error("Erro na pesquisa de notícias:", error);
     return `❌ Erro ao pesquisar notícias: ${error.message}`;
   }
 }
@@ -749,45 +935,45 @@ async function searchNewsTool(query: string): Promise<string> {
  */
 async function scrapeWebsiteTool(url: string): Promise<string> {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
     const response = await fetch(`${supabaseUrl}/functions/v1/web-scraper`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({ url }),
     });
-    
+
     const data = await response.json();
-    
+
     if (!data.success) {
       return `❌ Erro ao fazer scraping: ${data.error}`;
     }
-    
+
     const { title, description, products, prices, detectedType } = data.data;
-    
+
     let result = `🔍 **Scraping de ${url}**\n\n`;
     result += `**Título:** ${title}\n`;
     result += `**Descrição:** ${description}\n`;
     result += `**Tipo:** ${detectedType}\n\n`;
-    
+
     if (products && products.length > 0) {
       result += `**Produtos encontrados (${products.length}):**\n`;
       products.slice(0, 10).forEach((p: any, i: number) => {
         result += `${i + 1}. ${p.name} - R$ ${p.price}\n`;
       });
     }
-    
+
     if (prices && prices.length > 0) {
-      result += `\n**Preços detectados:** ${prices.slice(0, 5).join(', ')}\n`;
+      result += `\n**Preços detectados:** ${prices.slice(0, 5).join(", ")}\n`;
     }
-    
+
     return result;
   } catch (error: any) {
-    console.error('Erro no scraping:', error);
+    console.error("Erro no scraping:", error);
     return `❌ Erro ao fazer scraping: ${error.message}`;
   }
 }
@@ -795,31 +981,39 @@ async function scrapeWebsiteTool(url: string): Promise<string> {
 /**
  * Executar código Python
  */
-async function executePythonTool(code: string, packages: string[] = []): Promise<string> {
+async function executePythonTool(
+  code: string,
+  packages: string[] = [],
+): Promise<string> {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/python-executor`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/python-executor`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({ code, packages }),
       },
-      body: JSON.stringify({ code, packages }),
-    });
-    
+    );
+
     const data = await response.json();
-    
+
     if (!data.success) {
       return `❌ Erro ao executar Python: ${data.error}`;
     }
-    
-    return `✅ Código Python preparado para execução.\n\n` +
-           `📦 Packages: ${packages.join(', ') || 'Nenhum'}\n\n` +
-           `💡 Use Pyodide no frontend para executar este código.`;
+
+    return (
+      `✅ Código Python preparado para execução.\n\n` +
+      `📦 Packages: ${packages.join(", ") || "Nenhum"}\n\n` +
+      `💡 Use Pyodide no frontend para executar este código.`
+    );
   } catch (error: any) {
-    console.error('Erro ao executar Python:', error);
+    console.error("Erro ao executar Python:", error);
     return `❌ Erro ao executar Python: ${error.message}`;
   }
 }
@@ -828,41 +1022,48 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
   try {
     // Campanhas
     const { data: campaigns } = await ctx.supabase
-      .from('Campaign')
-      .select('status, budget')
-      .eq('userId', ctx.userId)
+      .from("Campaign")
+      .select("status, budget")
+      .eq("userId", ctx.userId);
 
-    const totalCampaigns = campaigns?.length || 0
-    const activeCampaigns = campaigns?.filter((c: any) => c.status === 'ACTIVE').length || 0
-    const totalBudget = campaigns?.reduce((sum: number, c: any) => sum + (c.budget || 0), 0) || 0
+    const totalCampaigns = campaigns?.length || 0;
+    const activeCampaigns =
+      campaigns?.filter((c: any) => c.status === "ACTIVE").length || 0;
+    const totalBudget =
+      campaigns?.reduce((sum: number, c: any) => sum + (c.budget || 0), 0) || 0;
 
     // Usuários
     const { data: users } = await ctx.supabase
-      .from('User')
-      .select('isActive')
-      .eq('userId', ctx.userId)
+      .from("User")
+      .select("isActive")
+      .eq("userId", ctx.userId);
 
-    const totalUsers = users?.length || 0
-    const activeUsers = users?.filter((u: any) => u.isActive).length || 0
+    const totalUsers = users?.length || 0;
+    const activeUsers = users?.filter((u: any) => u.isActive).length || 0;
 
     // Produtos
     const { data: products } = await ctx.supabase
-      .from('Product')
-      .select('stock')
-      .eq('userId', ctx.userId)
+      .from("Product")
+      .select("stock")
+      .eq("userId", ctx.userId);
 
-    const totalProducts = products?.length || 0
-    const totalStock = products?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0
+    const totalProducts = products?.length || 0;
+    const totalStock =
+      products?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0;
 
     // Chat usage
     const { data: messages } = await ctx.supabase
-      .from('ChatMessage')
-      .select('id')
-      .gte('createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .from("ChatMessage")
+      .select("id")
+      .gte(
+        "createdAt",
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      );
 
-    const messagesLast30Days = messages?.length || 0
+    const messagesLast30Days = messages?.length || 0;
 
-    return `📊 **RELATÓRIO COMPLETO DO USUÁRIO**\n\n` +
+    return (
+      `📊 **RELATÓRIO COMPLETO DO USUÁRIO**\n\n` +
       `**📢 CAMPANHAS**\n` +
       `• Total: ${totalCampaigns}\n` +
       `• Ativas: ${activeCampaigns}\n` +
@@ -870,22 +1071,24 @@ async function generateFullReport(ctx: ToolContext): Promise<string> {
       `**👥 USUÁRIOS**\n` +
       `• Total: ${totalUsers}\n` +
       `• Ativos: ${activeUsers}\n` +
-      `• Taxa de ativação: ${totalUsers > 0 ? ((activeUsers/totalUsers)*100).toFixed(1) : 0}%\n\n` +
+      `• Taxa de ativação: ${totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : 0}%\n\n` +
       `**🛍️ PRODUTOS**\n` +
       `• Total: ${totalProducts}\n` +
       `• Estoque Total: ${totalStock} unidades\n\n` +
       `**💬 USO DO CHAT**\n` +
       `• Mensagens (30 dias): ${messagesLast30Days}\n` +
       `• Média diária: ${(messagesLast30Days / 30).toFixed(1)} mensagens\n\n` +
-      `📅 Gerado em: ${new Date().toLocaleString('pt-BR')}`
+      `📅 Gerado em: ${new Date().toLocaleString("pt-BR")}`
+    );
   } catch (error: any) {
-    return `Erro ao gerar relatório: ${error.message}`
+    return `Erro ao gerar relatório: ${error.message}`;
   }
 }
 
 // 9. Ajuda (Lista de comandos)
 function showHelp(): string {
-  return `📚 **COMANDOS DISPONÍVEIS**\n\n` +
+  return (
+    `📚 **COMANDOS DISPONÍVEIS**\n\n` +
     `**🔍 Informações:**\n` +
     `• /stats ou /analytics - Estatísticas gerais\n` +
     `• /relatorio - Relatório completo\n` +
@@ -902,360 +1105,453 @@ function showHelp(): string {
     `• Exemplo: "Pesquise sobre marketing digital"\n\n` +
     `**ℹ️ Mais informações:**\n` +
     `• /ajuda ou /help - Mostrar esta mensagem`
+  );
 }
 
 serve(async (req) => {
-  console.log('=== INCOMING REQUEST ===')
-  console.log('Method:', req.method)
-  console.log('URL:', req.url)
-  
+  console.log("=== INCOMING REQUEST ===");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+
   // Handle CORS preflight FIRST
-  if (req.method === 'OPTIONS') {
-    console.log('✅ CORS preflight OK')
-    return handlePreflightRequest()
+  if (req.method === "OPTIONS") {
+    console.log("✅ CORS preflight OK");
+    return handlePreflightRequest();
   }
-  
+
   // === VALIDAÇÃO DE ENV VARS ===
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
-  const EXA_API_KEY = Deno.env.get('EXA_API_KEY')
-  const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY')
-  const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY')
-  
-  console.log(`${SUPABASE_URL ? '✅' : '❌'} SUPABASE_URL`)
-  console.log(`${SUPABASE_ANON_KEY ? '✅' : '❌'} SUPABASE_ANON_KEY`)
-  console.log(`${EXA_API_KEY ? '✅' : '❌'} EXA_API_KEY`)
-  console.log(`${TAVILY_API_KEY ? '⚠️' : '❌'} TAVILY_API_KEY`)
-  console.log(`${SERPER_API_KEY ? '⚠️' : '❌'} SERPER_API_KEY`)
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+  const EXA_API_KEY = Deno.env.get("EXA_API_KEY");
+  const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
+  const SERPER_API_KEY = Deno.env.get("SERPER_API_KEY");
+
+  console.log(`${SUPABASE_URL ? "✅" : "❌"} SUPABASE_URL`);
+  console.log(`${SUPABASE_ANON_KEY ? "✅" : "❌"} SUPABASE_ANON_KEY`);
+  console.log(`${EXA_API_KEY ? "✅" : "❌"} EXA_API_KEY`);
+  console.log(`${TAVILY_API_KEY ? "⚠️" : "❌"} TAVILY_API_KEY`);
+  console.log(`${SERPER_API_KEY ? "⚠️" : "❌"} SERPER_API_KEY`);
 
   try {
-    console.log('=== CHAT STREAM REQUEST START ===')
-    
-    const body = await req.json()
-    const { message, conversationId, conversationHistory = [], systemPrompt } = body
-    
-    console.log('Message:', message?.substring(0, 50))
-    console.log('ConversationId:', conversationId)
-    console.log('History length:', conversationHistory?.length || 0)
-    
+    console.log("=== CHAT STREAM REQUEST START ===");
+
+    const body = await req.json();
+    const {
+      message,
+      conversationId,
+      conversationHistory = [],
+      systemPrompt,
+    } = body;
+
+    console.log("Message:", message?.substring(0, 50));
+    console.log("ConversationId:", conversationId);
+    console.log("History length:", conversationHistory?.length || 0);
+
     // Debug: Verificar quais API keys estão disponíveis
-    console.log('🔑 API Keys disponíveis:')
-    console.log('- EXA_API_KEY:', Deno.env.get('EXA_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
-    console.log('- TAVILY_API_KEY:', Deno.env.get('TAVILY_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
-    console.log('- SERPER_API_KEY:', Deno.env.get('SERPER_API_KEY') ? '✅ Configurado' : '❌ Não configurado')
+    console.log("🔑 API Keys disponíveis:");
+    console.log(
+      "- EXA_API_KEY:",
+      Deno.env.get("EXA_API_KEY") ? "✅ Configurado" : "❌ Não configurado",
+    );
+    console.log(
+      "- TAVILY_API_KEY:",
+      Deno.env.get("TAVILY_API_KEY") ? "✅ Configurado" : "❌ Não configurado",
+    );
+    console.log(
+      "- SERPER_API_KEY:",
+      Deno.env.get("SERPER_API_KEY") ? "✅ Configurado" : "❌ Não configurado",
+    );
 
     if (!message || !conversationId) {
-      console.error('Missing required fields')
+      console.error("Missing required fields");
       return new Response(
-        JSON.stringify({ error: 'Missing message or conversationId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({ error: "Missing message or conversationId" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Authenticate user
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error('No auth header')
-      throw new Error('Missing auth header')
+      console.error("No auth header");
+      throw new Error("Missing auth header");
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    console.log('Token length:', token.length)
-    
+    const token = authHeader.replace("Bearer ", "");
+    console.log("Token length:", token.length);
+
     // Create Supabase client ✅ FIX: estava faltando criar a instância!
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    console.log('Auth result - User ID:', user?.id, 'Error:', authError?.message)
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    console.log(
+      "Auth result - User ID:",
+      user?.id,
+      "Error:",
+      authError?.message,
+    );
 
     if (authError || !user) {
-      console.error('Auth failed:', authError)
-      throw new Error('Unauthorized')
+      console.error("Auth failed:", authError);
+      throw new Error("Unauthorized");
     }
 
     // Rate Limiting
-    console.log('⏱️ Checking rate limit...')
+    console.log("⏱️ Checking rate limit...");
     const rateLimitResult = await checkRateLimit(
       user.id,
-      'chat-stream',
-      { maxRequests: 100, windowMs: 60000 } // 100 req/min
-    )
+      "chat-stream",
+      { maxRequests: 100, windowMs: 60000 }, // 100 req/min
+    );
 
     if (!rateLimitResult.allowed) {
-      console.log('❌ Rate limit exceeded')
-      return createRateLimitResponse(rateLimitResult)
+      console.log("❌ Rate limit exceeded");
+      return createRateLimitResponse(rateLimitResult);
     }
 
-    console.log(`✅ Rate limit OK (${rateLimitResult.remaining}/${rateLimitResult.limit} remaining)`)
+    console.log(
+      `✅ Rate limit OK (${rateLimitResult.remaining}/${rateLimitResult.limit} remaining)`,
+    );
 
     // ✅ SIMPLIFICADO: Não usamos mais organizações
-    console.log('User authenticated:', user.id)
+    console.log("User authenticated:", user.id);
 
     // Get AI config - SIMPLIFIED: busca QUALQUER IA ativa (sem dependência de org)
-    console.log('Fetching active AI config...')
-    
-    const { data: aiConfig, error: aiError } = await supabase
-      .from('GlobalAiConnection')
-      .select('id, provider, apiKey, baseUrl, model, temperature, systemPrompt, isActive')
-      .eq('isActive', true)
-      .limit(1)
-      .maybeSingle()
+    console.log("Fetching active AI config...");
 
-    console.log('GlobalAI found:', !!aiConfig, 'Error:', aiError?.message)
+    const { data: aiConfig, error: aiError } = await supabase
+      .from("GlobalAiConnection")
+      .select(
+        "id, provider, apiKey, baseUrl, model, temperature, systemPrompt, isActive",
+      )
+      .eq("isActive", true)
+      .limit(1)
+      .maybeSingle();
+
+    console.log("GlobalAI found:", !!aiConfig, "Error:", aiError?.message);
 
     if (!aiConfig) {
-      console.error('No active AI found')
-      throw new Error('Nenhuma IA ativa configurada. Contate o administrador.')
+      console.error("No active AI found");
+      throw new Error("Nenhuma IA ativa configurada. Contate o administrador.");
     }
 
-    console.log('AI Config - Provider:', aiConfig.provider, 'Model:', aiConfig.model)
-    console.log('AI Config - API Key length:', aiConfig.apiKey?.length || 0, 'Has key:', !!aiConfig.apiKey)
+    console.log(
+      "AI Config - Provider:",
+      aiConfig.provider,
+      "Model:",
+      aiConfig.model,
+    );
+    console.log(
+      "AI Config - API Key length:",
+      aiConfig.apiKey?.length || 0,
+      "Has key:",
+      !!aiConfig.apiKey,
+    );
 
     // Verificar se API key está configurada
     if (!aiConfig.apiKey) {
-      console.error('No API key configured')
-      throw new Error('API key não configurada. Configure uma API key válida nas configurações da IA.')
+      console.error("No API key configured");
+      throw new Error(
+        "API key não configurada. Configure uma API key válida nas configurações da IA.",
+      );
     }
 
     // Buscar histórico de mensagens (últimas 20)
     const { data: messages } = await supabase
-      .from('ChatMessage')
-      .select('role, content')
-      .eq('conversationId', conversationId)
-      .order('createdAt', { ascending: true })
-      .limit(20)
+      .from("ChatMessage")
+      .select("role, content")
+      .eq("conversationId", conversationId)
+      .order("createdAt", { ascending: true })
+      .limit(20);
 
     // Construir histórico para contexto (apenas mensagens válidas)
-    const chatHistory = messages
-      ?.filter(m => m.role && m.content && ['user', 'assistant', 'system'].includes(m.role))
-      .map(m => ({
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: String(m.content)
-      })) || []
-    
-    console.log('Chat history messages:', chatHistory.length)
+    const chatHistory =
+      messages
+        ?.filter(
+          (m) =>
+            m.role &&
+            m.content &&
+            ["user", "assistant", "system"].includes(m.role),
+        )
+        .map((m) => ({
+          role: m.role as "user" | "assistant" | "system",
+          content: String(m.content),
+        })) || [];
+
+    console.log("Chat history messages:", chatHistory.length);
 
     // ===== EXECUTAR FERRAMENTAS (se necessário) =====
     const toolContext: ToolContext = {
       supabase,
       userId: user.id,
-      conversationId: conversationId
-    }
+      conversationId: conversationId,
+    };
 
-    const intent = detectIntent(message)
-    let toolResult = ''
+    const intent = detectIntent(message);
+    let toolResult = "";
 
     if (intent) {
-      console.log('Tool detected:', intent.tool)
-      
+      console.log("Tool detected:", intent.tool);
+
       switch (intent.tool) {
-        case 'connect_integration':
+        case "connect_integration":
           // Retornar resposta especial para o frontend mostrar card de conexão
-          const aiResponse = `🔗 **INTEGRATION_CONNECT:${intent.params.platform}:${intent.params.platformName}** 🔗\n\n` +
+          const aiResponse =
+            `🔗 **INTEGRATION_CONNECT:${intent.params.platform}:${intent.params.platformName}** 🔗\n\n` +
             `Vou te ajudar a conectar sua conta do ${intent.params.platformName}. ` +
-            `Isso vai permitir que você gerencie suas campanhas e anúncios diretamente por aqui!`
-          
+            `Isso vai permitir que você gerencie suas campanhas e anúncios diretamente por aqui!`;
+
           // Salvar mensagens e retornar imediatamente (sem chamar IA)
-          const userMsgId = crypto.randomUUID()
-          const assistantMsgId = crypto.randomUUID()
-          
-          await supabase
-            .from('ChatMessage')
-            .insert([
-              { id: userMsgId, conversationId, role: 'USER', content: message, userId: user.id },
-              { id: assistantMsgId, conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
-            ])
-          
-          return new Response(
-            JSON.stringify({ response: aiResponse }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-          
-        case 'generate_image':
-          toolResult = await generateImage(toolContext, intent.params)
-          break
-        case 'web_search':
-          toolResult = await webSearch(intent.params)
-          break
-        case 'google_search':
-          toolResult = await searchGoogleTool(intent.params.query)
-          break
-        case 'youtube_search':
-          toolResult = await searchYouTubeTool(intent.params.query)
-          break
-        case 'news_search':
-          toolResult = await searchNewsTool(intent.params.query)
-          break
-        case 'scrape_website':
-          toolResult = await scrapeWebsiteTool(intent.params.url)
-          break
-        case 'python_execute':
-          toolResult = await executePythonTool(intent.params.code, intent.params.packages)
-          break
-        case 'list_campaigns':
-          toolResult = await listCampaigns(toolContext)
-          break
-        case 'create_campaign':
-          toolResult = await createCampaign(toolContext, intent.params)
-          break
-        case 'get_analytics':
-          toolResult = await getAnalytics(toolContext)
-          break
-        case 'list_users':
-          toolResult = await listUsers(toolContext)
-          break
-        case 'list_products':
-          toolResult = await listProducts(toolContext)
-          break
-        case 'scrape_products':
-          toolResult = await scrapeProducts(intent.params, toolContext)
-          break
-        case 'generate_export':
-          toolResult = await generateExport(intent.params)
-          break
-        case 'full_report':
-          toolResult = await generateFullReport(toolContext)
-          break
-        case 'show_help':
-          toolResult = showHelp()
-          break
+          const userMsgId = crypto.randomUUID();
+          const assistantMsgId = crypto.randomUUID();
+
+          await supabase.from("ChatMessage").insert([
+            {
+              id: userMsgId,
+              conversationId,
+              role: "USER",
+              content: message,
+              userId: user.id,
+            },
+            {
+              id: assistantMsgId,
+              conversationId,
+              role: "ASSISTANT",
+              content: aiResponse,
+              userId: user.id,
+            },
+          ]);
+
+          return new Response(JSON.stringify({ response: aiResponse }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+
+        case "generate_image":
+          toolResult = await generateImage(toolContext, intent.params);
+          break;
+        case "web_search":
+          toolResult = await webSearch(intent.params);
+          break;
+        case "google_search":
+          toolResult = await searchGoogleTool(intent.params.query);
+          break;
+        case "youtube_search":
+          toolResult = await searchYouTubeTool(intent.params.query);
+          break;
+        case "news_search":
+          toolResult = await searchNewsTool(intent.params.query);
+          break;
+        case "scrape_website":
+          toolResult = await scrapeWebsiteTool(intent.params.url);
+          break;
+        case "python_execute":
+          toolResult = await executePythonTool(
+            intent.params.code,
+            intent.params.packages,
+          );
+          break;
+        case "list_campaigns":
+          toolResult = await listCampaigns(toolContext);
+          break;
+        case "create_campaign":
+          toolResult = await createCampaign(toolContext, intent.params);
+          break;
+        case "get_analytics":
+          toolResult = await getAnalytics(toolContext);
+          break;
+        case "list_users":
+          toolResult = await listUsers(toolContext);
+          break;
+        case "list_products":
+          toolResult = await listProducts(toolContext);
+          break;
+        case "scrape_products":
+          toolResult = await scrapeProducts(intent.params, toolContext);
+          break;
+        case "generate_export":
+          toolResult = await generateExport(intent.params);
+          break;
+        case "full_report":
+          toolResult = await generateFullReport(toolContext);
+          break;
+        case "show_help":
+          toolResult = showHelp();
+          break;
       }
 
-      console.log('Tool result:', toolResult.substring(0, 100))
+      console.log("Tool result:", toolResult.substring(0, 100));
     }
 
     // Preparar request para IA
-    const systemPrompt = (aiConfig.systemPrompt || 'Você é um assistente inteligente para marketing digital.') + '\n\n' +
-      'Você pode ajudar com análise de campanhas, produtos, usuários e relatórios. Seja sempre útil e direto nas respostas.'
-    
+    const systemPrompt =
+      (aiConfig.systemPrompt ||
+        "Você é um assistente inteligente para marketing digital.") +
+      "\n\n" +
+      "Você pode ajudar com análise de campanhas, produtos, usuários e relatórios. Seja sempre útil e direto nas respostas.";
+
     // === TOKEN COUNTING ===
-    const tokenCount = estimateConversationTokens(message, chatHistory, systemPrompt)
-    console.log(`📊 Tokens estimados: ${formatTokenCount(tokenCount)}`)
-    
-    const tokenValidation = validateTokenLimit(tokenCount.tokens, 128000)
+    const tokenCount = estimateConversationTokens(
+      message,
+      chatHistory,
+      systemPrompt,
+    );
+    console.log(`📊 Tokens estimados: ${formatTokenCount(tokenCount)}`);
+
+    const tokenValidation = validateTokenLimit(tokenCount.tokens, 128000);
     if (!tokenValidation.valid) {
-      console.error(`❌ Token limit exceeded: ${tokenCount.tokens}/${128000}`)
-      throw new Error('Limite de tokens excedido. Por favor, encurte sua mensagem.')
+      console.error(`❌ Token limit exceeded: ${tokenCount.tokens}/${128000}`);
+      throw new Error(
+        "Limite de tokens excedido. Por favor, encurte sua mensagem.",
+      );
     }
-    
+
     if (tokenValidation.warning) {
-      console.warn(`⚠️ ${tokenValidation.warning} (${tokenValidation.percentage}%)`)
+      console.warn(
+        `⚠️ ${tokenValidation.warning} (${tokenValidation.percentage}%)`,
+      );
     }
-    
+
     const requestMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: "system", content: systemPrompt },
       ...chatHistory,
-      { role: 'user', content: message }
-    ]
+      { role: "user", content: message },
+    ];
 
     // ✅ SOLUÇÃO RADICAL: Se tem resultado de scraping/busca, retornar DIRETO sem chamar IA
-    if (toolResult && (intent?.action === 'scrape_products' || intent?.action === 'search_google' || 
-        intent?.action === 'search_youtube' || intent?.action === 'search_news' || 
-        intent?.action === 'scrape_website' || intent?.action === 'execute_python')) {
-      
-      console.log('✅ Retornando resultado direto sem chamar IA (evitar tool calling)')
-      
+    if (
+      toolResult &&
+      (intent?.action === "scrape_products" ||
+        intent?.action === "search_google" ||
+        intent?.action === "search_youtube" ||
+        intent?.action === "search_news" ||
+        intent?.action === "scrape_website" ||
+        intent?.action === "execute_python")
+    ) {
+      console.log(
+        "✅ Retornando resultado direto sem chamar IA (evitar tool calling)",
+      );
+
       // Salvar mensagens no banco
-      await supabase.from('ChatMessage').insert([
-        { conversationId, role: 'user', content: message },
-        { conversationId, role: 'assistant', content: toolResult }
-      ])
-      
+      await supabase.from("ChatMessage").insert([
+        { conversationId, role: "user", content: message },
+        { conversationId, role: "assistant", content: toolResult },
+      ]);
+
       return new Response(toolResult, {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
-      })
+        headers: { ...corsHeaders, "Content-Type": "text/plain" },
+      });
     }
 
     // Chamar IA com STREAMING (apenas para mensagens normais SEM ferramentas)
-    let aiResponse = ''
-    
+    let aiResponse = "";
+
     if (!toolResult) {
       // Determinar URL e headers baseado no provider
-      let apiUrl = ''
+      let apiUrl = "";
       let headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${aiConfig.apiKey}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${aiConfig.apiKey}`,
+      };
+
+      if (aiConfig.provider === "GROQ") {
+        apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+      } else if (aiConfig.provider === "OPENROUTER") {
+        apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+        headers["HTTP-Referer"] = "https://syncads.com";
+        headers["X-Title"] = "SyncAds Admin";
+      } else if (aiConfig.provider === "OPENAI") {
+        apiUrl = "https://api.openai.com/v1/chat/completions";
+      } else {
+        throw new Error(`Provider ${aiConfig.provider} not supported`);
       }
 
-      if (aiConfig.provider === 'GROQ') {
-        apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
-      } else if (aiConfig.provider === 'OPENROUTER') {
-        apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
-        headers['HTTP-Referer'] = 'https://syncads.com'
-        headers['X-Title'] = 'SyncAds Admin'
-      } else if (aiConfig.provider === 'OPENAI') {
-        apiUrl = 'https://api.openai.com/v1/chat/completions'
-      } else {
-        throw new Error(`Provider ${aiConfig.provider} not supported`)
-      }
-      
-      if (aiConfig.provider === 'OPENROUTER' || aiConfig.provider === 'GROQ' || aiConfig.provider === 'OPENAI') {
-        console.log('Calling AI API:', apiUrl)
-        console.log('Headers:', { ...headers, Authorization: 'Bearer ***hidden***' })
-        
+      if (
+        aiConfig.provider === "OPENROUTER" ||
+        aiConfig.provider === "GROQ" ||
+        aiConfig.provider === "OPENAI"
+      ) {
+        console.log("Calling AI API:", apiUrl);
+        console.log("Headers:", {
+          ...headers,
+          Authorization: "Bearer ***hidden***",
+        });
+
         let response: Response;
-        
+
         try {
           response = await fetch(apiUrl, {
-            method: 'POST',
+            method: "POST",
             headers,
             body: JSON.stringify({
-              model: aiConfig.model || 'gpt-3.5-turbo',
+              model: aiConfig.model || "gpt-3.5-turbo",
               messages: requestMessages,
               temperature: aiConfig.temperature || 0.7,
               stream: true,
               tool_choice: "none", // ✅ FIX: Desabilitar tool calling explicitamente
-              tools: [] // ✅ FIX: Lista vazia de ferramentas
-            })
-          })
+              tools: [], // ✅ FIX: Lista vazia de ferramentas
+            }),
+          });
 
           if (!response.ok) {
-            const errorText = await response.text()
-            console.error('AI API Error Response:', errorText.substring(0, 500))
-            
+            const errorText = await response.text();
+            console.error(
+              "AI API Error Response:",
+              errorText.substring(0, 500),
+            );
+
             // Tentar parsear erro como JSON
             try {
-              const errorJson = JSON.parse(errorText)
-              throw new Error(`Erro na API da IA: ${errorJson.error?.message || errorJson.message || 'Erro desconhecido'}`)
+              const errorJson = JSON.parse(errorText);
+              throw new Error(
+                `Erro na API da IA: ${errorJson.error?.message || errorJson.message || "Erro desconhecido"}`,
+              );
             } catch {
-              throw new Error(`Erro na API da IA: ${errorText.substring(0, 200)}`)
+              throw new Error(
+                `Erro na API da IA: ${errorText.substring(0, 200)}`,
+              );
             }
           }
-          
-          console.log('AI API Response OK')
+
+          console.log("AI API Response OK");
         } catch (error: any) {
-          console.error('Failed to call AI API:', error.message)
-          throw error
+          console.error("Failed to call AI API:", error.message);
+          throw error;
         }
 
         // Processar stream
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-        if (!reader) throw new Error('No response body')
+        if (!reader) throw new Error("No response body");
 
         while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+          const { done, value } = await reader.read();
+          if (done) break;
 
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n').filter(line => line.trim() !== '')
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6)
-              if (data === '[DONE]') continue
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
 
               try {
-                const parsed = JSON.parse(data)
-                const content = parsed.choices[0]?.delta?.content || ''
-                aiResponse += content
+                const parsed = JSON.parse(data);
+                const content = parsed.choices[0]?.delta?.content || "";
+                aiResponse += content;
               } catch (e) {
                 // Ignore parse errors
               }
@@ -1267,52 +1563,57 @@ serve(async (req) => {
 
     // Se não chamou IA mas tem toolResult, usar toolResult como resposta
     if (!aiResponse && toolResult) {
-      aiResponse = toolResult
+      aiResponse = toolResult;
     }
 
     // Fallback apenas se realmente não houver resposta
     if (!aiResponse) {
-      aiResponse = 'Sem resposta da IA'
+      aiResponse = "Sem resposta da IA";
     }
-    
-    console.log('AI Response length:', aiResponse.length)
-    console.log('AI Response preview:', aiResponse.substring(0, 100))
+
+    console.log("AI Response length:", aiResponse.length);
+    console.log("AI Response preview:", aiResponse.substring(0, 100));
 
     // Salvar mensagens no banco
-    console.log('Salvando mensagens no banco...')
-    const userMsgId = crypto.randomUUID()
-    const assistantMsgId = crypto.randomUUID()
-    
+    console.log("Salvando mensagens no banco...");
+    const userMsgId = crypto.randomUUID();
+    const assistantMsgId = crypto.randomUUID();
+
     const { data: savedMessages, error: insertError } = await supabase
-      .from('ChatMessage')
+      .from("ChatMessage")
       .insert([
-        { id: userMsgId, conversationId, role: 'USER', content: message, userId: user.id },
-        { id: assistantMsgId, conversationId, role: 'ASSISTANT', content: aiResponse, userId: user.id }
+        {
+          id: userMsgId,
+          conversationId,
+          role: "USER",
+          content: message,
+          userId: user.id,
+        },
+        {
+          id: assistantMsgId,
+          conversationId,
+          role: "ASSISTANT",
+          content: aiResponse,
+          userId: user.id,
+        },
       ])
-      .select()
+      .select();
 
     if (insertError) {
-      console.error('Erro ao salvar mensagens:', insertError)
-      throw new Error(`Failed to save messages: ${insertError.message}`)
+      console.error("Erro ao salvar mensagens:", insertError);
+      throw new Error(`Failed to save messages: ${insertError.message}`);
     }
-    
-    console.log('Mensagens salvas com sucesso:', savedMessages?.length || 0)
 
-    return new Response(
-      JSON.stringify({ response: aiResponse }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    console.log("Mensagens salvas com sucesso:", savedMessages?.length || 0);
 
+    return new Response(JSON.stringify({ response: aiResponse }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    console.error('Chat stream error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 500 
-      }
-    )
+    console.error("Chat stream error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
-})
+});
