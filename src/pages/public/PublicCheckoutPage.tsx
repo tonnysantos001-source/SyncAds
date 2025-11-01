@@ -110,66 +110,61 @@ const PublicCheckoutPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Tentar buscar do localStorage (carrinho Shopify)
+      // Buscar dados reais do carrinho do localStorage
       const cartData = localStorage.getItem("syncads_cart");
-      if (cartData) {
-        const items = JSON.parse(cartData);
-        const subtotal = items.reduce(
-          (sum: number, item: any) => sum + item.price * item.quantity,
-          0,
-        );
 
-        const mockData: CheckoutData = {
-          orderId: orderId!,
-          products: items.map((item: any) => ({
-            id: item.variantId || item.id,
-            name: item.name || item.title,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image,
-            sku: item.sku,
-          })),
-          total: subtotal,
-          subtotal,
-          tax: 0,
-          shipping: 0,
-          discount: 0,
-        };
-
-        setCheckoutData(mockData);
-      } else {
-        // Mock data com imagens reais
-        const mockData: CheckoutData = {
-          orderId: orderId!,
-          products: [
-            {
-              id: "1",
-              name: "Tênis Esportivo Premium",
-              price: 299.9,
-              quantity: 1,
-              image:
-                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-              sku: "TENIS-001",
-            },
-            {
-              id: "2",
-              name: "Mochila Moderna",
-              price: 189.9,
-              quantity: 2,
-              image:
-                "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
-              sku: "MOCHILA-002",
-            },
-          ],
-          total: 679.7,
-          subtotal: 679.7,
-          tax: 0,
-          shipping: 0,
-          discount: 0,
-        };
-
-        setCheckoutData(mockData);
+      if (!cartData || cartData === "[]") {
+        // Se não houver carrinho, mostrar erro
+        console.error("Nenhum produto no carrinho");
+        toast({
+          title: "Carrinho vazio",
+          description: "Adicione produtos ao carrinho antes de finalizar",
+          variant: "destructive",
+        });
+        setCheckoutData(null);
+        setLoading(false);
+        return;
       }
+
+      const items = JSON.parse(cartData);
+
+      if (items.length === 0) {
+        console.error("Carrinho vazio");
+        toast({
+          title: "Carrinho vazio",
+          description: "Adicione produtos ao carrinho antes de finalizar",
+          variant: "destructive",
+        });
+        setCheckoutData(null);
+        setLoading(false);
+        return;
+      }
+
+      // Calcular totais reais
+      const subtotal = items.reduce(
+        (sum: number, item: any) => sum + item.price * item.quantity,
+        0,
+      );
+
+      const realData: CheckoutData = {
+        orderId: orderId!,
+        products: items.map((item: any) => ({
+          id: item.productId || item.variantId || item.id,
+          name: item.name || item.title,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image || "",
+          sku: item.sku || "",
+        })),
+        total: subtotal,
+        subtotal,
+        tax: 0,
+        shipping: 0,
+        discount: 0,
+      };
+
+      console.log("✅ Produtos do carrinho carregados:", realData);
+      setCheckoutData(realData);
 
       // Carregar personalização do checkout
       try {
