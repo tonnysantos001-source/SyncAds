@@ -74,79 +74,33 @@ const INTEGRATIONS_CONFIG: Record<string, IntegrationConfig> = {
       "Conecte sua loja Shopify para sincronizar produtos, pedidos e clientes automaticamente.",
     longDescription:
       "A integração com Shopify permite sincronizar automaticamente todos os seus produtos, pedidos, clientes e dados de estoque entre sua loja e o SyncAds. Com isso, você pode gerenciar tudo em um só lugar.",
-    fields: [
-      {
-        id: "shopDomain",
-        label: "Nome da Loja",
-        placeholder: "minhaloja.myshopify.com",
-        type: "text",
-        required: true,
-        helpText:
-          "Digite o domínio completo da sua loja (ex: minhaloja.myshopify.com)",
-      },
-      {
-        id: "accessToken",
-        label: "Token de Acesso da Admin API",
-        placeholder: "shpat_xxxxxxxxxxxxx",
-        type: "password",
-        required: true,
-        helpText:
-          "Token gerado no Admin da Shopify com permissões de leitura/escrita",
-      },
-      {
-        id: "apiKey",
-        label: "Chave de API (API Key)",
-        placeholder: "xxxxxxxxxxxxx",
-        type: "text",
-        required: true,
-        helpText: "Client ID do seu App Shopify",
-      },
-      {
-        id: "apiSecret",
-        label: "Chave Secreta da API (API Secret Key)",
-        placeholder: "shpss_xxxxxxxxxxxxx",
-        type: "password",
-        required: true,
-        helpText: "Client Secret do seu App Shopify",
-      },
-    ],
+    fields: [],
     manual: [
       {
         step: 1,
-        title: "Acesse o Shopify Partners",
+        title: "Baixe o Script de Checkout",
         description:
-          "Vá até https://partners.shopify.com e faça login com sua conta",
-        link: "https://partners.shopify.com",
-        linkText: "Acessar Shopify Partners",
+          "Clique no botão abaixo para baixar o arquivo shopify-checkout-redirect.js",
+        link: "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
+        linkText: "📥 Baixar Script",
       },
       {
         step: 2,
-        title: "Crie um App Personalizado",
+        title: "Adicione o Script no seu Tema Shopify",
         description:
-          'Na seção "Apps", clique em "Criar app" e escolha "App personalizado". Dê um nome para o app.',
+          "Acesse: Shopify Admin → Online Store → Themes → Actions → Edit code → Na pasta 'Assets', clique em 'Add a new asset' → Upload o arquivo baixado",
       },
       {
         step: 3,
-        title: "⚠️ IMPORTANTE: Configure as URLs de Redirecionamento",
-        description: `Adicione EXATAMENTE esta URL no campo "Allowed redirection URL(s)": ${window.location.origin}/integrations/callback - Este é o erro mais comum! Sem isso você verá erro "OAuth invalid_request".`,
+        title: "Insira o Código no theme.liquid",
+        description:
+          "Abra o arquivo 'Layout/theme.liquid' e adicione o código abaixo logo ACIMA da tag </body> no final do arquivo. Use o botão para copiar.",
       },
       {
         step: 4,
-        title: "Defina os Escopos (Scopes)",
+        title: "Salve e Teste",
         description:
-          "Marque as permissões: read_products, write_products, read_orders, write_orders, read_customers, write_customers",
-      },
-      {
-        step: 5,
-        title: "Copie as Credenciais",
-        description:
-          "Após criar o app, copie: Client ID (API Key), Client Secret (API Secret Key) e gere um Access Token na aba 'API credentials'",
-      },
-      {
-        step: 6,
-        title: "Cole as Credenciais Abaixo",
-        description:
-          "Preencha todos os campos abaixo com as credenciais copiadas e clique em 'Conectar'",
+          "Salve as alterações e vá até uma página de produto da sua loja. Clique em 'Add to cart' e você será redirecionado para o checkout do SyncAds!",
       },
     ],
   },
@@ -357,18 +311,21 @@ const IntegrationDetailPage: React.FC = () => {
   const handleConnect = async () => {
     if (!user) return;
 
-    // Validar campos obrigatórios
-    const missingFields = config.fields
-      .filter((field) => field.required && !formData[field.id])
-      .map((field) => field.label);
+    // Para Shopify, não precisa validar campos (apenas instalação do script)
+    if (config.id !== "shopify") {
+      // Validar campos obrigatórios
+      const missingFields = config.fields
+        .filter((field) => field.required && !formData[field.id])
+        .map((field) => field.label);
 
-    if (missingFields.length > 0) {
-      toast({
-        title: "Campos obrigatórios",
-        description: `Preencha: ${missingFields.join(", ")}`,
-        variant: "destructive",
-      });
-      return;
+      if (missingFields.length > 0) {
+        toast({
+          title: "Campos obrigatórios",
+          description: `Preencha: ${missingFields.join(", ")}`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -376,14 +333,16 @@ const IntegrationDetailPage: React.FC = () => {
     try {
       let result: any;
 
-      // Shopify
+      // Shopify - apenas marcar como instalado (usuário já instalou o script)
       if (config.id === "shopify") {
-        result = await shopifyIntegrationApi.connect(
-          formData.shopDomain,
-          formData.accessToken,
-          formData.apiKey,
-          formData.apiSecret,
-        );
+        setIsConnected(true);
+        toast({
+          title: "✅ Shopify Configurado!",
+          description:
+            "Ótimo! Agora teste clicando em 'Add to cart' em uma página de produto da sua loja.",
+        });
+        setIsLoading(false);
+        return;
       }
 
       // VTEX
@@ -576,65 +535,134 @@ const IntegrationDetailPage: React.FC = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">Manual de Configuração</CardTitle>
+              <CardTitle className="text-lg">
+                Como Configurar o Checkout
+              </CardTitle>
             </div>
+            <CardDescription>
+              Siga os passos abaixo para ativar o checkout SyncAds na sua loja
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {config.manual.map((step) => (
               <Alert key={step.step} className="bg-blue-50 border-blue-200">
                 <div className="flex gap-3">
-                  <div
-                    className={`flex-shrink-0 w-7 h-7 rounded-full ${
-                      step.title.includes("⚠️") ||
-                      step.title.includes("IMPORTANTE")
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
-                    } text-white text-sm font-bold flex items-center justify-center`}
-                  >
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
                     {step.step}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p
-                      className={`font-medium text-sm ${
-                        step.title.includes("⚠️") ||
-                        step.title.includes("IMPORTANTE")
-                          ? "text-yellow-900"
-                          : ""
-                      }`}
-                    >
+                  <div className="flex-1 space-y-2">
+                    <p className="font-semibold text-sm text-gray-900">
                       {step.title}
                     </p>
-                    <AlertDescription
-                      className={`text-xs ${
-                        step.title.includes("⚠️") ||
-                        step.title.includes("IMPORTANTE")
-                          ? "text-yellow-800 font-medium"
-                          : ""
-                      }`}
-                    >
+                    <AlertDescription className="text-xs text-gray-700">
                       {step.description}
                     </AlertDescription>
-                    {step.link && (
-                      <a
-                        href={step.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium mt-1"
+
+                    {/* Botão de Download (Passo 1) */}
+                    {step.step === 1 && step.link && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 gap-2"
+                        onClick={() => window.open(step.link, "_blank")}
                       >
-                        {step.linkText || "Abrir link"}
+                        {step.linkText || "Download"}
                         <ExternalLink className="h-3 w-3" />
-                      </a>
+                      </Button>
+                    )}
+
+                    {/* Botão de Copiar Código (Passo 3) */}
+                    {step.step === 3 && config.id === "shopify" && (
+                      <div className="mt-3 space-y-2">
+                        <div className="bg-gray-900 rounded-md p-3 relative">
+                          <code className="text-xs text-green-400 font-mono break-all">
+                            {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
+                          </code>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
+                            );
+                            toast({
+                              title: "✅ Código Copiado!",
+                              description:
+                                "Cole este código no theme.liquid acima da tag </body>",
+                            });
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copiar Código
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
               </Alert>
             ))}
+
+            {/* Card de Ajuda Extra para Shopify */}
+            {config.id === "shopify" && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-xs text-green-800">
+                  <strong>Dica:</strong> Após salvar, teste imediatamente indo
+                  em uma página de produto e clicando no botão "Add to cart".
+                  Você deve ser redirecionado para o checkout do SyncAds!
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Campos de Configuração */}
-      {!isConnected && config.fields.length > 0 && (
+      {/* Botão de Marcar como Instalado (Shopify) */}
+      {!isConnected && config.id === "shopify" && (
+        <Card className="border-2 border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                  <CheckCircle2 className="h-8 w-8 text-blue-600" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Instalou o Script?
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Após seguir os passos acima e instalar o script no seu tema
+                  Shopify, clique no botão abaixo para ativar a integração.
+                </p>
+              </div>
+              <Button
+                onClick={handleConnect}
+                disabled={isLoading}
+                size="lg"
+                className="w-full max-w-md gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Sim, Instalei o Script
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Campos de Configuração (outras integrações) */}
+      {!isConnected && config.id !== "shopify" && config.fields.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Credenciais</CardTitle>
@@ -663,7 +691,9 @@ const IntegrationDetailPage: React.FC = () => {
                     }
                     placeholder={field.placeholder}
                     value={formData[field.id] || ""}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange(field.id, e.target.value)
+                    }
                     className="pr-10"
                   />
                   {field.type === "password" && (
