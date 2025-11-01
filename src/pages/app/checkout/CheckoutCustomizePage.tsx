@@ -1,24 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Smartphone, Monitor, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuthStore } from '@/store/authStore';
-import { checkoutApi, CheckoutCustomization } from '@/lib/api/checkoutApi';
+import React, { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Smartphone,
+  Monitor,
+  Save,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { checkoutApi, CheckoutCustomization } from "@/lib/api/checkoutApi";
+import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
-  
-  const [expandedSections, setExpandedSections] = useState<string[]>(['CABEÇALHO']);
-  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [customization, setCustomization] = useState<CheckoutCustomization | null>(null);
+
+  const [expandedSections, setExpandedSections] = useState<string[]>([
+    "CABEÇALHO",
+  ]);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
+    "desktop",
+  );
+  const [customization, setCustomization] =
+    useState<CheckoutCustomization | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -35,77 +48,22 @@ const CheckoutCustomizePage: React.FC = () => {
       if (data) {
         setCustomization(data);
       } else {
-        // Criar personalização padrão
+        // Usar tema padrão completo criado
+        console.log("🎨 Usando DEFAULT_CHECKOUT_THEME");
         const defaultCustomization = {
           organizationId: user!.organizationId,
-          name: 'Padrão',
-          theme: {
-            logoAlignment: 'left',
-            showLogoAtTop: true,
-            backgroundColor: '#FFFFFF',
-            useGradient: false,
-            cartBorderColor: '#000000',
-            quantityCircleColor: '#FF0080',
-            quantityTextColor: '#FFFFFF',
-            showCartIcon: true,
-            bannerEnabled: false,
-            cartDisplay: 'closed',
-            allowCouponEdit: true,
-            nextStepStyle: 'rounded',
-            showCartReminder: true,
-            primaryButtonTextColor: '#FFFFFF',
-            primaryButtonBackgroundColor: '#FF0080',
-            primaryButtonHover: true,
-            primaryButtonFlow: true,
-            highlightedBorderTextColor: '#FFFFFF',
-            checkoutButtonBackgroundColor: '#0FBA00',
-            checkoutButtonHover: true,
-            checkoutButtonFlow: true,
-            showStoreName: true,
-            showPaymentMethods: true,
-            showCnpjCpf: true,
-            showContactEmail: true,
-            showAddress: true,
-            showPhone: true,
-            showPrivacyPolicy: true,
-            showTermsConditions: true,
-            showReturns: true,
-            footerTextColor: '#3b3b3b',
-            footerBackgroundColor: '#F6F6F6',
-            discountTagTextColor: '#ffffff',
-            discountTagBackgroundColor: '#000000',
-            useVisible: true,
-            expirationTime: 60,
-            orderBumpTextColor: '#666666',
-            orderBumpBackgroundColor: '#FFFFDD',
-            orderBumpPriceColor: '#EE000C',
-            orderBumpBorderColor: '#D0D0D0',
-            orderBumpButtonTextColor: '#FFF',
-            orderBumpButtonBackgroundColor: '#EE000C',
-            noticeBarTextColor: '#FFFFFF',
-            noticeBarBackgroundColor: '#000000',
-            noticeBarMessage: 'Frete grátis para todo o Brasil!',
-            navigationSteps: 5,
-            fontFamily: 'Arial',
-            forceRemovalTime: 60,
-            presellPage: 'cart-in-cart',
-            language: 'pt',
-            currency: 'BRL',
-            requestCpfOnlyAtPayment: false,
-            requestBirthDate: false,
-            requestGender: false,
-            disableCarrot: false
-          },
-          isActive: true
+          name: "Tema Padrão Profissional",
+          theme: DEFAULT_CHECKOUT_THEME,
+          isActive: true,
         };
         setCustomization(defaultCustomization as CheckoutCustomization);
       }
     } catch (error) {
-      console.error('Erro ao carregar personalização:', error);
+      console.error("Erro ao carregar personalização:", error);
       toast({
-        title: 'Erro ao carregar personalização',
-        description: 'Não foi possível carregar as configurações do checkout',
-        variant: 'destructive'
+        title: "Erro ao carregar personalização",
+        description: "Não foi possível carregar as configurações do checkout",
+        variant: "destructive",
       });
     }
   };
@@ -118,30 +76,30 @@ const CheckoutCustomizePage: React.FC = () => {
       await checkoutApi.saveCustomization(customization);
       setHasChanges(false);
       toast({
-        title: 'Personalização salva!',
-        description: 'Suas configurações foram salvas com sucesso'
+        title: "Personalização salva!",
+        description: "Suas configurações foram salvas com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao salvar personalização:', error);
+      console.error("Erro ao salvar personalização:", error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar as configurações',
-        variant: 'destructive'
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const updateTheme = (updates: Partial<CheckoutCustomization['theme']>) => {
+  const updateTheme = (updates: Partial<CheckoutCustomization["theme"]>) => {
     if (!customization) return;
-    
+
     setCustomization({
       ...customization,
       theme: {
         ...customization.theme,
-        ...updates
-      }
+        ...updates,
+      },
     });
     setHasChanges(true);
   };
@@ -150,20 +108,20 @@ const CheckoutCustomizePage: React.FC = () => {
     setExpandedSections((prev) =>
       prev.includes(section)
         ? prev.filter((s) => s !== section)
-        : [...prev, section]
+        : [...prev, section],
     );
   };
 
   const sections = [
-    { id: 'CABEÇALHO', label: 'CABEÇALHO' },
-    { id: 'BARRA_DE_AVISOS', label: 'BARRA DE AVISOS' },
-    { id: 'BANNER', label: 'BANNER' },
-    { id: 'CARRINHO', label: 'CARRINHO' },
-    { id: 'CONTEÚDO', label: 'CONTEÚDO' },
-    { id: 'RODAPÉ', label: 'RODAPÉ' },
-    { id: 'ESCASSEZ', label: 'ESCASSEZ' },
-    { id: 'ORDER_BUMP', label: 'ORDER BUMP' },
-    { id: 'CONFIGURAÇÕES', label: 'CONFIGURAÇÕES' },
+    { id: "CABEÇALHO", label: "CABEÇALHO" },
+    { id: "BARRA_DE_AVISOS", label: "BARRA DE AVISOS" },
+    { id: "BANNER", label: "BANNER" },
+    { id: "CARRINHO", label: "CARRINHO" },
+    { id: "CONTEÚDO", label: "CONTEÚDO" },
+    { id: "RODAPÉ", label: "RODAPÉ" },
+    { id: "ESCASSEZ", label: "ESCASSEZ" },
+    { id: "ORDER_BUMP", label: "ORDER BUMP" },
+    { id: "CONFIGURAÇÕES", label: "CONFIGURAÇÕES" },
   ];
 
   return (
@@ -175,7 +133,7 @@ const CheckoutCustomizePage: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/checkout/customize')}
+            onClick={() => navigate("/checkout/customize")}
             className="gap-2 -ml-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -190,10 +148,10 @@ const CheckoutCustomizePage: React.FC = () => {
               <button
                 onClick={() => toggleSection(section.id)}
                 className={cn(
-                  'w-full px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors',
+                  "w-full px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors",
                   expandedSections.includes(section.id)
-                    ? 'bg-gray-50 text-gray-900'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    ? "bg-gray-50 text-gray-900"
+                    : "text-gray-700 hover:bg-gray-50",
                 )}
               >
                 <span>{section.label}</span>
@@ -207,7 +165,7 @@ const CheckoutCustomizePage: React.FC = () => {
               {expandedSections.includes(section.id) && (
                 <div className="p-4 space-y-4 bg-white">
                   {/* Conteúdo será preenchido quando você enviar as imagens */}
-                  {section.id === 'CABEÇALHO' && (
+                  {section.id === "CABEÇALHO" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">Logo</Label>
@@ -234,10 +192,17 @@ const CheckoutCustomizePage: React.FC = () => {
                         <Label className="text-xs text-gray-600">
                           Alinhamento do logo
                         </Label>
-                        <select 
+                        <select
                           className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          value={customization?.theme?.logoAlignment || 'left'}
-                          onChange={(e) => updateTheme({ logoAlignment: e.target.value as 'left' | 'center' | 'right' })}
+                          value={customization?.theme?.logoAlignment || "left"}
+                          onChange={(e) =>
+                            updateTheme({
+                              logoAlignment: e.target.value as
+                                | "left"
+                                | "center"
+                                | "right",
+                            })
+                          }
                         >
                           <option value="left">Esquerda</option>
                           <option value="center">Centro</option>
@@ -250,11 +215,15 @@ const CheckoutCustomizePage: React.FC = () => {
                           Final logo no topo
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <input 
-                            type="checkbox" 
-                            className="rounded" 
-                            checked={customization?.theme?.showLogoAtTop || false}
-                            onChange={(e) => updateTheme({ showLogoAtTop: e.target.checked })}
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showLogoAtTop || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ showLogoAtTop: e.target.checked })
+                            }
                           />
                           <span className="text-sm text-gray-600">Ativar</span>
                         </div>
@@ -284,24 +253,34 @@ const CheckoutCustomizePage: React.FC = () => {
                       <div>
                         <Label className="text-xs text-gray-600">Fundo</Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div 
-                            className="w-10 h-10 rounded border border-gray-300" 
-                            style={{ backgroundColor: customization?.theme?.backgroundColor || '#FFFFFF' }}
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.backgroundColor ||
+                                "#FFFFFF",
+                            }}
                           />
                           <Input
                             type="text"
                             placeholder="#FFFFFF"
                             className="flex-1"
-                            value={customization?.theme?.backgroundColor || '#FFFFFF'}
-                            onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
+                            value={
+                              customization?.theme?.backgroundColor || "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({ backgroundColor: e.target.value })
+                            }
                           />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <input 
-                            type="checkbox" 
-                            className="rounded" 
+                          <input
+                            type="checkbox"
+                            className="rounded"
                             checked={customization?.theme?.useGradient || false}
-                            onChange={(e) => updateTheme({ useGradient: e.target.checked })}
+                            onChange={(e) =>
+                              updateTheme({ useGradient: e.target.checked })
+                            }
                           />
                           <span className="text-xs text-gray-600">
                             Aplicar fundo degradê
@@ -338,7 +317,9 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Quantidade</Label>
+                        <Label className="text-xs text-gray-600">
+                          Quantidade
+                        </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
                           <Input
@@ -358,7 +339,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* BANNER */}
-                  {section.id === 'BANNER' && (
+                  {section.id === "BANNER" && (
                     <>
                       <div>
                         <div className="flex items-center gap-2">
@@ -395,7 +376,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* CARRINHO */}
-                  {section.id === 'CARRINHO' && (
+                  {section.id === "CARRINHO" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -419,7 +400,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* CONTEÚDO */}
-                  {section.id === 'CONTEÚDO' && (
+                  {section.id === "CONTEÚDO" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -536,7 +517,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* RODAPÉ */}
-                  {section.id === 'RODAPÉ' && (
+                  {section.id === "RODAPÉ" && (
                     <>
                       <div>
                         <div className="flex items-center gap-2">
@@ -632,7 +613,9 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Fundo do rodapé</Label>
+                        <Label className="text-xs text-gray-600">
+                          Fundo do rodapé
+                        </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
                           <Input
@@ -646,7 +629,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* ESCASSEZ */}
-                  {section.id === 'ESCASSEZ' && (
+                  {section.id === "ESCASSEZ" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -692,13 +675,15 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Tag counter</Label>
+                        <Label className="text-xs text-gray-600">
+                          Tag counter
+                        </Label>
                       </div>
                     </>
                   )}
 
                   {/* ORDER BUMP */}
-                  {section.id === 'ORDER_BUMP' && (
+                  {section.id === "ORDER_BUMP" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -787,10 +772,12 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* CONFIGURAÇÕES */}
-                  {section.id === 'CONFIGURAÇÕES' && (
+                  {section.id === "CONFIGURAÇÕES" && (
                     <>
                       <div>
-                        <Label className="text-xs text-gray-600">Navegação</Label>
+                        <Label className="text-xs text-gray-600">
+                          Navegação
+                        </Label>
                         <select className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm">
                           <option>5 etapas</option>
                           <option>3 etapas</option>
@@ -811,11 +798,7 @@ const CheckoutCustomizePage: React.FC = () => {
                         <Label className="text-xs text-gray-600">
                           Forçamento/remoção/selecionado
                         </Label>
-                        <Input
-                          type="text"
-                          placeholder="60s"
-                          className="mt-2"
-                        />
+                        <Input type="text" placeholder="60s" className="mt-2" />
                       </div>
 
                       <div>
@@ -885,7 +868,7 @@ const CheckoutCustomizePage: React.FC = () => {
                   )}
 
                   {/* BARRA DE AVISOS */}
-                  {section.id === 'BARRA_DE_AVISOS' && (
+                  {section.id === "BARRA_DE_AVISOS" && (
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -919,7 +902,7 @@ const CheckoutCustomizePage: React.FC = () => {
                         <Label className="text-xs text-gray-600">
                           Mensagem na barra de avisos
                         </Label>
-                        
+
                         {/* Botões de formatação */}
                         <div className="flex items-center gap-1 mt-2 mb-2">
                           <button className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-sm font-bold hover:bg-gray-100">
@@ -964,26 +947,26 @@ const CheckoutCustomizePage: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <Button
-              variant={previewMode === 'mobile' ? 'default' : 'outline'}
+              variant={previewMode === "mobile" ? "default" : "outline"}
               size="icon"
-              onClick={() => setPreviewMode('mobile')}
+              onClick={() => setPreviewMode("mobile")}
             >
               <Smartphone className="h-4 w-4" />
             </Button>
             <Button
-              variant={previewMode === 'desktop' ? 'default' : 'outline'}
+              variant={previewMode === "desktop" ? "default" : "outline"}
               size="icon"
-              onClick={() => setPreviewMode('desktop')}
+              onClick={() => setPreviewMode("desktop")}
             >
               <Monitor className="h-4 w-4" />
             </Button>
-            <Button 
+            <Button
               className="gap-2 bg-pink-600 hover:bg-pink-700"
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
             >
               <Save className="h-4 w-4" />
-              {isSaving ? 'SALVANDO...' : 'SALVAR'}
+              {isSaving ? "SALVANDO..." : "SALVAR"}
             </Button>
           </div>
         </div>
@@ -992,8 +975,8 @@ const CheckoutCustomizePage: React.FC = () => {
         <div className="flex-1 overflow-auto bg-gray-100 p-6">
           <div
             className={cn(
-              'mx-auto bg-white shadow-lg transition-all duration-300',
-              previewMode === 'mobile' ? 'max-w-md' : 'max-w-4xl'
+              "mx-auto bg-white shadow-lg transition-all duration-300",
+              previewMode === "mobile" ? "max-w-md" : "max-w-4xl",
             )}
           >
             {/* Preview do Checkout */}

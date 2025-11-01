@@ -110,43 +110,42 @@ const PublicCheckoutPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Buscar dados reais do carrinho do localStorage
+      // Buscar APENAS produtos reais do carrinho
       const cartData = localStorage.getItem("syncads_cart");
 
       if (!cartData || cartData === "[]") {
-        // Se não houver carrinho, mostrar erro
-        console.error("Nenhum produto no carrinho");
+        console.error("❌ Carrinho vazio - não há produtos");
+        setCheckoutData(null);
+        setLoading(false);
         toast({
           title: "Carrinho vazio",
           description: "Adicione produtos ao carrinho antes de finalizar",
           variant: "destructive",
         });
-        setCheckoutData(null);
-        setLoading(false);
         return;
       }
 
       const items = JSON.parse(cartData);
 
-      if (items.length === 0) {
-        console.error("Carrinho vazio");
+      if (!items || items.length === 0) {
+        console.error("❌ Nenhum produto no carrinho");
+        setCheckoutData(null);
+        setLoading(false);
         toast({
           title: "Carrinho vazio",
           description: "Adicione produtos ao carrinho antes de finalizar",
           variant: "destructive",
         });
-        setCheckoutData(null);
-        setLoading(false);
         return;
       }
 
-      // Calcular totais reais
+      // Calcular totais dos produtos REAIS
       const subtotal = items.reduce(
         (sum: number, item: any) => sum + item.price * item.quantity,
         0,
       );
 
-      const realData: CheckoutData = {
+      const checkoutInfo: CheckoutData = {
         orderId: orderId!,
         products: items.map((item: any) => ({
           id: item.productId || item.variantId || item.id,
@@ -163,8 +162,11 @@ const PublicCheckoutPage: React.FC = () => {
         discount: 0,
       };
 
-      console.log("✅ Produtos do carrinho carregados:", realData);
-      setCheckoutData(realData);
+      console.log("✅ Produtos REAIS carregados:", checkoutInfo);
+      console.log("📦 Total de itens:", items.length);
+      console.log("💰 Valor total:", subtotal);
+
+      setCheckoutData(checkoutInfo);
 
       // Carregar personalização do checkout
       try {
