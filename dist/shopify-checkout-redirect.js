@@ -1,6 +1,6 @@
 /**
- * SyncAds Checkout Redirect for Shopify v2.1
- * Intercepta e redireciona para checkout customizado
+ * SyncAds Cart Drawer for Shopify v3.0
+ * Carrinho lateral customizado antes do checkout
  */
 
 (function () {
@@ -15,10 +15,11 @@
     ENABLED: true,
   };
 
-  // Estado global
-  const state = {
+  // Estado do carrinho
+  const cart = {
+    items: [],
+    isOpen: false,
     processing: false,
-    intercepted: new Set(),
   };
 
   function log(...args) {
@@ -29,52 +30,565 @@
     console.error("[SyncAds ERROR]", ...args);
   }
 
-  // Bloquear navegação para checkout Shopify
-  function blockShopifyCheckout() {
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
+  // ==========================================
+  // FUNÇÕES DE CARRINHO
+  // ==========================================
 
-    history.pushState = function (state, title, url) {
-      if (url && url.includes("/checkout")) {
-        log("🚫 Blocked pushState to checkout");
-        return;
-      }
-      return originalPushState.apply(history, arguments);
-    };
+  function addToCart(product) {
+    const existingItem = cart.items.find(
+      (item) => item.variantId === product.variantId,
+    );
 
-    history.replaceState = function (state, title, url) {
-      if (url && url.includes("/checkout")) {
-        log("🚫 Blocked replaceState to checkout");
-        return;
-      }
-      return originalReplaceState.apply(history, arguments);
-    };
+    if (existingItem) {
+      existingItem.quantity += product.quantity;
+    } else {
+      cart.items.push({ ...product });
+    }
 
-    // Bloquear navegação direta
-    window.addEventListener("beforeunload", function (e) {
-      if (state.processing) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    });
+    updateCartUI();
+    openCart();
+    saveCartToStorage();
+    log("✅ Produto adicionado ao carrinho:", product);
   }
 
-  // Obter dados do produto
+  function updateQuantity(variantId, newQuantity) {
+    const item = cart.items.find((i) => i.variantId === variantId);
+    if (!item) return;
+
+    if (newQuantity <= 0) {
+      removeFromCart(variantId);
+    } else {
+      item.quantity = newQuantity;
+      updateCartUI();
+      saveCartToStorage();
+    }
+  }
+
+  function removeFromCart(variantId) {
+    cart.items = cart.items.filter((i) => i.variantId !== variantId);
+    updateCartUI();
+    saveCartToStorage();
+
+    if (cart.items.length === 0) {
+      closeCart();
+    }
+  }
+
+  function clearCart() {
+    cart.items = [];
+    updateCartUI();
+    saveCartToStorage();
+    closeCart();
+  }
+
+  function getCartTotal() {
+    return cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+  }
+
+  function getCartCount() {
+    return cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  function saveCartToStorage() {
+    try {
+      localStorage.setItem("syncads_cart", JSON.stringify(cart.items));
+    } catch (e) {
+      logError("Erro ao salvar carrinho:", e);
+    }
+  }
+
+  function loadCartFromStorage() {
+    try {
+      const saved = localStorage.getItem("syncads_cart");
+      if (saved) {
+        cart.items = JSON.parse(saved);
+        updateCartUI();
+      }
+    } catch (e) {
+      logError("Erro ao carregar carrinho:", e);
+    }
+  }
+
+  // ==========================================
+  // CRIAÇÃO DO CARRINHO UI
+  // ==========================================
+
+  function createCartDrawer() {
+    const drawer = document.createElement("div");
+    drawer.id = "syncads-cart-drawer";
+    drawer.style.cssText = `
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 100%;
+      max-width: 450px;
+      height: 100vh;
+      background: white;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      z-index: 999999;
+      transition: right 0.3s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    drawer.innerHTML = `
+      <!-- Header -->
+      <div style="
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #667eea;
+        color: white;
+      ">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700;">
+            Seu Carrinho
+          </h2>
+        </div>
+        <button id="syncads-close-cart" style="
+          background: transparent;
+          border: none;
+          color: white;
+          cursor: pointer;
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Items List -->
+      <div id="syncads-cart-items" style="
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: #f9fafb;
+      ">
+        <!-- Items serão inseridos aqui -->
+      </div>
+
+      <!-- Footer -->
+      <div style="
+        padding: 20px 24px;
+        border-top: 2px solid #e5e7eb;
+        background: white;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <span style="font-size: 16px; font-weight: 600; color: #374151;">Subtotal:</span>
+          <span id="syncads-cart-total" style="font-size: 24px; font-weight: 700; color: #667eea;">
+            R$ 0,00
+          </span>
+        </div>
+        <button id="syncads-checkout-btn" style="
+          width: 100%;
+          padding: 16px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'">
+          Finalizar Compra
+        </button>
+        <p style="
+          margin-top: 12px;
+          text-align: center;
+          font-size: 12px;
+          color: #6b7280;
+        ">
+          Checkout seguro via SyncAds
+        </p>
+      </div>
+    `;
+
+    document.body.appendChild(drawer);
+
+    // Criar overlay
+    const overlay = document.createElement("div");
+    overlay.id = "syncads-cart-overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999998;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      backdrop-filter: blur(2px);
+    `;
+    document.body.appendChild(overlay);
+
+    // Event listeners
+    document
+      .getElementById("syncads-close-cart")
+      .addEventListener("click", closeCart);
+    overlay.addEventListener("click", closeCart);
+    document
+      .getElementById("syncads-checkout-btn")
+      .addEventListener("click", proceedToCheckout);
+
+    // Estilos globais
+    const style = document.createElement("style");
+    style.textContent = `
+      #syncads-cart-drawer::-webkit-scrollbar {
+        width: 8px;
+      }
+      #syncads-cart-drawer::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      #syncads-cart-drawer::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 4px;
+      }
+      #syncads-cart-items::-webkit-scrollbar {
+        width: 6px;
+      }
+      #syncads-cart-items::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #syncads-cart-items::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 3px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function updateCartUI() {
+    const itemsContainer = document.getElementById("syncads-cart-items");
+    const totalElement = document.getElementById("syncads-cart-total");
+    const checkoutBtn = document.getElementById("syncads-checkout-btn");
+
+    if (!itemsContainer) return;
+
+    if (cart.items.length === 0) {
+      itemsContainer.innerHTML = `
+        <div style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          text-align: center;
+          padding: 40px 20px;
+        ">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom: 16px;">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #374151;">
+            Carrinho Vazio
+          </h3>
+          <p style="margin: 0; font-size: 14px; color: #6b7280;">
+            Adicione produtos para começar
+          </p>
+        </div>
+      `;
+      if (checkoutBtn) checkoutBtn.disabled = true;
+      if (totalElement) totalElement.textContent = "R$ 0,00";
+      return;
+    }
+
+    if (checkoutBtn) checkoutBtn.disabled = false;
+
+    itemsContainer.innerHTML = cart.items
+      .map(
+        (item) => `
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.2s;
+      " onmouseover="this.style.boxShadow='0 4px 8px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'">
+        <!-- Imagem -->
+        <div style="
+          width: 80px;
+          height: 80px;
+          border-radius: 8px;
+          overflow: hidden;
+          flex-shrink: 0;
+          background: #f3f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ${
+            item.image
+              ? `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;">`
+              : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
+                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                   <circle cx="8.5" cy="8.5" r="1.5"/>
+                   <polyline points="21 15 16 10 5 21"/>
+                 </svg>`
+          }
+        </div>
+
+        <!-- Info -->
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #1f2937; line-height: 1.3;">
+              ${item.name}
+            </h4>
+            ${
+              item.sku
+                ? `<p style="margin: 0; font-size: 12px; color: #6b7280;">SKU: ${item.sku}</p>`
+                : ""
+            }
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+            <!-- Quantidade -->
+            <div style="display: flex; align-items: center; gap: 8px; background: #f3f4f6; border-radius: 8px; padding: 4px;">
+              <button onclick="window.SyncAdsCart.updateQuantity('${item.variantId}', ${item.quantity - 1})" style="
+                width: 28px;
+                height: 28px;
+                border: none;
+                background: white;
+                color: #667eea;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                font-weight: 700;
+                transition: background 0.2s;
+              " onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#667eea'">
+                −
+              </button>
+              <span style="
+                min-width: 24px;
+                text-align: center;
+                font-size: 14px;
+                font-weight: 600;
+                color: #1f2937;
+              ">${item.quantity}</span>
+              <button onclick="window.SyncAdsCart.updateQuantity('${item.variantId}', ${item.quantity + 1})" style="
+                width: 28px;
+                height: 28px;
+                border: none;
+                background: white;
+                color: #667eea;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                font-weight: 700;
+                transition: background 0.2s;
+              " onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#667eea'">
+                +
+              </button>
+            </div>
+
+            <!-- Preço e Remover -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 16px; font-weight: 700; color: #667eea;">
+                R$ ${(item.price * item.quantity).toFixed(2)}
+              </span>
+              <button onclick="window.SyncAdsCart.removeFromCart('${item.variantId}')" style="
+                width: 32px;
+                height: 32px;
+                border: none;
+                background: #fee2e2;
+                color: #dc2626;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+              " onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+      )
+      .join("");
+
+    if (totalElement) {
+      totalElement.textContent = `R$ ${getCartTotal().toFixed(2)}`;
+    }
+  }
+
+  function openCart() {
+    const drawer = document.getElementById("syncads-cart-drawer");
+    const overlay = document.getElementById("syncads-cart-overlay");
+
+    if (drawer && overlay) {
+      cart.isOpen = true;
+      drawer.style.right = "0";
+      overlay.style.opacity = "1";
+      overlay.style.visibility = "visible";
+      document.body.style.overflow = "hidden";
+    }
+  }
+
+  function closeCart() {
+    const drawer = document.getElementById("syncads-cart-drawer");
+    const overlay = document.getElementById("syncads-cart-overlay");
+
+    if (drawer && overlay) {
+      cart.isOpen = false;
+      drawer.style.right = "-100%";
+      overlay.style.opacity = "0";
+      overlay.style.visibility = "hidden";
+      document.body.style.overflow = "";
+    }
+  }
+
+  // ==========================================
+  // CHECKOUT
+  // ==========================================
+
+  function showLoading() {
+    const btn = document.getElementById("syncads-checkout-btn");
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <div style="
+          border: 3px solid rgba(255, 255, 255, 0.3);
+          border-top: 3px solid white;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          animation: spin 1s linear infinite;
+        "></div>
+        <span>Processando...</span>
+      </div>
+    `;
+
+    const style = document.createElement("style");
+    style.id = "syncads-spinner-style";
+    style.textContent =
+      "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }";
+    if (!document.getElementById("syncads-spinner-style")) {
+      document.head.appendChild(style);
+    }
+  }
+
+  function hideLoading() {
+    const btn = document.getElementById("syncads-checkout-btn");
+    if (!btn) return;
+
+    btn.disabled = false;
+    btn.innerHTML = "Finalizar Compra";
+  }
+
+  async function proceedToCheckout() {
+    if (cart.processing || cart.items.length === 0) return;
+
+    cart.processing = true;
+    showLoading();
+
+    try {
+      log("🚀 Criando pedido com", cart.items.length, "itens");
+
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          shopDomain: CONFIG.SHOP_DOMAIN,
+          products: cart.items,
+          customer: {
+            email: null,
+            firstName: null,
+            lastName: null,
+            phone: null,
+          },
+          metadata: {
+            source: "shopify_cart",
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+            timestamp: new Date().toISOString(),
+            cartTotal: getCartTotal(),
+            itemsCount: getCartCount(),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Falha ao criar pedido");
+      }
+
+      log("✅ Pedido criado! Redirecionando:", result.checkoutUrl);
+
+      // Limpar carrinho e redirecionar
+      clearCart();
+      window.location.href = result.checkoutUrl;
+    } catch (error) {
+      logError("❌ Erro no checkout:", error);
+      hideLoading();
+      cart.processing = false;
+
+      alert(
+        `Erro ao processar checkout:\n${error.message}\n\nPor favor, tente novamente.`,
+      );
+    }
+  }
+
+  // ==========================================
+  // OBTER DADOS DO PRODUTO
+  // ==========================================
+
   function getProductData() {
     try {
       // Método 1: JSON no DOM
       const productJson = document.querySelector("[data-product-json]");
       if (productJson) {
-        const data = JSON.parse(productJson.textContent);
-        log("📦 Product data from DOM JSON:", data);
-        return data;
+        return JSON.parse(productJson.textContent);
       }
 
       // Método 2: ShopifyAnalytics
       if (window.ShopifyAnalytics?.meta?.product) {
-        const data = window.ShopifyAnalytics.meta.product;
-        log("📦 Product data from ShopifyAnalytics:", data);
-        return data;
+        return window.ShopifyAnalytics.meta.product;
       }
 
       // Método 3: Meta tags
@@ -89,49 +603,33 @@
       )?.content;
 
       if (productId && productTitle) {
-        const data = {
+        return {
           id: productId,
           title: productTitle,
           price: productPrice,
         };
-        log("📦 Product data from meta tags:", data);
-        return data;
-      }
-
-      // Método 4: window.__PRODUCT__
-      if (window.__PRODUCT__) {
-        log("📦 Product data from window.__PRODUCT__:", window.__PRODUCT__);
-        return window.__PRODUCT__;
       }
 
       return null;
     } catch (error) {
-      logError("Error getting product data:", error);
+      logError("Erro ao obter dados do produto:", error);
       return null;
     }
   }
 
   function getSelectedVariant() {
     try {
-      // Método 1: Select
       const select = document.querySelector('select[name="id"]');
       if (select?.value) return select.value;
 
-      // Método 2: Radio
       const radio = document.querySelector('input[name="id"]:checked');
       if (radio?.value) return radio.value;
 
-      // Método 3: Hidden input
       const hidden = document.querySelector('input[name="id"][type="hidden"]');
       if (hidden?.value) return hidden.value;
 
-      // Método 4: Data attribute
-      const variantBtn = document.querySelector("[data-variant-id]");
-      if (variantBtn) return variantBtn.dataset.variantId;
-
       return null;
     } catch (error) {
-      logError("Error getting variant:", error);
       return null;
     }
   }
@@ -147,291 +645,70 @@
     }
   }
 
-  function showLoading() {
-    // Remover loading anterior se existir
-    const existing = document.getElementById("syncads-loading");
-    if (existing) existing.remove();
+  // ==========================================
+  // INTERCEPTAÇÃO
+  // ==========================================
 
-    const overlay = document.createElement("div");
-    overlay.id = "syncads-loading";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
+  function handleAddToCart(event) {
+    if (!CONFIG.ENABLED) return;
 
-    overlay.innerHTML = `
-      <div style="text-align: center;">
-        <div style="
-          border: 5px solid #f3f3f3;
-          border-top: 5px solid #667eea;
-          border-radius: 50%;
-          width: 60px;
-          height: 60px;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 20px;
-        "></div>
-        <p style="color: white; font-size: 18px; font-weight: 600; margin: 0;">
-          Redirecionando para o checkout...
-        </p>
-        <p style="color: #ccc; font-size: 14px; margin: 10px 0 0;">
-          Por favor, aguarde
-        </p>
-      </div>
-    `;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
 
-    const style = document.createElement("style");
-    style.textContent =
-      "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }";
-    document.head.appendChild(style);
+    log("🛒 Adicionando ao carrinho...");
 
-    document.body.appendChild(overlay);
-  }
-
-  function showError(errorMessage) {
-    const overlay = document.getElementById("syncads-loading");
-    if (!overlay) return;
-
-    overlay.innerHTML = `
-      <div style="text-align: center; max-width: 400px; padding: 20px;">
-        <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
-        <p style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px;">
-          Erro ao processar compra
-        </p>
-        <p style="color: #ccc; font-size: 14px; margin: 0 0 20px; line-height: 1.5;">
-          ${errorMessage}
-        </p>
-        <button id="syncads-retry-btn"
-          style="
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-right: 10px;
-          ">
-          Tentar novamente
-        </button>
-        <button id="syncads-close-btn"
-          style="
-            background: #e53e3e;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-          ">
-          Fechar
-        </button>
-      </div>
-    `;
-
-    // Adicionar event listeners aos botões
-    document
-      .getElementById("syncads-retry-btn")
-      ?.addEventListener("click", () => {
-        overlay.remove();
-        state.processing = false;
-        window.location.reload();
-      });
-
-    document
-      .getElementById("syncads-close-btn")
-      ?.addEventListener("click", () => {
-        overlay.remove();
-        state.processing = false;
-      });
-  }
-
-  function hideLoading() {
-    const overlay = document.getElementById("syncads-loading");
-    if (overlay) overlay.remove();
-  }
-
-  async function createOrder(productData) {
-    try {
-      log("📤 Creating order...", productData);
-
-      const response = await fetch(CONFIG.API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          shopDomain: CONFIG.SHOP_DOMAIN,
-          products: [productData],
-          customer: {
-            email: null,
-            firstName: null,
-            lastName: null,
-            phone: null,
-          },
-          metadata: {
-            source: "shopify_product_page",
-            userAgent: navigator.userAgent,
-            referrer: document.referrer,
-            timestamp: new Date().toISOString(),
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logError("HTTP Error:", response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || "Failed to create order");
-      }
-
-      log("✅ Order created successfully:", result);
-      return result;
-    } catch (error) {
-      logError("❌ Failed to create order:", error);
-      throw error;
-    }
-  }
-
-  async function handlePurchase(event) {
-    // SEMPRE prevenir comportamento padrão PRIMEIRO
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-    }
-
-    if (!CONFIG.ENABLED) {
-      log("⚠️ SyncAds checkout disabled");
+    const product = getProductData();
+    if (!product) {
+      alert("Erro: Produto não encontrado. Recarregue a página.");
       return false;
     }
 
-    if (state.processing) {
-      log("⏳ Already processing, ignoring duplicate click");
-      return false;
+    const variantId = getSelectedVariant();
+    const quantity = getQuantity();
+
+    let variant = null;
+    if (product.variants && variantId) {
+      variant = product.variants.find(
+        (v) => String(v.id) === String(variantId),
+      );
     }
 
-    state.processing = true;
-    log("🚀 Purchase flow started");
-    showLoading();
-
-    try {
-      log("🔍 Getting product data...");
-
-      const product = getProductData();
-      if (!product) {
-        throw new Error(
-          "Produto não encontrado. Por favor, recarregue a página.",
-        );
-      }
-
-      const variantId = getSelectedVariant();
-      const quantity = getQuantity();
-
-      let variant = null;
-      if (product.variants && variantId) {
-        variant = product.variants.find(
-          (v) => String(v.id) === String(variantId),
-        );
-      }
-
-      if (!variant && product.variants && product.variants.length > 0) {
-        variant = product.variants[0];
-      }
-
-      // Calcular preço (converter de centavos se necessário)
-      let price = 0;
-      if (variant) {
-        price = variant.price > 1000 ? variant.price / 100 : variant.price;
-      } else if (product.price) {
-        price = product.price > 1000 ? product.price / 100 : product.price;
-      }
-
-      const productData = {
-        productId: String(product.id || ""),
-        variantId: variant
-          ? String(variant.id)
-          : variantId
-            ? String(variantId)
-            : null,
-        name: variant ? `${product.title} - ${variant.title}` : product.title,
-        price: price,
-        quantity: quantity,
-        image:
-          product.featured_image ||
-          product.image ||
-          (product.images && product.images[0]) ||
-          "",
-        sku: variant?.sku || "",
-      };
-
-      log("📦 Product data prepared:", productData);
-
-      const result = await createOrder(productData);
-
-      if (result.checkoutUrl) {
-        log("✅ Order created! Redirecting to:", result.checkoutUrl);
-
-        // Redirecionar imediatamente
-        window.location.href = result.checkoutUrl;
-
-        // Manter loading até redirecionar
-        return false;
-      } else {
-        throw new Error("URL do checkout não foi recebida");
-      }
-    } catch (error) {
-      logError("❌ Purchase error:", error);
-
-      const errorMsg = error.message || "Erro desconhecido. Tente novamente.";
-      showError(errorMsg);
-
-      // NÃO resetar state.processing aqui para prevenir submit duplo
+    if (!variant && product.variants && product.variants.length > 0) {
+      variant = product.variants[0];
     }
 
-    // SEMPRE retornar false para prevenir submit
+    let price = 0;
+    if (variant) {
+      price = variant.price > 1000 ? variant.price / 100 : variant.price;
+    } else if (product.price) {
+      price = product.price > 1000 ? product.price / 100 : product.price;
+    }
+
+    const productData = {
+      productId: String(product.id || ""),
+      variantId: variant
+        ? String(variant.id)
+        : variantId
+          ? String(variantId)
+          : String(product.id),
+      name: variant ? `${product.title} - ${variant.title}` : product.title,
+      price: price,
+      quantity: quantity,
+      image:
+        product.featured_image ||
+        product.image ||
+        (product.images && product.images[0]) ||
+        "",
+      sku: variant?.sku || "",
+    };
+
+    addToCart(productData);
+
     return false;
   }
 
-  function interceptButton(button) {
-    if (!button || state.intercepted.has(button)) return;
-
-    log("🎯 Intercepting button:", button.outerHTML.substring(0, 100));
-    state.intercepted.add(button);
-
-    // Adicionar múltiplos listeners com capture=true (fase de captura)
-    button.addEventListener("click", handlePurchase, true);
-    button.addEventListener("mousedown", handlePurchase, true);
-    button.addEventListener("touchstart", handlePurchase, true);
-
-    // Se o botão estiver dentro de um form, interceptar o form também
-    const form = button.closest("form");
-    if (form && !form.dataset.syncadsIntercepted) {
-      form.dataset.syncadsIntercepted = "true";
-      form.addEventListener("submit", handlePurchase, true);
-      log("📝 Also intercepted parent form");
-    }
-
-    return button;
-  }
-
-  function interceptAllButtons() {
+  function interceptButtons() {
     const selectors = [
       'button[name="add"]',
       'button[type="submit"][name="add"]',
@@ -441,13 +718,6 @@
       ".btn-add-to-cart",
       "[data-add-to-cart]",
       'form[action*="/cart/add"] button[type="submit"]',
-      'form[action*="/cart/add"] input[type="submit"]',
-      ".shopify-payment-button button",
-      "button.shopify-payment-button__button",
-      "[data-shopify-payment-button]",
-      '.product-form button[type="submit"]',
-      'button:has-text("Add to cart")',
-      'button:has-text("Adicionar")',
     ];
 
     let count = 0;
@@ -455,70 +725,50 @@
       try {
         const buttons = document.querySelectorAll(selector);
         buttons.forEach((button) => {
-          interceptButton(button);
+          if (button.dataset.syncadsIntercepted) return;
+          button.dataset.syncadsIntercepted = "true";
+
+          button.addEventListener("click", handleAddToCart, true);
+          button.addEventListener("submit", handleAddToCart, true);
+
+          const form = button.closest("form");
+          if (form && !form.dataset.syncadsIntercepted) {
+            form.dataset.syncadsIntercepted = "true";
+            form.addEventListener("submit", handleAddToCart, true);
+          }
+
           count++;
         });
       } catch (e) {
-        // Ignorar erros de seletores inválidos
+        // Ignorar
       }
     });
 
-    log(`🎯 Intercepted ${count} buttons`);
-    return count;
+    log(`🎯 Interceptados ${count} botões`);
   }
 
-  function interceptForms() {
-    const forms = document.querySelectorAll('form[action*="/cart/add"]');
-    forms.forEach((form) => {
-      if (form.dataset.syncadsIntercepted) return;
-      form.dataset.syncadsIntercepted = "true";
-
-      form.addEventListener("submit", handlePurchase, true);
-      log("📝 Intercepted form:", form);
-    });
-  }
+  // ==========================================
+  // INICIALIZAÇÃO
+  // ==========================================
 
   function init() {
     if (!window.Shopify) {
-      log("⚠️ Not a Shopify store");
+      log("⚠️ Não é uma loja Shopify");
       return;
     }
 
     log("=".repeat(60));
-    log("🔥 SyncAds Checkout Redirect v2.1 Initialized");
+    log("🔥 SyncAds Cart Drawer v3.0 Inicializado");
     log("🏪 Shop:", CONFIG.SHOP_DOMAIN);
-    log("🌐 Frontend:", CONFIG.FRONTEND_URL);
-    log("🔗 API:", CONFIG.API_URL);
     log("=".repeat(60));
 
-    blockShopifyCheckout();
+    createCartDrawer();
+    loadCartFromStorage();
+    interceptButtons();
 
-    const buttonCount = interceptAllButtons();
-    interceptForms();
-
-    if (buttonCount === 0) {
-      log("⚠️ No buttons found on first scan, will retry...");
-    }
-
-    // Observar mudanças no DOM
-    const observer = new MutationObserver((mutations) => {
-      let shouldReintercept = false;
-
-      mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length > 0) {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === 1) {
-              // Element node
-              shouldReintercept = true;
-            }
-          });
-        }
-      });
-
-      if (shouldReintercept) {
-        interceptAllButtons();
-        interceptForms();
-      }
+    // Observar DOM
+    const observer = new MutationObserver(() => {
+      interceptButtons();
     });
 
     observer.observe(document.body, {
@@ -526,49 +776,31 @@
       subtree: true,
     });
 
-    // Re-interceptar periodicamente (fallback)
-    setInterval(() => {
-      interceptAllButtons();
-      interceptForms();
-    }, 2000);
+    // Re-interceptar periodicamente
+    setInterval(interceptButtons, 2000);
 
-    log("✅ Ready to intercept purchases!");
+    log("✅ Pronto!");
   }
 
-  // Aguardar DOM
+  // Iniciar quando DOM carregar
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
 
-  // Expor controles globais (debug)
-  window.SyncAdsCheckout = {
-    version: "2.1",
+  // API pública
+  window.SyncAdsCart = {
+    version: "3.0",
     config: CONFIG,
-    state: state,
-    enable: () => {
-      CONFIG.ENABLED = true;
-      log("✅ Enabled");
-    },
-    disable: () => {
-      CONFIG.ENABLED = false;
-      log("❌ Disabled");
-    },
-    reintercept: () => {
-      const count = interceptAllButtons();
-      interceptForms();
-      log(`🔄 Reintercepted ${count} buttons`);
-    },
-    getProduct: getProductData,
-    test: () => {
-      log("🧪 Testing purchase flow...");
-      handlePurchase(null);
-    },
-    reset: () => {
-      state.processing = false;
-      hideLoading();
-      log("🔄 State reset");
-    },
+    cart: cart,
+    addToCart: addToCart,
+    updateQuantity: updateQuantity,
+    removeFromCart: removeFromCart,
+    clearCart: clearCart,
+    openCart: openCart,
+    closeCart: closeCart,
+    getCartTotal: getCartTotal,
+    getCartCount: getCartCount,
   };
 })();
