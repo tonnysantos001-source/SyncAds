@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES
@@ -28,7 +28,7 @@ export interface ShopifyProduct {
   variants: ShopifyVariant[];
   images: ShopifyImage[];
   options: ShopifyOption[];
-  status: 'active' | 'archived' | 'draft';
+  status: "active" | "archived" | "draft";
   createdAt: string;
   updatedAt: string;
 }
@@ -81,8 +81,15 @@ export interface ShopifyOrder {
   name: string;
   email?: string;
   phone?: string;
-  financialStatus: 'pending' | 'authorized' | 'partially_paid' | 'paid' | 'partially_refunded' | 'refunded' | 'voided';
-  fulfillmentStatus?: 'fulfilled' | 'null' | 'partial' | 'restocked';
+  financialStatus:
+    | "pending"
+    | "authorized"
+    | "partially_paid"
+    | "paid"
+    | "partially_refunded"
+    | "refunded"
+    | "voided";
+  fulfillmentStatus?: "fulfilled" | "null" | "partial" | "restocked";
   totalPrice: string;
   subtotalPrice: string;
   totalTax: string;
@@ -144,33 +151,66 @@ export interface ShopifyCustomer {
 // ============================================
 
 export const shopifyIntegrationApi = {
-  // Conectar com Shopify
-  async connect(shopName: string, accessToken: string, isTestMode: boolean = true) {
+  // Iniciar OAuth com Shopify
+  async startOAuth(shopName: string) {
     try {
-      // Testar conexão primeiro
-      const testResult = await this.testConnection(shopName, accessToken);
-      if (!testResult.success) {
-        throw new Error(testResult.message);
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth?action=install&shop=${shopName}&userId=${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        },
+      );
+
+      return response.json();
+    } catch (error) {
+      console.error("Error starting Shopify OAuth:", error);
+      throw error;
+    }
+  },
+
+  // Conectar com Shopify (via OAuth callback)
+  async connect(
+    shopName: string,
+    accessToken: string,
+    isTestMode: boolean = true,
+  ) {
+    try {
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
 
       // Salvar integração
       const { data, error } = await supabase
-        .from('ShopifyIntegration')
+        .from("ShopifyIntegration")
         .upsert({
-          organizationId: (await supabase.auth.getUser()).data.user?.user_metadata?.organizationId,
+          userId,
           shopName,
+          shopDomain: `${shopName}.myshopify.com`,
           accessToken,
+          scope: "",
           isActive: true,
           isTestMode,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data as ShopifyIntegration;
+      return data;
     } catch (error) {
-      console.error('Error connecting to Shopify:', error);
+      console.error("Error connecting to Shopify:", error);
       throw error;
     }
   },
@@ -181,9 +221,9 @@ export const shopifyIntegrationApi = {
       const shopUrl = `https://${shopName}.myshopify.com`;
       const response = await fetch(`${shopUrl}/admin/api/2023-10/shop.json`, {
         headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
+          "X-Shopify-Access-Token": accessToken,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -198,30 +238,66 @@ export const shopifyIntegrationApi = {
           shopName: shopData.shop.name,
           domain: shopData.shop.domain,
           currency: shopData.shop.currency,
-          timezone: shopData.shop.timezone
-        }
+          timezone: shopData.shop.timezone,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        message: `Erro ao conectar com Shopify: ${error.message}`
+        message: `Erro ao conectar com Shopify: ${error.message}`,
       };
     }
   },
 
-  // Buscar integração ativa
+  // Buscar integração ativa (alias para compatibilidade)
   async getActiveIntegration() {
+    return this.getStatus();
+  },
+
+  // Obter status da integração
+  async getStatus() {
     try {
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      if (!userId) return null;
+
       const { data, error } = await supabase
-        .from('ShopifyIntegration')
-        .select('*')
-        .eq('isActive', true)
+        .from("ShopifyIntegration")
+        .select("*")
+        .eq("userId", userId)
+        .eq("isActive", true)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as ShopifyIntegration | null;
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
     } catch (error) {
-      console.error('Error getting active Shopify integration:', error);
+      console.error("Error getting Shopify status:", error);
+      return null;
+    }
+  },
+
+  // Sincronizar dados
+  async sync(action = "sync-all") {
+    try {
+      const integration = await this.getStatus();
+      if (!integration) throw new Error("No integration found");
+
+      const session = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-sync`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+          },
+          body: JSON.stringify({ integrationId: integration.id, action }),
+        },
+      );
+      return response.json();
+    } catch (error) {
+      console.error("Error syncing Shopify:", error);
       throw error;
     }
   },
@@ -229,18 +305,58 @@ export const shopifyIntegrationApi = {
   // Desconectar Shopify
   async disconnect() {
     try {
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
+
       const { error } = await supabase
-        .from('ShopifyIntegration')
-        .update({ 
+        .from("ShopifyIntegration")
+        .update({
           isActive: false,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         })
-        .eq('isActive', true);
+        .eq("userId", userId)
+        .eq("isActive", true);
 
       if (error) throw error;
+      return { success: true };
     } catch (error) {
-      console.error('Error disconnecting Shopify:', error);
+      console.error("Error disconnecting Shopify:", error);
       throw error;
+    }
+  },
+
+  // Obter estatísticas
+  async getStats() {
+    try {
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      if (!userId) return null;
+
+      const [integration, products, orders] = await Promise.all([
+        this.getStatus(),
+        supabase
+          .from("ShopifyProduct")
+          .select("id", { count: "exact", head: true })
+          .eq("userId", userId),
+        supabase
+          .from("ShopifyOrder")
+          .select("id", { count: "exact", head: true })
+          .eq("userId", userId),
+      ]);
+
+      return {
+        connected: !!integration,
+        shopName: integration?.shopName,
+        lastSync: integration?.lastSyncAt,
+        productsCount: products.count || 0,
+        ordersCount: orders.count || 0,
+      };
+    } catch (error) {
+      console.error("Error getting Shopify stats:", error);
+      return null;
     }
   },
 
@@ -249,7 +365,7 @@ export const shopifyIntegrationApi = {
     try {
       const integration = await this.getActiveIntegration();
       if (!integration) {
-        throw new Error('Nenhuma integração Shopify ativa encontrada');
+        throw new Error("Nenhuma integração Shopify ativa encontrada");
       }
 
       const shopUrl = `https://${integration.shopName}.myshopify.com`;
@@ -258,15 +374,15 @@ export const shopifyIntegrationApi = {
       // Buscar produtos em lotes
       let nextPageInfo = null;
       do {
-        const url = nextPageInfo 
+        const url = nextPageInfo
           ? `${shopUrl}/admin/api/2023-10/products.json?limit=250&page_info=${nextPageInfo}`
           : `${shopUrl}/admin/api/2023-10/products.json?limit=250`;
 
         const response = await fetch(url, {
           headers: {
-            'X-Shopify-Access-Token': integration.accessToken,
-            'Content-Type': 'application/json'
-          }
+            "X-Shopify-Access-Token": integration.accessToken,
+            "Content-Type": "application/json",
+          },
         });
 
         if (!response.ok) {
@@ -277,7 +393,7 @@ export const shopifyIntegrationApi = {
         products.push(...data.products);
 
         // Verificar se há próxima página
-        const linkHeader = response.headers.get('Link');
+        const linkHeader = response.headers.get("Link");
         nextPageInfo = null;
         if (linkHeader) {
           const nextMatch = linkHeader.match(/<[^>]*page_info=([^&>]+)/);
@@ -288,47 +404,47 @@ export const shopifyIntegrationApi = {
       } while (nextPageInfo);
 
       // Salvar produtos no banco
-      const { error } = await supabase
-        .from('ShopifyProduct')
-        .upsert(
-          products.map(product => ({
-            id: product.id,
-            organizationId: integration.organizationId,
-            title: product.title,
-            handle: product.handle,
-            description: product.body_html,
-            vendor: product.vendor,
-            productType: product.product_type,
-            tags: product.tags ? product.tags.split(',').map(tag => tag.trim()) : [],
-            status: product.status,
-            shopifyData: product,
-            createdAt: product.created_at,
-            updatedAt: product.updated_at
-          })),
-          { onConflict: 'id,organizationId' }
-        );
+      const { error } = await supabase.from("ShopifyProduct").upsert(
+        products.map((product) => ({
+          id: product.id,
+          organizationId: integration.organizationId,
+          title: product.title,
+          handle: product.handle,
+          description: product.body_html,
+          vendor: product.vendor,
+          productType: product.product_type,
+          tags: product.tags
+            ? product.tags.split(",").map((tag) => tag.trim())
+            : [],
+          status: product.status,
+          shopifyData: product,
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
+        })),
+        { onConflict: "id,organizationId" },
+      );
 
       if (error) throw error;
 
       // Atualizar timestamp da última sincronização
       await supabase
-        .from('ShopifyIntegration')
-        .update({ 
+        .from("ShopifyIntegration")
+        .update({
           lastSyncAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         })
-        .eq('id', integration.id);
+        .eq("id", integration.id);
 
       return {
         success: true,
         message: `${products.length} produtos sincronizados com sucesso`,
         data: {
           productCount: products.length,
-          lastSyncAt: new Date().toISOString()
-        }
+          lastSyncAt: new Date().toISOString(),
+        },
       };
     } catch (error) {
-      console.error('Error syncing Shopify products:', error);
+      console.error("Error syncing Shopify products:", error);
       throw error;
     }
   },
@@ -342,24 +458,26 @@ export const shopifyIntegrationApi = {
   }) {
     try {
       let query = supabase
-        .from('ShopifyProduct')
-        .select('*')
-        .order('updatedAt', { ascending: false });
+        .from("ShopifyProduct")
+        .select("*")
+        .order("updatedAt", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq("status", filters.status);
       }
 
       if (filters?.vendor) {
-        query = query.eq('vendor', filters.vendor);
+        query = query.eq("vendor", filters.vendor);
       }
 
       if (filters?.productType) {
-        query = query.eq('productType', filters.productType);
+        query = query.eq("productType", filters.productType);
       }
 
       if (filters?.search) {
-        query = query.or(`title.ilike.%${filters.search}%,handle.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,handle.ilike.%${filters.search}%`,
+        );
       }
 
       const { data, error } = await query;
@@ -367,7 +485,7 @@ export const shopifyIntegrationApi = {
       if (error) throw error;
       return data as ShopifyProduct[];
     } catch (error) {
-      console.error('Error getting Shopify products:', error);
+      console.error("Error getting Shopify products:", error);
       throw error;
     }
   },
@@ -392,11 +510,11 @@ export const shopifyIntegrationApi = {
     try {
       const integration = await this.getActiveIntegration();
       if (!integration) {
-        throw new Error('Nenhuma integração Shopify ativa encontrada');
+        throw new Error("Nenhuma integração Shopify ativa encontrada");
       }
 
       const shopUrl = `https://${integration.shopName}.myshopify.com`;
-      
+
       const orderPayload = {
         order: {
           line_items: orderData.lineItems,
@@ -404,35 +522,37 @@ export const shopifyIntegrationApi = {
           shipping_address: orderData.shippingAddress,
           billing_address: orderData.billingAddress,
           note: orderData.note,
-          tags: orderData.tags?.join(', '),
-          financial_status: 'pending',
+          tags: orderData.tags?.join(", "),
+          financial_status: "pending",
           send_receipt: true,
-          send_fulfillment_receipt: false
-        }
+          send_fulfillment_receipt: false,
+        },
       };
 
       const response = await fetch(`${shopUrl}/admin/api/2023-10/orders.json`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'X-Shopify-Access-Token': integration.accessToken,
-          'Content-Type': 'application/json'
+          "X-Shopify-Access-Token": integration.accessToken,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify(orderPayload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Erro ao criar pedido: ${errorData.errors || response.statusText}`);
+        throw new Error(
+          `Erro ao criar pedido: ${errorData.errors || response.statusText}`,
+        );
       }
 
       const data = await response.json();
       return {
         success: true,
-        message: 'Pedido criado com sucesso no Shopify',
-        data: data.order
+        message: "Pedido criado com sucesso no Shopify",
+        data: data.order,
       };
     } catch (error) {
-      console.error('Error creating Shopify order:', error);
+      console.error("Error creating Shopify order:", error);
       throw error;
     }
   },
@@ -448,7 +568,7 @@ export const shopifyIntegrationApi = {
     try {
       const integration = await this.getActiveIntegration();
       if (!integration) {
-        throw new Error('Nenhuma integração Shopify ativa encontrada');
+        throw new Error("Nenhuma integração Shopify ativa encontrada");
       }
 
       const shopUrl = `https://${integration.shopName}.myshopify.com`;
@@ -472,9 +592,9 @@ export const shopifyIntegrationApi = {
 
       const response = await fetch(url, {
         headers: {
-          'X-Shopify-Access-Token': integration.accessToken,
-          'Content-Type': 'application/json'
-        }
+          "X-Shopify-Access-Token": integration.accessToken,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -484,7 +604,7 @@ export const shopifyIntegrationApi = {
       const data = await response.json();
       return data.orders as ShopifyOrder[];
     } catch (error) {
-      console.error('Error getting Shopify orders:', error);
+      console.error("Error getting Shopify orders:", error);
       throw error;
     }
   },
@@ -494,78 +614,81 @@ export const shopifyIntegrationApi = {
     try {
       const integration = await this.getActiveIntegration();
       if (!integration) {
-        throw new Error('Nenhuma integração Shopify ativa encontrada');
+        throw new Error("Nenhuma integração Shopify ativa encontrada");
       }
 
       const shopUrl = `https://${integration.shopName}.myshopify.com`;
-      const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/shopify-webhook`;
+      const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/shopify-webhook`;
 
       const webhooks = [
         {
-          topic: 'orders/create',
+          topic: "orders/create",
           address: webhookUrl,
-          format: 'json'
+          format: "json",
         },
         {
-          topic: 'orders/updated',
+          topic: "orders/updated",
           address: webhookUrl,
-          format: 'json'
+          format: "json",
         },
         {
-          topic: 'orders/paid',
+          topic: "orders/paid",
           address: webhookUrl,
-          format: 'json'
+          format: "json",
         },
         {
-          topic: 'orders/cancelled',
+          topic: "orders/cancelled",
           address: webhookUrl,
-          format: 'json'
-        }
+          format: "json",
+        },
       ];
 
       const results = [];
       for (const webhook of webhooks) {
         try {
-          const response = await fetch(`${shopUrl}/admin/api/2023-10/webhooks.json`, {
-            method: 'POST',
-            headers: {
-              'X-Shopify-Access-Token': integration.accessToken,
-              'Content-Type': 'application/json'
+          const response = await fetch(
+            `${shopUrl}/admin/api/2023-10/webhooks.json`,
+            {
+              method: "POST",
+              headers: {
+                "X-Shopify-Access-Token": integration.accessToken,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ webhook }),
             },
-            body: JSON.stringify({ webhook })
-          });
+          );
 
           if (response.ok) {
             const data = await response.json();
             results.push({
               topic: webhook.topic,
               success: true,
-              webhookId: data.webhook.id
+              webhookId: data.webhook.id,
             });
           } else {
             results.push({
               topic: webhook.topic,
               success: false,
-              error: response.statusText
+              error: response.statusText,
             });
           }
         } catch (error) {
           results.push({
             topic: webhook.topic,
             success: false,
-            error: error.message
+            error: error.message,
           });
         }
       }
 
       return {
         success: true,
-        message: 'Webhooks configurados',
-        data: results
+        message: "Webhooks configurados",
+        data: results,
       };
     } catch (error) {
-      console.error('Error setting up Shopify webhooks:', error);
+      console.error("Error setting up Shopify webhooks:", error);
       throw error;
     }
-  }
+  },
 };
