@@ -179,16 +179,34 @@ export const shopifyIntegrationApi = {
 
   // Conectar com Shopify (via OAuth callback)
   async connect(
-    shopName: string,
+    shopDomain: string,
     accessToken: string,
-    isTestMode: boolean = true,
+    apiKey: string,
+    apiSecret: string,
   ) {
     try {
       const user = await supabase.auth.getUser();
       const userId = user.data.user?.id;
 
       if (!userId) {
-        throw new Error("User not authenticated");
+        return { success: false, error: "User not authenticated" };
+      }
+
+      // Validar shopDomain
+      if (!shopDomain.includes(".myshopify.com")) {
+        shopDomain = `${shopDomain}.myshopify.com`;
+      }
+
+      // Extrair shopName do domain
+      const shopName = shopDomain.replace(".myshopify.com", "");
+
+      // Testar conexão primeiro
+      const testResult = await this.testConnection(shopDomain, accessToken);
+      if (!testResult.success) {
+        return {
+          success: false,
+          error: testResult.message || "Erro ao validar credenciais",
+        };
       }
 
       // Salvar integração
@@ -197,28 +215,38 @@ export const shopifyIntegrationApi = {
         .upsert({
           userId,
           shopName,
-          shopDomain: `${shopName}.myshopify.com`,
+          shopDomain,
           accessToken,
-          scope: "",
+          apiKey,
+          apiSecret,
+          scope:
+            "read_products,write_products,read_orders,write_orders,read_customers,write_customers",
           isActive: true,
-          isTestMode,
           updatedAt: new Date().toISOString(),
         })
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
+      if (error) {
+        console.error("Error saving Shopify integration:", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error: any) {
       console.error("Error connecting to Shopify:", error);
-      throw error;
+      return { success: false, error: error.message || "Erro desconhecido" };
     }
   },
 
   // Testar conexão
-  async testConnection(shopName: string, accessToken: string) {
+  async testConnection(shopDomain: string, accessToken: string) {
     try {
-      const shopUrl = `https://${shopName}.myshopify.com`;
+      // Garantir que o domínio tem .myshopify.com
+      const domain = shopDomain.includes(".myshopify.com")
+        ? shopDomain
+        : `${shopDomain}.myshopify.com`;
+      const shopUrl = `https://${domain}`;
       const response = await fetch(`${shopUrl}/admin/api/2023-10/shop.json`, {
         headers: {
           "X-Shopify-Access-Token": accessToken,
