@@ -1,0 +1,49 @@
+// Adicionar após linha 91 (const [formErrors...]):
+  
+  // Cupom
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [loadingCoupon, setLoadingCoupon] = useState(false);
+  
+  // Frete
+  const [shippingCost, setShippingCost] = useState(0);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  
+  // Order Bumps
+  const [orderBumps, setOrderBumps] = useState<any[]>([]);
+  const [selectedBumps, setSelectedBumps] = useState<Set<string>>(new Set());
+
+  // Função aplicar cupom (adicionar após validateStep2):
+  
+  const handleApplyCoupon = async () => {
+    if (!couponCode || !checkoutData) return;
+    
+    setLoadingCoupon(true);
+    try {
+      const result = await couponApi.validateCoupon(couponCode, checkoutData.subtotal);
+      
+      if (result.valid && result.coupon) {
+        setAppliedCoupon(result.coupon);
+        setCouponDiscount(result.discountAmount || 0);
+        toast({
+          title: "Cupom aplicado!",
+          description: `Desconto de R$ ${result.discountAmount?.toFixed(2)}`,
+        });
+      } else {
+        toast({
+          title: "Cupom inválido",
+          description: result.error || "Não foi possível aplicar o cupom",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível validar o cupom",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingCoupon(false);
+    }
+  };
