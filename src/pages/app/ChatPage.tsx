@@ -163,6 +163,61 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Função para parsear JSON e extrair conteúdo útil
+  const parseJSONResponse = (text: string): string => {
+    if (!text || typeof text !== "string") return text;
+
+    // Tentar parsear como JSON
+    try {
+      // Verificar se é um JSON válido
+      if (text.trim().startsWith("{") && text.trim().endsWith("}")) {
+        const parsed = JSON.parse(text);
+
+        // Extrair message se existir
+        if (parsed.message && typeof parsed.message === "string") {
+          return parsed.message;
+        }
+
+        // Extrair data.message se existir
+        if (parsed.data?.message) {
+          return parsed.data.message;
+        }
+
+        // Se tem results (busca), formatar
+        if (parsed.data?.results && Array.isArray(parsed.data.results)) {
+          const query = parsed.data.query || "sua busca";
+          const provider = parsed.data.provider || "Internet";
+          let formatted = `🔍 **Encontrei ${parsed.data.results.length} resultados sobre "${query}"** (${provider})\n\n`;
+
+          parsed.data.results.slice(0, 5).forEach((result: any, i: number) => {
+            formatted += `**${i + 1}. ${result.title || "Resultado"}**\n`;
+            if (result.description || result.snippet) {
+              formatted += `${result.description || result.snippet}\n`;
+            }
+            if (result.url || result.link) {
+              formatted += `🔗 [Ver mais](${result.url || result.link})\n`;
+            }
+            formatted += "\n";
+          });
+
+          return formatted;
+        }
+
+        // Se tem error
+        if (parsed.error) {
+          return `❌ Erro: ${parsed.error}`;
+        }
+
+        // Fallback: retornar message ou texto original
+        return parsed.message || text;
+      }
+    } catch (e) {
+      // Não é JSON válido, continuar com limpeza normal
+    }
+
+    return text;
+  };
+
   // Função para limpar logs técnicos e JSON da resposta
   const cleanTechnicalLogs = (text: string): string => {
     if (!text || typeof text !== "string") return text;
@@ -739,7 +794,11 @@ O link abrirá em uma nova aba para você autorizar o acesso.`,
       cleanedResponse = cleanIntegrationBlocksFromResponse(cleanedResponse);
       console.log("🧹 Após limpar blocos:", cleanedResponse.substring(0, 200));
 
-      // Limpar completamente JSON e logs técnicos
+      // Primeiro tentar parsear JSON para extrair conteúdo útil
+      cleanedResponse = parseJSONResponse(cleanedResponse);
+      console.log("🔍 Após parsear JSON:", cleanedResponse.substring(0, 200));
+
+      // Depois limpar logs técnicos
       cleanedResponse = cleanTechnicalLogs(cleanedResponse);
       console.log(
         "🔧 Após cleanTechnicalLogs:",
