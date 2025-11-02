@@ -24,6 +24,7 @@ import { checkoutApi, CheckoutCustomization } from "@/lib/api/checkoutApi";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
+import { Upload } from "lucide-react";
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
@@ -202,11 +203,24 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o logo
                         </p>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <p className="text-xs text-gray-400">
-                            Selecionar imagem
-                          </p>
-                        </div>
+                        <Input
+                          type="url"
+                          placeholder="https://exemplo.com/logo.png"
+                          className="mt-2"
+                          value={customization?.theme?.logoUrl || ""}
+                          onChange={(e) =>
+                            updateTheme({ logoUrl: e.target.value })
+                          }
+                        />
+                        {customization?.theme?.logoUrl && (
+                          <div className="mt-2 p-2 border rounded">
+                            <img
+                              src={customization.theme.logoUrl}
+                              alt="Logo preview"
+                              className="max-h-20 mx-auto"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -264,11 +278,15 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o favicon
                         </p>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <p className="text-xs text-gray-400">
-                            Selecionar imagem
-                          </p>
-                        </div>
+                        <Input
+                          type="url"
+                          placeholder="https://exemplo.com/favicon.ico"
+                          className="mt-2"
+                          value={customization?.theme?.faviconUrl || ""}
+                          onChange={(e) =>
+                            updateTheme({ faviconUrl: e.target.value })
+                          }
+                        />
                       </div>
 
                       <div>
@@ -323,11 +341,24 @@ const CheckoutCustomizePage: React.FC = () => {
                           Borda de carrinho
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-black" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.cartBorderColor ||
+                                "#000000",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#000000"
                             className="flex-1"
+                            value={
+                              customization?.theme?.cartBorderColor || "#000000"
+                            }
+                            onChange={(e) =>
+                              updateTheme({ cartBorderColor: e.target.value })
+                            }
                           />
                         </div>
                       </div>
@@ -337,29 +368,68 @@ const CheckoutCustomizePage: React.FC = () => {
                           Círculo de quantidade
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-pink-500" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.quantityCircleColor ||
+                                "#FF0080",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FF0080"
                             className="flex-1"
+                            value={
+                              customization?.theme?.quantityCircleColor ||
+                              "#FF0080"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                quantityCircleColor: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Quantidade
+                          Cor do texto da quantidade
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.quantityTextColor ||
+                                "#FFFFFF",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FFFFFF"
                             className="flex-1"
+                            value={
+                              customization?.theme?.quantityTextColor ||
+                              "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({ quantityTextColor: e.target.value })
+                            }
                           />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showCartIcon || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ showCartIcon: e.target.checked })
+                            }
+                          />
                           <span className="text-xs text-gray-600">
                             Mostrar ícone de carrinho sempre
                           </span>
@@ -373,7 +443,16 @@ const CheckoutCustomizePage: React.FC = () => {
                     <>
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.bannerEnabled || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ bannerEnabled: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Ativar banner em checkout
                           </Label>
@@ -385,13 +464,26 @@ const CheckoutCustomizePage: React.FC = () => {
                           Imagem do banner
                         </Label>
                         <p className="text-xs text-gray-500 mt-1 mb-2">
-                          Clique e escolha banner
+                          Cole a URL da imagem do banner
                         </p>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <p className="text-xs text-gray-400">
-                            Selecionar imagem
-                          </p>
-                        </div>
+                        <Input
+                          type="url"
+                          placeholder="https://exemplo.com/banner.png"
+                          className="mt-2"
+                          value={customization?.theme?.bannerUrl || ""}
+                          onChange={(e) =>
+                            updateTheme({ bannerUrl: e.target.value })
+                          }
+                        />
+                        {customization?.theme?.bannerUrl && (
+                          <div className="mt-2 p-2 border rounded">
+                            <img
+                              src={customization.theme.bannerUrl}
+                              alt="Banner preview"
+                              className="w-full max-h-24 object-cover rounded"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -412,17 +504,34 @@ const CheckoutCustomizePage: React.FC = () => {
                         <Label className="text-xs text-gray-600">
                           Exibir carrinho
                         </Label>
-                        <select className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                          <option>Sem pré-fechado</option>
-                          <option>Pré-fechado</option>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={customization?.theme?.cartDisplay || "open"}
+                          onChange={(e) =>
+                            updateTheme({
+                              cartDisplay: e.target.value as "open" | "closed",
+                            })
+                          }
+                        >
+                          <option value="open">Aberto</option>
+                          <option value="closed">Pré-fechado</option>
                         </select>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.allowCouponEdit || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ allowCouponEdit: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
-                            Editar cupom de desconto
+                            Permitir editar cupom de desconto
                           </Label>
                         </div>
                       </div>
@@ -434,64 +543,141 @@ const CheckoutCustomizePage: React.FC = () => {
                     <>
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Visual de próxima Etapa
+                          Visual do botão
                         </Label>
-                        <select className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                          <option>Arredondado</option>
-                          <option>Retangular</option>
-                          <option>Oval</option>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={
+                            customization?.theme?.primaryButtonBorderRadius ||
+                            "8px"
+                          }
+                          onChange={(e) =>
+                            updateTheme({
+                              primaryButtonBorderRadius: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="4px">Levemente arredondado</option>
+                          <option value="8px">Arredondado</option>
+                          <option value="16px">Muito arredondado</option>
+                          <option value="9999px">Oval</option>
                         </select>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showCartReminder || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showCartReminder: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
-                            Remeter carrinho
+                            Mostrar lembrete do carrinho
                           </Label>
                         </div>
                       </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Texto do botão primário
+                          Cor do texto do botão
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.primaryButtonTextColor ||
+                                "#FFFFFF",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FFFFFF"
                             className="flex-1"
+                            value={
+                              customization?.theme?.primaryButtonTextColor ||
+                              "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                primaryButtonTextColor: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Fundo do botão primário
+                          Cor de fundo do botão
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-pink-500" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme
+                                  ?.primaryButtonBackgroundColor || "#FF0080",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FF0080"
                             className="flex-1"
+                            value={
+                              customization?.theme
+                                ?.primaryButtonBackgroundColor || "#FF0080"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                primaryButtonBackgroundColor: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.primaryButtonHover || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                primaryButtonHover: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
-                            Remeter cursor botão primário
+                            Efeito hover no botão
                           </Label>
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.primaryButtonFlow || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                primaryButtonFlow: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Efeito fluir
                           </Label>
@@ -500,46 +686,100 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Texto da borda destacada
+                          Cor do texto do botão de checkout
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.checkoutButtonTextColor ||
+                                "#FFFFFF",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#FFFFFF"
                             className="flex-1"
+                            value={
+                              customization?.theme?.checkoutButtonTextColor ||
+                              "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                checkoutButtonTextColor: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
-                          Fundo da borda de finalizar compra
+                          Cor de fundo do botão de checkout
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-green-500" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme
+                                  ?.checkoutButtonBackgroundColor || "#0FBA00",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#0FBA00"
                             className="flex-1"
+                            value={
+                              customization?.theme
+                                ?.checkoutButtonBackgroundColor || "#0FBA00"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                checkoutButtonBackgroundColor: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.checkoutButtonHover || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                checkoutButtonHover: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
-                            Remeter botão finalizar compra
+                            Efeito hover no botão de checkout
                           </Label>
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.checkoutButtonPulse || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                checkoutButtonPulse: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
-                            Efeito fluir
+                            Efeito pulsante
                           </Label>
                         </div>
                       </div>
@@ -551,7 +791,16 @@ const CheckoutCustomizePage: React.FC = () => {
                     <>
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showStoreName || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ showStoreName: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir nome da loja
                           </Label>
@@ -560,7 +809,18 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showPaymentMethods || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showPaymentMethods: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir formas de pagamento
                           </Label>
@@ -569,7 +829,14 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={customization?.theme?.showCnpjCpf || false}
+                            onChange={(e) =>
+                              updateTheme({ showCnpjCpf: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir CNPJ/CPF
                           </Label>
@@ -578,7 +845,18 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showContactEmail || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showContactEmail: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir e-mail de contato
                           </Label>
@@ -587,7 +865,14 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={customization?.theme?.showAddress || false}
+                            onChange={(e) =>
+                              updateTheme({ showAddress: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir endereço
                           </Label>
@@ -596,7 +881,14 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={customization?.theme?.showPhone || false}
+                            onChange={(e) =>
+                              updateTheme({ showPhone: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir telefone
                           </Label>
@@ -605,7 +897,18 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showPrivacyPolicy || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showPrivacyPolicy: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir política de privacidade
                           </Label>
@@ -614,7 +917,18 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showTermsConditions || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showTermsConditions: e.target.checked,
+                              })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir termos e condições
                           </Label>
@@ -623,7 +937,14 @@ const CheckoutCustomizePage: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={customization?.theme?.showReturns || false}
+                            onChange={(e) =>
+                              updateTheme({ showReturns: e.target.checked })
+                            }
+                          />
                           <Label className="text-xs text-gray-600">
                             Exibir trocas e devoluções
                           </Label>
@@ -631,13 +952,28 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Texto</Label>
+                        <Label className="text-xs text-gray-600">
+                          Cor do texto
+                        </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-gray-800" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.footerTextColor ||
+                                "#3b3b3b",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#3b3b3b"
                             className="flex-1"
+                            value={
+                              customization?.theme?.footerTextColor || "#3b3b3b"
+                            }
+                            onChange={(e) =>
+                              updateTheme({ footerTextColor: e.target.value })
+                            }
                           />
                         </div>
                       </div>
@@ -647,12 +983,631 @@ const CheckoutCustomizePage: React.FC = () => {
                           Fundo do rodapé
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="w-10 h-10 rounded border border-gray-300 bg-white" />
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.footerBackgroundColor ||
+                                "#F6F6F6",
+                            }}
+                          />
                           <Input
                             type="text"
                             placeholder="#F6F6F6"
                             className="flex-1"
+                            value={
+                              customization?.theme?.footerBackgroundColor ||
+                              "#F6F6F6"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                footerBackgroundColor: e.target.value,
+                              })
+                            }
                           />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* BARRA DE AVISOS */}
+                  {section.id === "BARRA_DE_AVISOS" && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.noticeBarEnabled || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                noticeBarEnabled: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Ativar barra de avisos
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Mensagem
+                        </Label>
+                        <Input
+                          type="text"
+                          placeholder="🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!"
+                          className="mt-2"
+                          value={
+                            customization?.theme?.noticeBarMessage ||
+                            "🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!"
+                          }
+                          onChange={(e) =>
+                            updateTheme({ noticeBarMessage: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor de fundo
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme
+                                  ?.noticeBarBackgroundColor || "#1a1a1a",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#1a1a1a"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.noticeBarBackgroundColor ||
+                              "#1a1a1a"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                noticeBarBackgroundColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor do texto
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.noticeBarTextColor ||
+                                "#FFFFFF",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#FFFFFF"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.noticeBarTextColor ||
+                              "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                noticeBarTextColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Animação
+                        </Label>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={
+                            customization?.theme?.noticeBarAnimation || "none"
+                          }
+                          onChange={(e) =>
+                            updateTheme({
+                              noticeBarAnimation: e.target.value as
+                                | "none"
+                                | "slide"
+                                | "fade",
+                            })
+                          }
+                        >
+                          <option value="none">Sem animação</option>
+                          <option value="slide">Deslizar</option>
+                          <option value="fade">Fade</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ESCASSEZ */}
+                  {section.id === "ESCASSEZ" && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={customization?.theme?.useVisible || false}
+                            onChange={(e) =>
+                              updateTheme({ useVisible: e.target.checked })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Ativar gatilho de escassez
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Tempo de expiração (minutos)
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder="15"
+                          className="mt-2"
+                          value={customization?.theme?.expirationTime || 15}
+                          onChange={(e) =>
+                            updateTheme({
+                              expirationTime: parseInt(e.target.value) || 15,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Tempo de remoção forçada (minutos)
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder="20"
+                          className="mt-2"
+                          value={customization?.theme?.forceRemovalTime || 20}
+                          onChange={(e) =>
+                            updateTheme({
+                              forceRemovalTime: parseInt(e.target.value) || 20,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showCountdownTimer || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                showCountdownTimer: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Mostrar contador regressivo
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor da mensagem de urgência
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.urgencyMessageColor ||
+                                "#FF0000",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#FF0000"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.urgencyMessageColor ||
+                              "#FF0000"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                urgencyMessageColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor de fundo da urgência
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.urgencyBackgroundColor ||
+                                "#FFF3CD",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#FFF3CD"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.urgencyBackgroundColor ||
+                              "#FFF3CD"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                urgencyBackgroundColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ORDER BUMP */}
+                  {section.id === "ORDER_BUMP" && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.orderBumpEnabled || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                orderBumpEnabled: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Ativar Order Bump
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor do texto
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.orderBumpTextColor ||
+                                "#1a1a1a",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#1a1a1a"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.orderBumpTextColor ||
+                              "#1a1a1a"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                orderBumpTextColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor de fundo
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme
+                                  ?.orderBumpBackgroundColor || "#FFFFFF",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#FFFFFF"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.orderBumpBackgroundColor ||
+                              "#FFFFFF"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                orderBumpBackgroundColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor do preço
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.orderBumpPriceColor ||
+                                "#0FBA00",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#0FBA00"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.orderBumpPriceColor ||
+                              "#0FBA00"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                orderBumpPriceColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Cor da borda
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div
+                            className="w-10 h-10 rounded border border-gray-300"
+                            style={{
+                              backgroundColor:
+                                customization?.theme?.orderBumpBorderColor ||
+                                "#e5e7eb",
+                            }}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="#e5e7eb"
+                            className="flex-1"
+                            value={
+                              customization?.theme?.orderBumpBorderColor ||
+                              "#e5e7eb"
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                orderBumpBorderColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Arredondamento da borda
+                        </Label>
+                        <Input
+                          type="text"
+                          placeholder="8px"
+                          className="mt-2"
+                          value={
+                            customization?.theme?.orderBumpBorderRadius || "8px"
+                          }
+                          onChange={(e) =>
+                            updateTheme({
+                              orderBumpBorderRadius: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* CONFIGURAÇÕES */}
+                  {section.id === "CONFIGURAÇÕES" && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-gray-600">
+                          Fonte do checkout
+                        </Label>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={
+                            customization?.theme?.fontFamily ||
+                            "Inter, sans-serif"
+                          }
+                          onChange={(e) =>
+                            updateTheme({ fontFamily: e.target.value })
+                          }
+                        >
+                          <option value="Inter, sans-serif">Inter</option>
+                          <option value="Roboto, sans-serif">Roboto</option>
+                          <option value="Poppins, sans-serif">Poppins</option>
+                          <option value="Montserrat, sans-serif">
+                            Montserrat
+                          </option>
+                          <option value="Open Sans, sans-serif">
+                            Open Sans
+                          </option>
+                          <option value="Lato, sans-serif">Lato</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">Idioma</Label>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={customization?.theme?.language || "pt-BR"}
+                          onChange={(e) =>
+                            updateTheme({ language: e.target.value })
+                          }
+                        >
+                          <option value="pt-BR">Português (BR)</option>
+                          <option value="en-US">English (US)</option>
+                          <option value="es-ES">Español</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-gray-600">Moeda</Label>
+                        <select
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          value={customization?.theme?.currency || "BRL"}
+                          onChange={(e) =>
+                            updateTheme({ currency: e.target.value })
+                          }
+                        >
+                          <option value="BRL">Real (R$)</option>
+                          <option value="USD">Dólar ($)</option>
+                          <option value="EUR">Euro (€)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.requestCpfOnlyAtPayment ||
+                              false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                requestCpfOnlyAtPayment: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Solicitar CPF apenas no pagamento
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.requestBirthDate || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                requestBirthDate: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Solicitar data de nascimento
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.requestGender || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ requestGender: e.target.checked })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Solicitar gênero
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.showTrustBadges || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ showTrustBadges: e.target.checked })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Mostrar selos de confiança
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.sslBadgeEnabled || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({ sslBadgeEnabled: e.target.checked })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Mostrar selo SSL
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={
+                              customization?.theme?.enableAnimations || false
+                            }
+                            onChange={(e) =>
+                              updateTheme({
+                                enableAnimations: e.target.checked,
+                              })
+                            }
+                          />
+                          <Label className="text-xs text-gray-600">
+                            Ativar animações
+                          </Label>
                         </div>
                       </div>
                     </>

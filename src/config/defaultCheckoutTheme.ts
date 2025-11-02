@@ -12,7 +12,7 @@ export interface CheckoutTheme {
   // ========================================
   // CABEÇALHO
   // ========================================
-  logoAlignment: 'left' | 'center' | 'right';
+  logoAlignment: "left" | "center" | "right";
   showLogoAtTop: boolean;
   logoUrl?: string;
   logoWidth?: number;
@@ -47,7 +47,7 @@ export interface CheckoutTheme {
   // ========================================
   // CARRINHO
   // ========================================
-  cartDisplay: 'closed' | 'open' | 'drawer';
+  cartDisplay: "closed" | "open" | "drawer";
   cartBorderColor: string;
   cartBackgroundColor: string;
   quantityCircleColor: string;
@@ -60,7 +60,7 @@ export interface CheckoutTheme {
   // NAVEGAÇÃO / STEPS
   // ========================================
   navigationSteps: number;
-  nextStepStyle: 'rounded' | 'square' | 'pill';
+  nextStepStyle: "rounded" | "square" | "pill";
   showProgressBar: boolean;
   progressBarColor: string;
   stepActiveColor: string;
@@ -155,7 +155,7 @@ export interface CheckoutTheme {
     base: string;
     lg: string;
     xl: string;
-    '2xl': string;
+    "2xl": string;
   };
   fontWeight: {
     normal: string;
@@ -173,7 +173,7 @@ export interface CheckoutTheme {
     md: string;
     lg: string;
     xl: string;
-    '2xl': string;
+    "2xl": string;
   };
 
   // ========================================
@@ -225,9 +225,9 @@ export interface CheckoutTheme {
   // ========================================
   // CONFIGURAÇÕES GERAIS
   // ========================================
-  language: 'pt' | 'en' | 'es';
-  currency: 'BRL' | 'USD' | 'EUR';
-  presellPage: 'cart-in-cart' | 'separate';
+  language: "pt" | "en" | "es";
+  currency: "BRL" | "USD" | "EUR";
+  presellPage: "cart-in-cart" | "separate";
   requestCpfOnlyAtPayment: boolean;
   requestBirthDate: boolean;
   requestGender: boolean;
@@ -263,7 +263,9 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // ========================================
   // CABEÇALHO
   // ========================================
-  logoAlignment: 'left',
+  logoUrl: "",
+  faviconUrl: "",
+  logoAlignment: "left",
   showLogoAtTop: true,
   logoWidth: 180,
   logoHeight: 50,
@@ -271,35 +273,37 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // ========================================
   // CORES GERAIS
   // ========================================
-  backgroundColor: '#F9FAFB', // Cinza ultra claro
-  backgroundGradient: 'linear-gradient(180deg, #F9FAFB 0%, #F3F4F6 100%)',
+  backgroundColor: "#F9FAFB", // Cinza ultra claro
+  backgroundGradient: "linear-gradient(180deg, #F9FAFB 0%, #F3F4F6 100%)",
   useGradient: false,
-  textColor: '#1F2937', // Cinza escuro
-  headingColor: '#111827', // Quase preto
+  textColor: "#1F2937", // Cinza escuro
+  headingColor: "#111827", // Quase preto
 
   // ========================================
   // BARRA DE AVISOS
   // ========================================
   noticeBarEnabled: true,
-  noticeBarMessage: '🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!',
-  noticeBarBackgroundColor: '#1F2937', // Cinza muito escuro
-  noticeBarTextColor: '#FFFFFF',
+  noticeBarMessage:
+    "🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!",
+  noticeBarBackgroundColor: "#1F2937", // Cinza muito escuro
+  noticeBarTextColor: "#FFFFFF",
   noticeBarAnimation: true,
 
   // ========================================
   // BANNER
   // ========================================
   bannerEnabled: false,
+  bannerUrl: "",
   bannerHeight: 200,
 
   // ========================================
   // CARRINHO
   // ========================================
-  cartDisplay: 'drawer',
-  cartBorderColor: '#E5E7EB',
-  cartBackgroundColor: '#FFFFFF',
-  quantityCircleColor: '#8B5CF6', // Roxo
-  quantityTextColor: '#FFFFFF',
+  cartDisplay: "drawer",
+  cartBorderColor: "#E5E7EB",
+  cartBackgroundColor: "#FFFFFF",
+  quantityCircleColor: "#8B5CF6", // Roxo
+  quantityTextColor: "#FFFFFF",
   showCartIcon: true,
   showCartReminder: true,
   allowCouponEdit: true,
@@ -308,32 +312,32 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // NAVEGAÇÃO / STEPS
   // ========================================
   navigationSteps: 3,
-  nextStepStyle: 'rounded',
+  nextStepStyle: "rounded",
   showProgressBar: true,
-  progressBarColor: '#8B5CF6', // Roxo
-  stepActiveColor: '#8B5CF6', // Roxo
-  stepInactiveColor: '#D1D5DB', // Cinza claro
-  stepCompletedColor: '#10B981', // Verde
+  progressBarColor: "#8B5CF6", // Roxo
+  stepActiveColor: "#8B5CF6", // Roxo
+  stepInactiveColor: "#D1D5DB", // Cinza claro
+  stepCompletedColor: "#10B981", // Verde
 
   // ========================================
   // BOTÕES PRIMÁRIOS
   // ========================================
-  primaryButtonBackgroundColor: '#8B5CF6', // Roxo vibrante
-  primaryButtonTextColor: '#FFFFFF',
+  primaryButtonBackgroundColor: "#8B5CF6", // Roxo vibrante
+  primaryButtonTextColor: "#FFFFFF",
   primaryButtonBorderRadius: 12,
   primaryButtonHover: true,
-  primaryButtonHoverColor: '#7C3AED', // Roxo mais escuro
+  primaryButtonHoverColor: "#7C3AED", // Roxo mais escuro
   primaryButtonFlow: true,
   primaryButtonShadow: true,
 
   // ========================================
   // BOTÃO DE CHECKOUT
   // ========================================
-  checkoutButtonBackgroundColor: '#10B981', // Verde sucesso
-  checkoutButtonTextColor: '#FFFFFF',
+  checkoutButtonBackgroundColor: "#10B981", // Verde sucesso
+  checkoutButtonTextColor: "#FFFFFF",
   checkoutButtonBorderRadius: 14,
   checkoutButtonHover: true,
-  checkoutButtonHoverColor: '#059669', // Verde mais escuro
+  checkoutButtonHoverColor: "#059669", // Verde mais escuro
   checkoutButtonFlow: true,
   checkoutButtonShadow: true,
   checkoutButtonPulse: true,
@@ -341,15 +345,15 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // ========================================
   // BORDAS DESTACADAS
   // ========================================
-  highlightedBorderColor: '#8B5CF6',
-  highlightedBorderTextColor: '#FFFFFF',
+  highlightedBorderColor: "#8B5CF6",
+  highlightedBorderTextColor: "#FFFFFF",
   highlightedBorderWidth: 2,
 
   // ========================================
   // RODAPÉ
   // ========================================
-  footerBackgroundColor: '#F3F4F6',
-  footerTextColor: '#6B7280',
+  footerBackgroundColor: "#F3F4F6",
+  footerTextColor: "#6B7280",
   showStoreName: true,
   showPaymentMethods: true,
   showCnpjCpf: true,
@@ -359,15 +363,15 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   showPrivacyPolicy: true,
   showTermsConditions: true,
   showReturns: true,
-  footerLinkColor: '#8B5CF6',
+  footerLinkColor: "#8B5CF6",
 
   // ========================================
   // TAGS DE DESCONTO
   // ========================================
-  discountTagTextColor: '#FFFFFF',
-  discountTagBackgroundColor: '#EF4444', // Vermelho vivo
+  discountTagTextColor: "#FFFFFF",
+  discountTagBackgroundColor: "#EF4444", // Vermelho vivo
   discountTagBorderRadius: 6,
-  discountTagFontWeight: '700',
+  discountTagFontWeight: "700",
 
   // ========================================
   // ESCASSEZ / URGÊNCIA
@@ -376,106 +380,107 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   expirationTime: 60, // 1 hora
   forceRemovalTime: 90, // 1.5 horas
   showCountdownTimer: true,
-  urgencyMessageColor: '#DC2626', // Vermelho
-  urgencyBackgroundColor: '#FEE2E2', // Vermelho claro
+  urgencyMessageColor: "#DC2626", // Vermelho
+  urgencyBackgroundColor: "#FEE2E2", // Vermelho claro
 
   // ========================================
   // ORDER BUMP
   // ========================================
   orderBumpEnabled: true,
-  orderBumpTextColor: '#374151',
-  orderBumpBackgroundColor: '#FFFBEB', // Amarelo claro
-  orderBumpPriceColor: '#DC2626', // Vermelho
-  orderBumpBorderColor: '#FCD34D', // Amarelo
+  orderBumpTextColor: "#374151",
+  orderBumpBackgroundColor: "#FFFBEB", // Amarelo claro
+  orderBumpPriceColor: "#DC2626", // Vermelho
+  orderBumpBorderColor: "#FCD34D", // Amarelo
   orderBumpBorderWidth: 2,
   orderBumpBorderRadius: 12,
-  orderBumpButtonTextColor: '#FFFFFF',
-  orderBumpButtonBackgroundColor: '#EF4444', // Vermelho
+  orderBumpButtonTextColor: "#FFFFFF",
+  orderBumpButtonBackgroundColor: "#EF4444", // Vermelho
   orderBumpShadow: true,
 
   // ========================================
   // TIPOGRAFIA
   // ========================================
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+  fontFamily:
+    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
   fontSize: {
-    xs: '0.75rem',    // 12px
-    sm: '0.875rem',   // 14px
-    base: '1rem',     // 16px
-    lg: '1.125rem',   // 18px
-    xl: '1.25rem',    // 20px
-    '2xl': '1.5rem',  // 24px
+    xs: "0.75rem", // 12px
+    sm: "0.875rem", // 14px
+    base: "1rem", // 16px
+    lg: "1.125rem", // 18px
+    xl: "1.25rem", // 20px
+    "2xl": "1.5rem", // 24px
   },
   fontWeight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
+    normal: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
   },
 
   // ========================================
   // ESPAÇAMENTOS
   // ========================================
   spacing: {
-    xs: '0.25rem',  // 4px
-    sm: '0.5rem',   // 8px
-    md: '1rem',     // 16px
-    lg: '1.5rem',   // 24px
-    xl: '2rem',     // 32px
-    '2xl': '3rem',  // 48px
+    xs: "0.25rem", // 4px
+    sm: "0.5rem", // 8px
+    md: "1rem", // 16px
+    lg: "1.5rem", // 24px
+    xl: "2rem", // 32px
+    "2xl": "3rem", // 48px
   },
 
   // ========================================
   // BORDAS E SOMBRAS
   // ========================================
   borderRadius: {
-    sm: '0.375rem',   // 6px
-    md: '0.5rem',     // 8px
-    lg: '0.75rem',    // 12px
-    xl: '1rem',       // 16px
-    full: '9999px',
+    sm: "0.375rem", // 6px
+    md: "0.5rem", // 8px
+    lg: "0.75rem", // 12px
+    xl: "1rem", // 16px
+    full: "9999px",
   },
   boxShadow: {
-    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    md: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+    lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+    xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
   },
 
   // ========================================
   // FORMULÁRIOS
   // ========================================
-  inputBorderColor: '#D1D5DB',
-  inputFocusBorderColor: '#8B5CF6', // Roxo
-  inputBackgroundColor: '#FFFFFF',
+  inputBorderColor: "#D1D5DB",
+  inputFocusBorderColor: "#8B5CF6", // Roxo
+  inputBackgroundColor: "#FFFFFF",
   inputHeight: 48,
   inputBorderRadius: 10,
-  labelColor: '#374151',
-  labelFontWeight: '600',
-  placeholderColor: '#9CA3AF',
+  labelColor: "#374151",
+  labelFontWeight: "600",
+  placeholderColor: "#9CA3AF",
 
   // ========================================
   // CARDS / SEÇÕES
   // ========================================
-  cardBackgroundColor: '#FFFFFF',
-  cardBorderColor: '#E5E7EB',
+  cardBackgroundColor: "#FFFFFF",
+  cardBorderColor: "#E5E7EB",
   cardBorderRadius: 16,
   cardShadow: true,
-  cardPadding: '1.5rem',
+  cardPadding: "1.5rem",
 
   // ========================================
   // TRUST BADGES / SEGURANÇA
   // ========================================
   showTrustBadges: true,
-  trustBadgeColor: '#10B981', // Verde
+  trustBadgeColor: "#10B981", // Verde
   sslBadgeEnabled: true,
   securityIconsEnabled: true,
 
   // ========================================
   // CONFIGURAÇÕES GERAIS
   // ========================================
-  language: 'pt',
-  currency: 'BRL',
-  presellPage: 'cart-in-cart',
+  language: "pt",
+  currency: "BRL",
+  presellPage: "cart-in-cart",
   requestCpfOnlyAtPayment: false,
   requestBirthDate: false,
   requestGender: false,
@@ -484,22 +489,22 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // ========================================
   // RESPONSIVIDADE
   // ========================================
-  mobileBreakpoint: 640,   // sm
-  tabletBreakpoint: 1024,  // lg
+  mobileBreakpoint: 640, // sm
+  tabletBreakpoint: 1024, // lg
   desktopBreakpoint: 1280, // xl
 
   // ========================================
   // ANIMAÇÕES
   // ========================================
   enableAnimations: true,
-  animationDuration: '300ms',
-  animationTiming: 'cubic-bezier(0.4, 0, 0.2, 1)', // ease-out
+  animationDuration: "300ms",
+  animationTiming: "cubic-bezier(0.4, 0, 0.2, 1)", // ease-out
 
   // ========================================
   // ACESSIBILIDADE
   // ========================================
   highContrast: false,
-  focusIndicatorColor: '#8B5CF6',
+  focusIndicatorColor: "#8B5CF6",
   reducedMotion: false,
 };
 
@@ -507,31 +512,31 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
  * Tema Alternativo: Dark Mode
  */
 export const DARK_CHECKOUT_THEME: Partial<CheckoutTheme> = {
-  backgroundColor: '#111827',
-  textColor: '#F3F4F6',
-  headingColor: '#FFFFFF',
-  cardBackgroundColor: '#1F2937',
-  inputBackgroundColor: '#374151',
-  inputBorderColor: '#4B5563',
-  footerBackgroundColor: '#1F2937',
-  noticeBarBackgroundColor: '#8B5CF6',
+  backgroundColor: "#111827",
+  textColor: "#F3F4F6",
+  headingColor: "#FFFFFF",
+  cardBackgroundColor: "#1F2937",
+  inputBackgroundColor: "#374151",
+  inputBorderColor: "#4B5563",
+  footerBackgroundColor: "#1F2937",
+  noticeBarBackgroundColor: "#8B5CF6",
 };
 
 /**
  * Tema Alternativo: Minimalista
  */
 export const MINIMAL_CHECKOUT_THEME: Partial<CheckoutTheme> = {
-  backgroundColor: '#FFFFFF',
-  cardBackgroundColor: '#FFFFFF',
-  primaryButtonBackgroundColor: '#000000',
-  checkoutButtonBackgroundColor: '#000000',
+  backgroundColor: "#FFFFFF",
+  cardBackgroundColor: "#FFFFFF",
+  primaryButtonBackgroundColor: "#000000",
+  checkoutButtonBackgroundColor: "#000000",
   fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   borderRadius: {
-    sm: '0',
-    md: '0',
-    lg: '4px',
-    xl: '4px',
-    full: '0',
+    sm: "0",
+    md: "0",
+    lg: "4px",
+    xl: "4px",
+    full: "0",
   },
 };
 
@@ -539,17 +544,19 @@ export const MINIMAL_CHECKOUT_THEME: Partial<CheckoutTheme> = {
  * Tema Alternativo: E-commerce Vibrante
  */
 export const VIBRANT_CHECKOUT_THEME: Partial<CheckoutTheme> = {
-  backgroundColor: '#FEF3C7', // Amarelo claro
-  primaryButtonBackgroundColor: '#F59E0B', // Laranja
-  checkoutButtonBackgroundColor: '#10B981', // Verde
-  noticeBarBackgroundColor: '#EF4444', // Vermelho
-  quantityCircleColor: '#F59E0B',
+  backgroundColor: "#FEF3C7", // Amarelo claro
+  primaryButtonBackgroundColor: "#F59E0B", // Laranja
+  checkoutButtonBackgroundColor: "#10B981", // Verde
+  noticeBarBackgroundColor: "#EF4444", // Vermelho
+  quantityCircleColor: "#F59E0B",
 };
 
 /**
  * Aplicar tema customizado com fallback para padrão
  */
-export function applyTheme(customTheme?: Partial<CheckoutTheme>): CheckoutTheme {
+export function applyTheme(
+  customTheme?: Partial<CheckoutTheme>,
+): CheckoutTheme {
   return {
     ...DEFAULT_CHECKOUT_THEME,
     ...customTheme,
@@ -559,27 +566,29 @@ export function applyTheme(customTheme?: Partial<CheckoutTheme>): CheckoutTheme 
 /**
  * Gerar CSS Variables a partir do tema
  */
-export function generateCSSVariables(theme: CheckoutTheme): Record<string, string> {
+export function generateCSSVariables(
+  theme: CheckoutTheme,
+): Record<string, string> {
   return {
-    '--color-background': theme.backgroundColor,
-    '--color-text': theme.textColor,
-    '--color-heading': theme.headingColor,
-    '--color-primary': theme.primaryButtonBackgroundColor,
-    '--color-primary-text': theme.primaryButtonTextColor,
-    '--color-checkout': theme.checkoutButtonBackgroundColor,
-    '--color-checkout-text': theme.checkoutButtonTextColor,
-    '--font-family': theme.fontFamily,
-    '--border-radius-sm': theme.borderRadius.sm,
-    '--border-radius-md': theme.borderRadius.md,
-    '--border-radius-lg': theme.borderRadius.lg,
-    '--spacing-md': theme.spacing.md,
-    '--input-height': `${theme.inputHeight}px`,
-    '--input-border': theme.inputBorderColor,
-    '--input-focus-border': theme.inputFocusBorderColor,
-    '--card-background': theme.cardBackgroundColor,
-    '--card-border': theme.cardBorderColor,
-    '--footer-background': theme.footerBackgroundColor,
-    '--footer-text': theme.footerTextColor,
+    "--color-background": theme.backgroundColor,
+    "--color-text": theme.textColor,
+    "--color-heading": theme.headingColor,
+    "--color-primary": theme.primaryButtonBackgroundColor,
+    "--color-primary-text": theme.primaryButtonTextColor,
+    "--color-checkout": theme.checkoutButtonBackgroundColor,
+    "--color-checkout-text": theme.checkoutButtonTextColor,
+    "--font-family": theme.fontFamily,
+    "--border-radius-sm": theme.borderRadius.sm,
+    "--border-radius-md": theme.borderRadius.md,
+    "--border-radius-lg": theme.borderRadius.lg,
+    "--spacing-md": theme.spacing.md,
+    "--input-height": `${theme.inputHeight}px`,
+    "--input-border": theme.inputBorderColor,
+    "--input-focus-border": theme.inputFocusBorderColor,
+    "--card-background": theme.cardBackgroundColor,
+    "--card-border": theme.cardBorderColor,
+    "--footer-background": theme.footerBackgroundColor,
+    "--footer-text": theme.footerTextColor,
   };
 }
 
