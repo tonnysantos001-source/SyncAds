@@ -603,6 +603,106 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
           </div>
         )}
 
+        {/* RESUMO COMPACTO MOBILE - ACIMA DO FORMULÁRIO */}
+        <div className="lg:hidden mb-6">
+          <Card
+            style={{
+              backgroundColor: theme.cardBackgroundColor,
+              borderColor: theme.cardBorderColor,
+              borderRadius: theme.cardBorderRadius,
+            }}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3
+                  className="font-bold text-base"
+                  style={{ color: theme.headingColor }}
+                >
+                  Seu Pedido
+                </h3>
+                <button
+                  onClick={() => setShowSummary(true)}
+                  className="text-sm underline"
+                  style={{ color: theme.primaryButtonBackgroundColor }}
+                >
+                  Ver detalhes
+                </button>
+              </div>
+
+              {/* PRODUTOS RESUMIDOS */}
+              <div className="space-y-3 mb-4">
+                {checkoutData.products.map((product, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div
+                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
+                      style={{
+                        width: 50,
+                        height: 50,
+                        backgroundColor: theme.inputBackgroundColor,
+                      }}
+                    >
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-5 w-5 opacity-30" />
+                        </div>
+                      )}
+                      <div
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{
+                          backgroundColor: theme.quantityCircleColor,
+                          color: theme.quantityTextColor,
+                        }}
+                      >
+                        {product.quantity}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">
+                        {product.name}
+                      </h4>
+                      <p className="text-xs opacity-75">
+                        {product.quantity}x R$ {product.price.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p
+                        className="font-bold text-sm"
+                        style={{ color: theme.headingColor }}
+                      >
+                        R$ {(product.price * product.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Separator className="my-3" />
+
+              {/* TOTAL DESTACADO */}
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-base font-semibold"
+                  style={{ color: theme.headingColor }}
+                >
+                  Total
+                </span>
+                <span
+                  className="text-xl font-bold"
+                  style={{ color: theme.primaryButtonBackgroundColor }}
+                >
+                  R$ {checkoutData.total.toFixed(2)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* LAYOUT 2 COLUNAS */}
         <div className="grid lg:grid-cols-[1fr_420px] gap-8">
           {/* COLUNA ESQUERDA - FORMULÁRIO */}

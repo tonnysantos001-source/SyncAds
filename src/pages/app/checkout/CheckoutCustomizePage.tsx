@@ -25,6 +25,7 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 import { Upload } from "lucide-react";
+import { ImageUpload } from "@/components/checkout/ImageUpload";
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
@@ -203,25 +204,18 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o logo
                         </p>
-                        <Input
-                          type="url"
-                          placeholder="https://exemplo.com/logo.png"
-                          className="mt-2"
-                          value={customization?.theme?.logoUrl || ""}
-                          onChange={(e) =>
-                            updateTheme({ logoUrl: e.target.value })
-                          }
-                        />
-                        {customization?.theme?.logoUrl && (
-                          <div className="mt-2 p-2 border rounded">
-                            <img
-                              src={customization.theme.logoUrl}
-                              alt="Logo preview"
-                              className="max-h-20 mx-auto"
-                            />
-                          </div>
-                        )}
-                      </div>
+                        <div>
+                          <ImageUpload
+                            label="Logo da loja"
+                            description="Tamanho recomendado: 300px x 80px"
+                            value={customization?.theme?.logoUrl || ""}
+                            onChange={(url) => updateTheme({ logoUrl: url })}
+                            bucket="checkout-images"
+                            path="logos"
+                            aspectRatio="auto"
+                            maxSizeMB={2}
+                          />
+                        </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -278,16 +272,18 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o favicon
                         </p>
-                        <Input
-                          type="url"
-                          placeholder="https://exemplo.com/favicon.ico"
-                          className="mt-2"
-                          value={customization?.theme?.faviconUrl || ""}
-                          onChange={(e) =>
-                            updateTheme({ faviconUrl: e.target.value })
-                          }
-                        />
-                      </div>
+                        <div>
+                          <ImageUpload
+                            label="Favicon"
+                            description="Tamanho recomendado: 32px x 32px (formato .ico ou .png)"
+                            value={customization?.theme?.faviconUrl || ""}
+                            onChange={(url) => updateTheme({ faviconUrl: url })}
+                            bucket="checkout-images"
+                            path="favicons"
+                            aspectRatio="1/1"
+                            maxSizeMB={1}
+                          />
+                        </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -466,24 +462,16 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Cole a URL da imagem do banner
                         </p>
-                        <Input
-                          type="url"
-                          placeholder="https://exemplo.com/banner.png"
-                          className="mt-2"
+                        <ImageUpload
+                          label="Banner"
+                          description="Tamanho recomendado: 720px x 90px"
                           value={customization?.theme?.bannerUrl || ""}
-                          onChange={(e) =>
-                            updateTheme({ bannerUrl: e.target.value })
-                          }
+                          onChange={(url) => updateTheme({ bannerUrl: url })}
+                          bucket="checkout-images"
+                          path="banners"
+                          aspectRatio="8/1"
+                          maxSizeMB={3}
                         />
-                        {customization?.theme?.bannerUrl && (
-                          <div className="mt-2 p-2 border rounded">
-                            <img
-                              src={customization.theme.bannerUrl}
-                              alt="Banner preview"
-                              className="w-full max-h-24 object-cover rounded"
-                            />
-                          </div>
-                        )}
                       </div>
 
                       <div>
