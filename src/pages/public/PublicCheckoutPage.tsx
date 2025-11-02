@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { formatCep, searchCep } from "@/lib/utils/cepUtils";
+import { formatCpf, validateCpf } from "@/lib/utils/cpfUtils";
 import {
   DEFAULT_CHECKOUT_THEME,
   applyTheme,
@@ -254,14 +255,29 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       if (result) {
         setAddressData((prev) => ({
           ...prev,
-          street: result.logradouro || "",
-          neighborhood: result.bairro || "",
-          city: result.localidade || "",
-          state: result.uf || "",
+          street: result.street || "",
+          neighborhood: result.neighborhood || "",
+          city: result.city || "",
+          state: result.state || "",
         }));
+        toast({
+          title: "CEP encontrado!",
+          description: `${result.city} - ${result.state}`,
+        });
+      } else {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado e tente novamente",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Tente novamente mais tarde",
+        variant: "destructive",
+      });
     } finally {
       setLoadingCep(false);
     }
@@ -872,13 +888,25 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         <Input
                           id="document"
                           placeholder="000.000.000-00"
+                          maxLength={14}
                           value={customerData.document}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const formatted = formatCpf(e.target.value);
                             setCustomerData({
                               ...customerData,
-                              document: e.target.value,
-                            })
-                          }
+                              document: formatted,
+                            });
+                          }}
+                          onBlur={(e) => {
+                            const validation = validateCpf(e.target.value);
+                            if (e.target.value && !validation.valid) {
+                              toast({
+                                title: "CPF inválido",
+                                description: validation.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
                           className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
