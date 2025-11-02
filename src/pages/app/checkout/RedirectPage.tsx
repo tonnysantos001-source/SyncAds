@@ -64,29 +64,40 @@ const RedirectPage: React.FC = () => {
   const handleSave = async () => {
     if (!user?.id) return;
 
-      const { error } = await supabase.from("CheckoutRedirect").upsert({
+    try {
+      setSaving(true);
 
-        userId: user.id,
-        creditCardUrl: urls.cartao,
+      const { error } = await supabase
+        .from("CheckoutRedirect")
+        .upsert({
+          userId: user.id,
 
-        bankSlipUrl: urls.boleto,
+          creditCardUrl: urls.cartao,
 
-        pixUrl: urls.pix,
+          bankSlipUrl: urls.boleto,
 
-        updatedAt: new Date().toISOString(),
-      });
+          pixUrl: urls.pix,
+
+          updatedAt: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast({
         title: "URLs salvas!",
+
         description: "Suas configurações foram salvas com sucesso",
       });
     } catch (error) {
       console.error("Erro ao salvar URLs:", error);
+
       toast({
         title: "Erro ao salvar",
+
         description: "Não foi possível salvar as URLs",
+
         variant: "destructive",
       });
     } finally {
