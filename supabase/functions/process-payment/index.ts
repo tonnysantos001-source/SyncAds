@@ -390,7 +390,20 @@ serve(async (req) => {
       .limit(1);
 
     if (gatewayError || !gatewayConfigs || gatewayConfigs.length === 0) {
-      throw new Error("No active gateway configured for this user");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "failed",
+          message: "Nenhum gateway de pagamento configurado",
+          error: "NO_GATEWAY_CONFIGURED",
+          hint: "Configure um gateway de pagamento no painel de administração em Configurações > Pagamentos",
+          requiresSetup: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, // Payment Required
+        },
+      );
     }
 
     const gatewayConfig = gatewayConfigs[0];

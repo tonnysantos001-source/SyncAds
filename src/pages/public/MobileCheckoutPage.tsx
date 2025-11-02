@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { formatCep, searchCep } from "@/lib/utils/cepUtils";
 import { formatCpf, validateCpf } from "@/lib/utils/cpfUtils";
+import { formatPhone, validatePhone } from "@/lib/utils/phoneUtils";
 import {
   DEFAULT_CHECKOUT_THEME,
   applyTheme,
@@ -321,6 +322,19 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
 
       if (error) throw error;
 
+      // Verificar se há erro de gateway não configurado
+      if (data?.requiresSetup || data?.error === "NO_GATEWAY_CONFIGURED") {
+        toast({
+          title: "Gateway não configurado",
+          description:
+            data?.hint || "Configure um gateway de pagamento primeiro",
+          variant: "destructive",
+          duration: 10000,
+        });
+        setProcessing(false);
+        return;
+      }
+
       if (data?.success) {
         toast({
           title: "Pedido confirmado!",
@@ -330,7 +344,9 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
           navigate(`/checkout/success/${data.transactionId}`);
         }, 1500);
       } else {
-        throw new Error(data?.error || "Erro ao processar pagamento");
+        throw new Error(
+          data?.message || data?.error || "Erro ao processar pagamento",
+        );
       }
     } catch (error: any) {
       console.error("Erro ao processar checkout:", error);
@@ -694,9 +710,21 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
                   type="tel"
                   placeholder="(11) 99999-9999"
                   value={customerData.phone}
-                  onChange={(e) =>
-                    setCustomerData({ ...customerData, phone: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const formatted = formatPhone(e.target.value);
+                    setCustomerData({ ...customerData, phone: formatted });
+                  }}
+                  onBlur={(e) => {
+                    const validation = validatePhone(e.target.value);
+                    if (e.target.value && !validation.valid) {
+                      toast({
+                        title: "Telefone inválido",
+                        description: validation.message,
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  maxLength={15}
                   className="w-full px-4 rounded-lg text-base border"
                   style={{
                     backgroundColor: theme.inputBackgroundColor,
