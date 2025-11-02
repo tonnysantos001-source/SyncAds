@@ -204,18 +204,17 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o logo
                         </p>
-                        <div>
-                          <ImageUpload
-                            label="Logo da loja"
-                            description="Tamanho recomendado: 300px x 80px"
-                            value={customization?.theme?.logoUrl || ""}
-                            onChange={(url) => updateTheme({ logoUrl: url })}
-                            bucket="checkout-images"
-                            path="logos"
-                            aspectRatio="auto"
-                            maxSizeMB={2}
-                          />
-                        </div>
+                        <ImageUpload
+                          label="Logo da loja"
+                          description="Tamanho recomendado: 300px x 80px"
+                          value={customization?.theme?.logoUrl || ""}
+                          onChange={(url) => updateTheme({ logoUrl: url })}
+                          bucket="checkout-images"
+                          path="logos"
+                          aspectRatio="auto"
+                          maxSizeMB={2}
+                        />
+                      </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
@@ -272,18 +271,17 @@ const CheckoutCustomizePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 mb-2">
                           Clique aqui e escolha o favicon
                         </p>
-                        <div>
-                          <ImageUpload
-                            label="Favicon"
-                            description="Tamanho recomendado: 32px x 32px (formato .ico ou .png)"
-                            value={customization?.theme?.faviconUrl || ""}
-                            onChange={(url) => updateTheme({ faviconUrl: url })}
-                            bucket="checkout-images"
-                            path="favicons"
-                            aspectRatio="1/1"
-                            maxSizeMB={1}
-                          />
-                        </div>
+                        <ImageUpload
+                          label="Favicon"
+                          description="Tamanho recomendado: 32px x 32px (formato .ico ou .png)"
+                          value={customization?.theme?.faviconUrl || ""}
+                          onChange={(url) => updateTheme({ faviconUrl: url })}
+                          bucket="checkout-images"
+                          path="favicons"
+                          aspectRatio="1/1"
+                          maxSizeMB={1}
+                        />
+                      </div>
 
                       <div>
                         <Label className="text-xs text-gray-600">
