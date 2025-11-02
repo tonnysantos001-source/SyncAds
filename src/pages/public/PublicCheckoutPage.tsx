@@ -134,8 +134,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   const theme = injectedTheme
     ? applyTheme(injectedTheme)
     : customization?.theme
-    ? applyTheme(customization.theme)
-    : DEFAULT_CHECKOUT_THEME;
+      ? applyTheme(customization.theme)
+      : DEFAULT_CHECKOUT_THEME;
 
   const cssVars = generateCSSVariables(theme);
 
@@ -180,7 +180,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 String(op.productId) === String(item.productId)) ||
               (op?.id &&
                 (String(op.id) === String(item.productId) ||
-                  String(op.id) === String(item.id)))
+                  String(op.id) === String(item.id))),
           );
           return {
             id: item.productId || item.id,
@@ -304,7 +304,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             addressData,
             installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
           },
-        }
+        },
       );
 
       if (error) throw error;
@@ -417,8 +417,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 theme.logoAlignment === "center"
                   ? "center"
                   : theme.logoAlignment === "right"
-                  ? "flex-end"
-                  : "flex-start",
+                    ? "flex-end"
+                    : "flex-start",
             }}
           >
             {theme.logoUrl ? (
@@ -444,9 +444,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               className="lg:hidden flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100"
             >
               <Package className="h-4 w-4" />
-              <span>
-                {showSummary ? "Ocultar" : "Ver"} resumo
-              </span>
+              <span>{showSummary ? "Ocultar" : "Ver"} resumo</span>
             </button>
           </div>
         </div>
@@ -486,18 +484,20 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             currentStep > step.number
                               ? "bg-green-500 text-white"
                               : currentStep === step.number
-                              ? "text-white"
-                              : "bg-gray-200 text-gray-500"
+                                ? "text-white"
+                                : "bg-gray-200 text-gray-500",
                           )}
                           style={{
                             backgroundColor:
                               currentStep > step.number
                                 ? theme.stepCompletedColor
                                 : currentStep === step.number
-                                ? theme.stepActiveColor
-                                : theme.stepInactiveColor,
+                                  ? theme.stepActiveColor
+                                  : theme.stepInactiveColor,
                             color:
-                              currentStep >= step.number ? "#FFFFFF" : undefined,
+                              currentStep >= step.number
+                                ? "#FFFFFF"
+                                : undefined,
                           }}
                         >
                           {currentStep > step.number ? (
@@ -573,7 +573,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         placeholder="Seu nome completo"
                         value={customerData.name}
                         onChange={(e) =>
-                          setCustomerData({ ...customerData, name: e.target.value })
+                          setCustomerData({
+                            ...customerData,
+                            name: e.target.value,
+                          })
                         }
                         className="mt-1.5"
                         style={{
@@ -586,7 +589,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     </div>
 
                     <div>
-                      <Label htmlFor="email" style={{ color: theme.labelColor }}>
+                      <Label
+                        htmlFor="email"
+                        style={{ color: theme.labelColor }}
+                      >
                         E-mail *
                       </Label>
                       <Input
@@ -595,7 +601,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         placeholder="seu@email.com"
                         value={customerData.email}
                         onChange={(e) =>
-                          setCustomerData({ ...customerData, email: e.target.value })
+                          setCustomerData({
+                            ...customerData,
+                            email: e.target.value,
+                          })
                         }
                         className="mt-1.5"
                         style={{
@@ -608,7 +617,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     </div>
 
                     <div>
-                      <Label htmlFor="phone" style={{ color: theme.labelColor }}>
+                      <Label
+                        htmlFor="phone"
+                        style={{ color: theme.labelColor }}
+                      >
                         Telefone/WhatsApp *
                       </Label>
                       <Input
@@ -616,7 +628,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         placeholder="(11) 99999-9999"
                         value={customerData.phone}
                         onChange={(e) =>
-                          setCustomerData({ ...customerData, phone: e.target.value })
+                          setCustomerData({
+                            ...customerData,
+                            phone: e.target.value,
+                          })
                         }
                         className="mt-1.5"
                         style={{
@@ -630,7 +645,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
                     {!theme.requestCpfOnlyAtPayment && (
                       <div>
-                        <Label htmlFor="document" style={{ color: theme.labelColor }}>
+                        <Label
+                          htmlFor="document"
+                          style={{ color: theme.labelColor }}
+                        >
                           CPF *
                         </Label>
                         <Input
@@ -682,7 +700,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="zipCode" style={{ color: theme.labelColor }}>
+                      <Label
+                        htmlFor="zipCode"
+                        style={{ color: theme.labelColor }}
+                      >
                         CEP *
                       </Label>
                       <div className="flex gap-2 mt-1.5">
@@ -714,7 +735,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     </div>
 
                     <div>
-                      <Label htmlFor="street" style={{ color: theme.labelColor }}>
+                      <Label
+                        htmlFor="street"
+                        style={{ color: theme.labelColor }}
+                      >
                         Rua *
                       </Label>
                       <Input
@@ -722,7 +746,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         placeholder="Nome da rua"
                         value={addressData.street}
                         onChange={(e) =>
-                          setAddressData({ ...addressData, street: e.target.value })
+                          setAddressData({
+                            ...addressData,
+                            street: e.target.value,
+                          })
                         }
                         className="mt-1.5"
                         style={{
@@ -736,7 +763,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="number" style={{ color: theme.labelColor }}>
+                        <Label
+                          htmlFor="number"
+                          style={{ color: theme.labelColor }}
+                        >
                           Número *
                         </Label>
                         <Input
@@ -816,7 +846,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="city" style={{ color: theme.labelColor }}>
+                        <Label
+                          htmlFor="city"
+                          style={{ color: theme.labelColor }}
+                        >
                           Cidade *
                         </Label>
                         <Input
@@ -824,7 +857,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           placeholder="Cidade"
                           value={addressData.city}
                           onChange={(e) =>
-                            setAddressData({ ...addressData, city: e.target.value })
+                            setAddressData({
+                              ...addressData,
+                              city: e.target.value,
+                            })
                           }
                           className="mt-1.5"
                           style={{
@@ -837,7 +873,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       </div>
 
                       <div>
-                        <Label htmlFor="state" style={{ color: theme.labelColor }}>
+                        <Label
+                          htmlFor="state"
+                          style={{ color: theme.labelColor }}
+                        >
                           Estado *
                         </Label>
                         <Input
@@ -899,7 +938,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           "p-4 rounded-lg border-2 transition-all text-left flex items-center gap-3",
                           paymentMethod === method
                             ? "border-current shadow-lg"
-                            : "border-gray-200 hover:border-gray-300"
+                            : "border-gray-200 hover:border-gray-300",
                         )}
                         style={{
                           borderColor:
@@ -916,7 +955,9 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         {method === "CREDIT_CARD" && (
                           <CreditCard className="h-5 w-5" />
                         )}
-                        {method === "BOLETO" && <FileText className="h-5 w-5" />}
+                        {method === "BOLETO" && (
+                          <FileText className="h-5 w-5" />
+                        )}
                         <div className="flex-1">
                           <div className="font-semibold">
                             {method === "PIX" && "PIX"}
@@ -929,4 +970,476 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             {method === "BOLETO" && "Vencimento em 3 dias"}
                           </div>
                         </div>
+                        <div className="flex-shrink-0">
+                          {paymentMethod === method && (
+                            <Check
+                              className="h-5 w-5"
+                              style={{ color: theme.stepCompletedColor }}
+                            />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {paymentMethod === "CREDIT_CARD" && (
+                    <div>
+                      <Label
+                        htmlFor="installments"
+                        style={{ color: theme.labelColor }}
+                      >
+                        Número de parcelas
+                      </Label>
+                      <select
+                        id="installments"
+                        value={installments}
+                        onChange={(e) =>
+                          setInstallments(Number(e.target.value))
+                        }
+                        className="w-full mt-1.5 px-3 rounded-lg"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                          borderWidth: 1,
+                          borderStyle: "solid",
+                        }}
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                          <option key={num} value={num}>
+                            {num}x de R$ {(checkoutData.total / num).toFixed(2)}
+                            {num === 1 ? " sem juros" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* BOTÕES DE NAVEGAÇÃO */}
+            <div className="flex items-center justify-between gap-4">
+              {currentStep > 1 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep(currentStep - 1)}
+                  className="flex items-center gap-2"
+                  style={{
+                    borderColor: theme.inputBorderColor,
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
+                </Button>
+              )}
+
+              <div className={cn("flex-1", currentStep === 1 && "ml-auto")}>
+                {currentStep < totalSteps ? (
+                  <Button
+                    onClick={() => setCurrentStep(currentStep + 1)}
+                    className="w-full"
+                    style={{
+                      backgroundColor: theme.primaryButtonBackgroundColor,
+                      color: theme.primaryButtonTextColor,
+                      height: theme.inputHeight,
+                      borderRadius: theme.primaryButtonBorderRadius,
+                    }}
+                  >
+                    Continuar
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={processing || previewMode}
+                    className="w-full font-semibold"
+                    style={{
+                      backgroundColor: theme.checkoutButtonBackgroundColor,
+                      color: theme.checkoutButtonTextColor,
+                      height: theme.inputHeight + 8,
+                      borderRadius: theme.checkoutButtonBorderRadius,
+                    }}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Processando...
+                      </>
+                    ) : previewMode ? (
+                      "Modo Pré-visualização"
+                    ) : (
+                      <>
+                        <Lock className="h-5 w-5 mr-2" />
+                        Finalizar Compra
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* COLUNA DIREITA - RESUMO DO PEDIDO */}
+          <div className="lg:block hidden">
+            <div
+              className="sticky top-24 rounded-lg border p-6 space-y-5"
+              style={{
+                backgroundColor: theme.cardBackgroundColor,
+                borderColor: theme.cardBorderColor,
+                borderRadius: theme.cardBorderRadius,
+              }}
+            >
+              <div>
+                <h3
+                  className="text-lg font-bold mb-4"
+                  style={{ color: theme.headingColor }}
+                >
+                  Resumo do Pedido
+                </h3>
+              </div>
+
+              {/* PRODUTOS */}
+              <div className="space-y-3">
+                {checkoutData.products.map((product, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div
+                      className="relative flex-shrink-0"
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        backgroundColor: theme.inputBackgroundColor,
+                      }}
+                    >
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-6 w-6 opacity-30" />
+                        </div>
+                      )}
+                      {theme.showCartIcon && (
                         <div
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                          style={{
+                            backgroundColor: theme.quantityCircleColor,
+                            color: theme.quantityTextColor,
+                          }}
+                        >
+                          {product.quantity}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">
+                        {product.name}
+                      </h4>
+                      {product.sku && (
+                        <p className="text-xs opacity-60">SKU: {product.sku}</p>
+                      )}
+                      <p className="text-xs opacity-75 mt-1">
+                        Qtd: {product.quantity}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-semibold">
+                        R$ {(product.price * product.quantity).toFixed(2)}
+                      </p>
+                      {product.quantity > 1 && (
+                        <p className="text-xs opacity-60">
+                          R$ {product.price.toFixed(2)} cada
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="h-px"
+                style={{ backgroundColor: theme.cardBorderColor }}
+              />
+
+              {/* TOTAIS */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="opacity-75">Subtotal</span>
+                  <span className="font-medium">
+                    R$ {checkoutData.subtotal.toFixed(2)}
+                  </span>
+                </div>
+
+                {checkoutData.tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="opacity-75">Taxa</span>
+                    <span className="font-medium">
+                      R$ {checkoutData.tax.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                {checkoutData.shipping > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="opacity-75">Frete</span>
+                    <span className="font-medium">
+                      R$ {checkoutData.shipping.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                {checkoutData.discount && checkoutData.discount > 0 && (
+                  <div
+                    className="flex justify-between text-sm"
+                    style={{ color: theme.stepCompletedColor }}
+                  >
+                    <span>Desconto</span>
+                    <span className="font-medium">
+                      -R$ {checkoutData.discount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  className="h-px"
+                  style={{ backgroundColor: theme.cardBorderColor }}
+                />
+
+                <div className="flex justify-between text-lg font-bold pt-2">
+                  <span style={{ color: theme.headingColor }}>Total</span>
+                  <span style={{ color: theme.headingColor }}>
+                    R$ {checkoutData.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* SELOS DE SEGURANÇA */}
+              {theme.showTrustBadges && (
+                <div className="pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <ShieldCheck
+                      className="h-4 w-4"
+                      style={{ color: theme.trustBadgeColor }}
+                    />
+                    <span className="opacity-75">Compra 100% segura</span>
+                  </div>
+                  {theme.sslBadgeEnabled && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Lock
+                        className="h-4 w-4"
+                        style={{ color: theme.trustBadgeColor }}
+                      />
+                      <span className="opacity-75">Certificado SSL</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RESUMO MOBILE - COLAPSÁVEL */}
+        {showSummary && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+            onClick={() => setShowSummary(false)}
+          >
+            <div
+              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
+              style={{ backgroundColor: theme.cardBackgroundColor }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3
+                  className="text-xl font-bold"
+                  style={{ color: theme.headingColor }}
+                >
+                  Resumo do Pedido
+                </h3>
+                <button
+                  onClick={() => setShowSummary(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* PRODUTOS */}
+              <div className="space-y-3 mb-4">
+                {checkoutData.products.map((product, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div
+                      className="relative flex-shrink-0"
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        backgroundColor: theme.inputBackgroundColor,
+                      }}
+                    >
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-6 w-6 opacity-30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{product.name}</h4>
+                      <p className="text-xs opacity-75">
+                        Qtd: {product.quantity}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">
+                        R$ {(product.price * product.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="h-px mb-4"
+                style={{ backgroundColor: theme.cardBorderColor }}
+              />
+
+              {/* TOTAIS */}
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span className="opacity-75">Subtotal</span>
+                  <span>R$ {checkoutData.subtotal.toFixed(2)}</span>
+                </div>
+                {checkoutData.tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="opacity-75">Taxa</span>
+                    <span>R$ {checkoutData.tax.toFixed(2)}</span>
+                  </div>
+                )}
+                <div
+                  className="h-px"
+                  style={{ backgroundColor: theme.cardBorderColor }}
+                />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span>R$ {checkoutData.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setShowSummary(false)}
+                className="w-full"
+                style={{
+                  backgroundColor: theme.primaryButtonBackgroundColor,
+                  color: theme.primaryButtonTextColor,
+                }}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* RODAPÉ */}
+      {theme.showStoreName && (
+        <footer
+          className="border-t py-8 mt-12"
+          style={{
+            backgroundColor: theme.footerBackgroundColor,
+            borderColor: theme.cardBorderColor,
+            color: theme.footerTextColor,
+          }}
+        >
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="text-center space-y-4">
+              {/* Checkout Seguro */}
+              <div className="flex items-center justify-center gap-2">
+                <Lock className="h-5 w-5 text-green-600" />
+                <span className="font-semibold text-lg">Checkout Seguro</span>
+              </div>
+
+              {/* Selos */}
+              {theme.showTrustBadges && (
+                <div className="flex items-center justify-center gap-6 flex-wrap text-sm">
+                  {theme.sslBadgeEnabled && (
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>SSL Seguro</span>
+                    </div>
+                  )}
+                  {theme.showPaymentMethods && (
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      <span>Pagamento Seguro</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Informações */}
+              <div className="text-xs space-y-1 opacity-75">
+                {theme.showCnpjCpf && <p>CNPJ: 00.000.000/0001-00</p>}
+                {theme.showContactEmail && <p>contato@loja.com.br</p>}
+                {theme.showPhone && <p>(11) 99999-9999</p>}
+              </div>
+
+              {/* Links */}
+              {(theme.showPrivacyPolicy ||
+                theme.showTermsConditions ||
+                theme.showReturns) && (
+                <div className="flex items-center justify-center gap-4 text-xs flex-wrap">
+                  {theme.showPrivacyPolicy && (
+                    <a
+                      href="#"
+                      style={{ color: theme.footerLinkColor }}
+                      className="hover:underline"
+                    >
+                      Política de Privacidade
+                    </a>
+                  )}
+                  {theme.showTermsConditions && (
+                    <a
+                      href="#"
+                      style={{ color: theme.footerLinkColor }}
+                      className="hover:underline"
+                    >
+                      Termos e Condições
+                    </a>
+                  )}
+                  {theme.showReturns && (
+                    <a
+                      href="#"
+                      style={{ color: theme.footerLinkColor }}
+                      className="hover:underline"
+                    >
+                      Trocas e Devoluções
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs opacity-60">
+                © {new Date().getFullYear()} - Todos os direitos reservados
+              </p>
+            </div>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+};
+
+export default PublicCheckoutPage;
