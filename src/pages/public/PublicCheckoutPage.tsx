@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,13 @@ import {
   CheckCircle,
   AlertCircle,
   Lock,
-  Truck,
   ShieldCheck,
   Package,
-  Award,
+  Truck,
   Check,
+  X,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +32,11 @@ import {
   applyTheme,
   generateCSSVariables,
 } from "@/config/defaultCheckoutTheme";
+import { cn } from "@/lib/utils";
+
+// ============================================
+// INTERFACES
+// ============================================
 
 interface CheckoutData {
   orderId: string;
@@ -53,6 +60,8 @@ interface CustomerData {
   email: string;
   phone: string;
   document: string;
+  birthDate?: string;
+  gender?: string;
 }
 
 interface AddressData {
@@ -70,6 +79,11 @@ interface PublicCheckoutProps {
   injectedTheme?: any;
   previewMode?: boolean;
 }
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
 const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   injectedOrderId,
   injectedTheme,
@@ -80,12 +94,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // ========================================
+  // ESTADOS
+  // ========================================
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [loadingCep, setLoadingCep] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Form data
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -108,10 +126,22 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<
     "CREDIT_CARD" | "PIX" | "BOLETO"
   >("PIX");
-
   const [installments, setInstallments] = useState(1);
-  const [orderOwnerId, setOrderOwnerId] = useState<string | null>(null);
 
+  // ========================================
+  // TEMA
+  // ========================================
+  const theme = injectedTheme
+    ? applyTheme(injectedTheme)
+    : customization?.theme
+    ? applyTheme(customization.theme)
+    : DEFAULT_CHECKOUT_THEME;
+
+  const cssVars = generateCSSVariables(theme);
+
+  // ========================================
+  // CARREGAR DADOS
+  // ========================================
   useEffect(() => {
     if (effectiveOrderId) {
       loadCheckoutData();
@@ -133,11 +163,12 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         throw new Error("Pedido não encontrado");
       }
 
-      // Montar dados do checkout a partir do pedido
+      // Montar dados do checkout
       const items = Array.isArray(order.items) ? order.items : [];
       const originalProducts = Array.isArray(order.metadata?.originalProducts)
         ? order.metadata.originalProducts
         : [];
+
       const checkoutInfo: CheckoutData = {
         orderId: order.id,
         products: items.map((item: any) => {
@@ -149,7 +180,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 String(op.productId) === String(item.productId)) ||
               (op?.id &&
                 (String(op.id) === String(item.productId) ||
-                  String(op.id) === String(item.id))),
+                  String(op.id) === String(item.id)))
           );
           return {
             id: item.productId || item.id,
@@ -172,26 +203,23 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       };
 
       setCheckoutData(checkoutInfo);
-      setOrderOwnerId(order.userId || null);
 
-      // Carregar personalização do checkout do dono do pedido
-      try {
-        const customData = await checkoutApi.loadCustomization(order.userId);
-        setCustomization(customData);
-      } catch (error) {
-        console.log("Usando tema padrão profissional");
-        setCustomization({
-          theme: DEFAULT_CHECKOUT_THEME,
-        });
+      // Carregar personalização
+      if (!previewMode && order.userId) {
+        try {
+          const customData = await checkoutApi.loadCustomization(order.userId);
+          if (customData) {
+            setCustomization(customData);
+          }
+        } catch (e) {
+          console.log("Usando tema padrão");
+        }
       }
-    } catch (error) {
-      console.error("Erro ao carregar dados do checkout:", error);
-
+    } catch (error: any) {
+      console.error("Erro ao carregar checkout:", error);
       toast({
         title: "Erro ao carregar checkout",
-
-        description: "Não foi possível carregar os dados do pedido",
-
+        description: error.message || "Tente novamente mais tarde",
         variant: "destructive",
       });
     } finally {
@@ -199,160 +227,104 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     }
   };
 
-  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const formatted = formatCep(value);
+  // ========================================
+  // BUSCAR CEP
+  // ========================================
+  const handleCepSearch = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
 
-    setAddressData((prev) => ({ ...prev, zipCode: formatted }));
+    setLoadingCep(true);
+    try {
+      const result = await searchCep(cleanCep);
+      if (result) {
+        setAddressData((prev) => ({
+          ...prev,
+          street: result.logradouro || "",
+          neighborhood: result.bairro || "",
+          city: result.localidade || "",
+          state: result.uf || "",
+        }));
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setLoadingCep(false);
+    }
+  };
 
-    if (formatted.replace(/\D/g, "").length === 8) {
-      setLoadingCep(true);
-      try {
-        const address = await searchCep(formatted);
-        if (address) {
-          setAddressData((prev) => ({
-            ...prev,
-            street: address.street,
-            neighborhood: address.neighborhood,
-            city: address.city,
-            state: address.state,
-            zipCode: address.zipCode,
-          }));
+  // ========================================
+  // PROCESSAR PAGAMENTO
+  // ========================================
+  const handleCheckout = async () => {
+    try {
+      setProcessing(true);
 
-          setTimeout(() => {
-            document.getElementById("number")?.focus();
-          }, 100);
-
+      // Validações básicas
+      if (currentStep === 1) {
+        if (!customerData.name || !customerData.email || !customerData.phone) {
           toast({
-            title: "✅ CEP encontrado!",
-            description: "Endereço preenchido automaticamente",
-          });
-        } else {
-          toast({
-            title: "CEP não encontrado",
-            description: "Verifique o CEP ou preencha manualmente",
+            title: "Dados incompletos",
+            description: "Preencha todos os campos obrigatórios",
             variant: "destructive",
           });
+          return;
         }
-      } catch (error) {
-        console.error("Erro ao buscar CEP:", error);
-        toast({
-          title: "Erro ao buscar CEP",
-          description: "Tente novamente",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingCep(false);
-      }
-    }
-  };
-
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      // Validar dados do cliente
-      if (!customerData.name || !customerData.email || !customerData.phone) {
-        toast({
-          title: "Dados incompletos",
-          description: "Preencha todos os campos obrigatórios",
-          variant: "destructive",
-        });
+        setCurrentStep(2);
         return;
       }
-    }
 
-    if (currentStep === 2) {
-      // Validar endereço
-      if (
-        !addressData.street ||
-        !addressData.number ||
-        !addressData.neighborhood ||
-        !addressData.city ||
-        !addressData.state ||
-        !addressData.zipCode
-      ) {
-        toast({
-          title: "Endereço incompleto",
-          description: "Preencha todos os campos do endereço",
-          variant: "destructive",
-        });
+      if (currentStep === 2) {
+        if (
+          !addressData.zipCode ||
+          !addressData.street ||
+          !addressData.number ||
+          !addressData.city ||
+          !addressData.state
+        ) {
+          toast({
+            title: "Endereço incompleto",
+            description: "Preencha todos os campos obrigatórios",
+            variant: "destructive",
+          });
+          return;
+        }
+        setCurrentStep(3);
         return;
       }
-    }
 
-    setCurrentStep((prev) => prev + 1);
-  };
-
-  const handlePreviousStep = () => {
-    setCurrentStep((prev) => prev - 1);
-  };
-
-  const handlePayment = async () => {
-    if (!checkoutData) return;
-    setProcessing(true);
-    try {
       // Processar pagamento
-      const mappedMethod =
-        paymentMethod === "PIX"
-          ? "pix"
-          : paymentMethod === "CREDIT_CARD"
-            ? "credit_card"
-            : "boleto";
+      const { data, error } = await supabase.functions.invoke(
+        "process-payment",
+        {
+          body: {
+            orderId: effectiveOrderId,
+            paymentMethod,
+            customerData,
+            addressData,
+            installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
+          },
+        }
+      );
 
-      const paymentData = {
-        userId: orderOwnerId || "",
-        orderId: checkoutData.orderId,
-
-        amount: checkoutData.total,
-        currency: "BRL",
-        paymentMethod: mappedMethod,
-        customer: {
-          name: customerData.name,
-          email: customerData.email,
-          document: customerData.document,
-          phone: customerData.phone,
-        },
-        billingAddress: addressData,
-
-        metadata: {
-          source: "public-checkout",
-
-          products: checkoutData.products,
-        },
-      };
-
-      // Tentar via endpoint público primeiro, depois cair para o autenticado
-      let resp = await supabase.functions.invoke("public-process-payment", {
-        body: paymentData,
-      });
-
-      if (resp.error) {
-        resp = await supabase.functions.invoke("process-payment", {
-          body: paymentData,
-        });
-      }
-
-      const data = resp.data;
-      if (resp.error) {
-        throw new Error(resp.error.message);
-      }
+      if (error) throw error;
 
       if (data?.success) {
         toast({
-          title: "Pagamento processado!",
-          description: "Seu pagamento foi processado com sucesso",
-          variant: "default",
+          title: "Pedido confirmado!",
+          description: "Redirecionando para confirmação...",
         });
-
-        // Redirecionar para página de sucesso
-        navigate(`/checkout/success/${data.transactionId}`);
+        setTimeout(() => {
+          navigate(`/checkout/success/${data.transactionId}`);
+        }, 1500);
       } else {
-        throw new Error(data?.message || "Falha no pagamento");
+        throw new Error(data?.error || "Erro ao processar pagamento");
       }
-    } catch (error) {
-      console.error("Erro no pagamento:", error);
+    } catch (error: any) {
+      console.error("Erro ao processar checkout:", error);
       toast({
-        title: "Erro no pagamento",
-        description: (error as any).message || "Tente novamente",
+        title: "Erro ao processar pagamento",
+        description: error.message || "Tente novamente mais tarde",
         variant: "destructive",
       });
     } finally {
@@ -360,18 +332,18 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     }
   };
 
+  // ========================================
+  // LOADING
+  // ========================================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: theme.backgroundColor }}
+      >
         <div className="text-center">
-          <div className="relative">
-            <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-purple-600" />
-            <div className="absolute inset-0 blur-xl bg-purple-400 opacity-20 animate-pulse" />
-          </div>
-          <p className="text-gray-700 font-semibold text-lg">
-            Carregando checkout seguro...
-          </p>
-          <p className="text-gray-500 text-sm mt-2">Aguarde um momento</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-purple-600" />
+          <p className="text-gray-600">Carregando checkout...</p>
         </div>
       </div>
     );
@@ -379,662 +351,582 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
   if (!checkoutData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0">
-          <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="h-10 w-10 text-red-600" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2 text-gray-900">
-              Pedido não encontrado
-            </h2>
-            <p className="text-gray-600 mb-6">
-              O pedido solicitado não foi encontrado ou expirou.
-            </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="w-full h-12 text-base font-semibold"
-            >
-              Voltar ao início
-            </Button>
-          </CardContent>
-        </Card>
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ backgroundColor: theme.backgroundColor }}
+      >
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Pedido não encontrado. Verifique o link e tente novamente.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  const theme = applyTheme(injectedTheme ?? customization?.theme);
-  const cssVars = generateCSSVariables(theme);
+  // ========================================
+  // CALCULAR TOTAL DE STEPS
+  // ========================================
+  const totalSteps = theme.navigationSteps || 3;
+  const steps = [
+    { number: 1, label: "Dados", icon: Package },
+    { number: 2, label: "Endereço", icon: Truck },
+    { number: 3, label: "Pagamento", icon: CreditCard },
+  ].slice(0, totalSteps);
 
+  // ========================================
+  // RENDER
+  // ========================================
   return (
     <div
-      className="min-h-screen transition-colors duration-300"
+      className="min-h-screen"
       style={{
         backgroundColor: theme.backgroundColor,
+        color: theme.textColor,
         fontFamily: theme.fontFamily,
-        ...(cssVars as any),
+        ...cssVars,
       }}
     >
-      {/* Barra de Avisos */}
+      {/* BARRA DE AVISOS */}
       {theme.noticeBarEnabled && theme.noticeBarMessage && (
         <div
-          className="w-full py-3 px-4 text-center text-sm font-medium"
+          className="py-3 px-4 text-center text-sm font-medium"
           style={{
             backgroundColor: theme.noticeBarBackgroundColor,
             color: theme.noticeBarTextColor,
-            animation: theme.noticeBarAnimation ? "pulse 2s infinite" : "none",
           }}
         >
           {theme.noticeBarMessage}
         </div>
       )}
 
-      {/* Header Moderno */}
-      <div className="bg-white/95 backdrop-blur-lg border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+      {/* CABEÇALHO */}
+      <header
+        className="sticky top-0 z-40 backdrop-blur-lg border-b"
+        style={{
+          backgroundColor: `${theme.backgroundColor}CC`,
+          borderColor: theme.cardBorderColor,
+        }}
+      >
+        <div className="container mx-auto px-4 py-4 max-w-6xl">
+          <div
+            className="flex items-center justify-between"
+            style={{
+              justifyContent:
+                theme.logoAlignment === "center"
+                  ? "center"
+                  : theme.logoAlignment === "right"
+                  ? "flex-end"
+                  : "flex-start",
+            }}
+          >
+            {theme.logoUrl ? (
+              <img
+                src={theme.logoUrl}
+                alt="Logo"
+                className="h-8 md:h-10 object-contain"
                 style={{
-                  background: `linear-gradient(135deg, ${theme.primaryButtonBackgroundColor} 0%, ${theme.checkoutButtonBackgroundColor} 100%)`,
+                  maxWidth: theme.logoWidth || 180,
+                  maxHeight: theme.logoHeight || 50,
                 }}
-              >
-                <Lock className="h-6 w-6 text-white" />
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-green-600" />
+                <span className="font-semibold text-lg">Checkout Seguro</span>
               </div>
-              <div>
-                <h1
-                  className="text-xl md:text-2xl font-bold tracking-tight"
-                  style={{ color: theme.headingColor }}
-                >
-                  Checkout Seguro
-                </h1>
-                {theme.showTrustBadges && (
-                  <p
-                    className="text-xs hidden sm:block"
-                    style={{ color: theme.footerTextColor }}
-                  >
-                    Seus dados estão protegidos 🔒
-                  </p>
-                )}
-              </div>
-            </div>
+            )}
 
-            {/* Progress Steps - Desktop */}
-            <div className="hidden lg:flex items-center gap-3">
-              {[
-                { num: 1, label: "Dados", icon: Package },
-                { num: 2, label: "Entrega", icon: Truck },
-                { num: 3, label: "Pagamento", icon: CreditCard },
-              ].map((step, idx) => (
-                <React.Fragment key={step.num}>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-500 ${
-                        currentStep > step.num
-                          ? "shadow-lg scale-110"
-                          : currentStep === step.num
-                            ? "shadow-lg scale-110 animate-bounce"
-                            : ""
-                      }`}
-                      style={{
-                        backgroundColor:
-                          currentStep > step.num
-                            ? theme.stepCompletedColor
-                            : currentStep === step.num
-                              ? theme.stepActiveColor
-                              : theme.stepInactiveColor,
-                        color: currentStep >= step.num ? "#FFFFFF" : "#9CA3AF",
-                      }}
-                    >
-                      {currentStep > step.num ? (
-                        <Check className="h-6 w-6" />
-                      ) : (
-                        <step.icon className="h-6 w-6" />
-                      )}
-                      {currentStep === step.num && (
+            {/* Botão resumo mobile */}
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="lg:hidden flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <Package className="h-4 w-4" />
+              <span>
+                {showSummary ? "Ocultar" : "Ver"} resumo
+              </span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* BANNER */}
+      {theme.bannerEnabled && theme.bannerUrl && (
+        <div className="w-full overflow-hidden">
+          <img
+            src={theme.bannerUrl}
+            alt="Banner"
+            className="w-full h-auto object-cover"
+            style={{
+              maxHeight: theme.bannerHeight || 200,
+            }}
+          />
+        </div>
+      )}
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="container mx-auto px-4 py-6 md:py-10 max-w-6xl">
+        <div className="grid lg:grid-cols-[1fr,400px] gap-6 lg:gap-10">
+          {/* COLUNA ESQUERDA - FORMULÁRIO */}
+          <div className="space-y-6">
+            {/* BARRA DE PROGRESSO */}
+            {theme.showProgressBar && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  {steps.map((step, index) => (
+                    <React.Fragment key={step.number}>
+                      <div className="flex flex-col items-center flex-1">
                         <div
-                          className="absolute inset-0 rounded-xl opacity-50 animate-ping"
-                          style={{ backgroundColor: theme.stepActiveColor }}
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all",
+                            currentStep === step.number &&
+                              "ring-4 ring-opacity-20",
+                            currentStep > step.number
+                              ? "bg-green-500 text-white"
+                              : currentStep === step.number
+                              ? "text-white"
+                              : "bg-gray-200 text-gray-500"
+                          )}
+                          style={{
+                            backgroundColor:
+                              currentStep > step.number
+                                ? theme.stepCompletedColor
+                                : currentStep === step.number
+                                ? theme.stepActiveColor
+                                : theme.stepInactiveColor,
+                            color:
+                              currentStep >= step.number ? "#FFFFFF" : undefined,
+                          }}
+                        >
+                          {currentStep > step.number ? (
+                            <Check className="h-5 w-5" />
+                          ) : (
+                            step.number
+                          )}
+                        </div>
+                        <span className="text-xs mt-2 font-medium hidden sm:block">
+                          {step.label}
+                        </span>
+                      </div>
+                      {index < steps.length - 1 && (
+                        <div
+                          className="h-0.5 flex-1 mx-2"
+                          style={{
+                            backgroundColor:
+                              currentStep > step.number
+                                ? theme.stepCompletedColor
+                                : theme.stepInactiveColor,
+                          }}
                         />
                       )}
-                    </div>
-                    <div>
-                      <p
-                        className={`text-xs font-medium`}
-                        style={{
-                          color:
-                            currentStep >= step.num
-                              ? theme.stepActiveColor
-                              : theme.stepInactiveColor,
-                        }}
-                      >
-                        Etapa {step.num}
-                      </p>
-                      <p
-                        className={`text-sm font-bold`}
-                        style={{
-                          color:
-                            currentStep >= step.num
-                              ? theme.headingColor
-                              : theme.stepInactiveColor,
-                        }}
-                      >
-                        {step.label}
-                      </p>
-                    </div>
-                  </div>
-                  {idx < 2 && theme.showProgressBar && (
-                    <div
-                      className="relative w-16 h-1 rounded-full overflow-hidden"
-                      style={{ backgroundColor: theme.stepInactiveColor }}
-                    >
-                      <div
-                        className="absolute top-0 left-0 h-full transition-all duration-700"
-                        style={{
-                          width: currentStep > step.num ? "100%" : "0%",
-                          backgroundColor: theme.progressBarColor,
-                        }}
-                      />
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-
-            {/* Progress - Mobile */}
-            <div className="lg:hidden">
-              <div className="text-right">
-                <p
-                  className="text-sm font-bold"
-                  style={{ color: theme.primaryButtonBackgroundColor }}
-                >
-                  Etapa {currentStep} de {theme.navigationSteps}
-                </p>
-                <p className="text-xs" style={{ color: theme.footerTextColor }}>
-                  {currentStep === 1
-                    ? "Dados"
-                    : currentStep === 2
-                      ? "Entrega"
-                      : "Pagamento"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Bar - Mobile */}
-          {theme.showProgressBar && (
-            <div className="mt-4 lg:hidden">
-              <div
-                className="w-full h-2 rounded-full overflow-hidden"
-                style={{ backgroundColor: theme.stepInactiveColor }}
-              >
-                <div
-                  className="h-2 rounded-full transition-all duration-500 ease-out"
-                  style={{
-                    width: `${(currentStep / theme.navigationSteps) * 100}%`,
-                    backgroundColor: theme.progressBarColor,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Formulário Principal */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    currentStep >= 1
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-300 text-gray-600"
-                  }`}
-                >
-                  1
+                    </React.Fragment>
+                  ))}
                 </div>
-                <span className="text-sm">Dados</span>
-              </div>
-              <div className="w-8 h-px bg-gray-300"></div>
-              <div className="flex items-center gap-1">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    currentStep >= 2
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-300 text-gray-600"
-                  }`}
-                >
-                  2
-                </div>
-                <span className="text-sm">Endereço</span>
-              </div>
-              <div className="w-8 h-px bg-gray-300"></div>
-              <div className="flex items-center gap-1">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    currentStep >= 3
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-300 text-gray-600"
-                  }`}
-                >
-                  3
-                </div>
-                <span className="text-sm">Pagamento</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
+                {/* Progress bar */}
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: theme.stepInactiveColor }}
+                >
+                  <div
+                    className="h-full transition-all duration-500 ease-out"
+                    style={{
+                      backgroundColor: theme.progressBarColor,
+                      width: `${(currentStep / totalSteps) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 1 - DADOS PESSOAIS */}
             {currentStep === 1 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações Pessoais</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                }}
+              >
+                <CardContent className="p-6 space-y-5">
                   <div>
-                    <Label htmlFor="name">Nome completo *</Label>
-                    <Input
-                      id="name"
-                      value={customerData.name}
-                      onChange={(e) =>
-                        setCustomerData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Seu nome completo"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">E-mail *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={customerData.email}
-                      onChange={(e) =>
-                        setCustomerData((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
-                      }
-                      placeholder="seu@email.com"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone">Telefone/WhatsApp *</Label>
-                    <Input
-                      id="phone"
-                      value={customerData.phone}
-                      onChange={(e) =>
-                        setCustomerData((prev) => ({
-                          ...prev,
-                          phone: e.target.value,
-                        }))
-                      }
-                      placeholder="(11) 99999-9999"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="document">CPF</Label>
-                    <Input
-                      id="document"
-                      value={customerData.document}
-                      onChange={(e) =>
-                        setCustomerData((prev) => ({
-                          ...prev,
-                          document: e.target.value,
-                        }))
-                      }
-                      placeholder="000.000.000-00"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {currentStep === 2 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Endereço de Entrega</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <Label htmlFor="street">Rua/Avenida *</Label>
-                      <Input
-                        id="street"
-                        value={addressData.street}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            street: e.target.value,
-                          }))
-                        }
-                        placeholder="Nome da rua"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="number">Número *</Label>
-                      <Input
-                        id="number"
-                        value={addressData.number}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            number: e.target.value,
-                          }))
-                        }
-                        placeholder="123"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="complement">Complemento</Label>
-                      <Input
-                        id="complement"
-                        value={addressData.complement}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            complement: e.target.value,
-                          }))
-                        }
-                        placeholder="Apto 45"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="neighborhood">Bairro *</Label>
-                      <Input
-                        id="neighborhood"
-                        value={addressData.neighborhood}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            neighborhood: e.target.value,
-                          }))
-                        }
-                        placeholder="Centro"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="city">Cidade *</Label>
-                      <Input
-                        id="city"
-                        value={addressData.city}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            city: e.target.value,
-                          }))
-                        }
-                        placeholder="São Paulo"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="state">Estado *</Label>
-                      <Input
-                        id="state"
-                        value={addressData.state}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            state: e.target.value,
-                          }))
-                        }
-                        placeholder="SP"
-                        maxLength={2}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="zipCode">CEP *</Label>
-                      <Input
-                        id="zipCode"
-                        value={addressData.zipCode}
-                        onChange={(e) =>
-                          setAddressData((prev) => ({
-                            ...prev,
-                            zipCode: e.target.value,
-                          }))
-                        }
-                        placeholder="00000-000"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {currentStep === 3 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Forma de Pagamento</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        paymentMethod === "PIX"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300"
-                      }`}
-                      onClick={() => setPaymentMethod("PIX")}
+                    <h2
+                      className="text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
                     >
-                      <div className="flex items-center gap-3">
-                        <Smartphone className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h3 className="font-medium">PIX</h3>
-                          <p className="text-sm text-gray-600">
-                            Pagamento instantâneo
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        paymentMethod === "CREDIT_CARD"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300"
-                      }`}
-                      onClick={() => setPaymentMethod("CREDIT_CARD")}
-                    >
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h3 className="font-medium">Cartão de Crédito</h3>
-                          <p className="text-sm text-gray-600">
-                            Visa, Mastercard, Elo
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        paymentMethod === "BOLETO"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300"
-                      }`}
-                      onClick={() => setPaymentMethod("BOLETO")}
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h3 className="font-medium">Boleto Bancário</h3>
-                          <p className="text-sm text-gray-600">
-                            Pagamento em até 3 dias úteis
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      Informações Pessoais
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Preencha seus dados para continuar
+                    </p>
                   </div>
 
-                  {paymentMethod === "CREDIT_CARD" && (
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor="installments">Parcelas</Label>
-                      <select
-                        id="installments"
-                        value={installments}
+                      <Label htmlFor="name" style={{ color: theme.labelColor }}>
+                        Nome completo *
+                      </Label>
+                      <Input
+                        id="name"
+                        placeholder="Seu nome completo"
+                        value={customerData.name}
                         onChange={(e) =>
-                          setInstallments(Number(e.target.value))
+                          setCustomerData({ ...customerData, name: e.target.value })
                         }
-                        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg"
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                          <option key={num} value={num}>
-                            {num}x de R$ {(checkoutData.total / num).toFixed(2)}
-                          </option>
-                        ))}
-                      </select>
+                        className="mt-1.5"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                        }}
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between mt-6">
-              {currentStep > 1 && (
-                <Button variant="outline" onClick={handlePreviousStep}>
-                  Voltar
-                </Button>
-              )}
+                    <div>
+                      <Label htmlFor="email" style={{ color: theme.labelColor }}>
+                        E-mail *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={customerData.email}
+                        onChange={(e) =>
+                          setCustomerData({ ...customerData, email: e.target.value })
+                        }
+                        className="mt-1.5"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                        }}
+                      />
+                    </div>
 
-              <div className="ml-auto">
-                {currentStep < 3 ? (
-                  <Button
-                    onClick={handleNextStep}
-                    style={{
-                      backgroundColor:
-                        theme.primaryButtonBackgroundColor || "#FF0080",
-                      color: theme.primaryButtonTextColor || "#FFFFFF",
-                    }}
-                  >
-                    Continuar
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handlePayment}
-                    disabled={processing || previewMode}
-                    style={{
-                      backgroundColor:
-                        theme.checkoutButtonBackgroundColor || "#0FBA00",
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    {previewMode ? (
-                      "Pré-visualização"
-                    ) : processing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Processando...
-                      </>
-                    ) : (
-                      "Finalizar Compra"
+                    <div>
+                      <Label htmlFor="phone" style={{ color: theme.labelColor }}>
+                        Telefone/WhatsApp *
+                      </Label>
+                      <Input
+                        id="phone"
+                        placeholder="(11) 99999-9999"
+                        value={customerData.phone}
+                        onChange={(e) =>
+                          setCustomerData({ ...customerData, phone: e.target.value })
+                        }
+                        className="mt-1.5"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                        }}
+                      />
+                    </div>
+
+                    {!theme.requestCpfOnlyAtPayment && (
+                      <div>
+                        <Label htmlFor="document" style={{ color: theme.labelColor }}>
+                          CPF *
+                        </Label>
+                        <Input
+                          id="document"
+                          placeholder="000.000.000-00"
+                          value={customerData.document}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              document: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
+                      </div>
                     )}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Resumo do Pedido</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Products */}
-                  {checkoutData.products.map((product) => (
-                    <div key={product.id} className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-gray-300 rounded"></div>
+            {/* STEP 2 - ENDEREÇO */}
+            {currentStep === 2 && (
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                }}
+              >
+                <CardContent className="p-6 space-y-5">
+                  <div>
+                    <h2
+                      className="text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
+                    >
+                      Endereço de Entrega
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Onde você quer receber seu pedido?
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="zipCode" style={{ color: theme.labelColor }}>
+                        CEP *
+                      </Label>
+                      <div className="flex gap-2 mt-1.5">
+                        <Input
+                          id="zipCode"
+                          placeholder="00000-000"
+                          value={formatCep(addressData.zipCode)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            setAddressData({ ...addressData, zipCode: value });
+                            if (value.length === 8) {
+                              handleCepSearch(value);
+                            }
+                          }}
+                          className="flex-1"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
+                        {loadingCep && (
+                          <div className="flex items-center px-3">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{product.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          Qtd: {product.quantity}
-                        </p>
-                      </div>
-                      <div className="text-sm font-medium">
-                        R$ {(product.price * product.quantity).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-
-                  <Separator />
-
-                  {/* Totals */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal</span>
-                      <span>R$ {checkoutData.subtotal.toFixed(2)}</span>
                     </div>
 
-                    {checkoutData.tax > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Taxa</span>
-                        <span>R$ {checkoutData.tax.toFixed(2)}</span>
+                    <div>
+                      <Label htmlFor="street" style={{ color: theme.labelColor }}>
+                        Rua *
+                      </Label>
+                      <Input
+                        id="street"
+                        placeholder="Nome da rua"
+                        value={addressData.street}
+                        onChange={(e) =>
+                          setAddressData({ ...addressData, street: e.target.value })
+                        }
+                        className="mt-1.5"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="number" style={{ color: theme.labelColor }}>
+                          Número *
+                        </Label>
+                        <Input
+                          id="number"
+                          placeholder="123"
+                          value={addressData.number}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              number: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
                       </div>
-                    )}
 
-                    {checkoutData.shipping > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Frete</span>
-                        <span>R$ {checkoutData.shipping.toFixed(2)}</span>
+                      <div>
+                        <Label
+                          htmlFor="complement"
+                          style={{ color: theme.labelColor }}
+                        >
+                          Complemento
+                        </Label>
+                        <Input
+                          id="complement"
+                          placeholder="Apto 101"
+                          value={addressData.complement}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              complement: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
                       </div>
-                    )}
+                    </div>
 
-                    {checkoutData.discount && checkoutData.discount > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Desconto</span>
-                        <span>-R$ {checkoutData.discount.toFixed(2)}</span>
+                    <div>
+                      <Label
+                        htmlFor="neighborhood"
+                        style={{ color: theme.labelColor }}
+                      >
+                        Bairro *
+                      </Label>
+                      <Input
+                        id="neighborhood"
+                        placeholder="Nome do bairro"
+                        value={addressData.neighborhood}
+                        onChange={(e) =>
+                          setAddressData({
+                            ...addressData,
+                            neighborhood: e.target.value,
+                          })
+                        }
+                        className="mt-1.5"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: theme.inputHeight,
+                          borderRadius: theme.inputBorderRadius,
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="city" style={{ color: theme.labelColor }}>
+                          Cidade *
+                        </Label>
+                        <Input
+                          id="city"
+                          placeholder="Cidade"
+                          value={addressData.city}
+                          onChange={(e) =>
+                            setAddressData({ ...addressData, city: e.target.value })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
                       </div>
-                    )}
 
-                    <Separator />
-
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>R$ {checkoutData.total.toFixed(2)}</span>
+                      <div>
+                        <Label htmlFor="state" style={{ color: theme.labelColor }}>
+                          Estado *
+                        </Label>
+                        <Input
+                          id="state"
+                          placeholder="UF"
+                          maxLength={2}
+                          value={addressData.state}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              state: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+                </CardContent>
+              </Card>
+            )}
 
-export default PublicCheckoutPage;
+            {/* STEP 3 - PAGAMENTO */}
+            {currentStep === 3 && (
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                }}
+              >
+                <CardContent className="p-6 space-y-5">
+                  <div>
+                    <h2
+                      className="text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
+                    >
+                      Método de Pagamento
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Escolha como deseja pagar
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {["PIX", "CREDIT_CARD", "BOLETO"].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() =>
+                          setPaymentMethod(method as typeof paymentMethod)
+                        }
+                        className={cn(
+                          "p-4 rounded-lg border-2 transition-all text-left flex items-center gap-3",
+                          paymentMethod === method
+                            ? "border-current shadow-lg"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                        style={{
+                          borderColor:
+                            paymentMethod === method
+                              ? theme.primaryButtonBackgroundColor
+                              : theme.inputBorderColor,
+                          backgroundColor:
+                            paymentMethod === method
+                              ? `${theme.primaryButtonBackgroundColor}10`
+                              : theme.inputBackgroundColor,
+                        }}
+                      >
+                        {method === "PIX" && <Smartphone className="h-5 w-5" />}
+                        {method === "CREDIT_CARD" && (
+                          <CreditCard className="h-5 w-5" />
+                        )}
+                        {method === "BOLETO" && <FileText className="h-5 w-5" />}
+                        <div className="flex-1">
+                          <div className="font-semibold">
+                            {method === "PIX" && "PIX"}
+                            {method === "CREDIT_CARD" && "Cartão de Crédito"}
+                            {method === "BOLETO" && "Boleto Bancário"}
+                          </div>
+                          <div className="text-xs opacity-75">
+                            {method === "PIX" && "Aprovação instantânea"}
+                            {method === "CREDIT_CARD" && "Em até 12x sem juros"}
+                            {method === "BOLETO" && "Vencimento em 3 dias"}
+                          </div>
+                        </div>
+                        <div
