@@ -65,8 +65,18 @@ interface AddressData {
   zipCode: string;
 }
 
-const PublicCheckoutPage: React.FC = () => {
+interface PublicCheckoutProps {
+  injectedOrderId?: string;
+  injectedTheme?: any;
+  previewMode?: boolean;
+}
+const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
+  injectedOrderId,
+  injectedTheme,
+  previewMode = false,
+}) => {
   const { orderId } = useParams<{ orderId: string }>();
+  const effectiveOrderId = injectedOrderId || orderId || null;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -103,10 +113,10 @@ const PublicCheckoutPage: React.FC = () => {
   const [orderOwnerId, setOrderOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (orderId) {
+    if (effectiveOrderId) {
       loadCheckoutData();
     }
-  }, [orderId]);
+  }, [effectiveOrderId]);
 
   const loadCheckoutData = async () => {
     try {
@@ -125,17 +135,35 @@ const PublicCheckoutPage: React.FC = () => {
 
       // Montar dados do checkout a partir do pedido
       const items = Array.isArray(order.items) ? order.items : [];
+      const originalProducts = Array.isArray(order.metadata?.originalProducts)
+        ? order.metadata.originalProducts
+        : [];
       const checkoutInfo: CheckoutData = {
         orderId: order.id,
-        products: items.map((item: any) => ({
-          id: item.productId || item.id,
-          name: item.name,
-          price: Number(item.price) || 0,
-          quantity: Number(item.quantity) || 1,
-          image: item.image || "",
-
-          sku: item.sku || "",
-        })),
+        products: items.map((item: any) => {
+          const original = originalProducts.find(
+            (op: any) =>
+              (op?.variantId &&
+                String(op.variantId) === String(item.variantId)) ||
+              (op?.productId &&
+                String(op.productId) === String(item.productId)) ||
+              (op?.id &&
+                (String(op.id) === String(item.productId) ||
+                  String(op.id) === String(item.id))),
+          );
+          return {
+            id: item.productId || item.id,
+            name: item.name || original?.name || original?.title || "Produto",
+            price: Number(item.price) || 0,
+            quantity: Number(item.quantity) || 1,
+            image:
+              item.image ||
+              original?.image ||
+              (Array.isArray(original?.images) ? original.images[0] : "") ||
+              "",
+            sku: item.sku || original?.sku || "",
+          };
+        }),
         total: Number(order.total) || 0,
         subtotal: Number(order.subtotal) || 0,
         tax: Number(order.tax) || 0,
@@ -292,18 +320,23 @@ const PublicCheckoutPage: React.FC = () => {
         },
       };
 
-      const { data, error } = await supabase.functions.invoke(
-        "process-payment",
-        {
-          body: paymentData,
-        },
-      );
+      // Tentar via endpoint público primeiro, depois cair para o autenticado
+      let resp = await supabase.functions.invoke("public-process-payment", {
+        body: paymentData,
+      });
 
-      if (error) {
-        throw new Error(error.message);
+      if (resp.error) {
+        resp = await supabase.functions.invoke("process-payment", {
+          body: paymentData,
+        });
       }
 
-      if (data.success) {
+      const data = resp.data;
+      if (resp.error) {
+        throw new Error(resp.error.message);
+      }
+
+      if (data?.success) {
         toast({
           title: "Pagamento processado!",
           description: "Seu pagamento foi processado com sucesso",
@@ -311,10 +344,9 @@ const PublicCheckoutPage: React.FC = () => {
         });
 
         // Redirecionar para página de sucesso
-
         navigate(`/checkout/success/${data.transactionId}`);
       } else {
-        throw new Error(data.message);
+        throw new Error(data?.message || "Falha no pagamento");
       }
     } catch (error) {
       console.error("Erro no pagamento:", error);
@@ -371,7 +403,7 @@ const PublicCheckoutPage: React.FC = () => {
     );
   }
 
-  const theme = applyTheme(customization?.theme);
+  const theme = applyTheme(injectedTheme ?? customization?.theme);
   const cssVars = generateCSSVariables(theme);
 
   return (
@@ -901,14 +933,16 @@ const PublicCheckoutPage: React.FC = () => {
                 ) : (
                   <Button
                     onClick={handlePayment}
-                    disabled={processing}
+                    disabled={processing || previewMode}
                     style={{
                       backgroundColor:
                         theme.checkoutButtonBackgroundColor || "#0FBA00",
                       color: "#FFFFFF",
                     }}
                   >
-                    {processing ? (
+                    {previewMode ? (
+                      "Pré-visualização"
+                    ) : processing ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Processando...
