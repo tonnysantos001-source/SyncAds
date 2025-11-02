@@ -66,8 +66,14 @@ serve(async (req) => {
 
   try {
     // Parse request body
-    const body: CreateOrderRequest = await req.json();
-    const { shopDomain, products, customer, metadata } = body;
+    const body: any = await req.json();
+    log("info", "Request body parsed", { body });
+
+    // Aceitar tanto shopDomain quanto shopifyDomain
+    const shopDomain = body.shopDomain || body.shopifyDomain;
+    const products = body.products || body.items || [];
+    const customer = body.customer || {};
+    const metadata = body.metadata || {};
 
     log("info", "Creating order from Shopify", {
       shopDomain,
@@ -104,9 +110,11 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Buscar integração Shopify
+    // Buscar integração Shopify pelo domínio da loja
+    // IMPORTANTE: Não requer autenticação, busca pelo shopDomain público
     const { data: integration, error: integrationError } = await supabase
       .from("ShopifyIntegration")
-      .select("*")
+      .select("id, userId, shopDomain, accessToken")
       .eq("shopDomain", shopDomain)
       .eq("isActive", true)
       .single();
@@ -115,11 +123,14 @@ serve(async (req) => {
       log("error", "Shopify integration not found", {
         shopDomain,
         error: integrationError,
+        message: integrationError?.message,
       });
       return new Response(
         JSON.stringify({
           success: false,
           error: "Shopify integration not found or inactive",
+          shopDomain,
+          hint: "Configure a integração Shopify no painel SyncAds",
         }),
         {
           status: 404,
@@ -128,6 +139,8 @@ serve(async (req) => {
       );
     }
 
+    const userId = integration.userId;
+    log("info", "Integration found", { userId, shopDomain });
     // Calcular totais
     const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
     const tax = subtotal * 0.17; // 17% de impostos
