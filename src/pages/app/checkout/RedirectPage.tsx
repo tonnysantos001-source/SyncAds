@@ -31,7 +31,6 @@ const RedirectPage: React.FC = () => {
     try {
       setLoading(true);
 
-
       const { data, error } = await supabase
 
         .from("CheckoutRedirect")
@@ -40,7 +39,6 @@ const RedirectPage: React.FC = () => {
 
         .eq("userId", user?.id)
         .single();
-
 
       if (error && error.code !== "PGRST116") throw error;
 
@@ -63,15 +61,13 @@ const RedirectPage: React.FC = () => {
     }
   };
 
-
   const handleSave = async () => {
+    setSaving(true);
 
-    if (!user?.id) return;
-
-
+    try {
+      if (!user?.id) return;
 
       const { error } = await supabase.from("CheckoutRedirect").upsert({
-
         userId: user.id,
         creditCardUrl: urls.cartao,
 
@@ -80,9 +76,7 @@ const RedirectPage: React.FC = () => {
         pixUrl: urls.pix,
 
         updatedAt: new Date().toISOString(),
-
       });
-
 
       if (error) throw error;
 
