@@ -30,7 +30,6 @@ import { formatCep, searchCep } from "@/lib/utils/cepUtils";
 import {
   DEFAULT_CHECKOUT_THEME,
   applyTheme,
-  generateCSSVariables,
 } from "@/config/defaultCheckoutTheme";
 import { cn } from "@/lib/utils";
 
@@ -420,7 +419,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       {/* BARRA DE AVISOS */}
       {theme.noticeBarEnabled && theme.noticeBarMessage && (
         <div
-          className="py-3 px-4 text-center text-sm font-medium"
+          className="py-3 px-4 text-center text-sm md:text-base font-medium"
           style={{
             backgroundColor: theme.noticeBarBackgroundColor,
             color: theme.noticeBarTextColor,
@@ -432,15 +431,15 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
       {/* CABEÇALHO */}
       <header
-        className="border-b"
+        className="border-b sticky top-0 z-30 backdrop-blur-lg"
         style={{
           backgroundColor: theme.useGradient
             ? `linear-gradient(135deg, ${theme.backgroundColor}, ${theme.backgroundGradient})`
-            : theme.backgroundColor,
+            : `${theme.backgroundColor}F5`,
           borderColor: theme.cardBorderColor,
         }}
       >
-        <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <div className="container mx-auto px-4 py-4 md:py-6 max-w-6xl">
           <div
             className={cn(
               "flex items-center",
@@ -453,7 +452,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               <img
                 src={theme.logoUrl}
                 alt="Logo"
-                className="h-10 object-contain"
+                className="h-8 md:h-10 object-contain"
                 style={{
                   width: theme.logoWidth || "auto",
                   height: theme.logoHeight || 40,
@@ -461,7 +460,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               />
             ) : (
               <h1
-                className="text-2xl font-bold"
+                className="text-xl md:text-2xl font-bold"
                 style={{ color: theme.headingColor }}
               >
                 Checkout
@@ -484,11 +483,69 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 py-6 md:py-8 max-w-6xl pb-32 lg:pb-8">
         {/* BARRA DE PROGRESSO */}
         {theme.showProgressBar && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-6 md:mb-8">
+            {/* Versão Mobile */}
+            <div className="lg:hidden flex items-center justify-between mb-4">
+              {steps.map((step, index) => (
+                <React.Fragment key={step.number}>
+                  <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all",
+                        currentStep === step.number && "ring-2 ring-offset-2",
+                      )}
+                      style={{
+                        backgroundColor:
+                          currentStep > step.number
+                            ? theme.stepCompletedColor
+                            : currentStep === step.number
+                              ? theme.stepActiveColor
+                              : theme.stepInactiveColor,
+                        color:
+                          currentStep >= step.number
+                            ? theme.primaryButtonTextColor
+                            : theme.textColor,
+                      }}
+                    >
+                      {currentStep > step.number ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <step.icon className="h-5 w-5" />
+                      )}
+                    </div>
+                    <span
+                      className="text-xs font-medium text-center"
+                      style={{
+                        color:
+                          currentStep >= step.number
+                            ? theme.headingColor
+                            : theme.textColor,
+                        opacity: currentStep >= step.number ? 1 : 0.5,
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className="w-8 h-0.5 mx-1 rounded-full transition-all mt-[-20px]"
+                      style={{
+                        backgroundColor:
+                          currentStep > step.number
+                            ? theme.stepCompletedColor
+                            : theme.stepInactiveColor,
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Versão Desktop */}
+            <div className="hidden lg:flex items-center justify-between mb-4">
               {steps.map((step, index) => (
                 <React.Fragment key={step.number}>
                   <div className="flex flex-col items-center gap-2">
@@ -547,9 +604,9 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         )}
 
         {/* LAYOUT 2 COLUNAS */}
-        <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+        <div className="grid lg:grid-cols-[1fr_420px] gap-8">
           {/* COLUNA ESQUERDA - FORMULÁRIO */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* STEP 1 - DADOS PESSOAIS */}
             {currentStep === 1 && (
               <Card
@@ -560,10 +617,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   boxShadow: theme.cardShadow,
                 }}
               >
-                <CardContent className="p-6 space-y-5">
+                <CardContent className="p-5 md:p-6 space-y-5">
                   <div>
                     <h2
-                      className="text-2xl font-bold mb-1"
+                      className="text-xl md:text-2xl font-bold mb-1"
                       style={{ color: theme.headingColor }}
                     >
                       Dados Pessoais
@@ -573,7 +630,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     </p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 md:space-y-4">
                     <div>
                       <Label
                         htmlFor="name"
@@ -594,11 +651,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             name: e.target.value,
                           })
                         }
-                        className="mt-1.5"
+                        className="mt-1.5 text-base"
                         style={{
                           backgroundColor: theme.inputBackgroundColor,
                           borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
+                          height: 48,
                           borderRadius: theme.inputBorderRadius,
                           color: theme.textColor,
                         }}
@@ -627,11 +684,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               email: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -659,11 +716,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               phone: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -692,11 +749,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               document: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -725,11 +782,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               birthDate: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -757,11 +814,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               gender: e.target.value,
                             })
                           }
-                          className="w-full mt-1.5 px-3 rounded-lg"
+                          className="w-full mt-1.5 px-4 rounded-lg text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             borderWidth: 1,
                             borderStyle: "solid",
@@ -793,10 +850,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   boxShadow: theme.cardShadow,
                 }}
               >
-                <CardContent className="p-6 space-y-5">
+                <CardContent className="p-5 md:p-6 space-y-5">
                   <div>
                     <h2
-                      className="text-2xl font-bold mb-1"
+                      className="text-xl md:text-2xl font-bold mb-1"
                       style={{ color: theme.headingColor }}
                     >
                       Endereço de Entrega
@@ -832,11 +889,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               handleCepSearch(formatted);
                             }
                           }}
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -868,11 +925,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               street: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -899,11 +956,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               number: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -932,11 +989,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               complement: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -963,11 +1020,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               neighborhood: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -996,11 +1053,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               city: e.target.value,
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -1028,11 +1085,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               state: e.target.value.toUpperCase(),
                             })
                           }
-                          className="mt-1.5"
+                          className="mt-1.5 text-base"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
-                            height: theme.inputHeight,
+                            height: 48,
                             borderRadius: theme.inputBorderRadius,
                             color: theme.textColor,
                           }}
@@ -1054,10 +1111,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   boxShadow: theme.cardShadow,
                 }}
               >
-                <CardContent className="p-6 space-y-5">
+                <CardContent className="p-5 md:p-6 space-y-5">
                   <div>
                     <h2
-                      className="text-2xl font-bold mb-1"
+                      className="text-xl md:text-2xl font-bold mb-1"
                       style={{ color: theme.headingColor }}
                     >
                       Forma de Pagamento
@@ -1075,7 +1132,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           setPaymentMethod(method as typeof paymentMethod)
                         }
                         className={cn(
-                          "p-4 rounded-lg border-2 transition-all text-left flex items-center gap-4",
+                          "p-4 md:p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 md:gap-4",
                           paymentMethod === method && "shadow-lg",
                         )}
                         style={{
@@ -1091,7 +1148,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       >
                         {method === "PIX" && (
                           <Smartphone
-                            className="h-6 w-6"
+                            className="h-7 w-7 md:h-6 md:w-6"
                             style={{
                               color:
                                 paymentMethod === method
@@ -1102,7 +1159,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         )}
                         {method === "CREDIT_CARD" && (
                           <CreditCard
-                            className="h-6 w-6"
+                            className="h-7 w-7 md:h-6 md:w-6"
                             style={{
                               color:
                                 paymentMethod === method
@@ -1113,7 +1170,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         )}
                         {method === "BOLETO" && (
                           <FileText
-                            className="h-6 w-6"
+                            className="h-7 w-7 md:h-6 md:w-6"
                             style={{
                               color:
                                 paymentMethod === method
@@ -1124,7 +1181,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         )}
                         <div className="flex-1">
                           <div
-                            className="font-semibold text-base mb-1"
+                            className="font-semibold text-base md:text-base mb-0.5"
                             style={{
                               color:
                                 paymentMethod === method
@@ -1136,7 +1193,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             {method === "CREDIT_CARD" && "Cartão de Crédito"}
                             {method === "BOLETO" && "Boleto Bancário"}
                           </div>
-                          <div className="text-sm opacity-75">
+                          <div className="text-xs md:text-sm opacity-75">
                             {method === "PIX" && "Aprovação instantânea"}
                             {method === "CREDIT_CARD" && "Parcele em até 12x"}
                             {method === "BOLETO" && "Vencimento em 3 dias"}
@@ -1144,7 +1201,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         </div>
                         {paymentMethod === method && (
                           <CheckCircle
-                            className="h-6 w-6"
+                            className="h-6 w-6 md:h-6 md:w-6"
                             style={{ color: theme.stepCompletedColor }}
                           />
                         )}
@@ -1169,11 +1226,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         onChange={(e) =>
                           setInstallments(Number(e.target.value))
                         }
-                        className="w-full mt-1.5 px-4 rounded-lg"
+                        className="w-full mt-1.5 px-4 rounded-lg text-base"
                         style={{
                           backgroundColor: theme.inputBackgroundColor,
                           borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
+                          height: 48,
                           borderRadius: theme.inputBorderRadius,
                           borderWidth: 1,
                           borderStyle: "solid",
@@ -1197,20 +1254,21 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             )}
 
             {/* BOTÕES DE NAVEGAÇÃO */}
-            <div className="flex items-center justify-between gap-4 pt-2">
+            <div className="flex items-center justify-between gap-3 pt-4">
               {currentStep > 1 && (
                 <Button
                   variant="outline"
                   onClick={handleBack}
-                  className="flex items-center gap-2 px-6"
+                  className="flex items-center gap-2 px-6 md:px-8"
                   style={{
                     borderColor: theme.inputBorderColor,
                     color: theme.textColor,
-                    height: theme.inputHeight,
+                    height: 52,
+                    borderWidth: 2,
                   }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  Voltar
+                  <ChevronLeft className="h-5 w-5" />
+                  <span className="hidden sm:inline">Voltar</span>
                 </Button>
               )}
 
@@ -1218,11 +1276,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 {currentStep < totalSteps ? (
                   <Button
                     onClick={handleNext}
-                    className="w-full flex items-center justify-center gap-2 font-semibold"
+                    className="w-full flex items-center justify-center gap-2 font-semibold text-base shadow-lg"
                     style={{
                       backgroundColor: theme.primaryButtonBackgroundColor,
                       color: theme.primaryButtonTextColor,
-                      height: theme.inputHeight,
+                      height: 52,
                       borderRadius: theme.primaryButtonBorderRadius,
                     }}
                   >
@@ -1233,11 +1291,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   <Button
                     onClick={handleCheckout}
                     disabled={processing || previewMode}
-                    className="w-full font-bold text-lg"
+                    className="w-full font-bold text-base md:text-lg shadow-lg"
                     style={{
                       backgroundColor: theme.checkoutButtonBackgroundColor,
                       color: theme.checkoutButtonTextColor,
-                      height: theme.inputHeight + 12,
+                      height: 56,
                       borderRadius: theme.checkoutButtonBorderRadius,
                       opacity: processing || previewMode ? 0.6 : 1,
                     }}
@@ -1252,7 +1310,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     ) : (
                       <>
                         <Lock className="h-5 w-5 mr-2" />
-                        Finalizar Compra - R$ {checkoutData?.total.toFixed(2)}
+                        <span className="hidden sm:inline">
+                          Finalizar Compra -{" "}
+                        </span>
+                        <span className="sm:hidden">Finalizar - </span>
+                        R$ {checkoutData?.total.toFixed(2)}
                       </>
                     )}
                   </Button>
@@ -1429,26 +1491,29 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
         {/* BOTÃO RESUMO MOBILE */}
         <div
-          className="lg:hidden fixed bottom-0 left-0 right-0 p-4 border-t backdrop-blur-lg z-40"
+          className="lg:hidden fixed bottom-0 left-0 right-0 p-4 border-t backdrop-blur-xl z-40 safe-area-bottom"
           style={{
-            backgroundColor: `${theme.cardBackgroundColor}F0`,
+            backgroundColor: `${theme.cardBackgroundColor}F8`,
             borderColor: theme.cardBorderColor,
+            boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
           }}
         >
           <Button
             onClick={() => setShowSummary(!showSummary)}
-            className="w-full flex items-center justify-between"
+            className="w-full flex items-center justify-between shadow-lg font-semibold rounded-xl"
             style={{
               backgroundColor: theme.primaryButtonBackgroundColor,
               color: theme.primaryButtonTextColor,
-              height: theme.inputHeight,
+              height: 56,
             }}
           >
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2.5">
               <Package className="h-5 w-5" />
-              {showSummary ? "Ocultar Resumo" : "Ver Resumo"}
+              <span className="text-base">
+                {showSummary ? "Ocultar Resumo" : "Ver Resumo"}
+              </span>
             </span>
-            <span className="font-bold">
+            <span className="font-bold text-lg">
               R$ {checkoutData.total.toFixed(2)}
             </span>
           </Button>
@@ -1457,17 +1522,26 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         {/* MODAL RESUMO MOBILE */}
         {showSummary && (
           <div
-            className="lg:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setShowSummary(false)}
           >
             <div
-              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
+              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
               style={{
                 backgroundColor: theme.cardBackgroundColor,
                 color: theme.textColor,
+                boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Handle bar */}
+              <div className="flex justify-center mb-4">
+                <div
+                  className="w-12 h-1.5 rounded-full opacity-30"
+                  style={{ backgroundColor: theme.textColor }}
+                />
+              </div>
+
               <div className="flex items-center justify-between mb-6">
                 <h3
                   className="text-2xl font-bold"
@@ -1477,7 +1551,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 </h3>
                 <button
                   onClick={() => setShowSummary(false)}
-                  className="p-2 rounded-full hover:bg-gray-100/10 transition-colors"
+                  className="p-2 rounded-full hover:bg-gray-100/10 transition-colors active:scale-95"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -1579,11 +1653,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
               <Button
                 onClick={() => setShowSummary(false)}
-                className="w-full"
+                className="w-full font-semibold text-base shadow-lg rounded-xl"
                 style={{
                   backgroundColor: theme.primaryButtonBackgroundColor,
                   color: theme.primaryButtonTextColor,
-                  height: theme.inputHeight,
+                  height: 52,
                 }}
               >
                 Fechar
@@ -1595,7 +1669,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
       {/* RODAPÉ */}
       <footer
-        className="border-t py-10 mt-16"
+        className="border-t py-8 md:py-10 mt-12 md:mt-16"
         style={{
           backgroundColor: theme.footerBackgroundColor,
           borderColor: theme.cardBorderColor,
@@ -1603,32 +1677,34 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         }}
       >
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-5 md:space-y-6">
             {/* CHECKOUT SEGURO */}
-            <div className="flex items-center justify-center gap-3">
-              <Lock className="h-6 w-6 text-green-600" />
-              <span className="font-bold text-xl">Checkout Seguro</span>
+            <div className="flex items-center justify-center gap-2.5 md:gap-3">
+              <Lock className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
+              <span className="font-bold text-lg md:text-xl">
+                Checkout Seguro
+              </span>
             </div>
 
             {/* SELOS */}
             {theme.showTrustBadges && (
-              <div className="flex items-center justify-center gap-8 flex-wrap text-sm">
+              <div className="flex items-center justify-center gap-4 md:gap-8 flex-wrap text-xs md:text-sm">
                 {theme.sslBadgeEnabled && (
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-green-600" />
-                    <span>Certificado SSL</span>
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                    <span className="whitespace-nowrap">Certificado SSL</span>
                   </div>
                 )}
                 {theme.showPaymentMethods && (
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    <span>Pagamento Seguro</span>
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
+                    <span className="whitespace-nowrap">Pagamento Seguro</span>
                   </div>
                 )}
                 {theme.securityIconsEnabled && (
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5" />
-                    <span>Dados Protegidos</span>
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <ShieldCheck className="h-4 w-4 md:h-5 md:w-5" />
+                    <span className="whitespace-nowrap">Dados Protegidos</span>
                   </div>
                 )}
               </div>
@@ -1639,13 +1715,17 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               theme.showContactEmail ||
               theme.showPhone ||
               theme.showAddress) && (
-              <div className="text-sm space-y-1 opacity-80">
+              <div className="text-xs md:text-sm space-y-1 opacity-80 max-w-md mx-auto">
                 {theme.showStoreName && (
-                  <p className="font-semibold">Minha Loja</p>
+                  <p className="font-semibold text-sm md:text-base">
+                    Minha Loja
+                  </p>
                 )}
                 {theme.showCnpjCpf && <p>CNPJ: 00.000.000/0001-00</p>}
                 {theme.showAddress && (
-                  <p>Endereço: Rua Exemplo, 123 - São Paulo/SP</p>
+                  <p className="text-balance">
+                    Endereço: Rua Exemplo, 123 - São Paulo/SP
+                  </p>
                 )}
                 {theme.showContactEmail && <p>E-mail: contato@loja.com.br</p>}
                 {theme.showPhone && <p>Telefone: (11) 99999-9999</p>}
@@ -1657,13 +1737,13 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               theme.showTermsConditions ||
               theme.showReturns) && (
               <>
-                <Separator className="my-4" />
-                <div className="flex items-center justify-center gap-6 text-sm flex-wrap">
+                <Separator className="my-3 md:my-4" />
+                <div className="flex items-center justify-center gap-4 md:gap-6 text-xs md:text-sm flex-wrap px-4">
                   {theme.showPrivacyPolicy && (
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all"
+                      className="hover:underline transition-all whitespace-nowrap"
                     >
                       Política de Privacidade
                     </a>
@@ -1672,7 +1752,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all"
+                      className="hover:underline transition-all whitespace-nowrap"
                     >
                       Termos e Condições
                     </a>
@@ -1681,7 +1761,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all"
+                      className="hover:underline transition-all whitespace-nowrap"
                     >
                       Trocas e Devoluções
                     </a>
@@ -1690,9 +1770,9 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               </>
             )}
 
-            <Separator className="my-4" />
+            <Separator className="my-3 md:my-4" />
 
-            <p className="text-xs opacity-60">
+            <p className="text-xs md:text-xs opacity-60 pb-2">
               © {new Date().getFullYear()} - Todos os direitos reservados
             </p>
           </div>
