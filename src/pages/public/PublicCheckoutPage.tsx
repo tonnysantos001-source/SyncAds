@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -22,6 +21,7 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
+  User,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -136,8 +136,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     : customization?.theme
       ? applyTheme(customization.theme)
       : DEFAULT_CHECKOUT_THEME;
-
-  const cssVars = generateCSSVariables(theme);
 
   // ========================================
   // CARREGAR DADOS
@@ -254,44 +252,73 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   };
 
   // ========================================
+  // VALIDAÇÕES
+  // ========================================
+  const validateStep = (step: number): boolean => {
+    if (step === 1) {
+      if (!customerData.name || !customerData.email || !customerData.phone) {
+        toast({
+          title: "Dados incompletos",
+          description: "Preencha todos os campos obrigatórios",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (theme.requestCpfOnlyAtPayment === false && !customerData.document) {
+        toast({
+          title: "CPF obrigatório",
+          description: "Por favor, informe seu CPF",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      if (
+        !addressData.zipCode ||
+        !addressData.street ||
+        !addressData.number ||
+        !addressData.neighborhood ||
+        !addressData.city ||
+        !addressData.state
+      ) {
+        toast({
+          title: "Endereço incompleto",
+          description: "Preencha todos os campos obrigatórios",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // ========================================
+  // NAVEGAÇÃO
+  // ========================================
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ========================================
   // PROCESSAR PAGAMENTO
   // ========================================
   const handleCheckout = async () => {
+    if (!validateStep(currentStep)) return;
+
     try {
       setProcessing(true);
-
-      // Validações básicas
-      if (currentStep === 1) {
-        if (!customerData.name || !customerData.email || !customerData.phone) {
-          toast({
-            title: "Dados incompletos",
-            description: "Preencha todos os campos obrigatórios",
-            variant: "destructive",
-          });
-          return;
-        }
-        setCurrentStep(2);
-        return;
-      }
-
-      if (currentStep === 2) {
-        if (
-          !addressData.zipCode ||
-          !addressData.street ||
-          !addressData.number ||
-          !addressData.city ||
-          !addressData.state
-        ) {
-          toast({
-            title: "Endereço incompleto",
-            description: "Preencha todos os campos obrigatórios",
-            variant: "destructive",
-          });
-          return;
-        }
-        setCurrentStep(3);
-        return;
-      }
 
       // Processar pagamento
       const { data, error } = await supabase.functions.invoke(
@@ -342,8 +369,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         style={{ backgroundColor: theme.backgroundColor }}
       >
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-purple-600" />
-          <p className="text-gray-600">Carregando checkout...</p>
+          <Loader2
+            className="h-12 w-12 animate-spin mx-auto mb-4"
+            style={{ color: theme.primaryButtonBackgroundColor }}
+          />
+          <p style={{ color: theme.textColor }}>Carregando checkout...</p>
         </div>
       </div>
     );
@@ -368,12 +398,12 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   // ========================================
   // CALCULAR TOTAL DE STEPS
   // ========================================
-  const totalSteps = theme.navigationSteps || 3;
+  const totalSteps = 3;
   const steps = [
-    { number: 1, label: "Dados", icon: Package },
+    { number: 1, label: "Dados", icon: User },
     { number: 2, label: "Endereço", icon: Truck },
     { number: 3, label: "Pagamento", icon: CreditCard },
-  ].slice(0, totalSteps);
+  ];
 
   // ========================================
   // RENDER
@@ -385,7 +415,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         backgroundColor: theme.backgroundColor,
         color: theme.textColor,
         fontFamily: theme.fontFamily,
-        ...cssVars,
       }}
     >
       {/* BARRA DE AVISOS */}
@@ -403,144 +432,124 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
       {/* CABEÇALHO */}
       <header
-        className="sticky top-0 z-40 backdrop-blur-lg border-b"
+        className="border-b"
         style={{
-          backgroundColor: `${theme.backgroundColor}CC`,
+          backgroundColor: theme.useGradient
+            ? `linear-gradient(135deg, ${theme.backgroundColor}, ${theme.backgroundGradient})`
+            : theme.backgroundColor,
           borderColor: theme.cardBorderColor,
         }}
       >
-        <div className="container mx-auto px-4 py-4 max-w-6xl">
+        <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div
-            className="flex items-center justify-between"
-            style={{
-              justifyContent:
-                theme.logoAlignment === "center"
-                  ? "center"
-                  : theme.logoAlignment === "right"
-                    ? "flex-end"
-                    : "flex-start",
-            }}
+            className={cn(
+              "flex items-center",
+              theme.logoAlignment === "center" && "justify-center",
+              theme.logoAlignment === "right" && "justify-end",
+              theme.logoAlignment === "left" && "justify-start",
+            )}
           >
             {theme.logoUrl ? (
               <img
                 src={theme.logoUrl}
                 alt="Logo"
-                className="h-8 md:h-10 object-contain"
+                className="h-10 object-contain"
                 style={{
-                  maxWidth: theme.logoWidth || 180,
-                  maxHeight: theme.logoHeight || 50,
+                  width: theme.logoWidth || "auto",
+                  height: theme.logoHeight || 40,
                 }}
               />
             ) : (
-              <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-green-600" />
-                <span className="font-semibold text-lg">Checkout Seguro</span>
-              </div>
+              <h1
+                className="text-2xl font-bold"
+                style={{ color: theme.headingColor }}
+              >
+                Checkout
+              </h1>
             )}
-
-            {/* Botão resumo mobile */}
-            <button
-              onClick={() => setShowSummary(!showSummary)}
-              className="lg:hidden flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100"
-            >
-              <Package className="h-4 w-4" />
-              <span>{showSummary ? "Ocultar" : "Ver"} resumo</span>
-            </button>
           </div>
         </div>
       </header>
 
       {/* BANNER */}
       {theme.bannerEnabled && theme.bannerUrl && (
-        <div className="w-full overflow-hidden">
+        <div className="w-full">
           <img
             src={theme.bannerUrl}
             alt="Banner"
-            className="w-full h-auto object-cover"
-            style={{
-              maxHeight: theme.bannerHeight || 200,
-            }}
+            className="w-full object-cover"
+            style={{ height: theme.bannerHeight || 90 }}
           />
         </div>
       )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="container mx-auto px-4 py-6 md:py-10 max-w-6xl">
-        <div className="grid lg:grid-cols-[1fr,400px] gap-6 lg:gap-10">
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* BARRA DE PROGRESSO */}
+        {theme.showProgressBar && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              {steps.map((step, index) => (
+                <React.Fragment key={step.number}>
+                  <div className="flex flex-col items-center gap-2">
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all",
+                        currentStep > step.number && "scale-110",
+                      )}
+                      style={{
+                        backgroundColor:
+                          currentStep > step.number
+                            ? theme.stepCompletedColor
+                            : currentStep === step.number
+                              ? theme.stepActiveColor
+                              : theme.stepInactiveColor,
+                        color:
+                          currentStep >= step.number
+                            ? theme.primaryButtonTextColor
+                            : theme.textColor,
+                      }}
+                    >
+                      {currentStep > step.number ? (
+                        <Check className="h-6 w-6" />
+                      ) : (
+                        <step.icon className="h-6 w-6" />
+                      )}
+                    </div>
+                    <span
+                      className="text-xs font-medium"
+                      style={{
+                        color:
+                          currentStep >= step.number
+                            ? theme.headingColor
+                            : theme.textColor,
+                        opacity: currentStep >= step.number ? 1 : 0.5,
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className="flex-1 h-1 mx-2 rounded-full transition-all"
+                      style={{
+                        backgroundColor:
+                          currentStep > step.number
+                            ? theme.stepCompletedColor
+                            : theme.stepInactiveColor,
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* LAYOUT 2 COLUNAS */}
+        <div className="grid lg:grid-cols-[1fr_400px] gap-8">
           {/* COLUNA ESQUERDA - FORMULÁRIO */}
           <div className="space-y-6">
-            {/* BARRA DE PROGRESSO */}
-            {theme.showProgressBar && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  {steps.map((step, index) => (
-                    <React.Fragment key={step.number}>
-                      <div className="flex flex-col items-center flex-1">
-                        <div
-                          className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all",
-                            currentStep === step.number &&
-                              "ring-4 ring-opacity-20",
-                            currentStep > step.number
-                              ? "bg-green-500 text-white"
-                              : currentStep === step.number
-                                ? "text-white"
-                                : "bg-gray-200 text-gray-500",
-                          )}
-                          style={{
-                            backgroundColor:
-                              currentStep > step.number
-                                ? theme.stepCompletedColor
-                                : currentStep === step.number
-                                  ? theme.stepActiveColor
-                                  : theme.stepInactiveColor,
-                            color:
-                              currentStep >= step.number
-                                ? "#FFFFFF"
-                                : undefined,
-                          }}
-                        >
-                          {currentStep > step.number ? (
-                            <Check className="h-5 w-5" />
-                          ) : (
-                            step.number
-                          )}
-                        </div>
-                        <span className="text-xs mt-2 font-medium hidden sm:block">
-                          {step.label}
-                        </span>
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div
-                          className="h-0.5 flex-1 mx-2"
-                          style={{
-                            backgroundColor:
-                              currentStep > step.number
-                                ? theme.stepCompletedColor
-                                : theme.stepInactiveColor,
-                          }}
-                        />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-
-                {/* Progress bar */}
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: theme.stepInactiveColor }}
-                >
-                  <div
-                    className="h-full transition-all duration-500 ease-out"
-                    style={{
-                      backgroundColor: theme.progressBarColor,
-                      width: `${(currentStep / totalSteps) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* STEP 1 - DADOS PESSOAIS */}
             {currentStep === 1 && (
               <Card
@@ -548,6 +557,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   backgroundColor: theme.cardBackgroundColor,
                   borderColor: theme.cardBorderColor,
                   borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
                 }}
               >
                 <CardContent className="p-6 space-y-5">
@@ -556,17 +566,23 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       className="text-2xl font-bold mb-1"
                       style={{ color: theme.headingColor }}
                     >
-                      Informações Pessoais
+                      Dados Pessoais
                     </h2>
                     <p className="text-sm opacity-75">
-                      Preencha seus dados para continuar
+                      Preencha suas informações
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name" style={{ color: theme.labelColor }}>
-                        Nome completo *
+                      <Label
+                        htmlFor="name"
+                        style={{
+                          color: theme.labelColor,
+                          fontWeight: theme.labelFontWeight,
+                        }}
+                      >
+                        Nome Completo *
                       </Label>
                       <Input
                         id="name"
@@ -584,70 +600,85 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           borderColor: theme.inputBorderColor,
                           height: theme.inputHeight,
                           borderRadius: theme.inputBorderRadius,
+                          color: theme.textColor,
                         }}
                       />
                     </div>
 
-                    <div>
-                      <Label
-                        htmlFor="email"
-                        style={{ color: theme.labelColor }}
-                      >
-                        E-mail *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={customerData.email}
-                        onChange={(e) =>
-                          setCustomerData({
-                            ...customerData,
-                            email: e.target.value,
-                          })
-                        }
-                        className="mt-1.5"
-                        style={{
-                          backgroundColor: theme.inputBackgroundColor,
-                          borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
-                          borderRadius: theme.inputBorderRadius,
-                        }}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label
+                          htmlFor="email"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          E-mail *
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={customerData.email}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              email: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="phone"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Telefone *
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          value={customerData.phone}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              phone: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <Label
-                        htmlFor="phone"
-                        style={{ color: theme.labelColor }}
-                      >
-                        Telefone/WhatsApp *
-                      </Label>
-                      <Input
-                        id="phone"
-                        placeholder="(11) 99999-9999"
-                        value={customerData.phone}
-                        onChange={(e) =>
-                          setCustomerData({
-                            ...customerData,
-                            phone: e.target.value,
-                          })
-                        }
-                        className="mt-1.5"
-                        style={{
-                          backgroundColor: theme.inputBackgroundColor,
-                          borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
-                          borderRadius: theme.inputBorderRadius,
-                        }}
-                      />
-                    </div>
-
-                    {!theme.requestCpfOnlyAtPayment && (
+                    {theme.requestCpfOnlyAtPayment === false && (
                       <div>
                         <Label
                           htmlFor="document"
-                          style={{ color: theme.labelColor }}
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
                         >
                           CPF *
                         </Label>
@@ -667,8 +698,84 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
+                      </div>
+                    )}
+
+                    {theme.requestBirthDate && (
+                      <div>
+                        <Label
+                          htmlFor="birthDate"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Data de Nascimento
+                        </Label>
+                        <Input
+                          id="birthDate"
+                          type="date"
+                          value={customerData.birthDate}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              birthDate: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {theme.requestGender && (
+                      <div>
+                        <Label
+                          htmlFor="gender"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Gênero
+                        </Label>
+                        <select
+                          id="gender"
+                          value={customerData.gender}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              gender: e.target.value,
+                            })
+                          }
+                          className="w-full mt-1.5 px-3 rounded-lg"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            borderWidth: 1,
+                            borderStyle: "solid",
+                            color: theme.textColor,
+                          }}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="feminino">Feminino</option>
+                          <option value="outro">Outro</option>
+                          <option value="prefiro_nao_dizer">
+                            Prefiro não dizer
+                          </option>
+                        </select>
                       </div>
                     )}
                   </div>
@@ -683,6 +790,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   backgroundColor: theme.cardBackgroundColor,
                   borderColor: theme.cardBorderColor,
                   borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
                 }}
               >
                 <CardContent className="p-6 space-y-5">
@@ -694,7 +802,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       Endereço de Entrega
                     </h2>
                     <p className="text-sm opacity-75">
-                      Onde você quer receber seu pedido?
+                      Informe onde deseja receber
                     </p>
                   </div>
 
@@ -702,70 +810,82 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <div>
                       <Label
                         htmlFor="zipCode"
-                        style={{ color: theme.labelColor }}
+                        style={{
+                          color: theme.labelColor,
+                          fontWeight: theme.labelFontWeight,
+                        }}
                       >
                         CEP *
                       </Label>
-                      <div className="flex gap-2 mt-1.5">
+                      <div className="relative">
                         <Input
                           id="zipCode"
                           placeholder="00000-000"
-                          value={formatCep(addressData.zipCode)}
+                          value={addressData.zipCode}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "");
-                            setAddressData({ ...addressData, zipCode: value });
-                            if (value.length === 8) {
-                              handleCepSearch(value);
+                            const formatted = formatCep(e.target.value);
+                            setAddressData({
+                              ...addressData,
+                              zipCode: formatted,
+                            });
+                            if (formatted.replace(/\D/g, "").length === 8) {
+                              handleCepSearch(formatted);
                             }
                           }}
-                          className="flex-1"
+                          className="mt-1.5"
                           style={{
                             backgroundColor: theme.inputBackgroundColor,
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
                         {loadingCep && (
-                          <div className="flex items-center px-3">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />
                         )}
                       </div>
                     </div>
 
-                    <div>
-                      <Label
-                        htmlFor="street"
-                        style={{ color: theme.labelColor }}
-                      >
-                        Rua *
-                      </Label>
-                      <Input
-                        id="street"
-                        placeholder="Nome da rua"
-                        value={addressData.street}
-                        onChange={(e) =>
-                          setAddressData({
-                            ...addressData,
-                            street: e.target.value,
-                          })
-                        }
-                        className="mt-1.5"
-                        style={{
-                          backgroundColor: theme.inputBackgroundColor,
-                          borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
-                          borderRadius: theme.inputBorderRadius,
-                        }}
-                      />
-                    </div>
+                    <div className="grid grid-cols-[1fr_120px] gap-4">
+                      <div>
+                        <Label
+                          htmlFor="street"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Rua *
+                        </Label>
+                        <Input
+                          id="street"
+                          placeholder="Nome da rua"
+                          value={addressData.street}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              street: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label
                           htmlFor="number"
-                          style={{ color: theme.labelColor }}
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
                         >
                           Número *
                         </Label>
@@ -785,14 +905,20 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
                       </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label
                           htmlFor="complement"
-                          style={{ color: theme.labelColor }}
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
                         >
                           Complemento
                         </Label>
@@ -812,43 +938,51 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="neighborhood"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Bairro *
+                        </Label>
+                        <Input
+                          id="neighborhood"
+                          placeholder="Nome do bairro"
+                          value={addressData.neighborhood}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              neighborhood: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: theme.inputHeight,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <Label
-                        htmlFor="neighborhood"
-                        style={{ color: theme.labelColor }}
-                      >
-                        Bairro *
-                      </Label>
-                      <Input
-                        id="neighborhood"
-                        placeholder="Nome do bairro"
-                        value={addressData.neighborhood}
-                        onChange={(e) =>
-                          setAddressData({
-                            ...addressData,
-                            neighborhood: e.target.value,
-                          })
-                        }
-                        className="mt-1.5"
-                        style={{
-                          backgroundColor: theme.inputBackgroundColor,
-                          borderColor: theme.inputBorderColor,
-                          height: theme.inputHeight,
-                          borderRadius: theme.inputBorderRadius,
-                        }}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-[1fr_100px] gap-4">
                       <div>
                         <Label
                           htmlFor="city"
-                          style={{ color: theme.labelColor }}
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
                         >
                           Cidade *
                         </Label>
@@ -868,6 +1002,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
                       </div>
@@ -875,13 +1010,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       <div>
                         <Label
                           htmlFor="state"
-                          style={{ color: theme.labelColor }}
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
                         >
-                          Estado *
+                          UF *
                         </Label>
                         <Input
                           id="state"
-                          placeholder="UF"
+                          placeholder="SP"
                           maxLength={2}
                           value={addressData.state}
                           onChange={(e) =>
@@ -896,6 +1034,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                             borderColor: theme.inputBorderColor,
                             height: theme.inputHeight,
                             borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
                           }}
                         />
                       </div>
@@ -912,6 +1051,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   backgroundColor: theme.cardBackgroundColor,
                   borderColor: theme.cardBorderColor,
                   borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
                 }}
               >
                 <CardContent className="p-6 space-y-5">
@@ -920,7 +1060,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       className="text-2xl font-bold mb-1"
                       style={{ color: theme.headingColor }}
                     >
-                      Método de Pagamento
+                      Forma de Pagamento
                     </h2>
                     <p className="text-sm opacity-75">
                       Escolha como deseja pagar
@@ -935,10 +1075,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           setPaymentMethod(method as typeof paymentMethod)
                         }
                         className={cn(
-                          "p-4 rounded-lg border-2 transition-all text-left flex items-center gap-3",
-                          paymentMethod === method
-                            ? "border-current shadow-lg"
-                            : "border-gray-200 hover:border-gray-300",
+                          "p-4 rounded-lg border-2 transition-all text-left flex items-center gap-4",
+                          paymentMethod === method && "shadow-lg",
                         )}
                         style={{
                           borderColor:
@@ -947,48 +1085,83 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                               : theme.inputBorderColor,
                           backgroundColor:
                             paymentMethod === method
-                              ? `${theme.primaryButtonBackgroundColor}10`
+                              ? `${theme.primaryButtonBackgroundColor}15`
                               : theme.inputBackgroundColor,
                         }}
                       >
-                        {method === "PIX" && <Smartphone className="h-5 w-5" />}
+                        {method === "PIX" && (
+                          <Smartphone
+                            className="h-6 w-6"
+                            style={{
+                              color:
+                                paymentMethod === method
+                                  ? theme.primaryButtonBackgroundColor
+                                  : theme.textColor,
+                            }}
+                          />
+                        )}
                         {method === "CREDIT_CARD" && (
-                          <CreditCard className="h-5 w-5" />
+                          <CreditCard
+                            className="h-6 w-6"
+                            style={{
+                              color:
+                                paymentMethod === method
+                                  ? theme.primaryButtonBackgroundColor
+                                  : theme.textColor,
+                            }}
+                          />
                         )}
                         {method === "BOLETO" && (
-                          <FileText className="h-5 w-5" />
+                          <FileText
+                            className="h-6 w-6"
+                            style={{
+                              color:
+                                paymentMethod === method
+                                  ? theme.primaryButtonBackgroundColor
+                                  : theme.textColor,
+                            }}
+                          />
                         )}
                         <div className="flex-1">
-                          <div className="font-semibold">
+                          <div
+                            className="font-semibold text-base mb-1"
+                            style={{
+                              color:
+                                paymentMethod === method
+                                  ? theme.primaryButtonBackgroundColor
+                                  : theme.headingColor,
+                            }}
+                          >
                             {method === "PIX" && "PIX"}
                             {method === "CREDIT_CARD" && "Cartão de Crédito"}
                             {method === "BOLETO" && "Boleto Bancário"}
                           </div>
-                          <div className="text-xs opacity-75">
+                          <div className="text-sm opacity-75">
                             {method === "PIX" && "Aprovação instantânea"}
-                            {method === "CREDIT_CARD" && "Em até 12x sem juros"}
+                            {method === "CREDIT_CARD" && "Parcele em até 12x"}
                             {method === "BOLETO" && "Vencimento em 3 dias"}
                           </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          {paymentMethod === method && (
-                            <Check
-                              className="h-5 w-5"
-                              style={{ color: theme.stepCompletedColor }}
-                            />
-                          )}
-                        </div>
+                        {paymentMethod === method && (
+                          <CheckCircle
+                            className="h-6 w-6"
+                            style={{ color: theme.stepCompletedColor }}
+                          />
+                        )}
                       </button>
                     ))}
                   </div>
 
-                  {paymentMethod === "CREDIT_CARD" && (
+                  {paymentMethod === "CREDIT_CARD" && checkoutData && (
                     <div>
                       <Label
                         htmlFor="installments"
-                        style={{ color: theme.labelColor }}
+                        style={{
+                          color: theme.labelColor,
+                          fontWeight: theme.labelFontWeight,
+                        }}
                       >
-                        Número de parcelas
+                        Número de Parcelas
                       </Label>
                       <select
                         id="installments"
@@ -996,7 +1169,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         onChange={(e) =>
                           setInstallments(Number(e.target.value))
                         }
-                        className="w-full mt-1.5 px-3 rounded-lg"
+                        className="w-full mt-1.5 px-4 rounded-lg"
                         style={{
                           backgroundColor: theme.inputBackgroundColor,
                           borderColor: theme.inputBorderColor,
@@ -1004,14 +1177,18 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           borderRadius: theme.inputBorderRadius,
                           borderWidth: 1,
                           borderStyle: "solid",
+                          color: theme.textColor,
                         }}
                       >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                          <option key={num} value={num}>
-                            {num}x de R$ {(checkoutData.total / num).toFixed(2)}
-                            {num === 1 ? " sem juros" : ""}
-                          </option>
-                        ))}
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
+                          const installmentValue = checkoutData.total / num;
+                          return (
+                            <option key={num} value={num}>
+                              {num}x de R$ {installmentValue.toFixed(2)}
+                              {num === 1 ? " à vista" : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -1020,14 +1197,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             )}
 
             {/* BOTÕES DE NAVEGAÇÃO */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 pt-2">
               {currentStep > 1 && (
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  className="flex items-center gap-2"
+                  onClick={handleBack}
+                  className="flex items-center gap-2 px-6"
                   style={{
                     borderColor: theme.inputBorderColor,
+                    color: theme.textColor,
+                    height: theme.inputHeight,
                   }}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1038,8 +1217,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               <div className={cn("flex-1", currentStep === 1 && "ml-auto")}>
                 {currentStep < totalSteps ? (
                   <Button
-                    onClick={() => setCurrentStep(currentStep + 1)}
-                    className="w-full"
+                    onClick={handleNext}
+                    className="w-full flex items-center justify-center gap-2 font-semibold"
                     style={{
                       backgroundColor: theme.primaryButtonBackgroundColor,
                       color: theme.primaryButtonTextColor,
@@ -1048,18 +1227,19 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     }}
                   >
                     Continuar
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 ) : (
                   <Button
                     onClick={handleCheckout}
                     disabled={processing || previewMode}
-                    className="w-full font-semibold"
+                    className="w-full font-bold text-lg"
                     style={{
                       backgroundColor: theme.checkoutButtonBackgroundColor,
                       color: theme.checkoutButtonTextColor,
-                      height: theme.inputHeight + 8,
+                      height: theme.inputHeight + 12,
                       borderRadius: theme.checkoutButtonBorderRadius,
+                      opacity: processing || previewMode ? 0.6 : 1,
                     }}
                   >
                     {processing ? (
@@ -1072,7 +1252,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     ) : (
                       <>
                         <Lock className="h-5 w-5 mr-2" />
-                        Finalizar Compra
+                        Finalizar Compra - R$ {checkoutData?.total.toFixed(2)}
                       </>
                     )}
                   </Button>
@@ -1081,19 +1261,20 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             </div>
           </div>
 
-          {/* COLUNA DIREITA - RESUMO DO PEDIDO */}
-          <div className="lg:block hidden">
+          {/* COLUNA DIREITA - RESUMO (DESKTOP) */}
+          <div className="hidden lg:block">
             <div
-              className="sticky top-24 rounded-lg border p-6 space-y-5"
+              className="sticky top-8 rounded-xl border p-6 space-y-5"
               style={{
                 backgroundColor: theme.cardBackgroundColor,
                 borderColor: theme.cardBorderColor,
                 borderRadius: theme.cardBorderRadius,
+                boxShadow: theme.cardShadow,
               }}
             >
               <div>
                 <h3
-                  className="text-lg font-bold mb-4"
+                  className="text-xl font-bold mb-4"
                   style={{ color: theme.headingColor }}
                 >
                   Resumo do Pedido
@@ -1101,16 +1282,14 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               </div>
 
               {/* PRODUTOS */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {checkoutData.products.map((product, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div
-                      className="relative flex-shrink-0"
+                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
                       style={{
-                        width: 60,
-                        height: 60,
-                        borderRadius: 8,
-                        overflow: "hidden",
+                        width: 70,
+                        height: 70,
                         backgroundColor: theme.inputBackgroundColor,
                       }}
                     >
@@ -1122,12 +1301,15 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-6 w-6 opacity-30" />
+                          <Package
+                            className="h-8 w-8"
+                            style={{ opacity: 0.3 }}
+                          />
                         </div>
                       )}
                       {theme.showCartIcon && (
                         <div
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md"
                           style={{
                             backgroundColor: theme.quantityCircleColor,
                             color: theme.quantityTextColor,
@@ -1138,23 +1320,29 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
+                      <h4
+                        className="font-semibold text-sm mb-1"
+                        style={{ color: theme.headingColor }}
+                      >
                         {product.name}
                       </h4>
                       {product.sku && (
                         <p className="text-xs opacity-60">SKU: {product.sku}</p>
                       )}
                       <p className="text-xs opacity-75 mt-1">
-                        Qtd: {product.quantity}
+                        Quantidade: {product.quantity}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="font-semibold">
+                      <p
+                        className="font-bold"
+                        style={{ color: theme.headingColor }}
+                      >
                         R$ {(product.price * product.quantity).toFixed(2)}
                       </p>
                       {product.quantity > 1 && (
                         <p className="text-xs opacity-60">
-                          R$ {product.price.toFixed(2)} cada
+                          R$ {product.price.toFixed(2)} un.
                         </p>
                       )}
                     </div>
@@ -1162,28 +1350,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 ))}
               </div>
 
-              <div
-                className="h-px"
-                style={{ backgroundColor: theme.cardBorderColor }}
-              />
+              <Separator />
 
               {/* TOTAIS */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="opacity-75">Subtotal</span>
                   <span className="font-medium">
                     R$ {checkoutData.subtotal.toFixed(2)}
                   </span>
                 </div>
-
-                {checkoutData.tax > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="opacity-75">Taxa</span>
-                    <span className="font-medium">
-                      R$ {checkoutData.tax.toFixed(2)}
-                    </span>
-                  </div>
-                )}
 
                 {checkoutData.shipping > 0 && (
                   <div className="flex justify-between text-sm">
@@ -1194,24 +1370,28 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   </div>
                 )}
 
-                {checkoutData.discount && checkoutData.discount > 0 && (
-                  <div
-                    className="flex justify-between text-sm"
-                    style={{ color: theme.stepCompletedColor }}
-                  >
-                    <span>Desconto</span>
+                {checkoutData.tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="opacity-75">Taxa</span>
                     <span className="font-medium">
-                      -R$ {checkoutData.discount.toFixed(2)}
+                      R$ {checkoutData.tax.toFixed(2)}
                     </span>
                   </div>
                 )}
 
-                <div
-                  className="h-px"
-                  style={{ backgroundColor: theme.cardBorderColor }}
-                />
+                {checkoutData.discount && checkoutData.discount > 0 && (
+                  <div
+                    className="flex justify-between text-sm font-medium"
+                    style={{ color: theme.stepCompletedColor }}
+                  >
+                    <span>Desconto</span>
+                    <span>-R$ {checkoutData.discount.toFixed(2)}</span>
+                  </div>
+                )}
 
-                <div className="flex justify-between text-lg font-bold pt-2">
+                <Separator />
+
+                <div className="flex justify-between text-xl font-bold pt-2">
                   <span style={{ color: theme.headingColor }}>Total</span>
                   <span style={{ color: theme.headingColor }}>
                     R$ {checkoutData.total.toFixed(2)}
@@ -1221,66 +1401,97 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
               {/* SELOS DE SEGURANÇA */}
               {theme.showTrustBadges && (
-                <div className="pt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <ShieldCheck
-                      className="h-4 w-4"
-                      style={{ color: theme.trustBadgeColor }}
-                    />
-                    <span className="opacity-75">Compra 100% segura</span>
-                  </div>
-                  {theme.sslBadgeEnabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <Lock
-                        className="h-4 w-4"
+                      <ShieldCheck
+                        className="h-5 w-5"
                         style={{ color: theme.trustBadgeColor }}
                       />
-                      <span className="opacity-75">Certificado SSL</span>
+                      <span className="opacity-75">Compra 100% Segura</span>
                     </div>
-                  )}
-                </div>
+                    {theme.sslBadgeEnabled && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Lock
+                          className="h-5 w-5"
+                          style={{ color: theme.trustBadgeColor }}
+                        />
+                        <span className="opacity-75">Certificado SSL</span>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* RESUMO MOBILE - COLAPSÁVEL */}
+        {/* BOTÃO RESUMO MOBILE */}
+        <div
+          className="lg:hidden fixed bottom-0 left-0 right-0 p-4 border-t backdrop-blur-lg z-40"
+          style={{
+            backgroundColor: `${theme.cardBackgroundColor}F0`,
+            borderColor: theme.cardBorderColor,
+          }}
+        >
+          <Button
+            onClick={() => setShowSummary(!showSummary)}
+            className="w-full flex items-center justify-between"
+            style={{
+              backgroundColor: theme.primaryButtonBackgroundColor,
+              color: theme.primaryButtonTextColor,
+              height: theme.inputHeight,
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              {showSummary ? "Ocultar Resumo" : "Ver Resumo"}
+            </span>
+            <span className="font-bold">
+              R$ {checkoutData.total.toFixed(2)}
+            </span>
+          </Button>
+        </div>
+
+        {/* MODAL RESUMO MOBILE */}
         {showSummary && (
           <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
             onClick={() => setShowSummary(false)}
           >
             <div
-              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
-              style={{ backgroundColor: theme.cardBackgroundColor }}
+              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
+              style={{
+                backgroundColor: theme.cardBackgroundColor,
+                color: theme.textColor,
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <h3
-                  className="text-xl font-bold"
+                  className="text-2xl font-bold"
                   style={{ color: theme.headingColor }}
                 >
                   Resumo do Pedido
                 </h3>
                 <button
                   onClick={() => setShowSummary(false)}
-                  className="p-2 rounded-full hover:bg-gray-100"
+                  className="p-2 rounded-full hover:bg-gray-100/10 transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 </button>
               </div>
 
               {/* PRODUTOS */}
-              <div className="space-y-3 mb-4">
+              <div className="space-y-4 mb-6">
                 {checkoutData.products.map((product, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div
-                      className="relative flex-shrink-0"
+                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
                       style={{
-                        width: 60,
-                        height: 60,
-                        borderRadius: 8,
-                        overflow: "hidden",
+                        width: 70,
+                        height: 70,
                         backgroundColor: theme.inputBackgroundColor,
                       }}
                     >
@@ -1292,18 +1503,29 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-6 w-6 opacity-30" />
+                          <Package className="h-8 w-8 opacity-30" />
                         </div>
                       )}
+                      <div
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{
+                          backgroundColor: theme.quantityCircleColor,
+                          color: theme.quantityTextColor,
+                        }}
+                      >
+                        {product.quantity}
+                      </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm">{product.name}</h4>
+                      <h4 className="font-semibold text-sm mb-1">
+                        {product.name}
+                      </h4>
                       <p className="text-xs opacity-75">
                         Qtd: {product.quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">
+                      <p className="font-bold">
                         R$ {(product.price * product.quantity).toFixed(2)}
                       </p>
                     </div>
@@ -1311,30 +1533,47 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 ))}
               </div>
 
-              <div
-                className="h-px mb-4"
-                style={{ backgroundColor: theme.cardBorderColor }}
-              />
+              <Separator className="mb-4" />
 
               {/* TOTAIS */}
-              <div className="space-y-2 mb-6">
+              <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="opacity-75">Subtotal</span>
-                  <span>R$ {checkoutData.subtotal.toFixed(2)}</span>
+                  <span className="font-medium">
+                    R$ {checkoutData.subtotal.toFixed(2)}
+                  </span>
                 </div>
+                {checkoutData.shipping > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="opacity-75">Frete</span>
+                    <span className="font-medium">
+                      R$ {checkoutData.shipping.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 {checkoutData.tax > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="opacity-75">Taxa</span>
-                    <span>R$ {checkoutData.tax.toFixed(2)}</span>
+                    <span className="font-medium">
+                      R$ {checkoutData.tax.toFixed(2)}
+                    </span>
                   </div>
                 )}
-                <div
-                  className="h-px"
-                  style={{ backgroundColor: theme.cardBorderColor }}
-                />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span>R$ {checkoutData.total.toFixed(2)}</span>
+                {checkoutData.discount && checkoutData.discount > 0 && (
+                  <div
+                    className="flex justify-between text-sm font-medium"
+                    style={{ color: theme.stepCompletedColor }}
+                  >
+                    <span>Desconto</span>
+                    <span>-R$ {checkoutData.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between text-xl font-bold pt-2">
+                  <span style={{ color: theme.headingColor }}>Total</span>
+                  <span style={{ color: theme.headingColor }}>
+                    R$ {checkoutData.total.toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -1344,6 +1583,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 style={{
                   backgroundColor: theme.primaryButtonBackgroundColor,
                   color: theme.primaryButtonTextColor,
+                  height: theme.inputHeight,
                 }}
               >
                 Fechar
@@ -1354,58 +1594,76 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       </main>
 
       {/* RODAPÉ */}
-      {theme.showStoreName && (
-        <footer
-          className="border-t py-8 mt-12"
-          style={{
-            backgroundColor: theme.footerBackgroundColor,
-            borderColor: theme.cardBorderColor,
-            color: theme.footerTextColor,
-          }}
-        >
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center space-y-4">
-              {/* Checkout Seguro */}
-              <div className="flex items-center justify-center gap-2">
-                <Lock className="h-5 w-5 text-green-600" />
-                <span className="font-semibold text-lg">Checkout Seguro</span>
+      <footer
+        className="border-t py-10 mt-16"
+        style={{
+          backgroundColor: theme.footerBackgroundColor,
+          borderColor: theme.cardBorderColor,
+          color: theme.footerTextColor,
+        }}
+      >
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center space-y-6">
+            {/* CHECKOUT SEGURO */}
+            <div className="flex items-center justify-center gap-3">
+              <Lock className="h-6 w-6 text-green-600" />
+              <span className="font-bold text-xl">Checkout Seguro</span>
+            </div>
+
+            {/* SELOS */}
+            {theme.showTrustBadges && (
+              <div className="flex items-center justify-center gap-8 flex-wrap text-sm">
+                {theme.sslBadgeEnabled && (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-green-600" />
+                    <span>Certificado SSL</span>
+                  </div>
+                )}
+                {theme.showPaymentMethods && (
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    <span>Pagamento Seguro</span>
+                  </div>
+                )}
+                {theme.securityIconsEnabled && (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5" />
+                    <span>Dados Protegidos</span>
+                  </div>
+                )}
               </div>
+            )}
 
-              {/* Selos */}
-              {theme.showTrustBadges && (
-                <div className="flex items-center justify-center gap-6 flex-wrap text-sm">
-                  {theme.sslBadgeEnabled && (
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>SSL Seguro</span>
-                    </div>
-                  )}
-                  {theme.showPaymentMethods && (
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      <span>Pagamento Seguro</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Informações */}
-              <div className="text-xs space-y-1 opacity-75">
+            {/* INFORMAÇÕES DA LOJA */}
+            {(theme.showCnpjCpf ||
+              theme.showContactEmail ||
+              theme.showPhone ||
+              theme.showAddress) && (
+              <div className="text-sm space-y-1 opacity-80">
+                {theme.showStoreName && (
+                  <p className="font-semibold">Minha Loja</p>
+                )}
                 {theme.showCnpjCpf && <p>CNPJ: 00.000.000/0001-00</p>}
-                {theme.showContactEmail && <p>contato@loja.com.br</p>}
-                {theme.showPhone && <p>(11) 99999-9999</p>}
+                {theme.showAddress && (
+                  <p>Endereço: Rua Exemplo, 123 - São Paulo/SP</p>
+                )}
+                {theme.showContactEmail && <p>E-mail: contato@loja.com.br</p>}
+                {theme.showPhone && <p>Telefone: (11) 99999-9999</p>}
               </div>
+            )}
 
-              {/* Links */}
-              {(theme.showPrivacyPolicy ||
-                theme.showTermsConditions ||
-                theme.showReturns) && (
-                <div className="flex items-center justify-center gap-4 text-xs flex-wrap">
+            {/* LINKS LEGAIS */}
+            {(theme.showPrivacyPolicy ||
+              theme.showTermsConditions ||
+              theme.showReturns) && (
+              <>
+                <Separator className="my-4" />
+                <div className="flex items-center justify-center gap-6 text-sm flex-wrap">
                   {theme.showPrivacyPolicy && (
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline"
+                      className="hover:underline transition-all"
                     >
                       Política de Privacidade
                     </a>
@@ -1414,7 +1672,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline"
+                      className="hover:underline transition-all"
                     >
                       Termos e Condições
                     </a>
@@ -1423,21 +1681,23 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <a
                       href="#"
                       style={{ color: theme.footerLinkColor }}
-                      className="hover:underline"
+                      className="hover:underline transition-all"
                     >
                       Trocas e Devoluções
                     </a>
                   )}
                 </div>
-              )}
+              </>
+            )}
 
-              <p className="text-xs opacity-60">
-                © {new Date().getFullYear()} - Todos os direitos reservados
-              </p>
-            </div>
+            <Separator className="my-4" />
+
+            <p className="text-xs opacity-60">
+              © {new Date().getFullYear()} - Todos os direitos reservados
+            </p>
           </div>
-        </footer>
-      )}
+        </div>
+      </footer>
     </div>
   );
 };
