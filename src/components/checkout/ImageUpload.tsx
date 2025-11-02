@@ -253,9 +253,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     <div className="space-y-3">
       {label && (
         <div>
-          <Label className="text-sm font-medium">{label}</Label>
+          <Label className="text-xs font-medium">{label}</Label>
           {description && (
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {description}
+            </p>
           )}
         </div>
       )}
@@ -265,7 +267,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         <div className="relative group">
           <div
             className="relative rounded-md overflow-hidden border border-gray-300 bg-gray-50"
-            style={{ aspectRatio, maxHeight: "120px" }}
+            style={{ aspectRatio, maxHeight: "80px" }}
           >
             <img
               src={previewUrl}
@@ -300,7 +302,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-all",
+                "border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-all",
                 isDragging
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-300 hover:border-gray-400 hover:bg-gray-50",
@@ -316,8 +318,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               />
 
               {isUploading ? (
-                <div className="space-y-2">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
+                <div className="space-y-1.5">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" />
                   <div className="space-y-1">
                     <p className="text-xs font-medium">Enviando...</p>
                     <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
@@ -330,16 +332,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-gray-400" />
+                <div className="space-y-1.5">
+                  <div className="mx-auto w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Upload className="h-5 w-5 text-gray-400" />
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-xs font-medium text-gray-700">
-                      Arraste ou clique para enviar
+                      Clique ou arraste
                     </p>
-                    <p className="text-xs text-gray-400">
-                      JPG, PNG, WEBP • Max: {maxSizeMB}MB
+                    <p className="text-[10px] text-gray-400">
+                      Max: {maxSizeMB}MB
                     </p>
                   </div>
                 </div>
