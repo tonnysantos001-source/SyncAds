@@ -264,8 +264,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       {previewUrl ? (
         <div className="relative group">
           <div
-            className="relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
-            style={{ aspectRatio }}
+            className="relative rounded-md overflow-hidden border border-gray-300 bg-gray-50"
+            style={{ aspectRatio, maxHeight: "120px" }}
           >
             <img
               src={previewUrl}
@@ -275,18 +275,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             {isUploading && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                 <div className="text-center text-white">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm font-medium">{uploadProgress}%</p>
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" />
+                  <p className="text-xs font-medium">{uploadProgress}%</p>
                 </div>
               </div>
             )}
           </div>
           <button
             onClick={handleRemove}
-            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md opacity-0 group-hover:opacity-100"
             disabled={isUploading}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </button>
         </div>
       ) : (
@@ -300,7 +300,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all",
+                "border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-all",
                 isDragging
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-300 hover:border-gray-400 hover:bg-gray-50",
@@ -316,11 +316,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               />
 
               {isUploading ? (
-                <div className="space-y-3">
-                  <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-500" />
+                <div className="space-y-2">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Enviando imagem...</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <p className="text-xs font-medium">Enviando...</p>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                       <div
                         className="bg-blue-500 h-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
@@ -330,19 +330,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-gray-400" />
+                <div className="space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Upload className="h-6 w-6 text-gray-400" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-700">
-                      Arraste uma imagem ou clique para selecionar
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-gray-700">
+                      Arraste ou clique para enviar
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Ou cole (Ctrl+V) uma imagem da área de transferência
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Formatos: JPG, PNG, WEBP, GIF • Máx: {maxSizeMB}MB
+                    <p className="text-xs text-gray-400">
+                      JPG, PNG, WEBP • Max: {maxSizeMB}MB
                     </p>
                   </div>
                 </div>
@@ -350,17 +347,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             </div>
           ) : (
             /* Modo URL */
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex gap-2">
                 <Input
                   type="url"
                   placeholder="https://exemplo.com/imagem.jpg"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 text-sm h-8"
                 />
-                <Button onClick={handleUrlSubmit} size="sm">
-                  <Check className="h-4 w-4" />
+                <Button onClick={handleUrlSubmit} size="sm" className="h-8">
+                  <Check className="h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -368,7 +365,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
           {/* Toggle URL / Upload */}
           {showUrlInput && (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center mt-2">
               <button
                 onClick={() => setShowUrlMode(!showUrlMode)}
                 className="text-xs text-gray-500 hover:text-gray-700 underline flex items-center gap-1"
@@ -376,12 +373,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                 {showUrlMode ? (
                   <>
                     <ImageIcon className="h-3 w-3" />
-                    Voltar para upload
+                    Upload
                   </>
                 ) : (
                   <>
                     <Link className="h-3 w-3" />
-                    Usar URL da imagem
+                    URL
                   </>
                 )}
               </button>

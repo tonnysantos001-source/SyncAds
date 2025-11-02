@@ -32,6 +32,7 @@ import {
   applyTheme,
 } from "@/config/defaultCheckoutTheme";
 import { cn } from "@/lib/utils";
+import MobileCheckoutPage from "./MobileCheckoutPage";
 
 // ============================================
 // INTERFACES
@@ -126,6 +127,22 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     "CREDIT_CARD" | "PIX" | "BOLETO"
   >("PIX");
   const [installments, setInstallments] = useState(1);
+
+  // ========================================
+  // DETECÇÃO DE MOBILE
+  // ========================================
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // ========================================
   // TEMA
@@ -405,7 +422,20 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   ];
 
   // ========================================
-  // RENDER
+  // RENDER MOBILE
+  // ========================================
+  if (isMobile) {
+    return (
+      <MobileCheckoutPage
+        injectedOrderId={injectedOrderId}
+        injectedTheme={injectedTheme}
+        previewMode={previewMode}
+      />
+    );
+  }
+
+  // ========================================
+  // RENDER DESKTOP
   // ========================================
   return (
     <div
