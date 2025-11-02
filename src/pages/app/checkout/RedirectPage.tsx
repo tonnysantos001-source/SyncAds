@@ -62,12 +62,10 @@ const RedirectPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setSaving(true);
-
-    try {
-      if (!user?.id) return;
+    if (!user?.id) return;
 
       const { error } = await supabase.from("CheckoutRedirect").upsert({
+
         userId: user.id,
         creditCardUrl: urls.cartao,
 
