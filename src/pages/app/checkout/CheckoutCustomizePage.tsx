@@ -35,27 +35,30 @@ const CheckoutCustomizePage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Carregar personalização existente
   useEffect(() => {
-    if (user?.organizationId) {
+    if (user?.id) {
       loadCustomization();
     }
-  }, [user?.organizationId]);
+  }, [user?.id]);
 
   const loadCustomization = async () => {
     try {
-      const data = await checkoutApi.loadCustomization(user!.organizationId);
+      const data = await checkoutApi.loadCustomization(user!.id);
       if (data) {
         setCustomization(data);
       } else {
         // Usar tema padrão completo criado
         console.log("🎨 Usando DEFAULT_CHECKOUT_THEME");
+
         const defaultCustomization = {
-          organizationId: user!.organizationId,
+          userId: user!.id,
           name: "Tema Padrão Profissional",
+
           theme: DEFAULT_CHECKOUT_THEME,
+
           isActive: true,
         };
+
         setCustomization(defaultCustomization as CheckoutCustomization);
       }
     } catch (error) {
@@ -69,7 +72,7 @@ const CheckoutCustomizePage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!customization || !user?.organizationId) return;
+    if (!customization || !user?.id) return;
 
     setIsSaving(true);
     try {

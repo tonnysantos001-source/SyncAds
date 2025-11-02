@@ -1,90 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuthStore } from '@/store/authStore';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 
 const RedirectPage: React.FC = () => {
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   const [urls, setUrls] = useState({
-    cartao: '',
-    boleto: '',
-    pix: '',
+    cartao: "",
+    boleto: "",
+    pix: "",
   });
 
   useEffect(() => {
-    if (user?.organizationId) {
+    if (user?.id) {
       loadRedirects();
     }
-  }, [user?.organizationId]);
+  }, [user?.id]);
 
   const loadRedirects = async () => {
     try {
       setLoading(true);
-      
+
+
       const { data, error } = await supabase
-        .from('CheckoutRedirect')
-        .select('*')
-        .eq('organizationId', user?.organizationId)
+
+        .from("CheckoutRedirect")
+
+        .select("*")
+
+        .eq("userId", user?.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
+
+      if (error && error.code !== "PGRST116") throw error;
+
       if (data) {
         setUrls({
-          cartao: data.creditCardUrl || '',
-          boleto: data.bankSlipUrl || '',
-          pix: data.pixUrl || '',
+          cartao: data.creditCardUrl || "",
+          boleto: data.bankSlipUrl || "",
+          pix: data.pixUrl || "",
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar redirecionamentos:', error);
+      console.error("Erro ao carregar redirecionamentos:", error);
       toast({
-        title: 'Erro ao carregar',
-        description: 'Não foi possível carregar as configurações',
-        variant: 'destructive'
+        title: "Erro ao carregar",
+        description: "Não foi possível carregar as configurações",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleSave = async () => {
-    if (!user?.organizationId) return;
-    
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('CheckoutRedirect')
-        .upsert({
-          organizationId: user.organizationId,
-          creditCardUrl: urls.cartao,
-          bankSlipUrl: urls.boleto,
-          pixUrl: urls.pix,
-          updatedAt: new Date().toISOString()
-        });
+
+    if (!user?.id) return;
+
+
+
+      const { error } = await supabase.from("CheckoutRedirect").upsert({
+
+        userId: user.id,
+        creditCardUrl: urls.cartao,
+
+        bankSlipUrl: urls.boleto,
+
+        pixUrl: urls.pix,
+
+        updatedAt: new Date().toISOString(),
+
+      });
+
 
       if (error) throw error;
-      
+
       toast({
-        title: 'URLs salvas!',
-        description: 'Suas configurações foram salvas com sucesso'
+        title: "URLs salvas!",
+        description: "Suas configurações foram salvas com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao salvar URLs:', error);
+      console.error("Erro ao salvar URLs:", error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar as URLs',
-        variant: 'destructive'
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as URLs",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -154,11 +165,8 @@ const RedirectPage: React.FC = () => {
           <Alert className="border-pink-200 bg-pink-50">
             <AlertCircle className="h-4 w-4 text-pink-600" />
             <AlertDescription className="text-pink-900">
-              Está com dúvidas?{' '}
-              <a
-                href="#"
-                className="font-medium underline hover:no-underline"
-              >
+              Está com dúvidas?{" "}
+              <a href="#" className="font-medium underline hover:no-underline">
                 Aprenda com o nosso redirecionamento.
               </a>
             </AlertDescription>
@@ -171,7 +179,7 @@ const RedirectPage: React.FC = () => {
               className="bg-pink-600 hover:bg-pink-700 text-white px-8"
               disabled={saving || loading}
             >
-              {saving ? 'Salvando...' : 'Salvar'}
+              {saving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </CardContent>

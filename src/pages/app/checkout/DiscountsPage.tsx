@@ -1,58 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuthStore } from '@/store/authStore';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 
 const DiscountsPage: React.FC = () => {
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   const [discounts, setDiscounts] = useState({
-    creditCard: '',
-    pix: '',
-    bankSlip: '',
+    creditCard: "",
+    pix: "",
+    bankSlip: "",
   });
 
   useEffect(() => {
-    if (user?.organizationId) {
+    if (user?.id) {
       loadDiscounts();
     }
-  }, [user?.organizationId]);
+  }, [user?.id]);
 
   const loadDiscounts = async () => {
     try {
       setLoading(true);
-      
-      // Buscar descontos configurados da organização
+
+      // Buscar descontos configurados do usuário
       const { data, error } = await supabase
-        .from('PaymentDiscount')
-        .select('*')
-        .eq('organizationId', user?.organizationId)
+
+        .from("PaymentDiscount")
+
+        .select("*")
+
+        .eq("userId", user?.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
+      if (error && error.code !== "PGRST116") throw error;
+
       if (data) {
         setDiscounts({
-          creditCard: data.creditCard?.toString() || '',
-          pix: data.pix?.toString() || '',
-          bankSlip: data.bankSlip?.toString() || '',
+          creditCard: data.creditCard?.toString() || "",
+          pix: data.pix?.toString() || "",
+          bankSlip: data.bankSlip?.toString() || "",
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar descontos:', error);
+      console.error("Erro ao carregar descontos:", error);
       toast({
-        title: 'Erro ao carregar descontos',
-        description: 'Não foi possível carregar as configurações',
-        variant: 'destructive'
+        title: "Erro ao carregar descontos",
+        description: "Não foi possível carregar as configurações",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -60,32 +63,32 @@ const DiscountsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!user?.organizationId) return;
-    
+    if (!user?.id) return;
+
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('PaymentDiscount')
-        .upsert({
-          organizationId: user.organizationId,
-          creditCard: discounts.creditCard ? parseFloat(discounts.creditCard) : null,
-          pix: discounts.pix ? parseFloat(discounts.pix) : null,
-          bankSlip: discounts.bankSlip ? parseFloat(discounts.bankSlip) : null,
-          updatedAt: new Date().toISOString()
-        });
+      const { error } = await supabase.from("PaymentDiscount").upsert({
+        userId: user.id,
+        creditCard: discounts.creditCard
+          ? parseFloat(discounts.creditCard)
+          : null,
+        pix: discounts.pix ? parseFloat(discounts.pix) : null,
+        bankSlip: discounts.bankSlip ? parseFloat(discounts.bankSlip) : null,
+        updatedAt: new Date().toISOString(),
+      });
 
       if (error) throw error;
-      
+
       toast({
-        title: 'Descontos salvos!',
-        description: 'Suas configurações foram salvas com sucesso'
+        title: "Descontos salvos!",
+        description: "Suas configurações foram salvas com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao salvar descontos:', error);
+      console.error("Erro ao salvar descontos:", error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar os descontos',
-        variant: 'destructive'
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar os descontos",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -100,7 +103,9 @@ const DiscountsPage: React.FC = () => {
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">DESCONTO POR FORMA DE PAGAMENTO</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          DESCONTO POR FORMA DE PAGAMENTO
+        </h1>
         <p className="text-gray-600 mt-1">
           Ofereça descontos por forma de pagamento.
         </p>
@@ -111,7 +116,10 @@ const DiscountsPage: React.FC = () => {
         <CardContent className="p-6 space-y-6">
           {/* Cartão de crédito */}
           <div>
-            <Label htmlFor="creditCard" className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label
+              htmlFor="creditCard"
+              className="text-sm font-medium text-gray-700 mb-2 block"
+            >
               Cartão de crédito
             </Label>
             <div className="flex items-center gap-2">
@@ -120,7 +128,9 @@ const DiscountsPage: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={discounts.creditCard}
-                onChange={(e) => setDiscounts({ ...discounts, creditCard: e.target.value })}
+                onChange={(e) =>
+                  setDiscounts({ ...discounts, creditCard: e.target.value })
+                }
                 className="flex-1"
                 min="0"
                 max="100"
@@ -131,7 +141,10 @@ const DiscountsPage: React.FC = () => {
 
           {/* Pix */}
           <div>
-            <Label htmlFor="pix" className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label
+              htmlFor="pix"
+              className="text-sm font-medium text-gray-700 mb-2 block"
+            >
               Pix
             </Label>
             <div className="flex items-center gap-2">
@@ -140,7 +153,9 @@ const DiscountsPage: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={discounts.pix}
-                onChange={(e) => setDiscounts({ ...discounts, pix: e.target.value })}
+                onChange={(e) =>
+                  setDiscounts({ ...discounts, pix: e.target.value })
+                }
                 className="flex-1"
                 min="0"
                 max="100"
@@ -151,7 +166,10 @@ const DiscountsPage: React.FC = () => {
 
           {/* Boleto bancário */}
           <div>
-            <Label htmlFor="bankSlip" className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label
+              htmlFor="bankSlip"
+              className="text-sm font-medium text-gray-700 mb-2 block"
+            >
               Boleto bancário
             </Label>
             <div className="flex items-center gap-2">
@@ -160,7 +178,9 @@ const DiscountsPage: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={discounts.bankSlip}
-                onChange={(e) => setDiscounts({ ...discounts, bankSlip: e.target.value })}
+                onChange={(e) =>
+                  setDiscounts({ ...discounts, bankSlip: e.target.value })
+                }
                 className="flex-1"
                 min="0"
                 max="100"
@@ -173,11 +193,8 @@ const DiscountsPage: React.FC = () => {
           <Alert className="border-pink-200 bg-pink-50">
             <AlertCircle className="h-4 w-4 text-pink-600" />
             <AlertDescription className="text-pink-900">
-              Está com dúvidas?{' '}
-              <a
-                href="#"
-                className="font-medium underline hover:no-underline"
-              >
+              Está com dúvidas?{" "}
+              <a href="#" className="font-medium underline hover:no-underline">
                 Aprenda como criar um desconto por forma de pagamento
               </a>
             </AlertDescription>
@@ -198,7 +215,7 @@ const DiscountsPage: React.FC = () => {
               className="bg-pink-600 hover:bg-pink-700 text-white px-6"
               disabled={saving || loading}
             >
-              {saving ? 'Salvando...' : 'Salvar'}
+              {saving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </CardContent>

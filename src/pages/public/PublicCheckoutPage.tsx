@@ -98,7 +98,9 @@ const PublicCheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<
     "CREDIT_CARD" | "PIX" | "BOLETO"
   >("PIX");
+
   const [installments, setInstallments] = useState(1);
+  const [orderOwnerId, setOrderOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -110,81 +112,58 @@ const PublicCheckoutPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Buscar APENAS produtos reais do carrinho
-      const cartData = localStorage.getItem("syncads_cart");
+      // Buscar pedido no Supabase
+      const { data: order, error: orderError } = await supabase
+        .from("Order")
+        .select("*")
+        .eq("id", orderId)
+        .single();
 
-      if (!cartData || cartData === "[]") {
-        console.error("❌ Carrinho vazio - não há produtos");
-        setCheckoutData(null);
-        setLoading(false);
-        toast({
-          title: "Carrinho vazio",
-          description: "Adicione produtos ao carrinho antes de finalizar",
-          variant: "destructive",
-        });
-        return;
+      if (orderError || !order) {
+        throw new Error("Pedido não encontrado");
       }
 
-      const items = JSON.parse(cartData);
-
-      if (!items || items.length === 0) {
-        console.error("❌ Nenhum produto no carrinho");
-        setCheckoutData(null);
-        setLoading(false);
-        toast({
-          title: "Carrinho vazio",
-          description: "Adicione produtos ao carrinho antes de finalizar",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Calcular totais dos produtos REAIS
-      const subtotal = items.reduce(
-        (sum: number, item: any) => sum + item.price * item.quantity,
-        0,
-      );
-
+      // Montar dados do checkout a partir do pedido
+      const items = Array.isArray(order.items) ? order.items : [];
       const checkoutInfo: CheckoutData = {
-        orderId: orderId!,
+        orderId: order.id,
         products: items.map((item: any) => ({
-          id: item.productId || item.variantId || item.id,
-          name: item.name || item.title,
-          price: item.price,
-          quantity: item.quantity,
+          id: item.productId || item.id,
+          name: item.name,
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
           image: item.image || "",
+
           sku: item.sku || "",
         })),
-        total: subtotal,
-        subtotal,
-        tax: 0,
-        shipping: 0,
-        discount: 0,
+        total: Number(order.total) || 0,
+        subtotal: Number(order.subtotal) || 0,
+        tax: Number(order.tax) || 0,
+        shipping: Number(order.shipping) || 0,
+        discount: Number(order.discount) || 0,
       };
 
-      console.log("✅ Produtos REAIS carregados:", checkoutInfo);
-      console.log("📦 Total de itens:", items.length);
-      console.log("💰 Valor total:", subtotal);
-
       setCheckoutData(checkoutInfo);
+      setOrderOwnerId(order.userId || null);
 
-      // Carregar personalização do checkout
+      // Carregar personalização do checkout do dono do pedido
       try {
-        const customData =
-          await checkoutApi.loadCustomization("default-org-id");
+        const customData = await checkoutApi.loadCustomization(order.userId);
         setCustomization(customData);
       } catch (error) {
         console.log("Usando tema padrão profissional");
-        // Aplicar tema padrão completo
         setCustomization({
           theme: DEFAULT_CHECKOUT_THEME,
         });
       }
     } catch (error) {
       console.error("Erro ao carregar dados do checkout:", error);
+
       toast({
         title: "Erro ao carregar checkout",
+
         description: "Não foi possível carregar os dados do pedido",
+
         variant: "destructive",
       });
     } finally {
@@ -281,21 +260,34 @@ const PublicCheckoutPage: React.FC = () => {
 
   const handlePayment = async () => {
     if (!checkoutData) return;
-
     setProcessing(true);
     try {
       // Processar pagamento
+      const mappedMethod =
+        paymentMethod === "PIX"
+          ? "pix"
+          : paymentMethod === "CREDIT_CARD"
+            ? "credit_card"
+            : "boleto";
+
       const paymentData = {
+        userId: orderOwnerId || "",
         orderId: checkoutData.orderId,
-        gatewayId: "default-gateway", // Usar gateway padrão
-        paymentMethod,
+
         amount: checkoutData.total,
         currency: "BRL",
-        customerData,
+        paymentMethod: mappedMethod,
+        customer: {
+          name: customerData.name,
+          email: customerData.email,
+          document: customerData.document,
+          phone: customerData.phone,
+        },
         billingAddress: addressData,
-        installments,
+
         metadata: {
           source: "public-checkout",
+
           products: checkoutData.products,
         },
       };
@@ -319,7 +311,8 @@ const PublicCheckoutPage: React.FC = () => {
         });
 
         // Redirecionar para página de sucesso
-        navigate(`/checkout/success/${data.data.transactionId}`);
+
+        navigate(`/checkout/success/${data.transactionId}`);
       } else {
         throw new Error(data.message);
       }
