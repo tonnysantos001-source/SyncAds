@@ -1,0 +1,190 @@
+╔════════════════════════════════════════════════════════════════╗
+║  SYNCADS - INSTRUÇÕES DE DEBUG (Nome e Imagem dos Produtos)   ║
+╚════════════════════════════════════════════════════════════════╝
+
+📅 Data: $(date +%Y-%m-%d)
+🎯 Objetivo: Identificar onde os dados dos produtos se perdem
+
+════════════════════════════════════════════════════════════════
+
+## ✅ O QUE FOI FEITO
+
+1. ✅ Criado script v4.1 com logs detalhados de debug
+   📄 Arquivo: public/shopify-checkout-redirect-v4.1-debug.js
+
+2. ✅ Edge Function atualizada com logs completos
+   🚀 Deploy: shopify-create-order (v8 - com debug)
+
+3. ✅ Logs estratégicos em cada etapa do fluxo
+
+════════════════════════════════════════════════════════════════
+
+## 🔧 PRÓXIMOS PASSOS (FAZER AGORA)
+
+### PASSO 1: Substituir o script na Shopify
+
+1. Ir em: Shopify Admin → Online Store → Themes → Actions → Edit Code
+
+2. Abrir: theme.liquid (ou o layout principal)
+
+3. Localizar a tag que carrega o script atual:
+   <script src="shopify-checkout-redirect.js"></script>
+
+4. Substituir por:
+   <script src="shopify-checkout-redirect-v4.1-debug.js"></script>
+
+5. SALVAR
+
+═══════════════════════════════════════════════════════════════
+
+### PASSO 2: Upload do novo script para Shopify
+
+OPÇÃO A: Via Assets (recomendado)
+1. Shopify Admin → Content → Files
+2. Upload: public/shopify-checkout-redirect-v4.1-debug.js
+3. Copiar URL gerada
+4. Usar no theme.liquid:
+   <script src="[URL_COPIADA]"></script>
+
+OPÇÃO B: Via Theme Assets
+1. Shopify Admin → Online Store → Themes → Edit Code
+2. Assets → Add a new asset
+3. Upload: shopify-checkout-redirect-v4.1-debug.js
+4. Referenciar:
+   <script src="{{ 'shopify-checkout-redirect-v4.1-debug.js' | asset_url }}"></script>
+
+═══════════════════════════════════════════════════════════════
+
+### PASSO 3: Testar e coletar logs
+
+1. Abrir a loja: syncads-ai.myshopify.com
+
+2. Abrir DevTools (F12) → Aba Console
+
+3. Adicionar produto ao carrinho
+
+4. OBSERVAR OS LOGS:
+   
+   🔍 [DEBUG] Tentando obter dados do produto...
+   ✅ [DEBUG] Produto encontrado via [método]
+   ✅ [DEBUG] Product Data montado para carrinho:
+      - nome: "Camisa Sonic" (ou "undefined")
+      - imagem: "https://..." (ou "" vazio)
+      - preco: 18.00
+   
+5. Clicar em "Finalizar Compra"
+
+6. OBSERVAR MAIS LOGS:
+   
+   🔍 [DEBUG] Payload que será enviado para API:
+      - items[0].name: "..." 
+      - items[0].image: "..."
+
+7. Após redirecionar, verificar se produto aparece correto
+
+═══════════════════════════════════════════════════════════════
+
+### PASSO 4: Verificar logs da Edge Function
+
+Comando no terminal:
+```bash
+supabase functions logs shopify-create-order --project-ref ovskepqggmxlfckxqgbr
+```
+
+PROCURAR POR:
+- 🔍 [DEBUG] Produtos recebidos na Edge Function
+- ⚠️ [DEBUG] Produto com dados faltando
+- ✅ [DEBUG] Items preparados para o banco
+- ✅ [DEBUG] Pedido criado com sucesso
+
+═══════════════════════════════════════════════════════════════
+
+## 📊 CENÁRIOS POSSÍVEIS E SOLUÇÕES
+
+### CENÁRIO 1: Logs mostram nome/imagem CORRETOS no browser, mas VAZIOS na API
+🔍 Problema: Dados se perdem no POST para Edge Function
+✅ Solução: Verificar serialização JSON e CORS
+
+### CENÁRIO 2: Logs mostram nome/imagem VAZIOS desde o início
+🔍 Problema: getProductData() não está capturando do DOM
+✅ Solução: Adicionar métodos alternativos de captura:
+   - Tentar window.meta.product
+   - Buscar via Fetch API da Shopify
+   - Usar Storefront API
+
+### CENÁRIO 3: Logs mostram nome/imagem CORRETOS na API, mas VAZIOS no checkout
+🔍 Problema: Frontend não está lendo corretamente do banco
+✅ Solução: Verificar mapeamento em MobileCheckoutPage.tsx
+
+### CENÁRIO 4: Produto tem variant, nome fica "undefined - undefined"
+🔍 Problema: variant.title está undefined
+✅ Solução: Fallback para product.title sem variant
+
+═══════════════════════════════════════════════════════════════
+
+## 🛠️ SOLUÇÃO ALTERNATIVA (Se nada funcionar)
+
+ENRIQUECER DADOS NA EDGE FUNCTION COM STOREFRONT API:
+
+```typescript
+// Adicionar na Edge Function após receber products
+for (const item of items) {
+  if (!item.name || !item.image) {
+    try {
+      // Buscar produto via Storefront API
+      const query = `{
+        product(id: "gid://shopify/Product/${item.productId}") {
+          title
+          featuredImage {
+            url
+          }
+        }
+      }`;
+      
+      const response = await fetch(
+        `https://${shopDomain}/api/2024-01/graphql.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Storefront-Access-Token": "TOKEN_PUBLICO",
+          },
+          body: JSON.stringify({ query }),
+        }
+      );
+      
+      const { data } = await response.json();
+      item.name = item.name || data.product.title;
+      item.image = item.image || data.product.featuredImage.url;
+    } catch (e) {
+      console.error("Erro ao enriquecer produto:", e);
+    }
+  }
+}
+```
+
+═══════════════════════════════════════════════════════════════
+
+## 📋 CHECKLIST
+
+[ ] Script v4.1 uploaded para Shopify
+[ ] Script v4.1 referenciado no theme.liquid
+[ ] Cache da Shopify limpo
+[ ] Teste realizado com produto
+[ ] Logs coletados do browser (console)
+[ ] Logs coletados da Edge Function
+[ ] Problema identificado
+[ ] Solução aplicada
+[ ] Teste final confirmado
+
+═══════════════════════════════════════════════════════════════
+
+## 🆘 SE PRECISAR DE AJUDA
+
+1. Tire prints dos logs do console
+2. Copie os logs da Edge Function
+3. Veja o pedido no banco: 
+   SELECT id, items, metadata FROM "Order" ORDER BY "createdAt" DESC LIMIT 1;
+4. Compartilhe todas essas informações
+
+═══════════════════════════════════════════════════════════════

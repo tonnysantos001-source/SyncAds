@@ -80,6 +80,21 @@ serve(async (req) => {
       productsCount: products?.length,
     });
 
+    // 🔍 DEBUG: Log dos produtos recebidos
+    console.log("🔍 [DEBUG] Produtos recebidos na Edge Function:", {
+      products: products,
+      firstProduct: products[0],
+      productsDetalhados: products.map((p) => ({
+        productId: p.productId,
+        variantId: p.variantId,
+        name: p.name,
+        image: p.image,
+        price: p.price,
+        hasName: !!p.name,
+        hasImage: !!p.image,
+      })),
+    });
+
     // Validações
     if (!shopDomain) {
       return new Response(
@@ -161,16 +176,38 @@ serve(async (req) => {
     const customerPhone = customer?.phone || "";
 
     // Preparar items (formato jsonb)
-    const items = products.map((p) => ({
-      productId: p.productId,
-      variantId: p.variantId || null,
-      name: p.name,
-      price: p.price,
-      quantity: p.quantity,
-      image: p.image || null,
-      sku: p.sku || null,
-      total: p.price * p.quantity,
-    }));
+    const items = products.map((p) => {
+      const item = {
+        productId: p.productId,
+        variantId: p.variantId || null,
+        name: p.name || "Produto",
+        price: p.price,
+        quantity: p.quantity,
+        image: p.image || null,
+        sku: p.sku || null,
+        total: p.price * p.quantity,
+      };
+
+      // 🔍 DEBUG: Verificar se name ou image estão vazios
+      if (!p.name || !p.image) {
+        console.warn("⚠️ [DEBUG] Produto com dados faltando:", {
+          productId: p.productId,
+          hasName: !!p.name,
+          hasImage: !!p.image,
+          receivedName: p.name,
+          receivedImage: p.image,
+        });
+      }
+
+      return item;
+    });
+
+    console.log("✅ [DEBUG] Items preparados para o banco:", {
+      items: items,
+      firstItem: items[0],
+      allHaveNames: items.every((i) => i.name && i.name !== "Produto"),
+      allHaveImages: items.every((i) => i.image),
+    });
 
     // Endereço padrão (será preenchido no checkout)
     const shippingAddress = {
@@ -185,6 +222,16 @@ serve(async (req) => {
     };
 
     // Criar pedido no banco
+    console.log("💾 [DEBUG] Inserindo pedido no banco com items:", {
+      orderId: orderId,
+      items: items,
+      metadata: {
+        source: "shopify",
+        shopDomain: shopDomain,
+        originalProducts: products,
+      },
+    });
+
     const { data: order, error: orderError } = await supabase
       .from("Order")
       .insert({
@@ -232,6 +279,13 @@ serve(async (req) => {
       .single();
 
     if (orderError) {
+      console.error("🔴 [DEBUG] Erro ao criar pedido:", {
+        error: orderError,
+        message: orderError.message,
+        details: orderError.details,
+        hint: orderError.hint,
+        items: items,
+      });
       log("error", "Failed to create order", {
         error: orderError,
         message: orderError.message,
@@ -254,6 +308,13 @@ serve(async (req) => {
 
     // Gerar URL do checkout
     const checkoutUrl = `${FRONTEND_URL}/checkout/${orderId}`;
+
+    console.log("✅ [DEBUG] Pedido criado com sucesso:", {
+      orderId,
+      orderNumber,
+      itemsSalvos: order?.items,
+      metadataSalvo: order?.metadata,
+    });
 
     log("info", "Order created successfully", {
       orderId,
