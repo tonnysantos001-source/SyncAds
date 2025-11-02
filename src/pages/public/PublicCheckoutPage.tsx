@@ -126,7 +126,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       const { data: order, error: orderError } = await supabase
         .from("Order")
         .select("*")
-        .eq("id", orderId)
+        .eq("id", effectiveOrderId)
         .single();
 
       if (orderError || !order) {
