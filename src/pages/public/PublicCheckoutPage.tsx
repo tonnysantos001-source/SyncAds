@@ -100,6 +100,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   // ESTADOS
   // ========================================
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [orderData, setOrderData] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -219,8 +220,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       };
 
       setCheckoutData(checkoutInfo);
+      setOrderData(order);
 
-      // Carregar personalização
       if (!previewMode && order.userId) {
         try {
           const customData = await checkoutApi.loadCustomization(order.userId);
@@ -358,10 +359,30 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         "process-payment",
         {
           body: {
+            userId: orderData?.userId,
             orderId: effectiveOrderId,
-            paymentMethod,
-            customerData,
-            addressData,
+            amount: checkoutData?.total || 0,
+            currency: "BRL",
+            paymentMethod: paymentMethod.toLowerCase().replace("_", "_") as
+              | "credit_card"
+              | "debit_card"
+              | "pix"
+              | "boleto",
+            customer: {
+              name: customerData.name,
+              email: customerData.email,
+              document: customerData.document,
+              phone: customerData.phone,
+            },
+            billingAddress: {
+              street: addressData.street,
+              number: addressData.number,
+              complement: addressData.complement,
+              neighborhood: addressData.neighborhood,
+              city: addressData.city,
+              state: addressData.state,
+              zipCode: addressData.zipCode,
+            },
             installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
           },
         },

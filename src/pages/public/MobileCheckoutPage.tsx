@@ -91,6 +91,7 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
 
   // Estados
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [orderData, setOrderData] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -187,6 +188,7 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
       };
 
       setCheckoutData(checkoutInfo);
+      setOrderData(order);
 
       if (!previewMode && order.userId) {
         try {
@@ -311,10 +313,30 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
         "process-payment",
         {
           body: {
+            userId: orderData?.userId,
             orderId: effectiveOrderId,
-            paymentMethod,
-            customerData,
-            addressData,
+            amount: checkoutData?.total || 0,
+            currency: "BRL",
+            paymentMethod: paymentMethod.toLowerCase().replace("_", "_") as
+              | "credit_card"
+              | "debit_card"
+              | "pix"
+              | "boleto",
+            customer: {
+              name: customerData.name,
+              email: customerData.email,
+              document: customerData.document,
+              phone: customerData.phone,
+            },
+            billingAddress: {
+              street: addressData.street,
+              number: addressData.number,
+              complement: addressData.complement,
+              neighborhood: addressData.neighborhood,
+              city: addressData.city,
+              state: addressData.state,
+              zipCode: addressData.zipCode,
+            },
             installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
           },
         },
