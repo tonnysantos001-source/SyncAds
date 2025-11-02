@@ -538,7 +538,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               theme.logoAlignment === "left" && "justify-start",
             )}
           >
-            {theme.logoUrl ? (
+            {theme.logoUrl && (
               <img
                 src={theme.logoUrl}
                 alt="Logo"
@@ -548,13 +548,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   height: theme.logoHeight || 40,
                 }}
               />
-            ) : (
-              <h1
-                className="text-xl md:text-2xl font-bold"
-                style={{ color: theme.headingColor }}
-              >
-                Checkout
-              </h1>
             )}
           </div>
         </div>

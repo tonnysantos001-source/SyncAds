@@ -158,21 +158,10 @@ const CheckoutCustomizePage: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 -mx-6 -my-6">
       {/* Sidebar de Personalização */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+      <div className="w-72 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
         {/* Header da Sidebar */}
-        <div className="p-4 border-b border-gray-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/checkout/customize")}
-            className="gap-2 -ml-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Sair do construtor
-          </Button>
-        </div>
 
         {/* Seções Colapsáveis */}
         <div className="flex-1 overflow-y-auto">
@@ -1909,14 +1898,7 @@ const CheckoutCustomizePage: React.FC = () => {
       {/* Área de Preview */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header do Preview */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-          <Tabs defaultValue="tema" className="w-auto">
-            <TabsList>
-              <TabsTrigger value="tema">Tema</TabsTrigger>
-              <TabsTrigger value="conversao">Conversão</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-end">
           <div className="flex items-center gap-3">
             <Button
               variant={previewMode === "mobile" ? "default" : "outline"}

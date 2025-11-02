@@ -459,7 +459,7 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
         }}
       >
         <div className="px-4 py-4">
-          {theme.logoUrl ? (
+          {theme.logoUrl && (
             <div
               className={cn(
                 "flex",
@@ -473,13 +473,6 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
                 style={{ maxWidth: theme.logoWidth || 150 }}
               />
             </div>
-          ) : (
-            <h1
-              className="text-lg font-bold text-center"
-              style={{ color: theme.headingColor }}
-            >
-              Checkout
-            </h1>
           )}
         </div>
       </header>
