@@ -166,30 +166,60 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             )}
           </button>
 
-          {/* Submenu */}
-          {isExpanded && (
-            <div className="ml-4 mt-1 border-l-2 border-white/20 pl-4 space-y-1">
-              {item.subItems.map((subItem) => (
-                <NavLink
-                  key={subItem.to}
-                  to={subItem.to}
-                  className={({ isActive }) =>
-                    cn(
+
+              {item.subItems.map((subItem) =>
+                subItem.to === '/checkout/customize' ? (
+                  <a
+                    key={subItem.to}
+
+                    href={subItem.to}
+
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
                       'group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200',
-                      isActive
-                        ? 'bg-white/20 text-white font-medium'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
-                    )
-                  }
-                >
-                  <span>{subItem.label}</span>
-                  {subItem.badge && (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
-                      {subItem.badge}
-                    </Badge>
-                  )}
-                </NavLink>
-              ))}
+
+                      'text-white/70 hover:bg-white/10 hover:text-white'
+
+                    )}
+
+                  >
+                    <span>{subItem.label}</span>
+
+                    {subItem.badge && (
+
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
+
+                        {subItem.badge}
+
+                      </Badge>
+
+                    )}
+
+                  </a>
+                ) : (
+                  <NavLink
+                    key={subItem.to}
+                    to={subItem.to}
+                    className={({ isActive }) =>
+                      cn(
+                        'group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200',
+                        isActive
+                          ? 'bg-white/20 text-white font-medium'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      )
+                    }
+                  >
+                    <span>{subItem.label}</span>
+                    {subItem.badge && (
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
+                        {subItem.badge}
+                      </Badge>
+                    )}
+                  </NavLink>
+                )
+              )}
+
             </div>
           )}
         </div>
@@ -281,7 +311,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         )}
         onClick={() => setSidebarOpen(false)}
       />
-      
+
       {/* Mobile Sidebar */}
       <div
         className={cn(
