@@ -322,48 +322,31 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
 
       console.log("🔍 [DEBUG] Resposta process-payment:", { data, error });
 
-      // Verificar se há erro de gateway não configurado ANTES de lançar erro genérico
-      // O Supabase pode colocar a resposta em 'data' ou dentro do 'error' para status não-2xx
-      let responseData = data;
-
-      // Se houver erro, tentar extrair dados da resposta
-      if (error && !data) {
-        try {
-          // Tentar parsear o contexto do erro
-          if (error.context?.body) {
-            responseData = error.context.body;
-          } else if (typeof error.message === "string") {
-            try {
-              responseData = JSON.parse(error.message);
-            } catch {
-              // Não é JSON, continuar
-            }
-          }
-        } catch (e) {
-          // Ignorar erro de parsing
+      // Edge Function sempre retorna status 200, verificar success
+      if (!data?.success) {
+        // Verificar se é erro de gateway não configurado
+        if (data?.requiresSetup || data?.error === "NO_GATEWAY_CONFIGURED") {
+          toast({
+            title: "Gateway não configurado",
+            description:
+              data?.hint || "Configure um gateway de pagamento primeiro",
+            variant: "destructive",
+            duration: 10000,
+          });
+          setProcessing(false);
+          return;
         }
+
+        // Outros erros
+        throw new Error(
+          data?.message || data?.error || "Erro ao processar pagamento",
+        );
       }
 
-      console.log("🔍 [DEBUG] responseData extraído:", responseData);
-
-      if (
-        responseData?.requiresSetup ||
-        responseData?.error === "NO_GATEWAY_CONFIGURED"
-      ) {
-        toast({
-          title: "Gateway não configurado",
-          description:
-            responseData?.hint || "Configure um gateway de pagamento primeiro",
-          variant: "destructive",
-          duration: 10000,
-        });
-        setProcessing(false);
-        return;
-      }
-
+      // Tratar erro de rede
       if (error) throw error;
 
-      if (data?.success) {
+      if (data.success) {
         toast({
           title: "Pedido confirmado!",
           description: "Redirecionando...",
@@ -371,10 +354,6 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
         setTimeout(() => {
           navigate(`/checkout/success/${data.transactionId}`);
         }, 1500);
-      } else {
-        throw new Error(
-          data?.message || data?.error || "Erro ao processar pagamento",
-        );
       }
     } catch (error: any) {
       console.error("Erro ao processar checkout:", error);

@@ -401,7 +401,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 402, // Payment Required
+          status: 200, // Sempre retornar 200, usar success: false para indicar erro
         },
       );
     }
@@ -503,7 +503,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: paymentResponse.success ? 200 : 400,
+        status: 200, // Sempre retornar 200, usar success: true/false para indicar resultado
       },
     );
   } catch (error: any) {
@@ -518,7 +518,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 200, // Sempre retornar 200, usar success: false para indicar erro
       },
     );
   }
