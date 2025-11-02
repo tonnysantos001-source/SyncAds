@@ -367,20 +367,48 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         },
       );
 
-      if (error) throw error;
+      console.log("🔍 [DEBUG] Resposta process-payment:", { data, error });
 
-      // Verificar se há erro de gateway não configurado
-      if (data?.requiresSetup || data?.error === "NO_GATEWAY_CONFIGURED") {
+      // Verificar se há erro de gateway não configurado ANTES de lançar erro genérico
+      // O Supabase pode colocar a resposta em 'data' ou dentro do 'error' para status não-2xx
+      let responseData = data;
+
+      // Se houver erro, tentar extrair dados da resposta
+      if (error && !data) {
+        try {
+          // Tentar parsear o contexto do erro
+          if (error.context?.body) {
+            responseData = error.context.body;
+          } else if (typeof error.message === "string") {
+            try {
+              responseData = JSON.parse(error.message);
+            } catch {
+              // Não é JSON, continuar
+            }
+          }
+        } catch (e) {
+          // Ignorar erro de parsing
+        }
+      }
+
+      console.log("🔍 [DEBUG] responseData extraído:", responseData);
+
+      if (
+        responseData?.requiresSetup ||
+        responseData?.error === "NO_GATEWAY_CONFIGURED"
+      ) {
         toast({
           title: "Gateway não configurado",
           description:
-            data?.hint || "Configure um gateway de pagamento primeiro",
+            responseData?.hint || "Configure um gateway de pagamento primeiro",
           variant: "destructive",
           duration: 10000,
         });
         setProcessing(false);
         return;
       }
+
+      if (error) throw error;
 
       if (data?.success) {
         toast({
