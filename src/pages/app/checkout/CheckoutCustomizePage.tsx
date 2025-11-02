@@ -14,10 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+
 import { useToast } from "@/components/ui/use-toast";
+
 import { useAuthStore } from "@/store/authStore";
+
 import { checkoutApi, CheckoutCustomization } from "@/lib/api/checkoutApi";
+
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
+import { supabase } from "@/lib/supabase";
+import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,15 +36,36 @@ const CheckoutCustomizePage: React.FC = () => {
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
     "desktop",
   );
+
   const [customization, setCustomization] =
     useState<CheckoutCustomization | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
+
   const [hasChanges, setHasChanges] = useState(false);
+  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
-      loadCustomization();
-    }
+    const run = async () => {
+      if (!user?.id) return;
+      await loadCustomization();
+
+      if (!previewOrderId) {
+        try {
+          const { data } = await supabase.functions.invoke(
+            "create-preview-order",
+            { body: {} },
+          );
+
+          if (data?.success && data.orderId) {
+            setPreviewOrderId(data.orderId);
+          }
+        } catch (e) {
+          // Falha silenciosa no preview
+        }
+      }
+    };
+    run();
   }, [user?.id]);
 
   const loadCustomization = async () => {
@@ -975,98 +1002,26 @@ const CheckoutCustomizePage: React.FC = () => {
         </div>
 
         {/* Preview Area */}
+
         <div className="flex-1 overflow-auto bg-gray-100 p-6">
           <div
             className={cn(
               "mx-auto bg-white shadow-lg transition-all duration-300",
+
               previewMode === "mobile" ? "max-w-md" : "max-w-4xl",
             )}
           >
-            {/* Preview do Checkout */}
-            <div className="p-8">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Seu checkout
-                </h1>
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                  <div className="w-6 h-6 rounded-full bg-pink-600 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">1</span>
-                  </div>
-                  <span>Carrinho</span>
-                </div>
+            {previewOrderId ? (
+              <PublicCheckoutPage
+                injectedOrderId={previewOrderId}
+                injectedTheme={customization?.theme}
+                previewMode={true}
+              />
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                Gerando pré-visualização...
               </div>
-
-              {/* Formulário de exemplo */}
-              <Card className="p-6 mb-6">
-                <div className="flex items-start gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">i</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 mb-1">
-                      INFORMAÇÕES PESSOAIS
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Você não vai criar uma conta, usaremos os dados para
-                      envio, cobrança e validar compras futuras ao e-mail.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label>E-mail</Label>
-                    <Input placeholder="Ex: você@email.com" />
-                  </div>
-
-                  <div>
-                    <Label>Nome completo</Label>
-                    <Input placeholder="Nome completo" />
-                  </div>
-
-                  <div>
-                    <Label>CPF</Label>
-                    <Input placeholder="000.000.000-00" />
-                  </div>
-
-                  <div>
-                    <Label>Celular/WhatsApp</Label>
-                    <Input placeholder="(00) 00000-0000" />
-                  </div>
-
-                  <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white">
-                    CONTINUAR
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Info boxes */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-5 h-5 text-gray-400">📦</div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      ENDEREÇO DE ENTREGA
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Continue para informar o endereço de entrega
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-5 h-5 text-gray-400">💳</div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      FORMAS DE PAGAMENTO
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Finalize seu carrinho e escolha a forma de pagamento
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
