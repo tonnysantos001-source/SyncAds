@@ -100,6 +100,14 @@ const GatewayConfigPage = () => {
             setVerifiedAt(data.verifiedAt ?? null);
             setConfigId(data.id);
             setFormData(data.credentials || {});
+
+            // Carregar métodos de pagamento habilitados
+            if (data.credentials?.enabledPaymentMethods) {
+              const enabled = data.credentials.enabledPaymentMethods;
+              setEnableCreditCard(enabled.includes("credit_card"));
+              setEnablePix(enabled.includes("pix"));
+              setEnableBoleto(enabled.includes("boleto"));
+            }
           }
         }
       }
@@ -155,10 +163,21 @@ const GatewayConfigPage = () => {
 
       if (existingConfig) {
         // Update existing config
+        // Preparar métodos de pagamento habilitados
+        const enabledPaymentMethods = [];
+        if (enableCreditCard) enabledPaymentMethods.push("credit_card");
+        if (enablePix) enabledPaymentMethods.push("pix");
+        if (enableBoleto) enabledPaymentMethods.push("boleto");
+
+        const updatedCredentials = {
+          ...formData,
+          enabledPaymentMethods,
+        };
+
         const { error } = await supabase
           .from("GatewayConfig")
           .update({
-            credentials: formData,
+            credentials: updatedCredentials,
             isActive: isActive,
             updatedAt: new Date().toISOString(),
           })
@@ -173,6 +192,17 @@ const GatewayConfigPage = () => {
           .eq("userId", user.id)
           .limit(1);
 
+        // Preparar métodos de pagamento habilitados
+        const enabledPaymentMethods = [];
+        if (enableCreditCard) enabledPaymentMethods.push("credit_card");
+        if (enablePix) enabledPaymentMethods.push("pix");
+        if (enableBoleto) enabledPaymentMethods.push("boleto");
+
+        const credentialsWithMethods = {
+          ...formData,
+          enabledPaymentMethods,
+        };
+
         const { data: created, error } = await supabase
           .from("GatewayConfig")
           .insert({
@@ -180,7 +210,7 @@ const GatewayConfigPage = () => {
 
             gatewayId: dbGateway.id,
 
-            credentials: formData,
+            credentials: credentialsWithMethods,
 
             isActive: isActive,
 
@@ -243,7 +273,8 @@ const GatewayConfigPage = () => {
         });
       }
 
-      navigate("/checkout/gateways");
+      // Recarregar dados ao invés de navegar
+      await loadGateway();
     } catch (error) {
       console.error("Error saving gateway config:", error);
       toast({
@@ -456,14 +487,7 @@ const GatewayConfigPage = () => {
                           console.log("Toggle cartão:", checked);
                           setEnableCreditCard(checked);
                         }}
-                        disabled={!isVerified || environment !== "production"}
                       />
-
-                      {(!isVerified || environment !== "production") && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          Disponível após verificação em produção
-                        </span>
-                      )}
                     </div>
                   )}
 
@@ -477,14 +501,7 @@ const GatewayConfigPage = () => {
                           console.log("Toggle PIX:", checked);
                           setEnablePix(checked);
                         }}
-                        disabled={!isVerified || environment !== "production"}
                       />
-
-                      {(!isVerified || environment !== "production") && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          Disponível após verificação em produção
-                        </span>
-                      )}
                     </div>
                   )}
 
@@ -500,14 +517,7 @@ const GatewayConfigPage = () => {
                           console.log("Toggle boleto:", checked);
                           setEnableBoleto(checked);
                         }}
-                        disabled={!isVerified || environment !== "production"}
                       />
-
-                      {(!isVerified || environment !== "production") && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          Disponível após verificação em produção
-                        </span>
-                      )}
                     </div>
                   )}
                 </div>

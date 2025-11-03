@@ -554,12 +554,26 @@ serve(async (req) => {
 
         // Mapear paymentMethod do request para o enum do gateway
         const gatewayPaymentMethodMap: Record<string, GatewayPaymentMethod> = {
-          credit_card: "CREDIT_CARD" as GatewayPaymentMethod,
-          debit_card: "DEBIT_CARD" as GatewayPaymentMethod,
-          pix: "PIX" as GatewayPaymentMethod,
-          boleto: "BOLETO" as GatewayPaymentMethod,
-          paypal: "PAYPAL" as GatewayPaymentMethod,
+          credit_card: "credit_card" as GatewayPaymentMethod,
+          debit_card: "debit_card" as GatewayPaymentMethod,
+          pix: "pix" as GatewayPaymentMethod,
+          boleto: "boleto" as GatewayPaymentMethod,
+          paypal: "paypal" as GatewayPaymentMethod,
         };
+
+        console.log("[PAYMENT] 🔍 Mapeamento de paymentMethod:");
+        console.log(
+          "[PAYMENT] - Request paymentMethod:",
+          paymentRequest.paymentMethod,
+        );
+        console.log(
+          "[PAYMENT] - Mapped to gateway:",
+          gatewayPaymentMethodMap[paymentRequest.paymentMethod],
+        );
+        console.log(
+          "[PAYMENT] - Type:",
+          typeof gatewayPaymentMethodMap[paymentRequest.paymentMethod],
+        );
 
         const gatewayRequest = {
           userId: paymentRequest.userId,
@@ -572,6 +586,12 @@ serve(async (req) => {
           billingAddress: paymentRequest.billingAddress,
           installments: (paymentRequest as any).installments,
         };
+
+        console.log("[PAYMENT] 🚀 Gateway request criado:");
+        console.log(
+          "[PAYMENT] - paymentMethod no gatewayRequest:",
+          gatewayRequest.paymentMethod,
+        );
 
         console.log("[PAYMENT] Chamando gatewayProcessor.processPayment...");
         console.log("[PAYMENT] Gateway config:", {

@@ -22,6 +22,7 @@ import {
   ChevronRight,
   ChevronLeft,
   User,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -35,6 +36,14 @@ import {
 } from "@/config/defaultCheckoutTheme";
 import { cn } from "@/lib/utils";
 import MobileCheckoutPage from "./MobileCheckoutPage";
+import { CreditCardForm, CardData } from "@/components/checkout/CreditCardForm";
+import { PixPayment } from "@/components/checkout/PixPayment";
+import { BoletoPayment } from "@/components/checkout/BoletoPayment";
+import {
+  maskCPF,
+  validateCPFAsync,
+  getCPFNumbers,
+} from "@/lib/utils/cpfValidation";
 
 // ============================================
 // INTERFACES
@@ -130,6 +139,58 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     "CREDIT_CARD" | "PIX" | "BOLETO"
   >("PIX");
   const [installments, setInstallments] = useState(1);
+
+  // Estados para dados de pagamento
+  const [cardData, setCardData] = useState<CardData | null>(null);
+  const [pixData, setPixData] = useState<any>(null);
+  const [boletoData, setBoletoData] = useState<any>(null);
+  const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
+  const [cpfValidating, setCpfValidating] = useState(false);
+
+  // ========================================
+  // PERSISTÊNCIA DE ESTADO
+  // ========================================
+  useEffect(() => {
+    // Carregar dados do localStorage ao montar
+    const savedState = localStorage.getItem(`checkout-${orderId}`);
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+        if (parsed.customerData) setCustomerData(parsed.customerData);
+        if (parsed.addressData) setAddressData(parsed.addressData);
+        if (parsed.paymentMethod) setPaymentMethod(parsed.paymentMethod);
+        if (parsed.pixData) setPixData(parsed.pixData);
+        if (parsed.boletoData) setBoletoData(parsed.boletoData);
+      } catch (error) {
+        console.error("Erro ao recuperar estado:", error);
+      }
+    }
+  }, [orderId]);
+
+  // Salvar estado sempre que mudar
+  useEffect(() => {
+    if (orderId) {
+      const state = {
+        currentStep,
+        customerData,
+        addressData,
+        paymentMethod,
+        pixData,
+        boletoData,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`checkout-${orderId}`, JSON.stringify(state));
+    }
+  }, [
+    currentStep,
+    customerData,
+    addressData,
+    paymentMethod,
+    pixData,
+    boletoData,
+    orderId,
+  ]);
 
   // ========================================
   // DETECÇÃO DE MOBILE
@@ -354,6 +415,48 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     try {
       setProcessing(true);
 
+      // Normalizar método de pagamento para minúsculas
+      const normalizedPaymentMethod = paymentMethod.toLowerCase() as
+        | "credit_card"
+        | "pix"
+        | "boleto";
+
+      console.log("🔍 [DEBUG] Payment method original:", paymentMethod);
+      console.log(
+        "🔍 [DEBUG] Payment method normalized:",
+        normalizedPaymentMethod,
+      );
+
+      // Validar dados do cartão se necessário
+      if (paymentMethod === "CREDIT_CARD") {
+        if (
+          !cardData ||
+          !cardData.number ||
+          !cardData.holderName ||
+          !cardData.cvv
+        ) {
+          toast({
+            title: "Dados do cartão incompletos",
+            description: "Por favor, preencha todos os dados do cartão.",
+            variant: "destructive",
+          });
+          setProcessing(false);
+          return;
+        }
+      }
+
+      // Preparar dados do cartão se aplicável
+      const cardPayload =
+        paymentMethod === "CREDIT_CARD" && cardData
+          ? {
+              number: cardData.number.replace(/\s/g, ""),
+              holderName: cardData.holderName,
+              expiryMonth: cardData.expiryMonth,
+              expiryYear: cardData.expiryYear,
+              cvv: cardData.cvv,
+            }
+          : undefined;
+
       // Processar pagamento
       const { data, error } = await supabase.functions.invoke(
         "process-payment",
@@ -363,15 +466,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             orderId: effectiveOrderId,
             amount: checkoutData?.total || 0,
             currency: "BRL",
-            paymentMethod: paymentMethod.toLowerCase().replace("_", "_") as
-              | "credit_card"
-              | "debit_card"
-              | "pix"
-              | "boleto",
+            paymentMethod: normalizedPaymentMethod,
             customer: {
               name: customerData.name,
               email: customerData.email,
-              document: customerData.document,
+              document: getCPFNumbers(customerData.document),
               phone: customerData.phone,
             },
             billingAddress: {
@@ -383,6 +482,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               state: addressData.state,
               zipCode: addressData.zipCode,
             },
+            card: cardPayload,
             installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
           },
         },
@@ -414,14 +514,57 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       // Tratar erro de rede
       if (error) throw error;
 
+      // Tratar resposta de sucesso
       if (data.success) {
-        toast({
-          title: "Pedido confirmado!",
-          description: "Redirecionando para confirmação...",
-        });
-        setTimeout(() => {
-          navigate(`/checkout/success/${data.transactionId}`);
-        }, 1500);
+        // Se for cartão, redirecionar imediatamente
+        if (paymentMethod === "CREDIT_CARD") {
+          toast({
+            title: "Pagamento processado!",
+            description: "Redirecionando para confirmação...",
+          });
+          setTimeout(() => {
+            navigate(
+              `/checkout/success/${data.transactionId || effectiveOrderId}`,
+            );
+          }, 1500);
+        } else if (paymentMethod === "PIX" && data.pixData) {
+          // Para PIX, salvar dados e redirecionar para página dedicada
+          const pixInfo = {
+            qrCode: data.pixData.qrCode,
+            qrCodeBase64: data.pixData.qrCodeBase64,
+            expiresAt: data.pixData.expiresAt,
+            amount: checkoutData?.total || 0,
+            transactionId: data.transactionId,
+          };
+
+          // Salvar no localStorage
+          localStorage.setItem(
+            `pix-${effectiveOrderId}`,
+            JSON.stringify(pixInfo),
+          );
+
+          toast({
+            title: "PIX gerado com sucesso!",
+            description: "Redirecionando para pagamento...",
+          });
+
+          // Redirecionar para página do PIX
+          setTimeout(() => {
+            navigate(`/pix/${effectiveOrderId}/${data.transactionId}`);
+          }, 1000);
+        } else if (paymentMethod === "BOLETO" && data.boletoData) {
+          // Para Boleto, salvar dados e mostrar na mesma página
+          setBoletoData(data.boletoData);
+          localStorage.setItem(
+            `boleto-${effectiveOrderId}`,
+            JSON.stringify(data.boletoData),
+          );
+
+          toast({
+            title: "Boleto gerado!",
+            description: "Baixe o boleto para completar o pagamento.",
+          });
+        }
       }
     } catch (error: any) {
       console.error("Erro ao processar checkout:", error);
@@ -1416,44 +1559,112 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     ))}
                   </div>
 
-                  {paymentMethod === "CREDIT_CARD" && checkoutData && (
+                  {/* FORMULÁRIO DE CARTÃO */}
+                  {paymentMethod === "CREDIT_CARD" && (
+                    <div className="space-y-6">
+                      <CreditCardForm
+                        onCardDataChange={setCardData}
+                        theme={theme}
+                        errors={cardErrors}
+                      />
+
+                      {checkoutData && (
+                        <div>
+                          <Label
+                            htmlFor="installments"
+                            style={{
+                              color: theme.labelColor,
+                              fontWeight: theme.labelFontWeight,
+                            }}
+                          >
+                            Número de Parcelas
+                          </Label>
+                          <select
+                            id="installments"
+                            value={installments}
+                            onChange={(e) =>
+                              setInstallments(Number(e.target.value))
+                            }
+                            className="w-full mt-1.5 px-4 rounded-lg text-base"
+                            style={{
+                              backgroundColor: theme.inputBackgroundColor,
+                              borderColor: theme.inputBorderColor,
+                              height: 48,
+                              borderRadius: theme.inputBorderRadius,
+                              borderWidth: 1,
+                              borderStyle: "solid",
+                              color: theme.textColor,
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(
+                              (num) => {
+                                const installmentValue =
+                                  checkoutData.total / num;
+                                return (
+                                  <option key={num} value={num}>
+                                    {num}x de R$ {installmentValue.toFixed(2)}
+                                    {num === 1 ? " à vista" : ""}
+                                  </option>
+                                );
+                              },
+                            )}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAGAMENTO PIX - Mostrar sempre após selecionar */}
+                  {paymentMethod === "PIX" && (
                     <div>
-                      <Label
-                        htmlFor="installments"
-                        style={{
-                          color: theme.labelColor,
-                          fontWeight: theme.labelFontWeight,
-                        }}
-                      >
-                        Número de Parcelas
-                      </Label>
-                      <select
-                        id="installments"
-                        value={installments}
-                        onChange={(e) =>
-                          setInstallments(Number(e.target.value))
-                        }
-                        className="w-full mt-1.5 px-4 rounded-lg text-base"
-                        style={{
-                          backgroundColor: theme.inputBackgroundColor,
-                          borderColor: theme.inputBorderColor,
-                          height: 48,
-                          borderRadius: theme.inputBorderRadius,
-                          borderWidth: 1,
-                          borderStyle: "solid",
-                          color: theme.textColor,
-                        }}
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
-                          const installmentValue = checkoutData.total / num;
-                          return (
-                            <option key={num} value={num}>
-                              {num}x de R$ {installmentValue.toFixed(2)}
-                              {num === 1 ? " à vista" : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
+                      {pixData ? (
+                        <PixPayment pixData={pixData} theme={theme} />
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-4">
+                            <Smartphone className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+                          </div>
+                          <h3
+                            className="text-xl font-semibold mb-2"
+                            style={{ color: theme.headingColor }}
+                          >
+                            Clique em "Finalizar Compra" para gerar o PIX
+                          </h3>
+                          <p
+                            className="text-sm opacity-70"
+                            style={{ color: theme.textColor }}
+                          >
+                            Você receberá o QR Code para pagamento instantâneo
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAGAMENTO BOLETO - Mostrar sempre após selecionar */}
+                  {paymentMethod === "BOLETO" && (
+                    <div>
+                      {boletoData ? (
+                        <BoletoPayment boletoData={boletoData} theme={theme} />
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/20 mb-4">
+                            <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400 animate-pulse" />
+                          </div>
+                          <h3
+                            className="text-xl font-semibold mb-2"
+                            style={{ color: theme.headingColor }}
+                          >
+                            Clique em "Finalizar Compra" para gerar o Boleto
+                          </h3>
+                          <p
+                            className="text-sm opacity-70"
+                            style={{ color: theme.textColor }}
+                          >
+                            Você poderá baixar e imprimir o boleto bancário
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1495,36 +1706,67 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                     <ChevronRight className="h-5 w-5" />
                   </Button>
                 ) : (
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={processing || previewMode}
-                    className="w-full font-bold text-base md:text-lg shadow-lg"
-                    style={{
-                      backgroundColor: theme.checkoutButtonBackgroundColor,
-                      color: theme.checkoutButtonTextColor,
-                      height: 56,
-                      borderRadius: theme.checkoutButtonBorderRadius,
-                      opacity: processing || previewMode ? 0.6 : 1,
-                    }}
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                        Processando...
-                      </>
-                    ) : previewMode ? (
-                      "Modo Pré-visualização"
-                    ) : (
-                      <>
-                        <Lock className="h-5 w-5 mr-2" />
-                        <span className="hidden sm:inline">
-                          Finalizar Compra -{" "}
-                        </span>
-                        <span className="sm:hidden">Finalizar - </span>
-                        R$ {checkoutData?.total.toFixed(2)}
-                      </>
+                  <>
+                    {/* Mostrar botão apenas se ainda não gerou PIX/Boleto */}
+                    {!pixData && !boletoData && (
+                      <Button
+                        onClick={handleCheckout}
+                        disabled={processing || previewMode}
+                        className="w-full font-bold text-base md:text-lg shadow-lg"
+                        style={{
+                          backgroundColor: theme.checkoutButtonBackgroundColor,
+                          color: theme.checkoutButtonTextColor,
+                          height: 56,
+                          borderRadius: theme.checkoutButtonBorderRadius,
+                        }}
+                      >
+                        {processing ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                            Processando...
+                          </>
+                        ) : previewMode ? (
+                          <>
+                            <Lock className="h-5 w-5 mr-2" />
+                            Checkout Desabilitado (Preview)
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-5 w-5 mr-2" />
+                            Finalizar Compra - R${" "}
+                            {checkoutData?.total?.toFixed(2) || "0.00"}
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+
+                    {/* Botão para gerar novo pagamento se já tiver dados */}
+                    {(pixData || boletoData) && (
+                      <Button
+                        onClick={() => {
+                          // Limpar dados e permitir novo pagamento
+                          setPixData(null);
+                          setBoletoData(null);
+                          if (orderId) {
+                            localStorage.removeItem(`checkout-${orderId}`);
+                          }
+                          toast({
+                            title: "Pronto para novo pagamento",
+                            description: "Clique em Finalizar Compra novamente",
+                          });
+                        }}
+                        variant="outline"
+                        className="w-full gap-2 h-12 font-semibold"
+                        style={{
+                          borderColor: theme.primaryButtonBackgroundColor,
+                          color: theme.primaryButtonBackgroundColor,
+                        }}
+                      >
+                        <RefreshCw className="h-5 w-5" />
+                        Gerar Novo Pagamento
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

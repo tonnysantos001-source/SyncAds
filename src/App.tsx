@@ -49,6 +49,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const PublicCheckoutPage = lazy(
   () => import("./pages/public/PublicCheckoutPage"),
 );
+const PixPaymentPage = lazy(() => import("./pages/public/PixPaymentPage"));
 const CheckoutSuccessPage = lazy(
   () => import("./pages/public/CheckoutSuccessPage"),
 );
@@ -236,6 +237,10 @@ function App() {
 
             {/* Public Checkout Routes */}
             <Route path="/checkout/:orderId" element={<PublicCheckoutPage />} />
+            <Route
+              path="/pix/:orderId/:transactionId"
+              element={<PixPaymentPage />}
+            />
             <Route
               path="/checkout/success/:transactionId"
               element={<CheckoutSuccessPage />}

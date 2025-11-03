@@ -127,7 +127,9 @@ export class PagueXGateway extends BaseGateway {
       // Construir payload básico
       const payload: any = {
         amount: Math.round(request.amount * 100), // Converter para centavos
+        currency: "BRL",
         paymentMethod: paguexPaymentMethod,
+        installments: 1,
         postbackUrl: config.webhookUrl,
         metadata: JSON.stringify({
           orderId: request.orderId,
@@ -142,22 +144,28 @@ export class PagueXGateway extends BaseGateway {
             type: this.getDocumentType(request.customer.document).toLowerCase(),
             number: this.formatDocument(request.customer.document),
           },
+          address: request.billingAddress
+            ? {
+                street: request.billingAddress.street,
+                streetNumber: request.billingAddress.number,
+                complement: request.billingAddress.complement || "",
+                zipCode: this.formatZipCode(request.billingAddress.zipCode),
+                neighborhood: request.billingAddress.neighborhood,
+                city: request.billingAddress.city,
+                state: request.billingAddress.state,
+                country: "BR",
+              }
+            : undefined,
         },
+        items: [
+          {
+            title: `Pedido #${request.orderId}`,
+            unitPrice: Math.round(request.amount * 100),
+            quantity: 1,
+            tangible: false,
+          },
+        ],
       };
-
-      // Adicionar endereço se disponível
-      if (request.billingAddress) {
-        payload.customer.address = {
-          street: request.billingAddress.street,
-          streetNumber: request.billingAddress.number,
-          complement: request.billingAddress.complement || "",
-          zipCode: this.formatZipCode(request.billingAddress.zipCode),
-          neighborhood: request.billingAddress.neighborhood,
-          city: request.billingAddress.city,
-          state: request.billingAddress.state,
-          country: "BR",
-        };
-      }
 
       // Adicionar dados de cartão se necessário
       if (
@@ -171,7 +179,7 @@ export class PagueXGateway extends BaseGateway {
           payload.cardToken = (request as any).cardToken;
           payload.installments = request.installments || 1;
         } else {
-          // Se não tiver token, tenta enviar dados brutos (não recomendado)
+          // Se não tiver token, tenta enviar dados brutos (não recomendado em produção)
           payload.card = {
             number: request.card.number.replace(/\s/g, ""),
             holderName: request.card.holderName,
@@ -182,6 +190,18 @@ export class PagueXGateway extends BaseGateway {
           payload.installments = request.installments || 1;
         }
       }
+
+      console.log(
+        "[Pague-X] Payload sendo enviado:",
+        JSON.stringify(
+          {
+            ...payload,
+            card: payload.card ? "***HIDDEN***" : undefined,
+          },
+          null,
+          2,
+        ),
+      );
 
       this.log("info", "Processing Pague-X payment", {
         method: paguexPaymentMethod,
@@ -197,25 +217,49 @@ export class PagueXGateway extends BaseGateway {
         body: JSON.stringify(payload),
       });
 
+      console.log(
+        "[Pague-X] Resposta da API:",
+        JSON.stringify(response, null, 2),
+      );
+
       // Mapear resposta da API para formato padrão
       const status = this.normalizeStatus(response.status);
 
-      return this.createSuccessResponse({
+      // Preparar dados específicos por método de pagamento
+      const paymentResponse: any = {
         transactionId: transactionId,
         gatewayTransactionId: response.id?.toString() || response.secureId,
         status: status,
-        qrCode: response.pix?.qrcode,
-        paymentUrl: response.secureUrl || response.boleto?.url,
-        barcodeNumber: response.boleto?.barcode,
-        digitableLine: response.boleto?.digitableLine,
-        expiresAt:
-          response.pix?.expirationDate || response.boleto?.expirationDate,
+        paymentUrl: response.secureUrl,
         message: "Payment processed successfully via Pague-X",
         metadata: {
           paidAt: response.paidAt,
           authorizationCode: response.authorizationCode,
         },
-      });
+      };
+
+      // Adicionar dados específicos do PIX
+      if (response.pix && request.paymentMethod === PaymentMethod.PIX) {
+        paymentResponse.pixData = {
+          qrCode: response.pix.qrcode,
+          qrCodeBase64: response.pix.qrcodeImage,
+          expiresAt: response.pix.expirationDate,
+          amount: request.amount,
+        };
+      }
+
+      // Adicionar dados específicos do Boleto
+      if (response.boleto && request.paymentMethod === PaymentMethod.BOLETO) {
+        paymentResponse.boletoData = {
+          boletoUrl: response.boleto.url,
+          barcode: response.boleto.barcode,
+          digitableLine: response.boleto.digitableLine,
+          dueDate: response.boleto.expirationDate,
+          amount: request.amount,
+        };
+      }
+
+      return this.createSuccessResponse(paymentResponse);
     } catch (error: any) {
       this.log("error", "Pague-X payment error", {
         error: error.message,
