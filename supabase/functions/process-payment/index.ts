@@ -601,7 +601,7 @@ serve(async (req) => {
           success: gatewayResponse.success,
           transactionId: gatewayResponse.transactionId,
           gatewayTransactionId: gatewayResponse.gatewayTransactionId,
-          status: (gatewayResponse.status?.toLowerCase() as any) || "pending",
+          status: (gatewayResponse.status?.toUpperCase() as any) || "PENDING",
           paymentUrl: gatewayResponse.paymentUrl,
           qrCode: gatewayResponse.qrCode,
           qrCodeBase64: gatewayResponse.qrCodeBase64,
@@ -623,7 +623,7 @@ serve(async (req) => {
       console.error("[PAYMENT] ❌ Error stack:", error?.stack);
       paymentResponse = {
         success: false,
-        status: "failed",
+        status: "FAILED",
         message: error.message || "Payment processing failed",
         error: error.toString(),
         errorCode: error.code || error.errorCode,

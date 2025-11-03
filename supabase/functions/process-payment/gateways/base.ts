@@ -50,7 +50,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    * Deve ser implementado por cada gateway
    */
   abstract validateCredentials(
-    credentials: GatewayCredentials
+    credentials: GatewayCredentials,
   ): Promise<CredentialValidationResult>;
 
   /**
@@ -59,7 +59,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   abstract processPayment(
     request: PaymentRequest,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
   /**
@@ -68,7 +68,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   abstract handleWebhook(
     payload: any,
-    signature?: string
+    signature?: string,
   ): Promise<WebhookResponse>;
 
   /**
@@ -77,7 +77,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   abstract getPaymentStatus(
     gatewayTransactionId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentStatusResponse>;
 
   // ===== MÉTODOS AUXILIARES COMUNS =====
@@ -86,7 +86,26 @@ export abstract class BaseGateway implements GatewayProcessor {
    * Valida se o método de pagamento é suportado por este gateway
    */
   protected validatePaymentMethod(method: PaymentMethod): boolean {
-    return this.supportedMethods.includes(method);
+    console.log(`[${this.name}] Validating payment method...`);
+    console.log(`[${this.name}] - Method received:`, method);
+    console.log(`[${this.name}] - Method type:`, typeof method);
+    console.log(`[${this.name}] - Supported methods:`, this.supportedMethods);
+    console.log(
+      `[${this.name}] - Supported methods types:`,
+      this.supportedMethods.map((m) => typeof m),
+    );
+
+    const isSupported = this.supportedMethods.includes(method);
+    console.log(`[${this.name}] - Is supported?`, isSupported);
+
+    // Tentar comparação com string também
+    const methodAsString = String(method);
+    const includesAsString = this.supportedMethods.some(
+      (m) => String(m) === methodAsString,
+    );
+    console.log(`[${this.name}] - Includes as string?`, includesAsString);
+
+    return isSupported || includesAsString;
   }
 
   /**
@@ -111,10 +130,26 @@ export abstract class BaseGateway implements GatewayProcessor {
       errors.push("paymentMethod is required");
     }
 
+    console.log(`[${this.name}] Validating payment request...`);
+    console.log(
+      `[${this.name}] - Payment method from request:`,
+      request.paymentMethod,
+    );
+    console.log(
+      `[${this.name}] - Payment method type:`,
+      typeof request.paymentMethod,
+    );
+
     if (!this.validatePaymentMethod(request.paymentMethod)) {
-      errors.push(
-        `Payment method ${request.paymentMethod} not supported by ${this.name}`
+      const errorMsg = `Payment method ${request.paymentMethod} not supported by ${this.name}`;
+      console.error(`[${this.name}] ❌ ${errorMsg}`);
+      console.error(
+        `[${this.name}] ❌ Supported methods:`,
+        this.supportedMethods,
       );
+      errors.push(errorMsg);
+    } else {
+      console.log(`[${this.name}] ✅ Payment method validated successfully`);
     }
 
     if (!request.customer) {
@@ -159,7 +194,7 @@ export abstract class BaseGateway implements GatewayProcessor {
 
     if (errors.length > 0) {
       throw new ValidationError(
-        `Payment validation failed: ${errors.join(", ")}`
+        `Payment validation failed: ${errors.join(", ")}`,
       );
     }
   }
@@ -169,7 +204,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   protected async makeRequest<T = any>(
     url: string,
-    options: RequestInit
+    options: RequestInit,
   ): Promise<T> {
     try {
       this.log("info", `Making request to ${url}`, {
@@ -191,7 +226,7 @@ export abstract class BaseGateway implements GatewayProcessor {
           this.slug,
           data.code || data.error_code,
           response.status,
-          data
+          data,
         );
       }
 
@@ -212,7 +247,7 @@ export abstract class BaseGateway implements GatewayProcessor {
         this.slug,
         undefined,
         undefined,
-        error
+        error,
       );
     }
   }
@@ -221,7 +256,8 @@ export abstract class BaseGateway implements GatewayProcessor {
    * Obtém o endpoint correto baseado no ambiente
    */
   protected getEndpoint(config: GatewayConfig): string {
-    const isTest = config.testMode || config.credentials.environment === "sandbox";
+    const isTest =
+      config.testMode || config.credentials.environment === "sandbox";
 
     if (isTest && this.endpoints.sandbox) {
       return this.endpoints.sandbox;
@@ -405,7 +441,7 @@ export abstract class BaseGateway implements GatewayProcessor {
   protected log(
     level: "info" | "warn" | "error" | "debug",
     message: string,
-    data?: any
+    data?: any,
   ): void {
     const logEntry = {
       timestamp: new Date().toISOString(),
@@ -429,7 +465,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   protected createErrorResponse(
     error: any,
-    defaultMessage: string
+    defaultMessage: string,
   ): PaymentResponse {
     this.log("error", `Payment error: ${error.message}`, {
       error: error.toString(),
@@ -449,7 +485,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    * Cria resposta de sucesso padronizada
    */
   protected createSuccessResponse(
-    data: Partial<PaymentResponse>
+    data: Partial<PaymentResponse>,
   ): PaymentResponse {
     return {
       success: true,
@@ -503,7 +539,7 @@ export abstract class BaseGateway implements GatewayProcessor {
   protected async retryRequest<T>(
     fn: () => Promise<T>,
     maxRetries: number = 3,
-    delayMs: number = 1000
+    delayMs: number = 1000,
   ): Promise<T> {
     let lastError: any;
 
@@ -532,13 +568,13 @@ export abstract class BaseGateway implements GatewayProcessor {
   protected async validateWebhookSignatureHMAC(
     payload: any,
     signature: string,
-    secret: string
+    secret: string,
   ): Promise<WebhookValidationResult> {
     try {
       const encoder = new TextEncoder();
       const keyData = encoder.encode(secret);
       const messageData = encoder.encode(
-        typeof payload === "string" ? payload : JSON.stringify(payload)
+        typeof payload === "string" ? payload : JSON.stringify(payload),
       );
 
       const key = await crypto.subtle.importKey(
@@ -546,13 +582,13 @@ export abstract class BaseGateway implements GatewayProcessor {
         keyData,
         { name: "HMAC", hash: "SHA-256" },
         false,
-        ["sign"]
+        ["sign"],
       );
 
       const signatureBuffer = await crypto.subtle.sign(
         "HMAC",
         key,
-        messageData
+        messageData,
       );
 
       const signatureArray = Array.from(new Uint8Array(signatureBuffer));
@@ -581,7 +617,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   async refundPayment?(
     request: RefundRequest,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<RefundResponse> {
     throw new Error(`Refund not implemented for ${this.name}`);
   }
@@ -591,7 +627,7 @@ export abstract class BaseGateway implements GatewayProcessor {
    */
   async cancelPayment?(
     gatewayTransactionId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse> {
     throw new Error(`Cancel not implemented for ${this.name}`);
   }
