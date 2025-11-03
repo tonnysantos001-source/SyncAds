@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Bot,
@@ -135,6 +135,43 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         : [...prev, label],
     );
   };
+
+  // Keep the submenu expanded based on current route so refresh preserves location
+  const location = useLocation();
+  useEffect(() => {
+    const toExpand: string[] = [];
+    navItems.forEach((item) => {
+      if (
+        item.subItems &&
+        item.subItems.some((s) => location.pathname.startsWith(s.to))
+      ) {
+        toExpand.push(item.label);
+      }
+    });
+    setExpandedMenus((prev) => {
+      const set = new Set(prev);
+      toExpand.forEach((l) => set.add(l));
+      return Array.from(set);
+    });
+  }, [location.pathname]);
+
+  // Auto-expand current submenu based on the current route and keep it after refresh
+  useEffect(() => {
+    const toExpand: string[] = [];
+    navItems.forEach((item) => {
+      if (
+        item.subItems &&
+        item.subItems.some((s) => location.pathname.startsWith(s.to))
+      ) {
+        toExpand.push(item.label);
+      }
+    });
+    setExpandedMenus((prev) => {
+      const set = new Set(prev);
+      toExpand.forEach((l) => set.add(l));
+      return Array.from(set);
+    });
+  }, [location.pathname]);
 
   const NavItem: React.FC<{ item: NavItem }> = ({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;

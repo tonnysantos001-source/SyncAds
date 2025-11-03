@@ -43,10 +43,18 @@ export const useDashboardMetrics = () => {
 
     const fetchMetrics = async () => {
       try {
-        setMetrics((prev) => ({ ...prev, loading: true, error: null }));
+        setMetrics(prev => ({ ...prev, loading: true, error: null }));
 
-        // Não usamos mais organizationId; filtrar por userId diretamente
+        // Buscar usuário e organizationId
+        const { data: userData } = await supabase
+          .from('User')
+          .select('organizationId')
+          .eq('id', user.id)
+          .single();
 
+        if (!userData?.organizationId) {
+          throw new Error('Organization not found');
+        }
         // Buscar campanhas do mês atual
         const currentMonth = new Date();
         const firstDayCurrentMonth = new Date(
@@ -66,26 +74,21 @@ export const useDashboardMetrics = () => {
           currentMonth.getMonth(),
           0,
         );
-
+        // Campanhas atuais
         const { data: currentCampaigns } = await supabase
-
           .from("Campaign")
-
           .select("clicks, conversions, budgetSpent, revenue")
+          .eq('organizationId', userData.organizationId)
+          .gte('createdAt', firstDayCurrentMonth.toISOString());
 
-          .eq("userId", user.id)
-          .gte("createdAt", firstDayCurrentMonth.toISOString());
-
+        // Campanhas do mês anterior
         const { data: previousCampaigns } = await supabase
-
           .from("Campaign")
 
           .select("clicks, conversions, budgetSpent, revenue")
-
-          .eq("userId", user.id)
-          .gte("createdAt", firstDayPreviousMonth.toISOString())
-
-          .lte("createdAt", lastDayPreviousMonth.toISOString());
+          .eq('organizationId', userData.organizationId)
+          .gte('createdAt', firstDayPreviousMonth.toISOString())
+          .lte('createdAt', lastDayPreviousMonth.toISOString());
 
         // Calcular métricas atuais
         const totalCampaigns = currentCampaigns?.length || 0;

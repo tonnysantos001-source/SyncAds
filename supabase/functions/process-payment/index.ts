@@ -365,7 +365,10 @@ serve(async (req) => {
     }
 
     // Parse request
-    const paymentRequest: PaymentRequest = await req.json();
+
+    const body = await req.json();
+    const allowUnverifiedRequested = !!body?.allow_unverified;
+    const paymentRequest: PaymentRequest = body;
 
     // Validação
     if (
@@ -380,28 +383,52 @@ serve(async (req) => {
       throw new Error("Amount must be greater than 0");
     }
 
-    // Buscar gateway configurado para este usuário
-    const { data: gatewayConfigs, error: gatewayError } = await supabaseClient
+    // Determine if requester is super admin (to allow debug flag)
+    const { data: profile } = await supabaseClient
+      .from("User")
+      .select("isSuperAdmin")
+      .eq("id", user.id)
+      .single();
+    const isSuperAdmin = !!profile?.isSuperAdmin;
+    const allowUnverified = allowUnverifiedRequested && isSuperAdmin;
+
+    let query = supabaseClient
       .from("GatewayConfig")
+
       .select("*, Gateway(*)")
+
       .eq("userId", paymentRequest.userId)
+
       .eq("isActive", true)
-      .eq("isDefault", true)
-      .limit(1);
+
+      .eq("isDefault", true);
+
+    // Only relax constraints when explicitly requested AND requester is super admin
+    if (!allowUnverified) {
+      query = query.eq("environment", "production").eq("isVerified", true);
+    }
+
+    const { data: gatewayConfigs, error: gatewayError } = await query.limit(1);
 
     if (gatewayError || !gatewayConfigs || gatewayConfigs.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
+
           status: "failed",
-          message: "Nenhum gateway de pagamento configurado",
-          error: "NO_GATEWAY_CONFIGURED",
-          hint: "Configure um gateway de pagamento no painel de administração em Configurações > Pagamentos",
+
+          message:
+            "Nenhum gateway de pagamento em produção verificado disponível.",
+          error: "NO_VERIFIED_PRODUCTION_GATEWAY",
+          hint: "Configure um gateway em Produção e verifique as credenciais no painel de administração em Configurações > Pagamentos",
+
           requiresSetup: true,
         }),
+
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200, // Sempre retornar 200, usar success: false para indicar erro
+
+          status: 422,
         },
       );
     }
@@ -424,9 +451,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(
-      `Processing payment via ${gateway.slug} (${gateway.name}) for user ${paymentRequest.userId}`,
-    );
+    console.info(`Processing payment via ${gateway.slug}`);
 
     // Processar pagamento de acordo com o gateway
     let paymentResponse: PaymentResponse;

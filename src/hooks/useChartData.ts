@@ -22,18 +22,16 @@ export const useChartData = (months: number = 12) => {
         setLoading(true);
         setError(null);
 
-        // Removido: não usamos mais organizationId; filtrar por userId diretamente
+        // Buscar organizationId
+        const { data: userData } = await supabase
+          .from('User')
+          .select('organizationId')
+          .eq('id', user.id)
+          .single();
 
-        // Mantido vazio propositalmente para preservar alinhamento de linhas
-        // (Hook ajusta o filtro logo abaixo na query de Campaign)
-        // --
-        // --
-        // --
-        // --
-        // --
-        // --
-        // --
-
+        if (!userData?.organizationId) {
+          throw new Error('Organization not found');
+        }
         // Calcular data de início (X meses atrás)
         const endDate = new Date();
         const startDate = new Date();

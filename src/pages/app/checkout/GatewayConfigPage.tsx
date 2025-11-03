@@ -30,9 +30,20 @@ const GatewayConfigPage = () => {
   const user = useAuthStore((state) => state.user);
 
   const [gateway, setGateway] = useState<GatewayConfigType | null>(null);
+
   const [loading, setLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
+
   const [isActive, setIsActive] = useState(false);
+
+  const [isVerified, setIsVerified] = useState(false);
+  const [environment, setEnvironment] = useState<"production" | "sandbox">(
+    "production",
+  );
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
+  const [configId, setConfigId] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -81,6 +92,10 @@ const GatewayConfigPage = () => {
           if (!error && data) {
             setIsActive(data.isActive || false);
 
+            setIsVerified(data.isVerified ?? false);
+            setEnvironment(data.environment ?? "production");
+            setVerifiedAt(data.verifiedAt ?? null);
+            setConfigId(data.id);
             setFormData(data.credentials || {});
           }
         }
@@ -96,6 +111,7 @@ const GatewayConfigPage = () => {
     if (!gateway || !user?.id) return;
 
     try {
+      let savedConfigId: string | null = null;
       setSaving(true);
 
       // Validate required fields
@@ -144,6 +160,7 @@ const GatewayConfigPage = () => {
             updatedAt: new Date().toISOString(),
           })
           .eq("id", existingConfig.id);
+        if (!error) savedConfigId = existingConfig.id;
       } else {
         // Create new config
 
@@ -153,25 +170,71 @@ const GatewayConfigPage = () => {
           .eq("userId", user.id)
           .limit(1);
 
-        const { error } = await supabase.from("GatewayConfig").insert({
-          userId: user.id,
+        const { data: created, error } = await supabase
+          .from("GatewayConfig")
+          .insert({
+            userId: user.id,
 
-          gatewayId: dbGateway.id,
+            gatewayId: dbGateway.id,
 
-          credentials: formData,
+            credentials: formData,
 
-          isActive: isActive,
+            isActive: isActive,
 
-          isDefault: !anyConfig || anyConfig.length === 0,
-        });
+            isDefault: !anyConfig || anyConfig.length === 0,
+          })
+          .select("id")
+          .single();
 
         if (error) throw error;
+        savedConfigId = created?.id || null;
       }
 
       toast({
         title: "Configuração salva!",
         description: `Gateway ${gateway.name} foi configurado com sucesso.`,
       });
+
+      // Verificar automaticamente as credenciais em produção
+      try {
+        const payload: any = savedConfigId
+          ? { configId: savedConfigId }
+          : {
+              slug: gateway.slug,
+              credentials: formData,
+              persistCredentials: false,
+            };
+
+        const { data, error } = await supabase.functions.invoke(
+          "gateway-config-verify",
+          { body: payload },
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.success) {
+          toast({
+            title: "Credenciais verificadas",
+            description: data.message || "Gateway verificado com sucesso.",
+          });
+        } else {
+          toast({
+            title: "Falha na verificação",
+            description:
+              data?.message || "Confira suas credenciais e tente novamente.",
+            variant: "destructive",
+          });
+        }
+      } catch (e: any) {
+        toast({
+          title: "Erro ao verificar",
+          description:
+            e?.message || "Não foi possível verificar as credenciais.",
+          variant: "destructive",
+        });
+      }
 
       navigate("/checkout/gateways");
     } catch (error) {
@@ -183,6 +246,54 @@ const GatewayConfigPage = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!gateway || !user?.id) return;
+    try {
+      setVerifying(true);
+      const payload: any = {};
+      if (configId) {
+        payload.configId = configId;
+      } else {
+        payload.slug = gateway.slug;
+        payload.credentials = formData;
+        payload.persistCredentials = false;
+      }
+      const { data, error } = await supabase.functions.invoke(
+        "gateway-config-verify",
+        {
+          body: payload,
+        },
+      );
+      if (error) throw error;
+      if (data?.success) {
+        setIsVerified(true);
+        setVerifiedAt(data.verifiedAt || new Date().toISOString());
+        setEnvironment("production");
+        toast({
+          title: "Verificação bem-sucedida",
+          description: data.message || "Credenciais verificadas com sucesso.",
+        });
+      } else {
+        setIsVerified(false);
+        toast({
+          title: "Falha na verificação",
+          description:
+            data?.message || "Não foi possível verificar as credenciais.",
+          variant: "destructive",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "Erro na verificação",
+        description:
+          e?.message || "Erro inesperado ao verificar as credenciais.",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -329,21 +440,53 @@ const GatewayConfigPage = () => {
                   {gateway.paymentMethods.includes("credit_card") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <span className="text-sm">Ativar cartão de crédito</span>
-                      <Switch defaultChecked={false} />
+
+                      <Switch
+                        defaultChecked={false}
+                        disabled={!isVerified || environment !== "production"}
+                      />
+
+                      {(!isVerified || environment !== "production") && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          Disponível após verificação em produção
+                        </span>
+                      )}
                     </div>
                   )}
+
                   {gateway.paymentMethods.includes("pix") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <span className="text-sm">Ativar pix</span>
-                      <Switch defaultChecked={false} />
+
+                      <Switch
+                        defaultChecked={false}
+                        disabled={!isVerified || environment !== "production"}
+                      />
+
+                      {(!isVerified || environment !== "production") && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          Disponível após verificação em produção
+                        </span>
+                      )}
                     </div>
                   )}
+
                   {gateway.paymentMethods.includes("boleto") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <span className="text-sm">
                         Utilizar taxa de juros customizada
                       </span>
-                      <Switch defaultChecked={false} />
+
+                      <Switch
+                        defaultChecked={false}
+                        disabled={!isVerified || environment !== "production"}
+                      />
+
+                      {(!isVerified || environment !== "production") && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          Disponível após verificação em produção
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -401,8 +544,37 @@ const GatewayConfigPage = () => {
                 </SelectContent>
               </Select>
 
-              {/* Help Link */}
-              <div className="mt-4 pt-4 border-t">
+              {/* Verificação e ajuda */}
+              <div className="mt-4 pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Verificação</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {isVerified && verifiedAt
+                        ? `Verificado em: ${new Date(verifiedAt).toLocaleString()}`
+                        : "Não verificado"}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Ambiente: {environment}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      await handleVerify();
+                    }}
+                    disabled={verifying}
+                    className="gap-2"
+                  >
+                    {verifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                        Verificando...
+                      </>
+                    ) : (
+                      "Verificar credenciais"
+                    )}
+                  </Button>
+                </div>
                 <a
                   href={gateway.apiDocs}
                   target="_blank"
@@ -410,10 +582,13 @@ const GatewayConfigPage = () => {
                   className="flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-300"
                 >
                   <HelpCircle className="h-4 w-4" />
+
                   <span>Está com dúvidas?</span>
+
                   <span className="underline">
                     Como integrar o gateway {gateway.name}?
                   </span>
+
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>

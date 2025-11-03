@@ -90,10 +90,29 @@ export const useEnhancedDashboardMetrics = () => {
 
         setMetrics(prev => ({ ...prev, loading: true, error: null }));
 
+        // Usar organizationId do user diretamente se disponível
+        let orgId = user?.organizationId;
+        
+        if (!orgId) {
+          console.error('❌ [Dashboard Metrics] organizationId não encontrado no user');
+          
+          // Tentar buscar do banco
+          const { data: userData } = await supabase
+            .from('User')
+            .select('organizationId')
+            .eq('id', user.id)
+            .single();
 
-
-        const userId = user.id;
-
+          if (!userData?.organizationId) {
+            console.error('❌ [Dashboard Metrics] organizationId não encontrado no banco também');
+            throw new Error('Organization not found');
+          }
+          
+          console.log('✅ [Dashboard Metrics] organizationId encontrado no banco:', userData.organizationId);
+          orgId = userData.organizationId;
+        } else {
+          console.log('✅ [Dashboard Metrics] Usando organizationId do user:', orgId);
+        }
 
         // Buscar dados do mês atual e anterior
         const currentMonth = new Date();
