@@ -45,6 +45,9 @@ const GatewayConfigPage = () => {
   const [configId, setConfigId] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [enableCreditCard, setEnableCreditCard] = useState(false);
+  const [enablePix, setEnablePix] = useState(false);
+  const [enableBoleto, setEnableBoleto] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -448,7 +451,11 @@ const GatewayConfigPage = () => {
                       <span className="text-sm">Ativar cartão de crédito</span>
 
                       <Switch
-                        defaultChecked={false}
+                        checked={enableCreditCard}
+                        onCheckedChange={(checked) => {
+                          console.log("Toggle cartão:", checked);
+                          setEnableCreditCard(checked);
+                        }}
                         disabled={!isVerified || environment !== "production"}
                       />
 
@@ -465,7 +472,11 @@ const GatewayConfigPage = () => {
                       <span className="text-sm">Ativar pix</span>
 
                       <Switch
-                        defaultChecked={false}
+                        checked={enablePix}
+                        onCheckedChange={(checked) => {
+                          console.log("Toggle PIX:", checked);
+                          setEnablePix(checked);
+                        }}
                         disabled={!isVerified || environment !== "production"}
                       />
 
@@ -484,7 +495,11 @@ const GatewayConfigPage = () => {
                       </span>
 
                       <Switch
-                        defaultChecked={false}
+                        checked={enableBoleto}
+                        onCheckedChange={(checked) => {
+                          console.log("Toggle boleto:", checked);
+                          setEnableBoleto(checked);
+                        }}
                         disabled={!isVerified || environment !== "production"}
                       />
 
