@@ -198,7 +198,11 @@ const GatewayConfigPage = () => {
       // Verificar automaticamente as credenciais em produção
       try {
         const payload: any = savedConfigId
-          ? { configId: savedConfigId }
+          ? {
+              configId: savedConfigId,
+              credentials: formData,
+              persistCredentials: false,
+            }
           : {
               slug: gateway.slug,
               credentials: formData,
@@ -256,6 +260,8 @@ const GatewayConfigPage = () => {
       const payload: any = {};
       if (configId) {
         payload.configId = configId;
+        payload.credentials = formData; // Sempre enviar credenciais do formulário
+        payload.persistCredentials = false;
       } else {
         payload.slug = gateway.slug;
         payload.credentials = formData;
