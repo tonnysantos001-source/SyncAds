@@ -669,8 +669,50 @@ serve(async (req) => {
 
     // 3) Determinar slug e credenciais (preferir corpo → verificação transitória)
     const slug = (gateway?.slug || slugInput || "").toLowerCase();
+
+    // LOGS CRUCIAIS para debug
+    console.log("[HANDLER] ===== VERIFICANDO ORIGEM DAS CREDENCIAIS =====");
+    console.log(
+      "[HANDLER] credentials do BODY:",
+      credentials ? Object.keys(credentials) : "NULL/UNDEFINED",
+    );
+    console.log(
+      "[HANDLER] credentials do BANCO:",
+      gatewayConfig.credentials
+        ? Object.keys(gatewayConfig.credentials)
+        : "NULL/UNDEFINED",
+    );
+    console.log(
+      "[HANDLER] Body tem publicKey?",
+      !!(credentials as any)?.publicKey,
+    );
+    console.log(
+      "[HANDLER] Body tem secretKey?",
+      !!(credentials as any)?.secretKey,
+    );
+    console.log(
+      "[HANDLER] Banco tem publicKey?",
+      !!gatewayConfig.credentials?.publicKey,
+    );
+    console.log(
+      "[HANDLER] Banco tem secretKey?",
+      !!gatewayConfig.credentials?.secretKey,
+    );
+
     const creds = credentials ?? gatewayConfig.credentials ?? {};
-    // importate: não logar creds
+    console.log(
+      "[HANDLER] Credenciais ESCOLHIDAS (final):",
+      Object.keys(creds),
+    );
+    console.log(
+      "[HANDLER] Credenciais finais tem publicKey?",
+      !!(creds as any)?.publicKey,
+    );
+    console.log(
+      "[HANDLER] Credenciais finais tem secretKey?",
+      !!(creds as any)?.secretKey,
+    );
+    console.log("[HANDLER] ===== FIM VERIFICAÇÃO CREDENCIAIS =====");
 
     console.log("[HANDLER] Gateway determinado:");
     console.log("[HANDLER] - slug:", slug);
