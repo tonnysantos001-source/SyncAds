@@ -297,40 +297,46 @@ const asaasAdapter: Adapter = {
   },
 };
 
-// FusionPay: GET /v1/account (custom headers: X-API-Key, X-API-Secret)
-const fusionpayAdapter: Adapter = {
-  slug: "fusionpay",
+// Pague-X: GET /v1/transactions (Basic Auth: publicKey:secretKey)
+const paguexAdapter: Adapter = {
+  slug: "paguex",
   async verify(credentials, signal) {
-    const apiKey = credentials?.apiKey || credentials?.API_KEY;
+    const publicKey = credentials?.publicKey || credentials?.PUBLIC_KEY;
     const secretKey = credentials?.secretKey || credentials?.SECRET_KEY;
-    if (!apiKey || !secretKey) {
+    if (!publicKey || !secretKey) {
       return {
         ok: false,
         httpStatus: 400,
         message:
-          "Credenciais FusionPay inválidas: apiKey e/ou secretKey ausentes",
+          "Credenciais Pague-X inválidas: publicKey e/ou secretKey ausentes",
       };
     }
 
-    // Endpoint de verificação leve (não cria transação)
+    // Gerar Basic Auth: base64(publicKey:secretKey)
+    const authString = btoa(`${publicKey}:${secretKey}`);
+
+    // Endpoint de verificação leve (lista transações com limit=1)
     let res: Response | null = null;
     try {
-      res = await fetch("https://api.fusionpay.com/v1/account", {
-        method: "GET",
-        headers: {
-          "X-API-Key": apiKey,
-          "X-API-Secret": secretKey,
+      res = await fetch(
+        "https://api.inpagamentos.com/v1/transactions?limit=1",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${authString}`,
+            "Content-Type": "application/json",
+          },
+          signal,
         },
-        signal,
-      });
+      );
     } catch (e: any) {
       if (e?.name === "AbortError") {
-        return { ok: false, httpStatus: 408, message: "FusionPay: timeout" };
+        return { ok: false, httpStatus: 408, message: "Pague-X: timeout" };
       }
       return {
         ok: false,
         httpStatus: 500,
-        message: "FusionPay: erro de conexão",
+        message: "Pague-X: erro de conexão",
       };
     }
 
@@ -338,7 +344,7 @@ const fusionpayAdapter: Adapter = {
       return {
         ok: false,
         httpStatus: 500,
-        message: "FusionPay: resposta vazia",
+        message: "Pague-X: resposta vazia",
       };
 
     const httpStatus = res.status;
@@ -348,17 +354,16 @@ const fusionpayAdapter: Adapter = {
         credit_card: true,
         pix: true,
         boleto: true,
-        wallet: true,
+        wallet: false,
       };
       return {
         ok: true,
         httpStatus,
-        message: `Conta FusionPay verificada (merchant=${data?.merchant_id ?? "?"})`,
+        message: `Credenciais Pague-X verificadas com sucesso`,
         capabilities,
         metadata: {
-          merchant_id: data?.merchant_id,
-          business_name: data?.business_name,
-          country: data?.country,
+          api_version: "v1",
+          provider: "inpagamentos.com",
         },
       };
     }
@@ -367,7 +372,7 @@ const fusionpayAdapter: Adapter = {
     return {
       ok: false,
       httpStatus,
-      message: `FusionPay rejeitou as credenciais (${httpStatus})`,
+      message: `Pague-X rejeitou as credenciais (${httpStatus})`,
       metadata: { response_excerpt: text.slice(0, 200) },
     };
   },
@@ -382,7 +387,7 @@ const adapters: Record<string, Adapter> = {
 
   asaas: asaasAdapter,
 
-  fusionpay: fusionpayAdapter,
+  paguex: paguexAdapter,
 };
 
 // ============ Encryption helper (AES-GCM) ============
