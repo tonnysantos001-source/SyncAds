@@ -301,9 +301,24 @@ const asaasAdapter: Adapter = {
 const paguexAdapter: Adapter = {
   slug: "paguex",
   async verify(credentials, signal) {
+    console.log("[PagueX] ========== INICIANDO VERIFICAÇÃO ==========");
+    console.log(
+      "[PagueX] Credentials recebidas:",
+      Object.keys(credentials || {}),
+    );
+
     const publicKey = credentials?.publicKey || credentials?.PUBLIC_KEY;
     const secretKey = credentials?.secretKey || credentials?.SECRET_KEY;
+
+    console.log("[PagueX] PublicKey presente:", !!publicKey);
+    console.log(
+      "[PagueX] PublicKey (primeiros 15 chars):",
+      publicKey?.substring(0, 15),
+    );
+    console.log("[PagueX] SecretKey presente:", !!secretKey);
+
     if (!publicKey || !secretKey) {
+      console.log("[PagueX] ❌ Credenciais ausentes!");
       return {
         ok: false,
         httpStatus: 400,
@@ -314,8 +329,16 @@ const paguexAdapter: Adapter = {
 
     // Gerar Basic Auth: base64(publicKey:secretKey)
     const authString = btoa(`${publicKey}:${secretKey}`);
+    console.log(
+      "[PagueX] Auth string gerado (primeiros 30 chars):",
+      authString.substring(0, 30),
+    );
 
     // Endpoint de verificação leve (lista transações com limit=1)
+    console.log(
+      "[PagueX] Fazendo requisição para: https://api.inpagamentos.com/v1/transactions?limit=1",
+    );
+
     let res: Response | null = null;
     try {
       res = await fetch(
@@ -329,33 +352,59 @@ const paguexAdapter: Adapter = {
           signal,
         },
       );
+
+      console.log("[PagueX] Response recebida!");
+      console.log("[PagueX] Status Code:", res.status);
+      console.log("[PagueX] Status OK:", res.ok);
+      console.log(
+        "[PagueX] Headers:",
+        Object.fromEntries(res.headers.entries()),
+      );
     } catch (e: any) {
+      console.log("[PagueX] ❌ ERRO no fetch:", e?.name, e?.message);
+
       if (e?.name === "AbortError") {
-        return { ok: false, httpStatus: 408, message: "Pague-X: timeout" };
+        console.log("[PagueX] ❌ TIMEOUT após 5 segundos");
+        return {
+          ok: false,
+          httpStatus: 408,
+          message: "Pague-X: timeout (limite de 5 segundos excedido)",
+        };
       }
+
+      console.log("[PagueX] ❌ ERRO DE CONEXÃO:", e?.message || "Desconhecido");
       return {
         ok: false,
         httpStatus: 500,
-        message: "Pague-X: erro de conexão",
+        message: `Pague-X: erro de conexão - ${e?.message || "Desconhecido"}`,
       };
     }
 
-    if (!res)
+    if (!res) {
+      console.log("[PagueX] ❌ Response é null/undefined!");
       return {
         ok: false,
         httpStatus: 500,
         message: "Pague-X: resposta vazia",
       };
+    }
 
     const httpStatus = res.status;
+
     if (res.ok) {
+      console.log("[PagueX] ✅ VERIFICAÇÃO SUCESSO! Status:", httpStatus);
+
       const data = await res.json().catch(() => ({}));
+      console.log("[PagueX] ✅ Data recebida:", Object.keys(data));
+
       const capabilities = {
         credit_card: true,
         pix: true,
         boleto: true,
         wallet: false,
       };
+
+      console.log("[PagueX] ✅ Retornando resultado positivo");
       return {
         ok: true,
         httpStatus,
@@ -368,11 +417,40 @@ const paguexAdapter: Adapter = {
       };
     }
 
+    // Erro: status não-2xx
     const text = await res.text().catch(() => "");
+    console.log("[PagueX] ❌ VERIFICAÇÃO FALHOU! Status:", httpStatus);
+    console.log(
+      "[PagueX] ❌ Response body (primeiros 200 chars):",
+      text.slice(0, 200),
+    );
+
+    // Mensagens específicas por código HTTP
+    let message = `Pague-X rejeitou as credenciais (${httpStatus})`;
+    if (httpStatus === 401) {
+      message =
+        "Pague-X: credenciais inválidas - verifique publicKey e secretKey";
+      console.log("[PagueX] ❌ 401 Unauthorized - Credenciais incorretas");
+    } else if (httpStatus === 403) {
+      message = "Pague-X: acesso negado - verifique permissões da conta";
+      console.log("[PagueX] ❌ 403 Forbidden - Sem permissão");
+    } else if (httpStatus === 404) {
+      message = "Pague-X: endpoint não encontrado - verifique URL da API";
+      console.log("[PagueX] ❌ 404 Not Found - Endpoint incorreto");
+    } else if (httpStatus === 429) {
+      message =
+        "Pague-X: limite de requisições excedido - aguarde e tente novamente";
+      console.log("[PagueX] ❌ 429 Too Many Requests - Rate limit");
+    } else if (httpStatus >= 500) {
+      message =
+        "Pague-X: erro no servidor da inpagamentos.com - tente novamente mais tarde";
+      console.log("[PagueX] ❌ 5xx Server Error - Problema no servidor");
+    }
+
     return {
       ok: false,
       httpStatus,
-      message: `Pague-X rejeitou as credenciais (${httpStatus})`,
+      message,
       metadata: { response_excerpt: text.slice(0, 200) },
     };
   },
@@ -487,6 +565,14 @@ serve(async (req) => {
     const credentials: Json | undefined = body?.credentials;
     const persistCredentials: boolean = !!body?.persistCredentials;
 
+    console.log(
+      "[HANDLER] ========== Nova requisição de verificação ==========",
+    );
+    console.log("[HANDLER] configId:", configId);
+    console.log("[HANDLER] slugInput:", slugInput);
+    console.log("[HANDLER] credentials keys:", Object.keys(credentials || {}));
+    console.log("[HANDLER] persistCredentials:", persistCredentials);
+
     // 1) Obter GatewayConfig (+ Gateway) pela configId OU slug+userId
     let gatewayConfig: any | null = null;
     let gateway: any | null = null;
@@ -567,9 +653,16 @@ serve(async (req) => {
     const creds = credentials ?? gatewayConfig.credentials ?? {};
     // importate: não logar creds
 
+    console.log("[HANDLER] Gateway determinado:");
+    console.log("[HANDLER] - slug:", slug);
+    console.log("[HANDLER] - gateway.name:", gateway?.name);
+    console.log("[HANDLER] - creds keys:", Object.keys(creds || {}));
+
     // 4) Adapter e verificação real (timeout curto 5s)
     const adapter = adapters[slug];
     if (!adapter) {
+      console.log("[HANDLER] ❌ Adapter não encontrado para slug:", slug);
+      console.log("[HANDLER] ❌ Adapters disponíveis:", Object.keys(adapters));
       return new Response(
         JSON.stringify({
           error: `Verificação não implementada para '${slug}'`,
@@ -581,13 +674,23 @@ serve(async (req) => {
       );
     }
 
+    console.log("[HANDLER] ✅ Adapter encontrado:", slug);
+    console.log("[HANDLER] Iniciando verificação com timeout de 5000ms...");
+
     const controller = withTimeout(5000);
     let verifyResult: VerifyResult;
     try {
       verifyResult = await adapter.verify(creds, controller.signal);
+      console.log("[HANDLER] Verificação concluída!");
+      console.log("[HANDLER] - ok:", verifyResult.ok);
+      console.log("[HANDLER] - httpStatus:", verifyResult.httpStatus);
+      console.log("[HANDLER] - message:", verifyResult.message);
+      console.log("[HANDLER] - capabilities:", verifyResult.capabilities);
     } finally {
       cleanupTimeout(controller);
     }
+
+    console.log("[HANDLER] Preparando atualização do GatewayConfig...");
 
     // 5) Atualizar GatewayConfig com resultado de verificação
     // - environment: 'production'
@@ -622,16 +725,24 @@ serve(async (req) => {
 
     // Executar update
     // RLS deve permitir update pelo owner ou por super admin (se houver política)
+    console.log("[HANDLER] Atualizando GatewayConfig no banco...");
     const { error: upErr } = await supabase
       .from("GatewayConfig")
       .update(updates)
       .eq("id", gatewayConfig.id);
     if (upErr) {
+      console.log(
+        "[HANDLER] ⚠️ Erro ao atualizar GatewayConfig:",
+        upErr.message,
+      );
       // Não interromper a resposta de verificação, mas informar
       // Sem incluir dados sensíveis
+    } else {
+      console.log("[HANDLER] ✅ GatewayConfig atualizado com sucesso");
     }
 
     // 6) Inserir auditoria em GatewayVerification
+    console.log("[HANDLER] Inserindo registro de auditoria...");
     await supabase.from("GatewayVerification").insert({
       gatewayConfigId: gatewayConfig.id,
       userId,
@@ -661,6 +772,11 @@ serve(async (req) => {
     console.info(
       `[gateway-config-verify] user=${redact(userId)} provider=${slug} status=${verifyResult.httpStatus} ok=${verifyResult.ok}`,
     );
+
+    console.log(
+      "[HANDLER] ========== Retornando resposta com status 200 ==========",
+    );
+    console.log("[HANDLER] Response body:", JSON.stringify(resp, null, 2));
 
     return new Response(JSON.stringify(resp), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
