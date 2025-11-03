@@ -450,6 +450,24 @@ serve(async (req) => {
     const gatewayConfig = gatewayConfigs[0];
     const gateway = gatewayConfig.Gateway;
 
+    console.log("[PAYMENT] ========== INICIANDO PROCESSAMENTO ==========");
+    console.log("[PAYMENT] Gateway selecionado:", gateway.slug);
+    console.log("[PAYMENT] Gateway nome:", gateway.name);
+    console.log("[PAYMENT] Método de pagamento:", paymentRequest.paymentMethod);
+    console.log("[PAYMENT] Valor:", paymentRequest.amount);
+    console.log(
+      "[PAYMENT] Credenciais presentes:",
+      Object.keys(gatewayConfig.credentials || {}),
+    );
+    console.log(
+      "[PAYMENT] Credenciais tem publicKey?",
+      !!gatewayConfig.credentials?.publicKey,
+    );
+    console.log(
+      "[PAYMENT] Credenciais tem secretKey?",
+      !!gatewayConfig.credentials?.secretKey,
+    );
+
     // Validar se o gateway suporta o método de pagamento solicitado
     const paymentMethodMap = {
       pix: "supportsPix",
@@ -472,7 +490,14 @@ serve(async (req) => {
 
     try {
       // Obter processador do gateway
+      console.log(
+        "[PAYMENT] Obtendo processor do registry para:",
+        gateway.slug,
+      );
       const gatewayProcessor = getGateway(gateway.slug);
+
+      console.log("[PAYMENT] Processor encontrado?", !!gatewayProcessor);
+      console.log("[PAYMENT] Processor name:", gatewayProcessor?.name);
 
       if (!gatewayProcessor) {
         // Fallback para gateways legados
@@ -517,6 +542,16 @@ serve(async (req) => {
         // Usar o gateway modular do registry
         console.info(`Using modular gateway processor for ${gateway.slug}`);
 
+        console.log("[PAYMENT] Montando request para gateway modular...");
+        console.log("[PAYMENT] GatewayConfig credentials:", {
+          hasPublicKey: !!gatewayConfig.credentials?.publicKey,
+          hasSecretKey: !!gatewayConfig.credentials?.secretKey,
+          publicKeyStart: gatewayConfig.credentials?.publicKey?.substring(
+            0,
+            10,
+          ),
+        });
+
         // Mapear paymentMethod do request para o enum do gateway
         const gatewayPaymentMethodMap: Record<string, GatewayPaymentMethod> = {
           credit_card: "CREDIT_CARD" as GatewayPaymentMethod,
@@ -538,6 +573,14 @@ serve(async (req) => {
           installments: (paymentRequest as any).installments,
         };
 
+        console.log("[PAYMENT] Chamando gatewayProcessor.processPayment...");
+        console.log("[PAYMENT] Gateway config:", {
+          gatewayId: gateway.id,
+          userId: paymentRequest.userId,
+          testMode: gatewayConfig.environment !== "production",
+          hasCredentials: !!gatewayConfig.credentials,
+        });
+
         const gatewayResponse = await gatewayProcessor.processPayment(
           gatewayRequest,
           {
@@ -547,6 +590,11 @@ serve(async (req) => {
             testMode: gatewayConfig.environment !== "production",
           },
         );
+
+        console.log("[PAYMENT] Gateway response recebida!");
+        console.log("[PAYMENT] Response success:", gatewayResponse.success);
+        console.log("[PAYMENT] Response status:", gatewayResponse.status);
+        console.log("[PAYMENT] Response message:", gatewayResponse.message);
 
         // Mapear resposta do gateway para formato esperado
         paymentResponse = {
@@ -566,7 +614,13 @@ serve(async (req) => {
         };
       }
     } catch (error: any) {
-      console.error(`Error processing payment via ${gateway.slug}:`, error);
+      console.error(
+        `[PAYMENT] ❌ ERROR processing payment via ${gateway.slug}:`,
+        error,
+      );
+      console.error("[PAYMENT] ❌ Error name:", error?.name);
+      console.error("[PAYMENT] ❌ Error message:", error?.message);
+      console.error("[PAYMENT] ❌ Error stack:", error?.stack);
       paymentResponse = {
         success: false,
         status: "failed",
