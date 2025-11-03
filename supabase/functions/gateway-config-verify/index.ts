@@ -52,7 +52,8 @@ type Json = Record<string, any>;
 // CORS básico
 const corsHeaders: HeadersInit = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -79,7 +80,8 @@ function withTimeout(ms: number): AbortController {
 
 function cleanupTimeout(controller: AbortController) {
   // @ts-ignore
-  if ((controller as any)._timeoutId) clearTimeout((controller as any)._timeoutId);
+  if ((controller as any)._timeoutId)
+    clearTimeout((controller as any)._timeoutId);
 }
 
 function redact(str?: string): string {
@@ -94,9 +96,14 @@ function redact(str?: string): string {
 const stripeAdapter: Adapter = {
   slug: "stripe",
   async verify(credentials, signal) {
-    const secretKey = credentials?.secretKey || credentials?.apiKey || credentials?.SECRET_KEY;
+    const secretKey =
+      credentials?.secretKey || credentials?.apiKey || credentials?.SECRET_KEY;
     if (!secretKey || typeof secretKey !== "string") {
-      return { ok: false, httpStatus: 400, message: "Credenciais Stripe inválidas: secretKey ausente" };
+      return {
+        ok: false,
+        httpStatus: 400,
+        message: "Credenciais Stripe inválidas: secretKey ausente",
+      };
     }
     const res = await fetch("https://api.stripe.com/v1/account", {
       method: "GET",
@@ -104,13 +111,20 @@ const stripeAdapter: Adapter = {
       signal,
     }).catch((e) => {
       if (e.name === "AbortError") {
-        return new Response(null, { status: 408, statusText: "Request Timeout" });
+        return new Response(null, {
+          status: 408,
+          statusText: "Request Timeout",
+        });
       }
       return new Response(null, { status: 500, statusText: "Internal Error" });
     });
 
     if (!res) {
-      return { ok: false, httpStatus: 500, message: "Falha ao conectar ao Stripe" };
+      return {
+        ok: false,
+        httpStatus: 500,
+        message: "Falha ao conectar ao Stripe",
+      };
     }
 
     const httpStatus = res.status;
@@ -151,9 +165,16 @@ const stripeAdapter: Adapter = {
 const mercadopagoAdapter: Adapter = {
   slug: "mercadopago",
   async verify(credentials, signal) {
-    const accessToken = credentials?.accessToken || credentials?.ACCESS_TOKEN || credentials?.token;
+    const accessToken =
+      credentials?.accessToken ||
+      credentials?.ACCESS_TOKEN ||
+      credentials?.token;
     if (!accessToken || typeof accessToken !== "string") {
-      return { ok: false, httpStatus: 400, message: "Credenciais Mercado Pago inválidas: accessToken ausente" };
+      return {
+        ok: false,
+        httpStatus: 400,
+        message: "Credenciais Mercado Pago inválidas: accessToken ausente",
+      };
     }
     const res = await fetch("https://api.mercadopago.com/users/me", {
       method: "GET",
@@ -161,13 +182,20 @@ const mercadopagoAdapter: Adapter = {
       signal,
     }).catch((e) => {
       if (e.name === "AbortError") {
-        return new Response(null, { status: 408, statusText: "Request Timeout" });
+        return new Response(null, {
+          status: 408,
+          statusText: "Request Timeout",
+        });
       }
       return new Response(null, { status: 500, statusText: "Internal Error" });
     });
 
     if (!res) {
-      return { ok: false, httpStatus: 500, message: "Falha ao conectar ao Mercado Pago" };
+      return {
+        ok: false,
+        httpStatus: 500,
+        message: "Falha ao conectar ao Mercado Pago",
+      };
     }
 
     const httpStatus = res.status;
@@ -206,23 +234,35 @@ const mercadopagoAdapter: Adapter = {
 const asaasAdapter: Adapter = {
   slug: "asaas",
   async verify(credentials, signal) {
-    const apiKey = credentials?.apiKey || credentials?.API_KEY || credentials?.access_token;
+    const apiKey =
+      credentials?.apiKey || credentials?.API_KEY || credentials?.access_token;
     if (!apiKey || typeof apiKey !== "string") {
-      return { ok: false, httpStatus: 400, message: "Credenciais Asaas inválidas: apiKey ausente" };
+      return {
+        ok: false,
+        httpStatus: 400,
+        message: "Credenciais Asaas inválidas: apiKey ausente",
+      };
     }
     const res = await fetch("https://www.asaas.com/api/v3/myAccount", {
       method: "GET",
-      headers: { "Content-Type": "application/json", "access_token": apiKey },
+      headers: { "Content-Type": "application/json", access_token: apiKey },
       signal,
     }).catch((e) => {
       if (e.name === "AbortError") {
-        return new Response(null, { status: 408, statusText: "Request Timeout" });
+        return new Response(null, {
+          status: 408,
+          statusText: "Request Timeout",
+        });
       }
       return new Response(null, { status: 500, statusText: "Internal Error" });
     });
 
     if (!res) {
-      return { ok: false, httpStatus: 500, message: "Falha ao conectar ao Asaas" };
+      return {
+        ok: false,
+        httpStatus: 500,
+        message: "Falha ao conectar ao Asaas",
+      };
     }
 
     const httpStatus = res.status;
@@ -257,24 +297,102 @@ const asaasAdapter: Adapter = {
   },
 };
 
+// FusionPay: GET /v1/account (custom headers: X-API-Key, X-API-Secret)
+const fusionpayAdapter: Adapter = {
+  slug: "fusionpay",
+  async verify(credentials, signal) {
+    const apiKey = credentials?.apiKey || credentials?.API_KEY;
+    const secretKey = credentials?.secretKey || credentials?.SECRET_KEY;
+    if (!apiKey || !secretKey) {
+      return {
+        ok: false,
+        httpStatus: 400,
+        message:
+          "Credenciais FusionPay inválidas: apiKey e/ou secretKey ausentes",
+      };
+    }
+
+    // Endpoint de verificação leve (não cria transação)
+    let res: Response | null = null;
+    try {
+      res = await fetch("https://api.fusionpay.com/v1/account", {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          "X-API-Secret": secretKey,
+        },
+        signal,
+      });
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        return { ok: false, httpStatus: 408, message: "FusionPay: timeout" };
+      }
+      return {
+        ok: false,
+        httpStatus: 500,
+        message: "FusionPay: erro de conexão",
+      };
+    }
+
+    if (!res)
+      return {
+        ok: false,
+        httpStatus: 500,
+        message: "FusionPay: resposta vazia",
+      };
+
+    const httpStatus = res.status;
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const capabilities = {
+        credit_card: true,
+        pix: true,
+        boleto: true,
+        wallet: true,
+      };
+      return {
+        ok: true,
+        httpStatus,
+        message: `Conta FusionPay verificada (merchant=${data?.merchant_id ?? "?"})`,
+        capabilities,
+        metadata: {
+          merchant_id: data?.merchant_id,
+          business_name: data?.business_name,
+          country: data?.country,
+        },
+      };
+    }
+
+    const text = await res.text().catch(() => "");
+    return {
+      ok: false,
+      httpStatus,
+      message: `FusionPay rejeitou as credenciais (${httpStatus})`,
+      metadata: { response_excerpt: text.slice(0, 200) },
+    };
+  },
+};
+
 const adapters: Record<string, Adapter> = {
   stripe: stripeAdapter,
+
   "mercado-pago": mercadopagoAdapter,
+
   mercadopago: mercadopagoAdapter,
+
   asaas: asaasAdapter,
+
+  fusionpay: fusionpayAdapter,
 };
 
 // ============ Encryption helper (AES-GCM) ============
 
 async function importAesKeyFromBase64(base64Key: string): Promise<CryptoKey> {
   const raw = Uint8Array.from(atob(base64Key), (c) => c.charCodeAt(0));
-  return await crypto.subtle.importKey(
-    "raw",
-    raw,
-    { name: "AES-GCM" },
-    false,
-    ["encrypt", "decrypt"],
-  );
+  return await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, [
+    "encrypt",
+    "decrypt",
+  ]);
 }
 
 function toBase64(arr: Uint8Array): string {
@@ -287,7 +405,11 @@ async function encryptJsonGCM(keyB64: string, payload: Json): Promise<string> {
   const key = await importAesKeyFromBase64(keyB64);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const data = new TextEncoder().encode(JSON.stringify(payload));
-  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+  const cipher = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data,
+  );
   const out = new Uint8Array(iv.byteLength + cipher.byteLength);
   out.set(iv, 0);
   out.set(new Uint8Array(cipher), iv.byteLength);
@@ -314,16 +436,22 @@ serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       return new Response(
         JSON.stringify({ error: "Missing Supabase environment configuration" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        },
       );
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        },
+      );
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -348,7 +476,7 @@ serve(async (req) => {
       .single();
     const isSuperAdmin = !!userProfile?.isSuperAdmin;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const configId: string | undefined = body?.configId;
     const slugInput: string | undefined = body?.slug;
     const credentials: Json | undefined = body?.credentials;
@@ -367,7 +495,10 @@ serve(async (req) => {
       if (error || !data) {
         return new Response(
           JSON.stringify({ error: "GatewayConfig não encontrada" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 },
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404,
+          },
         );
       }
       gatewayConfig = data;
@@ -380,8 +511,13 @@ serve(async (req) => {
         .single();
       if (!gw) {
         return new Response(
-          JSON.stringify({ error: `Gateway não encontrado para slug=${slugInput}` }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 },
+          JSON.stringify({
+            error: `Gateway não encontrado para slug=${slugInput}`,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404,
+          },
         );
       }
       const { data: cfg } = await supabase
@@ -392,8 +528,13 @@ serve(async (req) => {
         .single();
       if (!cfg) {
         return new Response(
-          JSON.stringify({ error: "GatewayConfig não encontrada para o usuário" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 },
+          JSON.stringify({
+            error: "GatewayConfig não encontrada para o usuário",
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404,
+          },
         );
       }
       gatewayConfig = cfg;
@@ -401,7 +542,10 @@ serve(async (req) => {
     } else {
       return new Response(
         JSON.stringify({ error: "Informe configId ou slug" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        },
       );
     }
 
@@ -422,8 +566,13 @@ serve(async (req) => {
     const adapter = adapters[slug];
     if (!adapter) {
       return new Response(
-        JSON.stringify({ error: `Verificação não implementada para '${slug}'` }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 422 },
+        JSON.stringify({
+          error: `Verificação não implementada para '${slug}'`,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 422,
+        },
       );
     }
 
