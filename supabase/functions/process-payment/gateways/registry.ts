@@ -60,7 +60,7 @@ import { FlowspayGateway } from "./flowspay/index.ts";
 import { FlyPaymentsGateway } from "./fly-payments/index.ts";
 import { FortrexGateway } from "./fortrex/index.ts";
 import { FreePayGateway } from "./freepay/index.ts";
-import { FusionPayGateway } from "./fusionpay/index.ts";
+import { PagueXGateway } from "./paguex/index.ts";
 import { SafetyPayGateway } from "./safetypay/index.ts";
 
 /**
@@ -237,8 +237,8 @@ export const gatewayRegistry: GatewayRegistry = {
   // FreePay
   freepay: new FreePayGateway(),
 
-  // FusionPay
-  fusionpay: new FusionPayGateway(),
+  // Pague-X (inpagamentos.com)
+  paguex: new PagueXGateway(),
 };
 
 /**
@@ -439,7 +439,7 @@ export function getGatewaysByCategory(
       "fly-payments",
       "fortrex",
       "freepay",
-      "fusionpay",
+      "paguex",
     ],
     wallet: [
       "picpay",
@@ -458,7 +458,7 @@ export function getGatewaysByCategory(
       "aston-pay",
       "atlas-pay",
       "fast-pay",
-      "fusionpay",
+      "paguex",
     ],
   };
 
