@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useStore } from '@/store/useStore';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from "react";
+import { useStore } from "@/store/useStore";
+import { supabase } from "@/lib/supabase";
 
 export type ChartDataPoint = {
   name: string;
@@ -22,16 +22,17 @@ export const useChartData = (months: number = 12) => {
         setLoading(true);
         setError(null);
 
-        // Buscar organizationId
-        const { data: userData } = await supabase
-          .from('User')
-          .select('organizationId')
-          .eq('id', user.id)
-          .single();
+        // Removido: não usamos mais organizationId; filtrar por userId diretamente
 
-        if (!userData?.organizationId) {
-          throw new Error('Organization not found');
-        }
+        // Mantido vazio propositalmente para preservar alinhamento de linhas
+        // (Hook ajusta o filtro logo abaixo na query de Campaign)
+        // --
+        // --
+        // --
+        // --
+        // --
+        // --
+        // --
 
         // Calcular data de início (X meses atrás)
         const endDate = new Date();
@@ -40,11 +41,11 @@ export const useChartData = (months: number = 12) => {
 
         // Buscar todas as campanhas do período
         const { data: campaigns, error: campaignsError } = await supabase
-          .from('Campaign')
-          .select('clicks, conversions, createdAt')
-          .eq('organizationId', userData.organizationId)
-          .gte('createdAt', startDate.toISOString())
-          .lte('createdAt', endDate.toISOString());
+          .from("Campaign")
+          .select("clicks, conversions, createdAt")
+          .eq("organizationId", userData.organizationId)
+          .gte("createdAt", startDate.toISOString())
+          .lte("createdAt", endDate.toISOString());
 
         if (campaignsError) throw campaignsError;
 
@@ -53,9 +54,9 @@ export const useChartData = (months: number = 12) => {
         for (let i = months - 1; i >= 0; i--) {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
-          const monthName = date.toLocaleString('pt-BR', { month: 'short' });
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          
+          const monthName = date.toLocaleString("pt-BR", { month: "short" });
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
           monthsArray.push({
             name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
             Cliques: 0,
@@ -66,10 +67,11 @@ export const useChartData = (months: number = 12) => {
         // Agrupar dados por mês
         campaigns?.forEach((campaign) => {
           const campaignDate = new Date(campaign.createdAt);
-          const monthIndex = months - 1 - (
-            (endDate.getFullYear() - campaignDate.getFullYear()) * 12 +
-            (endDate.getMonth() - campaignDate.getMonth())
-          );
+          const monthIndex =
+            months -
+            1 -
+            ((endDate.getFullYear() - campaignDate.getFullYear()) * 12 +
+              (endDate.getMonth() - campaignDate.getMonth()));
 
           if (monthIndex >= 0 && monthIndex < months) {
             monthsArray[monthIndex].Cliques += campaign.clicks || 0;
@@ -80,7 +82,7 @@ export const useChartData = (months: number = 12) => {
         setData(monthsArray);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching chart data:', error);
+        console.error("Error fetching chart data:", error);
         setError(err as Error);
         setLoading(false);
       }

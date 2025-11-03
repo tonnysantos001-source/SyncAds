@@ -5,10 +5,10 @@
 // Integra com toast notifications
 // ============================================
 
-import { useToast } from '@/components/ui/use-toast';
-import { useCallback } from 'react';
-import { handleError, AppError, withRetry, RetryOptions } from '@/lib/errors';
-import { useAuthStore } from '@/store/authStore'; // ✅ CORRIGIDO: store (singular)
+import { useToast } from "@/components/ui/use-toast";
+import { useCallback } from "react";
+import { handleError, AppError, withRetry, RetryOptions } from "@/lib/errors";
+import { useAuthStore } from "@/store/authStore"; // ✅ CORRIGIDO: store (singular)
 
 export function useErrorHandler() {
   const { toast } = useToast();
@@ -22,60 +22,62 @@ export function useErrorHandler() {
       });
 
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: customMessage || parsedError.userMessage,
-        variant: 'destructive',
+        variant: "destructive",
       });
 
       return parsedError;
     },
-    [toast, user, organization]
+    [toast, user, organization],
   );
 
   const showSuccess = useCallback(
     (message: string) => {
       toast({
-        title: 'Sucesso',
+        title: "Sucesso",
         description: message,
       });
     },
-    [toast]
+    [toast],
   );
 
   const showWarning = useCallback(
     (message: string) => {
       toast({
-        title: 'Atenção',
+        title: "Atenção",
         description: message,
-        variant: 'default',
+        variant: "default",
       });
     },
-    [toast]
+    [toast],
   );
 
   const showInfo = useCallback(
     (message: string) => {
       toast({
-        title: 'Informação',
+        title: "Informação",
         description: message,
       });
     },
-    [toast]
+    [toast],
   );
 
   // Execute com tratamento de erro automático
   const executeWithErrorHandling = useCallback(
-    async <T,>(
+    async <T>(
       fn: () => Promise<T>,
       options?: {
         successMessage?: string;
         errorMessage?: string;
         retry?: RetryOptions;
-      }
+      },
     ): Promise<T | null> => {
       try {
-        const executeFn = options?.retry ? () => withRetry(fn, options.retry) : fn;
-        
+        const executeFn = options?.retry
+          ? () => withRetry(fn, options.retry)
+          : fn;
+
         const result = await executeFn();
 
         if (options?.successMessage) {
@@ -88,7 +90,7 @@ export function useErrorHandler() {
         return null;
       }
     },
-    [showError, showSuccess]
+    [showError, showSuccess],
   );
 
   return {
@@ -99,4 +101,3 @@ export function useErrorHandler() {
     executeWithErrorHandling,
   };
 }
-

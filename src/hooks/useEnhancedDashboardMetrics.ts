@@ -24,7 +24,7 @@ export type DashboardMetrics = {
     change: string;
     changeType: 'increase' | 'decrease';
   };
-  
+
   // Checkout Metrics
   totalOrders: {
     value: number;
@@ -44,7 +44,7 @@ export type DashboardMetrics = {
     value: number;
     change: string;
   };
-  
+
   // Customer Metrics
   totalCustomers: {
     value: number;
@@ -56,7 +56,7 @@ export type DashboardMetrics = {
     change: string;
     changeType: 'increase' | 'decrease';
   };
-  
+
   loading: boolean;
   error: Error | null;
 };
@@ -81,37 +81,19 @@ export const useEnhancedDashboardMetrics = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const fetchMetrics = async () => {
-      try {
+
         console.log('🔍 [Dashboard Metrics] Iniciando carregamento...');
+
         console.log('🔍 [Dashboard Metrics] User ID:', user?.id);
-        console.log('🔍 [Dashboard Metrics] User organizationId:', user?.organizationId);
-        
+
+        console.log('🔍 [Dashboard Metrics] Filtering by userId:', user?.id);
+
         setMetrics(prev => ({ ...prev, loading: true, error: null }));
 
-        // Usar organizationId do user diretamente se disponível
-        let orgId = user?.organizationId;
-        
-        if (!orgId) {
-          console.error('❌ [Dashboard Metrics] organizationId não encontrado no user');
-          
-          // Tentar buscar do banco
-          const { data: userData } = await supabase
-            .from('User')
-            .select('organizationId')
-            .eq('id', user.id)
-            .single();
 
-          if (!userData?.organizationId) {
-            console.error('❌ [Dashboard Metrics] organizationId não encontrado no banco também');
-            throw new Error('Organization not found');
-          }
-          
-          console.log('✅ [Dashboard Metrics] organizationId encontrado no banco:', userData.organizationId);
-          orgId = userData.organizationId;
-        } else {
-          console.log('✅ [Dashboard Metrics] Usando organizationId do user:', orgId);
-        }
+
+        const userId = user.id;
+
 
         // Buscar dados do mês atual e anterior
         const currentMonth = new Date();
@@ -119,8 +101,10 @@ export const useEnhancedDashboardMetrics = () => {
         const firstDayPreviousMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
         const lastDayPreviousMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
 
-        console.log('🔍 [Dashboard Metrics] Buscando dados para orgId:', orgId);
-        
+
+        console.log('🔍 [Dashboard Metrics] Buscando dados para userId:', userId);
+
+
         // Buscar dados em paralelo
         const [
           currentCampaigns,
@@ -133,77 +117,139 @@ export const useEnhancedDashboardMetrics = () => {
           previousCustomers,
           currentProducts,
           previousProducts,
-        ] = await Promise.all([
-          // Campanhas
-          supabase
-            .from('Campaign')
-            .select('clicks, conversions, budgetSpent, revenue')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayCurrentMonth.toISOString()),
-          
-          supabase
-            .from('Campaign')
-            .select('clicks, conversions, budgetSpent, revenue')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayPreviousMonth.toISOString())
-            .lte('createdAt', lastDayPreviousMonth.toISOString()),
-          
-          // Pedidos
-          supabase
-            .from('Order')
-            .select('total, status')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayCurrentMonth.toISOString()),
-          
-          supabase
-            .from('Order')
-            .select('total, status')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayPreviousMonth.toISOString())
-            .lte('createdAt', lastDayPreviousMonth.toISOString()),
-          
-          // Transações
-          supabase
-            .from('Transaction')
-            .select('amount, status, paymentMethod')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayCurrentMonth.toISOString()),
-          
-          supabase
-            .from('Transaction')
-            .select('amount, status, paymentMethod')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayPreviousMonth.toISOString())
-            .lte('createdAt', lastDayPreviousMonth.toISOString()),
-          
-          // Clientes
-          supabase
-            .from('Customer')
-            .select('id')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayCurrentMonth.toISOString()),
-          
-          supabase
-            .from('Customer')
-            .select('id')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayPreviousMonth.toISOString())
-            .lte('createdAt', lastDayPreviousMonth.toISOString()),
-          
-          // Produtos
-          supabase
-            .from('Product')
-            .select('id')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayCurrentMonth.toISOString()),
-          
-          supabase
-            .from('Product')
-            .select('id')
-            .eq('organizationId', orgId)
-            .gte('createdAt', firstDayPreviousMonth.toISOString())
-            .lte('createdAt', lastDayPreviousMonth.toISOString()),
-        ]);
+
+                ] = await Promise.all([
+
+                  // Campanhas
+
+                  supabase
+
+                    .from('Campaign')
+
+                    .select('clicks, conversions, budgetSpent, revenue')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayCurrentMonth.toISOString()),
+
+
+
+                  supabase
+
+                    .from('Campaign')
+
+                    .select('clicks, conversions, budgetSpent, revenue')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayPreviousMonth.toISOString())
+
+                    .lte('createdAt', lastDayPreviousMonth.toISOString()),
+
+
+
+                  // Pedidos
+
+                  supabase
+
+                    .from('Order')
+
+                    .select('total, status')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayCurrentMonth.toISOString()),
+
+
+
+                  supabase
+
+                    .from('Order')
+
+                    .select('total, status')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayPreviousMonth.toISOString())
+
+                    .lte('createdAt', lastDayPreviousMonth.toISOString()),
+
+
+
+                  // Transações
+
+                  supabase
+
+                    .from('Transaction')
+
+                    .select('amount, status, paymentMethod')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayCurrentMonth.toISOString()),
+
+
+
+                  supabase
+
+                    .from('Transaction')
+
+                    .select('amount, status, paymentMethod')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayPreviousMonth.toISOString())
+
+                    .lte('createdAt', lastDayPreviousMonth.toISOString()),
+
+
+
+                  // Clientes
+
+                  supabase
+
+                    .from('Customer')
+
+                    .select('id')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayCurrentMonth.toISOString()),
+
+
+
+                  supabase
+
+                    .from('Customer')
+
+                    .select('id')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayPreviousMonth.toISOString())
+
+                    .lte('createdAt', lastDayPreviousMonth.toISOString()),
+
+
+
+                  // Produtos
+
+                  supabase
+
+                    .from('Product')
+
+                    .select('id')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayCurrentMonth.toISOString()),
+
+
+
+                  supabase
+
+                    .from('Product')
+
+                    .select('id')
+
+                    .eq('userId', userId)
+                    .gte('createdAt', firstDayPreviousMonth.toISOString())
+
+                    .lte('createdAt', lastDayPreviousMonth.toISOString()),
+
+                ]);
+
 
         // Verificar erros nas queries
         console.log('🔍 [Dashboard Metrics] Resultados recebidos:');
@@ -242,7 +288,7 @@ export const useEnhancedDashboardMetrics = () => {
         const pendingTransactions = currentTransactions.data?.filter(t => t.status === 'PENDING').reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
         const paidTransactions = currentTransactions.data?.filter(t => t.status === 'PAID').length || 0;
         const recoveryRate = totalTransactions > 0 ? (paidTransactions / totalTransactions) * 100 : 0;
-        
+
         const prevTotalTransactions = previousTransactions.data?.length || 0;
         const prevPaidTransactions = previousTransactions.data?.filter(t => t.status === 'PAID').length || 0;
         const prevRecoveryRate = prevTotalTransactions > 0 ? (prevPaidTransactions / prevTotalTransactions) * 100 : 0;
@@ -281,7 +327,7 @@ export const useEnhancedDashboardMetrics = () => {
         const transactionsChange = calculateChange(totalTransactions, prevTotalTransactions);
         const customersChange = calculateChange(totalCustomers, prevTotalCustomers);
         const productsChange = calculateChange(totalProducts, prevTotalProducts);
-        
+
         const recoveryChange = calculateChange(recoveryRate, prevRecoveryRate);
 
         setMetrics({
