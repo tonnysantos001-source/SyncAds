@@ -307,8 +307,19 @@ const paguexAdapter: Adapter = {
       Object.keys(credentials || {}),
     );
 
-    const publicKey = credentials?.publicKey || credentials?.PUBLIC_KEY;
-    const secretKey = credentials?.secretKey || credentials?.SECRET_KEY;
+    // Aceitar múltiplos formatos de credenciais
+    const publicKey =
+      credentials?.publicKey ||
+      credentials?.PUBLIC_KEY ||
+      credentials?.public_key ||
+      credentials?.apiKey ||
+      credentials?.API_KEY;
+    const secretKey =
+      credentials?.secretKey ||
+      credentials?.SECRET_KEY ||
+      credentials?.secret_key ||
+      credentials?.apiSecret ||
+      credentials?.API_SECRET;
 
     console.log("[PagueX] PublicKey presente:", !!publicKey);
     console.log(
@@ -319,11 +330,19 @@ const paguexAdapter: Adapter = {
 
     if (!publicKey || !secretKey) {
       console.log("[PagueX] ❌ Credenciais ausentes!");
+      console.log(
+        "[PagueX] ❌ Credentials object completo:",
+        JSON.stringify(credentials),
+      );
+      console.log(
+        "[PagueX] ❌ Todas as keys disponíveis:",
+        Object.keys(credentials || {}).join(", "),
+      );
       return {
         ok: false,
         httpStatus: 400,
         message:
-          "Credenciais Pague-X inválidas: publicKey e/ou secretKey ausentes",
+          "Credenciais Pague-X inválidas: publicKey e/ou secretKey ausentes. Verifique se preencheu ambos os campos.",
       };
     }
 
