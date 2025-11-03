@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo "════════════════════════════════════════════════════════"
+echo "  INSTRUÇÕES PARA EXECUTAR SQL NO SUPABASE"
+echo "════════════════════════════════════════════════════════"
+echo ""
+echo "1. Abra este link no navegador:"
+echo ""
+echo "   https://supabase.com/dashboard/project/ovskepqggmxlfckxqgbr/sql/new"
+echo ""
+echo "2. Cole TODO o conteúdo do arquivo: EXECUTAR_NO_SUPABASE_SQL.sql"
+echo ""
+echo "3. Clique no botão 'RUN' (ou pressione Ctrl+Enter)"
+echo ""
+echo "4. Aguarde a mensagem:"
+echo "   ✅ PAGUE-X CONFIGURADO COM SUCESSO!"
+echo ""
+echo "════════════════════════════════════════════════════════"
+echo ""
+echo "Conteúdo do SQL (copie tudo abaixo):"
+echo "════════════════════════════════════════════════════════"
+echo ""
+cat EXECUTAR_NO_SUPABASE_SQL.sql

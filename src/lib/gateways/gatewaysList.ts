@@ -1777,31 +1777,32 @@ export const gatewaysList: GatewayConfig[] = [
     testMode: true,
   },
 
-  // 53. FUSIONPAY
+  // 53. PAGUE-X
   {
-    id: "fusionpay",
-    name: "FusionPay",
-    slug: "fusionpay",
+    id: "paguex",
+    name: "Pague-X",
+    slug: "paguex",
     logo: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
     type: "both",
     status: "active",
-    description: "Fusão de métodos de pagamento",
-    features: ["Pix", "Cartão", "Boleto", "Crypto", "Wire Transfer"],
-    paymentMethods: ["credit_card", "debit_card", "pix", "boleto", "wallet"],
+    description:
+      "Gateway de pagamento Pague-X (inpagamentos.com) - PIX, Cartão e Boleto",
+    features: ["Pix", "Cartão de Crédito", "Cartão de Débito", "Boleto"],
+    paymentMethods: ["credit_card", "debit_card", "pix", "boleto"],
     configFields: [
       {
-        name: "apiKey",
-        label: "API Key",
-        type: "password",
+        name: "publicKey",
+        label: "Chave Pública (Public Key)",
+        type: "text",
         required: true,
-        placeholder: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        placeholder: "Sua chave pública da inpagamentos.com",
       },
       {
         name: "secretKey",
-        label: "Secret Key",
+        label: "Chave Secreta (Secret Key)",
         type: "password",
         required: true,
-        placeholder: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        placeholder: "Sua chave secreta da inpagamentos.com",
       },
       {
         name: "environment",
@@ -1814,7 +1815,7 @@ export const gatewaysList: GatewayConfig[] = [
         ],
       },
     ],
-    apiDocs: "https://fusionpay.io/api",
+    apiDocs: "https://app.inpagamentos.com/docs/intro/first-steps",
     testMode: true,
   },
 ];
