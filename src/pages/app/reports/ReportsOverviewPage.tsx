@@ -64,7 +64,7 @@ interface OnlineUser {
   device: "desktop" | "mobile";
 }
 
-const UnifiedDashboardPage: React.FC = () => {
+const ReportsOverviewPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
 
   // Estados
@@ -752,4 +752,4 @@ const UnifiedDashboardPage: React.FC = () => {
   );
 };
 
-export default UnifiedDashboardPage;
+export default ReportsOverviewPage;
