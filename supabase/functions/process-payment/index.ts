@@ -22,6 +22,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
+import { gatewayRegistry, getGateway } from "./gateways/registry.ts";
+import type { PaymentMethod as GatewayPaymentMethod } from "./gateways/types.ts";
 
 // ===== INTERFACES =====
 
@@ -59,11 +61,23 @@ interface PaymentResponse {
   success: boolean;
   transactionId?: string;
   gatewayTransactionId?: string;
-  status: "pending" | "approved" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "approved"
+    | "failed"
+    | "cancelled"
+    | "processing"
+    | "refunded"
+    | "expired";
   paymentUrl?: string; // Para PIX/Boleto
   qrCode?: string; // Para PIX
+  qrCodeBase64?: string;
+  barcodeNumber?: string;
+  digitableLine?: string;
+  expiresAt?: string;
   message: string;
   error?: string;
+  errorCode?: string;
 }
 
 // ===== STRIPE INTEGRATION =====
@@ -453,45 +467,113 @@ serve(async (req) => {
 
     console.info(`Processing payment via ${gateway.slug}`);
 
-    // Processar pagamento de acordo com o gateway
+    // Processar pagamento usando o gateway registry
     let paymentResponse: PaymentResponse;
 
-    switch (gateway.slug) {
-      case "stripe":
-        paymentResponse = await processStripePayment(
-          paymentRequest,
-          gatewayConfig,
+    try {
+      // Obter processador do gateway
+      const gatewayProcessor = getGateway(gateway.slug);
+
+      if (!gatewayProcessor) {
+        // Fallback para gateways legados
+        switch (gateway.slug) {
+          case "stripe":
+            paymentResponse = await processStripePayment(
+              paymentRequest,
+              gatewayConfig,
+            );
+            break;
+          case "mercado-pago":
+          case "mercadopago":
+            paymentResponse = await processMercadoPagoPayment(
+              paymentRequest,
+              gatewayConfig,
+            );
+            break;
+          case "pagseguro":
+            paymentResponse = await processPagSeguroPayment(
+              paymentRequest,
+              gatewayConfig,
+            );
+            break;
+          case "paypal":
+            paymentResponse = await processPayPalPayment(
+              paymentRequest,
+              gatewayConfig,
+            );
+            break;
+          case "asaas":
+            paymentResponse = await processAsaasPayment(
+              paymentRequest,
+              gatewayConfig,
+            );
+            break;
+          default:
+            throw new Error(
+              `Gateway ${gateway.slug} (${gateway.name}) not found in registry`,
+            );
+        }
+      } else {
+        // Usar o gateway modular do registry
+        console.info(`Using modular gateway processor for ${gateway.slug}`);
+
+        // Mapear paymentMethod do request para o enum do gateway
+        const gatewayPaymentMethodMap: Record<string, GatewayPaymentMethod> = {
+          credit_card: "CREDIT_CARD" as GatewayPaymentMethod,
+          debit_card: "DEBIT_CARD" as GatewayPaymentMethod,
+          pix: "PIX" as GatewayPaymentMethod,
+          boleto: "BOLETO" as GatewayPaymentMethod,
+          paypal: "PAYPAL" as GatewayPaymentMethod,
+        };
+
+        const gatewayRequest = {
+          userId: paymentRequest.userId,
+          orderId: paymentRequest.orderId,
+          amount: paymentRequest.amount,
+          currency: paymentRequest.currency || "BRL",
+          paymentMethod: gatewayPaymentMethodMap[paymentRequest.paymentMethod],
+          customer: paymentRequest.customer,
+          card: paymentRequest.card,
+          billingAddress: paymentRequest.billingAddress,
+          installments: (paymentRequest as any).installments,
+        };
+
+        const gatewayResponse = await gatewayProcessor.processPayment(
+          gatewayRequest,
+          {
+            gatewayId: gateway.id,
+            userId: paymentRequest.userId,
+            credentials: gatewayConfig.credentials,
+            testMode: gatewayConfig.environment !== "production",
+          },
         );
-        break;
-      case "mercado-pago":
-      case "mercadopago":
-        paymentResponse = await processMercadoPagoPayment(
-          paymentRequest,
-          gatewayConfig,
-        );
-        break;
-      case "pagseguro":
-        paymentResponse = await processPagSeguroPayment(
-          paymentRequest,
-          gatewayConfig,
-        );
-        break;
-      case "paypal":
-        paymentResponse = await processPayPalPayment(
-          paymentRequest,
-          gatewayConfig,
-        );
-        break;
-      case "asaas":
-        paymentResponse = await processAsaasPayment(
-          paymentRequest,
-          gatewayConfig,
-        );
-        break;
-      default:
-        throw new Error(
-          `Unsupported gateway: ${gateway.slug} (${gateway.name})`,
-        );
+
+        // Mapear resposta do gateway para formato esperado
+        paymentResponse = {
+          success: gatewayResponse.success,
+          transactionId: gatewayResponse.transactionId,
+          gatewayTransactionId: gatewayResponse.gatewayTransactionId,
+          status: (gatewayResponse.status?.toLowerCase() as any) || "pending",
+          paymentUrl: gatewayResponse.paymentUrl,
+          qrCode: gatewayResponse.qrCode,
+          qrCodeBase64: gatewayResponse.qrCodeBase64,
+          barcodeNumber: gatewayResponse.barcodeNumber,
+          digitableLine: gatewayResponse.digitableLine,
+          expiresAt: gatewayResponse.expiresAt,
+          message: gatewayResponse.message,
+          error: gatewayResponse.error,
+          errorCode: gatewayResponse.errorCode,
+        };
+      }
+    } catch (error: any) {
+      console.error(`Error processing payment via ${gateway.slug}:`, error);
+      paymentResponse = {
+        success: false,
+        status: "failed",
+        message: error.message || "Payment processing failed",
+        error: error.toString(),
+        errorCode: error.code || error.errorCode,
+      };
     }
 
     // Salvar transação no banco

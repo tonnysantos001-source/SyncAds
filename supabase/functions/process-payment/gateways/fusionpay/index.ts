@@ -24,7 +24,7 @@ export class FusionPayGateway extends BaseGateway {
     PaymentMethod.DEBIT_CARD,
     PaymentMethod.PIX,
     PaymentMethod.BOLETO,
-    PaymentMethod.WALLET
+    PaymentMethod.WALLET,
   ];
 
   endpoints: GatewayEndpoints = {
@@ -33,7 +33,7 @@ export class FusionPayGateway extends BaseGateway {
   };
 
   async validateCredentials(
-    credentials: GatewayCredentials
+    credentials: GatewayCredentials,
   ): Promise<CredentialValidationResult> {
     try {
       if (!credentials.apiKey) {
@@ -56,14 +56,15 @@ export class FusionPayGateway extends BaseGateway {
       }
 
       // Teste básico de conexão
-      const endpoint = credentials.environment === "sandbox"
-        ? this.endpoints.sandbox
-        : this.endpoints.production;
+      const endpoint =
+        credentials.environment === "sandbox"
+          ? this.endpoints.sandbox
+          : this.endpoints.production;
 
       const response = await fetch(`${endpoint}/health`, {
         method: "GET",
         headers: {
-          "X-API-Key": config.credentials.apiKey,
+          "X-API-Key": credentials.apiKey,
           "Content-Type": "application/json",
         },
       });
@@ -87,10 +88,7 @@ export class FusionPayGateway extends BaseGateway {
     }
   }
 
-  async processPayment(
-    request,
-    config
-  ) {
+  async processPayment(request, config) {
     try {
       this.validatePaymentRequest(request);
 
@@ -116,10 +114,11 @@ export class FusionPayGateway extends BaseGateway {
       };
 
       // Adicionar dados de cartão se necessário
-      if (request.card && (
-        request.paymentMethod === PaymentMethod.CREDIT_CARD ||
-        request.paymentMethod === PaymentMethod.DEBIT_CARD
-      )) {
+      if (
+        request.card &&
+        (request.paymentMethod === PaymentMethod.CREDIT_CARD ||
+          request.paymentMethod === PaymentMethod.DEBIT_CARD)
+      ) {
         Object.assign(payload, {
           card: {
             number: request.card.number.replace(/\s/g, ""),
@@ -154,14 +153,14 @@ export class FusionPayGateway extends BaseGateway {
         message: response.message || "Payment processed successfully",
       });
     } catch (error) {
-      return this.createErrorResponse(error, "Failed to process FusionPay payment");
+      return this.createErrorResponse(
+        error,
+        "Failed to process FusionPay payment",
+      );
     }
   }
 
-  async handleWebhook(
-    payload,
-    signature
-  ) {
+  async handleWebhook(payload, signature) {
     try {
       const transactionId = payload.transaction_id || payload.id;
       const status = payload.status;
@@ -187,10 +186,7 @@ export class FusionPayGateway extends BaseGateway {
     }
   }
 
-  async getPaymentStatus(
-    gatewayTransactionId,
-    config
-  ) {
+  async getPaymentStatus(gatewayTransactionId, config) {
     try {
       const endpoint = this.getEndpoint(config);
 
@@ -202,7 +198,7 @@ export class FusionPayGateway extends BaseGateway {
             "X-API-Key": config.credentials.apiKey,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return {
@@ -223,19 +219,19 @@ export class FusionPayGateway extends BaseGateway {
 
   protected normalizeStatus(gatewayStatus) {
     const statusMap = {
-      "pending": PaymentStatus.PENDING,
-      "processing": PaymentStatus.PROCESSING,
-      "paid": PaymentStatus.APPROVED,
-      "approved": PaymentStatus.APPROVED,
-      "completed": PaymentStatus.APPROVED,
-      "success": PaymentStatus.APPROVED,
-      "failed": PaymentStatus.FAILED,
-      "declined": PaymentStatus.FAILED,
-      "error": PaymentStatus.FAILED,
-      "cancelled": PaymentStatus.CANCELLED,
-      "canceled": PaymentStatus.CANCELLED,
-      "refunded": PaymentStatus.REFUNDED,
-      "expired": PaymentStatus.EXPIRED,
+      pending: PaymentStatus.PENDING,
+      processing: PaymentStatus.PROCESSING,
+      paid: PaymentStatus.APPROVED,
+      approved: PaymentStatus.APPROVED,
+      completed: PaymentStatus.APPROVED,
+      success: PaymentStatus.APPROVED,
+      failed: PaymentStatus.FAILED,
+      declined: PaymentStatus.FAILED,
+      error: PaymentStatus.FAILED,
+      cancelled: PaymentStatus.CANCELLED,
+      canceled: PaymentStatus.CANCELLED,
+      refunded: PaymentStatus.REFUNDED,
+      expired: PaymentStatus.EXPIRED,
     };
 
     return statusMap[gatewayStatus?.toLowerCase()] || PaymentStatus.PENDING;
