@@ -301,9 +301,9 @@ const GatewaysPage = () => {
     try {
       if (!user?.organizationId || !selectedGateway) return;
 
-      const existingConfig = configs.find(
-        (c) => c.gatewayId === selectedGateway.id,
-      );
+      const gwId = selectedGateway.id;
+      const existingConfig = configs.find((c) => c.gatewayId === gwId);
+
       const credentials = {
         apiKey: configForm.apiKey,
         secretKey: configForm.secretKey,

@@ -1,24 +1,27 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, ExternalLink, HelpCircle, Loader2 } from 'lucide-react';
-import { getGatewayBySlug, GatewayConfig as GatewayConfigType } from '@/lib/gateways/gatewaysList';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/authStore';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, ExternalLink, HelpCircle, Loader2 } from "lucide-react";
+import {
+  getGatewayBySlug,
+  GatewayConfig as GatewayConfigType,
+} from "@/lib/gateways/gatewaysList";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/store/authStore";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const GatewayConfigPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -46,32 +49,44 @@ const GatewayConfigPage = () => {
       const gatewayConfig = getGatewayBySlug(slug!);
       if (!gatewayConfig) {
         toast({
-          title: 'Gateway não encontrado',
-          description: 'O gateway solicitado não existe.',
-          variant: 'destructive',
+          title: "Gateway não encontrado",
+          description: "O gateway solicitado não existe.",
+          variant: "destructive",
         });
-        navigate('/checkout/gateways');
+        navigate("/checkout/gateways");
         return;
       }
 
       setGateway(gatewayConfig);
 
       // Load saved configuration from database
+
       if (user?.id) {
-        const { data, error } = await supabase
-          .from('GatewayConfig')
-          .select('*')
-          .eq('userId', user.id)
-          .eq('gateway', gatewayConfig.slug)
+        const { data: dbGateway } = await supabase
+
+          .from("Gateway")
+          .select("id")
+          .eq("slug", gatewayConfig.slug)
           .single();
 
-        if (!error && data) {
-          setIsActive(data.isActive || false);
-          setFormData(data.credentials || {});
+        if (dbGateway?.id) {
+          const { data, error } = await supabase
+            .from("GatewayConfig")
+            .select("*")
+            .eq("userId", user.id)
+
+            .eq("gatewayId", dbGateway.id)
+            .single();
+
+          if (!error && data) {
+            setIsActive(data.isActive || false);
+
+            setFormData(data.credentials || {});
+          }
         }
       }
     } catch (error) {
-      console.error('Error loading gateway:', error);
+      console.error("Error loading gateway:", error);
     } finally {
       setLoading(false);
     }
@@ -90,58 +105,81 @@ const GatewayConfigPage = () => {
 
       if (missingFields.length > 0) {
         toast({
-          title: 'Campos obrigatórios',
-          description: `Preencha os campos: ${missingFields.join(', ')}`,
-          variant: 'destructive',
+          title: "Campos obrigatórios",
+          description: `Preencha os campos: ${missingFields.join(", ")}`,
+          variant: "destructive",
         });
         return;
       }
 
-      // Check if config already exists
+      // Map slug -> gatewayId from DB
+      const { data: dbGateway, error: gwErr } = await supabase
+        .from("Gateway")
+        .select("id, slug, name")
+        .eq("slug", gateway.slug)
+        .single();
+
+      if (gwErr || !dbGateway?.id) {
+        throw gwErr || new Error("Gateway não encontrado no banco");
+      }
+
       const { data: existingConfig } = await supabase
-        .from('GatewayConfig')
-        .select('id')
-        .eq('userId', user.id)
-        .eq('gateway', gateway.slug)
+
+        .from("GatewayConfig")
+
+        .select("id")
+
+        .eq("userId", user.id)
+
+        .eq("gatewayId", dbGateway.id)
         .single();
 
       if (existingConfig) {
         // Update existing config
         const { error } = await supabase
-          .from('GatewayConfig')
+          .from("GatewayConfig")
           .update({
             credentials: formData,
             isActive: isActive,
             updatedAt: new Date().toISOString(),
           })
-          .eq('id', existingConfig.id);
-
-        if (error) throw error;
+          .eq("id", existingConfig.id);
       } else {
         // Create new config
-        const { error } = await supabase.from('GatewayConfig').insert({
+
+        const { data: anyConfig } = await supabase
+          .from("GatewayConfig")
+          .select("id")
+          .eq("userId", user.id)
+          .limit(1);
+
+        const { error } = await supabase.from("GatewayConfig").insert({
           userId: user.id,
-          gateway: gateway.slug,
-          name: gateway.name,
+
+          gatewayId: dbGateway.id,
+
           credentials: formData,
+
           isActive: isActive,
+
+          isDefault: !anyConfig || anyConfig.length === 0,
         });
 
         if (error) throw error;
       }
 
       toast({
-        title: 'Configuração salva!',
+        title: "Configuração salva!",
         description: `Gateway ${gateway.name} foi configurado com sucesso.`,
       });
 
-      navigate('/checkout/gateways');
+      navigate("/checkout/gateways");
     } catch (error) {
-      console.error('Error saving gateway config:', error);
+      console.error("Error saving gateway config:", error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar a configuração.',
-        variant: 'destructive',
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar a configuração.",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -171,7 +209,7 @@ const GatewayConfigPage = () => {
     <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
       {/* Back Button */}
       <button
-        onClick={() => navigate('/checkout/gateways')}
+        onClick={() => navigate("/checkout/gateways")}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -188,7 +226,9 @@ const GatewayConfigPage = () => {
           />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{gateway.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {gateway.name}
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Integre sua loja ao gateway {gateway.name}.
           </p>
@@ -207,38 +247,47 @@ const GatewayConfigPage = () => {
               {gateway.configFields.map((field) => (
                 <div key={field.name} className="space-y-2">
                   <Label htmlFor={field.name}>
-                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                    {field.label}{" "}
+                    {field.required && <span className="text-red-500">*</span>}
                   </Label>
 
-                  {field.type === 'text' && (
+                  {field.type === "text" && (
                     <Input
                       id={field.name}
                       type="text"
                       placeholder={field.placeholder}
-                      value={formData[field.name] || ''}
-                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                      value={formData[field.name] || ""}
+                      onChange={(e) =>
+                        handleFieldChange(field.name, e.target.value)
+                      }
                       required={field.required}
                     />
                   )}
 
-                  {field.type === 'password' && (
+                  {field.type === "password" && (
                     <Input
                       id={field.name}
                       type="password"
                       placeholder={field.placeholder}
-                      value={formData[field.name] || ''}
-                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                      value={formData[field.name] || ""}
+                      onChange={(e) =>
+                        handleFieldChange(field.name, e.target.value)
+                      }
                       required={field.required}
                     />
                   )}
 
-                  {field.type === 'select' && field.options && (
+                  {field.type === "select" && field.options && (
                     <Select
-                      value={formData[field.name] || ''}
-                      onValueChange={(value) => handleFieldChange(field.name, value)}
+                      value={formData[field.name] || ""}
+                      onValueChange={(value) =>
+                        handleFieldChange(field.name, value)
+                      }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={field.placeholder || 'Selecione'} />
+                        <SelectValue
+                          placeholder={field.placeholder || "Selecione"}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {field.options.map((option) => (
@@ -250,12 +299,14 @@ const GatewayConfigPage = () => {
                     </Select>
                   )}
 
-                  {field.type === 'checkbox' && (
+                  {field.type === "checkbox" && (
                     <div className="flex items-center gap-2">
                       <Switch
                         id={field.name}
                         checked={formData[field.name] || false}
-                        onCheckedChange={(checked) => handleFieldChange(field.name, checked)}
+                        onCheckedChange={(checked) =>
+                          handleFieldChange(field.name, checked)
+                        }
                       />
                       <Label htmlFor={field.name} className="cursor-pointer">
                         {field.label}
@@ -275,21 +326,23 @@ const GatewayConfigPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {gateway.paymentMethods.includes('credit_card') && (
+                  {gateway.paymentMethods.includes("credit_card") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <span className="text-sm">Ativar cartão de crédito</span>
                       <Switch defaultChecked={false} />
                     </div>
                   )}
-                  {gateway.paymentMethods.includes('pix') && (
+                  {gateway.paymentMethods.includes("pix") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <span className="text-sm">Ativar pix</span>
                       <Switch defaultChecked={false} />
                     </div>
                   )}
-                  {gateway.paymentMethods.includes('boleto') && (
+                  {gateway.paymentMethods.includes("boleto") && (
                     <div className="flex items-center justify-between p-3 rounded-lg border">
-                      <span className="text-sm">Utilizar taxa de juros customizada</span>
+                      <span className="text-sm">
+                        Utilizar taxa de juros customizada
+                      </span>
                       <Switch defaultChecked={false} />
                     </div>
                   )}
@@ -302,10 +355,14 @@ const GatewayConfigPage = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status Card */}
-          <Card className={cn(
-            'border-2',
-            isActive ? 'border-green-200 bg-green-50 dark:bg-green-950/20' : 'border-red-200 bg-red-50 dark:bg-red-950/20'
-          )}>
+          <Card
+            className={cn(
+              "border-2",
+              isActive
+                ? "border-green-200 bg-green-50 dark:bg-green-950/20"
+                : "border-red-200 bg-red-50 dark:bg-red-950/20",
+            )}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Label htmlFor="status" className="text-base font-semibold">
@@ -314,22 +371,26 @@ const GatewayConfigPage = () => {
                 <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      'h-3 w-3 rounded-full',
-                      isActive ? 'bg-green-500' : 'bg-red-500'
+                      "h-3 w-3 rounded-full",
+                      isActive ? "bg-green-500" : "bg-red-500",
                     )}
                   />
-                  <span className={cn(
-                    'text-sm font-medium',
-                    isActive ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                  )}>
-                    {isActive ? 'Ativo' : 'Inativo'}
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      isActive
+                        ? "text-green-700 dark:text-green-300"
+                        : "text-red-700 dark:text-red-300",
+                    )}
+                  >
+                    {isActive ? "Ativo" : "Inativo"}
                   </span>
                 </div>
               </div>
 
               <Select
-                value={isActive ? 'active' : 'inactive'}
-                onValueChange={(value) => setIsActive(value === 'active')}
+                value={isActive ? "active" : "inactive"}
+                onValueChange={(value) => setIsActive(value === "active")}
               >
                 <SelectTrigger id="status">
                   <SelectValue />
@@ -350,7 +411,9 @@ const GatewayConfigPage = () => {
                 >
                   <HelpCircle className="h-4 w-4" />
                   <span>Está com dúvidas?</span>
-                  <span className="underline">Como integrar o gateway {gateway.name}?</span>
+                  <span className="underline">
+                    Como integrar o gateway {gateway.name}?
+                  </span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
@@ -363,11 +426,14 @@ const GatewayConfigPage = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Tipo</p>
                 <div className="flex gap-2 mt-1">
-                  {(gateway.type === 'nacional' || gateway.type === 'both') && (
+                  {(gateway.type === "nacional" || gateway.type === "both") && (
                     <Badge variant="secondary">Nacional</Badge>
                   )}
-                  {(gateway.type === 'global' || gateway.type === 'both') && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  {(gateway.type === "global" || gateway.type === "both") && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-700"
+                    >
                       Global
                     </Badge>
                   )}
@@ -375,25 +441,32 @@ const GatewayConfigPage = () => {
               </div>
 
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Métodos de Pagamento</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Métodos de Pagamento
+                </p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {gateway.paymentMethods.map((method) => (
                     <Badge key={method} variant="outline" className="text-xs">
-                      {method === 'credit_card' && 'Cartão de Crédito'}
-                      {method === 'debit_card' && 'Cartão de Débito'}
-                      {method === 'pix' && 'Pix'}
-                      {method === 'boleto' && 'Boleto'}
-                      {method === 'wallet' && 'Carteira Digital'}
+                      {method === "credit_card" && "Cartão de Crédito"}
+                      {method === "debit_card" && "Cartão de Débito"}
+                      {method === "pix" && "Pix"}
+                      {method === "boleto" && "Boleto"}
+                      {method === "wallet" && "Carteira Digital"}
                     </Badge>
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Features</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Features
+                </p>
                 <ul className="mt-1 space-y-1">
                   {gateway.features.map((feature, index) => (
-                    <li key={index} className="text-xs text-gray-700 dark:text-gray-300">
+                    <li
+                      key={index}
+                      className="text-xs text-gray-700 dark:text-gray-300"
+                    >
                       • {feature}
                     </li>
                   ))}
@@ -408,7 +481,7 @@ const GatewayConfigPage = () => {
       <div className="flex justify-end gap-3 pt-6 border-t">
         <Button
           variant="outline"
-          onClick={() => navigate('/checkout/gateways')}
+          onClick={() => navigate("/checkout/gateways")}
           disabled={saving}
         >
           Cancelar
@@ -424,7 +497,7 @@ const GatewayConfigPage = () => {
               Salvando...
             </>
           ) : (
-            'Salvar'
+            "Salvar"
           )}
         </Button>
       </div>
@@ -433,4 +506,3 @@ const GatewayConfigPage = () => {
 };
 
 export default GatewayConfigPage;
-

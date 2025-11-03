@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES
@@ -10,7 +10,7 @@ export interface Gateway {
   slug: string;
   logoUrl?: string;
   description?: string;
-  type: 'PAYMENT_PROCESSOR' | 'WALLET' | 'BANK';
+  type: "PAYMENT_PROCESSOR" | "WALLET" | "BANK";
   supportsPix: boolean;
   supportsCreditCard: boolean;
   supportsBoleto: boolean;
@@ -51,7 +51,13 @@ export interface Transaction {
   paymentMethod: string;
   amount: number;
   currency: string;
-  status: 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
+  status:
+    | "PENDING"
+    | "PROCESSING"
+    | "PAID"
+    | "FAILED"
+    | "REFUNDED"
+    | "CANCELLED";
   failureReason?: string;
   processedAt?: string;
   paidAt?: string;
@@ -80,33 +86,33 @@ export interface Transaction {
 export const gatewaysApi = {
   // Lista todos os gateways disponíveis
   async list(filters?: {
-    type?: 'PAYMENT_PROCESSOR' | 'WALLET' | 'BANK';
+    type?: "PAYMENT_PROCESSOR" | "WALLET" | "BANK";
     isPopular?: boolean;
     supportsPix?: boolean;
     supportsCreditCard?: boolean;
   }) {
     try {
       let query = supabase
-        .from('Gateway')
-        .select('*')
-        .eq('isActive', true)
-        .order('isPopular', { ascending: false })
-        .order('name', { ascending: true });
+        .from("Gateway")
+        .select("*")
+        .eq("isActive", true)
+        .order("isPopular", { ascending: false })
+        .order("name", { ascending: true });
 
       if (filters?.type) {
-        query = query.eq('type', filters.type);
+        query = query.eq("type", filters.type);
       }
 
       if (filters?.isPopular !== undefined) {
-        query = query.eq('isPopular', filters.isPopular);
+        query = query.eq("isPopular", filters.isPopular);
       }
 
       if (filters?.supportsPix !== undefined) {
-        query = query.eq('supportsPix', filters.supportsPix);
+        query = query.eq("supportsPix", filters.supportsPix);
       }
 
       if (filters?.supportsCreditCard !== undefined) {
-        query = query.eq('supportsCreditCard', filters.supportsCreditCard);
+        query = query.eq("supportsCreditCard", filters.supportsCreditCard);
       }
 
       const { data, error } = await query;
@@ -114,7 +120,7 @@ export const gatewaysApi = {
       if (error) throw error;
       return data as Gateway[];
     } catch (error) {
-      console.error('Error listing gateways:', error);
+      console.error("Error listing gateways:", error);
       throw error;
     }
   },
@@ -123,15 +129,15 @@ export const gatewaysApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Gateway')
-        .select('*')
-        .eq('id', id)
+        .from("Gateway")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as Gateway;
     } catch (error) {
-      console.error('Error getting gateway:', error);
+      console.error("Error getting gateway:", error);
       throw error;
     }
   },
@@ -140,15 +146,15 @@ export const gatewaysApi = {
   async getBySlug(slug: string) {
     try {
       const { data, error } = await supabase
-        .from('Gateway')
-        .select('*')
-        .eq('slug', slug)
+        .from("Gateway")
+        .select("*")
+        .eq("slug", slug)
         .single();
 
       if (error) throw error;
       return data as Gateway;
     } catch (error) {
-      console.error('Error getting gateway by slug:', error);
+      console.error("Error getting gateway by slug:", error);
       throw error;
     }
   },
@@ -157,16 +163,16 @@ export const gatewaysApi = {
   async listPopular() {
     try {
       const { data, error } = await supabase
-        .from('Gateway')
-        .select('*')
-        .eq('isActive', true)
-        .eq('isPopular', true)
-        .order('name', { ascending: true });
+        .from("Gateway")
+        .select("*")
+        .eq("isActive", true)
+        .eq("isPopular", true)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       return data as Gateway[];
     } catch (error) {
-      console.error('Error listing popular gateways:', error);
+      console.error("Error listing popular gateways:", error);
       throw error;
     }
   },
@@ -181,15 +187,15 @@ export const gatewayConfigApi = {
   async list() {
     try {
       const { data, error } = await supabase
-        .from('GatewayConfig')
-        .select('*, Gateway(*)')
-        .order('isDefault', { ascending: false })
-        .order('createdAt', { ascending: false });
+        .from("GatewayConfig")
+        .select("*, Gateway(*)")
+        .order("isDefault", { ascending: false })
+        .order("createdAt", { ascending: false });
 
       if (error) throw error;
       return data as GatewayConfig[];
     } catch (error) {
-      console.error('Error listing gateway configs:', error);
+      console.error("Error listing gateway configs:", error);
       throw error;
     }
   },
@@ -198,15 +204,15 @@ export const gatewayConfigApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('GatewayConfig')
-        .select('*, Gateway(*)')
-        .eq('id', id)
+        .from("GatewayConfig")
+        .select("*, Gateway(*)")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error getting gateway config:', error);
+      console.error("Error getting gateway config:", error);
       throw error;
     }
   },
@@ -215,33 +221,33 @@ export const gatewayConfigApi = {
   async getDefault() {
     try {
       const { data, error } = await supabase
-        .from('GatewayConfig')
-        .select('*, Gateway(*)')
-        .eq('isDefault', true)
-        .eq('isActive', true)
+        .from("GatewayConfig")
+        .select("*, Gateway(*)")
+        .eq("isDefault", true)
+        .eq("isActive", true)
         .single();
 
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error getting default gateway:', error);
+      console.error("Error getting default gateway:", error);
       throw error;
     }
   },
 
   // Cria uma nova configuração de gateway
-  async create(config: Omit<GatewayConfig, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(config: Omit<GatewayConfig, "id" | "createdAt" | "updatedAt">) {
     try {
       // Se for o gateway padrão, remove o padrão dos outros
       if (config.isDefault) {
         await supabase
-          .from('GatewayConfig')
+          .from("GatewayConfig")
           .update({ isDefault: false })
-          .eq('userId', config.userId);
+          .eq("userId", config.userId);
       }
 
       const { data, error } = await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .insert(config)
         .select()
         .single();
@@ -249,7 +255,7 @@ export const gatewayConfigApi = {
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error creating gateway config:', error);
+      console.error("Error creating gateway config:", error);
       throw error;
     }
   },
@@ -260,30 +266,30 @@ export const gatewayConfigApi = {
       // Se está definindo como padrão, remove o padrão dos outros
       if (updates.isDefault) {
         const config = await supabase
-          .from('GatewayConfig')
-          .select('userId')
-          .eq('id', id)
+          .from("GatewayConfig")
+          .select("userId")
+          .eq("id", id)
           .single();
 
         if (config.data) {
           await supabase
-            .from('GatewayConfig')
+            .from("GatewayConfig")
             .update({ isDefault: false })
-            .eq('userId', config.data.userId);
+            .eq("userId", config.data.userId);
         }
       }
 
       const { data, error } = await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error updating gateway config:', error);
+      console.error("Error updating gateway config:", error);
       throw error;
     }
   },
@@ -292,16 +298,16 @@ export const gatewayConfigApi = {
   async toggleActive(id: string, isActive: boolean) {
     try {
       const { data, error } = await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .update({ isActive, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error toggling gateway:', error);
+      console.error("Error toggling gateway:", error);
       throw error;
     }
   },
@@ -310,32 +316,34 @@ export const gatewayConfigApi = {
   async setAsDefault(id: string) {
     try {
       // Primeiro, busca a configuração
+
       const config = await supabase
-        .from('GatewayConfig')
-        .select('organizationId')
-        .eq('id', id)
+
+        .from("GatewayConfig")
+        .select("userId")
+        .eq("id", id)
         .single();
 
-      if (!config.data) throw new Error('Gateway config not found');
+      if (!config.data) throw new Error("Gateway config not found");
 
-      // Remove o padrão dos outros
       await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .update({ isDefault: false })
-        .eq('organizationId', config.data.organizationId);
+
+        .eq("userId", config.data.userId);
 
       // Define este como padrão
       const { data, error } = await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .update({ isDefault: true, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as GatewayConfig;
     } catch (error) {
-      console.error('Error setting default gateway:', error);
+      console.error("Error setting default gateway:", error);
       throw error;
     }
   },
@@ -344,13 +352,13 @@ export const gatewayConfigApi = {
   async delete(id: string) {
     try {
       const { error } = await supabase
-        .from('GatewayConfig')
+        .from("GatewayConfig")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting gateway config:', error);
+      console.error("Error deleting gateway config:", error);
       throw error;
     }
   },
@@ -360,9 +368,9 @@ export const gatewayConfigApi = {
     try {
       // TODO: Implementar teste real com Edge Function
       // Por enquanto, apenas retorna sucesso
-      return { success: true, message: 'Conexão testada com sucesso' };
+      return { success: true, message: "Conexão testada com sucesso" };
     } catch (error) {
-      console.error('Error testing gateway connection:', error);
+      console.error("Error testing gateway connection:", error);
       throw error;
     }
   },
@@ -377,39 +385,39 @@ export const transactionsApi = {
   async list(filters?: {
     orderId?: string;
     gatewayId?: string;
-    status?: Transaction['status'];
+    status?: Transaction["status"];
     paymentMethod?: string;
     startDate?: string;
     endDate?: string;
   }) {
     try {
       let query = supabase
-        .from('Transaction')
-        .select('*, Gateway(*)')
-        .order('createdAt', { ascending: false });
+        .from("Transaction")
+        .select("*, Gateway(*)")
+        .order("createdAt", { ascending: false });
 
       if (filters?.orderId) {
-        query = query.eq('orderId', filters.orderId);
+        query = query.eq("orderId", filters.orderId);
       }
 
       if (filters?.gatewayId) {
-        query = query.eq('gatewayId', filters.gatewayId);
+        query = query.eq("gatewayId", filters.gatewayId);
       }
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq("status", filters.status);
       }
 
       if (filters?.paymentMethod) {
-        query = query.eq('paymentMethod', filters.paymentMethod);
+        query = query.eq("paymentMethod", filters.paymentMethod);
       }
 
       if (filters?.startDate) {
-        query = query.gte('createdAt', filters.startDate);
+        query = query.gte("createdAt", filters.startDate);
       }
 
       if (filters?.endDate) {
-        query = query.lte('createdAt', filters.endDate);
+        query = query.lte("createdAt", filters.endDate);
       }
 
       const { data, error } = await query;
@@ -417,7 +425,7 @@ export const transactionsApi = {
       if (error) throw error;
       return data as Transaction[];
     } catch (error) {
-      console.error('Error listing transactions:', error);
+      console.error("Error listing transactions:", error);
       throw error;
     }
   },
@@ -426,15 +434,15 @@ export const transactionsApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Transaction')
-        .select('*, Gateway(*)')
-        .eq('id', id)
+        .from("Transaction")
+        .select("*, Gateway(*)")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as Transaction;
     } catch (error) {
-      console.error('Error getting transaction:', error);
+      console.error("Error getting transaction:", error);
       throw error;
     }
   },
@@ -443,24 +451,26 @@ export const transactionsApi = {
   async getByOrder(orderId: string) {
     try {
       const { data, error } = await supabase
-        .from('Transaction')
-        .select('*, Gateway(*)')
-        .eq('orderId', orderId)
-        .order('createdAt', { ascending: false });
+        .from("Transaction")
+        .select("*, Gateway(*)")
+        .eq("orderId", orderId)
+        .order("createdAt", { ascending: false });
 
       if (error) throw error;
       return data as Transaction[];
     } catch (error) {
-      console.error('Error getting order transactions:', error);
+      console.error("Error getting order transactions:", error);
       throw error;
     }
   },
 
   // Cria uma nova transação
-  async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(
+    transaction: Omit<Transaction, "id" | "createdAt" | "updatedAt">,
+  ) {
     try {
       const { data, error } = await supabase
-        .from('Transaction')
+        .from("Transaction")
         .insert(transaction)
         .select()
         .single();
@@ -468,13 +478,17 @@ export const transactionsApi = {
       if (error) throw error;
       return data as Transaction;
     } catch (error) {
-      console.error('Error creating transaction:', error);
+      console.error("Error creating transaction:", error);
       throw error;
     }
   },
 
   // Atualiza status da transação
-  async updateStatus(id: string, status: Transaction['status'], metadata?: Record<string, any>) {
+  async updateStatus(
+    id: string,
+    status: Transaction["status"],
+    metadata?: Record<string, any>,
+  ) {
     try {
       const updates: Partial<Transaction> = {
         status,
@@ -482,13 +496,13 @@ export const transactionsApi = {
       };
 
       // Atualiza timestamps baseado no status
-      if (status === 'PROCESSING') {
+      if (status === "PROCESSING") {
         updates.processedAt = new Date().toISOString();
-      } else if (status === 'PAID') {
+      } else if (status === "PAID") {
         updates.paidAt = new Date().toISOString();
-      } else if (status === 'REFUNDED') {
+      } else if (status === "REFUNDED") {
         updates.refundedAt = new Date().toISOString();
-      } else if (status === 'CANCELLED') {
+      } else if (status === "CANCELLED") {
         updates.cancelledAt = new Date().toISOString();
       }
 
@@ -497,16 +511,16 @@ export const transactionsApi = {
       }
 
       const { data, error } = await supabase
-        .from('Transaction')
+        .from("Transaction")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Transaction;
     } catch (error) {
-      console.error('Error updating transaction status:', error);
+      console.error("Error updating transaction status:", error);
       throw error;
     }
   },
@@ -515,21 +529,21 @@ export const transactionsApi = {
   async cancel(id: string, reason?: string) {
     try {
       const { data, error } = await supabase
-        .from('Transaction')
+        .from("Transaction")
         .update({
-          status: 'CANCELLED',
+          status: "CANCELLED",
           failureReason: reason,
           cancelledAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Transaction;
     } catch (error) {
-      console.error('Error cancelling transaction:', error);
+      console.error("Error cancelling transaction:", error);
       throw error;
     }
   },
@@ -538,40 +552,37 @@ export const transactionsApi = {
   async refund(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Transaction')
+        .from("Transaction")
         .update({
-          status: 'REFUNDED',
+          status: "REFUNDED",
           refundedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Transaction;
     } catch (error) {
-      console.error('Error refunding transaction:', error);
+      console.error("Error refunding transaction:", error);
       throw error;
     }
   },
 
   // Stats de transações
-  async getStats(filters?: {
-    startDate?: string;
-    endDate?: string;
-  }) {
+  async getStats(filters?: { startDate?: string; endDate?: string }) {
     try {
       let query = supabase
-        .from('Transaction')
-        .select('status, amount, paymentMethod, gatewayId');
+        .from("Transaction")
+        .select("status, amount, paymentMethod, gatewayId");
 
       if (filters?.startDate) {
-        query = query.gte('createdAt', filters.startDate);
+        query = query.gte("createdAt", filters.startDate);
       }
 
       if (filters?.endDate) {
-        query = query.lte('createdAt', filters.endDate);
+        query = query.lte("createdAt", filters.endDate);
       }
 
       const { data, error } = await query;
@@ -581,18 +592,18 @@ export const transactionsApi = {
       // Calcula estatísticas
       const stats = {
         total: data.length,
-        paid: data.filter(t => t.status === 'PAID').length,
-        pending: data.filter(t => t.status === 'PENDING').length,
-        failed: data.filter(t => t.status === 'FAILED').length,
+        paid: data.filter((t) => t.status === "PAID").length,
+        pending: data.filter((t) => t.status === "PENDING").length,
+        failed: data.filter((t) => t.status === "FAILED").length,
         totalAmount: data
-          .filter(t => t.status === 'PAID')
+          .filter((t) => t.status === "PAID")
           .reduce((sum, t) => sum + t.amount, 0),
         byPaymentMethod: {} as Record<string, number>,
         byGateway: {} as Record<string, number>,
       };
 
       // Agrupa por método de pagamento
-      data.forEach(t => {
+      data.forEach((t) => {
         if (!stats.byPaymentMethod[t.paymentMethod]) {
           stats.byPaymentMethod[t.paymentMethod] = 0;
         }
@@ -600,7 +611,7 @@ export const transactionsApi = {
       });
 
       // Agrupa por gateway
-      data.forEach(t => {
+      data.forEach((t) => {
         if (!stats.byGateway[t.gatewayId]) {
           stats.byGateway[t.gatewayId] = 0;
         }
@@ -609,7 +620,7 @@ export const transactionsApi = {
 
       return stats;
     } catch (error) {
-      console.error('Error getting transaction stats:', error);
+      console.error("Error getting transaction stats:", error);
       throw error;
     }
   },
