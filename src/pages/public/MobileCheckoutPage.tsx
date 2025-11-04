@@ -309,6 +309,58 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
     try {
       setProcessing(true);
 
+      // ✨ ATUALIZAR PEDIDO COM DADOS DO CADASTRO ANTES DE PROCESSAR PAGAMENTO
+      console.log("📝 [UPDATE] Atualizando pedido com dados do cadastro...");
+
+      const { error: updateError } = await supabase
+        .from("Order")
+        .update({
+          customerName: customerData.name,
+          customerEmail: customerData.email,
+          customerPhone: customerData.phone,
+          customerCpf: customerData.document?.replace(/\D/g, "") || "",
+          shippingAddress: {
+            street: addressData.street,
+            number: addressData.number,
+            complement: addressData.complement || "",
+            neighborhood: addressData.neighborhood,
+            city: addressData.city,
+            state: addressData.state,
+            zipCode: addressData.zipCode,
+            country: "BR",
+          },
+          billingAddress: {
+            street: addressData.street,
+            number: addressData.number,
+            complement: addressData.complement || "",
+            neighborhood: addressData.neighborhood,
+            city: addressData.city,
+            state: addressData.state,
+            zipCode: addressData.zipCode,
+            country: "BR",
+          },
+          paymentMethod: paymentMethod,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq("id", effectiveOrderId);
+
+      if (updateError) {
+        console.error("❌ [UPDATE] Erro ao atualizar pedido:", updateError);
+        toast({
+          title: "Erro ao salvar dados",
+          description: "Não foi possível salvar os dados do pedido",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
+      console.log("✅ [UPDATE] Pedido atualizado com sucesso!", {
+        orderId: effectiveOrderId,
+        customerName: customerData.name,
+        customerEmail: customerData.email,
+      });
+
       const { data, error } = await supabase.functions.invoke(
         "process-payment",
         {
