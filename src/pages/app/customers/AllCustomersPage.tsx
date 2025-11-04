@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, Mail, Phone, DollarSign, ShoppingBag } from 'lucide-react';
+import { Users, Search, Mail, Phone, DollarSign, ShoppingBag, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { customersApi, Customer } from '@/lib/api/customersApi';
+import { shopifySyncApi } from '@/lib/api/shopifySync';
+import { useAuthStore } from '@/store/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,23 +17,35 @@ const AllCustomersPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (user?.id) {
+      loadCustomers();
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     filterCustomers();
   }, [searchTerm, customers]);
 
   const loadCustomers = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await customersApi.list();
+      setLoading(true);
+      // Buscar clientes sincronizados da Shopify
+      const data = await customersApi.listFromShopify(user.id);
       setCustomers(data);
       setFilteredCustomers(data);
     } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
       toast({
         title: 'Erro ao carregar clientes',
         description: error.message,
@@ -38,6 +53,49 @@ const AllCustomersPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncShopify = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Erro',
+        description: 'Faça login para sincronizar',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      toast({
+        title: 'Sincronizando...',
+        description: 'Buscando clientes da Shopify',
+      });
+
+      const result = await shopifySyncApi.syncCustomers(user.id);
+
+      if (result.success) {
+        toast({
+          title: 'Sincronização concluída!',
+          description: result.message,
+        });
+        await loadCustomers();
+      } else {
+        toast({
+          title: 'Erro na sincronização',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao sincronizar',
+        description: 'Configure a integração Shopify em Integrações',
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -69,12 +127,20 @@ const AllCustomersPage = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-        <p className="text-muted-foreground">
-          Visualize e gerencie todos os clientes da sua loja
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
+          <p className="text-muted-foreground">
+            Visualize e gerencie todos os clientes da sua loja
+          </p>
+        </div>
+        <Button onClick={handleSyncShopify} disabled={syncing}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar Shopify'}
+        </Button>
       </div>
+</text>
+
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

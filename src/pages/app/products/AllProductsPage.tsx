@@ -109,7 +109,8 @@ const AllProductsPage = () => {
 
     try {
       setLoading(true);
-      const data = await productsApi.list();
+      // Buscar produtos sincronizados da Shopify
+      const data = await productsApi.listFromShopify(user.id);
       setProducts(data);
       setFilteredProducts(data);
     } catch (error: any) {
@@ -493,6 +494,7 @@ const AllProductsPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Imagem</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Preço</TableHead>
@@ -502,93 +504,114 @@ const AllProductsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{product.name}</div>
-                            {product.description && (
-                              <div className="text-sm text-muted-foreground line-clamp-1">
-                                {product.description}
+                    {filteredProducts.map((product) => {
+                      const shopifyImages = product.metadata?.images || [];
+                      const imageUrl =
+                        shopifyImages.length > 0
+                          ? shopifyImages[0]?.src || shopifyImages[0]
+                          : null;
+
+                      return (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={product.name}
+                                className="w-12 h-12 object-cover rounded-md border"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                                <Package className="h-6 w-6 text-muted-foreground" />
                               </div>
                             )}
-                            {product.metadata?.shopifyId && (
-                              <Badge variant="outline" className="mt-1">
-                                <ShoppingBag className="h-3 w-3 mr-1" />
-                                Shopify
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
-                            {product.sku || "N/A"}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {formatCurrency(product.price)}
-                            </div>
-                            {product.comparePrice &&
-                              product.comparePrice > product.price && (
-                                <div className="text-xs text-muted-foreground line-through">
-                                  {formatCurrency(product.comparePrice)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{product.name}</div>
+                              {product.description && (
+                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                  {product.description}
                                 </div>
                               )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              product.stock > 10
-                                ? "default"
-                                : product.stock > 0
-                                  ? "warning"
-                                  : "destructive"
-                            }
-                          >
-                            {product.stock} un.
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              product.status === "ACTIVE"
-                                ? "default"
+                              {product.metadata?.shopifyId && (
+                                <Badge variant="outline" className="mt-1">
+                                  <ShoppingBag className="h-3 w-3 mr-1" />
+                                  Shopify
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">
+                              {product.sku || "N/A"}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {formatCurrency(product.price)}
+                              </div>
+                              {product.comparePrice &&
+                                product.comparePrice > product.price && (
+                                  <div className="text-xs text-muted-foreground line-through">
+                                    {formatCurrency(product.comparePrice)}
+                                  </div>
+                                )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.stock > 10
+                                  ? "default"
+                                  : product.stock > 0
+                                    ? "warning"
+                                    : "destructive"
+                              }
+                            >
+                              {product.stock} un.
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.status === "ACTIVE"
+                                  ? "default"
+                                  : product.status === "DRAFT"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {product.status === "ACTIVE"
+                                ? "Ativo"
                                 : product.status === "DRAFT"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {product.status === "ACTIVE"
-                              ? "Ativo"
-                              : product.status === "DRAFT"
-                                ? "Rascunho"
-                                : "Arquivado"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(product)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(product.id)}
-                              disabled={!!product.metadata?.shopifyId}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                                  ? "Rascunho"
+                                  : "Arquivado"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(product)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(product.id)}
+                                disabled={!!product.metadata?.shopifyId}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

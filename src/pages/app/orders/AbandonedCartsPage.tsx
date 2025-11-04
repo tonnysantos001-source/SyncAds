@@ -11,15 +11,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Mail, ShoppingCart, Clock } from "lucide-react";
+import { Search, Mail, ShoppingCart, Clock, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { abandonedCartApi } from "@/lib/api/cartApi";
+import { shopifySyncApi } from "@/lib/api/shopifySync";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AbandonedCartsPage = () => {
   const [abandonedCarts, setAbandonedCarts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
@@ -44,6 +46,49 @@ const AbandonedCartsPage = () => {
     }
   };
 
+  const handleSyncShopify = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Faça login para sincronizar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      toast({
+        title: "Sincronizando...",
+        description: "Buscando carrinhos abandonados da Shopify",
+      });
+
+      const result = await shopifySyncApi.syncAbandonedCarts(user.id);
+
+      if (result.success) {
+        toast({
+          title: "Sincronização concluída!",
+          description: result.message,
+        });
+        await loadAbandonedCarts();
+      } else {
+        toast({
+          title: "Erro na sincronização",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao sincronizar",
+        description: "Configure a integração Shopify em Integrações",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSendEmail = async (cartId: string) => {
     try {
       toast({ title: "Email de recuperação enviado!" });
@@ -64,13 +109,21 @@ const AbandonedCartsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Carrinhos Abandonados
-        </h1>
-        <p className="text-muted-foreground">
-          Recupere vendas de carrinhos abandonados
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Carrinhos Abandonados
+          </h1>
+          <p className="text-muted-foreground">
+            Recupere vendas de carrinhos abandonados
+          </p>
+        </div>
+        <Button onClick={handleSyncShopify} disabled={syncing}>
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+          />
+          {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

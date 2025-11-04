@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES
@@ -20,7 +20,7 @@ export interface Customer {
   tags?: string[];
   notes?: string;
   acceptsMarketing: boolean;
-  status: 'ACTIVE' | 'BLOCKED';
+  status: "ACTIVE" | "BLOCKED";
   createdAt: string;
   updatedAt: string;
 }
@@ -51,7 +51,7 @@ export interface Lead {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
-  status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST';
+  status: "NEW" | "CONTACTED" | "QUALIFIED" | "CONVERTED" | "LOST";
   notes?: string;
   convertedAt?: string;
   customerId?: string;
@@ -66,26 +66,28 @@ export interface Lead {
 export const customersApi = {
   // Lista todos os clientes
   async list(filters?: {
-    status?: 'ACTIVE' | 'BLOCKED';
+    status?: "ACTIVE" | "BLOCKED";
     search?: string;
     tags?: string[];
   }) {
     try {
       let query = supabase
-        .from('Customer')
-        .select('*')
-        .order('createdAt', { ascending: false });
+        .from("Customer")
+        .select("*")
+        .order("createdAt", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq("status", filters.status);
       }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,cpf.ilike.%${filters.search}%`);
+        query = query.or(
+          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,cpf.ilike.%${filters.search}%`,
+        );
       }
 
       if (filters?.tags && filters.tags.length > 0) {
-        query = query.contains('tags', filters.tags);
+        query = query.contains("tags", filters.tags);
       }
 
       const { data, error } = await query;
@@ -93,7 +95,63 @@ export const customersApi = {
       if (error) throw error;
       return data as Customer[];
     } catch (error) {
-      console.error('Error listing customers:', error);
+      console.error("Error listing customers:", error);
+      throw error;
+    }
+  },
+
+  // Lista clientes sincronizados da Shopify
+  async listFromShopify(
+    userId: string,
+    filters?: {
+      search?: string;
+    },
+  ) {
+    try {
+      let query = supabase
+        .from("ShopifyCustomer")
+        .select("*")
+        .eq("userId", userId)
+        .order("updatedAt", { ascending: false });
+
+      if (filters?.search) {
+        query = query.or(
+          `email.ilike.%${filters.search}%,firstName.ilike.%${filters.search}%,lastName.ilike.%${filters.search}%`,
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transformar clientes Shopify para formato compatível
+      return (data || []).map((c: any) => ({
+        id: String(c.id),
+        userId: c.userId,
+        email: c.email || "",
+        name: `${c.firstName || ""} ${c.lastName || ""}`.trim() || "Cliente",
+        phone: c.phone,
+        cpf: undefined,
+        birthDate: undefined,
+        gender: undefined,
+        totalOrders: c.ordersCount || 0,
+        totalSpent: parseFloat(c.totalSpent || "0"),
+        averageOrderValue:
+          c.ordersCount > 0
+            ? parseFloat(c.totalSpent || "0") / c.ordersCount
+            : 0,
+        lastOrderAt: c.shopifyData?.last_order_date || undefined,
+        tags: c.shopifyData?.tags
+          ? c.shopifyData.tags.split(",").map((t: string) => t.trim())
+          : [],
+        notes: undefined,
+        acceptsMarketing: c.shopifyData?.accepts_marketing || false,
+        status: "ACTIVE" as const,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      })) as Customer[];
+    } catch (error) {
+      console.error("Error listing Shopify customers:", error);
       throw error;
     }
   },
@@ -102,15 +160,15 @@ export const customersApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Customer')
-        .select('*, CustomerAddress(*)')
-        .eq('id', id)
+        .from("Customer")
+        .select("*, CustomerAddress(*)")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as Customer;
     } catch (error) {
-      console.error('Error getting customer:', error);
+      console.error("Error getting customer:", error);
       throw error;
     }
   },
@@ -119,24 +177,34 @@ export const customersApi = {
   async getByEmail(email: string) {
     try {
       const { data, error } = await supabase
-        .from('Customer')
-        .select('*')
-        .eq('email', email)
+        .from("Customer")
+        .select("*")
+        .eq("email", email)
         .single();
 
       if (error) throw error;
       return data as Customer;
     } catch (error) {
-      console.error('Error getting customer by email:', error);
+      console.error("Error getting customer by email:", error);
       throw error;
     }
   },
 
   // Cria um novo cliente
-  async create(customer: Omit<Customer, 'id' | 'totalOrders' | 'totalSpent' | 'averageOrderValue' | 'createdAt' | 'updatedAt'>) {
+  async create(
+    customer: Omit<
+      Customer,
+      | "id"
+      | "totalOrders"
+      | "totalSpent"
+      | "averageOrderValue"
+      | "createdAt"
+      | "updatedAt"
+    >,
+  ) {
     try {
       const { data, error } = await supabase
-        .from('Customer')
+        .from("Customer")
         .insert({
           ...customer,
           totalOrders: 0,
@@ -149,7 +217,7 @@ export const customersApi = {
       if (error) throw error;
       return data as Customer;
     } catch (error) {
-      console.error('Error creating customer:', error);
+      console.error("Error creating customer:", error);
       throw error;
     }
   },
@@ -158,34 +226,34 @@ export const customersApi = {
   async update(id: string, updates: Partial<Customer>) {
     try {
       const { data, error } = await supabase
-        .from('Customer')
+        .from("Customer")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Customer;
     } catch (error) {
-      console.error('Error updating customer:', error);
+      console.error("Error updating customer:", error);
       throw error;
     }
   },
 
   // Bloqueia/Desbloqueia um cliente
-  async toggleStatus(id: string, status: 'ACTIVE' | 'BLOCKED') {
+  async toggleStatus(id: string, status: "ACTIVE" | "BLOCKED") {
     try {
       const { data, error } = await supabase
-        .from('Customer')
+        .from("Customer")
         .update({ status, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Customer;
     } catch (error) {
-      console.error('Error toggling customer status:', error);
+      console.error("Error toggling customer status:", error);
       throw error;
     }
   },
@@ -193,14 +261,11 @@ export const customersApi = {
   // Deleta um cliente
   async delete(id: string) {
     try {
-      const { error } = await supabase
-        .from('Customer')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("Customer").delete().eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting customer:', error);
+      console.error("Error deleting customer:", error);
       throw error;
     }
   },
@@ -215,32 +280,32 @@ export const customerAddressesApi = {
   async listByCustomer(customerId: string) {
     try {
       const { data, error } = await supabase
-        .from('CustomerAddress')
-        .select('*')
-        .eq('customerId', customerId)
-        .order('isDefault', { ascending: false });
+        .from("CustomerAddress")
+        .select("*")
+        .eq("customerId", customerId)
+        .order("isDefault", { ascending: false });
 
       if (error) throw error;
       return data as CustomerAddress[];
     } catch (error) {
-      console.error('Error listing addresses:', error);
+      console.error("Error listing addresses:", error);
       throw error;
     }
   },
 
   // Adiciona um endereço
-  async create(address: Omit<CustomerAddress, 'id' | 'createdAt'>) {
+  async create(address: Omit<CustomerAddress, "id" | "createdAt">) {
     try {
       // Se for o endereço padrão, remove o padrão dos outros
       if (address.isDefault) {
         await supabase
-          .from('CustomerAddress')
+          .from("CustomerAddress")
           .update({ isDefault: false })
-          .eq('customerId', address.customerId);
+          .eq("customerId", address.customerId);
       }
 
       const { data, error } = await supabase
-        .from('CustomerAddress')
+        .from("CustomerAddress")
         .insert(address)
         .select()
         .single();
@@ -248,7 +313,7 @@ export const customerAddressesApi = {
       if (error) throw error;
       return data as CustomerAddress;
     } catch (error) {
-      console.error('Error creating address:', error);
+      console.error("Error creating address:", error);
       throw error;
     }
   },
@@ -259,30 +324,30 @@ export const customerAddressesApi = {
       // Se está definindo como padrão, remove o padrão dos outros
       if (updates.isDefault) {
         const address = await supabase
-          .from('CustomerAddress')
-          .select('customerId')
-          .eq('id', id)
+          .from("CustomerAddress")
+          .select("customerId")
+          .eq("id", id)
           .single();
 
         if (address.data) {
           await supabase
-            .from('CustomerAddress')
+            .from("CustomerAddress")
             .update({ isDefault: false })
-            .eq('customerId', address.data.customerId);
+            .eq("customerId", address.data.customerId);
         }
       }
 
       const { data, error } = await supabase
-        .from('CustomerAddress')
+        .from("CustomerAddress")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as CustomerAddress;
     } catch (error) {
-      console.error('Error updating address:', error);
+      console.error("Error updating address:", error);
       throw error;
     }
   },
@@ -291,13 +356,13 @@ export const customerAddressesApi = {
   async delete(id: string) {
     try {
       const { error } = await supabase
-        .from('CustomerAddress')
+        .from("CustomerAddress")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting address:', error);
+      console.error("Error deleting address:", error);
       throw error;
     }
   },
@@ -310,26 +375,28 @@ export const customerAddressesApi = {
 export const leadsApi = {
   // Lista todos os leads
   async list(filters?: {
-    status?: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST';
+    status?: "NEW" | "CONTACTED" | "QUALIFIED" | "CONVERTED" | "LOST";
     source?: string;
     search?: string;
   }) {
     try {
       let query = supabase
-        .from('Lead')
-        .select('*')
-        .order('createdAt', { ascending: false });
+        .from("Lead")
+        .select("*")
+        .order("createdAt", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq("status", filters.status);
       }
 
       if (filters?.source) {
-        query = query.eq('source', filters.source);
+        query = query.eq("source", filters.source);
       }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+        query = query.or(
+          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`,
+        );
       }
 
       const { data, error } = await query;
@@ -337,7 +404,7 @@ export const leadsApi = {
       if (error) throw error;
       return data as Lead[];
     } catch (error) {
-      console.error('Error listing leads:', error);
+      console.error("Error listing leads:", error);
       throw error;
     }
   },
@@ -346,24 +413,24 @@ export const leadsApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Lead')
-        .select('*')
-        .eq('id', id)
+        .from("Lead")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as Lead;
     } catch (error) {
-      console.error('Error getting lead:', error);
+      console.error("Error getting lead:", error);
       throw error;
     }
   },
 
   // Cria um novo lead
-  async create(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(lead: Omit<Lead, "id" | "createdAt" | "updatedAt">) {
     try {
       const { data, error } = await supabase
-        .from('Lead')
+        .from("Lead")
         .insert(lead)
         .select()
         .single();
@@ -371,7 +438,7 @@ export const leadsApi = {
       if (error) throw error;
       return data as Lead;
     } catch (error) {
-      console.error('Error creating lead:', error);
+      console.error("Error creating lead:", error);
       throw error;
     }
   },
@@ -380,40 +447,51 @@ export const leadsApi = {
   async update(id: string, updates: Partial<Lead>) {
     try {
       const { data, error } = await supabase
-        .from('Lead')
+        .from("Lead")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Lead;
     } catch (error) {
-      console.error('Error updating lead:', error);
+      console.error("Error updating lead:", error);
       throw error;
     }
   },
 
   // Converte lead em cliente
-  async convertToCustomer(leadId: string, customerData: Omit<Customer, 'id' | 'totalOrders' | 'totalSpent' | 'averageOrderValue' | 'createdAt' | 'updatedAt'>) {
+  async convertToCustomer(
+    leadId: string,
+    customerData: Omit<
+      Customer,
+      | "id"
+      | "totalOrders"
+      | "totalSpent"
+      | "averageOrderValue"
+      | "createdAt"
+      | "updatedAt"
+    >,
+  ) {
     try {
       // Cria o cliente
       const customer = await customersApi.create(customerData);
 
       // Atualiza o lead
       await supabase
-        .from('Lead')
+        .from("Lead")
         .update({
-          status: 'CONVERTED',
+          status: "CONVERTED",
           customerId: customer.id,
           convertedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        .eq('id', leadId);
+        .eq("id", leadId);
 
       return customer;
     } catch (error) {
-      console.error('Error converting lead:', error);
+      console.error("Error converting lead:", error);
       throw error;
     }
   },
@@ -421,14 +499,11 @@ export const leadsApi = {
   // Deleta um lead
   async delete(id: string) {
     try {
-      const { error } = await supabase
-        .from('Lead')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("Lead").delete().eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      console.error("Error deleting lead:", error);
       throw error;
     }
   },

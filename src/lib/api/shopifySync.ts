@@ -315,7 +315,70 @@ export const shopifySyncApi = {
   },
 
   /**
-   * Sincroniza tudo (produtos, pedidos, clientes, carrinhos)
+   * Sincroniza descontos da Shopify
+   */
+  async syncDiscounts(userId: string): Promise<SyncResult> {
+    try {
+      const integration = await this.getShopifyIntegration(userId);
+
+      if (!integration) {
+        return {
+          success: false,
+          message:
+            "Integração Shopify não encontrada. Configure a integração em Integrações primeiro.",
+          synced: 0,
+          errors: 1,
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke("shopify-sync", {
+        body: {
+          integrationId: integration.id,
+          action: "sync-discounts",
+          limit: 250,
+        },
+      });
+
+      if (error) {
+        console.error("Error calling shopify-sync:", error);
+        return {
+          success: false,
+          message: `Erro ao sincronizar: ${error.message}`,
+          synced: 0,
+          errors: 1,
+        };
+      }
+
+      const result = data?.results?.discounts || {};
+
+      if (result.success) {
+        return {
+          success: true,
+          message: `${result.synced || 0} descontos sincronizados com sucesso!`,
+          synced: result.synced || 0,
+          errors: 0,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || "Erro ao sincronizar descontos",
+          synced: 0,
+          errors: 1,
+        };
+      }
+    } catch (error: any) {
+      console.error("Error in syncDiscounts:", error);
+      return {
+        success: false,
+        message: error.message || "Erro desconhecido ao sincronizar descontos",
+        synced: 0,
+        errors: 1,
+      };
+    }
+  },
+
+  /**
+   * Sincroniza tudo (produtos, pedidos, clientes, carrinhos, descontos)
    */
   async syncAll(userId: string): Promise<SyncResult> {
     try {
@@ -354,13 +417,15 @@ export const shopifySyncApi = {
         (results.products?.synced || 0) +
         (results.orders?.synced || 0) +
         (results.customers?.synced || 0) +
-        (results.abandonedCarts?.synced || 0);
+        (results.abandonedCarts?.synced || 0) +
+        (results.discounts?.synced || 0);
 
       const hasErrors =
         !results.products?.success ||
         !results.orders?.success ||
         !results.customers?.success ||
-        !results.abandonedCarts?.success;
+        !results.abandonedCarts?.success ||
+        !results.discounts?.success;
 
       if (data?.success) {
         return {
@@ -419,6 +484,12 @@ export const shopifySyncApi = {
         .select("*", { count: "exact" })
         .eq("userId", userId);
 
+      // Buscar descontos da Shopify sincronizados
+      const { count: discountsCount } = await supabase
+        .from("ShopifyDiscountCode")
+        .select("*", { count: "exact" })
+        .eq("userId", userId);
+
       // Buscar última sincronização
       const { data: integration } = await supabase
         .from("ShopifyIntegration")
@@ -431,6 +502,7 @@ export const shopifySyncApi = {
         totalOrders: ordersCount || 0,
         totalCustomers: customersCount || 0,
         totalAbandonedCarts: cartsCount || 0,
+        totalDiscounts: discountsCount || 0,
         lastSync: integration?.lastSyncAt || null,
         lastSyncStatus: integration?.lastSyncStatus || null,
       };
@@ -441,11 +513,12 @@ export const shopifySyncApi = {
         totalOrders: 0,
         totalCustomers: 0,
         totalAbandonedCarts: 0,
+        totalDiscounts: 0,
         lastSync: null,
         lastSyncStatus: null,
       };
     }
-  },
+  },</parameter>
 
   /**
    * Busca logs de sincronização

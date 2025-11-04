@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES
@@ -23,7 +23,7 @@ export interface Product {
   width?: number;
   height?: number;
   length?: number;
-  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   isFeatured: boolean;
   categoryId?: string;
   tags?: string[];
@@ -80,26 +80,28 @@ export interface Category {
 export const productsApi = {
   // Lista todos os produtos
   async list(filters?: {
-    status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
     categoryId?: string;
     search?: string;
   }) {
     try {
       let query = supabase
-        .from('Product')
-        .select('*, Category(*)')
-        .order('createdAt', { ascending: false });
+        .from("Product")
+        .select("*, Category(*)")
+        .order("createdAt", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq("status", filters.status);
       }
 
       if (filters?.categoryId) {
-        query = query.eq('categoryId', filters.categoryId);
+        query = query.eq("categoryId", filters.categoryId);
       }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
+        query = query.or(
+          `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`,
+        );
       }
 
       const { data, error } = await query;
@@ -107,7 +109,74 @@ export const productsApi = {
       if (error) throw error;
       return data as Product[];
     } catch (error) {
-      console.error('Error listing products:', error);
+      console.error("Error listing products:", error);
+      throw error;
+    }
+  },
+
+  // Lista produtos sincronizados da Shopify
+  async listFromShopify(
+    userId: string,
+    filters?: {
+      status?: string;
+      search?: string;
+    },
+  ) {
+    try {
+      let query = supabase
+        .from("ShopifyProduct")
+        .select("*")
+        .eq("userId", userId)
+        .order("updatedAt", { ascending: false });
+
+      if (filters?.status) {
+        query = query.eq("status", filters.status);
+      }
+
+      if (filters?.search) {
+        query = query.or(
+          `title.ilike.%${filters.search}%,handle.ilike.%${filters.search}%`,
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transformar produtos Shopify para formato compatível
+      return (data || []).map((p: any) => ({
+        id: String(p.id),
+        userId: p.userId,
+        name: p.title,
+        slug: p.handle,
+        description: p.description,
+        shortDescription: p.description?.substring(0, 200),
+        price: p.shopifyData?.variants?.[0]?.price || 0,
+        comparePrice: p.shopifyData?.variants?.[0]?.compare_at_price || 0,
+        sku: p.shopifyData?.variants?.[0]?.sku || "",
+        stock: p.totalInventory || 0,
+        lowStockThreshold: 10,
+        trackStock: true,
+        status:
+          p.status === "active"
+            ? "ACTIVE"
+            : p.status === "draft"
+              ? "DRAFT"
+              : "ARCHIVED",
+        isFeatured: false,
+        tags: p.tags || [],
+        metadata: {
+          shopifyId: p.id,
+          shopifyData: p.shopifyData,
+          images: p.images,
+          vendor: p.vendor,
+          productType: p.productType,
+        },
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      })) as Product[];
+    } catch (error) {
+      console.error("Error listing Shopify products:", error);
       throw error;
     }
   },
@@ -116,24 +185,24 @@ export const productsApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('Product')
-        .select('*, Category(*), ProductVariant(*), ProductImage(*)')
-        .eq('id', id)
+        .from("Product")
+        .select("*, Category(*), ProductVariant(*), ProductImage(*)")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data as Product;
     } catch (error) {
-      console.error('Error getting product:', error);
+      console.error("Error getting product:", error);
       throw error;
     }
   },
 
   // Cria um novo produto
-  async create(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(product: Omit<Product, "id" | "createdAt" | "updatedAt">) {
     try {
       const { data, error } = await supabase
-        .from('Product')
+        .from("Product")
         .insert(product)
         .select()
         .single();
@@ -141,7 +210,7 @@ export const productsApi = {
       if (error) throw error;
       return data as Product;
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error("Error creating product:", error);
       throw error;
     }
   },
@@ -150,16 +219,16 @@ export const productsApi = {
   async update(id: string, updates: Partial<Product>) {
     try {
       const { data, error } = await supabase
-        .from('Product')
+        .from("Product")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Product;
     } catch (error) {
-      console.error('Error updating product:', error);
+      console.error("Error updating product:", error);
       throw error;
     }
   },
@@ -167,14 +236,11 @@ export const productsApi = {
   // Deleta um produto
   async delete(id: string) {
     try {
-      const { error } = await supabase
-        .from('Product')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("Product").delete().eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.error("Error deleting product:", error);
       throw error;
     }
   },
@@ -183,16 +249,16 @@ export const productsApi = {
   async updateStock(id: string, quantity: number) {
     try {
       const { data, error } = await supabase
-        .from('Product')
+        .from("Product")
         .update({ stock: quantity, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Product;
     } catch (error) {
-      console.error('Error updating stock:', error);
+      console.error("Error updating stock:", error);
       throw error;
     }
   },
@@ -207,23 +273,23 @@ export const categoriesApi = {
   async list() {
     try {
       const { data, error } = await supabase
-        .from('Category')
-        .select('*')
-        .order('position', { ascending: true });
+        .from("Category")
+        .select("*")
+        .order("position", { ascending: true });
 
       if (error) throw error;
       return data as Category[];
     } catch (error) {
-      console.error('Error listing categories:', error);
+      console.error("Error listing categories:", error);
       throw error;
     }
   },
 
   // Cria uma nova categoria
-  async create(category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(category: Omit<Category, "id" | "createdAt" | "updatedAt">) {
     try {
       const { data, error } = await supabase
-        .from('Category')
+        .from("Category")
         .insert(category)
         .select()
         .single();
@@ -231,7 +297,7 @@ export const categoriesApi = {
       if (error) throw error;
       return data as Category;
     } catch (error) {
-      console.error('Error creating category:', error);
+      console.error("Error creating category:", error);
       throw error;
     }
   },
@@ -240,16 +306,16 @@ export const categoriesApi = {
   async update(id: string, updates: Partial<Category>) {
     try {
       const { data, error } = await supabase
-        .from('Category')
+        .from("Category")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as Category;
     } catch (error) {
-      console.error('Error updating category:', error);
+      console.error("Error updating category:", error);
       throw error;
     }
   },
@@ -257,14 +323,11 @@ export const categoriesApi = {
   // Deleta uma categoria
   async delete(id: string) {
     try {
-      const { error } = await supabase
-        .from('Category')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("Category").delete().eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting category:', error);
+      console.error("Error deleting category:", error);
       throw error;
     }
   },
@@ -279,23 +342,25 @@ export const variantsApi = {
   async listByProduct(productId: string) {
     try {
       const { data, error } = await supabase
-        .from('ProductVariant')
-        .select('*')
-        .eq('productId', productId);
+        .from("ProductVariant")
+        .select("*")
+        .eq("productId", productId);
 
       if (error) throw error;
       return data as ProductVariant[];
     } catch (error) {
-      console.error('Error listing variants:', error);
+      console.error("Error listing variants:", error);
       throw error;
     }
   },
 
   // Cria uma nova variação
-  async create(variant: Omit<ProductVariant, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(
+    variant: Omit<ProductVariant, "id" | "createdAt" | "updatedAt">,
+  ) {
     try {
       const { data, error } = await supabase
-        .from('ProductVariant')
+        .from("ProductVariant")
         .insert(variant)
         .select()
         .single();
@@ -303,7 +368,7 @@ export const variantsApi = {
       if (error) throw error;
       return data as ProductVariant;
     } catch (error) {
-      console.error('Error creating variant:', error);
+      console.error("Error creating variant:", error);
       throw error;
     }
   },
@@ -312,16 +377,16 @@ export const variantsApi = {
   async update(id: string, updates: Partial<ProductVariant>) {
     try {
       const { data, error } = await supabase
-        .from('ProductVariant')
+        .from("ProductVariant")
         .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return data as ProductVariant;
     } catch (error) {
-      console.error('Error updating variant:', error);
+      console.error("Error updating variant:", error);
       throw error;
     }
   },
@@ -330,13 +395,13 @@ export const variantsApi = {
   async delete(id: string) {
     try {
       const { error } = await supabase
-        .from('ProductVariant')
+        .from("ProductVariant")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting variant:', error);
+      console.error("Error deleting variant:", error);
       throw error;
     }
   },
@@ -351,24 +416,24 @@ export const productImagesApi = {
   async listByProduct(productId: string) {
     try {
       const { data, error } = await supabase
-        .from('ProductImage')
-        .select('*')
-        .eq('productId', productId)
-        .order('position', { ascending: true });
+        .from("ProductImage")
+        .select("*")
+        .eq("productId", productId)
+        .order("position", { ascending: true });
 
       if (error) throw error;
       return data as ProductImage[];
     } catch (error) {
-      console.error('Error listing images:', error);
+      console.error("Error listing images:", error);
       throw error;
     }
   },
 
   // Adiciona uma imagem
-  async create(image: Omit<ProductImage, 'id' | 'createdAt'>) {
+  async create(image: Omit<ProductImage, "id" | "createdAt">) {
     try {
       const { data, error } = await supabase
-        .from('ProductImage')
+        .from("ProductImage")
         .insert(image)
         .select()
         .single();
@@ -376,7 +441,7 @@ export const productImagesApi = {
       if (error) throw error;
       return data as ProductImage;
     } catch (error) {
-      console.error('Error creating image:', error);
+      console.error("Error creating image:", error);
       throw error;
     }
   },
@@ -385,13 +450,13 @@ export const productImagesApi = {
   async delete(id: string) {
     try {
       const { error } = await supabase
-        .from('ProductImage')
+        .from("ProductImage")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
       throw error;
     }
   },
