@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES
@@ -65,12 +65,14 @@ export const cartApi = {
   // Get cart by ID
   async getById(id: string) {
     const { data, error } = await supabase
-      .from('Cart')
-      .select(`
+      .from("Cart")
+      .select(
+        `
         *,
         items:CartItem(*)
-      `)
-      .eq('id', id)
+      `,
+      )
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -80,18 +82,20 @@ export const cartApi = {
   // Get cart by session
   async getBySession(sessionId: string) {
     const { data, error } = await supabase
-      .from('Cart')
-      .select(`
+      .from("Cart")
+      .select(
+        `
         *,
         items:CartItem(*)
-      `)
-      .eq('sessionId', sessionId)
-      .order('createdAt', { ascending: false })
+      `,
+      )
+      .eq("sessionId", sessionId)
+      .order("createdAt", { ascending: false })
       .limit(1)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw error;
     }
     return data as Cart & { items: CartItem[] };
@@ -100,27 +104,29 @@ export const cartApi = {
   // Get cart by customer
   async getByCustomer(customerId: string) {
     const { data, error } = await supabase
-      .from('Cart')
-      .select(`
+      .from("Cart")
+      .select(
+        `
         *,
         items:CartItem(*)
-      `)
-      .eq('customerId', customerId)
-      .order('createdAt', { ascending: false })
+      `,
+      )
+      .eq("customerId", customerId)
+      .order("createdAt", { ascending: false })
       .limit(1)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw error;
     }
     return data as Cart & { items: CartItem[] };
   },
 
   // Create cart
-  async create(cart: Omit<Cart, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(cart: Omit<Cart, "id" | "createdAt" | "updatedAt">) {
     const { data, error } = await supabase
-      .from('Cart')
+      .from("Cart")
       .insert(cart)
       .select()
       .single();
@@ -132,9 +138,9 @@ export const cartApi = {
   // Update cart
   async update(id: string, updates: Partial<Cart>) {
     const { data, error } = await supabase
-      .from('Cart')
+      .from("Cart")
       .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -145,13 +151,13 @@ export const cartApi = {
   // Apply coupon
   async applyCoupon(id: string, couponCode: string, discount: number) {
     const { data, error } = await supabase
-      .from('Cart')
-      .update({ 
-        couponCode, 
+      .from("Cart")
+      .update({
+        couponCode,
         discount,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -162,13 +168,13 @@ export const cartApi = {
   // Remove coupon
   async removeCoupon(id: string) {
     const { data, error } = await supabase
-      .from('Cart')
-      .update({ 
-        couponCode: null, 
+      .from("Cart")
+      .update({
+        couponCode: null,
         discount: 0,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -179,23 +185,23 @@ export const cartApi = {
   // Clear cart (remove all items)
   async clear(id: string) {
     const { error: itemsError } = await supabase
-      .from('CartItem')
+      .from("CartItem")
       .delete()
-      .eq('cartId', id);
+      .eq("cartId", id);
 
     if (itemsError) throw itemsError;
 
     const { data, error } = await supabase
-      .from('Cart')
-      .update({ 
+      .from("Cart")
+      .update({
         subtotal: 0,
         discount: 0,
         shipping: 0,
         tax: 0,
         total: 0,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -205,10 +211,7 @@ export const cartApi = {
 
   // Delete cart
   async delete(id: string) {
-    const { error } = await supabase
-      .from('Cart')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("Cart").delete().eq("id", id);
 
     if (error) throw error;
   },
@@ -216,31 +219,36 @@ export const cartApi = {
   // Recalculate totals
   async recalculate(id: string) {
     const { data: cart, error: cartError } = await supabase
-      .from('Cart')
-      .select(`
+      .from("Cart")
+      .select(
+        `
         *,
         items:CartItem(*)
-      `)
-      .eq('id', id)
+      `,
+      )
+      .eq("id", id)
       .single();
 
     if (cartError) throw cartError;
 
     const items = cart.items || [];
-    const subtotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    const subtotal = items.reduce(
+      (sum: number, item: any) => sum + item.price * item.quantity,
+      0,
+    );
     const discount = cart.discount || 0;
     const shipping = cart.shipping || 0;
     const tax = cart.tax || 0;
     const total = subtotal - discount + shipping + tax;
 
     const { data, error } = await supabase
-      .from('Cart')
-      .update({ 
+      .from("Cart")
+      .update({
         subtotal,
         total,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -257,23 +265,23 @@ export const cartItemsApi = {
   // Get items by cart
   async getByCart(cartId: string) {
     const { data, error } = await supabase
-      .from('CartItem')
-      .select('*')
-      .eq('cartId', cartId);
+      .from("CartItem")
+      .select("*")
+      .eq("cartId", cartId);
 
     if (error) throw error;
     return data as CartItem[];
   },
 
   // Add item
-  async add(item: Omit<CartItem, 'id' | 'createdAt' | 'updatedAt'>) {
+  async add(item: Omit<CartItem, "id" | "createdAt" | "updatedAt">) {
     // Check if item already exists
     const { data: existing } = await supabase
-      .from('CartItem')
-      .select('*')
-      .eq('cartId', item.cartId)
-      .eq('productId', item.productId)
-      .eq('variantId', item.variantId || null)
+      .from("CartItem")
+      .select("*")
+      .eq("cartId", item.cartId)
+      .eq("productId", item.productId)
+      .eq("variantId", item.variantId || null)
       .single();
 
     if (existing) {
@@ -285,7 +293,7 @@ export const cartItemsApi = {
 
     // Add new item
     const { data, error } = await supabase
-      .from('CartItem')
+      .from("CartItem")
       .insert(item)
       .select()
       .single();
@@ -297,9 +305,9 @@ export const cartItemsApi = {
   // Update item
   async update(id: string, updates: Partial<CartItem>) {
     const { data, error } = await supabase
-      .from('CartItem')
+      .from("CartItem")
       .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -314,13 +322,13 @@ export const cartItemsApi = {
     }
 
     const { data, error } = await supabase
-      .from('CartItem')
-      .update({ 
+      .from("CartItem")
+      .update({
         quantity,
         total: quantity * (await cartItemsApi.getById(id)).price,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -331,9 +339,9 @@ export const cartItemsApi = {
   // Get item by ID
   async getById(id: string) {
     const { data, error } = await supabase
-      .from('CartItem')
-      .select('*')
-      .eq('id', id)
+      .from("CartItem")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -342,10 +350,7 @@ export const cartItemsApi = {
 
   // Remove item
   async remove(id: string) {
-    const { error } = await supabase
-      .from('CartItem')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("CartItem").delete().eq("id", id);
 
     if (error) throw error;
   },
@@ -356,24 +361,70 @@ export const cartItemsApi = {
 // ============================================
 
 export const abandonedCartApi = {
-  // Get all abandoned carts
+  // Get all abandoned carts (combined from AbandonedCart and ShopifyAbandonedCart)
   async getAll(userId: string) {
-    const { data, error } = await supabase
-      .from('AbandonedCart')
-      .select('*')
-      .eq('userId', userId)
-      .order('createdAt', { ascending: false });
+    // Buscar da tabela principal
+    const { data: mainCarts, error: mainError } = await supabase
+      .from("AbandonedCart")
+      .select("*")
+      .eq("userId", userId)
+      .order("createdAt", { ascending: false });
 
-    if (error) throw error;
-    return data as AbandonedCart[];
+    if (mainError) throw mainError;
+
+    // Buscar da Shopify
+    const { data: shopifyCarts, error: shopifyError } = await supabase
+      .from("ShopifyAbandonedCart")
+      .select("*")
+      .eq("userId", userId)
+      .order("abandonedAt", { ascending: false });
+
+    if (shopifyError) throw shopifyError;
+
+    // Converter carrinhos da Shopify para formato padrão
+    const convertedShopifyCarts: AbandonedCart[] = (shopifyCarts || []).map(
+      (sc: any) => ({
+        id: sc.id,
+        userId: sc.userId,
+        cartId: sc.shopifyCartId || sc.id,
+        customerEmail: sc.email,
+        customerName: sc.customerName,
+        items: sc.lineItems || {},
+        subtotal: sc.totalPrice || 0,
+        total: sc.totalPrice || 0,
+        recoveryEmailSent: false,
+        recoveryEmailSentAt: undefined,
+        recovered: false,
+        recoveredAt: undefined,
+        recoveryOrderId: undefined,
+        metadata: {
+          source: "shopify",
+          shopifyCartToken: sc.cartToken,
+          abandonedCheckoutUrl: sc.abandonedCheckoutUrl,
+        },
+        createdAt: sc.abandonedAt || sc.createdAt,
+      }),
+    );
+
+    // Combinar e remover duplicatas (priorizar AbandonedCart)
+    const allCarts = [...(mainCarts || []), ...convertedShopifyCarts];
+    const uniqueCarts = allCarts.filter(
+      (cart, index, self) =>
+        index === self.findIndex((c) => c.cartId === cart.cartId),
+    );
+
+    return uniqueCarts.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   },
 
   // Get abandoned cart by ID
   async getById(id: string) {
     const { data, error } = await supabase
-      .from('AbandonedCart')
-      .select('*')
-      .eq('id', id)
+      .from("AbandonedCart")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -381,9 +432,9 @@ export const abandonedCartApi = {
   },
 
   // Create abandoned cart
-  async create(cart: Omit<AbandonedCart, 'id' | 'createdAt'>) {
+  async create(cart: Omit<AbandonedCart, "id" | "createdAt">) {
     const { data, error } = await supabase
-      .from('AbandonedCart')
+      .from("AbandonedCart")
       .insert(cart)
       .select()
       .single();
@@ -395,12 +446,12 @@ export const abandonedCartApi = {
   // Mark recovery email sent
   async markEmailSent(id: string) {
     const { data, error } = await supabase
-      .from('AbandonedCart')
-      .update({ 
+      .from("AbandonedCart")
+      .update({
         recoveryEmailSent: true,
-        recoveryEmailSentAt: new Date().toISOString() 
+        recoveryEmailSentAt: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -411,13 +462,13 @@ export const abandonedCartApi = {
   // Mark as recovered
   async markRecovered(id: string, orderId: string) {
     const { data, error } = await supabase
-      .from('AbandonedCart')
-      .update({ 
+      .from("AbandonedCart")
+      .update({
         recovered: true,
         recoveredAt: new Date().toISOString(),
-        recoveryOrderId: orderId 
+        recoveryOrderId: orderId,
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -425,39 +476,93 @@ export const abandonedCartApi = {
     return data as AbandonedCart;
   },
 
-  // Get unrecovered carts
+  // Get unrecovered carts (combined from both sources)
   async getUnrecovered(userId: string) {
-    const { data, error } = await supabase
-      .from('AbandonedCart')
-      .select('*')
-      .eq('userId', userId)
-      .eq('recovered', false)
-      .order('createdAt', { ascending: false });
-
-    if (error) throw error;
-    return data as AbandonedCart[];
+    // Buscar todos e filtrar não recuperados
+    const allCarts = await abandonedCartApi.getAll(userId);
+    return allCarts.filter((cart) => !cart.recovered);
   },
 
   // Get carts needing recovery email
   async getNeedingEmail(userId: string) {
+    const allCarts = await abandonedCartApi.getAll(userId);
+    return allCarts.filter(
+      (cart) => !cart.recoveryEmailSent && !cart.recovered,
+    );
+  },
+
+  // Get Shopify abandoned carts directly
+  async getShopifyAbandoned(userId: string) {
     const { data, error } = await supabase
-      .from('AbandonedCart')
-      .select('*')
-      .eq('userId', userId)
-      .eq('recoveryEmailSent', false)
-      .eq('recovered', false)
-      .order('createdAt', { ascending: false });
+      .from("ShopifyAbandonedCart")
+      .select("*")
+      .eq("userId", userId)
+      .order("abandonedAt", { ascending: false });
 
     if (error) throw error;
-    return data as AbandonedCart[];
+    return data;
+  },
+
+  // Sync Shopify cart to AbandonedCart table
+  async syncFromShopify(shopifyCartId: string) {
+    try {
+      const { data: shopifyCart, error: fetchError } = await supabase
+        .from("ShopifyAbandonedCart")
+        .select("*")
+        .eq("id", shopifyCartId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Verificar se já existe
+      const { data: existing } = await supabase
+        .from("AbandonedCart")
+        .select("id")
+        .eq("cartId", shopifyCart.shopifyCartId || shopifyCartId)
+        .single();
+
+      if (existing) {
+        return existing;
+      }
+
+      // Criar novo registro
+      const newCart = {
+        userId: shopifyCart.userId,
+        cartId: shopifyCart.shopifyCartId || shopifyCartId,
+        customerEmail: shopifyCart.email,
+        customerName: shopifyCart.customerName,
+        items: shopifyCart.lineItems || {},
+        subtotal: shopifyCart.totalPrice || 0,
+        total: shopifyCart.totalPrice || 0,
+        recoveryEmailSent: false,
+        recovered: false,
+        metadata: {
+          source: "shopify",
+          shopifyCartToken: shopifyCart.cartToken,
+          abandonedCheckoutUrl: shopifyCart.abandonedCheckoutUrl,
+        },
+      };
+
+      const { data, error } = await supabase
+        .from("AbandonedCart")
+        .insert(newCart)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as AbandonedCart;
+    } catch (error: any) {
+      console.error("Error syncing Shopify cart:", error);
+      throw error;
+    }
   },
 
   // Delete abandoned cart
   async delete(id: string) {
     const { error } = await supabase
-      .from('AbandonedCart')
+      .from("AbandonedCart")
       .delete()
-      .eq('id', id);
+      .eq("id", id);
 
     if (error) throw error;
   },

@@ -13,32 +13,19 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Search, DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { CheckCircle, AlertCircle, Search, DollarSign, TrendingUp, TrendingDown, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuthStore } from '@/store/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/lib/supabase';
+import { recoveryApi, RecoveredCart } from '@/lib/api/recoveryApi';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface PixRecoveredTransaction {
-  id: string;
-  orderId: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  amount: number;
-  pixCopyPaste?: string;
-  pixQrCode?: string;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
-  expiresAt?: string;
-  paidAt?: string;
-  createdAt: string;
-}
+type RecoveryStatus = 'PENDING' | 'RECOVERED' | 'EXPIRED' | 'FAILED';
 
 const PixRecoveredPage = () => {
-  const [transactions, setTransactions] = useState<PixRecoveredTransaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<PixRecoveredTransaction[]>([]);
+  const [recoveries, setRecoveries] = useState<RecoveredCart[]>([]);
+  const [filteredRecoveries, setFilteredRecoveries] = useState<RecoveredCart[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -46,58 +33,26 @@ const PixRecoveredPage = () => {
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    loadPixTransactions();
-  }, [user?.organizationId]);
+    loadPixRecoveries();
+  }, [user?.id]);
 
   useEffect(() => {
-    filterTransactions();
-  }, [searchTerm, statusFilter, transactions]);
+    filterRecoveries();
+  }, [searchTerm, statusFilter, recoveries]);
 
-  const loadPixTransactions = async () => {
+  const loadPixRecoveries = async () => {
     try {
-      if (!user?.organizationId) return;
-      
+      if (!user?.id) return;
+
       setLoading(true);
-      
-      // Buscar transações PIX e seus pedidos relacionados
-      const { data: transactionsData, error } = await supabase
-        .from('Transaction')
-        .select(`
-          *,
-          Order:orderId (
-            id,
-            orderNumber,
-            customerName,
-            customerEmail
-          )
-        `)
-        .eq('paymentMethod', 'PIX')
-        .eq('organizationId', user.organizationId)
-        .order('createdAt', { ascending: false });
 
-      if (error) throw error;
-
-      // Transformar dados para o formato da interface
-      const transformedData: PixRecoveredTransaction[] = (transactionsData || []).map(t => ({
-        id: t.id,
-        orderId: t.orderId,
-        orderNumber: t.Order?.orderNumber || t.orderId.substring(0, 8),
-        customerName: t.Order?.customerName || 'N/A',
-        customerEmail: t.Order?.customerEmail || 'N/A',
-        amount: t.amount,
-        pixCopyPaste: t.pixCopyPaste,
-        pixQrCode: t.pixQrCode,
-        status: t.status as 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED',
-        expiresAt: t.pixExpiresAt,
-        paidAt: t.paidAt,
-        createdAt: t.createdAt
-      }));
-
-      setTransactions(transformedData);
+      // Buscar todos os carrinhos recuperados via PIX
+      const data = await recoveryApi.getPixRecovered(user.id);
+      setRecoveries(data);
     } catch (error: any) {
-      console.error('Erro ao carregar transações PIX:', error);
+      console.error('Erro ao carregar PIX recuperados:', error);
       toast({
-        title: 'Erro ao carregar transações',
+        title: 'Erro ao carregar dados',
         description: error.message,
         variant: 'destructive',
       });
@@ -106,25 +61,30 @@ const PixRecoveredPage = () => {
     }
   };
 
-  const filterTransactions = () => {
-    let filtered = transactions;
+  const filterRecoveries = () => {
+    let filtered = recoveries;
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
-        (transaction) =>
-          transaction.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          transaction.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          transaction.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+        (recovery) =>
+          recovery.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (recovery.orderId && recovery.orderId.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     // Filter by status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((transaction) => transaction.status === statusFilter);
+      if (statusFilter === 'RECOVERED') {
+        filtered = filtered.filter((r) => r.recovered);
+      } else if (statusFilter === 'PENDING') {
+        filtered = filtered.filter((r) => !r.recovered && (!r.pixExpiresAt || new Date(r.pixExpiresAt) > new Date()));
+      } else if (statusFilter === 'EXPIRED') {
+        filtered = filtered.filter((r) => !r.recovered && r.pixExpiresAt && new Date(r.pixExpiresAt) < new Date());
+      }
     }
 
-    setFilteredTransactions(filtered);
+    setFilteredRecoveries(filtered);
   };
 
   const formatCurrency = (value: number) => {
@@ -134,21 +94,33 @@ const PixRecoveredPage = () => {
     }).format(value);
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      PENDING: { label: 'Aguardando Pagamento', variant: 'secondary' as const, icon: Clock },
-      PAID: { label: 'Pago', variant: 'default' as const, icon: CheckCircle },
-      EXPIRED: { label: 'Expirado', variant: 'destructive' as const, icon: AlertCircle },
-      CANCELLED: { label: 'Cancelado', variant: 'secondary' as const, icon: AlertCircle },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap.PENDING;
+  const getRecoveryStatus = (recovery: RecoveredCart): RecoveryStatus => {
+    if (recovery.recovered) return 'RECOVERED';
+    if (recovery.pixExpiresAt && new Date(recovery.pixExpiresAt) < new Date()) return 'EXPIRED';
+    return 'PENDING';
   };
 
-  const totalPending = transactions.filter(t => t.status === 'PENDING').reduce((sum, t) => sum + t.amount, 0);
-  const totalRecovered = transactions.filter(t => t.status === 'PAID').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpired = transactions.filter(t => t.status === 'EXPIRED').reduce((sum, t) => sum + t.amount, 0);
-  const recoveryRate = transactions.length > 0 
-    ? ((transactions.filter(t => t.status === 'PAID').length / transactions.length) * 100).toFixed(1)
+  const getStatusBadge = (status: RecoveryStatus) => {
+    const statusMap = {
+      PENDING: { label: 'Aguardando Pagamento', variant: 'secondary' as const, icon: Clock },
+      RECOVERED: { label: 'Recuperado', variant: 'default' as const, icon: CheckCircle },
+      EXPIRED: { label: 'Expirado', variant: 'destructive' as const, icon: AlertCircle },
+      FAILED: { label: 'Falhou', variant: 'destructive' as const, icon: AlertCircle },
+    };
+    return statusMap[status] || statusMap.PENDING;
+  };
+
+  const totalPending = recoveries
+    .filter(r => getRecoveryStatus(r) === 'PENDING')
+    .reduce((sum, r) => sum + r.cartValue, 0);
+  const totalRecovered = recoveries
+    .filter(r => r.recovered)
+    .reduce((sum, r) => sum + r.cartValue, 0);
+  const totalExpired = recoveries
+    .filter(r => getRecoveryStatus(r) === 'EXPIRED')
+    .reduce((sum, r) => sum + r.cartValue, 0);
+  const recoveryRate = recoveries.length > 0
+    ? ((recoveries.filter(r => r.recovered).length / recoveries.length) * 100).toFixed(1)
     : '0';
 
   return (
@@ -171,7 +143,7 @@ const PixRecoveredPage = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalPending)}</div>
             <p className="text-xs text-muted-foreground">
-              {transactions.filter(t => t.status === 'PENDING').length} transação(ões)
+              {recoveries.filter(r => getRecoveryStatus(r) === 'PENDING').length} aguardando
             </p>
           </CardContent>
         </Card>
@@ -183,7 +155,7 @@ const PixRecoveredPage = () => {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{formatCurrency(totalRecovered)}</div>
             <p className="text-xs text-muted-foreground">
-              {transactions.filter(t => t.status === 'PAID').length} pagamentos confirmados
+              {recoveries.filter(r => r.recovered).length} recuperados
             </p>
           </CardContent>
         </Card>
@@ -195,7 +167,7 @@ const PixRecoveredPage = () => {
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpired)}</div>
             <p className="text-xs text-muted-foreground">
-              {transactions.filter(t => t.status === 'EXPIRED').length} não recuperados
+              {recoveries.filter(r => getRecoveryStatus(r) === 'EXPIRED').length} expirados
             </p>
           </CardContent>
         </Card>
@@ -218,7 +190,7 @@ const PixRecoveredPage = () => {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você tem <strong>{formatCurrency(totalPending)}</strong> em PIX aguardando pagamento. 
+            Você tem <strong>{formatCurrency(totalPending)}</strong> em PIX aguardando pagamento.
             Considere enviar lembretes para os clientes.
           </AlertDescription>
         </Alert>
@@ -242,12 +214,12 @@ const PixRecoveredPage = () => {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="PENDING">Aguardando</SelectItem>
-            <SelectItem value="PAID">Pago</SelectItem>
+            <SelectItem value="RECOVERED">Recuperado</SelectItem>
             <SelectItem value="EXPIRED">Expirado</SelectItem>
-            <SelectItem value="CANCELLED">Cancelado</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={loadPixTransactions} variant="outline">
+        <Button onClick={loadPixRecoveries} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar
         </Button>
       </div>
@@ -255,11 +227,23 @@ const PixRecoveredPage = () => {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Transações PIX</CardTitle>
+          <CardTitle>Recuperação de Carrinhos via PIX</CardTitle>
           <CardDescription>
-            {filteredTransactions.length} transação(ões) encontrada(s)
+            {filteredRecoveries.length} carrinho(s) encontrado(s)
           </CardDescription>
         </CardHeader>
+</text>
+
+<old_text line=246>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold">Nenhum PIX encontrado</h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Tente ajustar os filtros'
+                  : 'Aguardando primeira transação PIX'}
+              </p>
+            </div>
         <CardContent>
           {loading ? (
             <div className="space-y-2">
@@ -281,9 +265,10 @@ const PixRecoveredPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pedido</TableHead>
+                  <TableHead>Carrinho</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Valor</TableHead>
+                  <TableHead>Tentativas</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Expira em</TableHead>
                   <TableHead>Data</TableHead>
@@ -291,30 +276,48 @@ const PixRecoveredPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTransactions.map((transaction) => {
-                  const statusInfo = getStatusBadge(transaction.status);
+                {filteredRecoveries.map((recovery) => {
+                  const status = getRecoveryStatus(recovery);
+                  const statusInfo = getStatusBadge(status);
                   const Icon = statusInfo.icon;
-                  
+
                   return (
-                    <TableRow key={transaction.id}>
+                    <TableRow key={recovery.id}>
                       <TableCell>
                         <div className="font-mono text-sm">
-                          #{transaction.orderNumber}
+                          #{recovery.cartId.substring(0, 8)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{transaction.customerName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {transaction.customerEmail}
-                          </div>
+                          <div className="font-medium">{recovery.customerEmail}</div>
+                          {recovery.customerPhone && (
+                            <div className="text-sm text-muted-foreground">
+                              {recovery.customerPhone}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{formatCurrency(transaction.amount)}</div>
-                        {transaction.paidAt && (
+                        <div className="font-medium">{formatCurrency(recovery.cartValue)}</div>
+                        {recovery.discountOffered > 0 && (
                           <div className="text-sm text-green-600">
-                            Pago em {format(new Date(transaction.paidAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            Desconto: {formatCurrency(recovery.discountOffered)}
+                          </div>
+                        )}
+                        {recovery.recoveredAt && (
+                          <div className="text-sm text-green-600">
+                            Recuperado em {format(new Date(recovery.recoveredAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {recovery.recoveryAttempts} tentativa(s)
+                        </div>
+                        {recovery.lastRecoveryAt && (
+                          <div className="text-xs text-muted-foreground">
+                            Última: {format(new Date(recovery.lastRecoveryAt), 'dd/MM HH:mm', { locale: ptBR })}
                           </div>
                         )}
                       </TableCell>
@@ -325,30 +328,32 @@ const PixRecoveredPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {transaction.expiresAt ? (
+                        {recovery.pixExpiresAt ? (
                           <div className="text-sm">
-                            {format(new Date(transaction.expiresAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            {format(new Date(recovery.pixExpiresAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                           </div>
                         ) : (
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {format(new Date(transaction.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                        {format(new Date(recovery.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {transaction.status === 'PENDING' && transaction.pixCopyPaste && (
+                          {status === 'PENDING' && recovery.pixCopyPaste && (
                             <Button variant="outline" size="sm" onClick={() => {
-                              navigator.clipboard.writeText(transaction.pixCopyPaste!);
+                              navigator.clipboard.writeText(recovery.pixCopyPaste!);
                               toast({ title: 'Chave PIX copiada!' });
                             }}>
                               Copiar PIX
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm">
-                            Ver detalhes
-                          </Button>
+                          {recovery.orderId && (
+                            <Button variant="ghost" size="sm">
+                              Ver pedido
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
