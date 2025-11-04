@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -10,34 +16,40 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ShoppingCart, Search, Eye, DollarSign, Package, TrendingUp, PackageX, RefreshCw } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { ordersApi, Order } from '@/lib/api/ordersApi';
-import { shopifySync } from '@/lib/api/shopifySync';
-import { useAuthStore } from '@/store/authStore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/lib/supabase';
-</text>
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-</parameter>
-</invoke>
+} from "@/components/ui/select";
+import {
+  ShoppingCart,
+  Search,
+  Eye,
+  DollarSign,
+  Package,
+  TrendingUp,
+  PackageX,
+  RefreshCw,
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { ordersApi, Order } from "@/lib/api/ordersApi";
+import { shopifySync } from "@/lib/api/shopifySync";
+import { useAuthStore } from "@/store/authStore";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const AllOrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
@@ -58,51 +70,65 @@ const AllOrdersPage = () => {
 
       // Buscar também pedidos da Shopify que ainda não foram sincronizados
       const { data: shopifyOrders } = await supabase
-        .from('ShopifyOrder')
-        .select('*')
-        .eq('userId', user.id)
-        .order('createdAt', { ascending: false });
+        .from("ShopifyOrder")
+        .select("*")
+        .eq("userId", user.id)
+        .order("createdAt", { ascending: false });
 
       // Converter pedidos Shopify para formato padrão
-      const convertedShopifyOrders: Order[] = (shopifyOrders || []).map((so: any) => ({
-        id: so.id.toString(),
-        userId: so.userId,
-        orderNumber: so.orderNumber?.toString() || so.id.toString(),
-        customerId: so.customerData?.id || 'shopify-customer',
-        cartId: undefined,
-        customerEmail: so.email || '',
-        customerName: so.name || so.customerData?.first_name + ' ' + so.customerData?.last_name || 'Cliente',
-        customerPhone: so.phone,
-        shippingAddress: so.shippingAddress || {},
-        billingAddress: so.billingAddress || {},
-        items: so.lineItems || {},
-        subtotal: parseFloat(so.subtotalPrice || 0),
-        discount: 0,
-        shipping: 0,
-        tax: parseFloat(so.totalTax || 0),
-        total: parseFloat(so.totalPrice || 0),
-        currency: so.currency || 'BRL',
-        paymentMethod: 'CREDIT_CARD' as any,
-        paymentStatus: so.financialStatus === 'paid' ? 'PAID' : so.financialStatus === 'pending' ? 'PENDING' : 'FAILED' as any,
-        fulfillmentStatus: so.fulfillmentStatus === 'fulfilled' ? 'DELIVERED' : 'PENDING' as any,
-        createdAt: so.createdAt,
-        updatedAt: so.updatedAt,
-      }));
+      const convertedShopifyOrders: Order[] = (shopifyOrders || []).map(
+        (so: any) => ({
+          id: so.id.toString(),
+          userId: so.userId,
+          orderNumber: so.orderNumber?.toString() || so.id.toString(),
+          customerId: so.customerData?.id || "shopify-customer",
+          cartId: undefined,
+          customerEmail: so.email || "",
+          customerName:
+            so.name ||
+            so.customerData?.first_name + " " + so.customerData?.last_name ||
+            "Cliente",
+          customerPhone: so.phone,
+          shippingAddress: so.shippingAddress || {},
+          billingAddress: so.billingAddress || {},
+          items: so.lineItems || {},
+          subtotal: parseFloat(so.subtotalPrice || 0),
+          discount: 0,
+          shipping: 0,
+          tax: parseFloat(so.totalTax || 0),
+          total: parseFloat(so.totalPrice || 0),
+          currency: so.currency || "BRL",
+          paymentMethod: "CREDIT_CARD" as any,
+          paymentStatus:
+            so.financialStatus === "paid"
+              ? "PAID"
+              : so.financialStatus === "pending"
+                ? "PENDING"
+                : ("FAILED" as any),
+          fulfillmentStatus:
+            so.fulfillmentStatus === "fulfilled"
+              ? "DELIVERED"
+              : ("PENDING" as any),
+          createdAt: so.createdAt,
+          updatedAt: so.updatedAt,
+        }),
+      );
 
       // Combinar e remover duplicatas
       const allOrders = [...mainOrders, ...convertedShopifyOrders];
       const uniqueOrders = allOrders.filter(
-        (order, index, self) => index === self.findIndex(o => o.orderNumber === order.orderNumber)
+        (order, index, self) =>
+          index === self.findIndex((o) => o.orderNumber === order.orderNumber),
       );
 
       setOrders(uniqueOrders);
       setFilteredOrders(uniqueOrders);
     } catch (error: any) {
-      console.error('Erro ao carregar pedidos:', error);
+      console.error("Erro ao carregar pedidos:", error);
       toast({
-        title: 'Erro ao carregar pedidos',
+        title: "Erro ao carregar pedidos",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -112,20 +138,20 @@ const AllOrdersPage = () => {
   const handleSyncShopify = async () => {
     try {
       setSyncing(true);
-      toast({ title: 'Sincronizando com Shopify...' });
+      toast({ title: "Sincronizando com Shopify..." });
 
       if (!user?.id) return;
 
       await shopifySync.syncOrders(user.id);
 
-      toast({ title: 'Pedidos sincronizados com sucesso!' });
+      toast({ title: "Pedidos sincronizados com sucesso!" });
       await loadOrders();
     } catch (error: any) {
-      console.error('Erro ao sincronizar:', error);
+      console.error("Erro ao sincronizar:", error);
       toast({
-        title: 'Erro ao sincronizar',
+        title: "Erro ao sincronizar",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setSyncing(false);
@@ -141,54 +167,58 @@ const AllOrdersPage = () => {
         (order) =>
           order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+          order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((order) => order.paymentStatus === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (order) => order.paymentStatus === statusFilter,
+      );
     }
 
     setFilteredOrders(filtered);
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
-  const getStatusBadge = (status: Order['paymentStatus']) => {
+  const getStatusBadge = (status: Order["paymentStatus"]) => {
     const statusMap = {
-      PENDING: { label: 'Pendente', variant: 'secondary' as const },
-      PROCESSING: { label: 'Processando', variant: 'default' as const },
-      PAID: { label: 'Pago', variant: 'default' as const },
-      FAILED: { label: 'Falhou', variant: 'destructive' as const },
-      REFUNDED: { label: 'Reembolsado', variant: 'secondary' as const },
-      CANCELLED: { label: 'Cancelado', variant: 'secondary' as const },
+      PENDING: { label: "Pendente", variant: "secondary" as const },
+      PROCESSING: { label: "Processando", variant: "default" as const },
+      PAID: { label: "Pago", variant: "default" as const },
+      FAILED: { label: "Falhou", variant: "destructive" as const },
+      REFUNDED: { label: "Reembolsado", variant: "secondary" as const },
+      CANCELLED: { label: "Cancelado", variant: "secondary" as const },
     };
     return statusMap[status];
   };
 
-  const getFulfillmentBadge = (status: Order['fulfillmentStatus']) => {
+  const getFulfillmentBadge = (status: Order["fulfillmentStatus"]) => {
     const statusMap = {
-      PENDING: { label: 'Pendente', variant: 'secondary' as const },
-      PROCESSING: { label: 'Preparando', variant: 'default' as const },
-      SHIPPED: { label: 'Enviado', variant: 'default' as const },
-      DELIVERED: { label: 'Entregue', variant: 'default' as const },
-      CANCELLED: { label: 'Cancelado', variant: 'destructive' as const },
+      PENDING: { label: "Pendente", variant: "secondary" as const },
+      PROCESSING: { label: "Preparando", variant: "default" as const },
+      SHIPPED: { label: "Enviado", variant: "default" as const },
+      DELIVERED: { label: "Entregue", variant: "default" as const },
+      CANCELLED: { label: "Cancelado", variant: "destructive" as const },
     };
     return statusMap[status];
   };
 
   const totalRevenue = orders
-    .filter((o) => o.paymentStatus === 'PAID')
+    .filter((o) => o.paymentStatus === "PAID")
     .reduce((sum, o) => sum + o.total, 0);
 
-  const pendingOrders = orders.filter((o) => o.paymentStatus === 'PENDING').length;
-  const paidOrders = orders.filter((o) => o.paymentStatus === 'PAID').length;
+  const pendingOrders = orders.filter(
+    (o) => o.paymentStatus === "PENDING",
+  ).length;
+  const paidOrders = orders.filter((o) => o.paymentStatus === "PAID").length;
 
   return (
     <div className="space-y-6">
@@ -204,7 +234,9 @@ const AllOrdersPage = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total de Pedidos
+            </CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -222,7 +254,9 @@ const AllOrdersPage = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Pendentes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pedidos Pendentes
+            </CardTitle>
             <PackageX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -235,7 +269,9 @@ const AllOrdersPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalRevenue)}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -265,9 +301,15 @@ const AllOrdersPage = () => {
             <SelectItem value="CANCELLED">Cancelado</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={handleSyncShopify} disabled={syncing} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Sincronizando...' : 'Sincronizar Shopify'}
+        <Button
+          onClick={handleSyncShopify}
+          disabled={syncing}
+          variant="outline"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`}
+          />
+          {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
         </Button>
       </div>
 
@@ -289,11 +331,13 @@ const AllOrdersPage = () => {
           ) : filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Nenhum pedido encontrado</h3>
+              <h3 className="text-lg font-semibold">
+                Nenhum pedido encontrado
+              </h3>
               <p className="text-sm text-muted-foreground">
-                {searchTerm || statusFilter !== 'all'
-                  ? 'Tente ajustar os filtros'
-                  : 'Aguardando o primeiro pedido'}
+                {searchTerm || statusFilter !== "all"
+                  ? "Tente ajustar os filtros"
+                  : "Aguardando o primeiro pedido"}
               </p>
             </div>
           ) : (
@@ -326,23 +370,33 @@ const AllOrdersPage = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{formatCurrency(order.total)}</div>
+                      <div className="font-medium">
+                        {formatCurrency(order.total)}
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {order.paymentMethod}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadge(order.paymentStatus).variant}>
+                      <Badge
+                        variant={getStatusBadge(order.paymentStatus).variant}
+                      >
                         {getStatusBadge(order.paymentStatus).label}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getFulfillmentBadge(order.fulfillmentStatus).variant}>
+                      <Badge
+                        variant={
+                          getFulfillmentBadge(order.fulfillmentStatus).variant
+                        }
+                      >
                         {getFulfillmentBadge(order.fulfillmentStatus).label}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(new Date(order.createdAt), "dd/MM/yyyy", {
+                        locale: ptBR,
+                      })}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon">
