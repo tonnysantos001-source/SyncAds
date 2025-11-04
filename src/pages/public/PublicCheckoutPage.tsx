@@ -581,7 +581,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
           await supabase.functions.invoke("sync-order-to-shopify", {
             body: {
               orderId: effectiveOrderId,
-              userId: user?.id,
+              userId: orderData?.userId,
             },
           });
 

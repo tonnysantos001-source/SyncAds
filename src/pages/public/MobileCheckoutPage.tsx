@@ -430,7 +430,7 @@ const MobileCheckoutPage: React.FC<MobileCheckoutPageProps> = ({
           await supabase.functions.invoke("sync-order-to-shopify", {
             body: {
               orderId: orderId,
-              userId: user?.id,
+              userId: orderData?.userId,
             },
           });
 
