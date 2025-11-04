@@ -18,18 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ShoppingCart, Search, Eye, DollarSign, Package, TrendingUp, PackageX } from 'lucide-react';
+import { ShoppingCart, Search, Eye, DollarSign, Package, TrendingUp, PackageX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { ordersApi, Order } from '@/lib/api/ordersApi';
+import { shopifySync } from '@/lib/api/shopifySync';
 import { useAuthStore } from '@/store/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/lib/supabase';
+</text>
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+</parameter>
+</invoke>
 
 const AllOrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { toast } = useToast();
@@ -45,12 +51,54 @@ const AllOrdersPage = () => {
 
   const loadOrders = async () => {
     try {
-      if (!user?.organizationId) return;
-      
-      const data = await ordersApi.getAll(user.organizationId);
-      setOrders(data);
-      setFilteredOrders(data);
+      if (!user?.id) return;
+
+      // Buscar pedidos da tabela Order principal
+      const mainOrders = await ordersApi.getAll(user.id);
+
+      // Buscar também pedidos da Shopify que ainda não foram sincronizados
+      const { data: shopifyOrders } = await supabase
+        .from('ShopifyOrder')
+        .select('*')
+        .eq('userId', user.id)
+        .order('createdAt', { ascending: false });
+
+      // Converter pedidos Shopify para formato padrão
+      const convertedShopifyOrders: Order[] = (shopifyOrders || []).map((so: any) => ({
+        id: so.id.toString(),
+        userId: so.userId,
+        orderNumber: so.orderNumber?.toString() || so.id.toString(),
+        customerId: so.customerData?.id || 'shopify-customer',
+        cartId: undefined,
+        customerEmail: so.email || '',
+        customerName: so.name || so.customerData?.first_name + ' ' + so.customerData?.last_name || 'Cliente',
+        customerPhone: so.phone,
+        shippingAddress: so.shippingAddress || {},
+        billingAddress: so.billingAddress || {},
+        items: so.lineItems || {},
+        subtotal: parseFloat(so.subtotalPrice || 0),
+        discount: 0,
+        shipping: 0,
+        tax: parseFloat(so.totalTax || 0),
+        total: parseFloat(so.totalPrice || 0),
+        currency: so.currency || 'BRL',
+        paymentMethod: 'CREDIT_CARD' as any,
+        paymentStatus: so.financialStatus === 'paid' ? 'PAID' : so.financialStatus === 'pending' ? 'PENDING' : 'FAILED' as any,
+        fulfillmentStatus: so.fulfillmentStatus === 'fulfilled' ? 'DELIVERED' : 'PENDING' as any,
+        createdAt: so.createdAt,
+        updatedAt: so.updatedAt,
+      }));
+
+      // Combinar e remover duplicatas
+      const allOrders = [...mainOrders, ...convertedShopifyOrders];
+      const uniqueOrders = allOrders.filter(
+        (order, index, self) => index === self.findIndex(o => o.orderNumber === order.orderNumber)
+      );
+
+      setOrders(uniqueOrders);
+      setFilteredOrders(uniqueOrders);
     } catch (error: any) {
+      console.error('Erro ao carregar pedidos:', error);
       toast({
         title: 'Erro ao carregar pedidos',
         description: error.message,
@@ -58,6 +106,29 @@ const AllOrdersPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncShopify = async () => {
+    try {
+      setSyncing(true);
+      toast({ title: 'Sincronizando com Shopify...' });
+
+      if (!user?.id) return;
+
+      await shopifySync.syncOrders(user.id);
+
+      toast({ title: 'Pedidos sincronizados com sucesso!' });
+      await loadOrders();
+    } catch (error: any) {
+      console.error('Erro ao sincronizar:', error);
+      toast({
+        title: 'Erro ao sincronizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -194,6 +265,10 @@ const AllOrdersPage = () => {
             <SelectItem value="CANCELLED">Cancelado</SelectItem>
           </SelectContent>
         </Select>
+        <Button onClick={handleSyncShopify} disabled={syncing} variant="outline">
+          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar Shopify'}
+        </Button>
       </div>
 
       {/* Table */}

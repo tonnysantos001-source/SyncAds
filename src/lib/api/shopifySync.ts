@@ -468,3 +468,7 @@ export const shopifySyncApi = {
     }
   },
 };
+
+// Exports
+export const shopifySync = shopifySyncApi;
+export default shopifySyncApi;
