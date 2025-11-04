@@ -41,7 +41,11 @@ serve(async (req) => {
     const body: SyncOrderRequest = await req.json();
     const { orderId, userId } = body;
 
-    log("info", "🔄 Iniciando sincronização com Shopify", { orderId, userId });
+    log("info", "🔄 Iniciando sincronização com Shopify", {
+      orderId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
 
     if (!orderId) {
       return new Response(
@@ -83,7 +87,10 @@ serve(async (req) => {
     log("info", "✅ Pedido encontrado", {
       orderNumber: order.orderNumber,
       customerEmail: order.customerEmail,
+      customerName: order.customerName,
       total: order.total,
+      userId: order.userId,
+      itemsCount: Array.isArray(order.items) ? order.items.length : 0,
     });
 
     // 2. Buscar integração Shopify ativa do usuário
@@ -128,46 +135,39 @@ serve(async (req) => {
       })),
     });
 
-    // 4. Preparar payload para Shopify Orders API
+    // 4. Preparar payload para Shopify Orders API (SIMPLIFICADO)
+    const lineItems = items.map((item: any) => {
+      const lineItem: any = {
+        title: item.name || "Produto",
+        price: String((item.price || 0).toFixed(2)),
+        quantity: item.quantity || 1,
+        requires_shipping: true,
+      };
+
+      // Adicionar variant_id apenas se existir e for válido
+      if (item.variantId && String(item.variantId).trim()) {
+        lineItem.variant_id = String(item.variantId);
+      }
+
+      return lineItem;
+    });
+
+    log("info", "📦 Line items preparados", { lineItems });
+
     const shopifyPayload = {
       order: {
-        line_items: items.map((item: any) => ({
-          title: item.name || "Produto",
-          price: (item.price || 0).toFixed(2),
-          quantity: item.quantity || 1,
-          sku: item.sku || undefined,
-          variant_id: item.variantId || undefined,
-          product_id: item.productId || undefined,
-        })),
+        line_items: lineItems,
         customer: {
-          email: order.customerEmail,
+          email: order.customerEmail || "cliente@syncads.com.br",
           first_name: order.customerName?.split(" ")[0] || "Cliente",
-          last_name: order.customerName?.split(" ").slice(1).join(" ") || "",
-          phone: order.customerPhone || undefined,
+          last_name:
+            order.customerName?.split(" ").slice(1).join(" ") || "SyncAds",
         },
-        billing_address: order.billingAddress || order.shippingAddress || {},
-        shipping_address: order.shippingAddress || {},
         financial_status: order.paymentStatus === "PAID" ? "paid" : "pending",
-        fulfillment_status: null,
-        note: `Pedido criado via SyncAds Checkout - ${order.orderNumber}`,
-        tags: "syncads,checkout-customizado",
-        source_name: "syncads",
-        inventory_behaviour: "decrement_ignoring_policy",
+        note: `Pedido #${order.orderNumber} - SyncAds Checkout`,
+        tags: "syncads",
         send_receipt: false,
         send_fulfillment_receipt: false,
-        total_price: order.total.toFixed(2),
-        subtotal_price: order.subtotal.toFixed(2),
-        total_tax: (order.tax || 0).toFixed(2),
-        currency: order.currency || "BRL",
-        transactions: [
-          {
-            kind: order.paymentStatus === "PAID" ? "sale" : "authorization",
-            status: order.paymentStatus === "PAID" ? "success" : "pending",
-            amount: order.total.toFixed(2),
-            currency: order.currency || "BRL",
-            gateway: order.paymentMethod || "manual",
-          },
-        ],
       },
     };
 
@@ -179,6 +179,15 @@ serve(async (req) => {
     // 5. Enviar pedido para Shopify Orders API
     const shopifyApiUrl = `https://${integration.shopDomain}/admin/api/2024-01/orders.json`;
 
+    log("info", "📤 Enviando request para Shopify", {
+      url: shopifyApiUrl,
+      hasAccessToken: !!integration.accessToken,
+      payloadPreview: {
+        lineItemsCount: shopifyPayload.order.line_items.length,
+        customerEmail: shopifyPayload.order.customer.email,
+      },
+    });
+
     const shopifyResponse = await fetch(shopifyApiUrl, {
       method: "POST",
       headers: {
@@ -189,27 +198,40 @@ serve(async (req) => {
     });
 
     const responseText = await shopifyResponse.text();
+
     log("info", "📥 Resposta da Shopify", {
       status: shopifyResponse.status,
       statusText: shopifyResponse.statusText,
-      body: responseText,
+      bodyLength: responseText.length,
+      bodyPreview: responseText.substring(0, 200),
     });
 
     if (!shopifyResponse.ok) {
+      let errorDetails = responseText;
+      try {
+        const errorJson = JSON.parse(responseText);
+        errorDetails = JSON.stringify(errorJson, null, 2);
+      } catch (e) {
+        // Se não for JSON, usar texto bruto
+      }
+
       log("error", "❌ Erro ao criar pedido na Shopify", {
         status: shopifyResponse.status,
-        response: responseText,
+        statusText: shopifyResponse.statusText,
+        errorDetails,
+        payload: shopifyPayload,
       });
 
       return new Response(
         JSON.stringify({
           success: false,
           error: "Failed to create order in Shopify",
-          details: responseText,
+          details: errorDetails,
           status: shopifyResponse.status,
+          hint: "Verifique as credenciais da Shopify e os dados do pedido",
         }),
         {
-          status: shopifyResponse.status,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
