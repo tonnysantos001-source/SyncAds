@@ -1,24 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, Mail, Phone, DollarSign, ShoppingBag, RefreshCw } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { customersApi, Customer } from '@/lib/api/customersApi';
-import { shopifySyncApi } from '@/lib/api/shopifySync';
-import { useAuthStore } from '@/store/authStore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Users,
+  Search,
+  Mail,
+  Phone,
+  DollarSign,
+  ShoppingBag,
+  RefreshCw,
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { customersApi, Customer } from "@/lib/api/customersApi";
+import { shopifySyncApi } from "@/lib/api/shopifySync";
+import { useAuthStore } from "@/store/authStore";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const AllCustomersPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
@@ -45,11 +60,11 @@ const AllCustomersPage = () => {
       setCustomers(data);
       setFilteredCustomers(data);
     } catch (error: any) {
-      console.error('Erro ao carregar clientes:', error);
+      console.error("Erro ao carregar clientes:", error);
       toast({
-        title: 'Erro ao carregar clientes',
+        title: "Erro ao carregar clientes",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -59,9 +74,9 @@ const AllCustomersPage = () => {
   const handleSyncShopify = async () => {
     if (!user?.id) {
       toast({
-        title: 'Erro',
-        description: 'Faça login para sincronizar',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Faça login para sincronizar",
+        variant: "destructive",
       });
       return;
     }
@@ -69,30 +84,30 @@ const AllCustomersPage = () => {
     try {
       setSyncing(true);
       toast({
-        title: 'Sincronizando...',
-        description: 'Buscando clientes da Shopify',
+        title: "Sincronizando...",
+        description: "Buscando clientes da Shopify",
       });
 
       const result = await shopifySyncApi.syncCustomers(user.id);
 
       if (result.success) {
         toast({
-          title: 'Sincronização concluída!',
+          title: "Sincronização concluída!",
           description: result.message,
         });
         await loadCustomers();
       } else {
         toast({
-          title: 'Erro na sincronização',
+          title: "Erro na sincronização",
           description: result.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
-        title: 'Erro ao sincronizar',
-        description: 'Configure a integração Shopify em Integrações',
-        variant: 'destructive',
+        title: "Erro ao sincronizar",
+        description: "Configure a integração Shopify em Integrações",
+        variant: "destructive",
       });
     } finally {
       setSyncing(false);
@@ -109,21 +124,21 @@ const AllCustomersPage = () => {
       (customer) =>
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.cpf?.toLowerCase().includes(searchTerm.toLowerCase())
+        customer.cpf?.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setFilteredCustomers(filtered);
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const totalSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0);
   const totalOrders = customers.reduce((sum, c) => sum + c.totalOrders, 0);
-  const activeCustomers = customers.filter(c => c.status === 'ACTIVE').length;
+  const activeCustomers = customers.filter((c) => c.status === "ACTIVE").length;
 
   return (
     <div className="space-y-6">
@@ -135,17 +150,19 @@ const AllCustomersPage = () => {
           </p>
         </div>
         <Button onClick={handleSyncShopify} disabled={syncing}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Sincronizando...' : 'Sincronizar Shopify'}
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+          />
+          {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
         </Button>
       </div>
-</text>
-
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total de Clientes
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -154,7 +171,9 @@ const AllCustomersPage = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Clientes Ativos
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -163,7 +182,9 @@ const AllCustomersPage = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total de Pedidos
+            </CardTitle>
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -176,7 +197,9 @@ const AllCustomersPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalSpent)}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -204,7 +227,9 @@ const AllCustomersPage = () => {
           ) : filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Nenhum cliente encontrado</h3>
+              <h3 className="text-lg font-semibold">
+                Nenhum cliente encontrado
+              </h3>
             </div>
           ) : (
             <Table>
@@ -242,12 +267,18 @@ const AllCustomersPage = () => {
                     <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
                     <TableCell>
                       {customer.lastOrderAt
-                        ? format(new Date(customer.lastOrderAt), 'dd/MM/yyyy', { locale: ptBR })
-                        : '-'}
+                        ? format(new Date(customer.lastOrderAt), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })
+                        : "-"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={customer.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                        {customer.status === 'ACTIVE' ? 'Ativo' : 'Bloqueado'}
+                      <Badge
+                        variant={
+                          customer.status === "ACTIVE" ? "default" : "secondary"
+                        }
+                      >
+                        {customer.status === "ACTIVE" ? "Ativo" : "Bloqueado"}
                       </Badge>
                     </TableCell>
                   </TableRow>

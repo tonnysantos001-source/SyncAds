@@ -518,7 +518,7 @@ export const shopifySyncApi = {
         lastSyncStatus: null,
       };
     }
-  },</parameter>
+  },
 
   /**
    * Busca logs de sincronização
