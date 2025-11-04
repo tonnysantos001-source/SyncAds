@@ -14,22 +14,20 @@ import {
   ShoppingCart,
   TrendingUp,
   Users,
-  AlertCircle,
   CheckCircle2,
   Clock,
   XCircle,
   ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
-  Eye,
   ShoppingBag,
+  AlertCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
-import { shopifySyncApi } from "@/lib/api/shopifySync";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -39,6 +37,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface DashboardMetrics {
   totalRevenue: number;
@@ -49,7 +61,6 @@ interface DashboardMetrics {
   aovChange: number;
   checkoutViews: number;
   conversionRate: number;
-  conversionChange: number;
   abandonedCarts: number;
   abandonmentRate: number;
   recoveredCarts: number;
@@ -59,16 +70,16 @@ interface DashboardMetrics {
   failedPayments: number;
   totalCustomers: number;
   newCustomers: number;
-  returningCustomers: number;
 }
 
 interface RecentActivity {
   id: string;
-  type: "checkout" | "payment" | "product" | "cart";
+  type: "checkout" | "payment" | "product";
   title: string;
   description: string;
   time: string;
   status: "success" | "warning" | "error" | "info";
+  image?: string;
 }
 
 interface Transaction {
@@ -77,7 +88,7 @@ interface Transaction {
   customerName: string | null;
   amount: number;
   status: string;
-  paymentMethod: string;
+  items: any[];
   createdAt: string;
 }
 
@@ -86,10 +97,11 @@ export default function ReportsOverviewPage() {
   const user = useAuthStore((state) => state.user);
 
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [dateRange, setDateRange] = useState<
-    "today" | "7days" | "30days" | "year"
-  >("7days");
+  const [refreshing, setRefreshing] = useState(false);
+  const [dateRange, setDateRange] = useState<"today" | "7days" | "30days">(
+    "7days",
+  );
+
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalRevenue: 0,
     revenueChange: 0,
@@ -99,7 +111,6 @@ export default function ReportsOverviewPage() {
     aovChange: 0,
     checkoutViews: 0,
     conversionRate: 0,
-    conversionChange: 0,
     abandonedCarts: 0,
     abandonmentRate: 0,
     recoveredCarts: 0,
@@ -109,34 +120,38 @@ export default function ReportsOverviewPage() {
     failedPayments: 0,
     totalCustomers: 0,
     newCustomers: 0,
-    returningCustomers: 0,
   });
 
+  const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
+  const [ordersChartData, setOrdersChartData] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
     [],
   );
 
   useEffect(() => {
-    loadDashboardData();
-    const interval = setInterval(loadDashboardData, 30000);
-    return () => clearInterval(interval);
-  }, [user, dateRange]);
+    if (user?.id) {
+      loadDashboardData();
+      const interval = setInterval(loadDashboardData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id, dateRange]);
 
   const loadDashboardData = async () => {
     if (!user?.id) return;
 
     try {
       setLoading(true);
-      const [orders, carts, customers, transactions] = await Promise.all([
+      const [orders, carts, customers] = await Promise.all([
         loadOrders(),
         loadAbandonedCarts(),
         loadCustomers(),
-        loadTransactions(),
       ]);
 
       calculateMetrics(orders, carts, customers);
-      generateRecentActivity(orders, transactions);
+      generateChartData(orders);
+      generateRecentActivity(orders);
+      loadRecentTransactions(orders);
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
@@ -162,7 +177,7 @@ export default function ReportsOverviewPage() {
       .select("*")
       .eq("userId", user!.id);
 
-    if (error) throw error;
+    if (error) return [];
     return data || [];
   };
 
@@ -172,44 +187,25 @@ export default function ReportsOverviewPage() {
       .select("*")
       .eq("userId", user!.id);
 
-    if (error) throw error;
+    if (error) return [];
     return data || [];
   };
 
-  const loadTransactions = async () => {
-    const { data, error } = await supabase
-      .from("Transaction")
-      .select(
-        `
-        id,
-        amount,
-        status,
-        paymentMethod,
-        createdAt,
-        Order (
-          orderNumber,
-          customerName
-        )
-      `,
-      )
-      .eq("userId", user!.id)
-      .order("createdAt", { ascending: false })
-      .limit(10);
+  const loadRecentTransactions = (orders: any[]) => {
+    const recent = orders
+      .filter((o) => o.items && o.items.length > 0)
+      .slice(0, 5)
+      .map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        customerName: o.customerName,
+        amount: o.total,
+        status: o.paymentStatus,
+        items: o.items || [],
+        createdAt: o.createdAt,
+      }));
 
-    if (error) throw error;
-
-    const transactions: Transaction[] = (data || []).map((t: any) => ({
-      id: t.id,
-      orderNumber: t.Order?.orderNumber || "N/A",
-      customerName: t.Order?.customerName || null,
-      amount: t.amount,
-      status: t.status,
-      paymentMethod: t.paymentMethod,
-      createdAt: t.createdAt,
-    }));
-
-    setRecentTransactions(transactions);
-    return transactions;
+    setRecentTransactions(recent);
   };
 
   const calculateMetrics = (orders: any[], carts: any[], customers: any[]) => {
@@ -226,9 +222,6 @@ export default function ReportsOverviewPage() {
       case "30days":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
-      case "year":
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
       default:
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
@@ -236,7 +229,6 @@ export default function ReportsOverviewPage() {
     const currentPeriodOrders = orders.filter(
       (o) => new Date(o.createdAt) >= startDate,
     );
-
     const previousStartDate = new Date(
       startDate.getTime() - (now.getTime() - startDate.getTime()),
     );
@@ -249,13 +241,16 @@ export default function ReportsOverviewPage() {
     const paidOrders = currentPeriodOrders.filter(
       (o) => o.paymentStatus === "PAID",
     );
-    const previousPaidOrders = previousPeriodOrders.filter(
+    const previousPaid = previousPeriodOrders.filter(
       (o) => o.paymentStatus === "PAID",
     );
 
-    const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const previousRevenue = previousPaidOrders.reduce(
-      (sum, o) => sum + (o.total || 0),
+    const totalRevenue = paidOrders.reduce(
+      (sum, o) => sum + (parseFloat(o.total) || 0),
+      0,
+    );
+    const previousRevenue = previousPaid.reduce(
+      (sum, o) => sum + (parseFloat(o.total) || 0),
       0,
     );
     const revenueChange =
@@ -265,17 +260,13 @@ export default function ReportsOverviewPage() {
 
     const totalOrders = paidOrders.length;
     const ordersChange =
-      previousPaidOrders.length > 0
-        ? ((totalOrders - previousPaidOrders.length) /
-            previousPaidOrders.length) *
-          100
+      previousPaid.length > 0
+        ? ((totalOrders - previousPaid.length) / previousPaid.length) * 100
         : 0;
 
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const previousAOV =
-      previousPaidOrders.length > 0
-        ? previousRevenue / previousPaidOrders.length
-        : 0;
+      previousPaid.length > 0 ? previousRevenue / previousPaid.length : 0;
     const aovChange =
       previousAOV > 0
         ? ((averageOrderValue - previousAOV) / previousAOV) * 100
@@ -306,9 +297,6 @@ export default function ReportsOverviewPage() {
     const newCustomers = customers.filter(
       (c) => new Date(c.createdAt) >= startDate,
     ).length;
-    const returningCustomers = customers.filter(
-      (c) => c.totalOrders > 1,
-    ).length;
 
     setMetrics({
       totalRevenue,
@@ -319,7 +307,6 @@ export default function ReportsOverviewPage() {
       aovChange,
       checkoutViews,
       conversionRate,
-      conversionChange: 0,
       abandonedCarts,
       abandonmentRate,
       recoveredCarts,
@@ -329,103 +316,121 @@ export default function ReportsOverviewPage() {
       failedPayments,
       totalCustomers: customers.length,
       newCustomers,
-      returningCustomers,
     });
   };
 
-  const generateRecentActivity = (orders: any[], transactions: any[]) => {
+  const generateChartData = (orders: any[]) => {
+    const now = new Date();
+    const days = dateRange === "today" ? 24 : dateRange === "7days" ? 7 : 30;
+    const chartData: any[] = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+
+      if (dateRange === "today") {
+        date.setHours(now.getHours() - i, 0, 0, 0);
+      } else {
+        date.setHours(0, 0, 0, 0);
+      }
+
+      const nextDate = new Date(date);
+      if (dateRange === "today") {
+        nextDate.setHours(date.getHours() + 1);
+      } else {
+        nextDate.setDate(date.getDate() + 1);
+      }
+
+      const dayOrders = orders.filter((o) => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= date && orderDate < nextDate;
+      });
+
+      const paidOrders = dayOrders.filter((o) => o.paymentStatus === "PAID");
+      const revenue = paidOrders.reduce(
+        (sum, o) => sum + (parseFloat(o.total) || 0),
+        0,
+      );
+
+      chartData.push({
+        date:
+          dateRange === "today"
+            ? date.getHours() + "h"
+            : date.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+              }),
+        receita: revenue,
+        pedidos: paidOrders.length,
+        pendentes: dayOrders.filter((o) => o.paymentStatus === "PENDING")
+          .length,
+        falhos: dayOrders.filter((o) => o.paymentStatus === "FAILED").length,
+      });
+    }
+
+    setRevenueChartData(chartData);
+    setOrdersChartData(chartData);
+  };
+
+  const generateRecentActivity = (orders: any[]) => {
     const activities: RecentActivity[] = [];
 
-    orders
-      .filter((o) => o.paymentStatus === "PAID")
-      .slice(0, 3)
-      .forEach((order) => {
+    orders.slice(0, 10).forEach((order) => {
+      const productImage = order.items?.[0]?.image || null;
+      const productName = order.items?.[0]?.name || "Produto";
+
+      if (order.paymentStatus === "PAID") {
         activities.push({
           id: order.id,
           type: "payment",
           title: "Pagamento Confirmado",
-          description: `${order.orderNumber} - ${formatCurrency(order.total)}`,
-          time: formatRelativeTime(order.updatedAt),
+          description: `${order.customerName || "Cliente"} - ${productName}`,
+          time: formatRelativeTime(order.updatedAt || order.createdAt),
           status: "success",
+          image: productImage,
         });
-      });
-
-    orders
-      .filter((o) => o.paymentStatus === "PENDING")
-      .slice(0, 2)
-      .forEach((order) => {
+      } else if (order.paymentStatus === "PENDING") {
         activities.push({
           id: order.id,
           type: "checkout",
           title: "Checkout Iniciado",
-          description: `${order.customerEmail || "Cliente"} - ${order.orderNumber}`,
+          description: `${productName} - ${formatCurrency(order.total)}`,
           time: formatRelativeTime(order.createdAt),
           status: "info",
+          image: productImage,
         });
-      });
-
-    orders
-      .filter((o) => o.paymentStatus === "FAILED")
-      .slice(0, 2)
-      .forEach((order) => {
+      } else if (order.paymentStatus === "FAILED") {
         activities.push({
           id: order.id,
           type: "payment",
           title: "Pagamento Falhou",
-          description: `${order.orderNumber} - Requer atenção`,
-          time: formatRelativeTime(order.updatedAt),
+          description: `${order.orderNumber} - ${productName}`,
+          time: formatRelativeTime(order.updatedAt || order.createdAt),
           status: "error",
+          image: productImage,
         });
-      });
-
-    activities.sort(
-      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
-    );
+      }
+    });
 
     setRecentActivity(activities.slice(0, 5));
   };
 
-  const handleSync = async () => {
-    if (!user?.id || !user?.organizationId) return;
-
-    try {
-      setSyncing(true);
-      toast({
-        title: "Sincronizando...",
-        description: "Buscando dados da Shopify",
-      });
-
-      const result = await shopifySyncApi.syncAll(user.id, user.organizationId);
-
-      if (result.success) {
-        toast({
-          title: "Sincronização concluída!",
-          description: `${result.products.synced} produtos e ${result.orders.synced} pedidos sincronizados`,
-        });
-        loadDashboardData();
-      } else {
-        toast({
-          title: "Erro na sincronização",
-          description: "Verifique sua integração com a Shopify",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao sincronizar",
-        description: error.message || "Tente novamente mais tarde",
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboardData();
+    setRefreshing(false);
+    toast({
+      title: "Dashboard atualizado!",
+      description: "Dados carregados com sucesso",
+    });
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | string) => {
+    const numValue = typeof value === "string" ? parseFloat(value) : value;
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value);
+    }).format(numValue || 0);
   };
 
   const formatRelativeTime = (date: string) => {
@@ -455,17 +460,19 @@ export default function ReportsOverviewPage() {
     icon: any;
     color: string;
   }) => (
-    <Card>
+    <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
         <div className={`rounded-full p-2 ${color}`}>
-          <Icon className="h-4 w-4" />
+          <Icon className="h-5 w-5" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-3xl font-bold">{value}</div>
         {change !== undefined && (
-          <p className="text-xs text-muted-foreground flex items-center mt-1">
+          <div className="flex items-center mt-2 text-sm">
             {change >= 0 ? (
               <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
             ) : (
@@ -474,22 +481,23 @@ export default function ReportsOverviewPage() {
             <span className={change >= 0 ? "text-green-500" : "text-red-500"}>
               {Math.abs(change).toFixed(1)}%
             </span>
-            <span className="ml-1">vs. período anterior</span>
-          </p>
+            <span className="text-muted-foreground ml-1">
+              vs. período anterior
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 
-  if (loading) {
+  if (loading && revenueChartData.length === 0) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-12 w-64" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
         </div>
       </div>
     );
@@ -502,52 +510,61 @@ export default function ReportsOverviewPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral das suas métricas de vendas
+            Visão geral das suas métricas de vendas e conversão
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Hoje</SelectItem>
               <SelectItem value="7days">7 dias</SelectItem>
               <SelectItem value="30days">30 dias</SelectItem>
-              <SelectItem value="year">1 ano</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleSync} disabled={syncing} variant="outline">
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+            size="icon"
+          >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
             />
-            Sincronizar
           </Button>
         </div>
       </div>
 
-      {/* Indicador de usuários online */}
-      <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/20">
+      {/* Usuários Online */}
+      <Card className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border-purple-500/20">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Activity className="h-6 w-6 text-purple-500" />
+                <Activity className="h-8 w-8 text-purple-500" />
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium">Usuários Online Agora</p>
-                <p className="text-2xl font-bold">
-                  {metrics.checkoutViews > 0 ? "3" : "0"}
+                <p className="text-sm font-medium text-muted-foreground">
+                  Usuários Online Agora
+                </p>
+                <p className="text-3xl font-bold">
+                  {metrics.pendingPayments > 0 ? metrics.pendingPayments : "0"}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">
-                2 no checkout • 1 vendo produtos
+              <Badge variant="outline" className="text-sm">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                Ao Vivo
+              </Badge>
+              <p className="text-sm text-muted-foreground mt-2">
+                {metrics.pendingPayments} no checkout
               </p>
             </div>
           </div>
@@ -564,7 +581,7 @@ export default function ReportsOverviewPage() {
           color="bg-green-500/10 text-green-500"
         />
         <MetricCard
-          title="Pedidos"
+          title="Pedidos Pagos"
           value={metrics.totalOrders.toString()}
           change={metrics.ordersChange}
           icon={ShoppingCart}
@@ -585,9 +602,96 @@ export default function ReportsOverviewPage() {
         />
       </div>
 
+      {/* Gráficos */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Receita ao Longo do Tempo</CardTitle>
+            <CardDescription>
+              Análise de faturamento por período
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={revenueChartData}>
+                <defs>
+                  <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 12 }} />
+                <YAxis tick={{ fill: "#888", fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value: any) => formatCurrency(value)}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="receita"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorReceita)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Status de Pedidos</CardTitle>
+            <CardDescription>
+              Distribuição por status de pagamento
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={ordersChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 12 }} />
+                <YAxis tick={{ fill: "#888", fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Legend />
+                <Bar
+                  dataKey="pedidos"
+                  fill="#22c55e"
+                  name="Pagos"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="pendentes"
+                  fill="#eab308"
+                  name="Pendentes"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="falhos"
+                  fill="#ef4444"
+                  name="Falhos"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Status de Pagamentos */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="border-green-500/20 bg-green-500/5">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -595,7 +699,9 @@ export default function ReportsOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{metrics.paidOrders}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {metrics.paidOrders}
+            </div>
             <Progress
               value={
                 (metrics.paidOrders /
@@ -604,12 +710,15 @@ export default function ReportsOverviewPage() {
                     metrics.failedPayments || 1)) *
                 100
               }
-              className="mt-2"
+              className="mt-3 h-2"
             />
+            <p className="text-sm text-muted-foreground mt-2">
+              {formatCurrency(metrics.totalRevenue)} em receita
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-yellow-500/20 bg-yellow-500/5">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-500" />
@@ -617,7 +726,9 @@ export default function ReportsOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{metrics.pendingPayments}</div>
+            <div className="text-3xl font-bold text-yellow-600">
+              {metrics.pendingPayments}
+            </div>
             <Progress
               value={
                 (metrics.pendingPayments /
@@ -626,12 +737,15 @@ export default function ReportsOverviewPage() {
                     metrics.failedPayments || 1)) *
                 100
               }
-              className="mt-2"
+              className="mt-3 h-2"
             />
+            <p className="text-sm text-muted-foreground mt-2">
+              Aguardando confirmação
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-red-500/20 bg-red-500/5">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <XCircle className="h-4 w-4 text-red-500" />
@@ -639,7 +753,9 @@ export default function ReportsOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{metrics.failedPayments}</div>
+            <div className="text-3xl font-bold text-red-600">
+              {metrics.failedPayments}
+            </div>
             <Progress
               value={
                 (metrics.failedPayments /
@@ -648,8 +764,144 @@ export default function ReportsOverviewPage() {
                     metrics.failedPayments || 1)) *
                 100
               }
-              className="mt-2"
+              className="mt-3 h-2"
             />
+            <p className="text-sm text-muted-foreground mt-2">Requer atenção</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Atividade Recente e Transações */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Atividade em Tempo Real</CardTitle>
+            <CardDescription>Últimas ações no checkout</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>Nenhuma atividade recente</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border"
+                  >
+                    {activity.image ? (
+                      <img
+                        src={activity.image}
+                        alt={activity.title}
+                        className="w-12 h-12 rounded object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`rounded-full p-2 ${
+                          activity.status === "success"
+                            ? "bg-green-500/10 text-green-500"
+                            : activity.status === "error"
+                              ? "bg-red-500/10 text-red-500"
+                              : activity.status === "warning"
+                                ? "bg-yellow-500/10 text-yellow-500"
+                                : "bg-blue-500/10 text-blue-500"
+                        }`}
+                      >
+                        {activity.status === "success" ? (
+                          <CheckCircle2 className="h-5 w-5" />
+                        ) : activity.status === "error" ? (
+                          <XCircle className="h-5 w-5" />
+                        ) : activity.status === "warning" ? (
+                          <AlertCircle className="h-5 w-5" />
+                        ) : (
+                          <Clock className="h-5 w-5" />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{activity.title}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {activity.description}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {activity.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Últimas Transações</CardTitle>
+            <CardDescription>Pedidos mais recentes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentTransactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>Nenhuma transação recente</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentTransactions.map((transaction) => {
+                  const productImage = transaction.items?.[0]?.image;
+                  const productName = transaction.items?.[0]?.name || "Produto";
+
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border"
+                    >
+                      {productImage ? (
+                        <img
+                          src={productImage}
+                          alt={productName}
+                          className="w-12 h-12 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
+                          <Package className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{productName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {transaction.customerName || "Cliente"} •{" "}
+                          {transaction.orderNumber}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                        <Badge
+                          variant={
+                            transaction.status === "PAID"
+                              ? "default"
+                              : transaction.status === "PENDING"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                          className="text-xs"
+                        >
+                          {transaction.status === "PAID"
+                            ? "Pago"
+                            : transaction.status === "PENDING"
+                              ? "Pendente"
+                              : "Falhou"}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -659,9 +911,7 @@ export default function ReportsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Carrinhos Abandonados</CardTitle>
-            <CardDescription>
-              Oportunidades de recuperação de vendas
-            </CardDescription>
+            <CardDescription>Oportunidades de recuperação</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -669,7 +919,7 @@ export default function ReportsOverviewPage() {
                 <p className="text-sm text-muted-foreground">
                   Total Abandonados
                 </p>
-                <p className="text-2xl font-bold">{metrics.abandonedCarts}</p>
+                <p className="text-3xl font-bold">{metrics.abandonedCarts}</p>
               </div>
               <Badge variant="destructive" className="text-lg px-3 py-1">
                 {metrics.abandonmentRate.toFixed(1)}%
@@ -693,138 +943,27 @@ export default function ReportsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Clientes</CardTitle>
-            <CardDescription>Estatísticas de clientes</CardDescription>
+            <CardDescription>Base de clientes</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{metrics.totalCustomers}</p>
+                <p className="text-3xl font-bold">{metrics.totalCustomers}</p>
               </div>
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center justify-between pt-2 border-t">
               <div>
-                <p className="text-sm text-muted-foreground">Novos</p>
+                <p className="text-sm text-muted-foreground">Novos Clientes</p>
                 <p className="text-xl font-bold text-blue-500">
                   {metrics.newCustomers}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Recorrentes</p>
-                <p className="text-xl font-bold text-purple-500">
-                  {metrics.returningCustomers}
-                </p>
-              </div>
+              <Badge variant="outline" className="text-blue-500">
+                Este período
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Atividade Recente e Transações */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Atividade em Tempo Real</CardTitle>
-            <CardDescription>Últimas ações no checkout</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentActivity.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma atividade recente</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div
-                      className={`rounded-full p-2 ${
-                        activity.status === "success"
-                          ? "bg-green-500/10 text-green-500"
-                          : activity.status === "error"
-                            ? "bg-red-500/10 text-red-500"
-                            : activity.status === "warning"
-                              ? "bg-yellow-500/10 text-yellow-500"
-                              : "bg-blue-500/10 text-blue-500"
-                      }`}
-                    >
-                      {activity.status === "success" ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : activity.status === "error" ? (
-                        <XCircle className="h-4 w-4" />
-                      ) : activity.status === "warning" ? (
-                        <AlertCircle className="h-4 w-4" />
-                      ) : (
-                        <Clock className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {activity.description}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {activity.time}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Transações Recentes</CardTitle>
-            <CardDescription>Últimos pagamentos processados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma transação recente</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">
-                        {transaction.orderNumber}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {transaction.customerName || "Cliente"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold">
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                      <Badge
-                        variant={
-                          transaction.status === "COMPLETED"
-                            ? "default"
-                            : transaction.status === "PENDING"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {transaction.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

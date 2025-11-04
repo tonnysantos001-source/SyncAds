@@ -91,21 +91,29 @@ const AllProductsPage = () => {
   };
 
   useEffect(() => {
-    loadProducts();
-    loadSyncStats();
-  }, []);
+    if (user?.id) {
+      loadProducts();
+      loadSyncStats();
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     filterProducts();
   }, [searchTerm, statusFilter, products]);
 
   const loadProducts = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await productsApi.list();
       setProducts(data);
       setFilteredProducts(data);
     } catch (error: any) {
+      console.error("Erro ao carregar produtos:", error);
       toast({
         title: "Erro ao carregar produtos",
         description: error.message,
@@ -122,15 +130,16 @@ const AllProductsPage = () => {
       const stats = await shopifySyncApi.getSyncStats(user.id);
       setSyncStats(stats);
     } catch (error) {
-      console.error("Error loading sync stats:", error);
+      // Silenciar erro de sync stats - não é crítico
+      console.debug("Sync stats não disponíveis:", error);
     }
   };
 
   const handleSyncShopify = async () => {
-    if (!user?.id || !user?.organizationId) {
+    if (!user?.id) {
       toast({
         title: "Erro",
-        description: "Usuário não autenticado",
+        description: "Faça login para sincronizar",
         variant: "destructive",
       });
       return;
@@ -146,7 +155,7 @@ const AllProductsPage = () => {
 
       const result = await shopifySyncApi.syncProducts(
         user.id,
-        user.organizationId,
+        user.organizationId || user.id,
       );
 
       if (result.success) {
@@ -155,20 +164,19 @@ const AllProductsPage = () => {
           description: result.message,
         });
 
-        // Recarregar produtos
         await loadProducts();
         await loadSyncStats();
       } else {
         toast({
-          title: "Erro na sincronização",
-          description: result.message,
+          title: "Shopify não configurada",
+          description: "Configure a integração Shopify em Integrações",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
-        title: "Erro ao sincronizar",
-        description: error.message || "Erro desconhecido",
+        title: "Shopify não disponível",
+        description: "Configure a integração em Integrações > Shopify",
         variant: "destructive",
       });
     } finally {
@@ -200,7 +208,14 @@ const AllProductsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.id || !user?.organizationId) return;
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       if (editingProduct) {
@@ -213,7 +228,7 @@ const AllProductsPage = () => {
         await productsApi.create({
           ...formData,
           userId: user.id,
-          organizationId: user.organizationId,
+          organizationId: user.organizationId || user.id,
           slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
           lowStockThreshold: 5,
           trackStock: true,
@@ -230,9 +245,10 @@ const AllProductsPage = () => {
       resetForm();
       loadProducts();
     } catch (error: any) {
+      console.error("Erro ao salvar:", error);
       toast({
         title: "Erro ao salvar produto",
-        description: error.message,
+        description: error.message || "Tente novamente",
         variant: "destructive",
       });
     }
