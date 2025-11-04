@@ -197,7 +197,12 @@ const AllOrdersPage = () => {
       REFUNDED: { label: "Reembolsado", variant: "secondary" as const },
       CANCELLED: { label: "Cancelado", variant: "secondary" as const },
     };
-    return statusMap[status];
+    return (
+      statusMap[status] || {
+        label: "Desconhecido",
+        variant: "secondary" as const,
+      }
+    );
   };
 
   const getFulfillmentBadge = (status: Order["fulfillmentStatus"]) => {
@@ -208,7 +213,12 @@ const AllOrdersPage = () => {
       DELIVERED: { label: "Entregue", variant: "default" as const },
       CANCELLED: { label: "Cancelado", variant: "destructive" as const },
     };
-    return statusMap[status];
+    return (
+      statusMap[status] || {
+        label: "Desconhecido",
+        variant: "secondary" as const,
+      }
+    );
   };
 
   const totalRevenue = orders

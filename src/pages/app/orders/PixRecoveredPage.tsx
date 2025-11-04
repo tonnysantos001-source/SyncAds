@@ -159,7 +159,13 @@ const PixRecoveredPage = () => {
         icon: AlertCircle,
       },
     };
-    return statusMap[status] || statusMap.PENDING;
+    return (
+      statusMap[status] || {
+        label: "Aguardando Pagamento",
+        variant: "secondary" as const,
+        icon: Clock,
+      }
+    );
   };
 
   const totalPending = recoveries
