@@ -1,0 +1,244 @@
+// ============================================
+// PATCH: ATUALIZAR PEDIDO COM DADOS REAIS
+// ============================================
+//
+// PROBLEMA:
+// - Pedido criado com "Cliente" e "nao-informado@syncads.com.br"
+// - Formulário preenchido mas dados nunca salvam no banco
+// - Shopify recebe dados genéricos
+//
+// SOLUÇÃO:
+// Adicionar este código em PublicCheckoutPage.tsx
+// ANTES de chamar "process-payment"
+// ============================================
+
+// LOCALIZAÇÃO: src/pages/public/PublicCheckoutPage.tsx
+// LINHA: ~458 (antes de "const { data, error } = await supabase.functions.invoke")
+
+// ✅ ADICIONAR ESTE CÓDIGO:
+
+console.log("📝 [UPDATE] Atualizando pedido com dados do cadastro...");
+
+// 1. Atualizar pedido com dados completos do cliente
+const { error: updateError } = await supabase
+  .from("Order")
+  .update({
+    customerName: customerData.name,
+    customerEmail: customerData.email,
+    customerPhone: customerData.phone,
+    customerCpf: getCPFNumbers(customerData.document),
+    shippingAddress: {
+      street: addressData.street,
+      number: addressData.number,
+      complement: addressData.complement || "",
+      neighborhood: addressData.neighborhood,
+      city: addressData.city,
+      state: addressData.state,
+      zipCode: addressData.zipCode,
+      country: "BR",
+    },
+    billingAddress: {
+      street: addressData.street,
+      number: addressData.number,
+      complement: addressData.complement || "",
+      neighborhood: addressData.neighborhood,
+      city: addressData.city,
+      state: addressData.state,
+      zipCode: addressData.zipCode,
+      country: "BR",
+    },
+    paymentMethod: paymentMethod,
+    updatedAt: new Date().toISOString(),
+  })
+  .eq("id", effectiveOrderId);
+
+if (updateError) {
+  console.error("❌ [UPDATE] Erro ao atualizar pedido:", updateError);
+  throw new Error("Erro ao atualizar dados do pedido");
+}
+
+console.log("✅ [UPDATE] Pedido atualizado com sucesso!", {
+  orderId: effectiveOrderId,
+  customerName: customerData.name,
+  customerEmail: customerData.email,
+  paymentMethod: paymentMethod,
+});
+
+// ============================================
+// CÓDIGO COMPLETO DO handleCheckout (SUBSTITUIR)
+// ============================================
+
+const handleCheckout = async () => {
+  if (!validateStep(currentStep)) return;
+
+  try {
+    setProcessing(true);
+
+    // Normalizar método de pagamento
+    const normalizedPaymentMethod = paymentMethod.toLowerCase() as
+      | "credit_card"
+      | "pix"
+      | "boleto";
+
+    // Validar dados do cartão se necessário
+    if (paymentMethod === "CREDIT_CARD") {
+      if (
+        !cardData ||
+        !cardData.number ||
+        !cardData.holderName ||
+        !cardData.cvv
+      ) {
+        toast({
+          title: "Dados do cartão incompletos",
+          description: "Por favor, preencha todos os dados do cartão.",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+    }
+
+    // ✨ NOVO: ATUALIZAR PEDIDO COM DADOS DO CADASTRO
+    console.log("📝 [UPDATE] Atualizando pedido com dados do cadastro...");
+
+    const { error: updateError } = await supabase
+      .from("Order")
+      .update({
+        customerName: customerData.name,
+        customerEmail: customerData.email,
+        customerPhone: customerData.phone,
+        customerCpf: getCPFNumbers(customerData.document),
+        shippingAddress: {
+          street: addressData.street,
+          number: addressData.number,
+          complement: addressData.complement || "",
+          neighborhood: addressData.neighborhood,
+          city: addressData.city,
+          state: addressData.state,
+          zipCode: addressData.zipCode,
+          country: "BR",
+        },
+        billingAddress: {
+          street: addressData.street,
+          number: addressData.number,
+          complement: addressData.complement || "",
+          neighborhood: addressData.neighborhood,
+          city: addressData.city,
+          state: addressData.state,
+          zipCode: addressData.zipCode,
+          country: "BR",
+        },
+        paymentMethod: paymentMethod,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", effectiveOrderId);
+
+    if (updateError) {
+      console.error("❌ [UPDATE] Erro ao atualizar pedido:", updateError);
+      toast({
+        title: "Erro ao salvar dados",
+        description: "Não foi possível salvar os dados do pedido",
+        variant: "destructive",
+      });
+      setProcessing(false);
+      return;
+    }
+
+    console.log("✅ [UPDATE] Pedido atualizado!", {
+      orderId: effectiveOrderId,
+      customerName: customerData.name,
+      customerEmail: customerData.email,
+    });
+
+    // Preparar dados do cartão
+    const cardPayload =
+      paymentMethod === "CREDIT_CARD" && cardData
+        ? {
+            number: cardData.number.replace(/\s/g, ""),
+            holderName: cardData.holderName,
+            expiryMonth: cardData.expiryMonth,
+            expiryYear: cardData.expiryYear,
+            cvv: cardData.cvv,
+          }
+        : undefined;
+
+    // Processar pagamento
+    const { data, error } = await supabase.functions.invoke(
+      "process-payment",
+      {
+        body: {
+          userId: orderData?.userId,
+          orderId: effectiveOrderId,
+          amount: checkoutData?.total || 0,
+          currency: "BRL",
+          paymentMethod: normalizedPaymentMethod,
+          customer: {
+            name: customerData.name,
+            email: customerData.email,
+            document: getCPFNumbers(customerData.document),
+            phone: customerData.phone,
+          },
+          billingAddress: {
+            street: addressData.street,
+            number: addressData.number,
+            complement: addressData.complement,
+            neighborhood: addressData.neighborhood,
+            city: addressData.city,
+            state: addressData.state,
+            zipCode: addressData.zipCode,
+          },
+          card: cardPayload,
+          installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
+        },
+      },
+    );
+
+    // Resto do código permanece igual...
+    // (verificações de erro, PIX, cartão, etc)
+  } catch (error: any) {
+    console.error("Erro no checkout:", error);
+    toast({
+      title: "Erro ao processar pagamento",
+      description: error.message,
+      variant: "destructive",
+    });
+    setProcessing(false);
+  }
+};
+
+// ============================================
+// MESMO PATCH PARA MobileCheckoutPage.tsx
+// ============================================
+// Aplicar EXATAMENTE o mesmo código em:
+// src/pages/public/MobileCheckoutPage.tsx
+// No mesmo local (antes de supabase.functions.invoke)
+
+// ============================================
+// INSTRUÇÕES DE APLICAÇÃO:
+// ============================================
+
+// 1. Abra: src/pages/public/PublicCheckoutPage.tsx
+// 2. Encontre a função handleCheckout (linha ~412)
+// 3. Localize: "const { data, error } = await supabase.functions.invoke"
+// 4. ADICIONE o código de UPDATE logo ANTES dessa linha
+// 5. Salve o arquivo
+// 6. Repita para: src/pages/public/MobileCheckoutPage.tsx
+// 7. Build: npm run build
+// 8. Deploy: git push origin main
+
+// ============================================
+// TESTE:
+// ============================================
+// 1. Limpe os pedidos antigos (SQL ou /orders/management)
+// 2. Faça um novo pedido de teste
+// 3. Preencha TODOS os dados (nome, email, telefone, endereço)
+// 4. Finalize o pedido
+// 5. Verifique no SyncAds: dados completos
+// 6. Verifique na Shopify: pedido apareceu com dados corretos
+
+// ✅ RESULTADO ESPERADO:
+// - Nome real ao invés de "Cliente"
+// - Email real ao invés de "nao-informado@syncads.com.br"
+// - Telefone preenchido
+// - Endereço completo
+// - Pedido aparece na Shopify com todos os dados
