@@ -92,6 +92,9 @@ const AbandonedCartsPage = lazy(
 const PixRecoveredPage = lazy(
   () => import("./pages/app/orders/PixRecoveredPage"),
 );
+const OrdersManagementPage = lazy(
+  () => import("./pages/app/orders/OrdersManagementPage"),
+);
 
 // Products pages
 const AllProductsPage = lazy(
@@ -297,6 +300,10 @@ function App() {
               <Route
                 path="/orders/pix-recovered"
                 element={<PixRecoveredPage />}
+              />
+              <Route
+                path="/orders/management"
+                element={<OrdersManagementPage />}
               />
 
               {/* Products */}
