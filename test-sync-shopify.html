@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Sincronização Shopify - SyncAds</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .info-box strong {
+            color: #667eea;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        button.full-width {
+            grid-column: 1 / -1;
+        }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        button:disabled .spinner {
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid transparent;
+            padding-left: 10px;
+        }
+        .log-success {
+            border-left-color: #4ade80;
+            color: #4ade80;
+        }
+        .log-error {
+            border-left-color: #f87171;
+            color: #f87171;
+        }
+        .log-info {
+            border-left-color: #60a5fa;
+            color: #60a5fa;
+        }
+        .log-warning {
+            border-left-color: #fbbf24;
+            color: #fbbf24;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Teste Sincronização Shopify</h1>
+        <p class="subtitle">SyncAds AI - Sincronização Manual de Dados</p>
+
+        <div class="info-box">
+            <strong>📋 Informações:</strong><br>
+            Integração: <span id="integrationId">310f6e38-c108-471c-b344-3c5cc9027ecb</span><br>
+            Loja: syncads-ai.myshopify.com<br>
+            Status: <span style="color: #4ade80;">✓ Ativa</span>
+        </div>
+
+        <div class="button-group">
+            <button id="syncProducts" onclick="syncProducts()">
+                <span class="spinner"></span>
+                <span>📦 Sincronizar Produtos</span>
+            </button>
+            <button id="syncOrders" onclick="syncOrders()">
+                <span class="spinner"></span>
+                <span>🛒 Sincronizar Pedidos</span>
+            </button>
+            <button id="syncCarts" onclick="syncCarts()">
+                <span class="spinner"></span>
+                <span>🛍️ Sincronizar Carrinhos</span>
+            </button>
+            <button id="syncCustomers" onclick="syncCustomers()">
+                <span class="spinner"></span>
+                <span>👥 Sincronizar Clientes</span>
+            </button>
+            <button id="syncAll" onclick="syncAll()" class="full-width">
+                <span class="spinner"></span>
+                <span>⚡ SINCRONIZAR TUDO</span>
+            </button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="productsCount">-</div>
+                <div class="stat-label">Produtos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ordersCount">-</div>
+                <div class="stat-label">Pedidos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="cartsCount">-</div>
+                <div class="stat-label">Carrinhos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="customersCount">-</div>
+                <div class="stat-label">Clientes</div>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px; color: #333;">📊 Log de Sincronização</h3>
+        <div class="log-container" id="logContainer">
+            <div class="log-entry log-info">Aguardando sincronização...</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração Supabase
+        const SUPABASE_URL = 'https://ovskepqggmxlfckxqgbr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA3MzA3NjEsImV4cCI6MjA0NjMwNjc2MX0.VCzY8z7G0V-n6-X0jCAQpwFZM0V2HwS03vZuB2_n5Yc';
+        const INTEGRATION_ID = '310f6e38-c108-471c-b344-3c5cc9027ecb';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function setButtonLoading(buttonId, loading) {
+            const button = document.getElementById(buttonId);
+            button.disabled = loading;
+        }
+
+        async function loadStats() {
+            try {
+                const { data: products } = await supabase.from('ShopifyProduct').select('id', { count: 'exact', head: true });
+                const { data: orders } = await supabase.from('ShopifyOrder').select('id', { count: 'exact', head: true });
+                const { data: carts } = await supabase.from('ShopifyAbandonedCart').select('id', { count: 'exact', head: true });
+                const { data: customers } = await supabase.from('ShopifyCustomer').select('id', { count: 'exact', head: true });
+
+                document.getElementById('productsCount').textContent = products || 0;
+                document.getElementById('ordersCount').textContent = orders || 0;
+                document.getElementById('cartsCount').textContent = carts || 0;
+                document.getElementById('customersCount').textContent = customers || 0;
+            } catch (error) {
+                log('Erro ao carregar estatísticas: ' + error.message, 'error');
+            }
+        }
+
+        async function callEdgeFunction(resource) {
+            log(`Iniciando sincronização de ${resource}...`, 'info');
+
+            try {
+                const { data, error } = await supabase.functions.invoke('shopify-sync', {
+                    body: {
+                        integrationId: INTEGRATION_ID,
+                        resource: resource
+                    }
+                });
+
+                if (error) throw error;
+
+                if (data.success) {
+                    log(`✓ ${data.message || 'Sincronização concluída'}`, 'success');
+                    log(`  → ${data.synced || 0} registros sincronizados`, 'success');
+                    await loadStats();
+                } else {
+                    log(`✗ ${data.message || 'Erro na sincronização'}`, 'error');
+                }
+
+                return data;
+            } catch (error) {
+                log(`✗ Erro: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function syncProducts() {
+            setButtonLoading('syncProducts', true);
+            try {
+                await callEdgeFunction('products');
+            } finally {
+                setButtonLoading('syncProducts', false);
+            }
+        }
+
+        async function syncOrders() {
+            setButtonLoading('syncOrders', true);
+            try {
+                await callEdgeFunction('orders');
+            } finally {
+                setButtonLoading('syncOrders', false);
+            }
+        }
+
+        async function syncCarts() {
+            setButtonLoading('syncCarts', true);
+            try {
+                await callEdgeFunction('carts');
+            } finally {
+                setButtonLoading('syncCarts', false);
+            }
+        }
+
+        async function syncCustomers() {
+            setButtonLoading('syncCustomers', true);
+            try {
+                await callEdgeFunction('customers');
+            } finally {
+                setButtonLoading('syncCustomers', false);
+            }
+        }
+
+        async function syncAll() {
+            setButtonLoading('syncAll', true);
+            log('========== SINCRONIZAÇÃO COMPLETA ==========', 'warning');
+
+            try {
+                await syncProducts();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await syncOrders();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await syncCarts();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await syncCustomers();
+
+                log('========== CONCLUÍDO! ==========', 'success');
+            } catch (error) {
+                log('Erro durante sincronização completa', 'error');
+            } finally {
+                setButtonLoading('syncAll', false);
+            }
+        }
+
+        // Carregar stats ao iniciar
+        loadStats();
+    </script>
+</body>
+</html>
