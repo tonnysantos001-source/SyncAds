@@ -519,6 +519,76 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       // Tratar erro de rede
       if (error) throw error;
 
+      // ✅ CRIAR PEDIDO NA SHOPIFY (TODOS OS STATUS - PENDENTE, PAGO, ETC)
+      try {
+        console.log(
+          "🛒 [SHOPIFY] Criando pedido na Shopify (status: qualquer)...",
+        );
+
+        // Buscar dados completos do pedido
+        const { data: fullOrder } = await supabase
+          .from("Order")
+          .select("*")
+          .eq("id", effectiveOrderId)
+          .single();
+
+        if (fullOrder) {
+          // Chamar shopify-create-order (se houver integração ativa)
+          const { data: shopifyOrder, error: shopifyError } =
+            await supabase.functions.invoke("shopify-create-order", {
+              body: {
+                orderId: fullOrder.id,
+                orderNumber: fullOrder.orderNumber,
+                customer: {
+                  email: fullOrder.customerEmail,
+                  firstName: customerData.name?.split(" ")[0] || "Cliente",
+                  lastName:
+                    customerData.name?.split(" ").slice(1).join(" ") || "",
+                  phone: customerData.phone,
+                },
+                products: Array.isArray(fullOrder.items)
+                  ? fullOrder.items.map((item: any) => ({
+                      productId: item.productId || item.id,
+                      variantId: item.variantId,
+                      name: item.name,
+                      price: item.price,
+                      quantity: item.quantity,
+                      image: item.image,
+                      sku: item.sku,
+                    }))
+                  : [],
+                total: fullOrder.total,
+                subtotal: fullOrder.subtotal,
+                tax: fullOrder.tax,
+                shipping: fullOrder.shipping,
+                shippingAddress: fullOrder.shippingAddress,
+                metadata: {
+                  source: "checkout",
+                  paymentMethod: paymentMethod,
+                  paymentStatus: fullOrder.paymentStatus,
+                  transactionId: data?.transactionId,
+                },
+              },
+            });
+
+          if (shopifyOrder?.success) {
+            console.log("✅ [SHOPIFY] Pedido criado na Shopify:", shopifyOrder);
+          } else if (shopifyError) {
+            console.warn(
+              "⚠️ [SHOPIFY] Erro ao criar pedido (não-crítico):",
+              shopifyError,
+            );
+            // Não bloquear o fluxo se falhar a criação na Shopify
+          }
+        }
+      } catch (shopifyErr) {
+        console.warn(
+          "⚠️ [SHOPIFY] Erro ao tentar criar pedido na Shopify:",
+          shopifyErr,
+        );
+        // Não bloquear o fluxo principal se a criação na Shopify falhar
+      }
+
       // Tratar resposta de sucesso
       if (data.success) {
         // Se for cartão, redirecionar imediatamente
