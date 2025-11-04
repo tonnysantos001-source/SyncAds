@@ -103,6 +103,21 @@ export interface PaymentRequest {
   metadata?: Record<string, any>;
 }
 
+export interface PixData {
+  qrCode: string;
+  qrCodeBase64?: string;
+  expiresAt?: string;
+  amount: number;
+}
+
+export interface BoletoData {
+  boletoUrl: string;
+  barcode: string;
+  digitableLine: string;
+  dueDate: string;
+  amount: number;
+}
+
 export interface PaymentResponse {
   success: boolean;
   transactionId?: string;
@@ -113,11 +128,13 @@ export interface PaymentResponse {
   qrCode?: string;
   qrCodeBase64?: string;
   pixKey?: string;
+  pixData?: PixData;
 
   // Para Boleto/Invoice
   paymentUrl?: string;
   barcodeNumber?: string;
   digitableLine?: string;
+  boletoData?: BoletoData;
 
   // Para Cartão
   authorizationCode?: string;
@@ -288,7 +305,7 @@ export interface GatewayProcessor {
    * Faz uma chamada de teste à API para verificar se as credenciais são válidas
    */
   validateCredentials(
-    credentials: GatewayCredentials
+    credentials: GatewayCredentials,
   ): Promise<CredentialValidationResult>;
 
   /**
@@ -297,17 +314,14 @@ export interface GatewayProcessor {
    */
   processPayment(
     request: PaymentRequest,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
   /**
    * Processa webhooks do gateway
    * Recebe notificações de mudança de status de pagamento
    */
-  handleWebhook(
-    payload: any,
-    signature?: string
-  ): Promise<WebhookResponse>;
+  handleWebhook(payload: any, signature?: string): Promise<WebhookResponse>;
 
   /**
    * Consulta o status de um pagamento
@@ -315,7 +329,7 @@ export interface GatewayProcessor {
    */
   getPaymentStatus(
     gatewayTransactionId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentStatusResponse>;
 
   /**
@@ -324,7 +338,7 @@ export interface GatewayProcessor {
    */
   refundPayment?(
     request: RefundRequest,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<RefundResponse>;
 
   /**
@@ -332,7 +346,7 @@ export interface GatewayProcessor {
    */
   cancelPayment?(
     gatewayTransactionId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
   /**
@@ -341,7 +355,7 @@ export interface GatewayProcessor {
   validateWebhookSignature?(
     payload: any,
     signature: string,
-    secret: string
+    secret: string,
   ): WebhookValidationResult;
 }
 
@@ -382,7 +396,7 @@ export class GatewayError extends Error {
     public gatewaySlug: string,
     public errorCode?: string,
     public statusCode?: number,
-    public originalError?: any
+    public originalError?: any,
   ) {
     super(message);
     this.name = "GatewayError";
@@ -392,7 +406,7 @@ export class GatewayError extends Error {
 export class ValidationError extends Error {
   constructor(
     message: string,
-    public field?: string
+    public field?: string,
   ) {
     super(message);
     this.name = "ValidationError";
@@ -402,7 +416,7 @@ export class ValidationError extends Error {
 export class AuthenticationError extends Error {
   constructor(
     message: string,
-    public gatewaySlug: string
+    public gatewaySlug: string,
   ) {
     super(message);
     this.name = "AuthenticationError";

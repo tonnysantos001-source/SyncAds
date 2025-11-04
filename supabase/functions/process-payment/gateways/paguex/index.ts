@@ -217,10 +217,12 @@ export class PagueXGateway extends BaseGateway {
         body: JSON.stringify(payload),
       });
 
-      console.log(
-        "[Pague-X] Resposta da API:",
-        JSON.stringify(response, null, 2),
-      );
+      console.log("[Pague-X] 🔍 Verificando dados do response:");
+      console.log("   - response.id:", response.id);
+      console.log("   - response.status:", response.status);
+      console.log("   - response.pix:", response.pix);
+      console.log("   - response.pix?.qrcode existe?", !!response.pix?.qrcode);
+      console.log("   - request.paymentMethod:", request.paymentMethod);
 
       // Mapear resposta da API para formato padrão
       const status = this.normalizeStatus(response.status);
@@ -259,7 +261,42 @@ export class PagueXGateway extends BaseGateway {
         };
       }
 
-      return this.createSuccessResponse(paymentResponse);
+      console.log("[Pague-X] 🎯 Resposta final sendo retornada:");
+      console.log("   - transactionId:", paymentResponse.transactionId);
+      console.log("   - status:", paymentResponse.status);
+      console.log("   - pixData existe?", !!paymentResponse.pixData);
+      if (paymentResponse.pixData) {
+        console.log(
+          "   - pixData.qrCode (primeiros 50 chars):",
+          paymentResponse.pixData.qrCode?.substring(0, 50),
+        );
+        console.log(
+          "   - pixData.expiresAt:",
+          paymentResponse.pixData.expiresAt,
+        );
+        console.log("   - pixData.amount:", paymentResponse.pixData.amount);
+      }
+      console.log("   - boletoData existe?", !!paymentResponse.boletoData);
+
+      console.log(
+        "[Pague-X] 🔄 Chamando createSuccessResponse com:",
+        JSON.stringify(paymentResponse, null, 2),
+      );
+
+      const finalResponse = this.createSuccessResponse(paymentResponse);
+
+      console.log("[Pague-X] 📤 Resposta APÓS createSuccessResponse:");
+      console.log("   - success:", finalResponse.success);
+      console.log(
+        "   - pixData existe no finalResponse?",
+        !!finalResponse.pixData,
+      );
+      console.log(
+        "   - Objeto completo:",
+        JSON.stringify(finalResponse, null, 2),
+      );
+
+      return finalResponse;
     } catch (error: any) {
       this.log("error", "Pague-X payment error", {
         error: error.message,

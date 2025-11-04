@@ -78,6 +78,20 @@ interface PaymentResponse {
   message: string;
   error?: string;
   errorCode?: string;
+  // Objetos completos para PIX e Boleto
+  pixData?: {
+    qrCode: string;
+    qrCodeBase64?: string;
+    expiresAt?: string;
+    amount: number;
+  };
+  boletoData?: {
+    boletoUrl: string;
+    barcode: string;
+    digitableLine: string;
+    dueDate: string;
+    amount: number;
+  };
 }
 
 // ===== STRIPE INTEGRATION =====
@@ -631,7 +645,26 @@ serve(async (req) => {
           message: gatewayResponse.message,
           error: gatewayResponse.error,
           errorCode: gatewayResponse.errorCode,
+          // Adicionar objetos completos do PIX e Boleto
+          pixData: gatewayResponse.pixData,
+          boletoData: gatewayResponse.boletoData,
         };
+
+        console.log("[PAYMENT] 🔍 Verificando pixData na resposta final:");
+        console.log(
+          "   - gatewayResponse.pixData existe?",
+          !!gatewayResponse.pixData,
+        );
+        console.log(
+          "   - paymentResponse.pixData existe?",
+          !!paymentResponse.pixData,
+        );
+        if (paymentResponse.pixData) {
+          console.log(
+            "   - pixData.qrCode existe?",
+            !!paymentResponse.pixData.qrCode,
+          );
+        }
       }
     } catch (error: any) {
       console.error(
@@ -660,12 +693,22 @@ serve(async (req) => {
         amount: paymentRequest.amount,
         currency: paymentRequest.currency || "BRL",
         status: paymentResponse.status,
-        gatewayTransactionId: paymentResponse.gatewayTransactionId,
+        transactionId: paymentResponse.gatewayTransactionId,
         paymentMethod: paymentRequest.paymentMethod,
+        // Campos específicos do PIX
+        pixQrCode: paymentResponse.pixData?.qrCode,
+        pixCopyPaste: paymentResponse.pixData?.qrCode,
+        pixExpiresAt: paymentResponse.pixData?.expiresAt,
+        // Campos específicos do Boleto
+        boletoUrl: paymentResponse.boletoData?.boletoUrl,
+        boletoBarcode: paymentResponse.boletoData?.barcode,
+        boletoExpiresAt: paymentResponse.boletoData?.dueDate,
         metadata: {
           customer: paymentRequest.customer,
           paymentUrl: paymentResponse.paymentUrl,
           qrCode: paymentResponse.qrCode,
+          pixData: paymentResponse.pixData,
+          boletoData: paymentResponse.boletoData,
         },
       })
       .select()
@@ -676,17 +719,39 @@ serve(async (req) => {
       // Não falhar a request, apenas logar o erro
     }
 
-    // Retornar resposta
-    return new Response(
-      JSON.stringify({
-        ...paymentResponse,
-        transactionId: transaction?.id || paymentResponse.transactionId,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200, // Sempre retornar 200, usar success: true/false para indicar resultado
-      },
+    // Logs finais antes do return
+    console.log("[PAYMENT] 🎯 RESPOSTA FINAL sendo retornada ao frontend:");
+    console.log("   - paymentResponse.success:", paymentResponse.success);
+    console.log(
+      "   - paymentResponse.pixData existe?",
+      !!paymentResponse.pixData,
     );
+    console.log(
+      "   - paymentResponse.boletoData existe?",
+      !!paymentResponse.boletoData,
+    );
+
+    if (paymentResponse.pixData) {
+      console.log(
+        "   - pixData completo:",
+        JSON.stringify(paymentResponse.pixData),
+      );
+    }
+
+    const finalResponse = {
+      ...paymentResponse,
+      transactionId: transaction?.id || paymentResponse.transactionId,
+    };
+
+    console.log("[PAYMENT] 🚀 Objeto final com spread:");
+    console.log("   - finalResponse.pixData existe?", !!finalResponse.pixData);
+    console.log("   - finalResponse.success:", finalResponse.success);
+
+    // Retornar resposta
+    return new Response(JSON.stringify(finalResponse), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, // Sempre retornar 200, usar success: true/false para indicar resultado
+    });
   } catch (error: any) {
     console.error("Payment processing error:", error);
 

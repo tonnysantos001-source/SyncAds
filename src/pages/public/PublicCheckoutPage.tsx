@@ -489,6 +489,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
       );
 
       console.log("🔍 [DEBUG] Resposta process-payment:", { data, error });
+      console.log("🔍 [DEBUG] data.success:", data?.success);
+      console.log("🔍 [DEBUG] paymentMethod:", paymentMethod);
+      console.log("🔍 [DEBUG] data.pixData:", data?.pixData);
+      console.log("🔍 [DEBUG] data.transactionId:", data?.transactionId);
+      console.log("🔍 [DEBUG] effectiveOrderId:", effectiveOrderId);
 
       // Edge Function sempre retorna status 200, verificar success
       if (!data?.success) {
@@ -528,20 +533,31 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             );
           }, 1500);
         } else if (paymentMethod === "PIX" && data.pixData) {
+          console.log("✅ [DEBUG] Entrando no bloco de PIX");
+          console.log(
+            "✅ [DEBUG] Vai redirecionar para:",
+            `/pix/${effectiveOrderId}/${data.transactionId}`,
+          );
+          console.log("✅ [DEBUG] pixData recebido:", data.pixData);
+
           // Para PIX, salvar dados e redirecionar para página dedicada
           const pixInfo = {
-            qrCode: data.pixData.qrCode,
-            qrCodeBase64: data.pixData.qrCodeBase64,
-            expiresAt: data.pixData.expiresAt,
+            qrCode: data.pixData.qrCode || "",
+            qrCodeBase64: data.pixData.qrCodeBase64 || "",
+            expiresAt: data.pixData.expiresAt || "",
             amount: checkoutData?.total || 0,
-            transactionId: data.transactionId,
+            transactionId: data.transactionId || "",
           };
 
-          // Salvar no localStorage
-          localStorage.setItem(
-            `pix-${effectiveOrderId}`,
-            JSON.stringify(pixInfo),
-          );
+          // Salvar no localStorage com try-catch
+          try {
+            const pixInfoStr = JSON.stringify(pixInfo);
+            localStorage.setItem(`pix-${effectiveOrderId}`, pixInfoStr);
+            console.log("✅ [DEBUG] Dados salvos no localStorage");
+          } catch (error) {
+            console.error("❌ [DEBUG] Erro ao salvar no localStorage:", error);
+            // Continuar mesmo se falhar o localStorage
+          }
 
           toast({
             title: "PIX gerado com sucesso!",
@@ -549,7 +565,9 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
           });
 
           // Redirecionar para página do PIX
+          console.log("🚀 [DEBUG] Iniciando redirecionamento...");
           setTimeout(() => {
+            console.log("🚀 [DEBUG] Executando navigate...");
             navigate(`/pix/${effectiveOrderId}/${data.transactionId}`);
           }, 1000);
         } else if (paymentMethod === "BOLETO" && data.boletoData) {
@@ -564,6 +582,21 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             title: "Boleto gerado!",
             description: "Baixe o boleto para completar o pagamento.",
           });
+        } else {
+          console.log("❌ [DEBUG] NÃO entrou em nenhum bloco de pagamento");
+          console.log("❌ [DEBUG] Motivo:");
+          console.log("   - paymentMethod:", paymentMethod);
+          console.log(
+            "   - paymentMethod === 'CREDIT_CARD'?",
+            paymentMethod === "CREDIT_CARD",
+          );
+          console.log("   - paymentMethod === 'PIX'?", paymentMethod === "PIX");
+          console.log("   - data.pixData existe?", !!data.pixData);
+          console.log(
+            "   - paymentMethod === 'BOLETO'?",
+            paymentMethod === "BOLETO",
+          );
+          console.log("   - data.boletoData existe?", !!data.boletoData);
         }
       }
     } catch (error: any) {
