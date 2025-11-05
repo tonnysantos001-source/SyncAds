@@ -1,25 +1,103 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import {
+  AlertCircle,
+  CreditCard,
+  Percent,
+  DollarSign,
+  Info,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuthStore } from "@/store/authStore";
+import { useAuth } from "@/hooks/useOptimizedSelectors";
 import { supabase } from "@/lib/supabase";
+
+interface PaymentMethodDiscount {
+  id: string;
+  userId: string;
+  paymentMethod: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD";
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: number;
+  isActive: boolean;
+  minPurchaseAmount: number;
+  maxDiscountAmount: number | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DiscountFormData {
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: string;
+  minPurchaseAmount: string;
+  maxDiscountAmount: string;
+  description: string;
+  isActive: boolean;
+}
+
+const PAYMENT_METHODS = [
+  {
+    key: "CREDIT_CARD",
+    label: "Cartão de Crédito",
+    icon: CreditCard,
+    color: "bg-blue-500",
+    description: "Desconto para pagamentos com cartão de crédito",
+  },
+  {
+    key: "PIX",
+    label: "PIX",
+    icon: DollarSign,
+    color: "bg-green-500",
+    description: "Desconto para pagamentos via PIX (mais comum)",
+  },
+  {
+    key: "BOLETO",
+    label: "Boleto Bancário",
+    icon: CreditCard,
+    color: "bg-orange-500",
+    description: "Desconto para pagamentos com boleto bancário",
+  },
+  {
+    key: "DEBIT_CARD",
+    label: "Cartão de Débito",
+    icon: CreditCard,
+    color: "bg-purple-500",
+    description: "Desconto para pagamentos com cartão de débito",
+  },
+] as const;
 
 const DiscountsPage: React.FC = () => {
   const { toast } = useToast();
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [discounts, setDiscounts] = useState<PaymentMethodDiscount[]>([]);
 
-  const [discounts, setDiscounts] = useState({
-    creditCard: "",
-    pix: "",
-    bankSlip: "",
-  });
+  // Form states para cada método de pagamento
+  const [forms, setForms] = useState<
+    Record<string, DiscountFormData | undefined>
+  >({});
 
   useEffect(() => {
     if (user?.id) {
@@ -28,33 +106,54 @@ const DiscountsPage: React.FC = () => {
   }, [user?.id]);
 
   const loadDiscounts = async () => {
+    if (!user?.id) return;
+
     try {
       setLoading(true);
-
-      // Buscar descontos configurados do usuário
       const { data, error } = await supabase
-
-        .from("PaymentDiscount")
-
+        .from("PaymentMethodDiscount")
         .select("*")
+        .eq("userId", user.id)
+        .order("createdAt", { ascending: false });
 
-        .eq("userId", user?.id)
-        .single();
+      if (error) throw error;
 
-      if (error && error.code !== "PGRST116") throw error;
+      setDiscounts(data || []);
 
-      if (data) {
-        setDiscounts({
-          creditCard: data.creditCard?.toString() || "",
-          pix: data.pix?.toString() || "",
-          bankSlip: data.bankSlip?.toString() || "",
-        });
-      }
-    } catch (error) {
+      // Inicializar forms com dados existentes
+      const newForms: Record<string, DiscountFormData> = {};
+      PAYMENT_METHODS.forEach((method) => {
+        const existingDiscount = (data || []).find(
+          (d) => d.paymentMethod === method.key,
+        );
+        if (existingDiscount) {
+          newForms[method.key] = {
+            discountType: existingDiscount.discountType,
+            discountValue: existingDiscount.discountValue.toString(),
+            minPurchaseAmount:
+              existingDiscount.minPurchaseAmount?.toString() || "0",
+            maxDiscountAmount:
+              existingDiscount.maxDiscountAmount?.toString() || "",
+            description: existingDiscount.description || "",
+            isActive: existingDiscount.isActive,
+          };
+        } else {
+          newForms[method.key] = {
+            discountType: "PERCENTAGE",
+            discountValue: "",
+            minPurchaseAmount: "0",
+            maxDiscountAmount: "",
+            description: "",
+            isActive: true,
+          };
+        }
+      });
+      setForms(newForms);
+    } catch (error: any) {
       console.error("Erro ao carregar descontos:", error);
       toast({
         title: "Erro ao carregar descontos",
-        description: "Não foi possível carregar as configurações",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -62,32 +161,67 @@ const DiscountsPage: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveDiscount = async (paymentMethod: string) => {
     if (!user?.id) return;
+
+    const formData = forms[paymentMethod];
+    if (!formData || !formData.discountValue) {
+      toast({
+        title: "Valor obrigatório",
+        description: "Informe o valor do desconto",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("PaymentDiscount").upsert({
-        userId: user.id,
-        creditCard: discounts.creditCard
-          ? parseFloat(discounts.creditCard)
-          : null,
-        pix: discounts.pix ? parseFloat(discounts.pix) : null,
-        bankSlip: discounts.bankSlip ? parseFloat(discounts.bankSlip) : null,
-        updatedAt: new Date().toISOString(),
-      });
+      const existingDiscount = discounts.find(
+        (d) => d.paymentMethod === paymentMethod,
+      );
 
-      if (error) throw error;
+      const discountData = {
+        userId: user.id,
+        paymentMethod,
+        discountType: formData.discountType,
+        discountValue: parseFloat(formData.discountValue),
+        minPurchaseAmount: parseFloat(formData.minPurchaseAmount || "0"),
+        maxDiscountAmount: formData.maxDiscountAmount
+          ? parseFloat(formData.maxDiscountAmount)
+          : null,
+        description: formData.description || null,
+        isActive: formData.isActive,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingDiscount) {
+        // Update
+        const { error } = await supabase
+          .from("PaymentMethodDiscount")
+          .update(discountData)
+          .eq("id", existingDiscount.id);
+
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from("PaymentMethodDiscount")
+          .insert(discountData);
+
+        if (error) throw error;
+      }
 
       toast({
-        title: "Descontos salvos!",
-        description: "Suas configurações foram salvas com sucesso",
+        title: "Desconto salvo!",
+        description: `Desconto para ${PAYMENT_METHODS.find((m) => m.key === paymentMethod)?.label} configurado com sucesso`,
       });
-    } catch (error) {
-      console.error("Erro ao salvar descontos:", error);
+
+      await loadDiscounts();
+    } catch (error: any) {
+      console.error("Erro ao salvar desconto:", error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar os descontos",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -95,131 +229,416 @@ const DiscountsPage: React.FC = () => {
     }
   };
 
-  const handleCancel = () => {
-    loadDiscounts();
+  const handleDeleteDiscount = async (id: string, paymentMethod: string) => {
+    if (
+      !window.confirm(
+        `Tem certeza que deseja remover o desconto de ${PAYMENT_METHODS.find((m) => m.key === paymentMethod)?.label}?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("PaymentMethodDiscount")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Desconto removido!",
+        description: "O desconto foi removido com sucesso",
+      });
+
+      await loadDiscounts();
+    } catch (error: any) {
+      console.error("Erro ao remover desconto:", error);
+      toast({
+        title: "Erro ao remover",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
+
+  const updateForm = (
+    paymentMethod: string,
+    field: keyof DiscountFormData,
+    value: any,
+  ) => {
+    setForms((prev) => ({
+      ...prev,
+      [paymentMethod]: {
+        ...(prev[paymentMethod] || {
+          discountType: "PERCENTAGE",
+          discountValue: "",
+          minPurchaseAmount: "0",
+          maxDiscountAmount: "",
+          description: "",
+          isActive: true,
+        }),
+        [field]: value,
+      },
+    }));
+  };
+
+  const calculateDiscountPreview = (
+    method: string,
+    purchaseValue: number = 100,
+  ) => {
+    const formData = forms[method];
+    if (!formData || !formData.discountValue) return 0;
+
+    const value = parseFloat(formData.discountValue);
+    let discount = 0;
+
+    if (formData.discountType === "PERCENTAGE") {
+      discount = (purchaseValue * value) / 100;
+    } else {
+      discount = value;
+    }
+
+    // Aplicar desconto máximo se configurado
+    if (formData.maxDiscountAmount) {
+      const max = parseFloat(formData.maxDiscountAmount);
+      discount = Math.min(discount, max);
+    }
+
+    return discount;
+  };
+
+  const stats = {
+    total: discounts.length,
+    active: discounts.filter((d) => d.isActive).length,
+    inactive: discounts.filter((d) => !d.isActive).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando descontos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho */}
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          DESCONTO POR FORMA DE PAGAMENTO
+        <h1 className="text-3xl font-bold text-gray-900">
+          Descontos por Forma de Pagamento
         </h1>
-        <p className="text-gray-600 mt-1">
-          Ofereça descontos por forma de pagamento.
+        <p className="text-gray-600 mt-2">
+          Configure descontos automáticos baseados na forma de pagamento
+          escolhida pelo cliente no checkout
         </p>
       </div>
 
-      {/* Card com formulário */}
-      <Card>
-        <CardContent className="p-6 space-y-6">
-          {/* Cartão de crédito */}
-          <div>
-            <Label
-              htmlFor="creditCard"
-              className="text-sm font-medium text-gray-700 mb-2 block"
-            >
-              Cartão de crédito
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="creditCard"
-                type="number"
-                placeholder="0"
-                value={discounts.creditCard}
-                onChange={(e) =>
-                  setDiscounts({ ...discounts, creditCard: e.target.value })
-                }
-                className="flex-1"
-                min="0"
-                max="100"
-              />
-              <span className="text-gray-500 font-medium">%</span>
-            </div>
-          </div>
+      {/* Estatísticas */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total de Descontos
+            </CardTitle>
+            <Percent className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total === 0
+                ? "Nenhum desconto configurado"
+                : `${stats.total} ${stats.total === 1 ? "método configurado" : "métodos configurados"}`}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Descontos Ativos
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">
+              Aplicados no checkout
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Descontos Inativos
+            </CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">
+              Pausados temporariamente
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Pix */}
-          <div>
-            <Label
-              htmlFor="pix"
-              className="text-sm font-medium text-gray-700 mb-2 block"
-            >
-              Pix
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="pix"
-                type="number"
-                placeholder="0"
-                value={discounts.pix}
-                onChange={(e) =>
-                  setDiscounts({ ...discounts, pix: e.target.value })
-                }
-                className="flex-1"
-                min="0"
-                max="100"
-              />
-              <span className="text-gray-500 font-medium">%</span>
-            </div>
-          </div>
+      {/* Alert informativo */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Como funciona</AlertTitle>
+        <AlertDescription>
+          Os descontos configurados aqui serão aplicados automaticamente no
+          checkout público quando o cliente selecionar a forma de pagamento. O
+          desconto será exibido de forma clara antes da finalização da compra.
+        </AlertDescription>
+      </Alert>
 
-          {/* Boleto bancário */}
-          <div>
-            <Label
-              htmlFor="bankSlip"
-              className="text-sm font-medium text-gray-700 mb-2 block"
-            >
-              Boleto bancário
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="bankSlip"
-                type="number"
-                placeholder="0"
-                value={discounts.bankSlip}
-                onChange={(e) =>
-                  setDiscounts({ ...discounts, bankSlip: e.target.value })
-                }
-                className="flex-1"
-                min="0"
-                max="100"
-              />
-              <span className="text-gray-500 font-medium">%</span>
-            </div>
-          </div>
+      {/* Configuração de Descontos */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Configurar Descontos</h2>
 
-          {/* Alert de ajuda */}
-          <Alert className="border-pink-200 bg-pink-50">
-            <AlertCircle className="h-4 w-4 text-pink-600" />
-            <AlertDescription className="text-pink-900">
-              Está com dúvidas?{" "}
-              <a href="#" className="font-medium underline hover:no-underline">
-                Aprenda como criar um desconto por forma de pagamento
-              </a>
-            </AlertDescription>
-          </Alert>
+        {PAYMENT_METHODS.map((method) => {
+          const Icon = method.icon;
+          const existingDiscount = discounts.find(
+            (d) => d.paymentMethod === method.key,
+          );
+          const formData = forms[method.key];
 
-          {/* Botões */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              onClick={handleCancel}
-              variant="outline"
-              className="px-6"
-              disabled={saving || loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-pink-600 hover:bg-pink-700 text-white px-6"
-              disabled={saving || loading}
-            >
-              {saving ? "Salvando..." : "Salvar"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          return (
+            <Card key={method.key}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-lg ${method.color} flex items-center justify-center`}
+                    >
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{method.label}</CardTitle>
+                      <CardDescription>{method.description}</CardDescription>
+                    </div>
+                  </div>
+                  {existingDiscount && (
+                    <Badge
+                      variant={
+                        existingDiscount.isActive ? "default" : "secondary"
+                      }
+                    >
+                      {existingDiscount.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Tipo de Desconto */}
+                  <div className="space-y-2">
+                    <Label>Tipo de Desconto</Label>
+                    <Select
+                      value={formData?.discountType || "PERCENTAGE"}
+                      onValueChange={(value) =>
+                        updateForm(
+                          method.key,
+                          "discountType",
+                          value as "PERCENTAGE" | "FIXED_AMOUNT",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PERCENTAGE">
+                          Porcentagem (%)
+                        </SelectItem>
+                        <SelectItem value="FIXED_AMOUNT">
+                          Valor Fixo (R$)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Valor do Desconto */}
+                  <div className="space-y-2">
+                    <Label>
+                      Valor do Desconto <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formData?.discountValue || ""}
+                        onChange={(e) =>
+                          updateForm(
+                            method.key,
+                            "discountValue",
+                            e.target.value,
+                          )
+                        }
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="text-muted-foreground font-medium">
+                        {formData?.discountType === "PERCENTAGE" ? "%" : "R$"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Valor Mínimo da Compra */}
+                  <div className="space-y-2">
+                    <Label>Valor Mínimo da Compra</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={formData?.minPurchaseAmount || "0"}
+                        onChange={(e) =>
+                          updateForm(
+                            method.key,
+                            "minPurchaseAmount",
+                            e.target.value,
+                          )
+                        }
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="text-muted-foreground font-medium">
+                        R$
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Desconto só se aplica acima deste valor
+                    </p>
+                  </div>
+
+                  {/* Desconto Máximo */}
+                  <div className="space-y-2">
+                    <Label>Desconto Máximo (Opcional)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Sem limite"
+                        value={formData?.maxDiscountAmount || ""}
+                        onChange={(e) =>
+                          updateForm(
+                            method.key,
+                            "maxDiscountAmount",
+                            e.target.value,
+                          )
+                        }
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="text-muted-foreground font-medium">
+                        R$
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Limite máximo do desconto em reais
+                    </p>
+                  </div>
+                </div>
+
+                {/* Descrição */}
+                <div className="space-y-2">
+                  <Label>Descrição (Opcional)</Label>
+                  <Input
+                    placeholder="Ex: Desconto especial para pagamento à vista"
+                    value={formData?.description || ""}
+                    onChange={(e) =>
+                      updateForm(method.key, "description", e.target.value)
+                    }
+                  />
+                </div>
+
+                {/* Preview do Desconto */}
+                {formData?.discountValue && (
+                  <Alert className="border-blue-200 bg-blue-50">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-900">
+                      Preview do Desconto
+                    </AlertTitle>
+                    <AlertDescription className="text-blue-800">
+                      <p className="mb-2">
+                        Para uma compra de R$ 100,00, o desconto será de{" "}
+                        <strong>
+                          R${" "}
+                          {calculateDiscountPreview(method.key, 100).toFixed(2)}
+                        </strong>
+                      </p>
+                      <p>
+                        Total a pagar:{" "}
+                        <strong>
+                          R${" "}
+                          {(
+                            100 - calculateDiscountPreview(method.key, 100)
+                          ).toFixed(2)}
+                        </strong>
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Separator />
+
+                {/* Switch Ativo/Inativo */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Status do Desconto</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {formData?.isActive
+                        ? "Desconto será aplicado no checkout"
+                        : "Desconto pausado temporariamente"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData?.isActive ?? true}
+                    onCheckedChange={(checked) =>
+                      updateForm(method.key, "isActive", checked)
+                    }
+                  />
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  {existingDiscount && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteDiscount(existingDiscount.id, method.key)
+                      }
+                      disabled={saving}
+                    >
+                      Remover
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => handleSaveDiscount(method.key)}
+                    disabled={saving || !formData?.discountValue}
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    {saving ? "Salvando..." : "Salvar Desconto"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Alert de dúvidas */}
+      <Alert className="border-pink-200 bg-pink-50">
+        <AlertCircle className="h-4 w-4 text-pink-600" />
+        <AlertDescription className="text-pink-900">
+          <strong>Dica:</strong> Descontos para PIX geralmente aumentam a taxa
+          de conversão. Recomendamos oferecer entre 3% a 10% de desconto.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 };

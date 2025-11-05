@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
   CreditCard,
@@ -13,6 +14,8 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
+  Percent,
+  Tag,
   Lock,
   ShieldCheck,
   Package,
@@ -27,6 +30,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
+import { usePaymentDiscounts } from "@/hooks/usePaymentDiscounts";
 import { formatCep, searchCep } from "@/lib/utils/cepUtils";
 import { formatCpf, validateCpf } from "@/lib/utils/cpfUtils";
 import { formatPhone, validatePhone } from "@/lib/utils/phoneUtils";
@@ -146,6 +150,30 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   const [boletoData, setBoletoData] = useState<any>(null);
   const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
   const [cpfValidating, setCpfValidating] = useState(false);
+
+  // ========================================
+  // HOOK DE DESCONTOS
+  // ========================================
+  const {
+    loading: discountsLoading,
+    calculation: discountCalculation,
+    activeDiscount,
+    getDiscountLabel,
+    hasDiscountForMethod,
+    getDiscountInfoForMethod,
+    getEstimatedDiscountForMethod,
+  } = usePaymentDiscounts({
+    userId: orderData?.userId || null,
+    paymentMethod: paymentMethod,
+    purchaseAmount: checkoutData?.subtotal || 0,
+  });
+
+  // Recalcular total com desconto
+  const finalTotal = discountCalculation.hasDiscount
+    ? discountCalculation.finalTotal +
+      (checkoutData?.shipping || 0) +
+      (checkoutData?.tax || 0)
+    : checkoutData?.total || 0;
 
   // ========================================
   // PERSISTÊNCIA DE ESTADO
@@ -1029,11 +1057,11 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               </div>
 
               <Separator className="my-3" />
+              <Separator />
 
-              {/* TOTAL DESTACADO */}
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center pt-2">
                 <span
-                  className="text-base font-semibold"
+                  className="text-lg font-bold"
                   style={{ color: theme.headingColor }}
                 >
                   Total
@@ -1042,7 +1070,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   className="text-xl font-bold"
                   style={{ color: theme.primaryButtonBackgroundColor }}
                 >
-                  R$ {checkoutData.total.toFixed(2)}
+                  R$ {finalTotal.toFixed(2)}
                 </span>
               </div>
             </CardContent>
@@ -1595,88 +1623,108 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   </div>
 
                   <div className="grid gap-3">
-                    {["PIX", "CREDIT_CARD", "BOLETO"].map((method) => (
-                      <button
-                        key={method}
-                        onClick={() =>
-                          setPaymentMethod(method as typeof paymentMethod)
-                        }
-                        className={cn(
-                          "p-4 md:p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 md:gap-4",
-                          paymentMethod === method && "shadow-lg",
-                        )}
-                        style={{
-                          borderColor:
-                            paymentMethod === method
-                              ? theme.primaryButtonBackgroundColor
-                              : theme.inputBorderColor,
-                          backgroundColor:
-                            paymentMethod === method
-                              ? `${theme.primaryButtonBackgroundColor}15`
-                              : theme.inputBackgroundColor,
-                        }}
-                      >
-                        {method === "PIX" && (
-                          <Smartphone
-                            className="h-7 w-7 md:h-6 md:w-6"
-                            style={{
-                              color:
-                                paymentMethod === method
-                                  ? theme.primaryButtonBackgroundColor
-                                  : theme.textColor,
-                            }}
-                          />
-                        )}
-                        {method === "CREDIT_CARD" && (
-                          <CreditCard
-                            className="h-7 w-7 md:h-6 md:w-6"
-                            style={{
-                              color:
-                                paymentMethod === method
-                                  ? theme.primaryButtonBackgroundColor
-                                  : theme.textColor,
-                            }}
-                          />
-                        )}
-                        {method === "BOLETO" && (
-                          <FileText
-                            className="h-7 w-7 md:h-6 md:w-6"
-                            style={{
-                              color:
-                                paymentMethod === method
-                                  ? theme.primaryButtonBackgroundColor
-                                  : theme.textColor,
-                            }}
-                          />
-                        )}
-                        <div className="flex-1">
-                          <div
-                            className="font-semibold text-base md:text-base mb-0.5"
-                            style={{
-                              color:
-                                paymentMethod === method
-                                  ? theme.primaryButtonBackgroundColor
-                                  : theme.headingColor,
-                            }}
-                          >
-                            {method === "PIX" && "PIX"}
-                            {method === "CREDIT_CARD" && "Cartão de Crédito"}
-                            {method === "BOLETO" && "Boleto Bancário"}
+                    {["PIX", "CREDIT_CARD", "BOLETO"].map((method) => {
+                      const methodDiscount = getDiscountInfoForMethod(
+                        method as any,
+                      );
+                      return (
+                        <button
+                          type="button"
+                          key={method}
+                          onClick={() =>
+                            setPaymentMethod(method as typeof paymentMethod)
+                          }
+                          className={cn(
+                            "p-4 md:p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 md:gap-4 relative",
+                            paymentMethod === method && "shadow-lg",
+                          )}
+                          style={{
+                            borderColor:
+                              paymentMethod === method
+                                ? theme.primaryButtonBackgroundColor
+                                : theme.inputBorderColor,
+                            backgroundColor:
+                              paymentMethod === method
+                                ? `${theme.primaryButtonBackgroundColor}15`
+                                : theme.inputBackgroundColor,
+                          }}
+                        >
+                          {methodDiscount && (
+                            <Badge className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                              {methodDiscount.label}
+                            </Badge>
+                          )}
+                          {method === "PIX" && (
+                            <Smartphone
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          {method === "CREDIT_CARD" && (
+                            <CreditCard
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          {method === "BOLETO" && (
+                            <FileText
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div
+                              className="font-semibold text-base md:text-base mb-0.5"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.headingColor,
+                              }}
+                            >
+                              {method === "PIX" && "PIX"}
+                              {method === "CREDIT_CARD" && "Cartão de Crédito"}
+                              {method === "BOLETO" && "Boleto Bancário"}
+                            </div>
+                            <div className="text-xs md:text-sm opacity-75">
+                              {method === "PIX" &&
+                                (methodDiscount
+                                  ? `Aprovação instantânea + ${methodDiscount.label}`
+                                  : "Aprovação instantânea")}
+                              {method === "CREDIT_CARD" &&
+                                (methodDiscount
+                                  ? `Parcele em até 12x + ${methodDiscount.label}`
+                                  : "Parcele em até 12x")}
+                              {method === "BOLETO" &&
+                                (methodDiscount
+                                  ? `Vencimento em 3 dias + ${methodDiscount.label}`
+                                  : "Vencimento em 3 dias")}
+                            </div>
                           </div>
-                          <div className="text-xs md:text-sm opacity-75">
-                            {method === "PIX" && "Aprovação instantânea"}
-                            {method === "CREDIT_CARD" && "Parcele em até 12x"}
-                            {method === "BOLETO" && "Vencimento em 3 dias"}
-                          </div>
-                        </div>
-                        {paymentMethod === method && (
-                          <CheckCircle
-                            className="h-6 w-6 md:h-6 md:w-6"
-                            style={{ color: theme.stepCompletedColor }}
-                          />
-                        )}
-                      </button>
-                    ))}
+                          {paymentMethod === method && (
+                            <CheckCircle
+                              className="h-6 w-6 md:h-6 md:w-6"
+                              style={{ color: theme.stepCompletedColor }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* FORMULÁRIO DE CARTÃO */}
@@ -1718,8 +1766,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                           >
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(
                               (num) => {
-                                const installmentValue =
-                                  checkoutData.total / num;
+                                const installmentValue = finalTotal / num;
                                 return (
                                   <option key={num} value={num}>
                                     {num}x de R$ {installmentValue.toFixed(2)}
@@ -2020,12 +2067,40 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                   </div>
                 )}
 
+                {/* DESCONTO POR FORMA DE PAGAMENTO */}
+                {discountCalculation.hasDiscount && (
+                  <div className="space-y-1 py-2 px-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800">
+                    <div
+                      className="flex justify-between text-sm font-semibold"
+                      style={{ color: theme.stepCompletedColor }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        <span>Desconto {getDiscountLabel()}</span>
+                      </div>
+                      <span>
+                        -R$ {discountCalculation.discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    {activeDiscount?.description && (
+                      <p className="text-xs opacity-75 pl-6">
+                        {activeDiscount.description}
+                      </p>
+                    )}
+                    {discountCalculation.cappedAtMaximum && (
+                      <p className="text-xs opacity-75 pl-6 text-orange-600 dark:text-orange-400">
+                        Desconto máximo aplicado
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Separator />
 
                 <div className="flex justify-between text-xl font-bold pt-2">
                   <span style={{ color: theme.headingColor }}>Total</span>
                   <span style={{ color: theme.headingColor }}>
-                    R$ {checkoutData.total.toFixed(2)}
+                    R$ {finalTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -2083,7 +2158,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
               </span>
             </span>
             <span className="font-bold text-lg">
-              R$ {checkoutData.total.toFixed(2)}
+              R$ {finalTotal.toFixed(2)}
             </span>
           </Button>
         </div>
@@ -2215,7 +2290,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
                 <div className="flex justify-between text-xl font-bold pt-2">
                   <span style={{ color: theme.headingColor }}>Total</span>
                   <span style={{ color: theme.headingColor }}>
-                    R$ {checkoutData.total.toFixed(2)}
+                    R$ {finalTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
