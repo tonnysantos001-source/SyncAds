@@ -18,6 +18,8 @@ import {
   AlertCircle,
   Truck,
   CreditCard,
+  User,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -547,136 +549,160 @@ export default function AllOrdersPage() {
                   )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-4 font-medium text-sm">
-                        Pedido
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Cliente
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Pagamento
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Status
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Total
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Data
-                      </th>
-                      <th className="text-left p-4 font-medium text-sm">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map((order) => {
-                      const PaymentIcon =
-                        paymentStatusConfig[order.paymentStatus].icon;
-                      const StatusIcon = orderStatusConfig[order.status].icon;
+              <div className="space-y-4">
+                {filteredOrders.map((order) => {
+                  const PaymentIcon =
+                    paymentStatusConfig[order.paymentStatus].icon;
+                  const StatusIcon = orderStatusConfig[order.status].icon;
+                  const firstProduct =
+                    order.items && order.items.length > 0
+                      ? order.items[0]
+                      : null;
+                  const remainingProducts = (order.items?.length || 0) - 1;
 
-                      return (
-                        <tr
-                          key={order.id}
-                          className="border-b hover:bg-muted/50 transition-colors"
-                        >
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">
-                                {order.orderNumber}
+                  return (
+                    <Card
+                      key={order.id}
+                      className="hover:shadow-md transition-shadow"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex gap-6">
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            {firstProduct?.image ? (
+                              <img
+                                src={firstProduct.image}
+                                alt={firstProduct.name || "Produto"}
+                                className="w-24 h-24 object-cover rounded-lg border"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  if (target.nextElementSibling) {
+                                    (
+                                      target.nextElementSibling as HTMLElement
+                                    ).style.display = "flex";
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center border">
+                                <Package className="h-8 w-8 text-muted-foreground" />
                               </div>
-                              {order.metadata?.shopifyOrderId && (
-                                <Badge
-                                  variant="outline"
-                                  className="mt-1 text-xs"
-                                >
-                                  <ShoppingBag className="h-3 w-3 mr-1" />
-                                  Shopify #{order.metadata.shopifyOrderNumber}
-                                </Badge>
-                              )}
+                            )}
+                            {remainingProducts > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="mt-2 text-xs w-full justify-center"
+                              >
+                                +{remainingProducts} produto
+                                {remainingProducts > 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Order Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h3 className="font-semibold text-lg">
+                                  {firstProduct?.name || "Produto sem nome"}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant={
+                                      paymentStatusConfig[order.paymentStatus]
+                                        .variant as any
+                                    }
+                                    className="flex items-center gap-1"
+                                  >
+                                    <PaymentIcon className="h-3 w-3" />
+                                    {
+                                      paymentStatusConfig[order.paymentStatus]
+                                        .label
+                                    }
+                                  </Badge>
+                                  <Badge
+                                    variant={
+                                      orderStatusConfig[order.status]
+                                        .variant as any
+                                    }
+                                    className="flex items-center gap-1"
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                    {orderStatusConfig[order.status].label}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-primary">
+                                  {formatCurrency(order.total)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {order.items?.length || 0} item
+                                  {(order.items?.length || 0) > 1 ? "s" : ""}
+                                </div>
+                              </div>
                             </div>
-                          </td>
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">
-                                {order.customerName || "Cliente Anônimo"}
+
+                            {/* Customer Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">
+                                  {order.customerName || "Cliente Anônimo"}
+                                </span>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {order.customerEmail}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge
-                              variant={
-                                paymentStatusConfig[order.paymentStatus]
-                                  .variant as any
-                              }
-                              className="flex items-center gap-1 w-fit"
-                            >
-                              <PaymentIcon className="h-3 w-3" />
-                              {paymentStatusConfig[order.paymentStatus].label}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <Badge
-                              variant={
-                                orderStatusConfig[order.status].variant as any
-                              }
-                              className="flex items-center gap-1 w-fit"
-                            >
-                              <StatusIcon className="h-3 w-3" />
-                              {orderStatusConfig[order.status].label}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">
-                                {formatCurrency(order.total)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {order.items?.length || 0} item(s)
+                              <div className="flex items-center gap-2 text-sm">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground truncate">
+                                  {order.customerEmail}
+                                </span>
                               </div>
                             </div>
-                          </td>
-                          <td className="p-4">
-                            <div>
-                              <div className="text-sm">
-                                {new Date(order.createdAt).toLocaleDateString(
-                                  "pt-BR",
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-3 border-t">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-4 w-4" />
+                                  {new Date(order.createdAt).toLocaleDateString(
+                                    "pt-BR",
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  {new Date(order.createdAt).toLocaleTimeString(
+                                    "pt-BR",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </div>
+                                {order.metadata?.shopifyOrderId && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <ShoppingBag className="h-3 w-3 mr-1" />
+                                    Shopify #{order.metadata.shopifyOrderNumber}
+                                  </Badge>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(order.createdAt).toLocaleTimeString(
-                                  "pt-BR",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  },
-                                )}
-                              </div>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/orders/${order.id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Detalhes
+                              </Button>
                             </div>
-                          </td>
-                          <td className="p-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/orders/${order.id}`)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </CardContent>
