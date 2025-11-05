@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export interface PaymentMethodDiscount {
   id: string;
   userId: string;
-  paymentMethod: 'CREDIT_CARD' | 'PIX' | 'BOLETO' | 'DEBIT_CARD';
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  paymentMethod: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD";
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
   discountValue: number;
   isActive: boolean;
   minPurchaseAmount: number;
@@ -28,7 +28,7 @@ export interface DiscountCalculation {
 
 interface UsePaymentDiscountsProps {
   userId: string | null;
-  paymentMethod: 'CREDIT_CARD' | 'PIX' | 'BOLETO' | 'DEBIT_CARD';
+  paymentMethod: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD";
   purchaseAmount: number;
 }
 
@@ -39,14 +39,15 @@ export const usePaymentDiscounts = ({
 }: UsePaymentDiscountsProps) => {
   const [loading, setLoading] = useState(true);
   const [discounts, setDiscounts] = useState<PaymentMethodDiscount[]>([]);
-  const [activeDiscount, setActiveDiscount] = useState<PaymentMethodDiscount | null>(null);
+  const [activeDiscount, setActiveDiscount] =
+    useState<PaymentMethodDiscount | null>(null);
   const [calculation, setCalculation] = useState<DiscountCalculation>({
     hasDiscount: false,
     discountAmount: 0,
     discountPercentage: 0,
     originalTotal: purchaseAmount,
     finalTotal: purchaseAmount,
-    discountDescription: '',
+    discountDescription: "",
     meetsMinimum: false,
     cappedAtMaximum: false,
   });
@@ -71,15 +72,15 @@ export const usePaymentDiscounts = ({
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('PaymentMethodDiscount')
-        .select('*')
-        .eq('userId', userId)
-        .eq('isActive', true);
+        .from("PaymentMethodDiscount")
+        .select("*")
+        .eq("userId", userId)
+        .eq("isActive", true);
 
       if (error) throw error;
       setDiscounts(data || []);
     } catch (error) {
-      console.error('Erro ao carregar descontos:', error);
+      console.error("Erro ao carregar descontos:", error);
       setDiscounts([]);
     } finally {
       setLoading(false);
@@ -89,7 +90,7 @@ export const usePaymentDiscounts = ({
   const calculateDiscount = () => {
     // Buscar desconto para o método de pagamento atual
     const discount = discounts.find(
-      (d) => d.paymentMethod === paymentMethod && d.isActive
+      (d) => d.paymentMethod === paymentMethod && d.isActive,
     );
 
     if (!discount) {
@@ -100,7 +101,7 @@ export const usePaymentDiscounts = ({
         discountPercentage: 0,
         originalTotal: purchaseAmount,
         finalTotal: purchaseAmount,
-        discountDescription: '',
+        discountDescription: "",
         meetsMinimum: false,
         cappedAtMaximum: false,
       });
@@ -119,7 +120,7 @@ export const usePaymentDiscounts = ({
         discountPercentage: 0,
         originalTotal: purchaseAmount,
         finalTotal: purchaseAmount,
-        discountDescription: discount.description || '',
+        discountDescription: discount.description || "",
         meetsMinimum: false,
         cappedAtMaximum: false,
       });
@@ -130,7 +131,7 @@ export const usePaymentDiscounts = ({
     let discountAmount = 0;
     let discountPercentage = 0;
 
-    if (discount.discountType === 'PERCENTAGE') {
+    if (discount.discountType === "PERCENTAGE") {
       discountPercentage = discount.discountValue;
       discountAmount = (purchaseAmount * discount.discountValue) / 100;
     } else {
@@ -141,7 +142,10 @@ export const usePaymentDiscounts = ({
 
     // Aplicar desconto máximo se configurado
     let cappedAtMaximum = false;
-    if (discount.maxDiscountAmount && discountAmount > discount.maxDiscountAmount) {
+    if (
+      discount.maxDiscountAmount &&
+      discountAmount > discount.maxDiscountAmount
+    ) {
       discountAmount = discount.maxDiscountAmount;
       discountPercentage = (discount.maxDiscountAmount / purchaseAmount) * 100;
       cappedAtMaximum = true;
@@ -160,7 +164,7 @@ export const usePaymentDiscounts = ({
       discountPercentage,
       originalTotal: purchaseAmount,
       finalTotal,
-      discountDescription: discount.description || '',
+      discountDescription: discount.description || "",
       meetsMinimum: true,
       cappedAtMaximum,
     });
@@ -168,9 +172,9 @@ export const usePaymentDiscounts = ({
 
   // Formatar desconto para exibição
   const getDiscountLabel = (): string => {
-    if (!activeDiscount) return '';
+    if (!activeDiscount) return "";
 
-    if (activeDiscount.discountType === 'PERCENTAGE') {
+    if (activeDiscount.discountType === "PERCENTAGE") {
       return `${activeDiscount.discountValue.toFixed(0)}% de desconto`;
     } else {
       return `R$ ${activeDiscount.discountValue.toFixed(2)} de desconto`;
@@ -178,17 +182,23 @@ export const usePaymentDiscounts = ({
   };
 
   // Verificar se tem desconto disponível para um método específico
-  const hasDiscountForMethod = (method: 'CREDIT_CARD' | 'PIX' | 'BOLETO' | 'DEBIT_CARD'): boolean => {
+  const hasDiscountForMethod = (
+    method: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD",
+  ): boolean => {
     return discounts.some((d) => d.paymentMethod === method && d.isActive);
   };
 
   // Obter informações de desconto para um método específico
-  const getDiscountInfoForMethod = (method: 'CREDIT_CARD' | 'PIX' | 'BOLETO' | 'DEBIT_CARD') => {
-    const discount = discounts.find((d) => d.paymentMethod === method && d.isActive);
+  const getDiscountInfoForMethod = (
+    method: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD",
+  ) => {
+    const discount = discounts.find(
+      (d) => d.paymentMethod === method && d.isActive,
+    );
     if (!discount) return null;
 
-    let label = '';
-    if (discount.discountType === 'PERCENTAGE') {
+    let label = "";
+    if (discount.discountType === "PERCENTAGE") {
       label = `${discount.discountValue.toFixed(0)}% OFF`;
     } else {
       label = `-R$ ${discount.discountValue.toFixed(2)}`;
@@ -197,30 +207,36 @@ export const usePaymentDiscounts = ({
     return {
       ...discount,
       label,
-      formattedValue: discount.discountType === 'PERCENTAGE'
-        ? `${discount.discountValue}%`
-        : `R$ ${discount.discountValue.toFixed(2)}`,
+      formattedValue:
+        discount.discountType === "PERCENTAGE"
+          ? `${discount.discountValue}%`
+          : `R$ ${discount.discountValue.toFixed(2)}`,
     };
   };
 
   // Obter valor estimado de desconto para um método (sem validar mínimo)
   const getEstimatedDiscountForMethod = (
-    method: 'CREDIT_CARD' | 'PIX' | 'BOLETO' | 'DEBIT_CARD',
-    amount: number = purchaseAmount
+    method: "CREDIT_CARD" | "PIX" | "BOLETO" | "DEBIT_CARD",
+    amount: number = purchaseAmount,
   ): number => {
-    const discount = discounts.find((d) => d.paymentMethod === method && d.isActive);
+    const discount = discounts.find(
+      (d) => d.paymentMethod === method && d.isActive,
+    );
     if (!discount) return 0;
 
     let discountAmount = 0;
 
-    if (discount.discountType === 'PERCENTAGE') {
+    if (discount.discountType === "PERCENTAGE") {
       discountAmount = (amount * discount.discountValue) / 100;
     } else {
       discountAmount = discount.discountValue;
     }
 
     // Aplicar desconto máximo
-    if (discount.maxDiscountAmount && discountAmount > discount.maxDiscountAmount) {
+    if (
+      discount.maxDiscountAmount &&
+      discountAmount > discount.maxDiscountAmount
+    ) {
       discountAmount = discount.maxDiscountAmount;
     }
 

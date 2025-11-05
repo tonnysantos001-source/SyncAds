@@ -31,6 +31,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { usePaymentDiscounts } from "@/hooks/usePaymentDiscounts";
+import { usePixelTracking } from "@/hooks/usePixelTracking";
+import { useAbandonedCartDetection } from "@/hooks/useAbandonedCartDetection";
+import { SocialProofNotifications } from "@/components/checkout/SocialProofNotifications";
 import { formatCep, searchCep } from "@/lib/utils/cepUtils";
 import { formatCpf, validateCpf } from "@/lib/utils/cpfUtils";
 import { formatPhone, validatePhone } from "@/lib/utils/phoneUtils";
@@ -39,7 +42,6 @@ import {
   applyTheme,
 } from "@/config/defaultCheckoutTheme";
 import { cn } from "@/lib/utils";
-import MobileCheckoutPage from "./MobileCheckoutPage";
 import { CreditCardForm, CardData } from "@/components/checkout/CreditCardForm";
 import { PixPayment } from "@/components/checkout/PixPayment";
 import { BoletoPayment } from "@/components/checkout/BoletoPayment";
@@ -176,6 +178,69 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     : checkoutData?.total || 0;
 
   // ========================================
+  // HOOK DE PIXEL TRACKING
+  // ========================================
+  const {
+    initialized: pixelsInitialized,
+    trackPageView,
+    trackInitiateCheckout,
+    trackAddPaymentInfo,
+    trackPurchase,
+  } = usePixelTracking(orderData?.userId || null);
+
+  // Disparar evento de PageView quando carregar
+  useEffect(() => {
+    if (pixelsInitialized && orderData) {
+      trackPageView();
+    }
+  }, [pixelsInitialized, orderData, trackPageView]);
+
+  // Disparar evento InitiateCheckout quando chegar no step de pagamento
+  useEffect(() => {
+    if (pixelsInitialized && currentStep === 3 && checkoutData) {
+      trackInitiateCheckout(finalTotal, checkoutData.items || []);
+    }
+  }, [
+    pixelsInitialized,
+    currentStep,
+    finalTotal,
+    checkoutData,
+    trackInitiateCheckout,
+  ]);
+
+  // Disparar evento AddPaymentInfo quando selecionar método de pagamento
+  useEffect(() => {
+    if (pixelsInitialized && paymentMethod && currentStep === 3) {
+      trackAddPaymentInfo(finalTotal, paymentMethod);
+    }
+  }, [
+    pixelsInitialized,
+    paymentMethod,
+    finalTotal,
+    currentStep,
+    trackAddPaymentInfo,
+  ]);
+
+  // ========================================
+  // HOOK DE DETECÇÃO DE ABANDONO
+  // ========================================
+  const { markAsRecovered, isMonitoring } = useAbandonedCartDetection({
+    orderId: effectiveOrderId,
+    currentStep,
+    customerData,
+    addressData,
+    checkoutData,
+    userId: orderData?.userId || null,
+  });
+
+  // Log quando monitoramento estiver ativo
+  useEffect(() => {
+    if (isMonitoring) {
+      console.log("🔍 Monitoramento de abandono ativo");
+    }
+  }, [isMonitoring]);
+
+  // ========================================
   // PERSISTÊNCIA DE ESTADO
   // ========================================
   useEffect(() => {
@@ -219,22 +284,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     boletoData,
     orderId,
   ]);
-
-  // ========================================
-  // DETECÇÃO DE MOBILE
-  // ========================================
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   // ========================================
   // TEMA
@@ -636,6 +685,36 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
       // Tratar resposta de sucesso
       if (data.success) {
+        // 🎯 DISPARAR EVENTO DE PURCHASE (CONVERSÃO)
+        if (pixelsInitialized) {
+          trackPurchase(
+            effectiveOrderId,
+            finalTotal,
+            checkoutData?.items || [],
+            {
+              email: customerData.email,
+              phone: customerData.phone,
+              firstName: customerData.name?.split(" ")[0],
+              lastName: customerData.name?.split(" ").slice(1).join(" "),
+              city: addressData.city,
+              state: addressData.state,
+              zipCode: addressData.zipCode,
+              country: "BR",
+            },
+          );
+          console.log(
+            "📊 Purchase event tracked:",
+            effectiveOrderId,
+            finalTotal,
+          );
+        }
+
+        // 🔄 MARCAR CARRINHO COMO RECUPERADO (se estava abandonado)
+        if (markAsRecovered) {
+          await markAsRecovered();
+          console.log("✅ Carrinho marcado como recuperado");
+        }
+
         // Se for cartão, redirecionar imediatamente
         if (paymentMethod === "CREDIT_CARD") {
           toast({
@@ -773,20 +852,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   ];
 
   // ========================================
-  // RENDER MOBILE
-  // ========================================
-  if (isMobile) {
-    return (
-      <MobileCheckoutPage
-        injectedOrderId={injectedOrderId}
-        injectedTheme={injectedTheme}
-        previewMode={previewMode}
-      />
-    );
-  }
-
-  // ========================================
-  // RENDER DESKTOP
+  // RENDER
   // ========================================
   return (
     <div
@@ -2310,6 +2376,12 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
           </div>
         )}
       </main>
+
+      {/* PROVAS SOCIAIS */}
+      <SocialProofNotifications
+        userId={orderData?.userId || null}
+        position="bottom-left"
+      />
 
       {/* RODAPÉ */}
       <footer

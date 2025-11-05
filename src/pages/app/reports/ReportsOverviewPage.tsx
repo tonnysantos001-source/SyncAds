@@ -453,39 +453,67 @@ export default function ReportsOverviewPage() {
     change,
     icon: Icon,
     color,
+    progressValue,
+    progressColor,
   }: {
     title: string;
     value: string;
     change?: number;
     icon: any;
     color: string;
+    progressValue?: number;
+    progressColor?: string;
   }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className="hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-medium text-gray-600">
           {title}
         </CardTitle>
-        <div className={`rounded-full p-2 ${color}`}>
-          <Icon className="h-5 w-5" />
+        <div className={`rounded-xl p-2.5 ${color} shadow-sm`}>
+          <Icon className="h-5 w-5 text-white" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold">{value}</div>
+      <CardContent className="space-y-3">
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+
         {change !== undefined && (
-          <div className="flex items-center mt-2 text-sm">
+          <div className="flex items-center text-sm">
             {change >= 0 ? (
-              <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+              <div className="flex items-center gap-1 text-green-600 font-medium">
+                <ArrowUpRight className="h-4 w-4" />
+                <span>{Math.abs(change).toFixed(1)}%</span>
+              </div>
             ) : (
-              <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+              <div className="flex items-center gap-1 text-red-600 font-medium">
+                <ArrowDownRight className="h-4 w-4" />
+                <span>{Math.abs(change).toFixed(1)}%</span>
+              </div>
             )}
-            <span className={change >= 0 ? "text-green-500" : "text-red-500"}>
-              {Math.abs(change).toFixed(1)}%
-            </span>
-            <span className="text-muted-foreground ml-1">
+            <span className="text-gray-500 text-xs ml-2">
               vs. período anterior
             </span>
           </div>
         )}
+
+        {/* Barra de Progresso Animada */}
+        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
+              progressColor || "bg-gradient-to-r from-blue-500 to-blue-600"
+            }`}
+            style={{
+              width: `${progressValue || 0}%`,
+              animation: "shimmer 2s infinite",
+            }}
+          >
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              style={{
+                animation: "slide 2s infinite",
+              }}
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -572,33 +600,41 @@ export default function ReportsOverviewPage() {
       </Card>
 
       {/* Métricas Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Receita Total"
           value={formatCurrency(metrics.totalRevenue)}
           change={metrics.revenueChange}
           icon={DollarSign}
-          color="bg-green-500/10 text-green-500"
+          color="bg-gradient-to-br from-green-500 to-green-600"
+          progressValue={Math.min((metrics.totalRevenue / 10000) * 100, 100)}
+          progressColor="bg-gradient-to-r from-green-400 via-green-500 to-green-600"
         />
         <MetricCard
           title="Pedidos Pagos"
-          value={metrics.totalOrders.toString()}
+          value={metrics.paidOrders.toString()}
           change={metrics.ordersChange}
           icon={ShoppingCart}
-          color="bg-blue-500/10 text-blue-500"
+          color="bg-gradient-to-br from-blue-500 to-blue-600"
+          progressValue={Math.min((metrics.paidOrders / 50) * 100, 100)}
+          progressColor="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600"
         />
         <MetricCard
           title="Taxa de Conversão"
           value={`${metrics.conversionRate.toFixed(1)}%`}
           icon={TrendingUp}
-          color="bg-purple-500/10 text-purple-500"
+          color="bg-gradient-to-br from-purple-500 to-purple-600"
+          progressValue={metrics.conversionRate}
+          progressColor="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"
         />
         <MetricCard
           title="Ticket Médio"
           value={formatCurrency(metrics.averageOrderValue)}
           change={metrics.aovChange}
           icon={CreditCard}
-          color="bg-orange-500/10 text-orange-500"
+          color="bg-gradient-to-br from-orange-500 to-orange-600"
+          progressValue={Math.min((metrics.averageOrderValue / 500) * 100, 100)}
+          progressColor="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600"
         />
       </div>
 
@@ -690,83 +726,122 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* Status de Pagamentos */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-green-500/20 bg-green-500/5">
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-0 bg-gradient-to-br from-green-50 to-white hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              Pedidos Pagos
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <div className="rounded-xl p-2 bg-gradient-to-br from-green-500 to-green-600 shadow-sm">
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                </div>
+                Pedidos Pagos
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+          <CardContent className="space-y-4">
+            <div className="text-4xl font-bold text-green-600 tracking-tight">
               {metrics.paidOrders}
             </div>
-            <Progress
-              value={
-                (metrics.paidOrders /
-                  (metrics.paidOrders +
-                    metrics.pendingPayments +
-                    metrics.failedPayments || 1)) *
-                100
-              }
-              className="mt-3 h-2"
-            />
-            <p className="text-sm text-muted-foreground mt-2">
+
+            {/* Barra de Progresso Animada */}
+            <div className="relative h-2 bg-green-100 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 transition-all duration-1000 ease-out"
+                style={{
+                  width: `${(metrics.paidOrders / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
+                  animation: "shimmer 2s infinite",
+                }}
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: "slide 2s infinite",
+                  }}
+                />
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 font-medium">
               {formatCurrency(metrics.totalRevenue)} em receita
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-500/20 bg-yellow-500/5">
+        <Card className="border-0 bg-gradient-to-br from-yellow-50 to-white hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              Pagamentos Pendentes
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <div className="rounded-xl p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-sm">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
+                Pagamentos Pendentes
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">
+          <CardContent className="space-y-4">
+            <div className="text-4xl font-bold text-yellow-600 tracking-tight">
               {metrics.pendingPayments}
             </div>
-            <Progress
-              value={
-                (metrics.pendingPayments /
-                  (metrics.paidOrders +
-                    metrics.pendingPayments +
-                    metrics.failedPayments || 1)) *
-                100
-              }
-              className="mt-3 h-2"
-            />
-            <p className="text-sm text-muted-foreground mt-2">
+
+            {/* Barra de Progresso Animada */}
+            <div className="relative h-2 bg-yellow-100 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 transition-all duration-1000 ease-out"
+                style={{
+                  width: `${(metrics.pendingPayments / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
+                  animation: "shimmer 2s infinite",
+                }}
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: "slide 2s infinite",
+                  }}
+                />
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 font-medium">
               Aguardando confirmação
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-red-500/20 bg-red-500/5">
+        <Card className="border-0 bg-gradient-to-br from-red-50 to-white hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-500" />
-              Pagamentos Falhados
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <div className="rounded-xl p-2 bg-gradient-to-br from-red-500 to-red-600 shadow-sm">
+                  <XCircle className="h-4 w-4 text-white" />
+                </div>
+                Pagamentos Falhados
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+          <CardContent className="space-y-4">
+            <div className="text-4xl font-bold text-red-600 tracking-tight">
               {metrics.failedPayments}
             </div>
-            <Progress
-              value={
-                (metrics.failedPayments /
-                  (metrics.paidOrders +
-                    metrics.pendingPayments +
-                    metrics.failedPayments || 1)) *
-                100
-              }
-              className="mt-3 h-2"
-            />
-            <p className="text-sm text-muted-foreground mt-2">Requer atenção</p>
+
+            {/* Barra de Progresso Animada */}
+            <div className="relative h-2 bg-red-100 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-red-400 via-red-500 to-red-600 transition-all duration-1000 ease-out"
+                style={{
+                  width: `${(metrics.failedPayments / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
+                  animation: "shimmer 2s infinite",
+                }}
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: "slide 2s infinite",
+                  }}
+                />
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 font-medium">Requer atenção</p>
           </CardContent>
         </Card>
       </div>

@@ -29,11 +29,15 @@ import {
   Users,
   MessageSquare,
   TrendingUp,
+  Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSocialProofExamples } from "@/hooks/useSocialProofExamples";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SocialProof {
   id: string;
@@ -61,6 +65,8 @@ const SocialProofPage = () => {
   const [editingProof, setEditingProof] = useState<SocialProof | null>(null);
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
+  const { createExamplesForUser, loading: examplesLoading } =
+    useSocialProofExamples();
 
   const [formData, setFormData] = useState({
     type: "RECENT_PURCHASE" as "RECENT_PURCHASE" | "VISITOR_COUNT" | "REVIEW",
@@ -73,17 +79,26 @@ const SocialProofPage = () => {
     loadSocialProofs();
   }, []);
 
+  const handleCreateExamples = async () => {
+    if (!user?.id) return;
+
+    const success = await createExamplesForUser(user.id, 8);
+    if (success) {
+      loadSocialProofs();
+    }
+  };
+
   useEffect(() => {
     filterProofs();
   }, [searchTerm, socialProofs]);
 
   const loadSocialProofs = async () => {
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
       const { data, error } = await supabase
         .from("SocialProof")
         .select("*")
-        .eq("organizationId", user.organizationId)
+        .eq("userId", user.id)
         .order("createdAt", { ascending: false });
 
       if (error) throw error;
@@ -114,7 +129,7 @@ const SocialProofPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
 
       if (editingProof) {
         const { error } = await supabase
@@ -126,7 +141,7 @@ const SocialProofPage = () => {
       } else {
         const { error } = await supabase
           .from("SocialProof")
-          .insert({ ...formData, organizationId: user.organizationId });
+          .insert({ ...formData, userId: user.id });
         if (error) throw error;
         toast({
           title: "Prova social criada!",
@@ -342,6 +357,32 @@ const SocialProofPage = () => {
           className="pl-9"
         />
       </div>
+
+      {/* Alerta quando não há provas sociais */}
+      {!loading && socialProofs.length === 0 && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Lightbulb className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-medium text-blue-900 mb-1">
+                Comece com exemplos prontos!
+              </p>
+              <p className="text-sm text-blue-700">
+                Crie 8 provas sociais de exemplo para testar no seu checkout.
+                Você pode editá-las ou excluí-las depois.
+              </p>
+            </div>
+            <Button
+              onClick={handleCreateExamples}
+              disabled={examplesLoading}
+              className="ml-4 bg-blue-600 hover:bg-blue-700"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {examplesLoading ? "Criando..." : "Criar Exemplos"}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>

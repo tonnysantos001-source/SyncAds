@@ -24,7 +24,6 @@ import { checkoutApi, CheckoutCustomization } from "@/lib/api/checkoutApi";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
-import MobileCheckoutPage from "@/pages/public/MobileCheckoutPage";
 import { Upload } from "lucide-react";
 import { ImageUpload } from "@/components/checkout/ImageUpload";
 
@@ -1936,19 +1935,11 @@ const CheckoutCustomizePage: React.FC = () => {
             )}
           >
             {previewOrderId ? (
-              previewMode === "mobile" ? (
-                <MobileCheckoutPage
-                  injectedOrderId={previewOrderId}
-                  injectedTheme={customization?.theme}
-                  previewMode={true}
-                />
-              ) : (
-                <PublicCheckoutPage
-                  injectedOrderId={previewOrderId}
-                  injectedTheme={customization?.theme}
-                  previewMode={true}
-                />
-              )
+              <PublicCheckoutPage
+                injectedOrderId={previewOrderId}
+                injectedTheme={customization?.theme}
+                previewMode={true}
+              />
             ) : (
               <div className="p-8 text-center text-gray-500">
                 Gerando pré-visualização...

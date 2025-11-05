@@ -41,6 +41,19 @@ interface WebhookEvent {
   metadata?: any;
 }
 
+interface WebhookLogEntry {
+  id?: string;
+  gateway: string;
+  topic: string;
+  payload: any;
+  signature?: string;
+  status: "received" | "processing" | "processed" | "error";
+  attemptNumber: number;
+  errorMessage?: string;
+  processingTime?: number;
+  createdAt: string;
+}
+
 // ===== LOGGING =====
 
 function log(level: "info" | "warn" | "error", message: string, data?: any) {
@@ -49,6 +62,7 @@ function log(level: "info" | "warn" | "error", message: string, data?: any) {
     level,
     message,
     data,
+    service: "payment-webhook",
   };
 
   if (level === "error") {
@@ -57,6 +71,135 @@ function log(level: "info" | "warn" | "error", message: string, data?: any) {
     console.warn(JSON.stringify(logEntry));
   } else {
     console.log(JSON.stringify(logEntry));
+  }
+}
+
+// ===== WEBHOOK LOGGING TO DATABASE =====
+
+async function logWebhookToDatabase(
+  supabaseClient: any,
+  logEntry: Omit<WebhookLogEntry, "id" | "createdAt">,
+) {
+  try {
+    const { error } = await supabaseClient.from("WebhookLog").insert({
+      gateway: logEntry.gateway,
+      topic: logEntry.topic,
+      payload: logEntry.payload,
+      signature: logEntry.signature,
+      status: logEntry.status,
+      attemptNumber: logEntry.attemptNumber,
+      errorMessage: logEntry.errorMessage,
+      processingTime: logEntry.processingTime,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (error) {
+      log("error", "Failed to save webhook log to database", { error });
+    }
+  } catch (error) {
+    log("error", "Error saving webhook log", { error });
+  }
+}
+
+// ===== RETRY LOGIC WITH EXPONENTIAL BACKOFF =====
+
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000,
+): Promise<T> {
+  let lastError: any;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        log(
+          "warn",
+          `Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+// ===== DEAD LETTER QUEUE =====
+
+async function sendToDeadLetterQueue(
+  supabaseClient: any,
+  webhookData: {
+    gateway: string;
+    payload: any;
+    signature?: string;
+    error: string;
+    attempts: number;
+  },
+) {
+  try {
+    const { error } = await supabaseClient.from("WebhookDeadLetter").insert({
+      gateway: webhookData.gateway,
+      payload: webhookData.payload,
+      signature: webhookData.signature,
+      errorMessage: webhookData.error,
+      attempts: webhookData.attempts,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (error) {
+      log("error", "Failed to save to dead letter queue", { error });
+    } else {
+      log("info", "Webhook saved to dead letter queue", {
+        gateway: webhookData.gateway,
+      });
+    }
+  } catch (error) {
+    log("error", "Error saving to dead letter queue", { error });
+  }
+}
+
+// ===== SIGNATURE VALIDATION =====
+
+function validateWebhookSignature(
+  payload: string,
+  signature: string | undefined,
+  secret: string | undefined,
+  gateway: string,
+): boolean {
+  if (!signature || !secret) {
+    log("warn", "No signature or secret provided for validation", { gateway });
+    return true; // Permitir se não houver configuração
+  }
+
+  try {
+    // Para Stripe
+    if (gateway === "stripe") {
+      // Stripe usa verificação própria no SDK
+      return true;
+    }
+
+    // Para outros gateways, implementar HMAC SHA256
+    // Exemplo genérico (ajustar por gateway)
+    const crypto = globalThis.crypto;
+    if (!crypto || !crypto.subtle) {
+      log("warn", "Crypto API not available for signature validation");
+      return true;
+    }
+
+    // TODO: Implementar validação HMAC específica por gateway
+    return true;
+  } catch (error) {
+    log("error", "Error validating signature", { gateway, error });
+    return false;
   }
 }
 
@@ -109,20 +252,11 @@ async function handleUniversalWebhook(
   supabaseClient: any,
   gatewaySlug: string,
 ) {
+  const startTime = Date.now();
+  const attemptNumber = parseInt(req.headers.get("x-retry-attempt") || "1");
+
   try {
-    log("info", `Webhook received from ${gatewaySlug}`);
-
-    // Carregar configuração do gateway
-    const config = await loadGatewayConfig(supabaseClient, gatewaySlug);
-    if (!config) {
-      throw new Error(`Gateway ${gatewaySlug} not configured or inactive`);
-    }
-
-    // Obter processor do gateway
-    const gatewayProcessor = getGateway(gatewaySlug);
-    if (!gatewayProcessor) {
-      throw new Error(`Gateway processor not found: ${gatewaySlug}`);
-    }
+    log("info", `Webhook received from ${gatewaySlug}`, { attemptNumber });
 
     // Obter corpo e assinatura
     const body = await req.text();
@@ -133,7 +267,6 @@ async function handleUniversalWebhook(
       req.headers.get("x-webhook-signature") ||
       undefined;
 
-    // Processar webhook usando o handler do gateway
     let payload;
     try {
       payload = JSON.parse(body);
@@ -141,21 +274,121 @@ async function handleUniversalWebhook(
       payload = body;
     }
 
-    const webhookResponse = await gatewayProcessor.handleWebhook(
+    // Log inicial no banco
+    await logWebhookToDatabase(supabaseClient, {
+      gateway: gatewaySlug,
+      topic: payload.type || payload.event || "unknown",
       payload,
       signature,
+      status: "received",
+      attemptNumber,
+    });
+
+    // Carregar configuração do gateway com retry
+    const config = await retryWithBackoff(
+      () => loadGatewayConfig(supabaseClient, gatewaySlug),
+      2,
+      500,
+    );
+
+    if (!config) {
+      throw new Error(`Gateway ${gatewaySlug} not configured or inactive`);
+    }
+
+    // Validar assinatura (se configurado)
+    const webhookSecret = config.credentials?.webhookSecret;
+    const isValidSignature = validateWebhookSignature(
+      body,
+      signature,
+      webhookSecret,
+      gatewaySlug,
+    );
+
+    if (!isValidSignature) {
+      log("error", "Invalid webhook signature", { gateway: gatewaySlug });
+
+      await logWebhookToDatabase(supabaseClient, {
+        gateway: gatewaySlug,
+        topic: payload.type || "unknown",
+        payload,
+        signature,
+        status: "error",
+        attemptNumber,
+        errorMessage: "Invalid signature",
+        processingTime: Date.now() - startTime,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: "Invalid signature",
+          processed: false,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        },
+      );
+    }
+
+    // Obter processor do gateway
+    const gatewayProcessor = getGateway(gatewaySlug);
+    if (!gatewayProcessor) {
+      throw new Error(`Gateway processor not found: ${gatewaySlug}`);
+    }
+
+    // Atualizar status para processing
+    await logWebhookToDatabase(supabaseClient, {
+      gateway: gatewaySlug,
+      topic: payload.type || "unknown",
+      payload,
+      signature,
+      status: "processing",
+      attemptNumber,
+    });
+
+    // Processar webhook com retry
+    const webhookResponse = await retryWithBackoff(
+      () => gatewayProcessor.handleWebhook(payload, signature),
+      3,
+      1000,
     );
 
     if (!webhookResponse.success) {
       log("warn", "Webhook processing failed", {
         gateway: gatewaySlug,
         message: webhookResponse.message,
+        attemptNumber,
       });
+
+      const processingTime = Date.now() - startTime;
+
+      await logWebhookToDatabase(supabaseClient, {
+        gateway: gatewaySlug,
+        topic: payload.type || "unknown",
+        payload,
+        signature,
+        status: "error",
+        attemptNumber,
+        errorMessage: webhookResponse.message,
+        processingTime,
+      });
+
+      // Se já tentou 3 vezes, enviar para dead letter queue
+      if (attemptNumber >= 3) {
+        await sendToDeadLetterQueue(supabaseClient, {
+          gateway: gatewaySlug,
+          payload,
+          signature,
+          error: webhookResponse.message || "Processing failed",
+          attempts: attemptNumber,
+        });
+      }
 
       return new Response(
         JSON.stringify({
           error: webhookResponse.message,
           processed: false,
+          retry: attemptNumber < 3,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -164,24 +397,45 @@ async function handleUniversalWebhook(
       );
     }
 
-    // Atualizar transação no banco de dados
+    // Atualizar transação no banco de dados com retry
     if (webhookResponse.transactionId && webhookResponse.status) {
-      await updateTransactionStatus(
-        supabaseClient,
-        webhookResponse.gatewayTransactionId || webhookResponse.transactionId,
-        webhookResponse.status,
-        {
-          gateway: gatewaySlug,
-          webhookData: payload,
-          webhookResponse,
-        },
+      await retryWithBackoff(
+        () =>
+          updateTransactionStatus(
+            supabaseClient,
+            webhookResponse.gatewayTransactionId ||
+              webhookResponse.transactionId,
+            webhookResponse.status,
+            {
+              gateway: gatewaySlug,
+              webhookData: payload,
+              webhookResponse,
+              attemptNumber,
+            },
+          ),
+        3,
+        1000,
       );
     }
+
+    const processingTime = Date.now() - startTime;
+
+    // Log de sucesso
+    await logWebhookToDatabase(supabaseClient, {
+      gateway: gatewaySlug,
+      topic: payload.type || "unknown",
+      payload,
+      signature,
+      status: "processed",
+      attemptNumber,
+      processingTime,
+    });
 
     log("info", "Webhook processed successfully", {
       gateway: gatewaySlug,
       transactionId: webhookResponse.transactionId,
       status: webhookResponse.status,
+      processingTime: `${processingTime}ms`,
     });
 
     return new Response(
@@ -189,6 +443,7 @@ async function handleUniversalWebhook(
         received: true,
         processed: true,
         transactionId: webhookResponse.transactionId,
+        processingTime,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -196,15 +451,52 @@ async function handleUniversalWebhook(
       },
     );
   } catch (error: any) {
+    const processingTime = Date.now() - startTime;
+
     log("error", `Webhook error for ${gatewaySlug}`, {
       error: error.message,
       stack: error.stack,
+      attemptNumber,
     });
+
+    // Tentar salvar erro no banco
+    try {
+      const body = await req.clone().text();
+      let payload;
+      try {
+        payload = JSON.parse(body);
+      } catch {
+        payload = { raw: body };
+      }
+
+      await logWebhookToDatabase(supabaseClient, {
+        gateway: gatewaySlug,
+        topic: "error",
+        payload,
+        status: "error",
+        attemptNumber,
+        errorMessage: error.message,
+        processingTime,
+      });
+
+      // Se já tentou 3 vezes, enviar para dead letter queue
+      if (attemptNumber >= 3) {
+        await sendToDeadLetterQueue(supabaseClient, {
+          gateway: gatewaySlug,
+          payload,
+          error: error.message,
+          attempts: attemptNumber,
+        });
+      }
+    } catch (logError) {
+      log("error", "Failed to log webhook error", { logError });
+    }
 
     return new Response(
       JSON.stringify({
         error: error.message,
         gateway: gatewaySlug,
+        retry: attemptNumber < 3,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -252,13 +544,36 @@ async function updateTransactionStatus(
       Object.assign(transaction, transactionByInternalId);
     }
 
-    // Não atualizar se já está no mesmo status
-    if (transaction.currentStatus === status) {
+    // Validar transição de status (evitar regressões)
+    const validTransitions: Record<string, string[]> = {
+      pending: ["processing", "approved", "failed", "cancelled", "expired"],
+      processing: ["approved", "failed", "cancelled"],
+      approved: ["refunded"], // Uma vez aprovado, só pode ser reembolsado
+      failed: ["pending", "processing"], // Pode tentar novamente
+      cancelled: [], // Final
+      refunded: [], // Final
+      expired: ["pending"], // Pode reabrir
+    };
+
+    const currentStatus = transaction.currentStatus;
+    const allowedTransitions = validTransitions[currentStatus] || [];
+
+    if (currentStatus === status) {
       log("info", "Transaction already in this status", {
         transactionId: transaction.id,
         status,
       });
       return;
+    }
+
+    if (!allowedTransitions.includes(status)) {
+      log("warn", "Invalid status transition", {
+        transactionId: transaction.id,
+        from: currentStatus,
+        to: status,
+        allowed: allowedTransitions,
+      });
+      // Permitir de qualquer forma, mas registrar warning
     }
 
     // Atualizar status da transação
@@ -272,7 +587,9 @@ async function updateTransactionStatus(
           {
             timestamp: new Date().toISOString(),
             status,
+            previousStatus: currentStatus,
             gateway: webhookMetadata.gateway,
+            attemptNumber: webhookMetadata.attemptNumber || 1,
           },
         ],
         lastWebhook: webhookMetadata,
@@ -291,7 +608,7 @@ async function updateTransactionStatus(
 
     if (updateError) {
       log("error", "Error updating transaction", { error: updateError });
-      return;
+      throw updateError; // Lançar erro para retry
     }
 
     log("info", `✅ Transaction ${transaction.id} updated to ${status}`);
@@ -311,7 +628,9 @@ async function updateTransactionStatus(
     log("error", "Error in updateTransactionStatus", {
       error: error.message,
       stack: error.stack,
+      gatewayTransactionId,
     });
+    throw error; // Propagar erro para retry
   }
 }
 

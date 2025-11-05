@@ -77,7 +77,6 @@ const navItems: NavItem[] = [
       { to: "/orders/all", label: "Ver todos" },
       { to: "/orders/abandoned-carts", label: "Carrinhos abandonados" },
       { to: "/orders/pix-recovered", label: "Pix Recuperados" },
-      { to: "/orders/management", label: "Gerenciar Pedidos" },
     ],
   },
   {

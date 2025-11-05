@@ -398,7 +398,7 @@ serve(async (req) => {
     const allowUnverifiedRequested = !!body?.allow_unverified;
     const paymentRequest: PaymentRequest = body;
 
-    // Validação
+    // ===== VALIDAÇÃO #1: Campos obrigatórios =====
     if (
       !paymentRequest.userId ||
       !paymentRequest.orderId ||
@@ -411,7 +411,78 @@ serve(async (req) => {
       throw new Error("Amount must be greater than 0");
     }
 
-    // Determine if requester is super admin (to allow debug flag)
+    // ===== VALIDAÇÃO #2: Verificar se pedido já foi pago =====
+    const { data: existingTransactions } = await supabaseClient
+      .from("Transaction")
+      .select("id, status, paymentMethod, createdAt")
+      .eq("orderId", paymentRequest.orderId)
+      .in("status", ["PAID", "PROCESSING"])
+      .order("createdAt", { ascending: false })
+      .limit(1);
+
+    if (existingTransactions && existingTransactions.length > 0) {
+      const existing = existingTransactions[0];
+      console.warn("⚠️ Order already has a paid/processing transaction:", {
+        orderId: paymentRequest.orderId,
+        existingTransactionId: existing.id,
+        status: existing.status,
+        paymentMethod: existing.paymentMethod,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "ALREADY_PAID",
+          message: "Este pedido já foi pago ou está sendo processado",
+          error: "ORDER_ALREADY_PAID",
+          existingTransaction: {
+            id: existing.id,
+            status: existing.status,
+            paymentMethod: existing.paymentMethod,
+          },
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // ===== VALIDAÇÃO #3: Rate Limiting (máx 5 tentativas por minuto por usuário) =====
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: recentAttempts, error: rateLimitError } = await supabaseClient
+      .from("Transaction")
+      .select("id")
+      .eq("userId", paymentRequest.userId)
+      .gte("createdAt", oneMinuteAgo);
+
+    if (!rateLimitError && recentAttempts && recentAttempts.length >= 5) {
+      console.warn("⚠️ Rate limit exceeded for user:", {
+        userId: paymentRequest.userId,
+        attemptsInLastMinute: recentAttempts.length,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "RATE_LIMIT_EXCEEDED",
+          message:
+            "Muitas tentativas de pagamento. Aguarde um minuto e tente novamente.",
+          error: "RATE_LIMIT_EXCEEDED",
+          retryAfter: 60,
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": "60",
+          },
+        },
+      );
+    }
+
+    // ===== VALIDAÇÃO #4: Determinar se é super admin =====
     const { data: profile } = await supabaseClient
       .from("User")
       .select("isSuperAdmin")
@@ -419,6 +490,13 @@ serve(async (req) => {
       .single();
     const isSuperAdmin = !!profile?.isSuperAdmin;
     const allowUnverified = allowUnverifiedRequested && isSuperAdmin;
+
+    console.log("✅ Validações iniciais passaram:", {
+      orderId: paymentRequest.orderId,
+      userId: paymentRequest.userId,
+      amount: paymentRequest.amount,
+      paymentMethod: paymentRequest.paymentMethod,
+    });
 
     let query = supabaseClient
       .from("GatewayConfig")
@@ -683,6 +761,20 @@ serve(async (req) => {
       };
     }
 
+    // ===== VALIDAÇÃO #4: GARANTIR gatewayTransactionId =====
+    const gatewayTransactionId =
+      paymentResponse.gatewayTransactionId ||
+      paymentResponse.transactionId ||
+      `${gateway.slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    if (!paymentResponse.gatewayTransactionId) {
+      console.warn(
+        "⚠️ gatewayTransactionId estava null, gerando fallback:",
+        gatewayTransactionId,
+      );
+      paymentResponse.gatewayTransactionId = gatewayTransactionId;
+    }
+
     // Salvar transação no banco
     const { data: transaction, error: transactionError } = await supabaseClient
       .from("Transaction")
@@ -693,7 +785,7 @@ serve(async (req) => {
         amount: paymentRequest.amount,
         currency: paymentRequest.currency || "BRL",
         status: paymentResponse.status,
-        transactionId: paymentResponse.gatewayTransactionId,
+        transactionId: gatewayTransactionId,
         paymentMethod: paymentRequest.paymentMethod,
         // Campos específicos do PIX
         pixQrCode: paymentResponse.pixData?.qrCode,
@@ -709,15 +801,30 @@ serve(async (req) => {
           qrCode: paymentResponse.qrCode,
           pixData: paymentResponse.pixData,
           boletoData: paymentResponse.boletoData,
+          processingTime: Date.now() - startTime,
+          gatewaySlug: gateway.slug,
         },
       })
       .select()
       .single();
 
     if (transactionError) {
-      console.error("Erro ao salvar transação:", transactionError);
-      // Não falhar a request, apenas logar o erro
+      console.error("❌ Erro crítico ao salvar transação:", transactionError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Failed to save transaction to database",
+          status: "DB_ERROR",
+          details: transactionError.message,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
+
+    console.log("✅ Transaction saved successfully:", transaction.id);
 
     // Logs finais antes do return
     console.log("[PAYMENT] 🎯 RESPOSTA FINAL sendo retornada ao frontend:");

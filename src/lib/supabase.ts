@@ -2,6 +2,99 @@ import { createClient } from "@supabase/supabase-js";
 import { Database } from "./database.types";
 import { SUPABASE_CONFIG } from "./config";
 
+// =====================================================
+// STORAGE ADAPTER UNIVERSAL (Desktop + Mobile)
+// =====================================================
+
+/**
+ * Storage adapter que funciona em todos os dispositivos
+ * Fallback: localStorage -> sessionStorage -> memoryStorage
+ */
+class UniversalStorage {
+  private memoryStorage: Map<string, string> = new Map();
+  private storageType: "localStorage" | "sessionStorage" | "memory" = "memory";
+
+  constructor() {
+    // Detectar qual storage está disponível
+    if (this.isStorageAvailable("localStorage")) {
+      this.storageType = "localStorage";
+      console.log("✅ Usando localStorage");
+    } else if (this.isStorageAvailable("sessionStorage")) {
+      this.storageType = "sessionStorage";
+      console.warn("⚠️ localStorage indisponível, usando sessionStorage");
+    } else {
+      this.storageType = "memory";
+      console.warn(
+        "⚠️ Storage persistente indisponível, usando memória (sessão será perdida ao recarregar)",
+      );
+    }
+  }
+
+  private isStorageAvailable(type: "localStorage" | "sessionStorage"): boolean {
+    try {
+      const storage = window[type];
+      const testKey = "__storage_test__";
+      storage.setItem(testKey, "test");
+      storage.removeItem(testKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private getStorage(): Storage | null {
+    if (this.storageType === "localStorage") {
+      return window.localStorage;
+    } else if (this.storageType === "sessionStorage") {
+      return window.sessionStorage;
+    }
+    return null;
+  }
+
+  getItem(key: string): string | null {
+    try {
+      const storage = this.getStorage();
+      if (storage) {
+        return storage.getItem(key);
+      }
+      return this.memoryStorage.get(key) || null;
+    } catch (error) {
+      console.error("Erro ao ler storage:", error);
+      return this.memoryStorage.get(key) || null;
+    }
+  }
+
+  setItem(key: string, value: string): void {
+    try {
+      const storage = this.getStorage();
+      if (storage) {
+        storage.setItem(key, value);
+      }
+      // Sempre manter em memória como backup
+      this.memoryStorage.set(key, value);
+    } catch (error) {
+      console.error("Erro ao salvar no storage:", error);
+      // Fallback para memória
+      this.memoryStorage.set(key, value);
+    }
+  }
+
+  removeItem(key: string): void {
+    try {
+      const storage = this.getStorage();
+      if (storage) {
+        storage.removeItem(key);
+      }
+      this.memoryStorage.delete(key);
+    } catch (error) {
+      console.error("Erro ao remover do storage:", error);
+      this.memoryStorage.delete(key);
+    }
+  }
+}
+
+const universalStorage = new UniversalStorage();
+
 // Configuração básica do Supabase com persistência de sessão
 export const supabase = createClient<Database>(
   SUPABASE_CONFIG.url,
@@ -11,7 +104,7 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: localStorage,
+      storage: universalStorage as any,
       storageKey: "supabase.auth.token",
     },
     db: {
