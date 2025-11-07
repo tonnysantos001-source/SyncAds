@@ -53,29 +53,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// Dados de exemplo para demonstração
-const generateChartData = () => {
-  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  return days.map((day, index) => ({
-    name: day,
-    pageLoad: Math.floor(Math.random() * 800) + 200,
-    bounceRate: Math.floor(Math.random() * 40) + 30,
-    startRender: Math.floor(Math.random() * 400) + 100,
-    sessions: Math.floor(Math.random() * 5000) + 1000,
-    sessionLength: Math.floor(Math.random() * 30) + 5,
-    pvs: Math.floor(Math.random() * 3) + 1,
-  }));
-};
-
-const generateHourlyData = () => {
-  return Array.from({ length: 24 }, (_, i) => ({
-    hour: `${i}h`,
-    visits: Math.floor(Math.random() * 1000) + 200,
-    conversions: Math.floor(Math.random() * 50) + 10,
-    revenue: Math.floor(Math.random() * 5000) + 1000,
-  }));
-};
+import { dashboardApi, DashboardMetrics } from "@/lib/api/dashboardApi";
 
 interface MetricCardProps {
   title: string;
@@ -165,86 +143,120 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const ReportsOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("7days");
-  const [chartData, setChartData] = useState(generateChartData());
-  const [hourlyData, setHourlyData] = useState(generateHourlyData());
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
   const user = useAuthStore((state) => state.user);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simular carregamento
-    setTimeout(() => {
+    if (user?.id) {
+      loadDashboardData();
+    }
+  }, [user?.id, period]);
+
+  const loadDashboardData = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      const [metricsData, chartDataResult, hourlyDataResult] =
+        await Promise.all([
+          dashboardApi.getMetrics(user.id, period),
+          dashboardApi.getChartData(user.id, period),
+          dashboardApi.getHourlyData(user.id),
+        ]);
+
+      setMetrics(metricsData);
+      setChartData(chartDataResult);
+      setHourlyData(hourlyDataResult);
+    } catch (error: any) {
+      console.error("Erro ao carregar dashboard:", error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value);
-    setLoading(true);
-    setTimeout(() => {
-      setChartData(generateChartData());
-      setHourlyData(generateHourlyData());
-      setLoading(false);
-    }, 500);
   };
 
-  const metrics = [
-    {
-      title: "Receita Total",
-      value: "R$ 48.523",
-      change: 12.5,
-      icon: DollarSign,
-      color: "bg-green-500",
-    },
-    {
-      title: "Total de Pedidos",
-      value: "2.847",
-      change: 8.2,
-      icon: ShoppingCart,
-      color: "bg-blue-500",
-    },
-    {
-      title: "Visitantes Únicos",
-      value: "15.234",
-      change: -3.1,
-      icon: Users,
-      color: "bg-purple-500",
-    },
-    {
-      title: "Taxa de Conversão",
-      value: "3.24%",
-      change: 5.7,
-      icon: Target,
-      color: "bg-cyan-500",
-    },
-    {
-      title: "Ticket Médio",
-      value: "R$ 156",
-      change: 4.3,
-      icon: Package,
-      color: "bg-pink-500",
-    },
-    {
-      title: "Produtos Vendidos",
-      value: "4.521",
-      change: 11.8,
-      icon: Package,
-      color: "bg-orange-500",
-    },
-    {
-      title: "Tempo Médio",
-      value: "8m 32s",
-      change: -2.1,
-      icon: Clock,
-      color: "bg-yellow-500",
-    },
-    {
-      title: "Taxa de Rejeição",
-      value: "32.8%",
-      change: -6.4,
-      icon: Activity,
-      color: "bg-red-500",
-    },
-  ];
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat("pt-BR").format(value);
+  };
+
+  const metricsCards = metrics
+    ? [
+        {
+          title: "Receita Total",
+          value: formatCurrency(metrics.totalRevenue),
+          change: metrics.revenueChange,
+          icon: DollarSign,
+          color: "bg-green-500",
+        },
+        {
+          title: "Total de Pedidos",
+          value: formatNumber(metrics.totalOrders),
+          change: metrics.ordersChange,
+          icon: ShoppingCart,
+          color: "bg-blue-500",
+        },
+        {
+          title: "Visitantes Únicos",
+          value: formatNumber(metrics.uniqueVisitors),
+          change: metrics.visitorsChange,
+          icon: Users,
+          color: "bg-purple-500",
+        },
+        {
+          title: "Taxa de Conversão",
+          value: `${metrics.conversionRate.toFixed(2)}%`,
+          change: metrics.conversionChange,
+          icon: Target,
+          color: "bg-cyan-500",
+        },
+        {
+          title: "Ticket Médio",
+          value: formatCurrency(metrics.averageTicket),
+          change: metrics.ticketChange,
+          icon: Package,
+          color: "bg-pink-500",
+        },
+        {
+          title: "Produtos Vendidos",
+          value: formatNumber(metrics.productsSold),
+          change: metrics.productsSoldChange,
+          icon: Package,
+          color: "bg-orange-500",
+        },
+        {
+          title: "Tempo Médio",
+          value: metrics.averageTime,
+          change: metrics.timeChange,
+          icon: Clock,
+          color: "bg-yellow-500",
+        },
+        {
+          title: "Taxa de Rejeição",
+          value: `${metrics.bounceRate.toFixed(1)}%`,
+          change: metrics.bounceRateChange,
+          icon: Activity,
+          color: "bg-red-500",
+        },
+      ]
+    : [];
 
   if (loading) {
     return (
@@ -302,7 +314,7 @@ const ReportsOverviewPage = () => {
 
       {/* Métricas Principais */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric, index) => (
+        {metricsCards.map((metric, index) => (
           <MetricCard key={index} {...metric} delay={index * 0.05} />
         ))}
       </div>
@@ -332,79 +344,93 @@ const ReportsOverviewPage = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
-              <ComposedChart data={chartData}>
-                <defs>
-                  <linearGradient
-                    id="colorPageLoad"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.1} />
-                  </linearGradient>
-                  <linearGradient
-                    id="colorStartRender"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#374151"
-                  opacity={0.2}
-                />
-                <XAxis
-                  dataKey="name"
-                  stroke="#9ca3af"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis
-                  yAxisId="left"
-                  stroke="#9ca3af"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#9ca3af"
-                  style={{ fontSize: "12px" }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: "20px" }}
-                  iconType="circle"
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="pageLoad"
-                  fill="url(#colorPageLoad)"
-                  radius={[8, 8, 0, 0]}
-                  name="Page Load (ms)"
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="startRender"
-                  fill="url(#colorStartRender)"
-                  radius={[8, 8, 0, 0]}
-                  name="Start Render (ms)"
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="bounceRate"
-                  stroke="#ef4444"
-                  strokeWidth={3}
-                  dot={{ fill: "#ef4444", r: 5 }}
-                  name="Bounce Rate (%)"
-                />
-              </ComposedChart>
+              {chartData.length > 0 ? (
+                <ComposedChart data={chartData}>
+                  <defs>
+                    <linearGradient
+                      id="colorPageLoad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#06b6d4"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                    <linearGradient
+                      id="colorStartRender"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#374151"
+                    opacity={0.2}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#9ca3af"
+                    style={{ fontSize: "12px" }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    stroke="#9ca3af"
+                    style={{ fontSize: "12px" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#9ca3af"
+                    style={{ fontSize: "12px" }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: "20px" }}
+                    iconType="circle"
+                  />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="pageLoad"
+                    fill="url(#colorPageLoad)"
+                    radius={[8, 8, 0, 0]}
+                    name="Page Load (ms)"
+                  />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="startRender"
+                    fill="url(#colorStartRender)"
+                    radius={[8, 8, 0, 0]}
+                    name="Start Render (ms)"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bounceRate"
+                    stroke="#ef4444"
+                    strokeWidth={3}
+                    dot={{ fill: "#ef4444", r: 5 }}
+                    name="Bounce Rate (%)"
+                  />
+                </ComposedChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  Sem dados disponíveis
+                </div>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -430,44 +456,54 @@ const ReportsOverviewPage = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={hourlyData}>
-                  <defs>
-                    <linearGradient
-                      id="colorVisits"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                      <stop
-                        offset="95%"
-                        stopColor="#8b5cf6"
-                        stopOpacity={0.1}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#374151"
-                    opacity={0.2}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    stroke="#9ca3af"
-                    style={{ fontSize: "10px" }}
-                  />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="visits"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    fill="url(#colorVisits)"
-                    name="Visitas"
-                  />
-                </AreaChart>
+                {hourlyData.length > 0 ? (
+                  <AreaChart data={hourlyData}>
+                    <defs>
+                      <linearGradient
+                        id="colorVisits"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0.1}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#374151"
+                      opacity={0.2}
+                    />
+                    <XAxis
+                      dataKey="hour"
+                      stroke="#9ca3af"
+                      style={{ fontSize: "10px" }}
+                    />
+                    <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="visits"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      fill="url(#colorVisits)"
+                      name="Visitas"
+                    />
+                  </AreaChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    Sem dados disponíveis
+                  </div>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -489,36 +525,42 @@ const ReportsOverviewPage = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={hourlyData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#374151"
-                    opacity={0.2}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    stroke="#9ca3af"
-                    style={{ fontSize: "10px" }}
-                  />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="conversions"
-                    stroke="#10b981"
-                    strokeWidth={3}
-                    dot={{ fill: "#10b981", r: 4 }}
-                    name="Conversões"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#06b6d4"
-                    strokeWidth={3}
-                    dot={{ fill: "#06b6d4", r: 4 }}
-                    name="Receita (R$)"
-                  />
-                </LineChart>
+                {hourlyData.length > 0 ? (
+                  <LineChart data={hourlyData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#374151"
+                      opacity={0.2}
+                    />
+                    <XAxis
+                      dataKey="hour"
+                      stroke="#9ca3af"
+                      style={{ fontSize: "10px" }}
+                    />
+                    <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line
+                      type="monotone"
+                      dataKey="conversions"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ fill: "#10b981", r: 4 }}
+                      name="Conversões"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#06b6d4"
+                      strokeWidth={3}
+                      dot={{ fill: "#06b6d4", r: 4 }}
+                      name="Receita (R$)"
+                    />
+                  </LineChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    Sem dados disponíveis
+                  </div>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -543,57 +585,67 @@ const ReportsOverviewPage = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <defs>
-                  <linearGradient
-                    id="colorSessions"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#374151"
-                  opacity={0.2}
-                />
-                <XAxis dataKey="name" stroke="#9ca3af" />
-                <YAxis yAxisId="left" stroke="#9ca3af" />
-                <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="sessions"
-                  fill="url(#colorSessions)"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  name="Sessões"
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="sessionLength"
-                  stroke="#f59e0b"
-                  strokeWidth={3}
-                  dot={{ fill: "#f59e0b", r: 5 }}
-                  name="Tempo de Sessão (min)"
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="pvs"
-                  stroke="#ec4899"
-                  strokeWidth={3}
-                  dot={{ fill: "#ec4899", r: 5 }}
-                  name="PVs por Sessão"
-                />
-              </ComposedChart>
+              {chartData.length > 0 ? (
+                <ComposedChart data={chartData}>
+                  <defs>
+                    <linearGradient
+                      id="colorSessions"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#10b981"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#374151"
+                    opacity={0.2}
+                  />
+                  <XAxis dataKey="name" stroke="#9ca3af" />
+                  <YAxis yAxisId="left" stroke="#9ca3af" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="sessions"
+                    fill="url(#colorSessions)"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    name="Sessões"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="sessionLength"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ fill: "#f59e0b", r: 5 }}
+                    name="Tempo de Sessão (min)"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="pvs"
+                    stroke="#ec4899"
+                    strokeWidth={3}
+                    dot={{ fill: "#ec4899", r: 5 }}
+                    name="PVs por Sessão"
+                  />
+                </ComposedChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  Sem dados disponíveis
+                </div>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
