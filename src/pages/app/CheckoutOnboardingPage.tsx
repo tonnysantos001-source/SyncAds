@@ -1,29 +1,17 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/lib/supabase";
-import { useAuthStore } from "@/store/authStore";
-import { useNavigate } from "react-router-dom";
-import {
-  CreditCard,
-  Globe,
-  Wallet,
-  Truck,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  HelpCircle,
-} from "lucide-react";
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { CreditCard, Monitor, DollarSign, Truck, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/authStore';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingStep {
   id: string;
   title: string;
   description: string;
+  icon: React.ElementType;
   completed: boolean;
   route: string;
-  icon: React.ReactNode;
 }
 
 export default function CheckoutOnboardingPage() {
@@ -40,124 +28,143 @@ export default function CheckoutOnboardingPage() {
 
   const loadOnboardingStatus = async () => {
     if (!user?.id) return;
-
+    
     try {
-      const [billing, domain, gateway, shipping] = await Promise.all([
+      // Buscar status de cada etapa em paralelo
+      const [billingCompleted, domainCompleted, gatewayCompleted, shippingCompleted] = await Promise.all([
         checkBillingStatus(),
         checkDomainStatus(),
         checkGatewayStatus(),
-        checkShippingStatus(),
+        checkShippingStatus()
       ]);
 
       const onboardingSteps: OnboardingStep[] = [
         {
-          id: "billing",
-          title: "Faturamento",
-          description: "Configure seu plano e método de pagamento",
-          completed: billing,
-          route: "/billing",
-          icon: <CreditCard className="h-5 w-5" />,
+          id: 'billing',
+          title: 'Faturamento',
+          description: 'Configure seu plano e método de pagamento',
+          icon: CreditCard,
+          completed: billingCompleted,
+          route: '/billing'
         },
         {
-          id: "domain",
-          title: "Domínio",
-          description: "Verifique seu domínio (mesmo da Shopify/WooCommerce)",
-          completed: domain,
-          route: "/checkout/domain",
-          icon: <Globe className="h-5 w-5" />,
+          id: 'domain',
+          title: 'Domínio',
+          description: 'Verifique seu domínio. Deve ser o mesmo utilizado na shopify, woocommerce ou na sua landing page.',
+          icon: Monitor,
+          completed: domainCompleted,
+          route: '/checkout/domain'
         },
         {
-          id: "gateway",
-          title: "Gateway de Pagamento",
-          description: "Configure os meios de pagamento",
-          completed: gateway,
-          route: "/checkout/gateways",
-          icon: <Wallet className="h-5 w-5" />,
+          id: 'gateway',
+          title: 'Gateway',
+          description: 'Configure os meios de pagamentos que serão exibidos em sua loja.',
+          icon: DollarSign,
+          completed: gatewayCompleted,
+          route: '/checkout/gateways'
         },
         {
-          id: "shipping",
-          title: "Frete",
-          description: "Crie métodos de entrega",
-          completed: shipping,
-          route: "/checkout/shipping",
-          icon: <Truck className="h-5 w-5" />,
-        },
+          id: 'shipping',
+          title: 'Frete',
+          description: 'Crie métodos de entrega para ser exibido no seu checkout.',
+          icon: Truck,
+          completed: shippingCompleted,
+          route: '/checkout/shipping'
+        }
       ];
 
       setSteps(onboardingSteps);
     } catch (error) {
-      console.error("Erro ao carregar status:", error);
+      console.error('Erro ao carregar status de onboarding:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ SISTEMA SIMPLIFICADO: Verificações baseadas apenas no userId
   const checkBillingStatus = async (): Promise<boolean> => {
     if (!user?.id) return false;
+    
     try {
+      // Verificar se usuário tem um plano atribuído (mesmo que gratuito)
       const { data: userData } = await supabase
-        .from("User")
-        .select("currentPlanId")
-        .eq("id", user.id)
+        .from('User')
+        .select('currentPlanId')
+        .eq('id', user.id)
         .single();
 
-      if (userData?.currentPlanId) return true;
+      // Se tem plano atribuído, billing está OK
+      if (userData?.currentPlanId) {
+        return true;
+      }
 
+      // Verificar se tem subscrição ativa (mesmo gratuita)
       const { data: subscription } = await supabase
-        .from("Subscription")
-        .select("id, status")
-        .eq("userId", user.id)
-        .eq("status", "active")
+        .from('Subscription')
+        .select('id, status')
+        .eq('userId', user.id)
+        .eq('status', 'active')
         .single();
 
       return !!subscription;
-    } catch {
+    } catch (error) {
+      console.error('Erro ao verificar billing:', error);
       return false;
     }
   };
 
   const checkDomainStatus = async (): Promise<boolean> => {
     if (!user?.id) return false;
+    
     try {
-      const { data } = await supabase
-        .from("User")
-        .select("domain, domainVerified")
-        .eq("id", user.id)
+      // Verificar se usuário tem domínio verificado
+      const { data: userData } = await supabase
+        .from('User')
+        .select('domain, domainVerified')
+        .eq('id', user.id)
         .single();
 
-      return !!(data?.domain && data?.domainVerified);
-    } catch {
+      return !!(userData?.domain && userData?.domainVerified);
+    } catch (error) {
+      console.error('Erro ao verificar domínio:', error);
       return false;
     }
   };
 
   const checkGatewayStatus = async (): Promise<boolean> => {
     if (!user?.id) return false;
+    
     try {
-      const { data } = await supabase
-        .from("GatewayConfig")
-        .select("id")
-        .eq("userId", user.id)
-        .eq("isActive", true)
+      // Verificar se usuário tem pelo menos 1 gateway configurado e ativo
+      const { data: gateways } = await supabase
+        .from('GatewayConfig')
+        .select('id, isActive')
+        .eq('userId', user.id)
+        .eq('isActive', true)
         .limit(1);
 
-      return (data?.length || 0) > 0;
-    } catch {
+      return (gateways?.length || 0) > 0;
+    } catch (error) {
+      console.error('Erro ao verificar gateway:', error);
       return false;
     }
   };
 
   const checkShippingStatus = async (): Promise<boolean> => {
     if (!user?.id) return false;
+    
     try {
-      const { data } = await supabase
-        .from("ShippingMethod")
-        .select("id")
-        .eq("userId", user.id)
+      // Verificar se usuário tem pelo menos 1 método de frete configurado
+      const { data: shippingMethods } = await supabase
+        .from('ShippingMethod')
+        .select('id')
+        .eq('userId', user.id)
         .limit(1);
 
-      return (data?.length || 0) > 0;
-    } catch {
+      return (shippingMethods?.length || 0) > 0;
+    } catch (error) {
+      console.error('Erro ao verificar frete:', error);
+      // Se tabela não existir ainda, retornar false
       return false;
     }
   };
@@ -165,138 +172,92 @@ export default function CheckoutOnboardingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-sm text-gray-600">Carregando...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  const userName = user?.name || user?.email?.split("@")[0] || "usuário";
-  const completedSteps = steps.filter((s) => s.completed).length;
-  const totalSteps = steps.length;
-  const progress = (completedSteps / totalSteps) * 100;
+  // Get user's first name from email
+  const userName = user?.name || user?.email?.split('@')[0] || 'usuário';
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-      <div className="max-w-4xl mx-auto p-6 md:p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Olá, {userName}!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Complete as etapas abaixo para ativar seu checkout
-          </p>
-        </div>
+    <div className="p-6 sm:p-8 max-w-4xl mx-auto">
+      {/* Welcome Section */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Olá {userName},
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Seja bem vindo</p>
+      </div>
 
-        {/* Progress Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">
-                Progresso do Onboarding
-              </CardTitle>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {completedSteps} de {totalSteps} concluídos
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Progress value={progress} className="h-2" />
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              {progress === 100
-                ? "Parabéns! Você concluiu todas as etapas."
-                : "Continue configurando para ativar seu checkout."}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Main Instructions */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          Para ativar seu checkout você precisa concluir todos passos abaixo:
+        </h2>
+      </div>
 
-        {/* Steps List */}
-        <div className="space-y-4 mb-6">
-          {steps.map((step, index) => (
-            <Card
+      {/* Steps with Green/Red indicators */}
+      <div className="space-y-4">
+        {steps.map((step) => {
+          const StepIcon = step.icon;
+          
+          return (
+            <div
               key={step.id}
-              className="cursor-pointer hover:border-blue-500 transition-colors"
+              className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-all"
               onClick={() => navigate(step.route)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  {/* Step Number/Icon */}
-                  <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
-                      step.completed
-                        ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
-                        : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
-                  >
-                    {step.completed ? (
-                      <CheckCircle2 className="h-6 w-6" />
-                    ) : (
-                      step.icon
-                    )}
-                  </div>
-
-                  {/* Step Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {step.title}
-                      </h3>
-                      {step.completed ? (
-                        <Badge
-                          variant="secondary"
-                          className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                        >
-                          Concluído
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-gray-600">
-                          Pendente
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {step.description}
-                    </p>
-                  </div>
-
-                  {/* Arrow */}
-                  <ArrowRight className="flex-shrink-0 h-5 w-5 text-gray-400" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Help Card */}
-        <Card className="border-dashed">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+              {/* Icon */}
+              <div className="flex-shrink-0">
+                <StepIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
               </div>
+
+              {/* Content */}
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                  Precisa de ajuda?
+                  {step.title}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Nossa central de ajuda está disponível para tirar suas
-                  dúvidas.
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {step.description}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/chat")}
-                >
-                  Acessar Central de Ajuda
-                </Button>
+              </div>
+
+              {/* Status Indicator - Green/Red dot */}
+              <div className="flex-shrink-0 pt-1">
+                <div className={`h-3 w-3 rounded-full ${
+                  step.completed ? 'bg-green-500' : 'bg-red-500'
+                }`} 
+                title={step.completed ? 'Concluído' : 'Pendente'}
+                />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          );
+        })}
+      </div>
+
+      {/* Help Link */}
+      <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+        Caso tenha alguma dúvida,{' '}
+        <button 
+          onClick={() => navigate('/help')}
+          className="underline hover:text-gray-900 dark:hover:text-white"
+        >
+          visite nossa central de ajuda
+        </button>
+        .
+      </div>
+
+      {/* Floating Help Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          className="rounded-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 shadow-lg transition-colors"
+          onClick={() => navigate('/chat')}
+        >
+          Precisa de ajuda?
+        </button>
       </div>
     </div>
   );
 }
+

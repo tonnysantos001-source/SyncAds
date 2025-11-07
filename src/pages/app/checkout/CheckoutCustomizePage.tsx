@@ -157,7 +157,7 @@ const CheckoutCustomizePage: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 -mx-6 -my-6">
+    <div className="flex h-screen overflow-hidden -mx-6 -my-6">
       {/* Sidebar de Personalização */}
       <div className="w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden shadow-lg">
         {/* Header da Sidebar */}
@@ -1934,7 +1934,7 @@ const CheckoutCustomizePage: React.FC = () => {
 
         {/* Preview Area */}
 
-        <div className="flex-1 overflow-auto bg-gradient-to-br from-gray-100 via-blue-50/20 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/20 dark:to-purple-950/20 p-6">
+        <div className="flex-1 overflow-auto p-6">
           <div
             className={cn(
               "mx-auto bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300",

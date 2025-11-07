@@ -357,7 +357,7 @@ const GatewayConfigPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Back Button */}
       <button
         onClick={() => navigate("/checkout/gateways")}

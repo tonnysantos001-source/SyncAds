@@ -75,7 +75,7 @@ export const DomainsTab: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
+    <div className="space-y-6">
       {/* Info Alert */}
       <Alert>
         <Globe className="h-4 w-4" />

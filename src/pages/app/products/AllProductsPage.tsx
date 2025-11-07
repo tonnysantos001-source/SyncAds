@@ -311,455 +311,451 @@ const AllProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Produtos
-            </h1>
-            <p className="text-gray-600 font-medium">
-              Gerencie o catálogo completo de produtos da sua loja
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleSyncShopify}
-              variant="outline"
-              disabled={syncing}
-            >
-              <RefreshCw
-                className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
-              />
-              {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
-            </Button>
-            <Button
-              onClick={() => {
-                resetForm();
-                setIsDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Produto
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Produtos
+          </h1>
+          <p className="text-gray-600 font-medium">
+            Gerencie o catálogo completo de produtos da sua loja
+          </p>
         </div>
-
-        {/* Sync Stats Alert */}
-        {syncStats.lastSync && (
-          <Alert>
-            <ShoppingBag className="h-4 w-4" />
-            <AlertTitle>Integração Shopify Ativa</AlertTitle>
-            <AlertDescription>
-              Última sincronização:{" "}
-              {new Date(syncStats.lastSync).toLocaleString("pt-BR")} •
-              {syncStats.totalProducts} produtos importados
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Produtos
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.active} ativos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Produtos Ativos
-              </CardTitle>
-              <Boxes className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.active}</div>
-              <p className="text-xs text-muted-foreground">
-                Disponíveis para venda
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(stats.totalValue)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Estoque valorizado
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSyncShopify}
+            variant="outline"
+            disabled={syncing}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+            />
+            {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
+          </Button>
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsDialogOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Produto
+          </Button>
         </div>
+      </div>
 
-        {/* Filters */}
+      {/* Sync Stats Alert */}
+      {syncStats.lastSync && (
+        <Alert>
+          <ShoppingBag className="h-4 w-4" />
+          <AlertTitle>Integração Shopify Ativa</AlertTitle>
+          <AlertDescription>
+            Última sincronização:{" "}
+            {new Date(syncStats.lastSync).toLocaleString("pt-BR")} •
+            {syncStats.totalProducts} produtos importados
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-            <CardDescription>Busque e filtre produtos</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total de Produtos
+            </CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, SKU ou descrição..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm"
-                  />
-                </div>
-              </div>
-
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="ACTIVE">Ativo</SelectItem>
-                  <SelectItem value="DRAFT">Rascunho</SelectItem>
-                  <SelectItem value="ARCHIVED">Arquivado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.active} ativos
+            </p>
           </CardContent>
         </Card>
 
-        {/* Products Table */}
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg">
-          <CardHeader>
-            <CardTitle>Catálogo ({filteredProducts.length})</CardTitle>
-            <CardDescription>
-              {filteredProducts.length === products.length
-                ? "Mostrando todos os produtos"
-                : `Mostrando ${filteredProducts.length} de ${products.length} produtos`}
-            </CardDescription>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Produtos Ativos
+            </CardTitle>
+            <Boxes className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64">
-                <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center mb-4">
-                  {searchTerm || statusFilter !== "all"
-                    ? "Nenhum produto encontrado com os filtros aplicados"
-                    : "Nenhum produto cadastrado"}
-                </p>
-                {!searchTerm && statusFilter === "all" && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSyncShopify}
-                      variant="outline"
-                      disabled={syncing}
-                    >
-                      <RefreshCw
-                        className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
-                      />
-                      Sincronizar Shopify
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        resetForm();
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Primeiro Produto
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Imagem</TableHead>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Preço</TableHead>
-                      <TableHead>Estoque</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => {
-                      const shopifyImages = product.metadata?.images || [];
-                      const imageUrl =
-                        shopifyImages.length > 0
-                          ? shopifyImages[0]?.src || shopifyImages[0]
-                          : null;
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">
+              Disponíveis para venda
+            </p>
+          </CardContent>
+        </Card>
 
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell>
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={product.name}
-                                className="w-12 h-12 object-cover rounded-md border"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                                <Package className="h-6 w-6 text-muted-foreground" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalValue)}
+            </div>
+            <p className="text-xs text-muted-foreground">Estoque valorizado</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+          <CardDescription>Busque e filtre produtos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, SKU ou descrição..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm"
+                />
+              </div>
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="ACTIVE">Ativo</SelectItem>
+                <SelectItem value="DRAFT">Rascunho</SelectItem>
+                <SelectItem value="ARCHIVED">Arquivado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Products Table */}
+      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg">
+        <CardHeader>
+          <CardTitle>Catálogo ({filteredProducts.length})</CardTitle>
+          <CardDescription>
+            {filteredProducts.length === products.length
+              ? "Mostrando todos os produtos"
+              : `Mostrando ${filteredProducts.length} de ${products.length} produtos`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <Package className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-center mb-4">
+                {searchTerm || statusFilter !== "all"
+                  ? "Nenhum produto encontrado com os filtros aplicados"
+                  : "Nenhum produto cadastrado"}
+              </p>
+              {!searchTerm && statusFilter === "all" && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSyncShopify}
+                    variant="outline"
+                    disabled={syncing}
+                  >
+                    <RefreshCw
+                      className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+                    />
+                    Sincronizar Shopify
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      resetForm();
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Primeiro Produto
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Imagem</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead>Estoque</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product) => {
+                    const shopifyImages = product.metadata?.images || [];
+                    const imageUrl =
+                      shopifyImages.length > 0
+                        ? shopifyImages[0]?.src || shopifyImages[0]
+                        : null;
+
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded-md border"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{product.name}</div>
+                            {product.description && (
+                              <div className="text-sm text-muted-foreground line-clamp-1">
+                                {product.description}
                               </div>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{product.name}</div>
-                              {product.description && (
-                                <div className="text-sm text-muted-foreground line-clamp-1">
-                                  {product.description}
+                            {product.metadata?.shopifyId && (
+                              <Badge variant="outline" className="mt-1">
+                                <ShoppingBag className="h-3 w-3 mr-1" />
+                                Shopify
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {product.sku || "N/A"}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {formatCurrency(product.price)}
+                            </div>
+                            {product.comparePrice &&
+                              product.comparePrice > product.price && (
+                                <div className="text-xs text-muted-foreground line-through">
+                                  {formatCurrency(product.comparePrice)}
                                 </div>
                               )}
-                              {product.metadata?.shopifyId && (
-                                <Badge variant="outline" className="mt-1">
-                                  <ShoppingBag className="h-3 w-3 mr-1" />
-                                  Shopify
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              {product.sku || "N/A"}
-                            </code>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {formatCurrency(product.price)}
-                              </div>
-                              {product.comparePrice &&
-                                product.comparePrice > product.price && (
-                                  <div className="text-xs text-muted-foreground line-through">
-                                    {formatCurrency(product.comparePrice)}
-                                  </div>
-                                )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                product.stock > 10
-                                  ? "default"
-                                  : product.stock > 0
-                                    ? "warning"
-                                    : "destructive"
-                              }
-                            >
-                              {product.stock} un.
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                product.status === "ACTIVE"
-                                  ? "default"
-                                  : product.status === "DRAFT"
-                                    ? "secondary"
-                                    : "outline"
-                              }
-                            >
-                              {product.status === "ACTIVE"
-                                ? "Ativo"
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              product.stock > 10
+                                ? "default"
+                                : product.stock > 0
+                                  ? "warning"
+                                  : "destructive"
+                            }
+                          >
+                            {product.stock} un.
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              product.status === "ACTIVE"
+                                ? "default"
                                 : product.status === "DRAFT"
-                                  ? "Rascunho"
-                                  : "Arquivado"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(product)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(product.id)}
-                                disabled={!!product.metadata?.shopifyId}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {product.status === "ACTIVE"
+                              ? "Ativo"
+                              : product.status === "DRAFT"
+                                ? "Rascunho"
+                                : "Arquivado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(product.id)}
+                              disabled={!!product.metadata?.shopifyId}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Add/Edit Product Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProduct ? "Editar Produto" : "Novo Produto"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingProduct
-                  ? "Atualize as informações do produto"
-                  : "Adicione um novo produto ao catálogo"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
+      {/* Add/Edit Product Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? "Editar Produto" : "Novo Produto"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProduct
+                ? "Atualize as informações do produto"
+                : "Adicione um novo produto ao catálogo"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nome do Produto *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Nome do Produto *</Label>
+                  <Label htmlFor="price">Preço *</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({
+                        ...formData,
+                        price: parseFloat(e.target.value),
+                      })
                     }
                     required
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
+                  <Label htmlFor="comparePrice">Preço Comparação</Label>
+                  <Input
+                    id="comparePrice"
+                    type="number"
+                    step="0.01"
+                    value={formData.comparePrice}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({
+                        ...formData,
+                        comparePrice: parseFloat(e.target.value),
+                      })
                     }
-                    rows={3}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="price">Preço *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          price: parseFloat(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="comparePrice">Preço Comparação</Label>
-                    <Input
-                      id="comparePrice"
-                      type="number"
-                      step="0.01"
-                      value={formData.comparePrice}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          comparePrice: parseFloat(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="sku">SKU</Label>
-                    <Input
-                      id="sku"
-                      value={formData.sku}
-                      onChange={(e) =>
-                        setFormData({ ...formData, sku: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="stock">Estoque *</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      value={formData.stock}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          stock: parseInt(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: "DRAFT" | "ACTIVE" | "ARCHIVED") =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">Ativo</SelectItem>
-                      <SelectItem value="DRAFT">Rascunho</SelectItem>
-                      <SelectItem value="ARCHIVED">Arquivado</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="sku">SKU</Label>
+                  <Input
+                    id="sku"
+                    value={formData.sku}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sku: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="stock">Estoque *</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    value={formData.stock}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        stock: parseInt(e.target.value),
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: "DRAFT" | "ACTIVE" | "ARCHIVED") =>
+                    setFormData({ ...formData, status: value })
+                  }
                 >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingProduct ? "Atualizar" : "Criar"} Produto
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Ativo</SelectItem>
+                    <SelectItem value="DRAFT">Rascunho</SelectItem>
+                    <SelectItem value="ARCHIVED">Arquivado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingProduct ? "Atualizar" : "Criar"} Produto
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

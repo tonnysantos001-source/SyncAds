@@ -200,7 +200,7 @@ export default function AccountSecurityTab() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
+    <div className="space-y-6">
       {/* Email Verification Banner */}
       {!emailVerified && (
         <Card className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">

@@ -177,7 +177,7 @@ export const OrganizationAiTab: React.FC = () => {
   const defaultAi = aiConnections.find((ai) => ai.isDefault);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
+    <div className="space-y-6">
       {/* AI Connection Info */}
       <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
