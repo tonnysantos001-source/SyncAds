@@ -177,8 +177,8 @@ const UtmsPage = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-4">
+          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total de Sessões
@@ -193,7 +193,7 @@ const UtmsPage = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Conversões</CardTitle>
               <Target className="h-4 w-4 text-green-600" />

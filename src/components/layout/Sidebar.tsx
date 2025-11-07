@@ -1,43 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Bot,
-  Plug,
-  Settings,
-  X,
-  PanelLeft,
-  ChevronDown,
-  ChevronUp,
-  BarChart3,
-  ShoppingCart,
-  Package,
-  Users,
-  Megaphone,
-  CreditCard,
-  Home,
-  Target,
-  Link2,
-  ShoppingBag,
-  FolderKanban,
-  Gift,
-  UserCircle,
-  BadgeCheck,
-  Tag,
-  TrendingUp,
-  Repeat,
-  Percent,
-  DollarSign,
-  Gauge,
-  Palette,
-  Star,
-  Wallet,
-  ArrowRightLeft,
-} from "lucide-react";
-import Logo from "../Logo";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import {
+  HiSparkles,
+  HiChatBubbleBottomCenterText,
+  HiHome,
+  HiChartBar,
+  HiShoppingCart,
+  HiCube,
+  HiUsers,
+  HiMegaphone,
+  HiCreditCard,
+  HiPuzzlePiece,
+  HiCog6Tooth,
+} from "react-icons/hi2";
+import {
+  IoChevronDown,
+  IoFlash,
+  IoEye,
+  IoCart,
+  IoGift,
+  IoTrendingUp,
+  IoBarcode,
+  IoPeople,
+  IoPersonAdd,
+  IoTicket,
+  IoRocketSharp,
+  IoTrendingDownSharp,
+  IoStorefront,
+  IoLayersSharp,
+  IoColorPalette,
+  IoShieldCheckmark,
+  IoSwapHorizontal,
+} from "react-icons/io5";
+import { Badge } from "../ui/badge";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -47,6 +44,7 @@ interface SidebarProps {
 interface SubMenuItem {
   to: string;
   label: string;
+  icon?: React.ElementType;
   badge?: string;
 }
 
@@ -59,330 +57,419 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/chat", icon: Bot, label: "Chat IA" },
-  { to: "/onboarding", icon: Home, label: "Página inicial" },
+  { to: "/chat", icon: HiChatBubbleBottomCenterText, label: "Chat IA" },
+  { to: "/onboarding", icon: HiHome, label: "Página inicial" },
   {
-    icon: BarChart3,
+    icon: HiChartBar,
     label: "Relatórios",
     subItems: [
-      { to: "/reports/overview", label: "Visão geral" },
-      { to: "/reports/audience", label: "Público alvo" },
-      { to: "/reports/utms", label: "UTMs" },
+      { to: "/reports/overview", label: "Visão geral", icon: IoEye },
+      { to: "/reports/audience", label: "Público alvo", icon: IoPeople },
+      { to: "/reports/utms", label: "UTMs", icon: IoBarcode },
     ],
   },
   {
-    icon: ShoppingCart,
+    icon: HiShoppingCart,
     label: "Pedidos",
     subItems: [
-      { to: "/orders/all", label: "Ver todos" },
-      { to: "/orders/abandoned-carts", label: "Carrinhos abandonados" },
-      { to: "/orders/pix-recovered", label: "Pix Recuperados" },
+      { to: "/orders/all", label: "Ver todos", icon: IoCart },
+      {
+        to: "/orders/abandoned-carts",
+        label: "Carrinhos abandonados",
+        icon: IoTrendingDownSharp,
+      },
+      {
+        to: "/orders/pix-recovered",
+        label: "Pix Recuperados",
+        icon: IoTrendingUp,
+      },
     ],
   },
   {
-    icon: Package,
+    icon: HiCube,
     label: "Produtos",
     subItems: [
-      { to: "/products/all", label: "Ver todos" },
-      { to: "/products/collections", label: "Coleções" },
-      { to: "/products/kits", label: "Kit de Produtos" },
+      { to: "/products/all", label: "Ver todos", icon: IoStorefront },
+      { to: "/products/collections", label: "Coleções", icon: IoLayersSharp },
+      { to: "/products/kits", label: "Kit de Produtos", icon: IoGift },
     ],
   },
   {
-    icon: Users,
+    icon: HiUsers,
     label: "Clientes",
     subItems: [
-      { to: "/customers/all", label: "Ver todos" },
-      { to: "/customers/leads", label: "Leads" },
+      { to: "/customers/all", label: "Ver todos", icon: IoPeople },
+      { to: "/customers/leads", label: "Leads", icon: IoPersonAdd },
     ],
   },
   {
-    icon: Megaphone,
+    icon: HiMegaphone,
     label: "Marketing",
     subItems: [
-      { to: "/marketing/coupons", label: "Cupons" },
-      { to: "/marketing/order-bump", label: "Order Bump" },
-      { to: "/marketing/upsell", label: "Upsell" },
-      { to: "/marketing/cross-sell", label: "Cross-Sell" },
-      { to: "/marketing/discount-banner", label: "Faixa de desconto" },
-      { to: "/marketing/cashback", label: "Cashback" },
-      { to: "/marketing/pixels", label: "Pixels" },
+      { to: "/marketing/coupons", label: "Cupons", icon: IoTicket },
+      { to: "/marketing/order-bump", label: "Order Bump", icon: IoRocketSharp },
+      { to: "/marketing/upsell", label: "Upsell", icon: IoTrendingUp },
+      {
+        to: "/marketing/cross-sell",
+        label: "Cross-Sell",
+        icon: IoSwapHorizontal,
+      },
+      {
+        to: "/marketing/discount-banner",
+        label: "Faixa de desconto",
+        icon: IoGift,
+      },
+      { to: "/marketing/cashback", label: "Cashback", icon: IoTicket },
+      { to: "/marketing/pixels", label: "Pixels", icon: IoBarcode },
     ],
   },
   {
-    icon: CreditCard,
+    icon: HiCreditCard,
     label: "Checkout",
     subItems: [
-      { to: "/checkout/discounts", label: "Descontos" },
-      { to: "/checkout/customize", label: "Personalizar" },
-      { to: "/checkout/social-proof", label: "Provas Sociais" },
-      { to: "/checkout/gateways", label: "Gateways" },
-      { to: "/checkout/redirect", label: "Redirecionamento" },
+      { to: "/checkout/discounts", label: "Descontos", icon: IoTicket },
+      {
+        to: "/checkout/customize",
+        label: "Personalizar",
+        icon: IoColorPalette,
+      },
+      {
+        to: "/checkout/social-proof",
+        label: "Provas Sociais",
+        icon: IoShieldCheckmark,
+      },
+      { to: "/checkout/gateways", label: "Gateways", icon: HiCreditCard },
+      {
+        to: "/checkout/redirect",
+        label: "Redirecionamento",
+        icon: IoSwapHorizontal,
+      },
     ],
   },
-  { to: "/integrations", icon: Plug, label: "Integrações" },
-  { to: "/billing", icon: CreditCard, label: "Faturamento" },
-  { to: "/settings", icon: Settings, label: "Configurações" },
+  { to: "/integrations", icon: HiPuzzlePiece, label: "Integrações" },
+  { to: "/billing", icon: HiCreditCard, label: "Faturamento" },
+  { to: "/settings", icon: HiCog6Tooth, label: "Configurações" },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const location = useLocation();
 
   const toggleMenu = (label: string) => {
-    setExpandedMenus((prev) =>
-      prev.includes(label)
-        ? prev.filter((item) => item !== label)
-        : [...prev, label],
-    );
+    // Garante que só um menu fica aberto por vez
+    if (expandedMenu === label) {
+      setExpandedMenu(null);
+    } else {
+      setExpandedMenu(label);
+    }
   };
 
-  // Keep the submenu expanded based on current route so refresh preserves location
-  const location = useLocation();
   useEffect(() => {
-    const toExpand: string[] = [];
-    navItems.forEach((item) => {
-      if (
-        item.subItems &&
-        item.subItems.some((s) => location.pathname.startsWith(s.to))
-      ) {
-        toExpand.push(item.label);
-      }
-    });
-    setExpandedMenus((prev) => {
-      const set = new Set(prev);
-      toExpand.forEach((l) => set.add(l));
-      return Array.from(set);
-    });
-  }, [location.pathname]);
+    // Encontra apenas o primeiro menu que contém a rota atual
+    const activeMenu = navItems.find((item) =>
+      item.subItems?.some((s) => location.pathname.startsWith(s.to)),
+    );
 
-  // Auto-expand current submenu based on the current route and keep it after refresh
-  useEffect(() => {
-    const toExpand: string[] = [];
-    navItems.forEach((item) => {
-      if (
-        item.subItems &&
-        item.subItems.some((s) => location.pathname.startsWith(s.to))
-      ) {
-        toExpand.push(item.label);
-      }
-    });
-    setExpandedMenus((prev) => {
-      const set = new Set(prev);
-      toExpand.forEach((l) => set.add(l));
-      return Array.from(set);
-    });
+    if (activeMenu) {
+      setExpandedMenu(activeMenu.label);
+    }
   }, [location.pathname]);
 
   const NavItem: React.FC<{ item: NavItem }> = ({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    const isExpanded = expandedMenus.includes(item.label);
+    const isExpanded = expandedMenu === item.label;
 
     if (hasSubItems) {
       return (
         <div>
           <button
-            onClick={() => toggleMenu(item.label)}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              toggleMenu(item.label);
+            }}
             className={cn(
-              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
-              "text-white/80",
-              "hover:bg-white/10 hover:text-white",
-              isExpanded && "bg-white/20 text-white",
+              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold transition-all duration-200",
+              isExpanded
+                ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
             )}
           >
-            <item.icon className="h-5 w-5 transition-transform duration-200" />
+            <motion.div
+              animate={
+                isExpanded
+                  ? {
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 360],
+                    }
+                  : {}
+              }
+              transition={{ duration: 0.5 }}
+              className="relative"
+            >
+              <item.icon
+                className={cn(
+                  "h-6 w-6 transition-colors",
+                  isExpanded ? "text-white" : "text-gray-600",
+                )}
+              />
+              {isExpanded && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1"
+                >
+                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                </motion.div>
+              )}
+            </motion.div>
             <span className="flex-1 text-left">{item.label}</span>
             {item.badge && (
-              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+              <Badge variant="destructive" className="text-[10px] px-1.5 h-5">
                 {item.badge}
               </Badge>
             )}
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4 transition-transform duration-200" />
-            ) : (
-              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-            )}
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <IoChevronDown
+                className={cn(
+                  "h-4 w-4",
+                  isExpanded ? "text-white" : "text-gray-400",
+                )}
+              />
+            </motion.div>
           </button>
 
-          {/* Submenu */}
-          {isExpanded && (
-            <div className="ml-4 mt-1 border-l-2 border-white/20 pl-4 space-y-1">
-              {item.subItems.map((subItem) =>
-                subItem.to === "/checkout/customize" ? (
-                  <a
-                    key={subItem.to}
-                    href={subItem.to}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200",
-
-                      "text-white/70 hover:bg-white/10 hover:text-white",
-                    )}
-                  >
-                    <span>{subItem.label}</span>
-
-                    {subItem.badge && (
-                      <Badge
-                        variant="destructive"
-                        className="text-[10px] px-1.5 py-0 ml-auto"
-                      >
-                        {subItem.badge}
-                      </Badge>
-                    )}
-                  </a>
-                ) : (
-                  <NavLink
-                    key={subItem.to}
-                    to={subItem.to}
-                    className={({ isActive }) =>
-                      cn(
-                        "group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200",
-                        isActive
-                          ? "bg-white/20 text-white font-medium"
-                          : "text-white/70 hover:bg-white/10 hover:text-white",
-                      )
-                    }
-                  >
-                    <span>{subItem.label}</span>
-                    {subItem.badge && (
-                      <Badge
-                        variant="destructive"
-                        className="text-[10px] px-1.5 py-0 ml-auto"
-                      >
-                        {subItem.badge}
-                      </Badge>
-                    )}
-                  </NavLink>
-                ),
-              )}
-            </div>
-          )}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                  {item.subItems.map((subItem) => (
+                    <NavLink
+                      key={subItem.to}
+                      to={subItem.to}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
+                          isActive
+                            ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <div className="flex items-center gap-2 flex-1">
+                            {subItem.icon && (
+                              <subItem.icon className="h-4 w-4" />
+                            )}
+                            <span>{subItem.label}</span>
+                          </div>
+                          {isActive && (
+                            <motion.div
+                              layoutId="activeSubDot"
+                              className="w-1.5 h-1.5 rounded-full bg-blue-600"
+                              transition={{
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 30,
+                              }}
+                            />
+                          )}
+                          {subItem.badge && (
+                            <Badge
+                              variant="destructive"
+                              className="text-[9px] px-1 h-4"
+                            >
+                              {subItem.badge}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       );
     }
 
-    // Item sem submenu
     return (
       <NavLink
         to={item.to!}
         className={({ isActive }) =>
           cn(
-            "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
-            "text-white/80",
-            "hover:bg-white/10 hover:text-white",
-            isActive && "bg-white/20 text-white",
+            "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold transition-all duration-200",
+            isActive
+              ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+              : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
           )
         }
       >
-        <item.icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-        <span>{item.label}</span>
-        {item.badge && (
-          <Badge
-            variant="destructive"
-            className="text-[10px] px-1.5 py-0 ml-auto"
-          >
-            {item.badge}
-          </Badge>
+        {({ isActive }) => (
+          <>
+            <motion.div whileHover={{ scale: 1.1 }} className="relative">
+              <item.icon
+                className={cn(
+                  "h-6 w-6 transition-colors",
+                  isActive ? "text-white" : "text-gray-600",
+                )}
+              />
+              {isActive && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1"
+                >
+                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                </motion.div>
+              )}
+            </motion.div>
+            <span className="flex-1">{item.label}</span>
+            {item.badge && (
+              <Badge
+                variant="destructive"
+                className={cn(
+                  "text-[10px] px-1.5 h-5",
+                  isActive && "bg-white/20 text-white border-0",
+                )}
+              >
+                {item.badge}
+              </Badge>
+            )}
+            {isActive && (
+              <motion.div
+                layoutId="activeIndicator"
+                className="absolute left-0 w-1 h-10 bg-white rounded-r-full"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+          </>
         )}
       </NavLink>
     );
   };
 
   const SidebarContent = () => (
-    <div className="flex h-full max-h-screen flex-col gap-2 bg-[#1a1a1a]">
-      {/* Header com Logo */}
-      <div
-        className={cn("flex h-20 items-center px-6 border-b border-white/10")}
-      >
-        <div className="flex items-center gap-3">
-          {/* Logo SyncAds AI - Similar ao Favicon */}
-          <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12">
-              <svg viewBox="0 0 32 32" className="w-full h-full">
-                <defs>
-                  <linearGradient
-                    id="logoGrad"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
-                    <stop
-                      offset="0%"
-                      style={{ stopColor: "#3B82F6", stopOpacity: 1 }}
-                    />
-                    <stop
-                      offset="100%"
-                      style={{ stopColor: "#9333EA", stopOpacity: 1 }}
-                    />
-                  </linearGradient>
-                </defs>
-                {/* Rounded Square Background */}
-                <rect width="32" height="32" rx="8" fill="url(#logoGrad)" />
-                {/* Letter S */}
-                <path
-                  d="M 11 10 Q 9 10 9 12 Q 9 14 11 14 L 21 14 Q 23 14 23 16 Q 23 18 21 18 L 11 22"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                {/* Sparkle */}
-                <circle cx="24" cy="8" r="1.5" fill="#FBBF24" />
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-2xl font-bold tracking-tight">
-                SyncAds AI
-              </span>
-            </div>
+    <div className="flex h-full flex-col bg-white dark:bg-gray-950">
+      {/* Logo Header */}
+      <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
+        <div className="relative">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
+            <motion.div
+              animate={{
+                rotate: [0, 360],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            >
+              <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
+            </motion.div>
+            <motion.div
+              animate={{
+                rotate: 360,
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="absolute -top-1 -right-1"
+            >
+              <HiSparkles className="h-4 w-4 text-yellow-400 drop-shadow-lg" />
+            </motion.div>
           </div>
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+            }}
+            className="absolute inset-0 rounded-2xl bg-blue-400/30 blur-xl -z-10"
+          />
+        </div>
+        <div>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
+            SyncAds
+          </h1>
+          <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 tracking-wider">
+            MARKETING AI
+          </p>
         </div>
       </div>
 
-      {/* Navigation Items */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <nav className="grid items-start gap-2 px-3 py-4 pb-6">
-          {navItems.map((item) => (
-            <NavItem key={item.label} item={item} />
-          ))}
-        </nav>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 pt-24 pb-4 space-y-1 scrollbar-hide">
+        {navItems.map((item) => (
+          <NavItem key={item.label} item={item} />
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+            }}
+          >
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+          </motion.div>
+          <span>Sistema Online</span>
+        </div>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Mobile Sidebar Overlay */}
-      <div
-        className={cn(
-          "fixed inset-0 z-40 bg-black/60 transition-opacity md:hidden",
-          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          />
         )}
-        onClick={() => setSidebarOpen(false)}
-      />
+      </AnimatePresence>
 
       {/* Mobile Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform border-r transition-transform duration-300 ease-in-out md:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-        )}
+      <motion.aside
+        initial={false}
+        animate={{ x: sidebarOpen ? 0 : "-100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
       >
-        <div className="p-4 absolute top-0 right-0 z-50">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-6 w-6 text-white" />
-          </Button>
-        </div>
         <SidebarContent />
-      </div>
+      </motion.aside>
 
-      {/* Desktop Sidebar - Sempre visível em telas maiores */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-gray-200/50 dark:border-gray-800/50 shadow-xl shadow-gray-200/50 dark:shadow-gray-950/50">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-gray-200 dark:border-gray-800">
         <SidebarContent />
       </aside>
     </>

@@ -1,0 +1,9 @@
+Para a IA conseguir gerar imagens, você precisa:
+
+1. Configurar a chave da OpenAI no Supabase Dashboard
+2. Acessar: https://supabase.com/dashboard/project/ovskepqggmxlfckxqgbr/settings/functions
+3. Adicionar variável: OPENAI_API_KEY
+
+Sem a chave, a IA vai detectar a intenção mas não consegue gerar a imagem.
+
+A mensagem atual mostra que a detecção está funcionando, mas falta a API key.

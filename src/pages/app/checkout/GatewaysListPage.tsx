@@ -1,16 +1,56 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import { gatewaysList } from "@/lib/gateways/gatewaysList";
 import GatewayCard from "@/components/gateway/GatewayCard";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 
 const GatewaysListPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
+  const [activeGatewayIds, setActiveGatewayIds] = useState<string[]>([]);
+  const user = useAuthStore((state) => state.user);
+
+  // Buscar gateways ativos (configurados e ativos)
+  useEffect(() => {
+    const loadActiveGateways = async () => {
+      if (!user?.id) {
+        console.log("⚠️ [GATEWAYS] Usuário não logado");
+        return;
+      }
+
+      console.log(
+        "🔍 [GATEWAYS] Buscando gateways ativos para usuário:",
+        user.id,
+      );
+
+      const { data: configs, error } = await supabase
+        .from("GatewayConfig")
+        .select("gatewayId, Gateway(name, slug)")
+        .eq("userId", user.id)
+        .eq("isActive", true);
+
+      console.log("📊 [GATEWAYS] Dados retornados do banco:", configs);
+
+      if (error) {
+        console.error("❌ [GATEWAYS] Erro ao buscar configs:", error);
+        return;
+      }
+
+      if (configs && configs.length > 0) {
+        const ids = configs.map((c) => c.gatewayId);
+        console.log("🟢🟢🟢 [GATEWAYS] GATEWAYS ATIVOS:", configs.length);
+        console.table(configs);
+        console.log("🆔 [GATEWAYS] IDs dos gateways ativos:", ids);
+        setActiveGatewayIds(ids);
+      } else {
+        console.log("⚪ [GATEWAYS] Nenhum gateway ativo encontrado");
+      }
+    };
+
+    loadActiveGateways();
+  }, [user?.id]);
 
   // Filter gateways
   const filteredGateways = useMemo(() => {
@@ -23,115 +63,83 @@ const GatewaysListPage = () => {
       );
     }
 
-    // Tab filter
-    if (activeTab === "active") {
-      filtered = filtered.filter((g) => g.status === "active");
-    } else if (activeTab === "inactive") {
-      filtered = filtered.filter((g) => g.status === "inactive");
-    }
-
     return filtered;
-  }, [searchTerm, activeTab]);
+  }, [searchTerm]);
 
-  const activeCount = gatewaysList.filter((g) => g.status === "active").length;
-  const inactiveCount = gatewaysList.filter(
-    (g) => g.status === "inactive",
-  ).length;
+  // Debug: Log quando renderizar
+  useEffect(() => {
+    console.log("🎨 [GATEWAYS] Página renderizada");
+    console.log("📋 [GATEWAYS] Total de gateways:", gatewaysList.length);
+    console.log("🟢 [GATEWAYS] Gateways ativos (IDs):", activeGatewayIds);
+  }, [activeGatewayIds]);
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Gateways
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-gray-600 dark:text-gray-400 font-medium mt-1">
           Gateways de pagamento disponíveis para seu e-commerce
         </p>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
+      {/* Search */}
+      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 dark:border-gray-700">
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Search */}
-            <div className="relative flex-1 w-full sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar gateway..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Stats */}
-            <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
-              <div>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {gatewaysList.length}
-                </span>{" "}
-                no total
-              </div>
-              <div>
-                <span className="font-semibold text-green-600">
-                  {activeCount}
-                </span>{" "}
-                ativos
-              </div>
-              <div>
-                <span className="font-semibold text-red-600">
-                  {inactiveCount}
-                </span>{" "}
-                inativos
-              </div>
-            </div>
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <Input
+              placeholder="Buscar gateway..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder:text-gray-500"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as any)}
-        className="w-full"
-      >
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="all">Todos ({gatewaysList.length})</TabsTrigger>
-          <TabsTrigger value="active">Ativos ({activeCount})</TabsTrigger>
-          <TabsTrigger value="inactive">Inativos ({inactiveCount})</TabsTrigger>
-        </TabsList>
+      {/* Gateways Grid */}
+      {filteredGateways.length === 0 ? (
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 dark:border-gray-700">
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchTerm
+                ? "Nenhum gateway encontrado com esse nome."
+                : "Nenhum gateway disponível."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredGateways.map((gateway) => {
+            const isActive = activeGatewayIds.includes(gateway.id);
 
-        <TabsContent value={activeTab} className="mt-6">
-          {filteredGateways.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <p className="text-gray-500 dark:text-gray-400">
-                  {searchTerm
-                    ? "Nenhum gateway encontrado com esse nome."
-                    : "Nenhum gateway disponível."}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredGateways.map((gateway) => (
-                <GatewayCard
-                  key={gateway.id}
-                  id={gateway.id}
-                  name={gateway.name}
-                  slug={gateway.slug}
-                  logo={gateway.logo}
-                  type={gateway.type}
-                  status={gateway.status}
-                  environment={gateway.testMode ? "sandbox" : "production"}
-                  isVerified={gateway.status === "active" && !gateway.testMode}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            // Log individual para cada gateway
+            if (isActive) {
+              console.log(
+                `🟢 [CARD] ${gateway.name} está ATIVO (ID: ${gateway.id})`,
+              );
+            }
+
+            return (
+              <GatewayCard
+                key={gateway.id}
+                id={gateway.id}
+                name={gateway.name}
+                slug={gateway.slug}
+                logo={gateway.logo}
+                type={gateway.type}
+                status={gateway.status}
+                environment={gateway.testMode ? "sandbox" : "production"}
+                isVerified={gateway.status === "active" && !gateway.testMode}
+                isActive={isActive}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

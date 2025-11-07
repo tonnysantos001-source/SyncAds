@@ -1,52 +1,72 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Globe, Plus, CheckCircle, XCircle, RefreshCw, Copy, ExternalLink } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Globe,
+  Plus,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const DomainsTab: React.FC = () => {
-  const [newDomain, setNewDomain] = useState('');
+  const [newDomain, setNewDomain] = useState("");
   const [domains, setDomains] = useState([
     {
-      id: '1',
-      domain: 'checkout.minhaloja.com.br',
-      status: 'verified',
-      createdAt: '2025-10-15',
-      dnsRecord: 'CNAME: checkout -> syncads.app',
+      id: "1",
+      domain: "checkout.minhaloja.com.br",
+      status: "verified",
+      createdAt: "2025-10-15",
+      dnsRecord: "CNAME: checkout -> syncads.app",
     },
     {
-      id: '2',
-      domain: 'comprar.minhaloja.com.br',
-      status: 'pending',
-      createdAt: '2025-10-18',
-      dnsRecord: 'CNAME: comprar -> syncads.app',
+      id: "2",
+      domain: "comprar.minhaloja.com.br",
+      status: "pending",
+      createdAt: "2025-10-18",
+      dnsRecord: "CNAME: comprar -> syncads.app",
     },
   ]);
 
   const handleAddDomain = () => {
     if (!newDomain) return;
-    
+
     const newDomainObj = {
       id: Date.now().toString(),
       domain: newDomain,
-      status: 'pending',
-      createdAt: new Date().toISOString().split('T')[0],
-      dnsRecord: `CNAME: ${newDomain.split('.')[0]} -> syncads.app`,
+      status: "pending",
+      createdAt: new Date().toISOString().split("T")[0],
+      dnsRecord: `CNAME: ${newDomain.split(".")[0]} -> syncads.app`,
     };
-    
+
     setDomains([...domains, newDomainObj]);
-    setNewDomain('');
+    setNewDomain("");
   };
 
   const handleVerify = (id: string) => {
     setDomains(
-      domains.map((d) =>
-        d.id === id ? { ...d, status: 'verified' } : d
-      )
+      domains.map((d) => (d.id === id ? { ...d, status: "verified" } : d)),
     );
   };
 
@@ -55,13 +75,14 @@ export const DomainsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Info Alert */}
       <Alert>
         <Globe className="h-4 w-4" />
         <AlertTitle>Configuração de Domínio</AlertTitle>
         <AlertDescription>
-          Configure um domínio personalizado para o seu checkout. Isso aumenta a confiança dos clientes e melhora a taxa de conversão.
+          Configure um domínio personalizado para o seu checkout. Isso aumenta a
+          confiança dos clientes e melhora a taxa de conversão.
         </AlertDescription>
       </Alert>
 
@@ -69,7 +90,9 @@ export const DomainsTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Adicionar Novo Domínio</CardTitle>
-          <CardDescription>Conecte um domínio personalizado ao seu checkout</CardDescription>
+          <CardDescription>
+            Conecte um domínio personalizado ao seu checkout
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -97,7 +120,9 @@ export const DomainsTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Seus Domínios</CardTitle>
-          <CardDescription>Gerencie os domínios conectados ao seu checkout</CardDescription>
+          <CardDescription>
+            Gerencie os domínios conectados ao seu checkout
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -121,7 +146,7 @@ export const DomainsTab: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {domain.status === 'verified' ? (
+                      {domain.status === "verified" ? (
                         <Badge variant="default" className="gap-1 bg-green-500">
                           <CheckCircle className="h-3 w-3" />
                           Verificado
@@ -148,10 +173,12 @@ export const DomainsTab: React.FC = () => {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(domain.createdAt).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>
+                      {new Date(domain.createdAt).toLocaleDateString("pt-BR")}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {domain.status === 'pending' && (
+                        {domain.status === "pending" && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -172,7 +199,10 @@ export const DomainsTab: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center text-muted-foreground"
+                  >
                     Nenhum domínio configurado ainda.
                   </TableCell>
                 </TableRow>
@@ -186,7 +216,9 @@ export const DomainsTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Como Configurar</CardTitle>
-          <CardDescription>Siga os passos abaixo para configurar seu domínio</CardDescription>
+          <CardDescription>
+            Siga os passos abaixo para configurar seu domínio
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
@@ -196,7 +228,8 @@ export const DomainsTab: React.FC = () => {
             <div>
               <h4 className="font-semibold">Adicione o domínio</h4>
               <p className="text-sm text-muted-foreground">
-                Digite o subdomínio que deseja usar para o checkout (ex: checkout.seusite.com.br)
+                Digite o subdomínio que deseja usar para o checkout (ex:
+                checkout.seusite.com.br)
               </p>
             </div>
           </div>
@@ -207,7 +240,8 @@ export const DomainsTab: React.FC = () => {
             <div>
               <h4 className="font-semibold">Configure o DNS</h4>
               <p className="text-sm text-muted-foreground">
-                Acesse o painel do seu provedor de domínio e adicione o registro CNAME fornecido
+                Acesse o painel do seu provedor de domínio e adicione o registro
+                CNAME fornecido
               </p>
             </div>
           </div>
@@ -229,7 +263,8 @@ export const DomainsTab: React.FC = () => {
             <div>
               <h4 className="font-semibold">Verifique o domínio</h4>
               <p className="text-sm text-muted-foreground">
-                Clique em "Verificar" para confirmar que o domínio está configurado corretamente
+                Clique em "Verificar" para confirmar que o domínio está
+                configurado corretamente
               </p>
             </div>
           </div>

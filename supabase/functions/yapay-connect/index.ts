@@ -1,0 +1,46 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  
+  try {
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { apiToken, merchantToken } = await req.json();
+    
+    if (!apiToken || !merchantToken) {
+      return new Response(JSON.stringify({ success: false, error: "apiToken and merchantToken required" }), 
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token!);
+    
+    if (userError || !user) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid user" }), 
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    
+    const integrationId = `${user.id}-yapay`;
+    const { data: existing } = await supabase.from("YapayIntegration").select("*").eq("userId", user.id).single();
+    
+    if (existing) {
+      await supabase.from("YapayIntegration").update({ apiToken, merchantToken, isActive: true, updatedAt: new Date().toISOString() }).eq("id", existing.id);
+      return new Response(JSON.stringify({ success: true, integrationId: existing.id }), 
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } else {
+      await supabase.from("YapayIntegration").insert({ id: integrationId, userId: user.id, apiToken, merchantToken, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      return new Response(JSON.stringify({ success: true, integrationId }), 
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  } catch (error: any) {
+    return new Response(JSON.stringify({ success: false, error: error.message }), 
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});

@@ -289,8 +289,8 @@ const BillingPage: React.FC = () => {
     <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Faturamento</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">Faturamento</h1>
+        <p className="text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-1">
           Gerencie seu plano, métodos de pagamento e faturas
         </p>
       </div>
@@ -311,7 +311,7 @@ const BillingPage: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
                       {currentPlan.name}
                     </h3>
                     {subscription?.status === 'active' && (
@@ -323,7 +323,7 @@ const BillingPage: React.FC = () => {
                   </div>
                   <p className="text-3xl font-bold text-pink-600 dark:text-pink-400 mt-2">
                     {currentPlan.price === 0 ? 'Gratuito' : formatPrice(currentPlan.price)}
-                    {currentPlan.price > 0 && <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> /mês</span>}
+                    {currentPlan.price > 0 && <span className="text-lg font-normal text-gray-600 dark:text-gray-300 dark:text-gray-400"> /mês</span>}
                   </p>
                 </div>
                 {currentPlan.slug === 'free' && (
@@ -349,7 +349,7 @@ const BillingPage: React.FC = () => {
               {/* Período ativo */}
               {subscription && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
                     <Calendar className="h-4 w-4" />
                     <span>
                       Renovação: {formatDate(subscription.currentPeriodEnd)}
@@ -393,16 +393,16 @@ const BillingPage: React.FC = () => {
           {paymentMethods.length > 0 ? (
             <div className="space-y-3">
               {paymentMethods.map((pm) => (
-                <div key={pm.id} className="p-4 rounded-lg border bg-white dark:bg-gray-800 flex items-center justify-between">
+                <div key={pm.id} className="p-4 rounded-lg border bg-white dark:bg-gray-900 dark:bg-gray-800 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="h-10 w-16 rounded bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
                       <CreditCard className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">
+                      <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                         {pm.brand || 'Cartão'} •••• {pm.last4}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400">
                         Validade: {String(pm.expiryMonth).padStart(2, '0')}/{pm.expiryYear}
                       </p>
                     </div>
@@ -438,20 +438,20 @@ const BillingPage: React.FC = () => {
           {invoices.length > 0 ? (
             <div className="space-y-2">
               {invoices.map((invoice) => (
-                <div key={invoice.id} className="p-4 rounded-lg border bg-white dark:bg-gray-800 flex items-center justify-between">
+                <div key={invoice.id} className="p-4 rounded-lg border bg-white dark:bg-gray-900 dark:bg-gray-800 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-sm">
-                      <p className="font-semibold text-gray-900 dark:text-white">
+                      <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                         {invoice.invoiceNumber}
                       </p>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-600 dark:text-gray-300 dark:text-gray-400">
                         {formatDate(invoice.paidAt || invoice.createdAt)}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-bold text-gray-900 dark:text-white">
+                      <p className="font-bold text-gray-900 dark:text-white dark:text-white">
                         {formatPrice(invoice.amount)}
                       </p>
                       {getStatusBadge(invoice.status)}
@@ -579,10 +579,10 @@ const BillingPage: React.FC = () => {
                   </div>
                 )}
                 <div className="text-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">{plan.name}</h3>
                   <p className="text-3xl font-bold text-pink-600 dark:text-pink-400 mt-2">
                     {plan.price === 0 ? 'Gratuito' : formatPrice(plan.price)}
-                    {plan.price > 0 && <span className="text-sm font-normal text-gray-600"> /mês</span>}
+                    {plan.price > 0 && <span className="text-sm font-normal text-gray-600 dark:text-gray-300"> /mês</span>}
                   </p>
                 </div>
                 <ul className="space-y-2 mb-6">

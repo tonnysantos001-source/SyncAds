@@ -252,13 +252,13 @@ const CouponsPage = () => {
   const activeCoupons = coupons.filter((c) => c.isActive).length;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Cupons de Desconto
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600 font-medium">
             Crie e gerencie cupons para sua loja
           </p>
         </div>
@@ -414,8 +414,8 @@ const CouponsPage = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Cupons
@@ -426,7 +426,7 @@ const CouponsPage = () => {
             <div className="text-2xl font-bold">{coupons.length}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cupons Ativos</CardTitle>
             <Tag className="h-4 w-4 text-muted-foreground" />
@@ -435,7 +435,7 @@ const CouponsPage = () => {
             <div className="text-2xl font-bold">{activeCoupons}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usos</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -452,11 +452,11 @@ const CouponsPage = () => {
           placeholder="Buscar cupons..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
+          className="pl-9 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500"
         />
       </div>
 
-      <Card>
+      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
         <CardHeader>
           <CardTitle>Lista de Cupons</CardTitle>
         </CardHeader>

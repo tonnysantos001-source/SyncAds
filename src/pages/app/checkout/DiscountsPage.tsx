@@ -319,44 +319,44 @@ const DiscountsPage: React.FC = () => {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando descontos...</p>
+          <p className="mt-4 text-gray-600">Carregando descontos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
           Descontos por Forma de Pagamento
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-300 font-medium mt-2">
           Configure descontos automáticos baseados na forma de pagamento
           escolhida pelo cliente no checkout
         </p>
       </div>
 
       {/* Estatísticas */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Descontos
             </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
+            <Percent className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               {stats.total === 0
                 ? "Nenhum desconto configurado"
                 : `${stats.total} ${stats.total === 1 ? "método configurado" : "métodos configurados"}`}
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Descontos Ativos
@@ -365,21 +365,21 @@ const DiscountsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Aplicados no checkout
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Descontos Inativos
             </CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Pausados temporariamente
             </p>
           </CardContent>
@@ -398,7 +398,7 @@ const DiscountsPage: React.FC = () => {
       </Alert>
 
       {/* Configuração de Descontos */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <h2 className="text-xl font-semibold">Configurar Descontos</h2>
 
         {PAYMENT_METHODS.map((method) => {
@@ -409,7 +409,10 @@ const DiscountsPage: React.FC = () => {
           const formData = forms[method.key];
 
           return (
-            <Card key={method.key}>
+            <Card
+              key={method.key}
+              className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -435,7 +438,7 @@ const DiscountsPage: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-6 md:grid-cols-2">
                   {/* Tipo de Desconto */}
                   <div className="space-y-2">
                     <Label>Tipo de Desconto</Label>
@@ -483,7 +486,7 @@ const DiscountsPage: React.FC = () => {
                         min="0"
                         step="0.01"
                       />
-                      <span className="text-muted-foreground font-medium">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">
                         {formData?.discountType === "PERCENTAGE" ? "%" : "R$"}
                       </span>
                     </div>
@@ -507,11 +510,11 @@ const DiscountsPage: React.FC = () => {
                         min="0"
                         step="0.01"
                       />
-                      <span className="text-muted-foreground font-medium">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">
                         R$
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       Desconto só se aplica acima deste valor
                     </p>
                   </div>
@@ -534,11 +537,11 @@ const DiscountsPage: React.FC = () => {
                         min="0"
                         step="0.01"
                       />
-                      <span className="text-muted-foreground font-medium">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">
                         R$
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       Limite máximo do desconto em reais
                     </p>
                   </div>
@@ -590,7 +593,7 @@ const DiscountsPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Status do Desconto</Label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       {formData?.isActive
                         ? "Desconto será aplicado no checkout"
                         : "Desconto pausado temporariamente"}

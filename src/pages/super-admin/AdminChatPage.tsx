@@ -1,17 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
-import { Loader2, Send, Shield, Sparkles, PlusCircle, Trash2, Menu, X, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
-import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
-import AiThinkingIndicator from '@/components/ai/AiThinkingIndicator';
+import { useState, useEffect, useRef } from "react";
+import {
+  Loader2,
+  Send,
+  Shield,
+  Sparkles,
+  PlusCircle,
+  Trash2,
+  Menu,
+  X,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import AiThinkingIndicator from "@/components/ai/AiThinkingIndicator";
 
 interface Message {
   id: string;
-  role: 'USER' | 'ASSISTANT' | 'SYSTEM';
+  role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
   timestamp: Date;
   metadata?: {
@@ -19,7 +29,7 @@ interface Message {
     query?: string;
     oauthAction?: {
       platform: string;
-      action: 'connect';
+      action: "connect";
     };
   };
 }
@@ -36,54 +46,64 @@ const ADMIN_SYSTEM_PROMPT = `Você é um assistente de IA para administradores. 
 // Função para detectar comandos OAuth na resposta da IA
 function detectOAuthCommand(response: string): string | null {
   const lowerResponse = response.toLowerCase();
-  
-  if (lowerResponse.includes('conecte facebook') || lowerResponse.includes('conecte o facebook') || 
-      lowerResponse.includes('facebook ads')) {
-    return 'facebook';
-  } else if (lowerResponse.includes('conecte google') || lowerResponse.includes('google ads')) {
-    return 'google';
-  } else if (lowerResponse.includes('conecte linkedin')) {
-    return 'linkedin';
-  } else if (lowerResponse.includes('conecte tiktok')) {
-    return 'tiktok';
+
+  if (
+    lowerResponse.includes("conecte facebook") ||
+    lowerResponse.includes("conecte o facebook") ||
+    lowerResponse.includes("facebook ads")
+  ) {
+    return "facebook";
+  } else if (
+    lowerResponse.includes("conecte google") ||
+    lowerResponse.includes("google ads")
+  ) {
+    return "google";
+  } else if (lowerResponse.includes("conecte linkedin")) {
+    return "linkedin";
+  } else if (lowerResponse.includes("conecte tiktok")) {
+    return "tiktok";
   }
-  
+
   return null;
 }
 
 export default function AdminChatPage() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Estados para indicador de pensamento da IA
-  const [currentTool, setCurrentTool] = useState<'web_search' | 'web_scraping' | 'python_exec' | null>(null);
-  const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [currentTool, setCurrentTool] = useState<
+    "web_search" | "web_scraping" | "python_exec" | null
+  >(null);
+  const [aiReasoning, setAiReasoning] = useState<string>("");
   const [aiSources, setAiSources] = useState<string[]>([]);
 
   // Carregar lista de conversas antigas
   const loadConversations = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('ChatConversation')
-        .select('id, title, createdAt, updatedAt')
-        .eq('userId', user.id)
-        .order('updatedAt', { ascending: false })
+        .from("ChatConversation")
+        .select("id, title, createdAt, updatedAt")
+        .eq("userId", user.id)
+        .order("updatedAt", { ascending: false })
         .limit(20);
 
       if (error) throw error;
 
       setConversations(data || []);
     } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
+      console.error("Erro ao carregar conversas:", error);
     }
   };
 
@@ -91,31 +111,33 @@ export default function AdminChatPage() {
   const loadConversationMessages = async (convId: string) => {
     try {
       const { data, error } = await supabase
-        .from('ChatMessage')
-        .select('id, role, content, createdAt')
-        .eq('conversationId', convId)
-        .order('createdAt', { ascending: true });
+        .from("ChatMessage")
+        .select("id, role, content, createdAt")
+        .eq("conversationId", convId)
+        .order("createdAt", { ascending: true });
 
       if (error) throw error;
 
       // Converter para formato Message
       const loadedMessages: Message[] = (data || []).map((msg: any) => ({
         id: msg.id,
-        role: msg.role as 'USER' | 'ASSISTANT' | 'SYSTEM',
+        role: msg.role as "USER" | "ASSISTANT" | "SYSTEM",
         content: msg.content,
         timestamp: new Date(msg.createdAt),
       }));
 
       setMessages(loadedMessages);
       setConversationId(convId);
-      
-      console.log(`✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`);
+
+      console.log(
+        `✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`,
+      );
     } catch (error) {
-      console.error('Erro ao carregar mensagens:', error);
+      console.error("Erro ao carregar mensagens:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar mensagens.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível carregar mensagens.",
+        variant: "destructive",
       });
     }
   };
@@ -124,16 +146,10 @@ export default function AdminChatPage() {
   const deleteConversation = async (convId: string) => {
     try {
       // Deletar mensagens primeiro
-      await supabase
-        .from('ChatMessage')
-        .delete()
-        .eq('conversationId', convId);
+      await supabase.from("ChatMessage").delete().eq("conversationId", convId);
 
       // Deletar conversa
-      await supabase
-        .from('ChatConversation')
-        .delete()
-        .eq('id', convId);
+      await supabase.from("ChatConversation").delete().eq("id", convId);
 
       // Se for a conversa atual, limpar
       if (conversationId === convId) {
@@ -145,15 +161,15 @@ export default function AdminChatPage() {
       await loadConversations();
 
       toast({
-        title: '✅ Conversa deletada!',
-        description: 'Conversa removida com sucesso.',
+        title: "✅ Conversa deletada!",
+        description: "Conversa removida com sucesso.",
       });
     } catch (error: any) {
-      console.error('Erro ao deletar conversa:', error);
+      console.error("Erro ao deletar conversa:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível deletar conversa.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível deletar conversa.",
+        variant: "destructive",
       });
     }
   };
@@ -162,40 +178,45 @@ export default function AdminChatPage() {
   useEffect(() => {
     const initConversation = async () => {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
         if (authError || !user) {
-          console.error('Usuário não autenticado:', authError);
+          console.error("Usuário não autenticado:", authError);
           toast({
-            title: 'Erro de autenticação',
-            description: 'Você precisa fazer login novamente.',
-            variant: 'destructive',
+            title: "Erro de autenticação",
+            description: "Você precisa fazer login novamente.",
+            variant: "destructive",
           });
-          window.location.href = '/login';
+          window.location.href = "/login";
           return;
         }
 
         // APENAS carregar conversas existentes (NÃO criar nova!)
         await loadConversations();
-        
+
         // Se houver conversas, carregar a primeira automaticamente
         const { data, error } = await supabase
-          .from('ChatConversation')
-          .select('id, title, createdAt, updatedAt')
-          .eq('userId', user.id)
-          .order('updatedAt', { ascending: false })
+          .from("ChatConversation")
+          .select("id, title, createdAt, updatedAt")
+          .eq("userId", user.id)
+          .order("updatedAt", { ascending: false })
           .limit(1)
           .single();
 
         if (data) {
-          console.log('✅ Carregando conversa existente:', data.id);
+          console.log("✅ Carregando conversa existente:", data.id);
           setConversationId(data.id);
           await loadConversationMessages(data.id);
         } else {
-          console.log('📋 Nenhuma conversa existente. Use "Nova Conversa" para começar.');
+          console.log(
+            '📋 Nenhuma conversa existente. Use "Nova Conversa" para começar.',
+          );
         }
       } catch (error) {
-        console.error('Erro ao inicializar conversa:', error);
+        console.error("Erro ao inicializar conversa:", error);
       }
     };
 
@@ -203,117 +224,134 @@ export default function AdminChatPage() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const executeAdminQuery = async (userMessage: string, convId: string): Promise<string> => {
+  const executeAdminQuery = async (
+    userMessage: string,
+    convId: string,
+  ): Promise<string> => {
     try {
       // Detectar qual ferramenta está sendo usada
       const lowerMessage = userMessage.toLowerCase();
-      let detectedTool: 'web_search' | 'web_scraping' | 'python_exec' | null = null;
-      let detectedReasoning = '';
+      let detectedTool: "web_search" | "web_scraping" | "python_exec" | null =
+        null;
+      let detectedReasoning = "";
       let detectedSources: string[] = [];
 
-      if (lowerMessage.includes('pesquis') || lowerMessage.includes('busca') || 
-          lowerMessage.includes('google') || lowerMessage.includes('internet')) {
-        detectedTool = 'web_search';
+      if (
+        lowerMessage.includes("pesquis") ||
+        lowerMessage.includes("busca") ||
+        lowerMessage.includes("google") ||
+        lowerMessage.includes("internet")
+      ) {
+        detectedTool = "web_search";
         // Extrair query
         let query = userMessage;
-        if (lowerMessage.includes('pesquis')) {
+        if (lowerMessage.includes("pesquis")) {
           const match = userMessage.match(/pesquis[ae]\s+(.+)/i);
           query = match ? match[1] : userMessage;
         }
         detectedReasoning = `Pesquisando na web sobre: "${query}"`;
-        setCurrentTool('web_search');
+        setCurrentTool("web_search");
         setAiReasoning(detectedReasoning);
-        setAiSources(['Google Search', 'Exa AI', 'Tavily']);
-      } else if (lowerMessage.includes('baix') || lowerMessage.includes('rasp') || 
-                 lowerMessage.includes('scrape')) {
-        detectedTool = 'web_scraping';
+        setAiSources(["Google Search", "Exa AI", "Tavily"]);
+      } else if (
+        lowerMessage.includes("baix") ||
+        lowerMessage.includes("rasp") ||
+        lowerMessage.includes("scrape")
+      ) {
+        detectedTool = "web_scraping";
         const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
-        const url = urlMatch ? urlMatch[0] : 'URL não especificada';
+        const url = urlMatch ? urlMatch[0] : "URL não especificada";
         detectedReasoning = `Raspando dados de: ${url}`;
-        setCurrentTool('web_scraping');
+        setCurrentTool("web_scraping");
         setAiReasoning(detectedReasoning);
         setAiSources([url]);
-      } else if (lowerMessage.includes('python') || lowerMessage.includes('calcule') || 
-                 lowerMessage.includes('execute código')) {
-        detectedTool = 'python_exec';
-        detectedReasoning = 'Executando código Python para processar dados...';
-        setCurrentTool('python_exec');
+      } else if (
+        lowerMessage.includes("python") ||
+        lowerMessage.includes("calcule") ||
+        lowerMessage.includes("execute código")
+      ) {
+        detectedTool = "python_exec";
+        detectedReasoning = "Executando código Python para processar dados...";
+        setCurrentTool("python_exec");
         setAiReasoning(detectedReasoning);
       } else {
         setCurrentTool(null);
-        setAiReasoning('Processando sua solicitação...');
+        setAiReasoning("Processando sua solicitação...");
         setAiSources([]);
       }
 
       // Chamar Edge Function de chat-stream (nova com memória)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Não autenticado');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
 
       // URL hardcoded para evitar problema de env vars (usando função chat-enhanced com persistência e personalidade)
-      const chatUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced';
-      
+      const chatUrl =
+        "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced";
+
       // Converter mensagens para formato conversationHistory
-      const history = messages.map(msg => ({
+      const history = messages.map((msg) => ({
         role: msg.role.toLowerCase(), // USER, ASSISTANT, SYSTEM → user, assistant, system
-        content: msg.content
+        content: msg.content,
       }));
-      
-      console.log('🌐 Calling chat-stream (Admin):', chatUrl);
-      console.log('📜 History length:', history.length);
-      
+
+      console.log("🌐 Calling chat-stream (Admin):", chatUrl);
+      console.log("📜 History length:", history.length);
+
       const response = await fetch(chatUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E'
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey:
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
         },
         body: JSON.stringify({
           message: userMessage,
           conversationId: convId,
           conversationHistory: history, // ✅ ENVIA HISTÓRICO COMPLETO
-          systemPrompt: undefined // Usa o padrão da função
+          systemPrompt: undefined, // Usa o padrão da função
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao processar mensagem');
+        throw new Error(error.error || "Erro ao processar mensagem");
       }
 
       const data = await response.json();
-      console.log('📦 Response data:', data);
-      
+      console.log("📦 Response data:", data);
+
       // Verificar se houve erro na resposta
       if (data.error) {
-        console.error('❌ Erro na resposta:', data.error);
+        console.error("❌ Erro na resposta:", data.error);
         return `⚠️ ${data.response || data.error}`;
       }
-      
+
       // Retornar resposta ou mensagem de fallback
-      if (!data.response || data.response === 'Sem resposta da IA') {
-        console.error('❌ IA não retornou resposta válida');
-        return '⚠️ IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.';
+      if (!data.response || data.response === "Sem resposta da IA") {
+        console.error("❌ IA não retornou resposta válida");
+        return "⚠️ IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.";
       }
-      
+
       // Limpar estados de pensamento
       setCurrentTool(null);
-      setAiReasoning('');
+      setAiReasoning("");
       setAiSources([]);
-      
+
       return data.response;
-      
     } catch (error: any) {
-      console.error('Admin chat error:', error);
-      
+      console.error("Admin chat error:", error);
+
       // Limpar estados de pensamento mesmo em erro
       setCurrentTool(null);
-      setAiReasoning('');
+      setAiReasoning("");
       setAiSources([]);
-      
+
       return `❌ Erro: ${error.message}`;
     }
   };
@@ -321,27 +359,27 @@ export default function AdminChatPage() {
   // Função para limpar mensagens
   const handleClearMessages = async () => {
     if (!conversationId) return;
-    
+
     try {
       // Deletar todas mensagens da conversa atual
       await supabase
-        .from('ChatMessage')
+        .from("ChatMessage")
         .delete()
-        .eq('conversationId', conversationId);
+        .eq("conversationId", conversationId);
 
       // Limpar mensagens na tela
       setMessages([]);
-      
+
       toast({
-        title: '✅ Mensagens limpas!',
-        description: 'Chat limpo com sucesso.',
+        title: "✅ Mensagens limpas!",
+        description: "Chat limpo com sucesso.",
       });
     } catch (error: any) {
-      console.error('Erro ao limpar mensagens:', error);
+      console.error("Erro ao limpar mensagens:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível limpar mensagens.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível limpar mensagens.",
+        variant: "destructive",
       });
     }
   };
@@ -349,50 +387,55 @@ export default function AdminChatPage() {
   // Função para conectar OAuth
   const handleOAuthConnect = async (platform: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('Usuário não autenticado');
+        throw new Error("Usuário não autenticado");
       }
 
       // Chamar função oauth-init
-      const oauthUrl = 'https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/oauth-init';
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) throw new Error('Não autenticado');
+      const oauthUrl =
+        "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/oauth-init";
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) throw new Error("Não autenticado");
 
       const response = await fetch(oauthUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E'
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey:
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
         },
         body: JSON.stringify({
           platform,
-          redirectUrl: `${window.location.origin}/integrations/callback`
-        })
+          redirectUrl: `${window.location.origin}/integrations/callback`,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao iniciar OAuth');
+        throw new Error("Erro ao iniciar OAuth");
       }
 
       const { authUrl } = await response.json();
-      
+
       // Abrir em nova aba
-      window.open(authUrl, '_blank');
-      
+      window.open(authUrl, "_blank");
+
       toast({
-        title: '🔗 Autorização Necessária',
+        title: "🔗 Autorização Necessária",
         description: `Abra a nova aba para autorizar ${platform}`,
       });
-
     } catch (error: any) {
-      console.error('Erro OAuth:', error);
+      console.error("Erro OAuth:", error);
       toast({
-        title: 'Erro ao conectar',
+        title: "Erro ao conectar",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -400,127 +443,116 @@ export default function AdminChatPage() {
   // Função para criar nova conversa
   const handleNewConversation = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Buscar organizationId do usuário
-      const { data: userData } = await supabase
-        .from('User')
-        .select('organizationId')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.organizationId) {
-        throw new Error('Usuário sem organização');
-      }
 
       // Criar nova conversa
       const newId = crypto.randomUUID();
       const now = new Date().toISOString();
-      const { error } = await supabase
-        .from('ChatConversation')
-        .insert({
-          id: newId,
-          userId: user.id,
-          organizationId: userData.organizationId,
-          title: '🆕 Nova Conversa',
-          createdAt: now,
-          updatedAt: now
-        });
+      const { error } = await supabase.from("ChatConversation").insert({
+        id: newId,
+        userId: user.id,
+        title: "🆕 Nova Conversa",
+        createdAt: now,
+        updatedAt: now,
+      });
 
       if (error) throw error;
 
       // Limpar mensagens e atualizar ID
       setMessages([]);
       setConversationId(newId);
-      
+
       // Recarregar lista de conversas
       await loadConversations();
-      
+
       toast({
-        title: '✅ Nova conversa criada!',
-        description: 'Comece um novo chat do zero.',
+        title: "✅ Nova conversa criada!",
+        description: "Comece um novo chat do zero.",
       });
     } catch (error: any) {
-      console.error('Erro ao criar nova conversa:', error);
+      console.error("Erro ao criar nova conversa:", error);
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível criar nova conversa.',
-        variant: 'destructive',
+        title: "Erro",
+        description: error.message || "Não foi possível criar nova conversa.",
+        variant: "destructive",
       });
     }
   };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading || !conversationId) {
-      console.log('Botão desabilitado:', {
+      console.log("Botão desabilitado:", {
         inputTrim: !input.trim(),
         isLoading,
-        conversationId: !!conversationId
+        conversationId: !!conversationId,
       });
       return;
     }
 
-    console.log('Enviando mensagem:', input.trim());
+    console.log("Enviando mensagem:", input.trim());
     const userContent = input.trim();
-    setInput('');
+    setInput("");
     setIsLoading(true);
 
     try {
       // Verificar se tem conversationId
       if (!conversationId) {
-        throw new Error('Conversa não inicializada');
+        throw new Error("Conversa não inicializada");
       }
 
       const activeConvId = conversationId;
-      console.log('Active conversation ID:', activeConvId);
+      console.log("Active conversation ID:", activeConvId);
 
       // Adicionar mensagem do usuário ao estado local (UI imediata)
       const tempUserMessage: Message = {
         id: `temp-${Date.now()}`,
-        role: 'USER',
+        role: "USER",
         content: userContent,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, tempUserMessage]);
+      setMessages((prev) => [...prev, tempUserMessage]);
 
       // Detectar OAuth NA MENSAGEM DO USUÁRIO (antes de chamar IA)
       const oauthPlatform = detectOAuthCommand(userContent);
-      
+
       // Executar query administrativa (Edge Function cuida de tudo)
       const response = await executeAdminQuery(userContent, activeConvId);
-      
+
       // Adicionar resposta ao estado local
       const assistantMessage: Message = {
         id: `temp-${Date.now() + 1}`,
-        role: 'ASSISTANT',
+        role: "ASSISTANT",
         content: response,
         timestamp: new Date(),
-        metadata: oauthPlatform ? {
-          oauthAction: {
-            platform: oauthPlatform,
-            action: 'connect'
-          }
-        } : undefined
+        metadata: oauthPlatform
+          ? {
+              oauthAction: {
+                platform: oauthPlatform,
+                action: "connect",
+              },
+            }
+          : undefined,
       };
-      setMessages(prev => [...prev, assistantMessage]);
-
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error('ERRO COMPLETO:', error);
+      console.error("ERRO COMPLETO:", error);
 
       // Mostrar erro visual no chat
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
-        role: 'ASSISTANT',
-        content: `❌ ERRO DETALHADO:\n\n${error.message}\n\n${error.stack || 'Sem stack trace'}\n\n${JSON.stringify(error, null, 2)}`,
+        role: "ASSISTANT",
+        content: `❌ ERRO DETALHADO:\n\n${error.message}\n\n${error.stack || "Sem stack trace"}\n\n${JSON.stringify(error, null, 2)}`,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
 
       toast({
-        title: 'Erro ao processar',
+        title: "Erro ao processar",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -531,7 +563,9 @@ export default function AdminChatPage() {
     <SuperAdminLayout>
       <div className="h-[calc(100vh-80px)] flex">
         {/* SIDEBAR - Conversas Antigas */}
-        <div className={`${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden`}>
+        <div
+          className={`${isSidebarOpen ? "w-72" : "w-0"} transition-all duration-300 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden`}
+        >
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
@@ -561,7 +595,9 @@ export default function AdminChatPage() {
               <div
                 key={conv.id}
                 className={`group relative flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors ${
-                  conversationId === conv.id ? 'bg-blue-50 border border-blue-200' : 'bg-white'
+                  conversationId === conv.id
+                    ? "bg-blue-50 border border-blue-200"
+                    : "bg-white"
                 }`}
                 onClick={() => loadConversationMessages(conv.id)}
               >
@@ -571,7 +607,7 @@ export default function AdminChatPage() {
                     {conv.title}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {new Date(conv.updatedAt).toLocaleDateString('pt-BR')}
+                    {new Date(conv.updatedAt).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <Button
@@ -610,7 +646,9 @@ export default function AdminChatPage() {
                   <Shield className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Chat Administrativo</h1>
+                  <h1 className="text-xl font-bold text-gray-900">
+                    Chat Administrativo
+                  </h1>
                   <p className="text-sm text-gray-500">Chat com IA</p>
                 </div>
               </div>
@@ -637,46 +675,60 @@ export default function AdminChatPage() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.role === 'USER' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === "USER" ? "justify-end" : "justify-start"}`}
               >
-                <Card className={`max-w-[80%] ${
-                  message.role === 'USER'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                    : message.role === 'SYSTEM'
-                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
-                    : 'bg-white'
-                }`}>
+                <Card
+                  className={`max-w-[80%] ${
+                    message.role === "USER"
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                      : message.role === "SYSTEM"
+                        ? "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200"
+                        : "bg-white"
+                  }`}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-2">
-                      {message.role === 'ASSISTANT' && (
+                      {message.role === "ASSISTANT" && (
                         <Shield className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
                       )}
-                      {message.role === 'SYSTEM' && (
+                      {message.role === "SYSTEM" && (
                         <Sparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                       )}
-                    <div className="flex-1">
-                      <div className={`whitespace-pre-wrap break-words text-sm ${
-                        message.role === 'USER' ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {message.content}
-                      </div>
-                      
-                      {/* Botão OAuth se necessário */}
-                      {message.metadata?.oauthAction && (
-                        <Button
-                          onClick={() => handleOAuthConnect(message.metadata!.oauthAction!.platform)}
-                          className="mt-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                          size="sm"
+                      <div className="flex-1">
+                        <div
+                          className={`whitespace-pre-wrap break-words text-sm ${
+                            message.role === "USER"
+                              ? "text-white"
+                              : "text-gray-900"
+                          }`}
                         >
-                          Conectar {message.metadata.oauthAction.platform}
-                        </Button>
-                      )}
+                          {message.content}
+                        </div>
+
+                        {/* Botão OAuth se necessário */}
+                        {message.metadata?.oauthAction && (
+                          <Button
+                            onClick={() =>
+                              handleOAuthConnect(
+                                message.metadata!.oauthAction!.platform,
+                              )
+                            }
+                            className="mt-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                            size="sm"
+                          >
+                            Conectar {message.metadata.oauthAction.platform}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    </div>
-                    <div className={`text-xs mt-2 ${
-                      message.role === 'USER' ? 'text-white/70' : 'text-gray-500'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString('pt-BR')}
+                    <div
+                      className={`text-xs mt-2 ${
+                        message.role === "USER"
+                          ? "text-white/70"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {message.timestamp.toLocaleTimeString("pt-BR")}
                     </div>
                   </CardContent>
                 </Card>
@@ -684,7 +736,7 @@ export default function AdminChatPage() {
             ))}
             {/* Indicador de pensamento da IA */}
             {isLoading && (
-              <AiThinkingIndicator 
+              <AiThinkingIndicator
                 isThinking={isLoading}
                 currentTool={currentTool}
                 reasoning={aiReasoning}
@@ -697,7 +749,9 @@ export default function AdminChatPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-gray-500">Processando...</span>
+                      <span className="text-sm text-gray-500">
+                        Processando...
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -713,7 +767,7 @@ export default function AdminChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage();
                   }

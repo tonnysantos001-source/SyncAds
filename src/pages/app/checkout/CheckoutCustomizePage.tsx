@@ -157,9 +157,9 @@ const CheckoutCustomizePage: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 -mx-6 -my-6">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 -mx-6 -my-6">
       {/* Sidebar de Personalização */}
-      <div className="w-72 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+      <div className="w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden shadow-lg">
         {/* Header da Sidebar */}
 
         {/* Seções Colapsáveis */}
@@ -171,8 +171,8 @@ const CheckoutCustomizePage: React.FC = () => {
                 className={cn(
                   "w-full px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors",
                   expandedSections.includes(section.id)
-                    ? "bg-gray-50 text-gray-900"
-                    : "text-gray-700 hover:bg-gray-50",
+                    ? "bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800",
                 )}
               >
                 <span>{section.label}</span>
@@ -184,13 +184,15 @@ const CheckoutCustomizePage: React.FC = () => {
               </button>
 
               {expandedSections.includes(section.id) && (
-                <div className="p-4 space-y-4 bg-white">
+                <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
                   {/* Conteúdo será preenchido quando você enviar as imagens */}
                   {section.id === "CABEÇALHO" && (
                     <>
                       <div>
-                        <Label className="text-xs text-gray-600">Logo</Label>
-                        <p className="text-xs text-gray-500 mt-1 mb-2">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
+                          Logo
+                        </Label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
                           Clique aqui e escolha o logo
                         </p>
                         <ImageUpload
@@ -215,11 +217,11 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Alinhamento do logo
                         </Label>
                         <select
-                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm"
                           value={customization?.theme?.logoAlignment || "left"}
                           onChange={(e) =>
                             updateTheme({
@@ -237,13 +239,13 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Final logo no topo
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <input
                             type="checkbox"
-                            className="rounded"
+                            className="rounded dark:bg-gray-700 dark:border-gray-600"
                             checked={
                               customization?.theme?.showLogoAtTop || false
                             }
@@ -251,13 +253,17 @@ const CheckoutCustomizePage: React.FC = () => {
                               updateTheme({ showLogoAtTop: e.target.checked })
                             }
                           />
-                          <span className="text-sm text-gray-600">Ativar</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            Ativar
+                          </span>
                         </div>
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Favicon</Label>
-                        <p className="text-xs text-gray-500 mt-1 mb-2">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
+                          Favicon
+                        </Label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
                           Clique aqui e escolha o favicon
                         </p>
                         <ImageUpload
@@ -282,10 +288,12 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">Fundo</Label>
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
+                          Fundo
+                        </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div
-                            className="w-10 h-10 rounded border border-gray-300"
+                            className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600"
                             style={{
                               backgroundColor:
                                 customization?.theme?.backgroundColor ||
@@ -307,25 +315,25 @@ const CheckoutCustomizePage: React.FC = () => {
                         <div className="flex items-center gap-2 mt-2">
                           <input
                             type="checkbox"
-                            className="rounded"
+                            className="rounded dark:bg-gray-700 dark:border-gray-600"
                             checked={customization?.theme?.useGradient || false}
                             onChange={(e) =>
                               updateTheme({ useGradient: e.target.checked })
                             }
                           />
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-300">
                             Aplicar fundo degradê
                           </span>
                         </div>
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Borda de carrinho
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div
-                            className="w-10 h-10 rounded border border-gray-300"
+                            className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600"
                             style={{
                               backgroundColor:
                                 customization?.theme?.cartBorderColor ||
@@ -347,12 +355,12 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Círculo de quantidade
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div
-                            className="w-10 h-10 rounded border border-gray-300"
+                            className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600"
                             style={{
                               backgroundColor:
                                 customization?.theme?.quantityCircleColor ||
@@ -377,12 +385,12 @@ const CheckoutCustomizePage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Cor do texto da quantidade
                         </Label>
                         <div className="flex items-center gap-2 mt-2">
                           <div
-                            className="w-10 h-10 rounded border border-gray-300"
+                            className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600"
                             style={{
                               backgroundColor:
                                 customization?.theme?.quantityTextColor ||
@@ -405,7 +413,7 @@ const CheckoutCustomizePage: React.FC = () => {
                         <div className="flex items-center gap-2 mt-2">
                           <input
                             type="checkbox"
-                            className="rounded"
+                            className="rounded dark:bg-gray-700 dark:border-gray-600"
                             checked={
                               customization?.theme?.showCartIcon || false
                             }
@@ -413,7 +421,7 @@ const CheckoutCustomizePage: React.FC = () => {
                               updateTheme({ showCartIcon: e.target.checked })
                             }
                           />
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-300">
                             Mostrar ícone de carrinho sempre
                           </span>
                         </div>
@@ -428,7 +436,7 @@ const CheckoutCustomizePage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            className="rounded"
+                            className="rounded dark:bg-gray-700 dark:border-gray-600"
                             checked={
                               customization?.theme?.bannerEnabled || false
                             }
@@ -436,17 +444,17 @@ const CheckoutCustomizePage: React.FC = () => {
                               updateTheme({ bannerEnabled: e.target.checked })
                             }
                           />
-                          <Label className="text-xs text-gray-600">
+                          <Label className="text-xs text-gray-600 dark:text-gray-300">
                             Ativar banner em checkout
                           </Label>
                         </div>
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">
+                        <Label className="text-xs text-gray-600 dark:text-gray-300">
                           Imagem do banner
                         </Label>
-                        <p className="text-xs text-gray-500 mt-1 mb-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
                           Cole a URL da imagem do banner
                         </p>
                         <ImageUpload
@@ -1897,7 +1905,7 @@ const CheckoutCustomizePage: React.FC = () => {
       {/* Área de Preview */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header do Preview */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-end">
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-end shadow-lg">
           <div className="flex items-center gap-3">
             <Button
               variant={previewMode === "mobile" ? "default" : "outline"}
@@ -1914,7 +1922,7 @@ const CheckoutCustomizePage: React.FC = () => {
               <Monitor className="h-4 w-4" />
             </Button>
             <Button
-              className="gap-2 bg-pink-600 hover:bg-pink-700"
+              className="gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
             >
@@ -1926,10 +1934,10 @@ const CheckoutCustomizePage: React.FC = () => {
 
         {/* Preview Area */}
 
-        <div className="flex-1 overflow-auto bg-gray-100 p-6">
+        <div className="flex-1 overflow-auto bg-gradient-to-br from-gray-100 via-blue-50/20 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/20 dark:to-purple-950/20 p-6">
           <div
             className={cn(
-              "mx-auto bg-white shadow-lg transition-all duration-300",
+              "mx-auto bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300",
 
               previewMode === "mobile" ? "max-w-md" : "max-w-4xl",
             )}
@@ -1941,7 +1949,7 @@ const CheckoutCustomizePage: React.FC = () => {
                 previewMode={true}
               />
             ) : (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 Gerando pré-visualização...
               </div>
             )}
@@ -1950,7 +1958,7 @@ const CheckoutCustomizePage: React.FC = () => {
       </div>
 
       {/* Botão de ajuda flutuante */}
-      <button className="fixed bottom-6 right-6 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all hover:scale-105">
+      <button className="fixed bottom-6 right-6 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 dark:from-pink-500 dark:to-purple-500 dark:hover:from-pink-600 dark:hover:to-purple-600 text-white px-6 py-3 rounded-full shadow-xl hover:shadow-2xl flex items-center gap-2 transition-all duration-300 hover:scale-105">
         <span className="text-sm font-medium">💬 Precisa de ajuda?</span>
       </button>
     </div>

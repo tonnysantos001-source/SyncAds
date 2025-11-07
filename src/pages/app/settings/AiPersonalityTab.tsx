@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { useStore } from '@/store/useStore';
-import Textarea from 'react-textarea-autosize';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { useStore } from "@/store/useStore";
+import Textarea from "react-textarea-autosize";
+import { cn } from "@/lib/utils";
 
 const MAX_CHARS = 2000;
 
 export const AiPersonalityTab: React.FC = () => {
   const { toast } = useToast();
-  const aiSystemPrompt = useStore(state => state.aiSystemPrompt);
-  const setAiSystemPrompt = useStore(state => state.setAiSystemPrompt);
-  
+  const aiSystemPrompt = useStore((state) => state.aiSystemPrompt);
+  const setAiSystemPrompt = useStore((state) => state.setAiSystemPrompt);
+
   const [prompt, setPrompt] = useState(aiSystemPrompt);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -34,7 +41,8 @@ export const AiPersonalityTab: React.FC = () => {
       <CardHeader>
         <CardTitle>Personalidade da IA</CardTitle>
         <CardDescription>
-          Defina as instruções, capacidades e o comportamento do seu assistente de IA. Este é o prompt de sistema principal.
+          Defina as instruções, capacidades e o comportamento do seu assistente
+          de IA. Este é o prompt de sistema principal.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -49,17 +57,27 @@ export const AiPersonalityTab: React.FC = () => {
             minRows={10}
             maxLength={MAX_CHARS}
           />
-           <div className="flex justify-between items-center">
-            <p className="text-xs text-muted-foreground">Use esta área para dar instruções detalhadas sobre o tom, estilo de resposta e funcionalidades da IA.</p>
-            <p className={cn("text-xs", prompt.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground")}>
-                {prompt.length} / {MAX_CHARS}
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              Use esta área para dar instruções detalhadas sobre o tom, estilo
+              de resposta e funcionalidades da IA.
             </p>
-           </div>
+            <p
+              className={cn(
+                "text-xs",
+                prompt.length > MAX_CHARS
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+              )}
+            >
+              {prompt.length} / {MAX_CHARS}
+            </p>
+          </div>
         </div>
       </CardContent>
       <CardFooter className="border-t px-6 py-4">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Salvando...' : 'Salvar Instruções'}
+          {isSaving ? "Salvando..." : "Salvar Instruções"}
         </Button>
       </CardFooter>
     </Card>

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface State {
   id: string;
@@ -13,23 +13,93 @@ interface State {
 }
 
 const BRAZILIAN_STATES: State[] = [
-  { id: 'AC', name: 'Acre', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'AL', name: 'Alagoas', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'AP', name: 'Amapá', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'AM', name: 'Amazonas', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'BA', name: 'Bahia', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'CE', name: 'Ceará', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'DF', name: 'Distrito Federal', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'ES', name: 'Espírito Santo', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'GO', name: 'Goiás', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
-  { id: 'MA', name: 'Maranhão', flag: '🇧🇷', revenue: '0,00 (0)', amountPaid: '0,00 (0)', percentPaid: '0%' },
+  {
+    id: "AC",
+    name: "Acre",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "AL",
+    name: "Alagoas",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "AP",
+    name: "Amapá",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "AM",
+    name: "Amazonas",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "BA",
+    name: "Bahia",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "CE",
+    name: "Ceará",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "DF",
+    name: "Distrito Federal",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "ES",
+    name: "Espírito Santo",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "GO",
+    name: "Goiás",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
+  {
+    id: "MA",
+    name: "Maranhão",
+    flag: "🇧🇷",
+    revenue: "0,00 (0)",
+    amountPaid: "0,00 (0)",
+    percentPaid: "0%",
+  },
 ];
 
 const AudiencePage: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const filteredStates = BRAZILIAN_STATES.filter((state) =>
-    state.name.toLowerCase().includes(searchTerm.toLowerCase())
+    state.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -44,7 +114,10 @@ const AudiencePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button className="bg-pink-600 hover:bg-pink-700 text-white" size="sm">
+          <Button
+            className="bg-pink-600 hover:bg-pink-700 text-white"
+            size="sm"
+          >
             Tudo
           </Button>
           <Button variant="outline" size="sm">
@@ -60,7 +133,7 @@ const AudiencePage: React.FC = () => {
       </div>
 
       {/* Tabela */}
-      <Card>
+      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -86,7 +159,9 @@ const AudiencePage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{state.flag}</span>
-                        <span className="text-sm text-gray-900">{state.name}</span>
+                        <span className="text-sm text-gray-900">
+                          {state.name}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
@@ -106,7 +181,10 @@ const AudiencePage: React.FC = () => {
 
           {/* Botão Carregar Mais */}
           <div className="flex justify-center py-6 border-t">
-            <Button variant="outline" className="text-pink-600 border-pink-600 hover:bg-pink-50">
+            <Button
+              variant="outline"
+              className="text-pink-600 border-pink-600 hover:bg-pink-50"
+            >
               Carregar mais estados
             </Button>
           </div>

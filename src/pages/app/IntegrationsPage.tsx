@@ -125,10 +125,12 @@ const IntegrationsPage: React.FC = () => {
   }, [user, loadIntegrations]);
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Integrações</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+          Integrações
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300 font-medium mt-2">
           Conecte suas ferramentas favoritas e automatize seu fluxo de trabalho
         </p>
       </div>

@@ -324,14 +324,14 @@ const DiscountBannerPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Faixas de Desconto
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600 dark:text-gray-300 font-medium">
             Crie banners promocionais para aumentar suas conversões
           </p>
         </div>
@@ -358,7 +358,7 @@ const DiscountBannerPage = () => {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Impressões
@@ -372,7 +372,7 @@ const DiscountBannerPage = () => {
               <p className="text-xs text-muted-foreground">Visualizações</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Cliques
@@ -388,7 +388,7 @@ const DiscountBannerPage = () => {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Conversões</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />

@@ -1,25 +1,34 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { useStore } from '@/store/useStore';
-import Textarea from 'react-textarea-autosize';
-import { cn } from '@/lib/utils';
-import { Plus, Trash2, Save, Sparkles } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { useStore } from "@/store/useStore";
+import Textarea from "react-textarea-autosize";
+import { cn } from "@/lib/utils";
+import { Plus, Trash2, Save, Sparkles } from "lucide-react";
 
 const MAX_CHARS = 500;
 
 export const AiGreetingsTab: React.FC = () => {
   const { toast } = useToast();
-  const aiInitialGreetings = useStore(state => state.aiInitialGreetings);
-  const setAiInitialGreetings = useStore(state => state.setAiInitialGreetings);
-  const addAiGreeting = useStore(state => state.addAiGreeting);
-  const removeAiGreeting = useStore(state => state.removeAiGreeting);
-  const updateAiGreeting = useStore(state => state.updateAiGreeting);
-  
+  const aiInitialGreetings = useStore((state) => state.aiInitialGreetings);
+  const setAiInitialGreetings = useStore(
+    (state) => state.setAiInitialGreetings,
+  );
+  const addAiGreeting = useStore((state) => state.addAiGreeting);
+  const removeAiGreeting = useStore((state) => state.removeAiGreeting);
+  const updateAiGreeting = useStore((state) => state.updateAiGreeting);
+
   const [greetings, setGreetings] = useState(aiInitialGreetings);
-  const [newGreeting, setNewGreeting] = useState('');
+  const [newGreeting, setNewGreeting] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
@@ -38,7 +47,7 @@ export const AiGreetingsTab: React.FC = () => {
   const handleAddGreeting = () => {
     if (newGreeting.trim() && newGreeting.length <= MAX_CHARS) {
       setGreetings([...greetings, newGreeting.trim()]);
-      setNewGreeting('');
+      setNewGreeting("");
       toast({
         title: "Fala adicionada!",
         description: "Nova mensagem de boas-vindas adicionada.",
@@ -69,15 +78,15 @@ export const AiGreetingsTab: React.FC = () => {
   };
 
   const getRandomGreeting = () => {
-    if (greetings.length === 0) return '';
+    if (greetings.length === 0) return "";
     const randomIndex = Math.floor(Math.random() * greetings.length);
     return greetings[randomIndex];
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Card de Explicação */}
-      <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+      <Card className="border-0 bg-blue-50/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 border-blue-200">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-blue-600" />
@@ -86,7 +95,8 @@ export const AiGreetingsTab: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            As <strong>Falas Iniciais</strong> são mensagens que a IA envia automaticamente quando o usuário:
+            As <strong>Falas Iniciais</strong> são mensagens que a IA envia
+            automaticamente quando o usuário:
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400 ml-2">
             <li>Abre uma nova conversa</li>
@@ -94,13 +104,16 @@ export const AiGreetingsTab: React.FC = () => {
             <li>Retorna após um período de inatividade</li>
           </ul>
           <div className="mt-4 p-3 bg-white dark:bg-gray-900 rounded-lg border">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">EXEMPLO DE USO:</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+              EXEMPLO DE USO:
+            </p>
             <p className="text-sm text-gray-700 dark:text-gray-300 italic">
               "{getRandomGreeting()}"
             </p>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-            💡 <strong>Dica:</strong> A IA escolhe aleatoriamente uma das falas cadastradas para variar a experiência do usuário.
+            💡 <strong>Dica:</strong> A IA escolhe aleatoriamente uma das falas
+            cadastradas para variar a experiência do usuário.
           </p>
         </CardContent>
       </Card>
@@ -110,14 +123,18 @@ export const AiGreetingsTab: React.FC = () => {
         <CardHeader>
           <CardTitle>Falas Cadastradas</CardTitle>
           <CardDescription>
-            Gerencie as mensagens de boas-vindas que a IA usará. Pelo menos uma fala deve estar cadastrada.
+            Gerencie as mensagens de boas-vindas que a IA usará. Pelo menos uma
+            fala deve estar cadastrada.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {greetings.map((greeting, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-start justify-between gap-2">
-                <Label htmlFor={`greeting-${index}`} className="text-sm font-medium">
+                <Label
+                  htmlFor={`greeting-${index}`}
+                  className="text-sm font-medium"
+                >
                   Fala #{index + 1}
                 </Label>
                 <Button
@@ -141,10 +158,14 @@ export const AiGreetingsTab: React.FC = () => {
                 maxLength={MAX_CHARS}
               />
               <div className="flex justify-end">
-                <p className={cn(
-                  "text-xs",
-                  greeting.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground"
-                )}>
+                <p
+                  className={cn(
+                    "text-xs",
+                    greeting.length > MAX_CHARS
+                      ? "text-destructive"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {greeting.length} / {MAX_CHARS}
                 </p>
               </div>
@@ -161,7 +182,8 @@ export const AiGreetingsTab: React.FC = () => {
             <CardTitle>Adicionar Nova Fala</CardTitle>
           </div>
           <CardDescription>
-            Crie uma nova mensagem de boas-vindas para diversificar as interações.
+            Crie uma nova mensagem de boas-vindas para diversificar as
+            interações.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -179,12 +201,17 @@ export const AiGreetingsTab: React.FC = () => {
             />
             <div className="flex justify-between items-center">
               <p className="text-xs text-muted-foreground">
-                💡 Use emojis e seja acolhedor para criar uma boa primeira impressão!
+                💡 Use emojis e seja acolhedor para criar uma boa primeira
+                impressão!
               </p>
-              <p className={cn(
-                "text-xs",
-                newGreeting.length > MAX_CHARS ? "text-destructive" : "text-muted-foreground"
-              )}>
+              <p
+                className={cn(
+                  "text-xs",
+                  newGreeting.length > MAX_CHARS
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
                 {newGreeting.length} / {MAX_CHARS}
               </p>
             </div>
@@ -207,11 +234,16 @@ export const AiGreetingsTab: React.FC = () => {
         <CardFooter className="pt-6">
           <div className="flex items-center justify-between w-full">
             <p className="text-sm text-muted-foreground">
-              Total de {greetings.length} {greetings.length === 1 ? 'fala' : 'falas'} cadastrada{greetings.length === 1 ? '' : 's'}
+              Total de {greetings.length}{" "}
+              {greetings.length === 1 ? "fala" : "falas"} cadastrada
+              {greetings.length === 1 ? "" : "s"}
             </p>
-            <Button onClick={handleSave} disabled={isSaving || greetings.length === 0}>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || greetings.length === 0}
+            >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Salvando...' : 'Salvar Todas as Alterações'}
+              {isSaving ? "Salvando..." : "Salvar Todas as Alterações"}
             </Button>
           </div>
         </CardFooter>

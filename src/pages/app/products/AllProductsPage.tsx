@@ -311,13 +311,15 @@ const AllProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Produtos
+            </h1>
+            <p className="text-gray-600 font-medium">
               Gerencie o catálogo completo de produtos da sua loja
             </p>
           </div>
@@ -420,7 +422,7 @@ const AllProductsPage = () => {
                     placeholder="Buscar por nome, SKU ou descrição..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm"
                   />
                 </div>
               </div>
@@ -441,7 +443,7 @@ const AllProductsPage = () => {
         </Card>
 
         {/* Products Table */}
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg">
           <CardHeader>
             <CardTitle>Catálogo ({filteredProducts.length})</CardTitle>
             <CardDescription>

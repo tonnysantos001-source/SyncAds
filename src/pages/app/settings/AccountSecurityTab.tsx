@@ -1,31 +1,44 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
-import { useStore } from '@/store/useStore';
-import { supabase } from '@/lib/supabase';
-import { Mail, Shield, CheckCircle2, AlertCircle, Key, Lock } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { useStore } from "@/store/useStore";
+import { supabase } from "@/lib/supabase";
+import {
+  Mail,
+  Shield,
+  CheckCircle2,
+  AlertCircle,
+  Key,
+  Lock,
+} from "lucide-react";
 
 export default function AccountSecurityTab() {
   const { toast } = useToast();
   const { user } = useStore();
-  
+
   const [emailVerified, setEmailVerified] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
-  const [newEmail, setNewEmail] = useState('');
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [newEmail, setNewEmail] = useState("");
 
   useEffect(() => {
     loadUserSecurityData();
@@ -36,41 +49,41 @@ export default function AccountSecurityTab() {
 
     try {
       const { data, error } = await supabase
-        .from('User')
-        .select('emailVerified, twoFactorEnabled')
-        .eq('id', user.id)
+        .from("User")
+        .select("emailVerified, twoFactorEnabled")
+        .eq("id", user.id)
         .single();
 
       if (error) throw error;
-      
+
       setEmailVerified(data?.emailVerified || false);
       setTwoFactorEnabled(data?.twoFactorEnabled || false);
     } catch (error) {
-      console.error('Error loading security data:', error);
+      console.error("Error loading security data:", error);
     }
   };
 
   const handleSendEmailVerification = async () => {
     setSendingVerification(true);
-    
+
     try {
       // Envia email de verificação via Supabase Auth
       const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: user?.email || '',
+        type: "signup",
+        email: user?.email || "",
       });
 
       if (error) throw error;
 
       toast({
-        title: 'Email de verificação enviado!',
-        description: 'Verifique sua caixa de entrada e spam.',
+        title: "Email de verificação enviado!",
+        description: "Verifique sua caixa de entrada e spam.",
       });
     } catch (error: any) {
       toast({
-        title: 'Erro ao enviar email',
+        title: "Erro ao enviar email",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setSendingVerification(false);
@@ -80,18 +93,18 @@ export default function AccountSecurityTab() {
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast({
-        title: 'Erro',
-        description: 'As senhas não coincidem.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "As senhas não coincidem.",
+        variant: "destructive",
       });
       return;
     }
 
     if (newPassword.length < 6) {
       toast({
-        title: 'Erro',
-        description: 'A senha deve ter no mínimo 6 caracteres.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "A senha deve ter no mínimo 6 caracteres.",
+        variant: "destructive",
       });
       return;
     }
@@ -100,24 +113,24 @@ export default function AccountSecurityTab() {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
 
       if (error) throw error;
 
       toast({
-        title: 'Senha alterada!',
-        description: 'Sua senha foi atualizada com sucesso.',
+        title: "Senha alterada!",
+        description: "Sua senha foi atualizada com sucesso.",
       });
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (error: any) {
       toast({
-        title: 'Erro ao alterar senha',
+        title: "Erro ao alterar senha",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setChangingPassword(false);
@@ -127,9 +140,9 @@ export default function AccountSecurityTab() {
   const handleChangeEmail = async () => {
     if (!newEmail) {
       toast({
-        title: 'Erro',
-        description: 'Digite o novo email.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Digite o novo email.",
+        variant: "destructive",
       });
       return;
     }
@@ -138,22 +151,22 @@ export default function AccountSecurityTab() {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        email: newEmail
+        email: newEmail,
       });
 
       if (error) throw error;
 
       toast({
-        title: 'Confirmação enviada!',
-        description: 'Verifique seu novo email para confirmar a mudança.',
+        title: "Confirmação enviada!",
+        description: "Verifique seu novo email para confirmar a mudança.",
       });
 
-      setNewEmail('');
+      setNewEmail("");
     } catch (error: any) {
       toast({
-        title: 'Erro ao trocar email',
+        title: "Erro ao trocar email",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setChangingEmail(false);
@@ -163,31 +176,31 @@ export default function AccountSecurityTab() {
   const handleToggle2FA = async (enabled: boolean) => {
     try {
       const { error } = await supabase
-        .from('User')
+        .from("User")
         .update({ twoFactorEnabled: enabled })
-        .eq('id', user?.id || '');
+        .eq("id", user?.id || "");
 
       if (error) throw error;
 
       setTwoFactorEnabled(enabled);
 
       toast({
-        title: enabled ? '2FA Habilitado!' : '2FA Desabilitado',
-        description: enabled 
-          ? 'Autenticação de dois fatores foi ativada.' 
-          : 'Autenticação de dois fatores foi desativada.',
+        title: enabled ? "2FA Habilitado!" : "2FA Desabilitado",
+        description: enabled
+          ? "Autenticação de dois fatores foi ativada."
+          : "Autenticação de dois fatores foi desativada.",
       });
     } catch (error: any) {
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Email Verification Banner */}
       {!emailVerified && (
         <Card className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
@@ -199,7 +212,8 @@ export default function AccountSecurityTab() {
                   Email não verificado
                 </h4>
                 <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
-                  Verifique seu email para desbloquear todos os recursos da plataforma.
+                  Verifique seu email para desbloquear todos os recursos da
+                  plataforma.
                 </p>
                 <Button
                   size="sm"
@@ -207,7 +221,9 @@ export default function AccountSecurityTab() {
                   onClick={handleSendEmailVerification}
                   disabled={sendingVerification}
                 >
-                  {sendingVerification ? 'Enviando...' : 'Enviar Email de Verificação'}
+                  {sendingVerification
+                    ? "Enviando..."
+                    : "Enviar Email de Verificação"}
                 </Button>
               </div>
             </div>
@@ -233,16 +249,16 @@ export default function AccountSecurityTab() {
             )}
           </div>
           <CardDescription>
-            {emailVerified 
-              ? 'Seu email está verificado e seguro.'
-              : 'Verifique seu email para aumentar a segurança da sua conta.'}
+            {emailVerified
+              ? "Seu email está verificado e seguro."
+              : "Verifique seu email para aumentar a segurança da sua conta."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
               <Label>Email Atual</Label>
-              <Input value={user?.email || ''} disabled className="mt-2" />
+              <Input value={user?.email || ""} disabled className="mt-2" />
             </div>
 
             {!emailVerified && (
@@ -252,7 +268,7 @@ export default function AccountSecurityTab() {
                 className="w-full"
               >
                 <Mail className="h-4 w-4 mr-2" />
-                {sendingVerification ? 'Enviando...' : 'Verificar Email'}
+                {sendingVerification ? "Enviando..." : "Verificar Email"}
               </Button>
             )}
           </div>
@@ -267,7 +283,8 @@ export default function AccountSecurityTab() {
             <CardTitle>Trocar Email</CardTitle>
           </div>
           <CardDescription>
-            Altere o email associado à sua conta. Você precisará confirmar o novo email.
+            Altere o email associado à sua conta. Você precisará confirmar o
+            novo email.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -289,7 +306,7 @@ export default function AccountSecurityTab() {
               className="w-full"
             >
               <Mail className="h-4 w-4 mr-2" />
-              {changingEmail ? 'Enviando confirmação...' : 'Trocar Email'}
+              {changingEmail ? "Enviando confirmação..." : "Trocar Email"}
             </Button>
           </div>
         </CardContent>
@@ -348,7 +365,7 @@ export default function AccountSecurityTab() {
               className="w-full"
             >
               <Key className="h-4 w-4 mr-2" />
-              {changingPassword ? 'Alterando...' : 'Alterar Senha'}
+              {changingPassword ? "Alterando..." : "Alterar Senha"}
             </Button>
           </div>
         </CardContent>
@@ -371,12 +388,12 @@ export default function AccountSecurityTab() {
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <h4 className="font-medium">
-                {twoFactorEnabled ? '2FA Ativo' : '2FA Inativo'}
+                {twoFactorEnabled ? "2FA Ativo" : "2FA Inativo"}
               </h4>
               <p className="text-sm text-gray-500">
-                {twoFactorEnabled 
-                  ? 'Sua conta está protegida com autenticação de dois fatores.'
-                  : 'Ative para aumentar a segurança da sua conta.'}
+                {twoFactorEnabled
+                  ? "Sua conta está protegida com autenticação de dois fatores."
+                  : "Ative para aumentar a segurança da sua conta."}
               </p>
             </div>
             <Switch
@@ -394,7 +411,8 @@ export default function AccountSecurityTab() {
                     2FA está ativo
                   </p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Você precisará confirmar sua identidade ao fazer login em novos dispositivos.
+                    Você precisará confirmar sua identidade ao fazer login em
+                    novos dispositivos.
                   </p>
                 </div>
               </div>

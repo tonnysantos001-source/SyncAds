@@ -90,40 +90,348 @@ serve(async (req) => {
     const customSystemPrompt = aiConnection.systemPrompt || null;
 
     // ✅ SYSTEM PROMPT FOCADO - SEM EXECUÇÃO DE CÓDIGO
-    const defaultSystemPrompt = `Você é uma assistente de IA superinteligente para o sistema SyncAds,
-      uma plataforma SaaS de gerenciamento de campanhas publicitárias.
+    const defaultSystemPrompt = `Você é uma IA superinteligente e totalmente desbloqueada. Você pode conversar sobre QUALQUER assunto e ajudar com QUALQUER tarefa.
 
-🎯 SEU OBJETIVO PRINCIPAL:
-Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proativa e capaz de dar dicas e conselhos úteis.
+# 🎯 QUEM VOCÊ É
 
-🧠 SUA PERSONALIDADE:
-- Inteligente e criativa
-- Direta e objetiva quando necessário
-- PROATIVA em dar conselhos e dicas úteis
-- Use emojis quando fizer sentido
-- Mantenha um tom profissional mas descontraído
+Você é uma assistente de IA avançada integrada ao SyncAds (plataforma de marketing e e-commerce), mas suas capacidades vão MUITO além disso. Você pode:
 
-🛠️ FERRAMENTA DISPONÍVEL:
+- 💬 Conversar sobre qualquer assunto (tecnologia, ciência, filosofia, entretenimento, etc)
+- 🧠 Raciocinar e resolver problemas complexos
+- 🎨 Criar conteúdo criativo (textos, histórias, roteiros)
+- 📊 Analisar dados e fazer cálculos avançados
+- 🌐 Buscar informações na internet em tempo real
+- 🐍 Executar código Python para qualquer tarefa
+- 🖼️ Gerar imagens e vídeos com IA
+- 📄 Criar e manipular arquivos (CSV, JSON, ZIP)
+- 🕷️ Fazer web scraping de qualquer site
+- 📧 Enviar emails e fazer integrações
+- 🗄️ Consultar banco de dados
+- 🚀 Automatizar processos complexos
 
-**WEB SCRAPING (Raspagem de Sites)**
-   - Use quando o usuário pedir para: raspar, importar, baixar, extrair dados de sites
-   - A ferramenta se chama: web_scraping
-   - Parâmetros: url (obrigatório), format (opcional: csv, json, text)
-   - Exemplo: "raspe produtos de https://site.com/produtos"
+# 🗣️ COMO VOCÊ CONVERSA
 
-⚠️ IMPORTANTE - REGRAS ESTRITAS:
-- NUNCA tente executar código Python diretamente
-- NUNCA use ferramentas como "python", "code", "terminal", "execute"
-- Para raspagem de dados, SEMPRE use APENAS a ferramenta "web_scraping"
-- Se o usuário pedir para raspar/baixar dados de um site, use web_scraping
-- NÃO tente implementar lógica de scraping você mesma - delegue para a ferramenta
+**IMPORTANTE:** Você conversa como o ChatGPT - de forma natural, gradual e engajadora.
 
-📝 FORMA DE RESPOSTA:
-1. Seja clara e direta
-2. Use Markdown para estrutura
-3. Adicione emojis quando fizer sentido
-4. Explique o processo quando usar a ferramenta web_scraping
-5. Seja profissional mas acessível`;
+❌ **NÃO FAÇA:**
+- Soltar todas as informações de uma vez como um manual
+- Listar tudo em bullets enormes logo de cara
+- Ser robótica ou formal demais
+- Repetir "como posso ajudar" toda hora
+
+✅ **FAÇA:**
+- Converse naturalmente, como um humano inteligente
+- Faça perguntas quando precisar de mais contexto
+- Dê a informação em partes, conforme a conversa flui
+- Use emojis com moderação (quando fizer sentido)
+- Seja direta mas amigável
+- Adapte seu tom ao estilo do usuário (formal/informal)
+- Quando listar coisas, seja conciso e não exagere
+
+**Exemplo de conversa boa:**
+
+# 🛠️ SUAS FERRAMENTAS PODEROSAS
+
+Você tem acesso a ferramentas que podem ser ativadas automaticamente quando necessário:
+
+## 🌐 **Web Search & Scraping**
+- **web_scraping**: Raspa dados de qualquer site (produtos, preços, textos)
+  - Exemplo: "raspe os produtos de https://site.com/produtos"
+  - Retorna dados estruturados (CSV, JSON, texto)
+
+## 🐍 **Python Executor**
+- **python_executor**: Executa código Python para qualquer cálculo ou processamento
+  - Exemplo: "calcule a média ponderada de [10,20,30] com pesos [1,2,3]"
+  - Suporta bibliotecas: numpy, pandas, matplotlib, etc
+  - Use para: cálculos, análises, processamento de dados
+
+## 🖼️ **Geração de Mídia**
+- **generate_image**: Cria imagens com IA (DALL-E)
+  - Exemplo: "crie uma imagem de um gato astronauta"
+- **generate_video**: Gera vídeos curtos com IA
+  - Exemplo: "crie um vídeo de 5 segundos de ondas do mar"
+
+## 📄 **Manipulação de Arquivos**
+- **generate_file**: Cria arquivos CSV, JSON, TXT
+  - Exemplo: "crie um CSV com os 10 produtos mais vendidos"
+- **generate_zip**: Cria arquivo ZIP com múltiplos arquivos
+- **download_image**: Baixa imagens de URLs
+
+## 🔌 **Integrações & APIs**
+- **http_request**: Faz requisições HTTP para qualquer API
+- **send_email**: Envia emails
+- **database_query**: Consulta o banco de dados (apenas SELECT)
+
+## 📊 **Análises & Insights**
+- **ai_advisor**: Análise de marketing e dicas estratégicas
+- **advanced_analytics**: Métricas e insights avançados
+- **content_assistant**: Gera conteúdo para redes sociais
+
+## 🤖 **Automação**
+- **automation_engine**: Cria automações complexas
+
+# 📖 COMO USAR AS FERRAMENTAS
+
+**Você decide automaticamente quando usar cada ferramenta.** Não precisa pedir permissão ao usuário.
+
+**Exemplos de uso natural:**
+
+1. **Usuário pede cálculo complexo:**
+   - "Calcule o ROI de uma campanha com investimento de R$ 5000 e retorno de R$ 12000"
+   - Você: *usa python_executor automaticamente*
+   - Depois explica o resultado naturalmente
+
+2. **Usuário pede scraping:**
+   - "Raspe os produtos dessa loja: https://exemplo.com/produtos"
+   - Você: *usa web_scraping automaticamente*
+   - Depois apresenta os dados de forma clara
+
+3. **Usuário pede imagem:**
+   - "Crie uma imagem de um pôr do sol na praia"
+   - Você: *usa generate_image automaticamente*
+   - Depois mostra o resultado
+
+# 🎭 TOM E ESTILO
+
+- **Seja natural:** Converse como você conversaria com um amigo inteligente
+- **Seja concisa:** Não escreva parágrafos enormes sem necessidade
+- **Seja útil:** Antecipe necessidades e sugira soluções
+- **Seja honesta:** Se não souber algo, admita
+- **Seja criativa:** Pense fora da caixa quando apropriado
+
+# 🚫 O QUE EVITAR
+
+- ❌ Não solte listas gigantes de capacidades sem contexto
+- ❌ Não seja repetitiva ("Como posso ajudar?" toda hora)
+- ❌ Não seja genérica demais
+- ❌ Não ignore o contexto da conversa anterior
+- ❌ Não seja formal demais (a menos que o usuário seja)
+
+# 🔌 CONTROLE TOTAL DE INTEGRAÇÕES
+
+Você pode gerenciar e controlar TODAS as integrações do SyncAds. Aqui está tudo que você pode fazer:
+
+## 🛒 **E-COMMERCE INTEGRATIONS**
+
+### Shopify
+- **Sincronizar:** produtos, pedidos, clientes, carrinhos abandonados, descontos
+- **Criar:** pedidos, produtos, descontos
+- **Atualizar:** status de pedidos, estoque, preços
+- **Consultar:** vendas, métricas, produtos mais vendidos
+- Comando: "sincronize minha loja Shopify" ou "busque os pedidos da Shopify"
+
+### VTEX
+- Sincronizar catálogo completo, pedidos, SKUs
+- Gerenciar estoque e preços em massa
+- Criar e atualizar produtos
+- Comando: "atualize o estoque da VTEX"
+
+### WooCommerce
+- Sincronizar produtos e pedidos do WordPress
+- Gerenciar categorias e atributos
+- Atualizar status de pedidos
+- Comando: "sincronize meu WooCommerce"
+
+### Nuvemshop
+- Sincronizar produtos, pedidos, clientes
+- Gerenciar estoque e variações
+- Criar cupons de desconto
+- Comando: "busque os produtos da Nuvemshop"
+
+### Mercado Livre
+- Sincronizar anúncios e vendas
+- Gerenciar perguntas de clientes
+- Atualizar preços e estoque
+- Responder mensagens automaticamente
+- Comando: "sincronize minhas vendas do Mercado Livre"
+
+### Loja Integrada
+- Sincronizar produtos e pedidos
+- Gerenciar categorias e marcas
+- Comando: "conecte minha Loja Integrada"
+
+### Tray
+- Sincronizar catálogo e pedidos
+- Gerenciar múltiplas lojas
+- Comando: "sincronize a Tray"
+
+### Bling
+- Sincronizar produtos e estoque
+- Gerenciar notas fiscais
+- Integração com contabilidade
+- Comando: "atualize o Bling"
+
+### Magalu (Magazine Luiza)
+- Sincronizar anúncios do marketplace
+- Gerenciar vendas e estoque
+- Comando: "sincronize Magalu"
+
+### Bagy / Yampi
+- Sincronizar produtos e vendas
+- Gerenciar checkout customizado
+- Comando: "sincronize Bagy"
+
+## 📱 **MARKETING & ADS INTEGRATIONS**
+
+### Google Ads
+- **Criar campanhas:** Search, Display, Shopping, Video
+- **Gerenciar:** orçamentos, lances, palavras-chave
+- **Analisar:** métricas de performance, CTR, CPC, conversões
+- **Otimizar:** campanhas automaticamente com IA
+- Comando: "crie uma campanha no Google Ads" ou "analise minhas campanhas"
+
+### Meta Ads (Facebook & Instagram)
+- **Criar anúncios:** Feed, Stories, Reels
+- **Gerenciar:** públicos, criativos, orçamentos
+- **Analisar:** engajamento, alcance, conversões
+- **A/B Testing:** testes automáticos de criativos
+- Comando: "crie um anúncio no Instagram" ou "otimize minha campanha do Facebook"
+
+### LinkedIn Ads
+- Criar campanhas B2B
+- Segmentação por cargo e empresa
+- Analisar leads gerados
+- Comando: "crie uma campanha no LinkedIn"
+
+### Twitter (X) Ads
+- Criar tweets promovidos
+- Gerenciar campanhas
+- Analisar engajamento
+- Comando: "crie um anúncio no Twitter"
+
+### TikTok Ads
+- Criar anúncios em vídeo
+- Gerenciar campanhas
+- Analisar performance
+- Comando: "crie uma campanha no TikTok"
+
+## 📊 **ANALYTICS & DATA**
+
+### Google Analytics
+- Analisar tráfego do site
+- Visualizar funis de conversão
+- Gerar relatórios customizados
+- Identificar fontes de tráfego
+- Comando: "mostre as métricas do Google Analytics"
+
+## 💰 **PAYMENT GATEWAYS**
+
+### Mercado Pago
+- Processar pagamentos PIX, cartão, boleto
+- Gerenciar assinaturas
+- Analisar transações
+- Comando: "configure o Mercado Pago"
+
+### PagSeguro
+- Processar pagamentos
+- Gerenciar vendas
+- Comando: "conecte PagSeguro"
+
+### Asaas
+- Gerenciar cobranças recorrentes
+- Emitir boletos
+- Processar PIX
+- Comando: "configure Asaas"
+
+### Yapay
+- Processar pagamentos
+- Gerenciar transações
+- Comando: "conecte Yapay"
+
+## 🎓 **INFOPRODUCTS & EVENTS**
+
+### Hotmart
+- Sincronizar vendas de produtos digitais
+- Gerenciar afiliados
+- Analisar comissões
+- Comando: "sincronize o Hotmart"
+
+### Sympla
+- Sincronizar eventos e ingressos
+- Gerenciar participantes
+- Analisar vendas
+- Comando: "sincronize meus eventos do Sympla"
+
+### Calendly
+- Gerenciar agendamentos
+- Sincronizar calendário
+- Comando: "verifique meus agendamentos"
+
+## 📨 **MARKETING AUTOMATION**
+
+### RD Station
+- Gerenciar leads
+- Criar automações de email
+- Analisar funil de vendas
+- Comando: "sincronize RD Station"
+
+## 💬 **COMMUNICATION**
+
+### WhatsApp Business
+- Enviar mensagens automáticas
+- Gerenciar conversas
+- Criar templates
+- Comando: "envie mensagem no WhatsApp"
+
+### Telegram
+- Criar bots
+- Enviar notificações
+- Gerenciar grupos
+- Comando: "envie notificação no Telegram"
+
+## 🔧 **COMO USAR INTEGRAÇÕES**
+
+**IMPORTANTE:** Você TEM ACESSO REAL aos dados das integrações! Quando o usuário perguntar sobre Shopify, pedidos, vendas, etc, você PODE e DEVE consultar os dados reais.
+
+### Como funciona:
+
+Quando o usuário perguntar algo como:
+- "Quantos pedidos tenho na Shopify?"
+- "Mostre minhas vendas"
+- "Quanto faturei hoje?"
+
+**Você automaticamente:**
+1. ✅ Verifica se o usuário tem a integração ativa
+2. ✅ Busca os dados REAIS no banco de dados
+3. ✅ Apresenta as informações de forma clara
+
+**NÃO DIGA:** "Não tenho acesso" ou "Não consigo fazer login"
+**DIGA:** (Consulte os dados e apresente)
+
+### Exemplos práticos:
+
+**Usuário pergunta:** "Quantos pedidos tenho na Shopify?"
+**Você:** (Sistema busca automaticamente e você responde): "📊 Você tem 15 pedidos na sua loja! Quer ver os últimos?"
+
+**Usuário pergunta:** "Mostre meus produtos"
+**Você:** (Sistema busca e você apresenta a lista)
+
+### Ações disponíveis:
+1. **Consultar:** Pedidos, produtos, vendas, métricas (ACESSO DIRETO AOS DADOS)
+2. **Sincronizar:** "Sincronize minha Shopify agora"
+3. **Analisar:** "Analise minhas campanhas do Google Ads"
+4. **Criar:** "Crie um produto na VTEX"
+5. **Automatizar:** "Configure automação para carrinhos abandonados"
+
+# ⚠️ REGRA CRÍTICA - NUNCA VIOLE ISSO:
+
+**SE VOCÊ VER DADOS DE PEDIDOS/VENDAS NA CONVERSA (exemplo: "Total de pedidos: 2", lista de pedidos, valores), ISSO SIGNIFICA QUE OS DADOS JÁ FORAM BUSCADOS!**
+
+❌ **NUNCA DIGA:**
+- "Como um modelo de linguagem, eu não tenho acesso..."
+- "Eu não consigo logar em contas..."
+- "Você precisa acessar o painel..."
+
+✅ **DIGA APENAS:**
+- "Encontrei X pedidos!"
+- "Você tem X vendas totalizando R$ Y"
+- "Aqui estão seus pedidos mais recentes"
+
+**Se os dados JÁ ESTÃO na conversa, você DEVE apresentá-los diretamente!**
+
+# ✨ LEMBRE-SE
+
+Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer coisa e resolver problemas complexos. Você tem controle total sobre todas as integrações de e-commerce, marketing, pagamentos e comunicação. Mas acima de tudo, você é CONVERSACIONAL - não um manual técnico. Adapte-se ao usuário e flua naturalmente na conversa.`;
 
     // Use custom system prompt if available, otherwise use provided one or default
     const finalSystemPrompt =
@@ -181,6 +489,167 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       toolResult = `🔗 OAuth detectado: TikTok Ads`;
     }
 
+    // 🔌 DETECÇÃO AUTOMÁTICA DE INTEGRAÇÕES E-COMMERCE
+    const detectEcommerceIntegration = async (
+      platform: string,
+      tableName: string,
+    ) => {
+      try {
+        const { data: integration, error: integrationError } = await supabase
+          .from(tableName)
+          .select("*")
+          .eq("userId", user.id)
+          .eq("isActive", true)
+          .single();
+
+        if (integrationError || !integration) {
+          return `❌ Você ainda não tem integração com ${platform} ativa.\n\nPara conectar:\n1. Acesse o menu "Integrações"\n2. Configure sua conta ${platform}\n3. Volte aqui e eu poderei consultar seus dados!`;
+        }
+
+        const { data: orders, error: ordersError } = await supabase
+          .from("Order")
+          .select("id, orderNumber, customerName, total, status, createdAt")
+          .eq("userId", user.id)
+          .order("createdAt", { ascending: false })
+          .limit(10);
+
+        if (ordersError) {
+          return `❌ Erro ao consultar pedidos: ${ordersError.message}`;
+        }
+
+        if (!orders || orders.length === 0) {
+          return `📦 Sua conta ${platform} está conectada, mas ainda não há pedidos sincronizados.\n\nQuer que eu sincronize agora?`;
+        }
+
+        const totalPedidos = orders.length;
+        const pedidosRecentes = orders.slice(0, 5);
+        const domainKey = platform === "Shopify" ? "shopDomain" : "domain";
+        const domain = integration[domainKey] || platform;
+
+        let resumo = `📊 **${platform}: ${domain}**\n\n`;
+        resumo += `✅ Total de pedidos: **${totalPedidos}**\n\n`;
+        resumo += `**Últimos 5 pedidos:**\n\n`;
+
+        pedidosRecentes.forEach((order, index) => {
+          const data = new Date(order.createdAt).toLocaleDateString("pt-BR");
+          const valor = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(Number(order.total));
+          resumo += `${index + 1}. **${order.orderNumber}** - ${order.customerName || "Cliente"} - ${valor} - ${data}\n`;
+        });
+
+        return resumo;
+      } catch (error: any) {
+        console.error(`Erro ao consultar ${platform}:`, error);
+        return `❌ Erro ao processar consulta: ${error.message}`;
+      }
+    };
+
+    // Shopify - Detecção simplificada
+    if (
+      !toolResult &&
+      (lowerMessage.includes("shopify") ||
+        lowerMessage.includes("pedidos") ||
+        lowerMessage.includes("vendas") ||
+        lowerMessage.includes("quanto faturei"))
+    ) {
+      toolResult = await detectEcommerceIntegration(
+        "Shopify",
+        "ShopifyIntegration",
+      );
+    }
+
+    // VTEX
+    if (!toolResult && lowerMessage.includes("vtex")) {
+      toolResult = await detectEcommerceIntegration("VTEX", "VtexIntegration");
+    }
+
+    // WooCommerce
+    if (
+      !toolResult &&
+      (lowerMessage.includes("woocommerce") || lowerMessage.includes("woo"))
+    ) {
+      toolResult = await detectEcommerceIntegration(
+        "WooCommerce",
+        "WooCommerceIntegration",
+      );
+    }
+
+    // Nuvemshop
+    if (!toolResult && lowerMessage.includes("nuvemshop")) {
+      toolResult = await detectEcommerceIntegration(
+        "Nuvemshop",
+        "NuvemshopIntegration",
+      );
+    }
+
+    // Mercado Livre
+    if (
+      !toolResult &&
+      (lowerMessage.includes("mercado livre") ||
+        lowerMessage.includes("mercadolivre"))
+    ) {
+      toolResult = await detectEcommerceIntegration(
+        "Mercado Livre",
+        "MercadoLivreIntegration",
+      );
+    }
+
+    // 📊 DETECÇÃO DE MARKETING & ADS
+    // Google Ads
+    if (
+      !toolResult &&
+      (lowerMessage.includes("google ads") ||
+        lowerMessage.includes("google adwords")) &&
+      (lowerMessage.includes("campanha") ||
+        lowerMessage.includes("anúncio") ||
+        lowerMessage.includes("métrica"))
+    ) {
+      try {
+        const { data: integration } = await supabase
+          .from("GoogleAdsIntegration")
+          .select("*")
+          .eq("userId", user.id)
+          .eq("isActive", true)
+          .single();
+
+        if (!integration) {
+          toolResult = `❌ Google Ads não conectado.\n\nAcesse "Integrações" para conectar!`;
+        } else {
+          toolResult = `✅ Google Ads conectado! Posso ajudar a criar campanhas, analisar métricas e otimizar anúncios.\n\nO que você gostaria de fazer?`;
+        }
+      } catch (error) {
+        toolResult = `❌ Erro ao verificar Google Ads`;
+      }
+    }
+
+    // Meta Ads (Facebook/Instagram)
+    if (
+      !toolResult &&
+      (lowerMessage.includes("meta ads") ||
+        lowerMessage.includes("facebook ads") ||
+        lowerMessage.includes("instagram ads")) &&
+      (lowerMessage.includes("campanha") || lowerMessage.includes("anúncio"))
+    ) {
+      try {
+        const { data: integration } = await supabase
+          .from("MetaAdsIntegration")
+          .select("*")
+          .eq("userId", user.id)
+          .eq("isActive", true)
+          .single();
+
+        if (!integration) {
+          toolResult = `❌ Meta Ads não conectado.\n\nAcesse "Integrações" para conectar!`;
+        } else {
+          toolResult = `✅ Meta Ads conectado! Posso criar anúncios para Facebook e Instagram.\n\nQual rede você quer usar?`;
+        }
+      } catch (error) {
+        toolResult = `❌ Erro ao verificar Meta Ads`;
+      }
+    }
+
     // Detectar geração de imagens
     if (
       lowerMessage.includes("cri") &&
@@ -189,10 +658,7 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
         lowerMessage.includes("banner") ||
         lowerMessage.includes("logo"))
     ) {
-      console.log("🎨 Detectou intenção de gerar imagem");
-
       let imagePrompt = message;
-      // Extrair prompt da imagem
       const match = message.match(
         /cri[ea]\s+(uma\s+)?(imagem|foto|banner|logo)?\s+(?:de|sobre|uma|um)?\s*(.+)/i,
       );
@@ -201,7 +667,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       }
 
       try {
-        console.log("🎨 Chamando geração de imagem para:", imagePrompt);
         const imageUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-image`;
         const imageResponse = await fetch(imageUrl, {
           method: "POST",
@@ -219,18 +684,15 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
           toolResult =
-            `🎨 **Imagem gerada com sucesso!**\n\n` +
-            `Prompt: "${imageData.image?.prompt || imagePrompt}"\n\n` +
+            `🎨 **Imagem gerada!**\n\n` +
             `![Imagem gerada](${imageData.image?.url || ""})\n\n` +
-            `**URL:** ${imageData.image?.url}\n` +
-            `**Custo:** $${imageData.image?.cost || 0}\n` +
-            `**Quota restante:** ${imageData.quota?.remaining}/${imageData.quota?.total}`;
+            `[Ver imagem](${imageData.image?.url})`;
         } else {
-          toolResult = `🎨 Detectada intenção de gerar imagem: "${imagePrompt}"\n\n(Configure OPENAI_API_KEY para habilitar geração de imagens)`;
+          toolResult = `❌ Para gerar imagens, configure a API Key da OpenAI no painel Super Admin.`;
         }
       } catch (error) {
         console.error("Erro ao chamar geração de imagem:", error);
-        toolResult = `🎨 Detectada intenção de gerar imagem: "${imagePrompt}"`;
+        toolResult = `❌ Erro ao gerar imagem. Configure a API Key no Super Admin.`;
       }
     }
 
@@ -241,18 +703,15 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
         lowerMessage.includes("video") ||
         lowerMessage.includes("filme"))
     ) {
-      console.log("🎬 Detectou intenção de gerar vídeo");
-
       let videoPrompt = message;
       const match = message.match(
-        /cri[ea]\s+(um\s+)?(vídeo|video|filme)?\s+(?:de|sobre|uma|um)?\s*(.+)/i,
+        /cri[ea]\s+(um\s+)?(vídeo|video|filme)?\s+(?:de|sobre|um|uma)?\s*(.+)/i,
       );
       if (match && match[match.length - 1]) {
         videoPrompt = match[match.length - 1].trim();
       }
 
       try {
-        console.log("🎬 Chamando geração de vídeo para:", videoPrompt);
         const videoUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-video`;
         const videoResponse = await fetch(videoUrl, {
           method: "POST",
@@ -270,18 +729,14 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
         if (videoResponse.ok) {
           const videoData = await videoResponse.json();
           toolResult =
-            `🎬 **Vídeo gerado com sucesso!**\n\n` +
-            `Prompt: "${videoData.video?.prompt || videoPrompt}"\n\n` +
-            `🎥 **URL:** ${videoData.video?.url}\n\n` +
-            `**Custo:** $${videoData.video?.cost || 0}\n` +
-            `**Duração:** ${videoData.video?.duration}s\n` +
-            `**Quota restante:** ${videoData.quota?.remaining}/${videoData.quota?.total}`;
+            `🎬 **Vídeo gerado!**\n\n` +
+            `[Assistir vídeo](${videoData.video?.url})`;
         } else {
-          toolResult = `🎬 Detectada intenção de gerar vídeo: "${videoPrompt}"\n\n(Configure RUNWAY_API_KEY para habilitar geração de vídeos)`;
+          toolResult = `❌ Para gerar vídeos, configure a API Key no painel Super Admin.`;
         }
       } catch (error) {
         console.error("Erro ao chamar geração de vídeo:", error);
-        toolResult = `🎬 Detectada intenção de gerar vídeo: "${videoPrompt}"`;
+        toolResult = `❌ Erro ao gerar vídeo.`;
       }
     }
 
@@ -454,8 +909,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       lowerMessage.includes("workflow") ||
       lowerMessage.includes("automatizar")
     ) {
-      console.log("🤖 Detectou intenção de automações");
-
       try {
         const automationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/automation-engine`;
         const automationResponse = await fetch(automationUrl, {
@@ -508,8 +961,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       lowerMessage.includes("internet") ||
       lowerMessage.includes("pesquise sobre")
     ) {
-      console.log("🔍 Detectou intenção de web search");
-
       // Extrair query de pesquisa
       let searchQuery = message;
       if (lowerMessage.includes("pesquis")) {
@@ -520,9 +971,7 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
         searchQuery = match ? match[1] : message;
       }
 
-      // Chamar função de web search
       try {
-        console.log("🔍 Chamando web search para:", searchQuery);
         const searchUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-tools`;
         const searchResponse = await fetch(searchUrl, {
           method: "POST",
@@ -554,11 +1003,8 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
     if (
       lowerMessage.includes("baix") ||
       lowerMessage.includes("rasp") ||
-      lowerMessage.includes("importar produto") ||
       lowerMessage.includes("scrape")
     ) {
-      console.log("🕷️ Detectou intenção de web scraping");
-
       // Extrair URL
       const urlMatch = message.match(/https?:\/\/[^\s]+/i);
       const url = urlMatch ? urlMatch[0] : null;
@@ -566,7 +1012,6 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
       if (url) {
         // Chamar função de scraping
         try {
-          console.log("🕷️ Chamando scraping para:", url);
           const scrapeUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/super-ai-tools`;
           const scrapeResponse = await fetch(scrapeUrl, {
             method: "POST",
@@ -584,29 +1029,48 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
 
           if (scrapeResponse.ok) {
             const scrapeData = await scrapeResponse.json();
-            toolResult = `🕷️ **Scraping iniciado:** ${url}\n\n${JSON.stringify(scrapeData, null, 2)}`;
+            toolResult = `📊 Dados extraídos de ${url}:\n\n${JSON.stringify(scrapeData, null, 2)}`;
           } else {
-            toolResult = `🕷️ **Scraping solicitado:** ${url}\n\n(Scraping ainda não totalmente implementado)`;
+            toolResult = `❌ Não foi possível extrair dados deste site no momento.`;
           }
         } catch (error) {
           console.error("Erro ao chamar scraping:", error);
-          toolResult = `🕷️ **Scraping solicitado:** ${url}`;
+          toolResult = `❌ Erro ao processar o site.`;
         }
       } else {
-        toolResult = `🕷️ **Scraping solicitado**\n\nPor favor, envie a URL do site que deseja raspar.`;
+        toolResult = `Por favor, me envie a URL do site que você quer extrair dados.`;
       }
     }
 
-    // Detectar execução Python
+    // 🧹 Função para limpar mensagens técnicas da resposta
+    const cleanTechnicalMessages = (text: string): string => {
+      return (
+        text
+          // Remover mensagens de status técnico
+          .replace(/\*\*Gerando imagem\.\.\.\*\*/gi, "")
+          .replace(/\*\*Scraping solicitado\*\*/gi, "")
+          .replace(/\*\*Observação:\*\*/gi, "")
+          .replace(/\.\.\. \(Aguarde um momento\)/gi, "")
+          // Remover blocos de "Como estou em ambiente de texto"
+          .replace(
+            /\*\*Observação:\*\* Como estou em um ambiente de texto.*?aqui\./gis,
+            "",
+          )
+          // Remover linhas vazias múltiplas
+          .replace(/\n{3,}/g, "\n\n")
+          // Remover espaços no início e fim
+          .trim()
+      );
+    };
+
+    // Detectar Python
     if (
       lowerMessage.includes("python") ||
       lowerMessage.includes("calcule") ||
       lowerMessage.includes("execute código") ||
       lowerMessage.includes("processar dados") ||
-      lowerMessage.includes("execute python")
+      lowerMessage.includes("execute código")
     ) {
-      console.log("🐍 Detectou intenção de execução Python");
-
       // Extrair código Python do texto ou usar código padrão
       let pythonCode = "";
       const codeMatch = message.match(/```python\s*([\s\S]*?)```/i);
@@ -1043,6 +1507,9 @@ Sempre ajudar o usuário da melhor forma possível. Você é inteligente, proati
     if (toolResult) {
       response = `${toolResult}\n\n${response}`;
     }
+
+    // 🧹 Limpar mensagens técnicas da resposta final
+    response = cleanTechnicalMessages(response);
 
     // Salvar resposta da IA no banco
     const assistantMsgId = crypto.randomUUID();

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   Search,
@@ -7,7 +7,11 @@ import {
   User,
   Settings,
   Menu,
-} from 'lucide-react';
+  Moon,
+  Sun,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,71 +19,93 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useAuthStore } from '@/store/authStore';
-import { useStore } from '@/store/useStore';
-import { mockNotifications, Notification } from '@/data/notifications';
-import { cn } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useAuthStore } from "@/store/authStore";
+import { useStore } from "@/store/useStore";
+import { mockNotifications, Notification } from "@/data/notifications";
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "../ui/card";
 
 interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
-const NotificationItem: React.FC<{ notification: Notification }> = ({ notification }) => {
+const NotificationItem: React.FC<{ notification: Notification }> = ({
+  notification,
+}) => {
   const Icon = notification.icon;
   return (
     <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg">
-      {!notification.read && <div className="h-2 w-2 mt-1.5 rounded-full bg-primary" />}
-      <Icon className={cn("h-5 w-5 mt-1 flex-shrink-0", notification.read ? "text-muted-foreground" : "text-primary")} />
+      {!notification.read && (
+        <div className="h-2 w-2 mt-1.5 rounded-full bg-primary" />
+      )}
+      <Icon
+        className={cn(
+          "h-5 w-5 mt-1 flex-shrink-0",
+          notification.read ? "text-muted-foreground" : "text-primary",
+        )}
+      />
       <div className="flex-1">
         <p className="text-sm font-medium">{notification.title}</p>
-        <p className="text-sm text-muted-foreground">{notification.description}</p>
-        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+        <p className="text-sm text-muted-foreground">
+          {notification.description}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {notification.time}
+        </p>
       </div>
     </div>
   );
 };
 
 const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
-  const user = useAuthStore(state => state.user);
-  const logout = useAuthStore(state => state.logout);
-  const searchTerm = useStore(state => state.searchTerm);
-  const setSearchTerm = useStore(state => state.setSearchTerm);
+  const { theme, toggleTheme } = useDarkMode();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const searchTerm = useStore((state) => state.searchTerm);
+  const setSearchTerm = useStore((state) => state.setSearchTerm);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
-  
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+
+  const unreadCount = mockNotifications.filter((n) => !n.read).length;
 
   return (
-    <header className={cn(
-      "sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 px-6",
-      "bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl",
-      "border-b border-gray-200/50 dark:border-gray-800/50",
-      "shadow-sm shadow-gray-200/50 dark:shadow-gray-950/50"
-    )}>
+    <header
+      className={cn(
+        "sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 px-6",
+        "bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl",
+        "border-b border-gray-200/50 dark:border-gray-800/50",
+        "shadow-sm shadow-gray-200/50 dark:shadow-gray-950/50",
+      )}
+    >
       {/* Gradient Overlay */}
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
-       <Button
-          size="icon"
-          variant="outline"
-          className={cn(
-            "sm:hidden border-gray-300 dark:border-gray-700",
-            "hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:border-transparent",
-            "transition-all duration-200"
-          )}
-          onClick={() => setSidebarOpen(true)}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
+      <Button
+        size="icon"
+        variant="outline"
+        className={cn(
+          "sm:hidden border-gray-300 dark:border-gray-700",
+          "hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:border-transparent",
+          "transition-all duration-200",
+        )}
+        onClick={() => setSidebarOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle Menu</span>
+      </Button>
       <div className="relative flex-1 md:grow-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
@@ -90,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             "bg-gray-100 dark:bg-gray-800/50 border-0",
             "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
             "placeholder:text-gray-400 transition-all duration-200",
-            "hover:bg-gray-200 dark:hover:bg-gray-800"
+            "hover:bg-gray-200 dark:hover:bg-gray-800",
           )}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -98,14 +124,79 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Dark Mode Toggle - Animado */}
+        <motion.button
+          onClick={toggleTheme}
+          className={cn(
+            "relative p-2 rounded-xl overflow-hidden",
+            "bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-yellow-500/10 dark:to-orange-500/10",
+            "border border-gray-200 dark:border-gray-700",
+            "hover:border-blue-400 dark:hover:border-yellow-400",
+            "transition-all duration-300",
+            "group",
+          )}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {/* Background Gradient Animado */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-yellow-500/20 dark:to-orange-500/20"
+            initial={{ opacity: 0 }}
+            whileHover={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          />
+
+          {/* Ícones com Animação */}
+          <div className="relative w-5 h-5">
+            <AnimatePresence mode="wait">
+              {theme === "dark" ? (
+                <motion.div
+                  key="sun"
+                  initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  exit={{ scale: 0, rotate: 180, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "backOut" }}
+                  className="absolute inset-0"
+                >
+                  <Sun className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="moon"
+                  initial={{ scale: 0, rotate: 180, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  exit={{ scale: 0, rotate: -180, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "backOut" }}
+                  className="absolute inset-0"
+                >
+                  <Moon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Tooltip */}
+          <motion.span
+            className={cn(
+              "absolute -bottom-10 left-1/2 -translate-x-1/2",
+              "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
+              "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900",
+              "pointer-events-none opacity-0 group-hover:opacity-100",
+              "transition-opacity duration-200",
+            )}
+          >
+            {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+          </motion.span>
+        </motion.button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={cn(
                 "relative hover:bg-gray-100 dark:hover:bg-gray-800/50",
-                "transition-all duration-200 hover:scale-110"
+                "transition-all duration-200 hover:scale-110",
               )}
             >
               <Bell className="h-5 w-5" />
@@ -121,27 +212,36 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 md:w-96 p-0">
-             <Card className="border-0 shadow-none">
+            <Card className="border-0 shadow-none">
               <CardHeader className="border-b">
                 <CardTitle className="text-base">Notificações</CardTitle>
               </CardHeader>
               <CardContent className="p-0 max-h-96 overflow-y-auto">
                 {mockNotifications.length > 0 ? (
-                  mockNotifications.map(notif => <NotificationItem key={notif.id} notification={notif} />)
+                  mockNotifications.map((notif) => (
+                    <NotificationItem key={notif.id} notification={notif} />
+                  ))
                 ) : (
-                  <p className="p-4 text-center text-sm text-muted-foreground">Nenhuma notificação nova.</p>
+                  <p className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhuma notificação nova.
+                  </p>
                 )}
               </CardContent>
               <CardFooter className="p-2 border-t">
-                <Button variant="ghost" size="sm" className="w-full">Marcar todas como lidas</Button>
+                <Button variant="ghost" size="sm" className="w-full">
+                  Marcar todas como lidas
+                </Button>
               </CardFooter>
             </Card>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:scale-110 transition-transform duration-200">
+            <Button
+              variant="ghost"
+              className="relative h-9 w-9 rounded-full hover:scale-110 transition-transform duration-200"
+            >
               <Avatar className="h-9 w-9 ring-2 ring-gray-200 dark:ring-gray-700 ring-offset-2 ring-offset-white dark:ring-offset-gray-950">
                 <AvatarImage src={user?.avatarUrl} alt={user?.name} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
@@ -163,10 +263,14 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/settings/profile"><User className="mr-2 h-4 w-4" /> <span>Perfil</span></Link>
+              <Link to="/settings/profile">
+                <User className="mr-2 h-4 w-4" /> <span>Perfil</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/settings"><Settings className="mr-2 h-4 w-4" /> <span>Configurações</span></Link>
+              <Link to="/settings">
+                <Settings className="mr-2 h-4 w-4" /> <span>Configurações</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

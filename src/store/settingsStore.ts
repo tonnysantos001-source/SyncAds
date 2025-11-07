@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface NotificationSettings {
   emailSummary: boolean;
@@ -40,20 +40,21 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       // Estado inicial
-      aiSystemPrompt: 'Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.',
-      
+      aiSystemPrompt:
+        "Você é o SyncAds AI, um assistente de marketing digital especializado em otimização de campanhas. Seja proativo, criativo e forneça insights baseados em dados. Suas respostas devem ser claras, concisas e sempre focadas em ajudar o usuário a atingir seus objetivos de marketing.",
+
       aiInitialGreetings: [
-        "Show, chegou no lugar certo. Eu automatizo o que os outros demoram três reuniões pra entender. O que a gente vai otimizar hoje?",
-        "Relaxa, aqui não tem blá-blá-blá. Só plano, execução e conversão. Passa o produto e o público.",
-        "Beleza. Eu sou o motor que transforma tentativa em lucro. Quer começar pequeno ou já quer escalar até o servidor pedir arrego?",
-        "Ótimo. Se você quiser aula, vai pro YouTube. Se quiser dinheiro rodando, me dá os dados e deixa eu fazer o estrago.",
-        "Ah, ótimo… mais um querendo vender antes de entender o jogo. Respira. Me diz o produto — eu transformo tua ideia num motivo pra alguém gastar dinheiro agora.",
-        "Bem-vindo ao lado escuro do funil. Aqui a gente não inspira ninguém — a gente convence. Cê tá pronto pra sujar um pouco as mãos ou prefere PowerPoint?",
-        "Se você quer motivação, compra um livro. Se quer resultado, me dá acesso ao checkout e segura o ROI.",
-        "Eu sou o algoritmo de ressaca: sarcástico, funcional e viciado em lucro. Fala o que você vende antes que eu comece a julgar teu nicho.",
-        "Parabéns, você acabou de invocar o espírito da conversão. Sem papo de mindset, sem desculpa. Quer que eu destrinche teu tráfego ou tua vergonha de anunciar?"
+        "Oi! Como posso te ajudar hoje?",
+        "Olá! Em que posso ser útil?",
+        "E aí! Precisa de ajuda com alguma coisa?",
+        "Opa! Tudo bem? No que posso ajudar?",
+        "Olá! Estou aqui pra te ajudar. O que você precisa?",
+        "Oi! Pode me contar o que você tá precisando?",
+        "Hey! Como posso facilitar seu dia hoje?",
+        "Olá! Pronto pra te ajudar. Qual é a missão?",
+        "Oi! O que você gostaria de fazer hoje?",
       ],
-      
+
       isTwoFactorEnabled: false,
       notificationSettings: initialNotificationSettings,
 
@@ -61,33 +62,43 @@ export const useSettingsStore = create<SettingsState>()(
       setAiSystemPrompt: (prompt: string) => set({ aiSystemPrompt: prompt }),
 
       // Set AI Initial Greetings
-      setAiInitialGreetings: (greetings: string[]) => set({ aiInitialGreetings: greetings }),
+      setAiInitialGreetings: (greetings: string[]) =>
+        set({ aiInitialGreetings: greetings }),
 
       // Add AI Greeting
-      addAiGreeting: (greeting: string) => set((state) => ({
-        aiInitialGreetings: [...state.aiInitialGreetings, greeting]
-      })),
+      addAiGreeting: (greeting: string) =>
+        set((state) => ({
+          aiInitialGreetings: [...state.aiInitialGreetings, greeting],
+        })),
 
       // Remove AI Greeting
-      removeAiGreeting: (index: number) => set((state) => ({
-        aiInitialGreetings: state.aiInitialGreetings.filter((_, i) => i !== index)
-      })),
+      removeAiGreeting: (index: number) =>
+        set((state) => ({
+          aiInitialGreetings: state.aiInitialGreetings.filter(
+            (_, i) => i !== index,
+          ),
+        })),
 
       // Update AI Greeting
-      updateAiGreeting: (index: number, greeting: string) => set((state) => ({
-        aiInitialGreetings: state.aiInitialGreetings.map((g, i) => i === index ? greeting : g)
-      })),
+      updateAiGreeting: (index: number, greeting: string) =>
+        set((state) => ({
+          aiInitialGreetings: state.aiInitialGreetings.map((g, i) =>
+            i === index ? greeting : g,
+          ),
+        })),
 
       // Set Two Factor Enabled
-      setTwoFactorEnabled: (enabled: boolean) => set({ isTwoFactorEnabled: enabled }),
+      setTwoFactorEnabled: (enabled: boolean) =>
+        set({ isTwoFactorEnabled: enabled }),
 
       // Update Notification Settings
-      updateNotificationSettings: (settings: Partial<NotificationSettings>) => set((state) => ({
-        notificationSettings: { ...state.notificationSettings, ...settings }
-      })),
+      updateNotificationSettings: (settings: Partial<NotificationSettings>) =>
+        set((state) => ({
+          notificationSettings: { ...state.notificationSettings, ...settings },
+        })),
     }),
     {
-      name: 'settings-storage',
+      name: "settings-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         aiSystemPrompt: state.aiSystemPrompt,
@@ -95,6 +106,6 @@ export const useSettingsStore = create<SettingsState>()(
         isTwoFactorEnabled: state.isTwoFactorEnabled,
         notificationSettings: state.notificationSettings,
       }),
-    }
-  )
+    },
+  ),
 );

@@ -1,19 +1,28 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useStore } from '@/store/useStore';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useStore } from "@/store/useStore";
+import { useToast } from "@/components/ui/use-toast";
 
 export const ProfileTab: React.FC = () => {
-  const user = useStore(state => state.user);
-  const updateUser = useStore(state => state.updateUser);
+  const user = useStore((state) => state.user);
+  const updateUser = useStore((state) => state.updateUser);
   const { toast } = useToast();
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    user?.avatarUrl || null,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,30 +49,51 @@ export const ProfileTab: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader>
         <CardTitle>Perfil</CardTitle>
-        <CardDescription>Atualize seu avatar e detalhes do perfil.</CardDescription>
+        <CardDescription>
+          Atualize seu avatar e detalhes do perfil.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
             <AvatarImage src={avatarPreview || user?.avatarUrl} />
-            <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || 'P'}</AvatarFallback>
+            <AvatarFallback>
+              {user?.name?.charAt(0)?.toUpperCase() || "P"}
+            </AvatarFallback>
           </Avatar>
           <div className="grid gap-1.5">
             <Label htmlFor="picture">Avatar</Label>
-            <Input id="picture" type="file" className="w-full" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/gif" />
-            <p className="text-xs text-muted-foreground">PNG, JPG, GIF até 10MB</p>
+            <Input
+              id="picture"
+              type="file"
+              className="w-full"
+              onChange={handleAvatarChange}
+              accept="image/png, image/jpeg, image/gif"
+            />
+            <p className="text-xs text-muted-foreground">
+              PNG, JPG, GIF até 10MB
+            </p>
           </div>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="name">Nome</Label>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
       </CardContent>
       <CardFooter className="border-t px-6 py-4">

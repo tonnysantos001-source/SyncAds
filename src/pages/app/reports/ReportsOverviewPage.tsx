@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -6,6 +7,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  HiOutlineCurrencyDollar,
+  HiOutlineShoppingCart,
+  HiOutlineTrendingUp,
+  HiOutlineCreditCard,
+  HiOutlineCheckCircle,
+  HiOutlineClock,
+  HiOutlineXCircle,
+  HiOutlineUsers,
+  HiOutlineRefresh,
+  HiOutlineLightningBolt,
+  HiOutlineChartBar,
+  HiOutlineExclamationCircle,
+  HiOutlineShoppingBag,
+  HiOutlineCube,
+} from "react-icons/hi2";
+import { IoSparklesSharp } from "react-icons/io5";
 import {
   Activity,
   CreditCard,
@@ -464,7 +482,7 @@ export default function ReportsOverviewPage() {
     progressValue?: number;
     progressColor?: string;
   }) => (
-    <Card className="hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50">
+    <Card className="relative overflow-hidden border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-500">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-sm font-medium text-gray-600">
           {title}
@@ -532,18 +550,20 @@ export default function ReportsOverviewPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-gray-600 font-medium">
             Visão geral das suas métricas de vendas e conversão
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -557,6 +577,7 @@ export default function ReportsOverviewPage() {
             disabled={refreshing}
             variant="outline"
             size="icon"
+            className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all duration-300"
           >
             <RefreshCw
               className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
@@ -566,7 +587,7 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* Usuários Online */}
-      <Card className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border-purple-500/20">
+      <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-500">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -639,8 +660,8 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* Gráficos */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Receita ao Longo do Tempo</CardTitle>
             <CardDescription>
@@ -680,7 +701,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Status de Pedidos</CardTitle>
             <CardDescription>
@@ -727,7 +748,7 @@ export default function ReportsOverviewPage() {
 
       {/* Status de Pagamentos */}
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-0 bg-gradient-to-br from-green-50 to-white hover:shadow-xl transition-all duration-300">
+        <Card className="border-0 bg-gradient-to-br from-green-50 via-emerald-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -767,7 +788,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-yellow-50 to-white hover:shadow-xl transition-all duration-300">
+        <Card className="border-0 bg-gradient-to-br from-yellow-50 via-amber-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -807,7 +828,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-red-50 to-white hover:shadow-xl transition-all duration-300">
+        <Card className="border-0 bg-gradient-to-br from-red-50 via-rose-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -847,8 +868,8 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* Atividade Recente e Transações */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Atividade em Tempo Real</CardTitle>
             <CardDescription>Últimas ações no checkout</CardDescription>
@@ -911,7 +932,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Últimas Transações</CardTitle>
             <CardDescription>Pedidos mais recentes</CardDescription>
@@ -982,8 +1003,8 @@ export default function ReportsOverviewPage() {
       </div>
 
       {/* Carrinhos e Clientes */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Carrinhos Abandonados</CardTitle>
             <CardDescription>Oportunidades de recuperação</CardDescription>
@@ -1015,7 +1036,7 @@ export default function ReportsOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle>Clientes</CardTitle>
             <CardDescription>Base de clientes</CardDescription>

@@ -80,7 +80,7 @@ const OrdersManagementPage = () => {
             o.customerEmail?.includes("nao-informado@syncads.com.br") ||
             o.customerEmail?.includes("test") ||
             o.customerEmail?.includes("teste") ||
-            o.customerName?.toLowerCase().includes("cliente")
+            o.customerName?.toLowerCase().includes("cliente"),
         );
 
         setStats({
@@ -121,7 +121,7 @@ const OrdersManagementPage = () => {
         .select("id")
         .eq("userId", user.id)
         .or(
-          `customerEmail.ilike.%nao-informado@syncads.com.br%,customerEmail.ilike.%test%,customerEmail.ilike.%teste%,customerName.ilike.%cliente%`
+          `customerEmail.ilike.%nao-informado@syncads.com.br%,customerEmail.ilike.%test%,customerEmail.ilike.%teste%,customerName.ilike.%cliente%`,
         );
 
       if (fetchError) throw fetchError;
@@ -253,25 +253,34 @@ const OrdersManagementPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
           Gerenciamento de Pedidos
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600 dark:text-gray-300 dark:text-gray-300 font-medium">
           Limpe pedidos de teste e gerencie o banco de dados
         </p>
       </div>
+</text>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
+<old_text line=267>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Pedidos
             </CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total de Pedidos
+            </CardTitle>
+            <ShoppingCart className="h-4 w-4 text-gray-600 dark:text-gray-300" />
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -282,10 +291,17 @@ const OrdersManagementPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Database className="h-4 w-4 text-yellow-600" />
+            <Database className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+</text>
+
+<old_text line=298>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pagos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -298,7 +314,7 @@ const OrdersManagementPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pagos</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -314,12 +330,19 @@ const OrdersManagementPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Pedidos de Teste
             </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-500" />
+</text>
+
+<old_text line=332>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -332,11 +355,9 @@ const OrdersManagementPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receita Total
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -352,24 +373,30 @@ const OrdersManagementPage = () => {
       </div>
 
       {/* Warning Alert */}
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-0 bg-orange-50/80 dark:bg-orange-950/20 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 border-orange-200 dark:border-orange-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
-            <CardTitle className="text-orange-900">
-              Zona de Perigo
-            </CardTitle>
+            <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-500" />
+            <CardTitle className="text-orange-900 dark:text-orange-400">Zona de Perigo</CardTitle>
           </div>
-          <CardDescription className="text-orange-700">
+          <CardDescription className="text-orange-700 dark:text-orange-300">
+</text>
+
+<old_text line=365>
+        {/* Delete Test Orders */}
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-orange-600" />
             Use estas funções com cuidado. As ações não podem ser desfeitas.
           </CardDescription>
         </CardHeader>
       </Card>
 
       {/* Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Delete Test Orders */}
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-orange-600" />
@@ -440,10 +467,12 @@ const OrdersManagementPage = () => {
         </Card>
 
         {/* Delete All Orders */}
-        <Card className="border-red-200">
+        <Card className="border-0 bg-red-50/80 dark:bg-red-950/20 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 border-red-200 dark:border-red-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
+            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertTriangle className="h-5 w-5" />
+</text>
+
               Remover TODOS os Pedidos
             </CardTitle>
             <CardDescription className="text-red-600">

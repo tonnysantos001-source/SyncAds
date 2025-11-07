@@ -230,8 +230,8 @@ export default function ShippingPage() {
       <div className="p-6 sm:p-8 max-w-7xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Frete e Entrega</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">Frete e Entrega</h1>
+            <p className="text-gray-600 dark:text-gray-300 dark:text-gray-400 mt-1">
               Configure os métodos de entrega disponíveis no seu checkout
             </p>
           </div>
@@ -352,7 +352,7 @@ export default function ShippingPage() {
         {methods.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 dark:text-gray-400 mb-4">
                 Você ainda não tem métodos de frete configurados.
               </p>
               <Button

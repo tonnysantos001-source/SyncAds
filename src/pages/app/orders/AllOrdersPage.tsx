@@ -269,18 +269,20 @@ const AllOrdersPage = () => {
   const paidOrders = orders.filter((o) => o.paymentStatus === "PAID").length;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Pedidos</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Pedidos
+        </h1>
+        <p className="text-gray-600 font-medium">
           Visualize e gerencie todos os pedidos da sua loja
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Pedidos
@@ -292,7 +294,7 @@ const AllOrdersPage = () => {
             <p className="text-xs text-muted-foreground">Todos os pedidos</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pedidos Pagos</CardTitle>
             <Package className="h-4 w-4 text-green-600" />
@@ -306,7 +308,7 @@ const AllOrdersPage = () => {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Pedidos Pendentes
@@ -322,7 +324,7 @@ const AllOrdersPage = () => {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-blue-600" />
@@ -344,11 +346,11 @@ const AllOrdersPage = () => {
             placeholder="Buscar por número, cliente ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px] border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -365,7 +367,7 @@ const AllOrdersPage = () => {
           onClick={handleSyncShopify}
           disabled={syncing}
           variant="outline"
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all duration-300"
         >
           <RefreshCw
             className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`}
@@ -382,7 +384,7 @@ const AllOrdersPage = () => {
           <Skeleton className="h-24 w-full" />
         </div>
       ) : filteredOrders.length === 0 ? (
-        <Card>
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
@@ -404,7 +406,7 @@ const AllOrdersPage = () => {
             return (
               <Card
                 key={order.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow"
+                className="overflow-hidden border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4">

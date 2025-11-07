@@ -6,37 +6,27 @@ import { cn } from "@/lib/utils";
 
 interface GatewayCardProps {
   id: string;
-
   name: string;
-
   slug: string;
-
   logo: string;
-
   type: "nacional" | "global" | "both";
-
   status: "active" | "inactive";
-
   environment?: "production" | "sandbox";
   isVerified?: boolean;
+  isActive?: boolean;
   onClick?: () => void;
 }
 
 export const GatewayCard: React.FC<GatewayCardProps> = ({
   id,
-
   name,
-
   slug,
-
   logo,
-
   type,
-
   status,
-
   environment,
   isVerified,
+  isActive,
   onClick,
 }) => {
   const navigate = useNavigate();
@@ -55,22 +45,6 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
       onClick={handleClick}
     >
       <CardContent className="p-6">
-        {/* Status Indicator (Bolinha) - Top Right */}
-        <div className="absolute top-4 right-4">
-          <div
-            className={cn(
-              "h-3 w-3 rounded-full",
-
-              environment === "production" && isVerified
-                ? "bg-green-500"
-                : "bg-red-500",
-            )}
-            title={
-              environment === "production" && isVerified ? "Ativo" : "Inativo"
-            }
-          />
-        </div>
-
         {/* Gateway Logo and Name */}
         <div className="flex items-start gap-4">
           {/* Logo */}
@@ -80,7 +54,6 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
               alt={`${name} logo`}
               className="max-w-full max-h-full object-contain"
               onError={(e) => {
-                // Fallback se a imagem não carregar
                 const target = e.target as HTMLImageElement;
                 target.style.display = "none";
                 target.parentElement!.innerHTML = `
@@ -92,9 +65,17 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
 
           {/* Name and Badges */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white text-lg mb-2 truncate">
-              {name}
-            </h3>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
+                {name}
+              </h3>
+              {isActive && (
+                <div
+                  className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0"
+                  title="Gateway Ativo"
+                />
+              )}
+            </div>
 
             {/* Type Badges */}
             <div className="flex gap-2 flex-wrap">

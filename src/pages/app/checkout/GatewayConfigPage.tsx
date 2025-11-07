@@ -357,11 +357,11 @@ const GatewayConfigPage = () => {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
       {/* Back Button */}
       <button
         onClick={() => navigate("/checkout/gateways")}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         <span className="text-sm">ver todos gateways</span>
@@ -369,7 +369,7 @@ const GatewayConfigPage = () => {
 
       {/* Header with Logo */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden p-2">
+        <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden p-2">
           <img
             src={gateway.logo}
             alt={`${gateway.name} logo`}
@@ -377,10 +377,10 @@ const GatewayConfigPage = () => {
           />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             {gateway.name}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-gray-600 font-medium mt-1">
             Integre sua loja ao gateway {gateway.name}.
           </p>
         </div>
@@ -390,7 +390,7 @@ const GatewayConfigPage = () => {
         {/* Main Config Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Info */}
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>Informações básicas</CardTitle>
             </CardHeader>
@@ -471,7 +471,7 @@ const GatewayConfigPage = () => {
 
           {/* Rules/Additional Settings (Optional) */}
           {gateway.paymentMethods.length > 0 && (
-            <Card>
+            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle>Regras</CardTitle>
               </CardHeader>
@@ -531,10 +531,10 @@ const GatewayConfigPage = () => {
           {/* Status Card */}
           <Card
             className={cn(
-              "border-2",
+              "border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2",
               isActive
-                ? "border-green-200 bg-green-50 dark:bg-green-950/20"
-                : "border-red-200 bg-red-50 dark:bg-red-950/20",
+                ? "border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-950/20"
+                : "border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-950/20",
             )}
           >
             <CardContent className="p-6">

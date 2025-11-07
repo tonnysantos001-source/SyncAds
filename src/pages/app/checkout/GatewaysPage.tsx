@@ -31,6 +31,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { implementedGateways } from "@/lib/gateways/implementedGateways";
 
 const OLD_GATEWAYS_MOCK: any[] = [
   {
@@ -410,6 +411,12 @@ const GatewaysPage = () => {
     return configs.some((c) => c.gatewayId === gatewayId && c.isActive);
   };
 
+  const isGatewayActive = (gatewayId: string) => {
+    return configs.some(
+      (c) => c.gatewayId === gatewayId && c.isActive === true,
+    );
+  };
+
   const filteredGateways = gateways.filter((gateway) => {
     const matchesSearch = gateway.name
       .toLowerCase()
@@ -422,18 +429,18 @@ const GatewaysPage = () => {
   const otherGateways = filteredGateways.filter((g) => !g.isPopular);
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
           Gateways de Pagamento
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600 dark:text-gray-300 font-medium">
           Configure e gerencie seus gateways de pagamento ({gateways.length}{" "}
           disponíveis)
         </p>
       </div>
 
-      <Card>
+      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle className="text-lg">Gateways Configurados</CardTitle>
         </CardHeader>
@@ -441,7 +448,7 @@ const GatewaysPage = () => {
           <div className="text-2xl font-bold">
             {configs.filter((c) => c.isActive).length}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             de {gateways.length} gateways disponíveis
           </p>
         </CardContent>
@@ -449,12 +456,12 @@ const GatewaysPage = () => {
 
       <div className="flex gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 h-4 w-4" />
           <Input
             placeholder="Buscar gateway..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500"
           />
         </div>
         <Tabs value={filterType} onValueChange={(v: any) => setFilterType(v)}>
@@ -468,7 +475,7 @@ const GatewaysPage = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -478,11 +485,11 @@ const GatewaysPage = () => {
           {popularGateways.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-4">Gateways Populares</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {popularGateways.map((gateway) => (
                   <Card
                     key={gateway.id}
-                    className="hover:shadow-md transition-shadow"
+                    className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -499,9 +506,17 @@ const GatewaysPage = () => {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">
-                              {gateway.name}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold truncate">
+                                {gateway.name}
+                              </h3>
+                              {isGatewayActive(gateway.id) && (
+                                <div
+                                  className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"
+                                  title="Gateway Ativo"
+                                />
+                              )}
+                            </div>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {gateway.supportsPix && (
                                 <Badge variant="outline" className="text-xs">
@@ -547,11 +562,11 @@ const GatewaysPage = () => {
           {otherGateways.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-4">Outros Gateways</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {otherGateways.map((gateway) => (
                   <Card
                     key={gateway.id}
-                    className="hover:shadow transition-shadow"
+                    className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
@@ -562,9 +577,17 @@ const GatewaysPage = () => {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium truncate">
-                              {gateway.name}
-                            </h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-medium truncate">
+                                {gateway.name}
+                              </h4>
+                              {isGatewayActive(gateway.id) && (
+                                <div
+                                  className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"
+                                  title="Gateway Ativo"
+                                />
+                              )}
+                            </div>
                             {isConfigured(gateway.id) && (
                               <CheckCircle2 className="h-3 w-3 text-green-600" />
                             )}

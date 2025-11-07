@@ -1,52 +1,81 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Truck, Plus, Package, MapPin, Clock, DollarSign, Edit, Trash2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Truck,
+  Plus,
+  Package,
+  MapPin,
+  Clock,
+  DollarSign,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const LogisticsTab: React.FC = () => {
   const [shippingMethods, setShippingMethods] = useState([
     {
-      id: '1',
-      name: 'Correios - PAC',
-      carrier: 'Correios',
-      estimatedDays: '10-15',
-      price: 15.50,
+      id: "1",
+      name: "Correios - PAC",
+      carrier: "Correios",
+      estimatedDays: "10-15",
+      price: 15.5,
       freeShippingFrom: 100,
       active: true,
     },
     {
-      id: '2',
-      name: 'Correios - SEDEX',
-      carrier: 'Correios',
-      estimatedDays: '3-5',
-      price: 25.00,
+      id: "2",
+      name: "Correios - SEDEX",
+      carrier: "Correios",
+      estimatedDays: "3-5",
+      price: 25.0,
       freeShippingFrom: 200,
       active: true,
     },
     {
-      id: '3',
-      name: 'Entrega Local',
-      carrier: 'Própria',
-      estimatedDays: '1-2',
-      price: 10.00,
+      id: "3",
+      name: "Entrega Local",
+      carrier: "Própria",
+      estimatedDays: "1-2",
+      price: 10.0,
       freeShippingFrom: 50,
       active: true,
     },
   ]);
 
   const [newMethod, setNewMethod] = useState({
-    name: '',
-    carrier: '',
-    estimatedDays: '',
-    price: '',
-    freeShippingFrom: '',
+    name: "",
+    carrier: "",
+    estimatedDays: "",
+    price: "",
+    freeShippingFrom: "",
   });
 
   const handleAddMethod = () => {
@@ -64,19 +93,19 @@ export const LogisticsTab: React.FC = () => {
 
     setShippingMethods([...shippingMethods, method]);
     setNewMethod({
-      name: '',
-      carrier: '',
-      estimatedDays: '',
-      price: '',
-      freeShippingFrom: '',
+      name: "",
+      carrier: "",
+      estimatedDays: "",
+      price: "",
+      freeShippingFrom: "",
     });
   };
 
   const handleToggleActive = (id: string) => {
     setShippingMethods(
       shippingMethods.map((m) =>
-        m.id === id ? { ...m, active: !m.active } : m
-      )
+        m.id === id ? { ...m, active: !m.active } : m,
+      ),
     );
   };
 
@@ -85,37 +114,45 @@ export const LogisticsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       {/* Info Alert */}
       <Alert>
         <Truck className="h-4 w-4" />
         <AlertTitle>Configuração de Logística</AlertTitle>
         <AlertDescription>
-          Configure os métodos de envio disponíveis para seus clientes. Você pode adicionar frete grátis acima de um valor específico.
+          Configure os métodos de envio disponíveis para seus clientes. Você
+          pode adicionar frete grátis acima de um valor específico.
         </AlertDescription>
       </Alert>
 
       {/* Add New Shipping Method */}
-      <Card>
+      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle>Adicionar Método de Envio</CardTitle>
           <CardDescription>Configure um novo método de entrega</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             <div>
               <Label htmlFor="name">Nome do Método</Label>
               <Input
                 id="name"
                 placeholder="Ex: Correios - PAC"
                 value={newMethod.name}
-                onChange={(e) => setNewMethod({ ...newMethod, name: e.target.value })}
+                onChange={(e) =>
+                  setNewMethod({ ...newMethod, name: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
             <div>
               <Label htmlFor="carrier">Transportadora</Label>
-              <Select value={newMethod.carrier} onValueChange={(value) => setNewMethod({ ...newMethod, carrier: value })}>
+              <Select
+                value={newMethod.carrier}
+                onValueChange={(value) =>
+                  setNewMethod({ ...newMethod, carrier: value })
+                }
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -135,7 +172,9 @@ export const LogisticsTab: React.FC = () => {
                 id="estimatedDays"
                 placeholder="Ex: 5-10"
                 value={newMethod.estimatedDays}
-                onChange={(e) => setNewMethod({ ...newMethod, estimatedDays: e.target.value })}
+                onChange={(e) =>
+                  setNewMethod({ ...newMethod, estimatedDays: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
@@ -147,19 +186,28 @@ export const LogisticsTab: React.FC = () => {
                 step="0.01"
                 placeholder="0.00"
                 value={newMethod.price}
-                onChange={(e) => setNewMethod({ ...newMethod, price: e.target.value })}
+                onChange={(e) =>
+                  setNewMethod({ ...newMethod, price: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
             <div className="md:col-span-2">
-              <Label htmlFor="freeShippingFrom">Frete Grátis a partir de (R$)</Label>
+              <Label htmlFor="freeShippingFrom">
+                Frete Grátis a partir de (R$)
+              </Label>
               <Input
                 id="freeShippingFrom"
                 type="number"
                 step="0.01"
                 placeholder="0.00 (deixe em branco para não oferecer)"
                 value={newMethod.freeShippingFrom}
-                onChange={(e) => setNewMethod({ ...newMethod, freeShippingFrom: e.target.value })}
+                onChange={(e) =>
+                  setNewMethod({
+                    ...newMethod,
+                    freeShippingFrom: e.target.value,
+                  })
+                }
                 className="mt-1"
               />
             </div>
@@ -174,10 +222,12 @@ export const LogisticsTab: React.FC = () => {
       </Card>
 
       {/* Shipping Methods List */}
-      <Card>
+      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle>Métodos de Envio Configurados</CardTitle>
-          <CardDescription>Gerencie os métodos de entrega disponíveis</CardDescription>
+          <CardDescription>
+            Gerencie os métodos de entrega disponíveis
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -223,7 +273,9 @@ export const LogisticsTab: React.FC = () => {
                           Acima de R$ {method.freeShippingFrom.toFixed(2)}
                         </span>
                       ) : (
-                        <span className="text-sm text-muted-foreground">Não oferece</span>
+                        <span className="text-sm text-muted-foreground">
+                          Não oferece
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -251,7 +303,10 @@ export const LogisticsTab: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-muted-foreground"
+                  >
                     Nenhum método de envio configurado.
                   </TableCell>
                 </TableRow>
@@ -262,7 +317,7 @@ export const LogisticsTab: React.FC = () => {
       </Card>
 
       {/* Additional Settings */}
-      <Card>
+      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle>Configurações Adicionais</CardTitle>
           <CardDescription>Outras opções de logística</CardDescription>
@@ -271,7 +326,7 @@ export const LogisticsTab: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Calcular frete automaticamente</Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Integrar com API dos Correios para cálculo em tempo real
               </p>
             </div>
@@ -280,7 +335,7 @@ export const LogisticsTab: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Permitir retirada na loja</Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Cliente pode optar por retirar o pedido pessoalmente
               </p>
             </div>

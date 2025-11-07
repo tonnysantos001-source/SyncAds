@@ -141,11 +141,13 @@ const AllCustomersPage = () => {
   const activeCustomers = customers.filter((c) => c.status === "ACTIVE").length;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Clientes
+          </h1>
+          <p className="text-gray-600 font-medium">
             Visualize e gerencie todos os clientes da sua loja
           </p>
         </div>
@@ -157,8 +159,8 @@ const AllCustomersPage = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Clientes
@@ -169,7 +171,7 @@ const AllCustomersPage = () => {
             <div className="text-2xl font-bold">{customers.length}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Clientes Ativos
@@ -180,7 +182,7 @@ const AllCustomersPage = () => {
             <div className="text-2xl font-bold">{activeCustomers}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total de Pedidos
@@ -191,7 +193,7 @@ const AllCustomersPage = () => {
             <div className="text-2xl font-bold">{totalOrders}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -210,11 +212,11 @@ const AllCustomersPage = () => {
           placeholder="Buscar por nome, email ou CPF..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
+          className="pl-9 border-gray-200 bg-white/80 backdrop-blur-sm"
         />
       </div>
 
-      <Card>
+      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg">
         <CardHeader>
           <CardTitle>Lista de Clientes</CardTitle>
         </CardHeader>

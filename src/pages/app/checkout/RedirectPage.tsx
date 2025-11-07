@@ -244,14 +244,14 @@ const RedirectPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
             Redirecionamentos
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600 dark:text-gray-300 font-medium">
             Configure redirecionamentos inteligentes para maximizar conversões
           </p>
         </div>
@@ -263,34 +263,36 @@ const RedirectPage = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-4">
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Regras Ativas
               </CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeRules}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 de {stats.totalRules} regras
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Redirecionamentos
               </CardTitle>
-              <MousePointer className="h-4 w-4 text-muted-foreground" />
+              <MousePointer className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRedirects}</div>
-              <p className="text-xs text-muted-foreground">Cliques totais</p>
+              <div className="text-2xl font-bold">{stats.active}</div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Regras ativas
+              </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Conversões</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -299,23 +301,23 @@ const RedirectPage = () => {
               <div className="text-2xl font-bold text-green-600">
                 {stats.totalConversions}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Taxa: {formatPercent(stats.conversionRate)}
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Receita Gerada
               </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 R$ {stats.totalRevenue.toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Ticket: R$ {stats.averageOrderValue.toFixed(2)}
               </p>
             </CardContent>
@@ -324,7 +326,7 @@ const RedirectPage = () => {
       )}
 
       {/* Regras de Redirecionamento */}
-      <Card>
+      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Regras de Redirecionamento</CardTitle>

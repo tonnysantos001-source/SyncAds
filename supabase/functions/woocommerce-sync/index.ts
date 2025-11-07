@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -14,7 +15,7 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const { integrationId, action = "sync-all" } = await req.json();
@@ -29,11 +30,16 @@ serve(async (req) => {
     if (!integration) {
       return new Response(
         JSON.stringify({ success: false, error: "Integration not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    const auth = btoa(`${integration.consumerKey}:${integration.consumerSecret}`);
+    const auth = btoa(
+      `${integration.consumerKey}:${integration.consumerSecret}`,
+    );
     const baseUrl = integration.siteUrl;
 
     const { data: syncLog } = await supabase
@@ -55,14 +61,14 @@ serve(async (req) => {
       const productsUrl = `${baseUrl}/wp-json/wc/v3/products?per_page=100`;
       const response = await fetch(productsUrl, {
         headers: {
-          "Authorization": `Basic ${auth}`,
+          Authorization: `Basic ${auth}`,
           "Content-Type": "application/json",
         },
       });
 
       if (response.ok) {
         const products = await response.json();
-        
+
         if (products.length > 0) {
           const productsToInsert = products.map((p: any) => ({
             id: `woo-${integration.id}-${p.id}`,
@@ -80,7 +86,9 @@ serve(async (req) => {
             lastSyncAt: new Date().toISOString(),
           }));
 
-          await supabase.from("WooCommerceProduct").upsert(productsToInsert, { onConflict: "id" });
+          await supabase
+            .from("WooCommerceProduct")
+            .upsert(productsToInsert, { onConflict: "id" });
         }
 
         results.products = { count: products.length };
@@ -92,14 +100,14 @@ serve(async (req) => {
       const ordersUrl = `${baseUrl}/wp-json/wc/v3/orders?per_page=100`;
       const response = await fetch(ordersUrl, {
         headers: {
-          "Authorization": `Basic ${auth}`,
+          Authorization: `Basic ${auth}`,
           "Content-Type": "application/json",
         },
       });
 
       if (response.ok) {
         const orders = await response.json();
-        
+
         if (orders.length > 0) {
           const ordersToInsert = orders.map((o: any) => ({
             id: `woo-${integration.id}-${o.id}`,
@@ -111,37 +119,48 @@ serve(async (req) => {
             total: parseFloat(o.total || 0),
             currency: o.currency || "USD",
             customerEmail: o.billing?.email,
-            customerName: `${o.billing?.first_name || ""} ${o.billing?.last_name || ""}`.trim(),
+            customerName:
+              `${o.billing?.first_name || ""} ${o.billing?.last_name || ""}`.trim(),
             wooData: o,
             lastSyncAt: new Date().toISOString(),
           }));
 
-          await supabase.from("WooCommerceOrder").upsert(ordersToInsert, { onConflict: "id" });
+          await supabase
+            .from("WooCommerceOrder")
+            .upsert(ordersToInsert, { onConflict: "id" });
         }
 
         results.orders = { count: orders.length };
       }
     }
 
-    await supabase.from("WooCommerceSyncLog").update({
-      status: "completed",
-      completedAt: new Date().toISOString(),
-      details: results,
-    }).eq("id", syncLog.id);
+    await supabase
+      .from("WooCommerceSyncLog")
+      .update({
+        status: "completed",
+        completedAt: new Date().toISOString(),
+        details: results,
+      })
+      .eq("id", syncLog.id);
 
-    await supabase.from("WooCommerceIntegration").update({
-      lastSyncAt: new Date().toISOString(),
-      lastSyncStatus: "success",
-    }).eq("id", integration.id);
+    await supabase
+      .from("WooCommerceIntegration")
+      .update({
+        lastSyncAt: new Date().toISOString(),
+        lastSyncStatus: "success",
+      })
+      .eq("id", integration.id);
 
-    return new Response(
-      JSON.stringify({ success: true, results }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

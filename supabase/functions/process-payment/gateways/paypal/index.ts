@@ -53,16 +53,13 @@ export class PayPalGateway extends BaseGateway {
    */
   private async getAccessToken(config: GatewayConfig): Promise<string> {
     // Verificar cache
-    if (
-      this.accessTokenCache &&
-      this.accessTokenCache.expiresAt > Date.now()
-    ) {
+    if (this.accessTokenCache && this.accessTokenCache.expiresAt > Date.now()) {
       return this.accessTokenCache.token;
     }
 
     const endpoint = this.getEndpoint(config);
     const credentials = btoa(
-      `${config.credentials.clientId}:${config.credentials.clientSecret}`
+      `${config.credentials.clientId}:${config.credentials.clientSecret}`,
     );
 
     try {
@@ -77,7 +74,9 @@ export class PayPalGateway extends BaseGateway {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error_description || "Failed to get access token");
+        throw new Error(
+          error.error_description || "Failed to get access token",
+        );
       }
 
       const data = await response.json();
@@ -93,7 +92,7 @@ export class PayPalGateway extends BaseGateway {
       throw new GatewayError(
         `Failed to authenticate with PayPal: ${error.message}`,
         this.slug,
-        "AUTH_ERROR"
+        "AUTH_ERROR",
       );
     }
   }
@@ -102,7 +101,7 @@ export class PayPalGateway extends BaseGateway {
    * Valida as credenciais do gateway
    */
   async validateCredentials(
-    credentials: GatewayCredentials
+    credentials: GatewayCredentials,
   ): Promise<CredentialValidationResult> {
     try {
       if (!credentials.clientId) {
@@ -163,7 +162,7 @@ export class PayPalGateway extends BaseGateway {
    */
   async processPayment(
     request: PaymentRequest,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse> {
     try {
       this.validatePaymentRequest(request);
@@ -220,8 +219,7 @@ export class PayPalGateway extends BaseGateway {
           },
         ],
         payment_source:
-          request.paymentMethod === PaymentMethod.CREDIT_CARD &&
-          request.card
+          request.paymentMethod === PaymentMethod.CREDIT_CARD && request.card
             ? {
                 card: {
                   number: request.card.number.replace(/\s/g, ""),
@@ -235,7 +233,7 @@ export class PayPalGateway extends BaseGateway {
                         admin_area_2: request.billingAddress.city,
                         admin_area_1: request.billingAddress.state,
                         postal_code: this.formatZipCode(
-                          request.billingAddress.zipCode
+                          request.billingAddress.zipCode,
                         ),
                         country_code: request.billingAddress.country || "BR",
                       }
@@ -264,7 +262,7 @@ export class PayPalGateway extends BaseGateway {
             "PayPal-Request-Id": request.orderId,
           },
           body: JSON.stringify(orderData),
-        }
+        },
       );
 
       // Se pagamento com cartão direto, tentar capturar imediatamente
@@ -281,17 +279,17 @@ export class PayPalGateway extends BaseGateway {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${accessToken}`,
               },
-            }
+            },
           );
 
-          const capture = captureResponse.purchase_units?.[0]?.payments
-            ?.captures?.[0];
+          const capture =
+            captureResponse.purchase_units?.[0]?.payments?.captures?.[0];
 
           return this.createSuccessResponse({
             transactionId: response.id,
             gatewayTransactionId: capture?.id || response.id,
             status: this.normalizePayPalStatus(
-              captureResponse.status || "COMPLETED"
+              captureResponse.status || "COMPLETED",
             ),
             authorizationCode: capture?.id,
             message: "Payment processed successfully via PayPal",
@@ -305,7 +303,7 @@ export class PayPalGateway extends BaseGateway {
 
       // Para PayPal wallet, retornar URL de aprovação
       const approveLink = response.links?.find(
-        (link: any) => link.rel === "approve"
+        (link: any) => link.rel === "approve",
       );
 
       return this.createSuccessResponse({
@@ -319,7 +317,7 @@ export class PayPalGateway extends BaseGateway {
     } catch (error: any) {
       return this.createErrorResponse(
         error,
-        "Failed to process payment via PayPal"
+        "Failed to process payment via PayPal",
       );
     }
   }
@@ -329,7 +327,7 @@ export class PayPalGateway extends BaseGateway {
    */
   async capturePayment(
     orderId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse> {
     try {
       const endpoint = this.getEndpoint(config);
@@ -343,7 +341,7 @@ export class PayPalGateway extends BaseGateway {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       const capture = response.purchase_units?.[0]?.payments?.captures?.[0];
@@ -357,7 +355,7 @@ export class PayPalGateway extends BaseGateway {
     } catch (error: any) {
       return this.createErrorResponse(
         error,
-        "Failed to capture PayPal payment"
+        "Failed to capture PayPal payment",
       );
     }
   }
@@ -367,7 +365,7 @@ export class PayPalGateway extends BaseGateway {
    */
   async handleWebhook(
     payload: any,
-    signature?: string
+    signature?: string,
   ): Promise<WebhookResponse> {
     try {
       this.log("info", "Processing PayPal webhook", {
@@ -434,7 +432,7 @@ export class PayPalGateway extends BaseGateway {
    */
   async getPaymentStatus(
     gatewayTransactionId: string,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentStatusResponse> {
     try {
       this.log("info", "Getting PayPal payment status", {
@@ -452,7 +450,7 @@ export class PayPalGateway extends BaseGateway {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       const purchaseUnit = response.purchase_units?.[0];
@@ -468,16 +466,14 @@ export class PayPalGateway extends BaseGateway {
         createdAt: response.create_time,
         updatedAt: response.update_time,
         paidAt:
-          response.status === "COMPLETED"
-            ? response.update_time
-            : undefined,
+          response.status === "COMPLETED" ? response.update_time : undefined,
       };
     } catch (error: any) {
       throw new GatewayError(
         `Failed to get payment status: ${error.message}`,
         this.slug,
         error.code,
-        error.statusCode
+        error.statusCode,
       );
     }
   }
@@ -511,7 +507,7 @@ export class PayPalGateway extends BaseGateway {
   async refundPayment(
     captureId: string,
     amount: number | undefined,
-    config: GatewayConfig
+    config: GatewayConfig,
   ): Promise<PaymentResponse> {
     try {
       const endpoint = this.getEndpoint(config);
@@ -535,7 +531,7 @@ export class PayPalGateway extends BaseGateway {
             Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(refundData),
-        }
+        },
       );
 
       return this.createSuccessResponse({

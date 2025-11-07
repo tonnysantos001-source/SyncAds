@@ -449,7 +449,7 @@ const IntegrationDetailPage: React.FC = () => {
   const Icon = config.icon;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20 p-6 space-y-6 max-w-4xl mx-auto pb-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
