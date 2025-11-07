@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -7,47 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  HiOutlineCurrencyDollar,
-  HiOutlineShoppingCart,
-  HiOutlineTrendingUp,
-  HiOutlineCreditCard,
-  HiOutlineCheckCircle,
-  HiOutlineClock,
-  HiOutlineXCircle,
-  HiOutlineUsers,
-  HiOutlineRefresh,
-  HiOutlineLightningBolt,
-  HiOutlineChartBar,
-  HiOutlineExclamationCircle,
-  HiOutlineShoppingBag,
-  HiOutlineCube,
-} from "react-icons/hi2";
-import { IoSparklesSharp } from "react-icons/io5";
-import {
-  Activity,
-  CreditCard,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  TrendingUp,
-  Users,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-  RefreshCw,
-  ShoppingBag,
-  AlertCircle,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useAuthStore } from "@/store/authStore";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -56,495 +17,245 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   LineChart,
   Line,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
+  ResponsiveContainer,
+  ComposedChart,
+  Cell,
 } from "recharts";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  ArrowUpRight,
+  ArrowDownRight,
+  Activity,
+  Clock,
+  Target,
+  Zap,
+  Eye,
+  MousePointer,
+  BarChart3,
+  Calendar,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface DashboardMetrics {
-  totalRevenue: number;
-  revenueChange: number;
-  totalOrders: number;
-  ordersChange: number;
-  averageOrderValue: number;
-  aovChange: number;
-  checkoutViews: number;
-  conversionRate: number;
-  abandonedCarts: number;
-  abandonmentRate: number;
-  recoveredCarts: number;
-  recoveryRate: number;
-  pendingPayments: number;
-  paidOrders: number;
-  failedPayments: number;
-  totalCustomers: number;
-  newCustomers: number;
-}
+// Dados de exemplo para demonstração
+const generateChartData = () => {
+  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  return days.map((day, index) => ({
+    name: day,
+    pageLoad: Math.floor(Math.random() * 800) + 200,
+    bounceRate: Math.floor(Math.random() * 40) + 30,
+    startRender: Math.floor(Math.random() * 400) + 100,
+    sessions: Math.floor(Math.random() * 5000) + 1000,
+    sessionLength: Math.floor(Math.random() * 30) + 5,
+    pvs: Math.floor(Math.random() * 3) + 1,
+  }));
+};
 
-interface RecentActivity {
-  id: string;
-  type: "checkout" | "payment" | "product";
+const generateHourlyData = () => {
+  return Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}h`,
+    visits: Math.floor(Math.random() * 1000) + 200,
+    conversions: Math.floor(Math.random() * 50) + 10,
+    revenue: Math.floor(Math.random() * 5000) + 1000,
+  }));
+};
+
+interface MetricCardProps {
   title: string;
-  description: string;
-  time: string;
-  status: "success" | "warning" | "error" | "info";
-  image?: string;
+  value: string | number;
+  change: number;
+  icon: any;
+  color: string;
+  delay?: number;
 }
 
-interface Transaction {
-  id: string;
-  orderNumber: string;
-  customerName: string | null;
-  amount: number;
-  status: string;
-  items: any[];
-  createdAt: string;
-}
+const MetricCard = ({
+  title,
+  value,
+  change,
+  icon: Icon,
+  color,
+  delay = 0,
+}: MetricCardProps) => {
+  const isPositive = change >= 0;
 
-export default function ReportsOverviewPage() {
-  const { toast } = useToast();
-  const user = useAuthStore((state) => state.user);
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [dateRange, setDateRange] = useState<"today" | "7days" | "30days">(
-    "7days",
-  );
-
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalRevenue: 0,
-    revenueChange: 0,
-    totalOrders: 0,
-    ordersChange: 0,
-    averageOrderValue: 0,
-    aovChange: 0,
-    checkoutViews: 0,
-    conversionRate: 0,
-    abandonedCarts: 0,
-    abandonmentRate: 0,
-    recoveredCarts: 0,
-    recoveryRate: 0,
-    pendingPayments: 0,
-    paidOrders: 0,
-    failedPayments: 0,
-    totalCustomers: 0,
-    newCustomers: 0,
-  });
-
-  const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
-  const [ordersChartData, setOrdersChartData] = useState<any[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
-    [],
-  );
-
-  useEffect(() => {
-    if (user?.id) {
-      loadDashboardData();
-      const interval = setInterval(loadDashboardData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [user?.id, dateRange]);
-
-  const loadDashboardData = async () => {
-    if (!user?.id) return;
-
-    try {
-      setLoading(true);
-      const [orders, carts, customers] = await Promise.all([
-        loadOrders(),
-        loadAbandonedCarts(),
-        loadCustomers(),
-      ]);
-
-      calculateMetrics(orders, carts, customers);
-      generateChartData(orders);
-      generateRecentActivity(orders);
-      loadRecentTransactions(orders);
-    } catch (error) {
-      console.error("Error loading dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOrders = async () => {
-    const { data, error } = await supabase
-      .from("Order")
-      .select("*")
-      .eq("userId", user!.id)
-      .order("createdAt", { ascending: false })
-      .limit(500);
-
-    if (error) throw error;
-    return data || [];
-  };
-
-  const loadAbandonedCarts = async () => {
-    const { data, error } = await supabase
-      .from("AbandonedCart")
-      .select("*")
-      .eq("userId", user!.id);
-
-    if (error) return [];
-    return data || [];
-  };
-
-  const loadCustomers = async () => {
-    const { data, error } = await supabase
-      .from("Customer")
-      .select("*")
-      .eq("userId", user!.id);
-
-    if (error) return [];
-    return data || [];
-  };
-
-  const loadRecentTransactions = (orders: any[]) => {
-    const recent = orders
-      .filter((o) => o.items && o.items.length > 0)
-      .slice(0, 5)
-      .map((o) => ({
-        id: o.id,
-        orderNumber: o.orderNumber,
-        customerName: o.customerName,
-        amount: o.total,
-        status: o.paymentStatus,
-        items: o.items || [],
-        createdAt: o.createdAt,
-      }));
-
-    setRecentTransactions(recent);
-  };
-
-  const calculateMetrics = (orders: any[], carts: any[], customers: any[]) => {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (dateRange) {
-      case "today":
-        startDate = new Date(now.setHours(0, 0, 0, 0));
-        break;
-      case "7days":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "30days":
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
-
-    const currentPeriodOrders = orders.filter(
-      (o) => new Date(o.createdAt) >= startDate,
-    );
-    const previousStartDate = new Date(
-      startDate.getTime() - (now.getTime() - startDate.getTime()),
-    );
-    const previousPeriodOrders = orders.filter(
-      (o) =>
-        new Date(o.createdAt) >= previousStartDate &&
-        new Date(o.createdAt) < startDate,
-    );
-
-    const paidOrders = currentPeriodOrders.filter(
-      (o) => o.paymentStatus === "PAID",
-    );
-    const previousPaid = previousPeriodOrders.filter(
-      (o) => o.paymentStatus === "PAID",
-    );
-
-    const totalRevenue = paidOrders.reduce(
-      (sum, o) => sum + (parseFloat(o.total) || 0),
-      0,
-    );
-    const previousRevenue = previousPaid.reduce(
-      (sum, o) => sum + (parseFloat(o.total) || 0),
-      0,
-    );
-    const revenueChange =
-      previousRevenue > 0
-        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
-        : 0;
-
-    const totalOrders = paidOrders.length;
-    const ordersChange =
-      previousPaid.length > 0
-        ? ((totalOrders - previousPaid.length) / previousPaid.length) * 100
-        : 0;
-
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const previousAOV =
-      previousPaid.length > 0 ? previousRevenue / previousPaid.length : 0;
-    const aovChange =
-      previousAOV > 0
-        ? ((averageOrderValue - previousAOV) / previousAOV) * 100
-        : 0;
-
-    const recentCarts = carts.filter(
-      (c) => new Date(c.abandonedAt) >= startDate,
-    );
-    const abandonedCarts = recentCarts.filter((c) => !c.recoveredAt).length;
-    const recoveredCarts = recentCarts.filter((c) => c.recoveredAt).length;
-    const totalCartsSession = currentPeriodOrders.length + abandonedCarts;
-    const abandonmentRate =
-      totalCartsSession > 0 ? (abandonedCarts / totalCartsSession) * 100 : 0;
-    const recoveryRate =
-      recentCarts.length > 0 ? (recoveredCarts / recentCarts.length) * 100 : 0;
-
-    const checkoutViews = totalCartsSession;
-    const conversionRate =
-      checkoutViews > 0 ? (totalOrders / checkoutViews) * 100 : 0;
-
-    const pendingPayments = currentPeriodOrders.filter(
-      (o) => o.paymentStatus === "PENDING",
-    ).length;
-    const failedPayments = currentPeriodOrders.filter(
-      (o) => o.paymentStatus === "FAILED",
-    ).length;
-
-    const newCustomers = customers.filter(
-      (c) => new Date(c.createdAt) >= startDate,
-    ).length;
-
-    setMetrics({
-      totalRevenue,
-      revenueChange,
-      totalOrders,
-      ordersChange,
-      averageOrderValue,
-      aovChange,
-      checkoutViews,
-      conversionRate,
-      abandonedCarts,
-      abandonmentRate,
-      recoveredCarts,
-      recoveryRate,
-      pendingPayments,
-      paidOrders: totalOrders,
-      failedPayments,
-      totalCustomers: customers.length,
-      newCustomers,
-    });
-  };
-
-  const generateChartData = (orders: any[]) => {
-    const now = new Date();
-    const days = dateRange === "today" ? 24 : dateRange === "7days" ? 7 : 30;
-    const chartData: any[] = [];
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-
-      if (dateRange === "today") {
-        date.setHours(now.getHours() - i, 0, 0, 0);
-      } else {
-        date.setHours(0, 0, 0, 0);
-      }
-
-      const nextDate = new Date(date);
-      if (dateRange === "today") {
-        nextDate.setHours(date.getHours() + 1);
-      } else {
-        nextDate.setDate(date.getDate() + 1);
-      }
-
-      const dayOrders = orders.filter((o) => {
-        const orderDate = new Date(o.createdAt);
-        return orderDate >= date && orderDate < nextDate;
-      });
-
-      const paidOrders = dayOrders.filter((o) => o.paymentStatus === "PAID");
-      const revenue = paidOrders.reduce(
-        (sum, o) => sum + (parseFloat(o.total) || 0),
-        0,
-      );
-
-      chartData.push({
-        date:
-          dateRange === "today"
-            ? date.getHours() + "h"
-            : date.toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-              }),
-        receita: revenue,
-        pedidos: paidOrders.length,
-        pendentes: dayOrders.filter((o) => o.paymentStatus === "PENDING")
-          .length,
-        falhos: dayOrders.filter((o) => o.paymentStatus === "FAILED").length,
-      });
-    }
-
-    setRevenueChartData(chartData);
-    setOrdersChartData(chartData);
-  };
-
-  const generateRecentActivity = (orders: any[]) => {
-    const activities: RecentActivity[] = [];
-
-    orders.slice(0, 10).forEach((order) => {
-      const productImage = order.items?.[0]?.image || null;
-      const productName = order.items?.[0]?.name || "Produto";
-
-      if (order.paymentStatus === "PAID") {
-        activities.push({
-          id: order.id,
-          type: "payment",
-          title: "Pagamento Confirmado",
-          description: `${order.customerName || "Cliente"} - ${productName}`,
-          time: formatRelativeTime(order.updatedAt || order.createdAt),
-          status: "success",
-          image: productImage,
-        });
-      } else if (order.paymentStatus === "PENDING") {
-        activities.push({
-          id: order.id,
-          type: "checkout",
-          title: "Checkout Iniciado",
-          description: `${productName} - ${formatCurrency(order.total)}`,
-          time: formatRelativeTime(order.createdAt),
-          status: "info",
-          image: productImage,
-        });
-      } else if (order.paymentStatus === "FAILED") {
-        activities.push({
-          id: order.id,
-          type: "payment",
-          title: "Pagamento Falhou",
-          description: `${order.orderNumber} - ${productName}`,
-          time: formatRelativeTime(order.updatedAt || order.createdAt),
-          status: "error",
-          image: productImage,
-        });
-      }
-    });
-
-    setRecentActivity(activities.slice(0, 5));
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-    toast({
-      title: "Dashboard atualizado!",
-      description: "Dados carregados com sucesso",
-    });
-  };
-
-  const formatCurrency = (value: number | string) => {
-    const numValue = typeof value === "string" ? parseFloat(value) : value;
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(numValue || 0);
-  };
-
-  const formatRelativeTime = (date: string) => {
-    const now = new Date();
-    const then = new Date(date);
-    const diffMs = now.getTime() - then.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Agora";
-    if (diffMins < 60) return `${diffMins}m atrás`;
-    if (diffHours < 24) return `${diffHours}h atrás`;
-    return `${diffDays}d atrás`;
-  };
-
-  const MetricCard = ({
-    title,
-    value,
-    change,
-    icon: Icon,
-    color,
-    progressValue,
-    progressColor,
-  }: {
-    title: string;
-    value: string;
-    change?: number;
-    icon: any;
-    color: string;
-    progressValue?: number;
-    progressColor?: string;
-  }) => (
-    <Card className="relative overflow-hidden border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-500">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium text-gray-600">
-          {title}
-        </CardTitle>
-        <div className={`rounded-xl p-2.5 ${color} shadow-sm`}>
-          <Icon className="h-5 w-5 text-white" />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
-
-        {change !== undefined && (
-          <div className="flex items-center text-sm">
-            {change >= 0 ? (
-              <div className="flex items-center gap-1 text-green-600 font-medium">
-                <ArrowUpRight className="h-4 w-4" />
-                <span>{Math.abs(change).toFixed(1)}%</span>
-              </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-4 w-4 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          <div className="flex items-center gap-1 mt-2">
+            {isPositive ? (
+              <ArrowUpRight className="h-4 w-4 text-green-500" />
             ) : (
-              <div className="flex items-center gap-1 text-red-600 font-medium">
-                <ArrowDownRight className="h-4 w-4" />
-                <span>{Math.abs(change).toFixed(1)}%</span>
-              </div>
+              <ArrowDownRight className="h-4 w-4 text-red-500" />
             )}
-            <span className="text-gray-500 text-xs ml-2">
-              vs. período anterior
+            <span
+              className={`text-sm font-semibold ${
+                isPositive ? "text-green-500" : "text-red-500"
+              }`}
+            >
+              {Math.abs(change)}%
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              vs último período
             </span>
           </div>
-        )}
-
-        {/* Barra de Progresso Animada */}
-        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
-              progressColor || "bg-gradient-to-r from-blue-500 to-blue-600"
-            }`}
-            style={{
-              width: `${progressValue || 0}%`,
-              animation: "shimmer 2s infinite",
-            }}
-          >
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              style={{
-                animation: "slide 2s infinite",
-              }}
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
+};
 
-  if (loading && revenueChartData.length === 0) {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
     return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
+      <div className="bg-gray-900/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-700 rounded-lg p-4 shadow-xl">
+        <p className="text-white font-semibold mb-2">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2 text-sm">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-300">{entry.name}:</span>
+            <span className="text-white font-semibold">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const ReportsOverviewPage = () => {
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("7days");
+  const [chartData, setChartData] = useState(generateChartData());
+  const [hourlyData, setHourlyData] = useState(generateHourlyData());
+  const user = useAuthStore((state) => state.user);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Simular carregamento
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  }, []);
+
+  const handlePeriodChange = (value: string) => {
+    setPeriod(value);
+    setLoading(true);
+    setTimeout(() => {
+      setChartData(generateChartData());
+      setHourlyData(generateHourlyData());
+      setLoading(false);
+    }, 500);
+  };
+
+  const metrics = [
+    {
+      title: "Receita Total",
+      value: "R$ 48.523",
+      change: 12.5,
+      icon: DollarSign,
+      color: "bg-green-500",
+    },
+    {
+      title: "Total de Pedidos",
+      value: "2.847",
+      change: 8.2,
+      icon: ShoppingCart,
+      color: "bg-blue-500",
+    },
+    {
+      title: "Visitantes Únicos",
+      value: "15.234",
+      change: -3.1,
+      icon: Users,
+      color: "bg-purple-500",
+    },
+    {
+      title: "Taxa de Conversão",
+      value: "3.24%",
+      change: 5.7,
+      icon: Target,
+      color: "bg-cyan-500",
+    },
+    {
+      title: "Ticket Médio",
+      value: "R$ 156",
+      change: 4.3,
+      icon: Package,
+      color: "bg-pink-500",
+    },
+    {
+      title: "Produtos Vendidos",
+      value: "4.521",
+      change: 11.8,
+      icon: Package,
+      color: "bg-orange-500",
+    },
+    {
+      title: "Tempo Médio",
+      value: "8m 32s",
+      change: -2.1,
+      icon: Clock,
+      color: "bg-yellow-500",
+    },
+    {
+      title: "Taxa de Rejeição",
+      value: "32.8%",
+      change: -6.4,
+      icon: Activity,
+      color: "bg-red-500",
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-full" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
+          {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
+        <Skeleton className="h-96" />
       </div>
     );
   }
@@ -552,517 +263,343 @@ export default function ReportsOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
         <div>
           <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-gray-600 font-medium">
+          <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
             Visão geral das suas métricas de vendas e conversão
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
-            <SelectTrigger className="w-[160px] border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500">
-              <SelectValue />
+        <div className="flex items-center gap-3">
+          <Select value={period} onValueChange={handlePeriodChange}>
+            <SelectTrigger className="w-[180px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+              <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Hoje</SelectItem>
-              <SelectItem value="7days">7 dias</SelectItem>
-              <SelectItem value="30days">30 dias</SelectItem>
+              <SelectItem value="7days">Últimos 7 dias</SelectItem>
+              <SelectItem value="30days">Últimos 30 dias</SelectItem>
+              <SelectItem value="90days">Últimos 90 dias</SelectItem>
+              <SelectItem value="year">Este ano</SelectItem>
             </SelectContent>
           </Select>
           <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
             variant="outline"
             size="icon"
-            className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all duration-300"
+            onClick={() => handlePeriodChange(period)}
           >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
+            <Activity className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-
-      {/* Usuários Online */}
-      <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-500">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Activity className="h-8 w-8 text-purple-500" />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Usuários Online Agora
-                </p>
-                <p className="text-3xl font-bold">
-                  {metrics.pendingPayments > 0 ? metrics.pendingPayments : "0"}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <Badge variant="outline" className="text-sm">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                Ao Vivo
-              </Badge>
-              <p className="text-sm text-muted-foreground mt-2">
-                {metrics.pendingPayments} no checkout
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      </motion.div>
 
       {/* Métricas Principais */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Receita Total"
-          value={formatCurrency(metrics.totalRevenue)}
-          change={metrics.revenueChange}
-          icon={DollarSign}
-          color="bg-gradient-to-br from-green-500 to-green-600"
-          progressValue={Math.min((metrics.totalRevenue / 10000) * 100, 100)}
-          progressColor="bg-gradient-to-r from-green-400 via-green-500 to-green-600"
-        />
-        <MetricCard
-          title="Pedidos Pagos"
-          value={metrics.paidOrders.toString()}
-          change={metrics.ordersChange}
-          icon={ShoppingCart}
-          color="bg-gradient-to-br from-blue-500 to-blue-600"
-          progressValue={Math.min((metrics.paidOrders / 50) * 100, 100)}
-          progressColor="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600"
-        />
-        <MetricCard
-          title="Taxa de Conversão"
-          value={`${metrics.conversionRate.toFixed(1)}%`}
-          icon={TrendingUp}
-          color="bg-gradient-to-br from-purple-500 to-purple-600"
-          progressValue={metrics.conversionRate}
-          progressColor="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"
-        />
-        <MetricCard
-          title="Ticket Médio"
-          value={formatCurrency(metrics.averageOrderValue)}
-          change={metrics.aovChange}
-          icon={CreditCard}
-          color="bg-gradient-to-br from-orange-500 to-orange-600"
-          progressValue={Math.min((metrics.averageOrderValue / 500) * 100, 100)}
-          progressColor="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600"
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric, index) => (
+          <MetricCard key={index} {...metric} delay={index * 0.05} />
+        ))}
       </div>
 
-      {/* Gráficos */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+      {/* Gráfico Principal - Load Time vs Bounce Rate */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
           <CardHeader>
-            <CardTitle>Receita ao Longo do Tempo</CardTitle>
-            <CardDescription>
-              Análise de faturamento por período
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-bold">
+                  Tempo de Carregamento vs Taxa de Rejeição
+                </CardTitle>
+                <CardDescription>
+                  Análise de performance e comportamento do usuário
+                </CardDescription>
+              </div>
+              <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0">
+                <Zap className="h-3 w-3 mr-1" />
+                Tempo Real
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={revenueChartData}>
+            <ResponsiveContainer width="100%" height={350}>
+              <ComposedChart data={chartData}>
                 <defs>
-                  <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <linearGradient
+                    id="colorPageLoad"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.1} />
+                  </linearGradient>
+                  <linearGradient
+                    id="colorStartRender"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 12 }} />
-                <YAxis tick={{ fill: "#888", fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                  }}
-                  formatter={(value: any) => formatCurrency(value)}
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  opacity={0.2}
                 />
-                <Area
+                <XAxis
+                  dataKey="name"
+                  stroke="#9ca3af"
+                  style={{ fontSize: "12px" }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  stroke="#9ca3af"
+                  style={{ fontSize: "12px" }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#9ca3af"
+                  style={{ fontSize: "12px" }}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ paddingTop: "20px" }}
+                  iconType="circle"
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="pageLoad"
+                  fill="url(#colorPageLoad)"
+                  radius={[8, 8, 0, 0]}
+                  name="Page Load (ms)"
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="startRender"
+                  fill="url(#colorStartRender)"
+                  radius={[8, 8, 0, 0]}
+                  name="Start Render (ms)"
+                />
+                <Line
+                  yAxisId="right"
                   type="monotone"
-                  dataKey="receita"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorReceita)"
+                  dataKey="bounceRate"
+                  stroke="#ef4444"
+                  strokeWidth={3}
+                  dot={{ fill: "#ef4444", r: 5 }}
+                  name="Bounce Rate (%)"
                 />
-              </AreaChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </motion.div>
 
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+      {/* Grid de Gráficos Secundários */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Sessões ao Longo do Dia */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-purple-500" />
+                Sessões ao Longo do Dia
+              </CardTitle>
+              <CardDescription>
+                Distribuição de tráfego por hora
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={hourlyData}>
+                  <defs>
+                    <linearGradient
+                      id="colorVisits"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#8b5cf6"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#374151"
+                    opacity={0.2}
+                  />
+                  <XAxis
+                    dataKey="hour"
+                    stroke="#9ca3af"
+                    style={{ fontSize: "10px" }}
+                  />
+                  <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="visits"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    fill="url(#colorVisits)"
+                    name="Visitas"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Conversões e Receita */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                Conversões e Receita
+              </CardTitle>
+              <CardDescription>Performance financeira por hora</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={hourlyData}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#374151"
+                    opacity={0.2}
+                  />
+                  <XAxis
+                    dataKey="hour"
+                    stroke="#9ca3af"
+                    style={{ fontSize: "10px" }}
+                  />
+                  <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="conversions"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: "#10b981", r: 4 }}
+                    name="Conversões"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#06b6d4"
+                    strokeWidth={3}
+                    dot={{ fill: "#06b6d4", r: 4 }}
+                    name="Receita (R$)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Métricas de Engajamento */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
           <CardHeader>
-            <CardTitle>Status de Pedidos</CardTitle>
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Eye className="h-5 w-5 text-cyan-500" />
+              Métricas de Engajamento
+            </CardTitle>
             <CardDescription>
-              Distribuição por status de pagamento
+              Análise detalhada do comportamento dos usuários
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ordersChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 12 }} />
-                <YAxis tick={{ fill: "#888", fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                  }}
+              <ComposedChart data={chartData}>
+                <defs>
+                  <linearGradient
+                    id="colorSessions"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  opacity={0.2}
                 />
+                <XAxis dataKey="name" stroke="#9ca3af" />
+                <YAxis yAxisId="left" stroke="#9ca3af" />
+                <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar
-                  dataKey="pedidos"
-                  fill="#22c55e"
-                  name="Pagos"
-                  radius={[4, 4, 0, 0]}
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="sessions"
+                  fill="url(#colorSessions)"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  name="Sessões"
                 />
-                <Bar
-                  dataKey="pendentes"
-                  fill="#eab308"
-                  name="Pendentes"
-                  radius={[4, 4, 0, 0]}
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="sessionLength"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  dot={{ fill: "#f59e0b", r: 5 }}
+                  name="Tempo de Sessão (min)"
                 />
-                <Bar
-                  dataKey="falhos"
-                  fill="#ef4444"
-                  name="Falhos"
-                  radius={[4, 4, 0, 0]}
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="pvs"
+                  stroke="#ec4899"
+                  strokeWidth={3}
+                  dot={{ fill: "#ec4899", r: 5 }}
+                  name="PVs por Sessão"
                 />
-              </BarChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Status de Pagamentos */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-0 bg-gradient-to-br from-green-50 via-emerald-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <div className="rounded-xl p-2 bg-gradient-to-br from-green-500 to-green-600 shadow-sm">
-                  <CheckCircle2 className="h-4 w-4 text-white" />
-                </div>
-                Pedidos Pagos
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-4xl font-bold text-green-600 tracking-tight">
-              {metrics.paidOrders}
-            </div>
-
-            {/* Barra de Progresso Animada */}
-            <div className="relative h-2 bg-green-100 rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 transition-all duration-1000 ease-out"
-                style={{
-                  width: `${(metrics.paidOrders / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
-                  animation: "shimmer 2s infinite",
-                }}
-              >
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  style={{
-                    animation: "slide 2s infinite",
-                  }}
-                />
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 font-medium">
-              {formatCurrency(metrics.totalRevenue)} em receita
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-gradient-to-br from-yellow-50 via-amber-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <div className="rounded-xl p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-sm">
-                  <Clock className="h-4 w-4 text-white" />
-                </div>
-                Pagamentos Pendentes
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-4xl font-bold text-yellow-600 tracking-tight">
-              {metrics.pendingPayments}
-            </div>
-
-            {/* Barra de Progresso Animada */}
-            <div className="relative h-2 bg-yellow-100 rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 transition-all duration-1000 ease-out"
-                style={{
-                  width: `${(metrics.pendingPayments / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
-                  animation: "shimmer 2s infinite",
-                }}
-              >
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  style={{
-                    animation: "slide 2s infinite",
-                  }}
-                />
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 font-medium">
-              Aguardando confirmação
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-gradient-to-br from-red-50 via-rose-50/50 to-white backdrop-blur-sm hover:shadow-xl transition-all duration-500">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <div className="rounded-xl p-2 bg-gradient-to-br from-red-500 to-red-600 shadow-sm">
-                  <XCircle className="h-4 w-4 text-white" />
-                </div>
-                Pagamentos Falhados
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-4xl font-bold text-red-600 tracking-tight">
-              {metrics.failedPayments}
-            </div>
-
-            {/* Barra de Progresso Animada */}
-            <div className="relative h-2 bg-red-100 rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-red-400 via-red-500 to-red-600 transition-all duration-1000 ease-out"
-                style={{
-                  width: `${(metrics.failedPayments / (metrics.paidOrders + metrics.pendingPayments + metrics.failedPayments || 1)) * 100}%`,
-                  animation: "shimmer 2s infinite",
-                }}
-              >
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  style={{
-                    animation: "slide 2s infinite",
-                  }}
-                />
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 font-medium">Requer atenção</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Atividade Recente e Transações */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle>Atividade em Tempo Real</CardTitle>
-            <CardDescription>Últimas ações no checkout</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentActivity.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Nenhuma atividade recente</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border"
-                  >
-                    {activity.image ? (
-                      <img
-                        src={activity.image}
-                        alt={activity.title}
-                        className="w-12 h-12 rounded object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`rounded-full p-2 ${
-                          activity.status === "success"
-                            ? "bg-green-500/10 text-green-500"
-                            : activity.status === "error"
-                              ? "bg-red-500/10 text-red-500"
-                              : activity.status === "warning"
-                                ? "bg-yellow-500/10 text-yellow-500"
-                                : "bg-blue-500/10 text-blue-500"
-                        }`}
-                      >
-                        {activity.status === "success" ? (
-                          <CheckCircle2 className="h-5 w-5" />
-                        ) : activity.status === "error" ? (
-                          <XCircle className="h-5 w-5" />
-                        ) : activity.status === "warning" ? (
-                          <AlertCircle className="h-5 w-5" />
-                        ) : (
-                          <Clock className="h-5 w-5" />
-                        )}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {activity.description}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {activity.time}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle>Últimas Transações</CardTitle>
-            <CardDescription>Pedidos mais recentes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Nenhuma transação recente</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map((transaction) => {
-                  const productImage = transaction.items?.[0]?.image;
-                  const productName = transaction.items?.[0]?.name || "Produto";
-
-                  return (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border"
-                    >
-                      {productImage ? (
-                        <img
-                          src={productImage}
-                          alt={productName}
-                          className="w-12 h-12 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                          <Package className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{productName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {transaction.customerName || "Cliente"} •{" "}
-                          {transaction.orderNumber}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold">
-                          {formatCurrency(transaction.amount)}
-                        </p>
-                        <Badge
-                          variant={
-                            transaction.status === "PAID"
-                              ? "default"
-                              : transaction.status === "PENDING"
-                                ? "secondary"
-                                : "destructive"
-                          }
-                          className="text-xs"
-                        >
-                          {transaction.status === "PAID"
-                            ? "Pago"
-                            : transaction.status === "PENDING"
-                              ? "Pendente"
-                              : "Falhou"}
-                        </Badge>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Carrinhos e Clientes */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle>Carrinhos Abandonados</CardTitle>
-            <CardDescription>Oportunidades de recuperação</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Abandonados
-                </p>
-                <p className="text-3xl font-bold">{metrics.abandonedCarts}</p>
-              </div>
-              <Badge variant="destructive" className="text-lg px-3 py-1">
-                {metrics.abandonmentRate.toFixed(1)}%
-              </Badge>
-            </div>
-            <Progress value={metrics.abandonmentRate} className="h-2" />
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Recuperados</p>
-                <p className="text-xl font-bold text-green-500">
-                  {metrics.recoveredCarts}
-                </p>
-              </div>
-              <Badge variant="outline" className="text-green-500">
-                {metrics.recoveryRate.toFixed(1)}% recuperação
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle>Clientes</CardTitle>
-            <CardDescription>Base de clientes</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-3xl font-bold">{metrics.totalCustomers}</p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div>
-                <p className="text-sm text-muted-foreground">Novos Clientes</p>
-                <p className="text-xl font-bold text-blue-500">
-                  {metrics.newCustomers}
-                </p>
-              </div>
-              <Badge variant="outline" className="text-blue-500">
-                Este período
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </motion.div>
     </div>
   );
-}
+};
+
+export default ReportsOverviewPage;
