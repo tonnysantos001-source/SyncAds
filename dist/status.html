@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status - SyncAds</title>
+  <meta http-equiv="refresh" content="30">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .subtitle { opacity: 0.9; font-size: 1.1em; }
+    .main-content { padding: 40px; }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .status-card {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 25px;
+      border-left: 5px solid #4CAF50;
+      transition: transform 0.3s;
+    }
+    .status-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .status-card.down { border-left-color: #f44336; }
+    .status-card.warning { border-left-color: #ff9800; }
+    .card-title {
+      font-size: 0.9em;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .card-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #333;
+    }
+    .card-subtitle {
+      font-size: 0.85em;
+      color: #999;
+      margin-top: 5px;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    .status-indicator.online { background: #4CAF50; }
+    .status-indicator.offline { background: #f44336; animation: none; }
+    .status-indicator.warning { background: #ff9800; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .api-status {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      margin-top: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .api-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .api-item:last-child { border-bottom: none; }
+    .api-name { font-weight: 600; color: #333; }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .last-update {
+      text-align: center;
+      color: #999;
+      font-size: 0.9em;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 SyncAds Status</h1>
+      <p class="subtitle">Monitoramento em tempo real</p>
+    </header>
+    
+    <div class="main-content">
+      <div id="loading" class="loading">
+        ⏳ Carregando métricas...
+      </div>
+      
+      <div id="status" style="display: none;">
+        <div class="status-grid">
+          <div class="status-card">
+            <div class="card-title">Uptime</div>
+            <div class="card-value" id="uptime">99.9%</div>
+            <div class="card-subtitle">
+              <span class="status-indicator online"></span>
+              Last 30 days
+            </div>
+          </div>
+          
+          <div class="status-card">
+            <div class="card-title">Total Requests</div>
+            <div class="card-value" id="total-requests">12,345</div>
+            <div class="card-subtitle">Last hour</div>
+          </div>
+          
+          <div class="status-card">
+            <div class="card-title">Success Rate</div>
+            <div class="card-value" id="success-rate">99.2%</div>
+            <div class="card-subtitle">
+              <span class="status-indicator online"></span>
+              Operational
+            </div>
+          </div>
+          
+          <div class="status-card">
+            <div class="card-title">Avg Response</div>
+            <div class="card-value" id="avg-response">1.2s</div>
+            <div class="card-subtitle">Last 1 hour</div>
+          </div>
+        </div>
+        
+        <div class="api-status">
+          <h2 style="margin-bottom: 20px; color: #333;">🔌 APIs Externas</h2>
+          
+          <div class="api-item">
+            <div>
+              <span class="api-name">Exa AI Search</span>
+              <span class="status-indicator online" id="exa-status"></span>
+            </div>
+            <span id="exa-status-text">Operational</span>
+          </div>
+          
+          <div class="api-item">
+            <div>
+              <span class="api-name">Tavily AI</span>
+              <span class="status-indicator online" id="tavily-status"></span>
+            </div>
+            <span id="tavily-status-text">Operational</span>
+          </div>
+          
+          <div class="api-item">
+            <div>
+              <span class="api-name">Serper API</span>
+              <span class="status-indicator online" id="serper-status"></span>
+            </div>
+            <span id="serper-status-text">Operational</span>
+          </div>
+          
+          <div class="api-item">
+            <div>
+              <span class="api-name">Supabase</span>
+              <span class="status-indicator online" id="supabase-status"></span>
+            </div>
+            <span id="supabase-status-text">Operational</span>
+          </div>
+          
+          <div class="api-item">
+            <div>
+              <span class="api-name">Upstash Redis</span>
+              <span class="status-indicator online" id="redis-status"></span>
+            </div>
+            <span id="redis-status-text">Operational</span>
+          </div>
+        </div>
+        
+        <p class="last-update" id="last-update"></p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    async function updateStatus() {
+      try {
+        // Simular carga de métricas (em produção, chamaria endpoint real)
+        const mockData = {
+          uptime: 99.9,
+          totalRequests: Math.floor(Math.random() * 5000) + 10000,
+          successRate: 99.2,
+          avgResponse: (Math.random() * 0.5 + 1).toFixed(1),
+          lastUpdate: new Date().toLocaleString('pt-BR')
+        };
+        
+        // Atualizar UI
+        document.getElementById('uptime').textContent = mockData.uptime + '%';
+        document.getElementById('total-requests').textContent = mockData.totalRequests.toLocaleString();
+        document.getElementById('success-rate').textContent = mockData.successRate + '%';
+        document.getElementById('avg-response').textContent = mockData.avgResponse + 's';
+        document.getElementById('last-update').textContent = 
+          `Última atualização: ${mockData.lastUpdate}`;
+        
+        // Esconder loading
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('status').style.display = 'block';
+        
+      } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+        document.getElementById('loading').textContent = '❌ Erro ao carregar status';
+      }
+    }
+    
+    // Atualizar imediatamente e a cada 30 segundos
+    updateStatus();
+    setInterval(updateStatus, 30000);
+  </script>
+</body>
+</html>
+

@@ -557,7 +557,7 @@ const AllProductsPage = () => {
                   </Button>
                 </div>
               )}
-            </div>
+            </motion.div>
           ) : (
             <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
               <Table>
@@ -707,6 +707,7 @@ const AllProductsPage = () => {
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
