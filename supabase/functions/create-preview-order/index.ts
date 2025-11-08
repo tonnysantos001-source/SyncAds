@@ -1,46 +1,32 @@
-// ============================================
-// CREATE PREVIEW ORDER - EDGE FUNCTION
-// ============================================
-//
-// Cria um pedido de preview para testar o checkout
-// Usado na página de customização do checkout
-//
-// ============================================
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_utils/cors.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req: Request) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Criar cliente Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Pegar token do usuário
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Unauthorized");
-    }
+    if (!authHeader) throw new Error("Unauthorized");
 
-    // Verificar usuário
     const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Unauthorized");
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
-
-    // Produtos de exemplo para preview
     const previewProducts = [
       {
         id: "preview-product-1",
@@ -68,14 +54,11 @@ serve(async (req: Request) => {
 
     const subtotal = previewProducts.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
     const shipping = 29.99;
-    const tax = 0;
-    const discount = 0;
-    const total = subtotal + shipping + tax - discount;
+    const total = subtotal + shipping;
 
-    // Criar pedido de preview
     const { data: order, error: orderError } = await supabase
       .from("Order")
       .insert({
@@ -85,10 +68,9 @@ serve(async (req: Request) => {
         items: previewProducts,
         subtotal: subtotal,
         shipping: shipping,
-        tax: tax,
-        discount: discount,
+        tax: 0,
+        discount: 0,
         total: total,
-        currency: "BRL",
         customerName: "Cliente de Demonstração",
         customerEmail: "demo@exemplo.com",
         customerPhone: "(11) 99999-9999",
@@ -104,8 +86,8 @@ serve(async (req: Request) => {
       .single();
 
     if (orderError) {
-      console.error("Erro ao criar pedido de preview:", orderError);
-      throw new Error("Failed to create preview order");
+      console.error("Database error:", orderError);
+      throw new Error(`Failed to create preview order: ${orderError.message}`);
     }
 
     return new Response(
@@ -114,16 +96,10 @@ serve(async (req: Request) => {
         orderId: order.id,
         message: "Preview order created successfully",
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
     console.error("Error in create-preview-order:", error);
-
     return new Response(
       JSON.stringify({
         success: false,
@@ -131,11 +107,8 @@ serve(async (req: Request) => {
       }),
       {
         status: error.message === "Unauthorized" ? 401 : 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
