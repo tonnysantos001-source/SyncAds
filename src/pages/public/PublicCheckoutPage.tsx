@@ -174,7 +174,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [orderData, setOrderData] = useState<any>(null);
   const [theme, setTheme] = useState<any>(DEFAULT_CHECKOUT_THEME);
   const [currentStep, setCurrentStep] = useState(1);
-  const [storeData, setStoreData] = useState<any>(null);
+  const [storeData, setStoreData] = useState<any>({
+    name: "Minha Loja",
+    email: "contato@loja.com",
+    phone: "(11) 99999-9999",
+    address: "São Paulo, SP - Brasil",
+  });
   const [orderBumps, setOrderBumps] = useState<any[]>([]);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
 
@@ -338,12 +343,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
           if (!userError && userData) {
             setStoreData({
-              name: userData.name || "Minha Loja",
-              email: userData.email || "contato@loja.com",
-              phone: userData.phone || "(11) 99999-9999",
-              cnpj: userData.cnpj,
-              cpf: userData.cpf,
-              address: userData.address || "São Paulo, SP - Brasil",
+              name: userData?.name || "Minha Loja",
+              email: userData?.email || "contato@loja.com",
+              phone: userData?.phone || "(11) 99999-9999",
+              cnpj: userData?.cnpj || "",
+              cpf: userData?.cpf || "",
+              address: userData?.address || "São Paulo, SP - Brasil",
             });
           }
         } catch (e) {
@@ -1313,7 +1318,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       </div>
 
       {/* Footer Customizável */}
-      <CheckoutFooter theme={theme} storeData={storeData} />
+      <CheckoutFooter
+        theme={theme}
+        storeData={
+          storeData || {
+            name: "Minha Loja",
+            email: "contato@loja.com",
+            phone: "(11) 99999-9999",
+            address: "São Paulo, SP - Brasil",
+          }
+        }
+      />
     </div>
   );
 };
