@@ -43,11 +43,33 @@ const CheckoutCustomizePage: React.FC = () => {
 
   useEffect(() => {
     const run = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.log("❌ Sem user.id");
+        return;
+      }
+
+      console.log("🚀 Iniciando carregamento do preview...");
       await loadCustomization();
 
       if (!previewOrderId) {
+        console.log("📦 Criando pedido de preview...");
         try {
+          // Primeiro, tentar buscar um pedido PREVIEW existente
+          const { data: existingOrders, error: searchError } = await supabase
+            .from("Order")
+            .select("id")
+            .eq("status", "PREVIEW")
+            .eq("userId", user.id)
+            .limit(1);
+
+          if (!searchError && existingOrders && existingOrders.length > 0) {
+            console.log("✅ Usando pedido existente:", existingOrders[0].id);
+            setPreviewOrderId(existingOrders[0].id);
+            return;
+          }
+
+          console.log("🆕 Nenhum pedido preview encontrado, criando novo...");
+
           // Criar pedido de preview diretamente
           const previewProducts = [
             {
@@ -105,14 +127,34 @@ const CheckoutCustomizePage: React.FC = () => {
             .single();
 
           if (!error && order) {
+            console.log("✅ Preview order criado com sucesso:", order.id);
             setPreviewOrderId(order.id);
-            console.log("✅ Preview order criado:", order.id);
+            console.log("✅ previewOrderId setado para:", order.id);
           } else {
             console.error("❌ Erro ao criar preview order:", error);
+            console.error("❌ Detalhes:", JSON.stringify(error, null, 2));
+
+            // FALLBACK: Buscar qualquer pedido do usuário
+            console.log("🔄 Tentando fallback: buscar qualquer pedido...");
+            const { data: anyOrder } = await supabase
+              .from("Order")
+              .select("id")
+              .eq("userId", user.id)
+              .limit(1)
+              .single();
+
+            if (anyOrder) {
+              console.log("✅ Usando pedido fallback:", anyOrder.id);
+              setPreviewOrderId(anyOrder.id);
+            } else {
+              console.error("❌ Nenhum pedido disponível para preview");
+            }
           }
         } catch (e) {
           console.error("❌ Exceção ao criar preview order:", e);
         }
+      } else {
+        console.log("ℹ️ previewOrderId já existe:", previewOrderId);
       }
     };
     run();
@@ -342,11 +384,19 @@ const CheckoutCustomizePage: React.FC = () => {
               >
                 <div className="h-full overflow-y-auto">
                   {previewOrderId ? (
-                    <PublicCheckoutPage
-                      injectedOrderId={previewOrderId}
-                      injectedTheme={customization?.theme}
-                      previewMode={true}
-                    />
+                    <>
+                      <div className="hidden">
+                        {console.log(
+                          "🎨 Renderizando PublicCheckoutPage com orderId:",
+                          previewOrderId,
+                        )}
+                      </div>
+                      <PublicCheckoutPage
+                        injectedOrderId={previewOrderId}
+                        injectedTheme={customization?.theme}
+                        previewMode={true}
+                      />
+                    </>
                   ) : (
                     <div className="h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50 dark:from-gray-800 dark:to-gray-900">
                       <div className="text-center p-8">
