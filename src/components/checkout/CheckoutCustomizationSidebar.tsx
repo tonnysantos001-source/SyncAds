@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ColorPicker } from "./ColorPicker";
+import { ModernColorPicker } from "./ModernColorPicker";
 import { ImageUploadField } from "./ImageUploadField";
 
 interface Section {
@@ -127,7 +127,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             />
 
             {/* Cor de fundo */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo"
               value={customization.theme.backgroundColor || "#ffffff"}
               onChange={(color: string) =>
@@ -183,7 +183,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             </div>
 
             {/* Cor de fundo */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo"
               value={customization.theme.noticeBarBackgroundColor || "#1a1a1a"}
               onChange={(color: string) =>
@@ -192,7 +192,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             />
 
             {/* Cor do texto */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto"
               value={customization.theme.noticeBarTextColor || "#ffffff"}
               onChange={(color: string) =>
@@ -278,7 +278,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             </div>
 
             {/* Cor da borda do carrinho */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor da borda do carrinho"
               value={customization.theme.cartBorderColor || "#000000"}
               onChange={(color: string) =>
@@ -287,7 +287,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             />
 
             {/* Cor do círculo de quantidade */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do círculo de quantidade"
               value={customization.theme.quantityCircleColor || "#8b5cf6"}
               onChange={(color: string) =>
@@ -296,7 +296,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             />
 
             {/* Cor do texto da quantidade */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto da quantidade"
               value={customization.theme.quantityTextColor || "#ffffff"}
               onChange={(color: string) =>
@@ -376,7 +376,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                 Botão Primário (Próximo)
               </p>
 
-              <ColorPicker
+              <ModernColorPicker
                 label="Cor do texto"
                 value={customization.theme.primaryButtonTextColor || "#ffffff"}
                 onChange={(color: string) =>
@@ -384,7 +384,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                 }
               />
 
-              <ColorPicker
+              <ModernColorPicker
                 label="Cor de fundo"
                 value={
                   customization.theme.primaryButtonBackgroundColor || "#8b5cf6"
@@ -425,7 +425,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                 Botão Checkout (Finalizar)
               </p>
 
-              <ColorPicker
+              <ModernColorPicker
                 label="Cor do texto"
                 value={
                   customization.theme.highlightedBorderTextColor || "#ffffff"
@@ -435,7 +435,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                 }
               />
 
-              <ColorPicker
+              <ModernColorPicker
                 label="Cor de fundo"
                 value={
                   customization.theme.checkoutButtonBackgroundColor || "#10b981"
@@ -476,7 +476,7 @@ export const CheckoutCustomizationSidebar: React.FC<
         return (
           <div className="space-y-4">
             {/* Cores do rodapé */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo"
               value={customization.theme.footerBackgroundColor || "#f6f6f6"}
               onChange={(color: string) =>
@@ -484,7 +484,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto"
               value={customization.theme.footerTextColor || "#3b3b3b"}
               onChange={(color: string) =>
@@ -626,7 +626,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             </div>
 
             {/* Tag de desconto */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto da tag"
               value={customization.theme.discountTagTextColor || "#ffffff"}
               onChange={(color: string) =>
@@ -634,7 +634,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo da tag"
               value={
                 customization.theme.discountTagBackgroundColor || "#000000"
@@ -688,7 +688,7 @@ export const CheckoutCustomizationSidebar: React.FC<
         return (
           <div className="space-y-4">
             {/* Cores do Order Bump */}
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto"
               value={customization.theme.orderBumpTextColor || "#1a1a1a"}
               onChange={(color: string) =>
@@ -696,7 +696,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo"
               value={customization.theme.orderBumpBackgroundColor || "#ffffff"}
               onChange={(color: string) =>
@@ -704,7 +704,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do preço"
               value={customization.theme.orderBumpPriceColor || "#10b981"}
               onChange={(color: string) =>
@@ -712,7 +712,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor da borda"
               value={customization.theme.orderBumpBorderColor || "#e5e7eb"}
               onChange={(color: string) =>
@@ -720,7 +720,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor do texto do botão"
               value={customization.theme.orderBumpButtonTextColor || "#ffffff"}
               onChange={(color: string) =>
@@ -728,7 +728,7 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
-            <ColorPicker
+            <ModernColorPicker
               label="Cor de fundo do botão"
               value={
                 customization.theme.orderBumpButtonBackgroundColor || "#8b5cf6"
