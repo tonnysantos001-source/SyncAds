@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -338,15 +339,21 @@ const CollectionsPage = () => {
         </Card>
       </div>
 
-      <div className="relative">
+      {/* Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="relative"
+      >
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar coleções..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
+          className="pl-9 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500"
         />
-      </div>
+      </motion.div>
 
       <Card>
         <CardHeader>
@@ -373,18 +380,26 @@ const CollectionsPage = () => {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCollections.map((collection) => (
-                  <TableRow key={collection.id}>
+            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-indigo-50 to-fuchsia-50 dark:from-gray-800 dark:to-gray-800 hover:from-indigo-100 hover:to-fuchsia-100 dark:hover:from-gray-700 dark:hover:to-gray-700">
+                    <TableHead className="font-semibold dark:text-gray-300">Nome</TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">Slug</TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">Produtos</TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">Status</TableHead>
+                    <TableHead className="text-right font-semibold dark:text-gray-300">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCollections.map((collection, index) => (
+                    <motion.tr
+                      key={collection.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-fuchsia-50/50 dark:hover:from-gray-800/50 dark:hover:to-gray-800/50 transition-all duration-200"
+                    >
                     <TableCell className="font-medium">
                       {collection.name}
                     </TableCell>
@@ -397,32 +412,36 @@ const CollectionsPage = () => {
                       >
                         {collection.isActive ? "Ativa" : "Inativa"}
                       </Badge>
-                    </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex gap-2 justify-end">
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleEdit(collection)}
+                          className="hover:bg-gradient-to-r hover:from-indigo-50 hover:to-violet-50 dark:hover:from-gray-800 dark:hover:to-gray-800"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleDelete(collection.id)}
+                          disabled={!!collection.metadata?.shopifyId}
+                          className="hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </motion.tr>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
