@@ -1,0 +1,1 @@
+export const OrderSummary=({checkoutData,finalTotal,theme}:any)=><div>Summary</div>;export default OrderSummary;

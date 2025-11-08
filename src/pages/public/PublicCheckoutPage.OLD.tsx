@@ -45,9 +45,6 @@ import { cn } from "@/lib/utils";
 import { CreditCardForm, CardData } from "@/components/checkout/CreditCardForm";
 import { PixPayment } from "@/components/checkout/PixPayment";
 import { BoletoPayment } from "@/components/checkout/BoletoPayment";
-import { StepDadosPessoais } from "@/components/checkout/steps/StepDadosPessoais";
-import { StepEndereco } from "@/components/checkout/steps/StepEndereco";
-import { StepPagamento } from "@/components/checkout/steps/StepPagamento";
 import {
   maskCPF,
   validateCPFAsync,
@@ -1152,38 +1149,759 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
           <div className="space-y-4 md:space-y-6">
             {/* STEP 1 - DADOS PESSOAIS */}
             {currentStep === 1 && (
-              <StepDadosPessoais
-                customerData={customerData}
-                setCustomerData={setCustomerData}
-                theme={theme}
-              />
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
+                }}
+              >
+                <CardContent className="p-5 md:p-6 space-y-5">
+                  <div>
+                    <h2
+                      className="text-xl md:text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
+                    >
+                      Dados Pessoais
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Preencha suas informações
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 md:space-y-4">
+                    <div>
+                      <Label
+                        htmlFor="name"
+                        style={{
+                          color: theme.labelColor,
+                          fontWeight: theme.labelFontWeight,
+                        }}
+                      >
+                        Nome Completo *
+                      </Label>
+                      <Input
+                        id="name"
+                        placeholder="Seu nome completo"
+                        value={customerData.name}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            name: e.target.value,
+                          })
+                        }
+                        className="mt-1.5 text-base"
+                        style={{
+                          backgroundColor: theme.inputBackgroundColor,
+                          borderColor: theme.inputBorderColor,
+                          height: 48,
+                          borderRadius: theme.inputBorderRadius,
+                          color: theme.textColor,
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label
+                          htmlFor="email"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          E-mail *
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={customerData.email}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              email: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="phone"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Telefone *
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          value={customerData.phone}
+                          onChange={(e) => {
+                            const formatted = formatPhone(e.target.value);
+                            setCustomerData({
+                              ...customerData,
+                              phone: formatted,
+                            });
+                          }}
+                          onBlur={(e) => {
+                            const validation = validatePhone(e.target.value);
+                            if (e.target.value && !validation.valid) {
+                              toast({
+                                title: "Telefone inválido",
+                                description: validation.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          maxLength={15}
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {theme.requestCpfOnlyAtPayment === false && (
+                      <div>
+                        <Label
+                          htmlFor="document"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          CPF *
+                        </Label>
+                        <Input
+                          id="document"
+                          placeholder="000.000.000-00"
+                          maxLength={14}
+                          value={customerData.document}
+                          onChange={(e) => {
+                            const formatted = formatCpf(e.target.value);
+                            setCustomerData({
+                              ...customerData,
+                              document: formatted,
+                            });
+                          }}
+                          onBlur={(e) => {
+                            const validation = validateCpf(e.target.value);
+                            if (e.target.value && !validation.valid) {
+                              toast({
+                                title: "CPF inválido",
+                                description: validation.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {theme.requestBirthDate && (
+                      <div>
+                        <Label
+                          htmlFor="birthDate"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Data de Nascimento
+                        </Label>
+                        <Input
+                          id="birthDate"
+                          type="date"
+                          value={customerData.birthDate}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              birthDate: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {theme.requestGender && (
+                      <div>
+                        <Label
+                          htmlFor="gender"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Gênero
+                        </Label>
+                        <select
+                          id="gender"
+                          value={customerData.gender}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              gender: e.target.value,
+                            })
+                          }
+                          className="w-full mt-1.5 px-4 rounded-lg text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            borderWidth: 1,
+                            borderStyle: "solid",
+                            color: theme.textColor,
+                          }}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="feminino">Feminino</option>
+                          <option value="outro">Outro</option>
+                          <option value="prefiro_nao_dizer">
+                            Prefiro não dizer
+                          </option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* STEP 2 - ENDEREÇO */}
             {currentStep === 2 && (
-              <StepEndereco
-                addressData={addressData}
-                setAddressData={setAddressData}
-                theme={theme}
-              />
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
+                }}
+              >
+                <CardContent className="p-5 md:p-6 space-y-5">
+                  <div>
+                    <h2
+                      className="text-xl md:text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
+                    >
+                      Endereço de Entrega
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Informe onde deseja receber
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label
+                        htmlFor="zipCode"
+                        style={{
+                          color: theme.labelColor,
+                          fontWeight: theme.labelFontWeight,
+                        }}
+                      >
+                        CEP *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="zipCode"
+                          placeholder="00000-000"
+                          value={addressData.zipCode}
+                          onChange={(e) => {
+                            const formatted = formatCep(e.target.value);
+                            setAddressData({
+                              ...addressData,
+                              zipCode: formatted,
+                            });
+                            if (formatted.replace(/\D/g, "").length === 8) {
+                              handleCepSearch(formatted);
+                            }
+                          }}
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                        {loadingCep && (
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_120px] gap-4">
+                      <div>
+                        <Label
+                          htmlFor="street"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Rua *
+                        </Label>
+                        <Input
+                          id="street"
+                          placeholder="Nome da rua"
+                          value={addressData.street}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              street: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="number"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Número *
+                        </Label>
+                        <Input
+                          id="number"
+                          placeholder="123"
+                          value={addressData.number}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              number: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label
+                          htmlFor="complement"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Complemento
+                        </Label>
+                        <Input
+                          id="complement"
+                          placeholder="Apto 101"
+                          value={addressData.complement}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              complement: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="neighborhood"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Bairro *
+                        </Label>
+                        <Input
+                          id="neighborhood"
+                          placeholder="Nome do bairro"
+                          value={addressData.neighborhood}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              neighborhood: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_100px] gap-4">
+                      <div>
+                        <Label
+                          htmlFor="city"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          Cidade *
+                        </Label>
+                        <Input
+                          id="city"
+                          placeholder="Cidade"
+                          value={addressData.city}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              city: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label
+                          htmlFor="state"
+                          style={{
+                            color: theme.labelColor,
+                            fontWeight: theme.labelFontWeight,
+                          }}
+                        >
+                          UF *
+                        </Label>
+                        <Input
+                          id="state"
+                          placeholder="SP"
+                          maxLength={2}
+                          value={addressData.state}
+                          onChange={(e) =>
+                            setAddressData({
+                              ...addressData,
+                              state: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="mt-1.5 text-base"
+                          style={{
+                            backgroundColor: theme.inputBackgroundColor,
+                            borderColor: theme.inputBorderColor,
+                            height: 48,
+                            borderRadius: theme.inputBorderRadius,
+                            color: theme.textColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* STEP 3 - PAGAMENTO */}
             {currentStep === 3 && (
-              <StepPagamento
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                cardData={cardData}
-                setCardData={setCardData}
-                pixData={pixData}
-                boletoData={boletoData}
-                installments={installments}
-                setInstallments={setInstallments}
-                finalTotal={finalTotal}
-                cardErrors={cardErrors}
-                getDiscountInfoForMethod={getDiscountInfoForMethod}
-                theme={theme}
-              />
+              <Card
+                style={{
+                  backgroundColor: theme.cardBackgroundColor,
+                  borderColor: theme.cardBorderColor,
+                  borderRadius: theme.cardBorderRadius,
+                  boxShadow: theme.cardShadow,
+                }}
+              >
+                <CardContent className="p-5 md:p-6 space-y-5">
+                  <div>
+                    <h2
+                      className="text-xl md:text-2xl font-bold mb-1"
+                      style={{ color: theme.headingColor }}
+                    >
+                      Forma de Pagamento
+                    </h2>
+                    <p className="text-sm opacity-75">
+                      Escolha como deseja pagar
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {["PIX", "CREDIT_CARD", "BOLETO"].map((method) => {
+                      const methodDiscount = getDiscountInfoForMethod(
+                        method as any,
+                      );
+                      return (
+                        <button
+                          type="button"
+                          key={method}
+                          onClick={() =>
+                            setPaymentMethod(method as typeof paymentMethod)
+                          }
+                          className={cn(
+                            "p-4 md:p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 md:gap-4 relative",
+                            paymentMethod === method && "shadow-lg",
+                          )}
+                          style={{
+                            borderColor:
+                              paymentMethod === method
+                                ? theme.primaryButtonBackgroundColor
+                                : theme.inputBorderColor,
+                            backgroundColor:
+                              paymentMethod === method
+                                ? `${theme.primaryButtonBackgroundColor}15`
+                                : theme.inputBackgroundColor,
+                          }}
+                        >
+                          {methodDiscount && (
+                            <Badge className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                              {methodDiscount.label}
+                            </Badge>
+                          )}
+                          {method === "PIX" && (
+                            <Smartphone
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          {method === "CREDIT_CARD" && (
+                            <CreditCard
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          {method === "BOLETO" && (
+                            <FileText
+                              className="h-7 w-7 md:h-6 md:w-6"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.textColor,
+                              }}
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div
+                              className="font-semibold text-base md:text-base mb-0.5"
+                              style={{
+                                color:
+                                  paymentMethod === method
+                                    ? theme.primaryButtonBackgroundColor
+                                    : theme.headingColor,
+                              }}
+                            >
+                              {method === "PIX" && "PIX"}
+                              {method === "CREDIT_CARD" && "Cartão de Crédito"}
+                              {method === "BOLETO" && "Boleto Bancário"}
+                            </div>
+                            <div className="text-xs md:text-sm opacity-75">
+                              {method === "PIX" &&
+                                (methodDiscount
+                                  ? `Aprovação instantânea + ${methodDiscount.label}`
+                                  : "Aprovação instantânea")}
+                              {method === "CREDIT_CARD" &&
+                                (methodDiscount
+                                  ? `Parcele em até 12x + ${methodDiscount.label}`
+                                  : "Parcele em até 12x")}
+                              {method === "BOLETO" &&
+                                (methodDiscount
+                                  ? `Vencimento em 3 dias + ${methodDiscount.label}`
+                                  : "Vencimento em 3 dias")}
+                            </div>
+                          </div>
+                          {paymentMethod === method && (
+                            <CheckCircle
+                              className="h-6 w-6 md:h-6 md:w-6"
+                              style={{ color: theme.stepCompletedColor }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* FORMULÁRIO DE CARTÃO */}
+                  {paymentMethod === "CREDIT_CARD" && (
+                    <div className="space-y-6">
+                      <CreditCardForm
+                        onCardDataChange={setCardData}
+                        theme={theme}
+                        errors={cardErrors}
+                      />
+
+                      {checkoutData && (
+                        <div>
+                          <Label
+                            htmlFor="installments"
+                            style={{
+                              color: theme.labelColor,
+                              fontWeight: theme.labelFontWeight,
+                            }}
+                          >
+                            Número de Parcelas
+                          </Label>
+                          <select
+                            id="installments"
+                            value={installments}
+                            onChange={(e) =>
+                              setInstallments(Number(e.target.value))
+                            }
+                            className="w-full mt-1.5 px-4 rounded-lg text-base"
+                            style={{
+                              backgroundColor: theme.inputBackgroundColor,
+                              borderColor: theme.inputBorderColor,
+                              height: 48,
+                              borderRadius: theme.inputBorderRadius,
+                              borderWidth: 1,
+                              borderStyle: "solid",
+                              color: theme.textColor,
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(
+                              (num) => {
+                                const installmentValue = finalTotal / num;
+                                return (
+                                  <option key={num} value={num}>
+                                    {num}x de R$ {installmentValue.toFixed(2)}
+                                    {num === 1 ? " à vista" : ""}
+                                  </option>
+                                );
+                              },
+                            )}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAGAMENTO PIX - Mostrar sempre após selecionar */}
+                  {paymentMethod === "PIX" && (
+                    <div>
+                      {pixData ? (
+                        <PixPayment pixData={pixData} theme={theme} />
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-4">
+                            <Smartphone className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+                          </div>
+                          <h3
+                            className="text-xl font-semibold mb-2"
+                            style={{ color: theme.headingColor }}
+                          >
+                            Clique em "Finalizar Compra" para gerar o PIX
+                          </h3>
+                          <p
+                            className="text-sm opacity-70"
+                            style={{ color: theme.textColor }}
+                          >
+                            Você receberá o QR Code para pagamento instantâneo
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAGAMENTO BOLETO - Mostrar sempre após selecionar */}
+                  {paymentMethod === "BOLETO" && (
+                    <div>
+                      {boletoData ? (
+                        <BoletoPayment boletoData={boletoData} theme={theme} />
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/20 mb-4">
+                            <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400 animate-pulse" />
+                          </div>
+                          <h3
+                            className="text-xl font-semibold mb-2"
+                            style={{ color: theme.headingColor }}
+                          >
+                            Clique em "Finalizar Compra" para gerar o Boleto
+                          </h3>
+                          <p
+                            className="text-sm opacity-70"
+                            style={{ color: theme.textColor }}
+                          >
+                            Você poderá baixar e imprimir o boleto bancário
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* BOTÕES DE NAVEGAÇÃO */}
