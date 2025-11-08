@@ -337,7 +337,7 @@ const PublicCheckoutPageNovo: React.FC = () => {
           customerName: customerData.name,
           customerEmail: customerData.email,
           customerPhone: customerData.phone,
-          customerDocument: getCPFNumbers(customerData.document),
+          customerCpf: getCPFNumbers(customerData.document),
           shippingAddress: addressData,
           paymentMethod: paymentMethod,
           updatedAt: new Date().toISOString(),
@@ -346,34 +346,51 @@ const PublicCheckoutPageNovo: React.FC = () => {
 
       if (updateError) throw updateError;
 
-      // Buscar gateway
-      const { data: gateways } = await supabase
-        .from("PaymentGateway")
-        .select("*")
-        .eq("userId", orderData.userId)
-        .eq(
-          "type",
-          paymentMethod === "PIX"
-            ? "PIX"
-            : paymentMethod === "CREDIT_CARD"
-              ? "CREDIT_CARD"
-              : "BOLETO",
+      // Buscar gateway configurado para o usuário
+      const { data: gatewayConfigs } = await supabase
+        .from("GatewayConfig")
+        .select(
+          `
+          *,
+          gateway:Gateway(*)
+        `,
         )
-        .eq("isActive", true)
-        .limit(1);
+        .eq("userId", orderData.userId)
+        .eq("isActive", true);
 
-      if (!gateways || gateways.length === 0) {
-        throw new Error(`Gateway de ${paymentMethod} não configurado`);
+      if (!gatewayConfigs || gatewayConfigs.length === 0) {
+        throw new Error("Nenhum gateway de pagamento configurado");
       }
 
-      const gateway = gateways[0];
+      // Filtrar gateway que suporta o método de pagamento
+      let selectedConfig: any = null;
+      for (const config of gatewayConfigs) {
+        const gw = config.gateway;
+        if (!gw) continue;
+
+        if (paymentMethod === "PIX" && gw.supportsPix) {
+          selectedConfig = config;
+          break;
+        } else if (paymentMethod === "CREDIT_CARD" && gw.supportsCreditCard) {
+          selectedConfig = config;
+          break;
+        } else if (paymentMethod === "BOLETO" && gw.supportsBoleto) {
+          selectedConfig = config;
+          break;
+        }
+      }
+
+      if (!selectedConfig) {
+        throw new Error(`Gateway de ${paymentMethod} não configurado`);
+      }
 
       // Criar transação
       const { data: transaction, error: transactionError } = await supabase
         .from("Transaction")
         .insert({
           orderId: orderId,
-          gatewayId: gateway.id,
+          gatewayId: selectedConfig.gatewayId,
+          userId: orderData.userId,
           amount: checkoutData.total,
           status: "PENDING",
           paymentMethod: paymentMethod,
@@ -395,7 +412,7 @@ const PublicCheckoutPageNovo: React.FC = () => {
         await supabase.functions.invoke("process-payment", {
           body: {
             transactionId: transaction.id,
-            gatewaySlug: gateway.slug,
+            gatewaySlug: selectedConfig.gateway.slug,
             paymentMethod: paymentMethod,
             amount: checkoutData.total,
             customerData,

@@ -107,6 +107,7 @@ const CheckoutCustomizePage: React.FC = () => {
               orderNumber: `PREVIEW-${Date.now()}`,
               status: "PREVIEW",
               paymentStatus: "PENDING",
+              paymentMethod: "PIX",
               items: previewProducts,
               subtotal: subtotal,
               shipping: shipping,
@@ -121,8 +122,6 @@ const CheckoutCustomizePage: React.FC = () => {
                 originalProducts: previewProducts,
                 createdBy: "checkout-customizer",
               },
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
             })
             .select()
             .single();
