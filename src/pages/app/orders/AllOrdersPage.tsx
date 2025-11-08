@@ -306,7 +306,9 @@ const AllOrdersPage = () => {
               <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                 {orders.length}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Todos os pedidos</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Todos os pedidos
+              </p>
             </CardContent>
           </Card>
         </motion.div>
@@ -376,13 +378,15 @@ const AllOrdersPage = () => {
               </CardTitle>
               <div className="p-2 rounded-lg bg-purple-500 bg-opacity-10">
                 <DollarSign className="h-4 w-4 text-purple-500" />
-              </motion.div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold bg-gradient-to-br from-purple-600 to-pink-500 bg-clip-text text-transparent">
                 {formatCurrency(totalRevenue)}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pedidos pagos</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Pedidos pagos
+              </p>
             </CardContent>
           </Card>
         </motion.div>
@@ -474,7 +478,7 @@ const AllOrdersPage = () => {
               >
                 <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-300 group">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
-                        <CardContent className="relative p-6">
+                  <CardContent className="relative p-6">
                     <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                       {/* Informações principais */}
                       <div className="flex-1 space-y-2">
@@ -546,8 +550,8 @@ const AllOrdersPage = () => {
                               </DialogDescription>
                             </DialogHeader>
 
-                          {selectedOrder && (
-                            <div className="space-y-6 pt-4">
+                            {selectedOrder && (
+                              <div className="space-y-6 pt-4">
                                 {/* Status */}
                                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl">
                                   <h4 className="font-semibold mb-3 text-lg dark:text-white">
@@ -566,236 +570,244 @@ const AllOrdersPage = () => {
                                     Informações do Cliente
                                   </h4>
                                   <div className="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl space-y-3 backdrop-blur-sm">
-                                  <div className="flex items-start gap-2">
-                                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
+                                    <div className="flex items-start gap-2">
+                                      <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                      <div>
                                         <div className="text-sm text-muted-foreground">
                                           Nome
                                         </div>
                                         <div className="font-medium dark:text-white">
                                           {selectedOrder.customerName}
                                         </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
+                                    <div className="flex items-start gap-2">
+                                      <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                      <div>
                                         <div className="text-sm text-muted-foreground">
                                           Email
                                         </div>
                                         <div className="font-medium dark:text-white">
                                           {selectedOrder.customerEmail}
                                         </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                  {selectedOrder.customerPhone && (
-                                    <div className="flex items-start gap-2">
-                                      <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                      <div>
+                                    {selectedOrder.customerPhone && (
+                                      <div className="flex items-start gap-2">
+                                        <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                        <div>
                                           <div className="text-sm text-muted-foreground">
                                             Telefone
                                           </div>
                                           <div className="font-medium dark:text-white">
                                             {selectedOrder.customerPhone}
                                           </div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                  <div className="flex items-start gap-2">
-                                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Data do Pedido
-                                      </div>
-                                      <div className="font-medium">
-                                        {format(
-                                          new Date(selectedOrder.createdAt),
-                                          "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
-                                          {
-                                            locale: ptBR,
-                                          },
-                                        )}
+                                    )}
+                                    <div className="flex items-start gap-2">
+                                      <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                      <div>
+                                        <div className="text-sm text-muted-foreground">
+                                          Data do Pedido
+                                        </div>
+                                        <div className="font-medium">
+                                          {format(
+                                            new Date(selectedOrder.createdAt),
+                                            "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
+                                            {
+                                              locale: ptBR,
+                                            },
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Produtos */}
-                              <div>
-                                <h4 className="font-semibold mb-3 text-lg">
-                                  Produtos ({items.length})
-                                </h4>
-                                <div className="space-y-3">
-                                  {items.map((item, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                    >
-                                      {item.image ? (
-                                        <img
-                                          src={item.image}
-                                          alt={item.name || "Produto"}
-                                          className="w-20 h-20 object-cover rounded-lg border"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src =
-                                              "https://via.placeholder.com/100?text=Produto";
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center border">
-                                          <ShoppingBag className="h-10 w-10 text-gray-400" />
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <div className="font-semibold text-base">
-                                          {item.name || "Produto sem nome"}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground mt-1">
-                                          Quantidade: {item.quantity}
-                                        </div>
-                                        {item.sku && (
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            SKU: {item.sku}
+                                {/* Produtos */}
+                                <div>
+                                  <h4 className="font-semibold mb-3 text-lg">
+                                    Produtos ({items.length})
+                                  </h4>
+                                  <div className="space-y-3">
+                                    {items.map((item, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                      >
+                                        {item.image ? (
+                                          <img
+                                            src={item.image}
+                                            alt={item.name || "Produto"}
+                                            className="w-20 h-20 object-cover rounded-lg border"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src =
+                                                "https://via.placeholder.com/100?text=Produto";
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center border">
+                                            <ShoppingBag className="h-10 w-10 text-gray-400" />
                                           </div>
                                         )}
-                                      </div>
-                                      <div className="text-right">
-                                        <div className="font-bold text-lg">
-                                          {formatCurrency(
-                                            (item.price || 0) *
-                                              (item.quantity || 1),
+                                        <div className="flex-1">
+                                          <div className="font-semibold text-base">
+                                            {item.name || "Produto sem nome"}
+                                          </div>
+                                          <div className="text-sm text-muted-foreground mt-1">
+                                            Quantidade: {item.quantity}
+                                          </div>
+                                          {item.sku && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              SKU: {item.sku}
+                                            </div>
                                           )}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                          {formatCurrency(item.price || 0)} / un
+                                        <div className="text-right">
+                                          <div className="font-bold text-lg">
+                                            {formatCurrency(
+                                              (item.price || 0) *
+                                                (item.quantity || 1),
+                                            )}
+                                          </div>
+                                          <div className="text-sm text-muted-foreground">
+                                            {formatCurrency(item.price || 0)} /
+                                            un
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
 
-                              {/* Resumo Financeiro */}
-                              <div>
-                                <h4 className="font-semibold mb-3 text-lg">
-                                  Resumo Financeiro
-                                </h4>
-                                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Subtotal:</span>
-                                    <span className="font-medium">
-                                      {formatCurrency(selectedOrder.subtotal)}
-                                    </span>
-                                  </div>
-                                  {selectedOrder.discount > 0 && (
-                                    <div className="flex justify-between text-sm text-green-600">
-                                      <span>Desconto:</span>
-                                      <span className="font-medium">
-                                        -
-                                        {formatCurrency(selectedOrder.discount)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between text-sm">
-                                    <span>Frete:</span>
-                                    <span className="font-medium">
-                                      {formatCurrency(selectedOrder.shipping)}
-                                    </span>
-                                  </div>
-                                  {selectedOrder.tax > 0 && (
+                                {/* Resumo Financeiro */}
+                                <div>
+                                  <h4 className="font-semibold mb-3 text-lg">
+                                    Resumo Financeiro
+                                  </h4>
+                                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                                     <div className="flex justify-between text-sm">
-                                      <span>Impostos:</span>
+                                      <span>Subtotal:</span>
                                       <span className="font-medium">
-                                        {formatCurrency(selectedOrder.tax)}
+                                        {formatCurrency(selectedOrder.subtotal)}
                                       </span>
                                     </div>
-                                  )}
-                                  <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
-                                    <span>Total:</span>
-                                    <span className="text-blue-600">
-                                      {formatCurrency(selectedOrder.total)}
-                                    </span>
+                                    {selectedOrder.discount > 0 && (
+                                      <div className="flex justify-between text-sm text-green-600">
+                                        <span>Desconto:</span>
+                                        <span className="font-medium">
+                                          -
+                                          {formatCurrency(
+                                            selectedOrder.discount,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between text-sm">
+                                      <span>Frete:</span>
+                                      <span className="font-medium">
+                                        {formatCurrency(selectedOrder.shipping)}
+                                      </span>
+                                    </div>
+                                    {selectedOrder.tax > 0 && (
+                                      <div className="flex justify-between text-sm">
+                                        <span>Impostos:</span>
+                                        <span className="font-medium">
+                                          {formatCurrency(selectedOrder.tax)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
+                                      <span>Total:</span>
+                                      <span className="text-blue-600">
+                                        {formatCurrency(selectedOrder.total)}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Endereço de Entrega */}
-                              {selectedOrder.shippingAddress &&
-                                selectedOrder.shippingAddress.street && (
-                                  <div>
-                                    <h4 className="font-semibold mb-3 text-lg">
-                                      Endereço de Entrega
-                                    </h4>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                      <div className="flex items-start gap-2">
-                                        <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                        <div className="space-y-1">
-                                          <p className="font-medium">
-                                            {
-                                              selectedOrder.shippingAddress
-                                                .street
-                                            }
-                                            ,{" "}
-                                            {
-                                              selectedOrder.shippingAddress
-                                                .number
-                                            }
-                                          </p>
-                                          {selectedOrder.shippingAddress
-                                            .complement && (
-                                            <p className="text-sm text-muted-foreground">
+                                {/* Endereço de Entrega */}
+                                {selectedOrder.shippingAddress &&
+                                  selectedOrder.shippingAddress.street && (
+                                    <div>
+                                      <h4 className="font-semibold mb-3 text-lg">
+                                        Endereço de Entrega
+                                      </h4>
+                                      <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="flex items-start gap-2">
+                                          <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                          <div className="space-y-1">
+                                            <p className="font-medium">
                                               {
                                                 selectedOrder.shippingAddress
-                                                  .complement
+                                                  .street
+                                              }
+                                              ,{" "}
+                                              {
+                                                selectedOrder.shippingAddress
+                                                  .number
                                               }
                                             </p>
-                                          )}
-                                          <p className="text-sm">
-                                            {
-                                              selectedOrder.shippingAddress
-                                                .neighborhood
-                                            }{" "}
-                                            -{" "}
-                                            {selectedOrder.shippingAddress.city}
-                                            /
-                                            {
-                                              selectedOrder.shippingAddress
-                                                .state
-                                            }
-                                          </p>
-                                          <p className="text-sm text-muted-foreground">
-                                            CEP:{" "}
-                                            {
-                                              selectedOrder.shippingAddress
-                                                .zipCode
-                                            }
-                                          </p>
+                                            {selectedOrder.shippingAddress
+                                              .complement && (
+                                              <p className="text-sm text-muted-foreground">
+                                                {
+                                                  selectedOrder.shippingAddress
+                                                    .complement
+                                                }
+                                              </p>
+                                            )}
+                                            <p className="text-sm">
+                                              {
+                                                selectedOrder.shippingAddress
+                                                  .neighborhood
+                                              }{" "}
+                                              -{" "}
+                                              {
+                                                selectedOrder.shippingAddress
+                                                  .city
+                                              }
+                                              /
+                                              {
+                                                selectedOrder.shippingAddress
+                                                  .state
+                                              }
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                              CEP:{" "}
+                                              {
+                                                selectedOrder.shippingAddress
+                                                  .zipCode
+                                              }
+                                            </p>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
 
-                              {/* Método de Pagamento */}
-                              <div>
-                                <h4 className="font-semibold mb-3 text-lg">
-                                  Pagamento
-                                </h4>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <div className="text-sm text-muted-foreground">
-                                    Método de Pagamento
-                                  </div>
-                                  <div className="font-medium">
-                                    {selectedOrder.paymentMethod ||
-                                      "Não especificado"}
+                                {/* Método de Pagamento */}
+                                <div>
+                                  <h4 className="font-semibold mb-3 text-lg">
+                                    Pagamento
+                                  </h4>
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="text-sm text-muted-foreground">
+                                      Método de Pagamento
+                                    </div>
+                                    <div className="font-medium">
+                                      {selectedOrder.paymentMethod ||
+                                        "Não especificado"}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
+                            )}
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardContent>
