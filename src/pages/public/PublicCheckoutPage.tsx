@@ -23,12 +23,17 @@ import {
   CreditCard,
   Package,
   AlertCircle,
+  Mail,
+  Phone,
+  Hash,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
+import { CheckoutButton } from "@/components/checkout/CheckoutButton";
+import { CheckoutInput } from "@/components/checkout/CheckoutInput";
 
 // ============================================
 // INTERFACES
@@ -560,77 +565,70 @@ const PublicCheckoutPageNovo: React.FC = () => {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-4"
                   >
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Nome Completo *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.name}
-                        onChange={(e) =>
-                          setCustomerData({
-                            ...customerData,
-                            name: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                        placeholder="Seu nome completo"
-                      />
-                    </div>
+                    <CheckoutInput
+                      label="Nome Completo"
+                      type="text"
+                      value={customerData.name}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          name: e.target.value,
+                        })
+                      }
+                      theme={theme}
+                      icon={<User className="w-5 h-5" />}
+                      placeholder="Seu nome completo"
+                      required
+                    />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          E-mail *
-                        </label>
-                        <input
-                          type="email"
-                          value={customerData.email}
-                          onChange={(e) =>
-                            setCustomerData({
-                              ...customerData,
-                              email: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                          placeholder="seu@email.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Telefone *
-                        </label>
-                        <input
-                          type="tel"
-                          value={customerData.phone}
-                          onChange={(e) =>
-                            setCustomerData({
-                              ...customerData,
-                              phone: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                          placeholder="(11) 99999-9999"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        CPF *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.document}
+                      <CheckoutInput
+                        label="E-mail"
+                        type="email"
+                        value={customerData.email}
                         onChange={(e) =>
                           setCustomerData({
                             ...customerData,
-                            document: e.target.value,
+                            email: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                        placeholder="000.000.000-00"
-                        maxLength={14}
+                        theme={theme}
+                        icon={<Mail className="w-5 h-5" />}
+                        placeholder="seu@email.com"
+                        required
+                      />
+                      <CheckoutInput
+                        label="Telefone"
+                        type="tel"
+                        value={customerData.phone}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            phone: e.target.value,
+                          })
+                        }
+                        theme={theme}
+                        icon={<Phone className="w-5 h-5" />}
+                        placeholder="(11) 99999-9999"
+                        mask="phone"
+                        required
                       />
                     </div>
+                    <CheckoutInput
+                      label="CPF"
+                      type="text"
+                      value={customerData.document}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          document: e.target.value,
+                        })
+                      }
+                      theme={theme}
+                      icon={<Hash className="w-5 h-5" />}
+                      placeholder="000.000.000-00"
+                      mask="cpf"
+                      required
+                    />
                   </motion.div>
                 )}
 
@@ -651,29 +649,24 @@ const PublicCheckoutPageNovo: React.FC = () => {
                       </h3>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          CEP *
-                        </label>
-                        <input
-                          type="text"
-                          value={addressData.zipCode}
-                          onChange={(e) =>
-                            setAddressData({
-                              ...addressData,
-                              zipCode: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                          placeholder="00000-000"
-                          maxLength={9}
-                        />
-                      </div>
+                      <CheckoutInput
+                        label="CEP"
+                        type="text"
+                        value={addressData.zipCode}
+                        onChange={(e) =>
+                          setAddressData({
+                            ...addressData,
+                            zipCode: e.target.value,
+                          })
+                        }
+                        theme={theme}
+                        placeholder="00000-000"
+                        mask="cep"
+                        required
+                      />
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-1">
-                          Rua *
-                        </label>
-                        <input
+                        <CheckoutInput
+                          label="Rua"
                           type="text"
                           value={addressData.street}
                           onChange={(e) =>
@@ -682,34 +675,30 @@ const PublicCheckoutPageNovo: React.FC = () => {
                               street: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                          theme={theme}
                           placeholder="Nome da rua"
+                          required
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Número *
-                        </label>
-                        <input
-                          type="text"
-                          value={addressData.number}
-                          onChange={(e) =>
-                            setAddressData({
-                              ...addressData,
-                              number: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                          placeholder="123"
-                        />
-                      </div>
+                      <CheckoutInput
+                        label="Número"
+                        type="text"
+                        value={addressData.number}
+                        onChange={(e) =>
+                          setAddressData({
+                            ...addressData,
+                            number: e.target.value,
+                          })
+                        }
+                        theme={theme}
+                        placeholder="123"
+                        required
+                      />
                       <div className="col-span-1 md:col-span-3">
-                        <label className="block text-sm font-medium mb-1">
-                          Complemento
-                        </label>
-                        <input
+                        <CheckoutInput
+                          label="Complemento"
                           type="text"
                           value={addressData.complement}
                           onChange={(e) =>
@@ -718,48 +707,45 @@ const PublicCheckoutPageNovo: React.FC = () => {
                               complement: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                          theme={theme}
                           placeholder="Apto, bloco..."
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Bairro *
-                      </label>
-                      <input
+                    <CheckoutInput
+                      label="Bairro"
+                      type="text"
+                      value={addressData.neighborhood}
+                      onChange={(e) =>
+                        setAddressData({
+                          ...addressData,
+                          neighborhood: e.target.value,
+                        })
+                      }
+                      theme={theme}
+                      placeholder="Seu bairro"
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <CheckoutInput
+                        label="Cidade"
                         type="text"
-                        value={addressData.neighborhood}
+                        value={addressData.city}
                         onChange={(e) =>
                           setAddressData({
                             ...addressData,
-                            neighborhood: e.target.value,
+                            city: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                        placeholder="Seu bairro"
+                        theme={theme}
+                        placeholder="Cidade"
+                        required
                       />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Cidade *
-                        </label>
-                        <input
-                          type="text"
-                          value={addressData.city}
-                          onChange={(e) =>
-                            setAddressData({
-                              ...addressData,
-                              city: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                          placeholder="Cidade"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label
+                          className="block text-sm font-medium mb-2"
+                          style={{ color: theme.labelColor || "#111827" }}
+                        >
                           Estado *
                         </label>
                         <select
@@ -770,7 +756,15 @@ const PublicCheckoutPageNovo: React.FC = () => {
                               state: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                          style={{
+                            backgroundColor:
+                              theme.inputBackgroundColor || "#ffffff",
+                            borderColor: theme.inputBorderColor || "#d1d5db",
+                            borderRadius: `${theme.inputBorderRadius || 8}px`,
+                            height: `${theme.inputHeight || 48}px`,
+                            color: theme.textColor || "#111827",
+                          }}
                         >
                           <option value="">Selecione</option>
                           <option value="SP">SP</option>
@@ -839,96 +833,82 @@ const PublicCheckoutPageNovo: React.FC = () => {
                     {/* Formulário de Cartão */}
                     {paymentMethod === "CREDIT_CARD" && (
                       <div className="space-y-4 mt-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Número do Cartão
-                          </label>
-                          <input
-                            type="text"
-                            value={cardData.number}
-                            onChange={(e) =>
-                              setCardData({
-                                ...cardData,
-                                number: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="0000 0000 0000 0000"
-                            maxLength={19}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Nome no Cartão
-                          </label>
-                          <input
-                            type="text"
-                            value={cardData.holderName}
-                            onChange={(e) =>
-                              setCardData({
-                                ...cardData,
-                                holderName: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="Nome como está no cartão"
-                          />
-                        </div>
+                        <CheckoutInput
+                          label="Número do Cartão"
+                          type="text"
+                          value={cardData.number}
+                          onChange={(e) =>
+                            setCardData({
+                              ...cardData,
+                              number: e.target.value,
+                            })
+                          }
+                          theme={theme}
+                          icon={<CreditCard className="w-5 h-5" />}
+                          placeholder="0000 0000 0000 0000"
+                          mask="card"
+                          required
+                        />
+                        <CheckoutInput
+                          label="Nome no Cartão"
+                          type="text"
+                          value={cardData.holderName}
+                          onChange={(e) =>
+                            setCardData({
+                              ...cardData,
+                              holderName: e.target.value,
+                            })
+                          }
+                          theme={theme}
+                          placeholder="Nome como está no cartão"
+                          required
+                        />
                         <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              Mês
-                            </label>
-                            <input
-                              type="text"
-                              value={cardData.expiryMonth}
-                              onChange={(e) =>
-                                setCardData({
-                                  ...cardData,
-                                  expiryMonth: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                              placeholder="MM"
-                              maxLength={2}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              Ano
-                            </label>
-                            <input
-                              type="text"
-                              value={cardData.expiryYear}
-                              onChange={(e) =>
-                                setCardData({
-                                  ...cardData,
-                                  expiryYear: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                              placeholder="AA"
-                              maxLength={2}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              CVV
-                            </label>
-                            <input
-                              type="text"
-                              value={cardData.cvv}
-                              onChange={(e) =>
-                                setCardData({
-                                  ...cardData,
-                                  cvv: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                              placeholder="123"
-                              maxLength={4}
-                            />
-                          </div>
+                          <CheckoutInput
+                            label="Mês"
+                            type="text"
+                            value={cardData.expiryMonth}
+                            onChange={(e) =>
+                              setCardData({
+                                ...cardData,
+                                expiryMonth: e.target.value,
+                              })
+                            }
+                            theme={theme}
+                            placeholder="MM"
+                            maxLength={2}
+                            required
+                          />
+                          <CheckoutInput
+                            label="Ano"
+                            type="text"
+                            value={cardData.expiryYear}
+                            onChange={(e) =>
+                              setCardData({
+                                ...cardData,
+                                expiryYear: e.target.value,
+                              })
+                            }
+                            theme={theme}
+                            placeholder="AA"
+                            maxLength={2}
+                            required
+                          />
+                          <CheckoutInput
+                            label="CVV"
+                            type="text"
+                            value={cardData.cvv}
+                            onChange={(e) =>
+                              setCardData({
+                                ...cardData,
+                                cvv: e.target.value,
+                              })
+                            }
+                            theme={theme}
+                            placeholder="123"
+                            maxLength={4}
+                            required
+                          />
                         </div>
                       </div>
                     )}
@@ -956,37 +936,40 @@ const PublicCheckoutPageNovo: React.FC = () => {
               {/* BOTÕES DE NAVEGAÇÃO */}
               <div className="flex gap-4 mt-6">
                 {navigationSteps === 3 && currentStep > 1 && (
-                  <button
+                  <CheckoutButton
                     onClick={handleBack}
-                    className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                    variant="secondary"
+                    theme={theme}
+                    icon={<ChevronLeft className="w-5 h-5" />}
+                    iconPosition="left"
+                    fullWidth
                   >
-                    <ChevronLeft className="w-5 h-5" />
                     Voltar
-                  </button>
+                  </CheckoutButton>
                 )}
-                <button
+                <CheckoutButton
                   onClick={handleNext}
                   disabled={processing}
-                  className="flex-1 px-6 py-4 rounded-lg font-bold text-white shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{
-                    backgroundColor:
-                      theme.primaryButtonBackgroundColor || "#8b5cf6",
-                  }}
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processando...
-                    </>
-                  ) : navigationSteps === 1 || currentStep === 3 ? (
-                    <>
+                  loading={processing}
+                  variant={
+                    navigationSteps === 1 || currentStep === 3
+                      ? "checkout"
+                      : "primary"
+                  }
+                  theme={theme}
+                  icon={
+                    navigationSteps === 1 || currentStep === 3 ? (
                       <Lock className="w-5 h-5" />
-                      Finalizar Compra
-                    </>
-                  ) : (
-                    "Continuar"
-                  )}
-                </button>
+                    ) : undefined
+                  }
+                  iconPosition="left"
+                  fullWidth
+                  size="lg"
+                >
+                  {navigationSteps === 1 || currentStep === 3
+                    ? "Finalizar Compra"
+                    : "Continuar"}
+                </CheckoutButton>
               </div>
 
               {/* Trust Badges */}
