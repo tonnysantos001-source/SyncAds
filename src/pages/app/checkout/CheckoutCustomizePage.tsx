@@ -104,6 +104,7 @@ const CheckoutCustomizePage: React.FC = () => {
             .from("Order")
             .insert({
               userId: user.id,
+              orderNumber: `PREVIEW-${Date.now()}`,
               status: "PREVIEW",
               paymentStatus: "PENDING",
               items: previewProducts,
