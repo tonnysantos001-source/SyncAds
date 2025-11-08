@@ -610,7 +610,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     );
   }
 
-  if (!checkoutData) {
+  // Verificações defensivas
+  if (
+    !checkoutData ||
+    !checkoutData.products ||
+    !Array.isArray(checkoutData.products)
+  ) {
+    console.error("❌ [DEBUG] checkoutData inválido:", checkoutData);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
@@ -1193,34 +1199,39 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
               {/* Produtos */}
               <div className="space-y-3 mb-4">
-                {checkoutData.products.map((product, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )}
+                {checkoutData?.products
+                  ?.filter((p) => p && p.name)
+                  .map((product, index) => (
+                    <div key={product?.id || index} className="flex gap-3">
+                      <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                        {product?.image ? (
+                          <img
+                            src={product.image}
+                            alt={product?.name || "Produto"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">
+                          {product?.name || "Produto"}
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Qtd: {product?.quantity || 1}
+                        </p>
+                        <p className="text-sm font-bold text-gray-900 mt-1">
+                          R${" "}
+                          {(
+                            (product?.price || 0) * (product?.quantity || 1)
+                          ).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm truncate">
-                        {product.name}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        Qtd: {product.quantity}
-                      </p>
-                      <p className="text-sm font-bold text-gray-900 mt-1">
-                        R$ {(product.price * product.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
 
               {/* Divider */}
