@@ -34,6 +34,8 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
 import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { CheckoutInput } from "@/components/checkout/CheckoutInput";
+import { CheckoutFooter } from "@/components/checkout/CheckoutFooter";
+import { OrderBumpCard } from "@/components/checkout/OrderBumpCard";
 
 // ============================================
 // INTERFACES
@@ -161,6 +163,9 @@ const PublicCheckoutPageNovo: React.FC = () => {
   const [orderData, setOrderData] = useState<any>(null);
   const [theme, setTheme] = useState<any>(DEFAULT_CHECKOUT_THEME);
   const [currentStep, setCurrentStep] = useState(1);
+  const [storeData, setStoreData] = useState<any>(null);
+  const [orderBumps, setOrderBumps] = useState<any[]>([]);
+  const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
 
   // Dados do formulário
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -246,7 +251,7 @@ const PublicCheckoutPageNovo: React.FC = () => {
       setCheckoutData(checkoutInfo);
       setOrderData(order);
 
-      // Carregar tema personalizado
+      // Carregar tema personalizado e dados da loja
       if (order.userId) {
         try {
           const customData = await checkoutApi.loadCustomization(order.userId);
@@ -255,6 +260,44 @@ const PublicCheckoutPageNovo: React.FC = () => {
           }
         } catch (e) {
           console.log("Usando tema padrão");
+        }
+
+        // Buscar dados da loja para o rodapé
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from("User")
+            .select("name, email, phone, cnpj, cpf, address")
+            .eq("id", order.userId)
+            .single();
+
+          if (!userError && userData) {
+            setStoreData({
+              name: userData.name || "Minha Loja",
+              email: userData.email || "contato@loja.com",
+              phone: userData.phone || "(11) 99999-9999",
+              cnpj: userData.cnpj,
+              cpf: userData.cpf,
+              address: userData.address || "São Paulo, SP - Brasil",
+            });
+          }
+        } catch (e) {
+          console.log("Erro ao carregar dados da loja:", e);
+        }
+
+        // Buscar order bumps ativos
+        try {
+          const { data: bumps, error: bumpsError } = await supabase
+            .from("OrderBump")
+            .select("*")
+            .eq("userId", order.userId)
+            .eq("isActive", true)
+            .order("order", { ascending: true });
+
+          if (!bumpsError && bumps) {
+            setOrderBumps(bumps);
+          }
+        } catch (e) {
+          console.log("Erro ao carregar order bumps:", e);
         }
       }
     } catch (error: any) {
@@ -273,17 +316,44 @@ const PublicCheckoutPageNovo: React.FC = () => {
   // NAVEGAÇÃO
   // ============================================
 
+  // ============================================
+  // ORDER BUMP
+  // ============================================
+
+  const handleToggleOrderBump = (orderBumpId: string) => {
+    setSelectedOrderBumps((prev) => {
+      if (prev.includes(orderBumpId)) {
+        return prev.filter((id) => id !== orderBumpId);
+      } else {
+        return [...prev, orderBumpId];
+      }
+    });
+  };
+
+  const calculateOrderBumpsTotal = () => {
+    return orderBumps
+      .filter((bump) => selectedOrderBumps.includes(bump.id))
+      .reduce((total, bump) => total + Number(bump.price || 0), 0);
+  };
+
+  const finalTotalWithBumps =
+    (checkoutData?.total || 0) + calculateOrderBumpsTotal();
+
+  // ============================================
+  // NAVEGAÇÃO
+  // ============================================
+
   const handleNext = () => {
     if (navigationSteps === 1) {
+      // Se é 1 etapa, vai direto para pagamento
       handleSubmitPayment();
     } else {
-      if (validateStep()) {
-        if (currentStep < 3) {
-          setCurrentStep(currentStep + 1);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } else {
-          handleSubmitPayment();
-        }
+      // 3 etapas normais
+      if (currentStep < 3) {
+        setCurrentStep(currentStep + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        handleSubmitPayment();
       }
     }
   };
@@ -933,6 +1003,36 @@ const PublicCheckoutPageNovo: React.FC = () => {
                 )}
               </AnimatePresence>
 
+              {/* ORDER BUMPS */}
+              {theme.orderBumpEnabled && orderBumps.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <h3
+                    className="text-xl font-bold mb-4"
+                    style={{ color: theme.headingColor || "#111827" }}
+                  >
+                    🎁 Aproveite essa oferta especial!
+                  </h3>
+                  {orderBumps.map((bump) => (
+                    <OrderBumpCard
+                      key={bump.id}
+                      orderBump={{
+                        id: bump.id,
+                        title: bump.title,
+                        description: bump.description,
+                        originalPrice: bump.originalPrice,
+                        price: bump.price,
+                        image: bump.image,
+                        badge: bump.badge,
+                        bullets: bump.bullets || [],
+                      }}
+                      theme={theme}
+                      selected={selectedOrderBumps.includes(bump.id)}
+                      onToggle={handleToggleOrderBump}
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* BOTÕES DE NAVEGAÇÃO */}
               <div className="flex gap-4 mt-6">
                 {navigationSteps === 3 && currentStep > 1 && (
@@ -1078,23 +1178,42 @@ const PublicCheckoutPageNovo: React.FC = () => {
                       color: theme.primaryButtonBackgroundColor || "#8b5cf6",
                     }}
                   >
-                    R$ {checkoutData.total.toFixed(2)}
+                    R$ {finalTotalWithBumps.toFixed(2)}
                   </span>
                 </div>
               </div>
+
+              {/* Order Bumps no Resumo */}
+              {selectedOrderBumps.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4
+                    className="text-sm font-semibold mb-3"
+                    style={{ color: theme.headingColor || "#111827" }}
+                  >
+                    Itens Adicionais
+                  </h4>
+                  {orderBumps
+                    .filter((bump) => selectedOrderBumps.includes(bump.id))
+                    .map((bump) => (
+                      <div
+                        key={bump.id}
+                        className="flex justify-between text-sm mb-2"
+                      >
+                        <span className="text-gray-600">{bump.title}</span>
+                        <span className="font-medium text-gray-900">
+                          R$ {Number(bump.price || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
             </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      {theme.showStoreName && (
-        <div className="bg-white border-t mt-12 py-6">
-          <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-600">
-            <p>© {new Date().getFullYear()} - Todos os direitos reservados</p>
-          </div>
-        </div>
-      )}
+      {/* Footer Customizável */}
+      <CheckoutFooter theme={theme} storeData={storeData} />
     </div>
   );
 };
