@@ -1,58 +1,53 @@
+/**
+ * PublicCheckoutPage - Checkout Moderno SyncAds Brasil
+ *
+ * Checkout moderno estilo Mercado Pago/PagSeguro com:
+ * - Suporte completo a PIX, Cartão e Boleto
+ * - Integração Shopify + Paggue-X
+ * - Pixel Tracking (Facebook/Google)
+ * - Detecção de carrinho abandonado
+ * - Animações Framer Motion
+ * - 100% Responsivo
+ *
+ * @version 3.0
+ * @date 2025-01-08
+ */
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
-  CreditCard,
-  Smartphone,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  Percent,
-  Tag,
+  ChevronRight,
+  ChevronLeft,
   Lock,
   ShieldCheck,
   Package,
-  Truck,
-  Check,
+  AlertCircle,
+  CreditCard,
   X,
-  ChevronRight,
-  ChevronLeft,
-  User,
-  RefreshCw,
+  Check,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { usePaymentDiscounts } from "@/hooks/usePaymentDiscounts";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useAbandonedCartDetection } from "@/hooks/useAbandonedCartDetection";
 import { SocialProofNotifications } from "@/components/checkout/SocialProofNotifications";
-import { formatCep, searchCep } from "@/lib/utils/cepUtils";
-import { formatCpf, validateCpf } from "@/lib/utils/cpfUtils";
-import { formatPhone, validatePhone } from "@/lib/utils/phoneUtils";
-import {
-  DEFAULT_CHECKOUT_THEME,
-  applyTheme,
-} from "@/config/defaultCheckoutTheme";
-import { cn } from "@/lib/utils";
-import { CreditCardForm, CardData } from "@/components/checkout/CreditCardForm";
-import { PixPayment } from "@/components/checkout/PixPayment";
-import { BoletoPayment } from "@/components/checkout/BoletoPayment";
+import { DEFAULT_CHECKOUT_THEME, applyTheme } from "@/config/defaultCheckoutTheme";
+import { getCPFNumbers } from "@/lib/utils/cpfValidation";
+import { Stepper } from "@/components/checkout/steps/Stepper";
 import { StepDadosPessoais } from "@/components/checkout/steps/StepDadosPessoais";
 import { StepEndereco } from "@/components/checkout/steps/StepEndereco";
 import { StepPagamento } from "@/components/checkout/steps/StepPagamento";
-import {
-  maskCPF,
-  validateCPFAsync,
-  getCPFNumbers,
-} from "@/lib/utils/cpfValidation";
+import { CardData } from "@/components/checkout/CreditCardForm";
 
 // ============================================
 // INTERFACES
@@ -73,6 +68,7 @@ interface CheckoutData {
   tax: number;
   shipping: number;
   discount?: number;
+  items?: any[];
 }
 
 interface CustomerData {
@@ -114,19 +110,15 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // ========================================
-  // ESTADOS
-  // ========================================
+  // Estados principais
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [loadingCep, setLoadingCep] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
 
-  // Form data
+  // Dados do formulário
   const [customerData, setCustomerData] = useState<CustomerData>({
     name: "",
     email: "",
@@ -144,45 +136,42 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     zipCode: "",
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<
-    "CREDIT_CARD" | "PIX" | "BOLETO"
-  >("PIX");
+  // Dados de pagamento
+  const [paymentMethod, setPaymentMethod] = useState<"CREDIT_CARD" | "PIX" | "BOLETO">("PIX");
   const [installments, setInstallments] = useState(1);
-
-  // Estados para dados de pagamento
   const [cardData, setCardData] = useState<CardData | null>(null);
   const [pixData, setPixData] = useState<any>(null);
   const [boletoData, setBoletoData] = useState<any>(null);
   const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
-  const [cpfValidating, setCpfValidating] = useState(false);
 
-  // ========================================
-  // HOOK DE DESCONTOS
-  // ========================================
+  // Tema
+  const theme = injectedTheme
+    ? applyTheme(injectedTheme)
+    : customization?.theme
+    ? applyTheme(customization.theme)
+    : DEFAULT_CHECKOUT_THEME;
+
+  // ============================================
+  // HOOKS
+  // ============================================
+
+  // Hook de descontos
   const {
-    loading: discountsLoading,
     calculation: discountCalculation,
     activeDiscount,
     getDiscountLabel,
-    hasDiscountForMethod,
     getDiscountInfoForMethod,
-    getEstimatedDiscountForMethod,
   } = usePaymentDiscounts({
     userId: orderData?.userId || null,
     paymentMethod: paymentMethod,
     purchaseAmount: checkoutData?.subtotal || 0,
   });
 
-  // Recalcular total com desconto
   const finalTotal = discountCalculation.hasDiscount
-    ? discountCalculation.finalTotal +
-      (checkoutData?.shipping || 0) +
-      (checkoutData?.tax || 0)
+    ? discountCalculation.finalTotal + (checkoutData?.shipping || 0) + (checkoutData?.tax || 0)
     : checkoutData?.total || 0;
 
-  // ========================================
-  // HOOK DE PIXEL TRACKING
-  // ========================================
+  // Hook de Pixel Tracking
   const {
     initialized: pixelsInitialized,
     trackPageView,
@@ -191,43 +180,8 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     trackPurchase,
   } = usePixelTracking(orderData?.userId || null);
 
-  // Disparar evento de PageView quando carregar
-  useEffect(() => {
-    if (pixelsInitialized && orderData) {
-      trackPageView();
-    }
-  }, [pixelsInitialized, orderData, trackPageView]);
-
-  // Disparar evento InitiateCheckout quando chegar no step de pagamento
-  useEffect(() => {
-    if (pixelsInitialized && currentStep === 3 && checkoutData) {
-      trackInitiateCheckout(finalTotal, checkoutData.items || []);
-    }
-  }, [
-    pixelsInitialized,
-    currentStep,
-    finalTotal,
-    checkoutData,
-    trackInitiateCheckout,
-  ]);
-
-  // Disparar evento AddPaymentInfo quando selecionar método de pagamento
-  useEffect(() => {
-    if (pixelsInitialized && paymentMethod && currentStep === 3) {
-      trackAddPaymentInfo(finalTotal, paymentMethod);
-    }
-  }, [
-    pixelsInitialized,
-    paymentMethod,
-    finalTotal,
-    currentStep,
-    trackAddPaymentInfo,
-  ]);
-
-  // ========================================
-  // HOOK DE DETECÇÃO DE ABANDONO
-  // ========================================
-  const { markAsRecovered, isMonitoring } = useAbandonedCartDetection({
+  // Hook de carrinho abandonado
+  const { markAsRecovered } = useAbandonedCartDetection({
     orderId: effectiveOrderId,
     currentStep,
     customerData,
@@ -236,70 +190,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     userId: orderData?.userId || null,
   });
 
-  // Log quando monitoramento estiver ativo
-  useEffect(() => {
-    if (isMonitoring) {
-      console.log("🔍 Monitoramento de abandono ativo");
-    }
-  }, [isMonitoring]);
-
-  // ========================================
-  // PERSISTÊNCIA DE ESTADO
-  // ========================================
-  useEffect(() => {
-    // Carregar dados do localStorage ao montar
-    const savedState = localStorage.getItem(`checkout-${orderId}`);
-    if (savedState) {
-      try {
-        const parsed = JSON.parse(savedState);
-        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
-        if (parsed.customerData) setCustomerData(parsed.customerData);
-        if (parsed.addressData) setAddressData(parsed.addressData);
-        if (parsed.paymentMethod) setPaymentMethod(parsed.paymentMethod);
-        if (parsed.pixData) setPixData(parsed.pixData);
-        if (parsed.boletoData) setBoletoData(parsed.boletoData);
-      } catch (error) {
-        console.error("Erro ao recuperar estado:", error);
-      }
-    }
-  }, [orderId]);
-
-  // Salvar estado sempre que mudar
-  useEffect(() => {
-    if (orderId) {
-      const state = {
-        currentStep,
-        customerData,
-        addressData,
-        paymentMethod,
-        pixData,
-        boletoData,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(`checkout-${orderId}`, JSON.stringify(state));
-    }
-  }, [
-    currentStep,
-    customerData,
-    addressData,
-    paymentMethod,
-    pixData,
-    boletoData,
-    orderId,
-  ]);
-
-  // ========================================
-  // TEMA
-  // ========================================
-  const theme = injectedTheme
-    ? applyTheme(injectedTheme)
-    : customization?.theme
-      ? applyTheme(customization.theme)
-      : DEFAULT_CHECKOUT_THEME;
-
-  // ========================================
+  // ============================================
   // CARREGAR DADOS
-  // ========================================
+  // ============================================
+
   useEffect(() => {
     if (effectiveOrderId) {
       loadCheckoutData();
@@ -310,7 +204,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     try {
       setLoading(true);
 
-      // Buscar pedido no Supabase
       const { data: order, error: orderError } = await supabase
         .from("Order")
         .select("*")
@@ -321,7 +214,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         throw new Error("Pedido não encontrado");
       }
 
-      // Montar dados do checkout
       const items = Array.isArray(order.items) ? order.items : [];
       const originalProducts = Array.isArray(order.metadata?.originalProducts)
         ? order.metadata.originalProducts
@@ -332,24 +224,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         products: items.map((item: any) => {
           const original = originalProducts.find(
             (op: any) =>
-              (op?.variantId &&
-                String(op.variantId) === String(item.variantId)) ||
-              (op?.productId &&
-                String(op.productId) === String(item.productId)) ||
-              (op?.id &&
-                (String(op.id) === String(item.productId) ||
-                  String(op.id) === String(item.id))),
+              (op?.variantId && String(op.variantId) === String(item.variantId)) ||
+              (op?.productId && String(op.productId) === String(item.productId)) ||
+              (op?.id && (String(op.id) === String(item.productId) || String(op.id) === String(item.id)))
           );
           return {
             id: item.productId || item.id,
             name: item.name || original?.name || original?.title || "Produto",
             price: Number(item.price) || 0,
             quantity: Number(item.quantity) || 1,
-            image:
-              item.image ||
-              original?.image ||
-              (Array.isArray(original?.images) ? original.images[0] : "") ||
-              "",
+            image: item.image || original?.image || (Array.isArray(original?.images) ? original.images[0] : "") || "",
             sku: item.sku || original?.sku || "",
           };
         }),
@@ -358,6 +242,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         tax: Number(order.tax) || 0,
         shipping: Number(order.shipping) || 0,
         discount: Number(order.discount) || 0,
+        items: items,
       };
 
       setCheckoutData(checkoutInfo);
@@ -385,50 +270,68 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     }
   };
 
-  // ========================================
-  // BUSCAR CEP
-  // ========================================
-  const handleCepSearch = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, "");
-    if (cleanCep.length !== 8) return;
+  // ============================================
+  // TRACKING
+  // ============================================
 
-    setLoadingCep(true);
-    try {
-      const result = await searchCep(cleanCep);
-      if (result) {
-        setAddressData((prev) => ({
-          ...prev,
-          street: result.street || "",
-          neighborhood: result.neighborhood || "",
-          city: result.city || "",
-          state: result.state || "",
-        }));
-        toast({
-          title: "CEP encontrado!",
-          description: `${result.city} - ${result.state}`,
-        });
-      } else {
-        toast({
-          title: "CEP não encontrado",
-          description: "Verifique o CEP digitado e tente novamente",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
-      toast({
-        title: "Erro ao buscar CEP",
-        description: "Tente novamente mais tarde",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingCep(false);
+  useEffect(() => {
+    if (pixelsInitialized && orderData) {
+      trackPageView();
     }
-  };
+  }, [pixelsInitialized, orderData]);
 
-  // ========================================
+  useEffect(() => {
+    if (pixelsInitialized && currentStep === 3 && checkoutData) {
+      trackInitiateCheckout(finalTotal, checkoutData.items || []);
+    }
+  }, [pixelsInitialized, currentStep, finalTotal, checkoutData]);
+
+  useEffect(() => {
+    if (pixelsInitialized && paymentMethod && currentStep === 3) {
+      trackAddPaymentInfo(finalTotal, paymentMethod);
+    }
+  }, [pixelsInitialized, paymentMethod, finalTotal, currentStep]);
+
+  // ============================================
+  // PERSISTÊNCIA
+  // ============================================
+
+  useEffect(() => {
+    const savedState = localStorage.getItem(`checkout-${orderId}`);
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+        if (parsed.customerData) setCustomerData(parsed.customerData);
+        if (parsed.addressData) setAddressData(parsed.addressData);
+        if (parsed.paymentMethod) setPaymentMethod(parsed.paymentMethod);
+        if (parsed.pixData) setPixData(parsed.pixData);
+        if (parsed.boletoData) setBoletoData(parsed.boletoData);
+      } catch (error) {
+        console.error("Erro ao recuperar estado:", error);
+      }
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    if (orderId) {
+      const state = {
+        currentStep,
+        customerData,
+        addressData,
+        paymentMethod,
+        pixData,
+        boletoData,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`checkout-${orderId}`, JSON.stringify(state));
+    }
+  }, [currentStep, customerData, addressData, paymentMethod, pixData, boletoData, orderId]);
+
+  // ============================================
   // VALIDAÇÕES
-  // ========================================
+  // ============================================
+
   const validateStep = (step: number): boolean => {
     if (step === 1) {
       if (!customerData.name || !customerData.email || !customerData.phone) {
@@ -439,7 +342,6 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         });
         return false;
       }
-
       if (theme.requestCpfOnlyAtPayment === false && !customerData.document) {
         toast({
           title: "CPF obrigatório",
@@ -451,14 +353,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     }
 
     if (step === 2) {
-      if (
-        !addressData.zipCode ||
-        !addressData.street ||
-        !addressData.number ||
-        !addressData.neighborhood ||
-        !addressData.city ||
-        !addressData.state
-      ) {
+      if (!addressData.zipCode || !addressData.street || !addressData.number || !addressData.neighborhood || !addressData.city || !addressData.state) {
         toast({
           title: "Endereço incompleto",
           description: "Preencha todos os campos obrigatórios",
@@ -471,9 +366,10 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     return true;
   };
 
-  // ========================================
+  // ============================================
   // NAVEGAÇÃO
-  // ========================================
+  // ============================================
+
   const handleNext = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
@@ -486,35 +382,20 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ========================================
+  // ============================================
   // PROCESSAR PAGAMENTO
-  // ========================================
+  // ============================================
+
   const handleCheckout = async () => {
     if (!validateStep(currentStep)) return;
 
     try {
       setProcessing(true);
 
-      // Normalizar método de pagamento para minúsculas
-      const normalizedPaymentMethod = paymentMethod.toLowerCase() as
-        | "credit_card"
-        | "pix"
-        | "boleto";
+      const normalizedPaymentMethod = paymentMethod.toLowerCase() as "credit_card" | "pix" | "boleto";
 
-      console.log("🔍 [DEBUG] Payment method original:", paymentMethod);
-      console.log(
-        "🔍 [DEBUG] Payment method normalized:",
-        normalizedPaymentMethod,
-      );
-
-      // Validar dados do cartão se necessário
       if (paymentMethod === "CREDIT_CARD") {
-        if (
-          !cardData ||
-          !cardData.number ||
-          !cardData.holderName ||
-          !cardData.cvv
-        ) {
+        if (!cardData || !cardData.number || !cardData.holderName || !cardData.cvv) {
           toast({
             title: "Dados do cartão incompletos",
             description: "Por favor, preencha todos os dados do cartão.",
@@ -525,21 +406,17 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         }
       }
 
-      // Preparar dados do cartão se aplicável
-      const cardPayload =
-        paymentMethod === "CREDIT_CARD" && cardData
-          ? {
-              number: cardData.number.replace(/\s/g, ""),
-              holderName: cardData.holderName,
-              expiryMonth: cardData.expiryMonth,
-              expiryYear: cardData.expiryYear,
-              cvv: cardData.cvv,
-            }
-          : undefined;
+      const cardPayload = paymentMethod === "CREDIT_CARD" && cardData
+        ? {
+            number: cardData.number.replace(/\s/g, ""),
+            holderName: cardData.holderName,
+            expiryMonth: cardData.expiryMonth,
+            expiryYear: cardData.expiryYear,
+            cvv: cardData.cvv,
+          }
+        : undefined;
 
-      // ✨ ATUALIZAR PEDIDO COM DADOS DO CADASTRO ANTES DE PROCESSAR PAGAMENTO
-      console.log("📝 [UPDATE] Atualizando pedido com dados do cadastro...");
-
+      // Atualizar pedido
       const { error: updateError } = await supabase
         .from("Order")
         .update({
@@ -573,7 +450,7 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         .eq("id", effectiveOrderId);
 
       if (updateError) {
-        console.error("❌ [UPDATE] Erro ao atualizar pedido:", updateError);
+        console.error("Erro ao atualizar pedido:", updateError);
         toast({
           title: "Erro ao salvar dados",
           description: "Não foi possível salvar os dados do pedido",
@@ -583,161 +460,89 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
         return;
       }
 
-      console.log("✅ [UPDATE] Pedido atualizado com sucesso!", {
-        orderId: effectiveOrderId,
-        customerName: customerData.name,
-        customerEmail: customerData.email,
+      // Processar pagamento
+      const { data, error } = await supabase.functions.invoke("process-payment", {
+        body: {
+          userId: orderData?.userId,
+          orderId: effectiveOrderId,
+          amount: checkoutData?.total || 0,
+          currency: "BRL",
+          paymentMethod: normalizedPaymentMethod,
+          customer: {
+            name: customerData.name,
+            email: customerData.email,
+            document: getCPFNumbers(customerData.document),
+            phone: customerData.phone,
+          },
+          billingAddress: {
+            street: addressData.street,
+            number: addressData.number,
+            complement: addressData.complement,
+            neighborhood: addressData.neighborhood,
+            city: addressData.city,
+            state: addressData.state,
+            zipCode: addressData.zipCode,
+          },
+          card: cardPayload,
+          installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
+        },
       });
 
-      // Processar pagamento
-      const { data, error } = await supabase.functions.invoke(
-        "process-payment",
-        {
-          body: {
-            userId: orderData?.userId,
-            orderId: effectiveOrderId,
-            amount: checkoutData?.total || 0,
-            currency: "BRL",
-            paymentMethod: normalizedPaymentMethod,
-            customer: {
-              name: customerData.name,
-              email: customerData.email,
-              document: getCPFNumbers(customerData.document),
-              phone: customerData.phone,
-            },
-            billingAddress: {
-              street: addressData.street,
-              number: addressData.number,
-              complement: addressData.complement,
-              neighborhood: addressData.neighborhood,
-              city: addressData.city,
-              state: addressData.state,
-              zipCode: addressData.zipCode,
-            },
-            card: cardPayload,
-            installments: paymentMethod === "CREDIT_CARD" ? installments : 1,
-          },
-        },
-      );
-
-      console.log("🔍 [DEBUG] Resposta process-payment:", { data, error });
-      console.log("🔍 [DEBUG] data.success:", data?.success);
-      console.log("🔍 [DEBUG] paymentMethod:", paymentMethod);
-      console.log("🔍 [DEBUG] data.pixData:", data?.pixData);
-      console.log("🔍 [DEBUG] data.transactionId:", data?.transactionId);
-      console.log("🔍 [DEBUG] effectiveOrderId:", effectiveOrderId);
-
-      // Edge Function sempre retorna status 200, verificar success
       if (!data?.success) {
-        // Verificar se é erro de gateway não configurado
         if (data?.requiresSetup || data?.error === "NO_GATEWAY_CONFIGURED") {
           toast({
             title: "Gateway não configurado",
-            description:
-              data?.hint || "Configure um gateway de pagamento primeiro",
+            description: data?.hint || "Configure um gateway de pagamento primeiro",
             variant: "destructive",
             duration: 10000,
           });
           setProcessing(false);
           return;
         }
-
-        // Outros erros
-        throw new Error(
-          data?.message || data?.error || "Erro ao processar pagamento",
-        );
+        throw new Error(data?.message || data?.error || "Erro ao processar pagamento");
       }
 
-      // Tratar erro de rede
       if (error) throw error;
 
-      // ✅ SINCRONIZAR PEDIDO COM SHOPIFY (INDEPENDENTE DO STATUS)
+      // Sincronizar com Shopify
       try {
-        console.log("🔄 [SHOPIFY] Sincronizando pedido com Shopify...", {
-          orderId: effectiveOrderId,
+        await supabase.functions.invoke("sync-order-to-shopify", {
+          body: {
+            orderId: effectiveOrderId,
+            userId: orderData?.userId,
+          },
         });
-
-        const { data: shopifySync, error: shopifyError } =
-          await supabase.functions.invoke("sync-order-to-shopify", {
-            body: {
-              orderId: effectiveOrderId,
-              userId: orderData?.userId,
-            },
-          });
-
-        if (shopifySync?.success) {
-          console.log("✅ [SHOPIFY] Pedido sincronizado com sucesso!", {
-            shopifyOrderId: shopifySync.shopifyOrderId,
-            shopifyOrderNumber: shopifySync.shopifyOrderNumber,
-            adminUrl: shopifySync.shopifyAdminUrl,
-          });
-        } else if (shopifyError) {
-          console.warn(
-            "⚠️ [SHOPIFY] Erro ao sincronizar (não-crítico):",
-            shopifyError,
-          );
-          // Não bloquear o fluxo se falhar a sincronização
-        }
       } catch (shopifyErr) {
-        console.warn(
-          "⚠️ [SHOPIFY] Erro ao tentar sincronizar com Shopify:",
-          shopifyErr,
-        );
-        // Não bloquear o fluxo principal se a sincronização falhar
+        console.warn("Erro ao sincronizar Shopify (não-crítico):", shopifyErr);
       }
 
-      // Tratar resposta de sucesso
       if (data.success) {
-        // 🎯 DISPARAR EVENTO DE PURCHASE (CONVERSÃO)
+        // Track conversão
         if (pixelsInitialized) {
-          trackPurchase(
-            effectiveOrderId,
-            finalTotal,
-            checkoutData?.items || [],
-            {
-              email: customerData.email,
-              phone: customerData.phone,
-              firstName: customerData.name?.split(" ")[0],
-              lastName: customerData.name?.split(" ").slice(1).join(" "),
-              city: addressData.city,
-              state: addressData.state,
-              zipCode: addressData.zipCode,
-              country: "BR",
-            },
-          );
-          console.log(
-            "📊 Purchase event tracked:",
-            effectiveOrderId,
-            finalTotal,
-          );
+          trackPurchase(effectiveOrderId, finalTotal, checkoutData?.items || [], {
+            email: customerData.email,
+            phone: customerData.phone,
+            firstName: customerData.name?.split(" ")[0],
+            lastName: customerData.name?.split(" ").slice(1).join(" "),
+            city: addressData.city,
+            state: addressData.state,
+            zipCode: addressData.zipCode,
+            country: "BR",
+          });
         }
 
-        // 🔄 MARCAR CARRINHO COMO RECUPERADO (se estava abandonado)
+        // Marcar como recuperado
         if (markAsRecovered) {
           await markAsRecovered();
-          console.log("✅ Carrinho marcado como recuperado");
         }
 
-        // Se for cartão, redirecionar imediatamente
+        // Redirecionar
         if (paymentMethod === "CREDIT_CARD") {
-          toast({
-            title: "Pagamento processado!",
-            description: "Redirecionando para confirmação...",
-          });
+          toast({ title: "Pagamento processado!", description: "Redirecionando..." });
           setTimeout(() => {
-            navigate(
-              `/checkout/success/${data.transactionId || effectiveOrderId}`,
-            );
+            navigate(`/checkout/success/${data.transactionId || effectiveOrderId}`);
           }, 1500);
         } else if (paymentMethod === "PIX" && data.pixData) {
-          console.log("✅ [DEBUG] Entrando no bloco de PIX");
-          console.log(
-            "✅ [DEBUG] Vai redirecionar para:",
-            `/pix/${effectiveOrderId}/${data.transactionId}`,
-          );
-          console.log("✅ [DEBUG] pixData recebido:", data.pixData);
-
-          // Para PIX, salvar dados e redirecionar para página dedicada
           const pixInfo = {
             qrCode: data.pixData.qrCode || "",
             qrCodeBase64: data.pixData.qrCodeBase64 || "",
@@ -745,55 +550,15 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
             amount: checkoutData?.total || 0,
             transactionId: data.transactionId || "",
           };
-
-          // Salvar no localStorage com try-catch
-          try {
-            const pixInfoStr = JSON.stringify(pixInfo);
-            localStorage.setItem(`pix-${effectiveOrderId}`, pixInfoStr);
-            console.log("✅ [DEBUG] Dados salvos no localStorage");
-          } catch (error) {
-            console.error("❌ [DEBUG] Erro ao salvar no localStorage:", error);
-            // Continuar mesmo se falhar o localStorage
-          }
-
-          toast({
-            title: "PIX gerado com sucesso!",
-            description: "Redirecionando para pagamento...",
-          });
-
-          // Redirecionar para página do PIX
-          console.log("🚀 [DEBUG] Iniciando redirecionamento...");
+          localStorage.setItem(`pix-${effectiveOrderId}`, JSON.stringify(pixInfo));
+          toast({ title: "PIX gerado!", description: "Redirecionando..." });
           setTimeout(() => {
-            console.log("🚀 [DEBUG] Executando navigate...");
             navigate(`/pix/${effectiveOrderId}/${data.transactionId}`);
           }, 1000);
         } else if (paymentMethod === "BOLETO" && data.boletoData) {
-          // Para Boleto, salvar dados e mostrar na mesma página
           setBoletoData(data.boletoData);
-          localStorage.setItem(
-            `boleto-${effectiveOrderId}`,
-            JSON.stringify(data.boletoData),
-          );
-
-          toast({
-            title: "Boleto gerado!",
-            description: "Baixe o boleto para completar o pagamento.",
-          });
-        } else {
-          console.log("❌ [DEBUG] NÃO entrou em nenhum bloco de pagamento");
-          console.log("❌ [DEBUG] Motivo:");
-          console.log("   - paymentMethod:", paymentMethod);
-          console.log(
-            "   - paymentMethod === 'CREDIT_CARD'?",
-            paymentMethod === "CREDIT_CARD",
-          );
-          console.log("   - paymentMethod === 'PIX'?", paymentMethod === "PIX");
-          console.log("   - data.pixData existe?", !!data.pixData);
-          console.log(
-            "   - paymentMethod === 'BOLETO'?",
-            paymentMethod === "BOLETO",
-          );
-          console.log("   - data.boletoData existe?", !!data.boletoData);
+          localStorage.setItem(`boleto-${effectiveOrderId}`, JSON.stringify(data.boletoData));
+          toast({ title: "Boleto gerado!", description: "Baixe o boleto." });
         }
       }
     } catch (error: any) {
@@ -808,21 +573,16 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
     }
   };
 
-  // ========================================
+  // ============================================
   // LOADING
-  // ========================================
+  // ============================================
+
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: theme.backgroundColor }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="text-center">
-          <Loader2
-            className="h-12 w-12 animate-spin mx-auto mb-4"
-            style={{ color: theme.primaryButtonBackgroundColor }}
-          />
-          <p style={{ color: theme.textColor }}>Carregando checkout...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-lg font-medium text-slate-700">Carregando checkout...</p>
         </div>
       </div>
     );
@@ -830,952 +590,263 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 
   if (!checkoutData) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: theme.backgroundColor }}
-      >
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Pedido não encontrado. Verifique o link e tente novamente.
-          </AlertDescription>
+          <AlertDescription>Pedido não encontrado. Verifique o link e tente novamente.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  // ========================================
-  // CALCULAR TOTAL DE STEPS
-  // ========================================
-  const totalSteps = 3;
-  const steps = [
-    { number: 1, label: "Dados", icon: User },
-    { number: 2, label: "Endereço", icon: Truck },
-    { number: 3, label: "Pagamento", icon: CreditCard },
-  ];
-
-  // ========================================
+  // ============================================
   // RENDER
-  // ========================================
+  // ============================================
+
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundColor: theme.backgroundColor,
-        color: theme.textColor,
-        fontFamily: theme.fontFamily,
-      }}
-    >
-      {/* BARRA DE AVISOS */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header Moderno */}
+      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-4 max-w-6xl">
+          <div className="flex items-center justify-between">
+            {theme.logoUrl ? (
+              <img src={theme.logoUrl} alt="Logo" className="h-10 object-contain" />
+            ) : (
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Checkout Seguro
+              </h1>
+            )}
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <ShieldCheck className="w-4 h-4 text-green-600" />
+              <span className="hidden sm:inline">Compra 100% Segura</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Barra de Avisos */}
       {theme.noticeBarEnabled && theme.noticeBarMessage && (
-        <div
-          className="py-3 px-4 text-center text-sm md:text-base font-medium"
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="py-2 px-4 text-center text-sm font-medium"
           style={{
             backgroundColor: theme.noticeBarBackgroundColor,
             color: theme.noticeBarTextColor,
           }}
         >
           {theme.noticeBarMessage}
-        </div>
+        </motion.div>
       )}
 
-      {/* CABEÇALHO */}
-      <header
-        className="border-b sticky top-0 z-30 backdrop-blur-lg"
-        style={{
-          backgroundColor: theme.useGradient
-            ? `linear-gradient(135deg, ${theme.backgroundColor}, ${theme.backgroundGradient})`
-            : `${theme.backgroundColor}F5`,
-          borderColor: theme.cardBorderColor,
-        }}
-      >
-        <div className="container mx-auto px-4 py-4 md:py-6 max-w-6xl">
-          <div
-            className={cn(
-              "flex items-center",
-              theme.logoAlignment === "center" && "justify-center",
-              theme.logoAlignment === "right" && "justify-end",
-              theme.logoAlignment === "left" && "justify-start",
-            )}
-          >
-            {theme.logoUrl && (
-              <img
-                src={theme.logoUrl}
-                alt="Logo"
-                className="h-8 md:h-10 object-contain"
-                style={{
-                  width: theme.logoWidth || "auto",
-                  height: theme.logoHeight || 40,
-                }}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Stepper */}
+      <Stepper currentStep={currentStep} theme={theme} />
 
-      {/* BANNER */}
-      {theme.bannerEnabled && theme.bannerUrl && (
-        <div className="w-full">
-          <img
-            src={theme.bannerUrl}
-            alt="Banner"
-            className="w-full object-cover"
-            style={{ height: theme.bannerHeight || 90 }}
-          />
-        </div>
-      )}
-
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="container mx-auto px-4 py-6 md:py-8 max-w-6xl pb-32 lg:pb-8">
-        {/* BARRA DE PROGRESSO */}
-        {theme.showProgressBar && (
-          <div className="mb-6 md:mb-8">
-            {/* Versão Mobile */}
-            <div className="lg:hidden flex items-center justify-between mb-4">
-              {steps.map((step, index) => (
-                <React.Fragment key={step.number}>
-                  <div className="flex flex-col items-center gap-1.5 flex-1">
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all",
-                        currentStep === step.number && "ring-2 ring-offset-2",
-                      )}
-                      style={{
-                        backgroundColor:
-                          currentStep > step.number
-                            ? theme.stepCompletedColor
-                            : currentStep === step.number
-                              ? theme.stepActiveColor
-                              : theme.stepInactiveColor,
-                        color:
-                          currentStep >= step.number
-                            ? theme.primaryButtonTextColor
-                            : theme.textColor,
-                      }}
-                    >
-                      {currentStep > step.number ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <step.icon className="h-5 w-5" />
-                      )}
-                    </div>
-                    <span
-                      className="text-xs font-medium text-center"
-                      style={{
-                        color:
-                          currentStep >= step.number
-                            ? theme.headingColor
-                            : theme.textColor,
-                        opacity: currentStep >= step.number ? 1 : 0.5,
-                      }}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className="w-8 h-0.5 mx-1 rounded-full transition-all mt-[-20px]"
-                      style={{
-                        backgroundColor:
-                          currentStep > step.number
-                            ? theme.stepCompletedColor
-                            : theme.stepInactiveColor,
-                      }}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-
-            {/* Versão Desktop */}
-            <div className="hidden lg:flex items-center justify-between mb-4">
-              {steps.map((step, index) => (
-                <React.Fragment key={step.number}>
-                  <div className="flex flex-col items-center gap-2">
-                    <div
-                      className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all",
-                        currentStep > step.number && "scale-110",
-                      )}
-                      style={{
-                        backgroundColor:
-                          currentStep > step.number
-                            ? theme.stepCompletedColor
-                            : currentStep === step.number
-                              ? theme.stepActiveColor
-                              : theme.stepInactiveColor,
-                        color:
-                          currentStep >= step.number
-                            ? theme.primaryButtonTextColor
-                            : theme.textColor,
-                      }}
-                    >
-                      {currentStep > step.number ? (
-                        <Check className="h-6 w-6" />
-                      ) : (
-                        <step.icon className="h-6 w-6" />
-                      )}
-                    </div>
-                    <span
-                      className="text-xs font-medium"
-                      style={{
-                        color:
-                          currentStep >= step.number
-                            ? theme.headingColor
-                            : theme.textColor,
-                        opacity: currentStep >= step.number ? 1 : 0.5,
-                      }}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className="flex-1 h-1 mx-2 rounded-full transition-all"
-                      style={{
-                        backgroundColor:
-                          currentStep > step.number
-                            ? theme.stepCompletedColor
-                            : theme.stepInactiveColor,
-                      }}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* RESUMO COMPACTO MOBILE - ACIMA DO FORMULÁRIO */}
-        <div className="lg:hidden mb-6">
-          <Card
-            style={{
-              backgroundColor: theme.cardBackgroundColor,
-              borderColor: theme.cardBorderColor,
-              borderRadius: theme.cardBorderRadius,
-            }}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3
-                  className="font-bold text-base"
-                  style={{ color: theme.headingColor }}
-                >
-                  Seu Pedido
-                </h3>
-                <button
-                  onClick={() => setShowSummary(true)}
-                  className="text-sm underline"
-                  style={{ color: theme.primaryButtonBackgroundColor }}
-                >
-                  Ver detalhes
-                </button>
-              </div>
-
-              {/* PRODUTOS RESUMIDOS */}
-              <div className="space-y-3 mb-4">
-                {checkoutData.products.map((product, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div
-                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
-                      style={{
-                        width: 50,
-                        height: 50,
-                        backgroundColor: theme.inputBackgroundColor,
-                      }}
-                    >
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-5 w-5 opacity-30" />
-                        </div>
-                      )}
-                      <div
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{
-                          backgroundColor: theme.quantityCircleColor,
-                          color: theme.quantityTextColor,
-                        }}
-                      >
-                        {product.quantity}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {product.name}
-                      </h4>
-                      <p className="text-xs opacity-75">
-                        {product.quantity}x R$ {product.price.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p
-                        className="font-bold text-sm"
-                        style={{ color: theme.headingColor }}
-                      >
-                        R$ {(product.price * product.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Separator className="my-3" />
-              <Separator />
-
-              <div className="flex justify-between items-center pt-2">
-                <span
-                  className="text-lg font-bold"
-                  style={{ color: theme.headingColor }}
-                >
-                  Total
-                </span>
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: theme.primaryButtonBackgroundColor }}
-                >
-                  R$ {finalTotal.toFixed(2)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* LAYOUT 2 COLUNAS */}
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="grid lg:grid-cols-[1fr_420px] gap-8">
-          {/* COLUNA ESQUERDA - FORMULÁRIO */}
-          <div className="space-y-4 md:space-y-6">
-            {/* STEP 1 - DADOS PESSOAIS */}
-            {currentStep === 1 && (
-              <StepDadosPessoais
-                customerData={customerData}
-                setCustomerData={setCustomerData}
-                theme={theme}
-              />
-            )}
+          {/* Coluna Esquerda - Formulário */}
+          <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <StepDadosPessoais customerData={customerData} setCustomerData={setCustomerData} theme={theme} />
+                </motion.div>
+              )}
 
-            {/* STEP 2 - ENDEREÇO */}
-            {currentStep === 2 && (
-              <StepEndereco
-                addressData={addressData}
-                setAddressData={setAddressData}
-                theme={theme}
-              />
-            )}
+              {currentStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <StepEndereco addressData={addressData} setAddressData={setAddressData} theme={theme} />
+                </motion.div>
+              )}
 
-            {/* STEP 3 - PAGAMENTO */}
-            {currentStep === 3 && (
-              <StepPagamento
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                cardData={cardData}
-                setCardData={setCardData}
-                pixData={pixData}
-                boletoData={boletoData}
-                installments={installments}
-                setInstallments={setInstallments}
-                finalTotal={finalTotal}
-                cardErrors={cardErrors}
-                getDiscountInfoForMethod={getDiscountInfoForMethod}
-                theme={theme}
-              />
-            )}
+              {currentStep === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <StepPagamento
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                    cardData={cardData}
+                    setCardData={setCardData}
+                    pixData={pixData}
+                    boletoData={boletoData}
+                    installments={installments}
+                    setInstallments={setInstallments}
+                    finalTotal={finalTotal}
+                    cardErrors={cardErrors}
+                    getDiscountInfoForMethod={getDiscountInfoForMethod}
+                    theme={theme}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* BOTÕES DE NAVEGAÇÃO */}
-            <div className="flex items-center justify-between gap-3 pt-4">
+            {/* Botões de Navegação */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex gap-4"
+            >
               {currentStep > 1 && (
                 <Button
                   variant="outline"
                   onClick={handleBack}
-                  className="flex items-center gap-2 px-6 md:px-8"
-                  style={{
-                    borderColor: theme.inputBorderColor,
-                    color: theme.textColor,
-                    height: 52,
-                    borderWidth: 2,
-                  }}
+                  className="flex-1 h-14 text-base font-semibold border-2"
+                  style={{ borderColor: theme.inputBorderColor }}
                 >
-                  <ChevronLeft className="h-5 w-5" />
-                  <span className="hidden sm:inline">Voltar</span>
+                  <ChevronLeft className="w-5 h-5 mr-2" />
+                  Voltar
                 </Button>
               )}
-
-              <div className={cn("flex-1", currentStep === 1 && "ml-auto")}>
-                {currentStep < totalSteps ? (
-                  <Button
-                    onClick={handleNext}
-                    className="w-full flex items-center justify-center gap-2 font-semibold text-base shadow-lg"
-                    style={{
-                      backgroundColor: theme.primaryButtonBackgroundColor,
-                      color: theme.primaryButtonTextColor,
-                      height: 52,
-                      borderRadius: theme.primaryButtonBorderRadius,
-                    }}
-                  >
-                    Continuar
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                ) : (
-                  <>
-                    {/* Mostrar botão apenas se ainda não gerou PIX/Boleto */}
-                    {!pixData && !boletoData && (
-                      <Button
-                        onClick={handleCheckout}
-                        disabled={processing || previewMode}
-                        className="w-full font-bold text-base md:text-lg shadow-lg"
-                        style={{
-                          backgroundColor: theme.checkoutButtonBackgroundColor,
-                          color: theme.checkoutButtonTextColor,
-                          height: 56,
-                          borderRadius: theme.checkoutButtonBorderRadius,
-                        }}
-                      >
-                        {processing ? (
-                          <>
-                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                            Processando...
-                          </>
-                        ) : previewMode ? (
-                          <>
-                            <Lock className="h-5 w-5 mr-2" />
-                            Checkout Desabilitado (Preview)
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="h-5 w-5 mr-2" />
-                            Finalizar Compra - R${" "}
-                            {checkoutData?.total?.toFixed(2) || "0.00"}
-                          </>
-                        )}
-                      </Button>
-                    )}
-
-                    {/* Botão para gerar novo pagamento se já tiver dados */}
-                    {(pixData || boletoData) && (
-                      <Button
-                        onClick={() => {
-                          // Limpar dados e permitir novo pagamento
-                          setPixData(null);
-                          setBoletoData(null);
-                          if (orderId) {
-                            localStorage.removeItem(`checkout-${orderId}`);
-                          }
-                          toast({
-                            title: "Pronto para novo pagamento",
-                            description: "Clique em Finalizar Compra novamente",
-                          });
-                        }}
-                        variant="outline"
-                        className="w-full gap-2 h-12 font-semibold"
-                        style={{
-                          borderColor: theme.primaryButtonBackgroundColor,
-                          color: theme.primaryButtonBackgroundColor,
-                        }}
-                      >
-                        <RefreshCw className="h-5 w-5" />
-                        Gerar Novo Pagamento
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+              {currentStep < 3 ? (
+                <Button
+                  onClick={handleNext}
+                  className={cn("flex-1 h-14 text-base font-bold shadow-lg hover:shadow-xl transition-all", currentStep === 1 && "w-full")}
+                  style={{
+                    backgroundColor: theme.primaryButtonBackgroundColor,
+                    color: theme.primaryButtonTextColor,
+                  }}
+                >
+                  Continuar
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleCheckout}
+                  disabled={processing || previewMode}
+                  className="flex-1 h-14 text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Processando...
+                    </>
+                  ) : previewMode ? (
+                    <>
+                      <Lock className="w-5 h-5 mr-2" />
+                      Preview Mode
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5 mr-2" />
+                      Finalizar Compra
+                    </>
+                  )}
+                </Button>
+              )}
+            </motion.div>
           </div>
 
-          {/* COLUNA DIREITA - RESUMO (DESKTOP) */}
+          {/* Coluna Direita - Resumo */}
           <div className="hidden lg:block">
-            <div
-              className="sticky top-8 rounded-xl border p-6 space-y-5"
-              style={{
-                backgroundColor: theme.cardBackgroundColor,
-                borderColor: theme.cardBorderColor,
-                borderRadius: theme.cardBorderRadius,
-                boxShadow: theme.cardShadow,
-              }}
-            >
-              <div>
-                <h3
-                  className="text-xl font-bold mb-4"
-                  style={{ color: theme.headingColor }}
-                >
-                  Resumo do Pedido
-                </h3>
-              </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-24">
+              <Card className="shadow-2xl border-2" style={{ borderColor: theme.highlightedBorderColor }}>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: theme.headingColor }}>
+                    <Package className="w-5 h-5" />
+                    Resumo do Pedido
+                  </h3>
 
-              {/* PRODUTOS */}
-              <div className="space-y-4">
-                {checkoutData.products.map((product, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div
-                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
-                      style={{
-                        width: 70,
-                        height: 70,
-                        backgroundColor: theme.inputBackgroundColor,
-                      }}
-                    >
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package
-                            className="h-8 w-8"
-                            style={{ opacity: 0.3 }}
-                          />
+                  {/* Produtos */}
+                  <div className="space-y-4 mb-6">
+                    {checkoutData.products.map((product, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {product.image ? (
+                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package className="w-8 h-8 text-slate-400" />
+                          )}
                         </div>
-                      )}
-                      {theme.showCartIcon && (
-                        <div
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md"
-                          style={{
-                            backgroundColor: theme.quantityCircleColor,
-                            color: theme.quantityTextColor,
-                          }}
-                        >
-                          {product.quantity}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate" style={{ color: theme.headingColor }}>
+                            {product.name}
+                          </h4>
+                          <p className="text-xs text-slate-600">Qtd: {product.quantity}</p>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4
-                        className="font-semibold text-sm mb-1"
-                        style={{ color: theme.headingColor }}
-                      >
-                        {product.name}
-                      </h4>
-                      {product.sku && (
-                        <p className="text-xs opacity-60">SKU: {product.sku}</p>
-                      )}
-                      <p className="text-xs opacity-75 mt-1">
-                        Quantidade: {product.quantity}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p
-                        className="font-bold"
-                        style={{ color: theme.headingColor }}
-                      >
-                        R$ {(product.price * product.quantity).toFixed(2)}
-                      </p>
-                      {product.quantity > 1 && (
-                        <p className="text-xs opacity-60">
-                          R$ {product.price.toFixed(2)} un.
+                        <p className="font-bold text-sm" style={{ color: theme.headingColor }}>
+                          R$ {(product.price * product.quantity).toFixed(2)}
                         </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              {/* TOTAIS */}
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="opacity-75">Subtotal</span>
-                  <span className="font-medium">
-                    R$ {checkoutData.subtotal.toFixed(2)}
-                  </span>
-                </div>
-
-                {checkoutData.shipping > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="opacity-75">Frete</span>
-                    <span className="font-medium">
-                      R$ {checkoutData.shipping.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-
-                {checkoutData.tax > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="opacity-75">Taxa</span>
-                    <span className="font-medium">
-                      R$ {checkoutData.tax.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-
-                {checkoutData.discount && checkoutData.discount > 0 && (
-                  <div
-                    className="flex justify-between text-sm font-medium"
-                    style={{ color: theme.stepCompletedColor }}
-                  >
-                    <span>Desconto</span>
-                    <span>-R$ {checkoutData.discount.toFixed(2)}</span>
-                  </div>
-                )}
-
-                {/* DESCONTO POR FORMA DE PAGAMENTO */}
-                {discountCalculation.hasDiscount && (
-                  <div className="space-y-1 py-2 px-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800">
-                    <div
-                      className="flex justify-between text-sm font-semibold"
-                      style={{ color: theme.stepCompletedColor }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4" />
-                        <span>Desconto {getDiscountLabel()}</span>
                       </div>
-                      <span>
-                        -R$ {discountCalculation.discountAmount.toFixed(2)}
+                    ))}
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  {/* Totais */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>R$ {checkoutData.subtotal.toFixed(2)}</span>
+                    </div>
+                    {checkoutData.shipping > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Frete</span>
+                        <span>R$ {checkoutData.shipping.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-lg font-bold" style={{ color: theme.headingColor }}>Total</span>
+                      <span className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                        R$ {finalTotal.toFixed(2)}
                       </span>
                     </div>
-                    {activeDiscount?.description && (
-                      <p className="text-xs opacity-75 pl-6">
-                        {activeDiscount.description}
-                      </p>
-                    )}
-                    {discountCalculation.cappedAtMaximum && (
-                      <p className="text-xs opacity-75 pl-6 text-orange-600 dark:text-orange-400">
-                        Desconto máximo aplicado
-                      </p>
-                    )}
                   </div>
-                )}
 
-                <Separator />
-
-                <div className="flex justify-between text-xl font-bold pt-2">
-                  <span style={{ color: theme.headingColor }}>Total</span>
-                  <span style={{ color: theme.headingColor }}>
-                    R$ {finalTotal.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* SELOS DE SEGURANÇA */}
-              {theme.showTrustBadges && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <ShieldCheck
-                        className="h-5 w-5"
-                        style={{ color: theme.trustBadgeColor }}
-                      />
-                      <span className="opacity-75">Compra 100% Segura</span>
-                    </div>
-                    {theme.sslBadgeEnabled && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Lock
-                          className="h-5 w-5"
-                          style={{ color: theme.trustBadgeColor }}
-                        />
-                        <span className="opacity-75">Certificado SSL</span>
+                  {/* Trust Badges */}
+                  {theme.showTrustBadges && (
+                    <div className="mt-6 pt-6 border-t space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <ShieldCheck className="w-4 h-4 text-green-600" />
+                        <span>Compra 100% Segura</span>
                       </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* BOTÃO RESUMO MOBILE */}
-        <div
-          className="lg:hidden fixed bottom-0 left-0 right-0 p-4 border-t backdrop-blur-xl z-40 safe-area-bottom"
-          style={{
-            backgroundColor: `${theme.cardBackgroundColor}F8`,
-            borderColor: theme.cardBorderColor,
-            boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
-          }}
-        >
-          <Button
-            onClick={() => setShowSummary(!showSummary)}
-            className="w-full flex items-center justify-between shadow-lg font-semibold rounded-xl"
-            style={{
-              backgroundColor: theme.primaryButtonBackgroundColor,
-              color: theme.primaryButtonTextColor,
-              height: 56,
-            }}
-          >
-            <span className="flex items-center gap-2.5">
-              <Package className="h-5 w-5" />
-              <span className="text-base">
-                {showSummary ? "Ocultar Resumo" : "Ver Resumo"}
-              </span>
-            </span>
-            <span className="font-bold text-lg">
-              R$ {finalTotal.toFixed(2)}
-            </span>
-          </Button>
-        </div>
-
-        {/* MODAL RESUMO MOBILE */}
-        {showSummary && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setShowSummary(false)}
-          >
-            <div
-              className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
-              style={{
-                backgroundColor: theme.cardBackgroundColor,
-                color: theme.textColor,
-                boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Handle bar */}
-              <div className="flex justify-center mb-4">
-                <div
-                  className="w-12 h-1.5 rounded-full opacity-30"
-                  style={{ backgroundColor: theme.textColor }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between mb-6">
-                <h3
-                  className="text-2xl font-bold"
-                  style={{ color: theme.headingColor }}
-                >
-                  Resumo do Pedido
-                </h3>
-                <button
-                  onClick={() => setShowSummary(false)}
-                  className="p-2 rounded-full hover:bg-gray-100/10 transition-colors active:scale-95"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* PRODUTOS */}
-              <div className="space-y-4 mb-6">
-                {checkoutData.products.map((product, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div
-                      className="relative flex-shrink-0 rounded-lg overflow-hidden"
-                      style={{
-                        width: 70,
-                        height: 70,
-                        backgroundColor: theme.inputBackgroundColor,
-                      }}
-                    >
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-8 w-8 opacity-30" />
+                      {theme.sslBadgeEnabled && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Lock className="w-4 h-4 text-green-600" />
+                          <span>Certificado SSL</span>
                         </div>
                       )}
-                      <div
-                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{
-                          backgroundColor: theme.quantityCircleColor,
-                          color: theme.quantityTextColor,
-                        }}
-                      >
-                        {product.quantity}
-                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-sm mb-1">
-                        {product.name}
-                      </h4>
-                      <p className="text-xs opacity-75">
-                        Qtd: {product.quantity}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">
-                        R$ {(product.price * product.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Separator className="mb-4" />
-
-              {/* TOTAIS */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="opacity-75">Subtotal</span>
-                  <span className="font-medium">
-                    R$ {checkoutData.subtotal.toFixed(2)}
-                  </span>
-                </div>
-                {checkoutData.shipping > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="opacity-75">Frete</span>
-                    <span className="font-medium">
-                      R$ {checkoutData.shipping.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                {checkoutData.tax > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="opacity-75">Taxa</span>
-                    <span className="font-medium">
-                      R$ {checkoutData.tax.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                {checkoutData.discount && checkoutData.discount > 0 && (
-                  <div
-                    className="flex justify-between text-sm font-medium"
-                    style={{ color: theme.stepCompletedColor }}
-                  >
-                    <span>Desconto</span>
-                    <span>-R$ {checkoutData.discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between text-xl font-bold pt-2">
-                  <span style={{ color: theme.headingColor }}>Total</span>
-                  <span style={{ color: theme.headingColor }}>
-                    R$ {finalTotal.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => setShowSummary(false)}
-                className="w-full font-semibold text-base shadow-lg rounded-xl"
-                style={{
-                  backgroundColor: theme.primaryButtonBackgroundColor,
-                  color: theme.primaryButtonTextColor,
-                  height: 52,
-                }}
-              >
-                Fechar
-              </Button>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* PROVAS SOCIAIS */}
-      <SocialProofNotifications
-        userId={orderData?.userId || null}
-        position="bottom-left"
-      />
-
-      {/* RODAPÉ */}
-      <footer
-        className="border-t py-8 md:py-10 mt-12 md:mt-16"
-        style={{
-          backgroundColor: theme.footerBackgroundColor,
-          borderColor: theme.cardBorderColor,
-          color: theme.footerTextColor,
-        }}
-      >
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center space-y-5 md:space-y-6">
-            {/* CHECKOUT SEGURO */}
-            <div className="flex items-center justify-center gap-2.5 md:gap-3">
-              <Lock className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
-              <span className="font-bold text-lg md:text-xl">
-                Checkout Seguro
-              </span>
-            </div>
-
-            {/* SELOS */}
-            {theme.showTrustBadges && (
-              <div className="flex items-center justify-center gap-4 md:gap-8 flex-wrap text-xs md:text-sm">
-                {theme.sslBadgeEnabled && (
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-                    <span className="whitespace-nowrap">Certificado SSL</span>
-                  </div>
-                )}
-                {theme.showPaymentMethods && (
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="whitespace-nowrap">Pagamento Seguro</span>
-                  </div>
-                )}
-                {theme.securityIconsEnabled && (
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <ShieldCheck className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="whitespace-nowrap">Dados Protegidos</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* INFORMAÇÕES DA LOJA */}
-            {(theme.showCnpjCpf ||
-              theme.showContactEmail ||
-              theme.showPhone ||
-              theme.showAddress) && (
-              <div className="text-xs md:text-sm space-y-1 opacity-80 max-w-md mx-auto">
-                {theme.showStoreName && (
-                  <p className="font-semibold text-sm md:text-base">
-                    Minha Loja
-                  </p>
-                )}
-                {theme.showCnpjCpf && <p>CNPJ: 00.000.000/0001-00</p>}
-                {theme.showAddress && (
-                  <p className="text-balance">
-                    Endereço: Rua Exemplo, 123 - São Paulo/SP
-                  </p>
-                )}
-                {theme.showContactEmail && <p>E-mail: contato@loja.com.br</p>}
-                {theme.showPhone && <p>Telefone: (11) 99999-9999</p>}
-              </div>
-            )}
-
-            {/* LINKS LEGAIS */}
-            {(theme.showPrivacyPolicy ||
-              theme.showTermsConditions ||
-              theme.showReturns) && (
-              <>
-                <Separator className="my-3 md:my-4" />
-                <div className="flex items-center justify-center gap-4 md:gap-6 text-xs md:text-sm flex-wrap px-4">
-                  {theme.showPrivacyPolicy && (
-                    <a
-                      href="#"
-                      style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all whitespace-nowrap"
-                    >
-                      Política de Privacidade
-                    </a>
                   )}
-                  {theme.showTermsConditions && (
-                    <a
-                      href="#"
-                      style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all whitespace-nowrap"
-                    >
-                      Termos e Condições
-                    </a>
-                  )}
-                  {theme.showReturns && (
-                    <a
-                      href="#"
-                      style={{ color: theme.footerLinkColor }}
-                      className="hover:underline transition-all whitespace-nowrap"
-                    >
-                      Trocas e Devoluções
-                    </a>
-                  )}
-                </div>
-              </>
-            )}
-
-            <Separator className="my-3 md:my-4" />
-
-            <p className="text-xs md:text-xs opacity-60 pb-2">
-              © {new Date().getFullYear()} - Todos os direitos reservados
-            </p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
-      </footer>
+      </main>
+
+      {/* Social Proof */}
+      <SocialProofNotifications userId={orderData?.userId || null} position="bottom-left" />
+
+      {/* Footer */}
+      {theme.showFooter && (
+        <footer className="border-t bg-white/50 backdrop-blur-sm mt-16 py-8">
+          <div className="container mx-auto px-4 max-w-6xl text-center text-sm text-slate-600">
+            <p>© {new Date().getFullYear()} - Todos os direitos reservados</p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };
