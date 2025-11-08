@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -313,20 +314,25 @@ const AllProductsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 bg-clip-text text-transparent">
             Produtos
           </h1>
-          <p className="text-gray-600 font-medium">
+          <p className="text-gray-600 dark:text-gray-400 font-medium">
             Gerencie o catálogo completo de produtos da sua loja
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={handleSyncShopify}
-            variant="outline"
             disabled={syncing}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
           >
             <RefreshCw
               className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
@@ -338,117 +344,176 @@ const AllProductsPage = () => {
               resetForm();
               setIsDialogOpen(true);
             }}
+            className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl"
           >
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Produto
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Sync Stats Alert */}
       {syncStats.lastSync && (
-        <Alert>
-          <ShoppingBag className="h-4 w-4" />
-          <AlertTitle>Integração Shopify Ativa</AlertTitle>
-          <AlertDescription>
-            Última sincronização:{" "}
-            {new Date(syncStats.lastSync).toLocaleString("pt-BR")} •
-            {syncStats.totalProducts} produtos importados
-          </AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Alert className="border-0 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm">
+            <ShoppingBag className="h-4 w-4" />
+            <AlertTitle>Integração Shopify Ativa</AlertTitle>
+            <AlertDescription>
+              Última sincronização:{" "}
+              {new Date(syncStats.lastSync).toLocaleString("pt-BR")} •
+              {syncStats.totalProducts} produtos importados
+            </AlertDescription>
+          </Alert>
+        </motion.div>
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Produtos
-            </CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.active} ativos
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total de Produtos
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-purple-500 bg-opacity-10">
+                <Package className="h-4 w-4 text-purple-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-purple-600 to-pink-500 bg-clip-text text-transparent">
+                {stats.total}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {stats.active} ativos
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Produtos Ativos
-            </CardTitle>
-            <Boxes className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">
-              Disponíveis para venda
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Produtos Ativos
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-pink-500 bg-opacity-10">
+                <Boxes className="h-4 w-4 text-pink-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-pink-600 to-rose-500 bg-clip-text text-transparent">
+                {stats.active}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Disponíveis para venda
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(stats.totalValue)}
-            </div>
-            <p className="text-xs text-muted-foreground">Estoque valorizado</p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Valor Total
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-cyan-500 bg-opacity-10">
+                <DollarSign className="h-4 w-4 text-cyan-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-cyan-600 to-blue-500 bg-clip-text text-transparent">
+                {formatCurrency(stats.totalValue)}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Estoque valorizado
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>Busque e filtre produtos</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, SKU ou descrição..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm"
-                />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Filtros
+            </CardTitle>
+            <CardDescription className="dark:text-gray-400">
+              Busque e filtre produtos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, SKU ou descrição..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white dark:placeholder:text-gray-500"
+                  />
+                </div>
               </div>
-            </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="ACTIVE">Ativo</SelectItem>
-                <SelectItem value="DRAFT">Rascunho</SelectItem>
-                <SelectItem value="ARCHIVED">Arquivado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[200px] border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm dark:text-white">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="ACTIVE">Ativo</SelectItem>
+                  <SelectItem value="DRAFT">Rascunho</SelectItem>
+                  <SelectItem value="ARCHIVED">Arquivado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Products Table */}
-      <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg">
-        <CardHeader>
-          <CardTitle>Catálogo ({filteredProducts.length})</CardTitle>
-          <CardDescription>
-            {filteredProducts.length === products.length
-              ? "Mostrando todos os produtos"
-              : `Mostrando ${filteredProducts.length} de ${products.length} produtos`}
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
+              Catálogo ({filteredProducts.length})
+            </CardTitle>
+            <CardDescription className="dark:text-gray-400">
+              {filteredProducts.length === products.length
+                ? "Mostrando todos os produtos"
+                : `Mostrando ${filteredProducts.length} de ${products.length} produtos`}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {loading ? (
             <div className="space-y-4">
@@ -457,9 +522,14 @@ const AllProductsPage = () => {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center mb-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center justify-center h-64"
+            >
+              <Package className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
+              <p className="text-muted-foreground text-center mb-4 dark:text-gray-300">
                 {searchTerm || statusFilter !== "all"
                   ? "Nenhum produto encontrado com os filtros aplicados"
                   : "Nenhum produto cadastrado"}
@@ -489,21 +559,34 @@ const AllProductsPage = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 hover:from-purple-100 hover:to-pink-100 dark:hover:from-gray-700 dark:hover:to-gray-700">
                     <TableHead>Imagem</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">
+                      Produto
+                    </TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">
+                      SKU
+                    </TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">
+                      Preço
+                    </TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">
+                      Estoque
+                    </TableHead>
+                    <TableHead className="font-semibold dark:text-gray-300">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-right font-semibold dark:text-gray-300">
+                      Ações
+                    </TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => {
+                  {filteredProducts.map((product, index) => {
                     const shopifyImages = product.metadata?.images || [];
                     const imageUrl =
                       shopifyImages.length > 0
@@ -511,7 +594,13 @@ const AllProductsPage = () => {
                         : null;
 
                     return (
-                      <TableRow key={product.id}>
+                      <motion.tr
+                        key={product.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-gray-800/50 dark:hover:to-gray-800/50 transition-all duration-200"
+                      >
                         <TableCell>
                           {imageUrl ? (
                             <img
@@ -520,21 +609,21 @@ const AllProductsPage = () => {
                               className="w-12 h-12 object-cover rounded-md border"
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center">
                               <Package className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{product.name}</div>
+                            <div className="font-medium dark:text-white">{product.name}</div>
                             {product.description && (
                               <div className="text-sm text-muted-foreground line-clamp-1">
                                 {product.description}
                               </div>
                             )}
                             {product.metadata?.shopifyId && (
-                              <Badge variant="outline" className="mt-1">
+                              <Badge variant="outline" className="mt-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700">
                                 <ShoppingBag className="h-3 w-3 mr-1" />
                                 Shopify
                               </Badge>
@@ -542,13 +631,13 @@ const AllProductsPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                          <code className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 px-2 py-1 rounded dark:text-gray-300">
                             {product.sku || "N/A"}
                           </code>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">
+                            <div className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                               {formatCurrency(product.price)}
                             </div>
                             {product.comparePrice &&
@@ -595,6 +684,7 @@ const AllProductsPage = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(product)}
+                              className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-gray-800 dark:hover:to-gray-800"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -602,13 +692,13 @@ const AllProductsPage = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(product.id)}
-                              disabled={!!product.metadata?.shopifyId}
+                              className="hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>
+                      </motion.tr>
                     );
                   })}
                 </TableBody>
