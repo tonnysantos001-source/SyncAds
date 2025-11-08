@@ -36,6 +36,10 @@ import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { CheckoutInput } from "@/components/checkout/CheckoutInput";
 import { CheckoutFooter } from "@/components/checkout/CheckoutFooter";
 import { OrderBumpCard } from "@/components/checkout/OrderBumpCard";
+import { ScarcityTimer } from "@/components/checkout/ScarcityTimer";
+import { ProgressBar } from "@/components/checkout/ProgressBar";
+import { LogoHeader } from "@/components/checkout/LogoHeader";
+import { ExtraFields } from "@/components/checkout/ExtraFields";
 
 // ============================================
 // INTERFACES
@@ -212,7 +216,33 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     cvv: "",
   });
 
+  // Campos extras
+  const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState("");
+
   const navigationSteps = theme.navigationSteps || 3;
+
+  // ============================================
+  // HELPERS DE ESTILO GLOBAL
+  // ============================================
+
+  // Aplicar borderRadius global dos cards
+  const getCardBorderRadius = () => {
+    return `${theme.cardBorderRadius || 16}px`;
+  };
+
+  // Aplicar fontFamily global
+  const getFontFamily = () => {
+    return (
+      theme.fontFamily ||
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    );
+  };
+
+  // Estilos globais para aplicar em todo o checkout
+  const globalStyles: React.CSSProperties = {
+    fontFamily: getFontFamily(),
+  };
 
   // ============================================
   // CARREGAR DADOS
@@ -624,7 +654,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     console.error("❌ [DEBUG] checkoutData inválido:", checkoutData);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+        <div
+          className="bg-white shadow-lg p-8 max-w-md w-full text-center"
+          style={{ borderRadius: getCardBorderRadius() }}
+        >
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Pedido não encontrado</h2>
           <p className="text-gray-600 mb-6">
@@ -648,7 +681,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: theme.backgroundColor || "#f9fafb" }}
+      style={{
+        backgroundColor: theme.backgroundColor || "#f9fafb",
+        fontFamily: getFontFamily(),
+      }}
     >
       {/* Notice Bar */}
       {theme.noticeBarEnabled && theme.noticeBarMessage && (
@@ -663,24 +699,19 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         </div>
       )}
 
-      {/* Logo */}
-      {theme.showLogoAtTop && theme.logoUrl && (
-        <div className="bg-white shadow-sm py-4">
-          <div className="max-w-7xl mx-auto px-4 flex justify-center">
-            <img
-              src={theme.logoUrl}
-              alt="Logo"
-              className="h-10 object-contain"
-            />
-          </div>
-        </div>
-      )}
+      {/* Logo - Componente Customizável */}
+      <LogoHeader
+        theme={theme}
+        storeName={storeData.name}
+        storeUrl={orderData?.storeUrl}
+        showBackground={true}
+      />
 
       {/* Banner */}
-      {theme.bannerEnabled && theme.bannerUrl && (
+      {theme.bannerEnabled && theme.bannerImage && (
         <div className="w-full overflow-hidden">
           <img
-            src={theme.bannerUrl}
+            src={theme.bannerImage}
             alt="Banner"
             className="w-full object-cover"
             style={{ maxHeight: theme.bannerHeight || "200px" }}
@@ -688,10 +719,16 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         </div>
       )}
 
-      {/* Stepper - Apenas para 3 etapas */}
-      {navigationSteps === 3 && (
-        <ModernStepper currentStep={currentStep} theme={theme} />
-      )}
+      {/* Timer de Escassez/Urgência */}
+      <ScarcityTimer theme={theme} className="max-w-7xl mx-auto px-4 mt-6" />
+
+      {/* Barra de Progresso - Substitui o Stepper */}
+      <ProgressBar
+        currentStep={currentStep}
+        totalSteps={3}
+        theme={theme}
+        showLabels={true}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -699,7 +736,11 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           {/* FORMULÁRIO - 2/3 */}
           <div className="lg:col-span-2">
             <motion.div
-              className="bg-white rounded-2xl shadow-lg p-6"
+              className="bg-white shadow-lg p-6"
+              style={{
+                borderRadius: getCardBorderRadius(),
+                backgroundColor: theme.cardBackgroundColor || "#ffffff",
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -798,6 +839,16 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       placeholder="000.000.000-00"
                       mask="cpf"
                       required
+                    />
+
+                    {/* Campos Extras - Data de Nascimento e Gênero */}
+                    <ExtraFields
+                      theme={theme}
+                      birthDate={birthDate}
+                      gender={gender}
+                      onBirthDateChange={setBirthDate}
+                      onGenderChange={setGender}
+                      className="mt-4"
                     />
                   </motion.div>
                 )}
@@ -1189,7 +1240,11 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           {/* RESUMO DO PEDIDO - 1/3 */}
           <div className="lg:col-span-1">
             <motion.div
-              className="bg-white rounded-2xl shadow-lg p-6 sticky top-6"
+              className="bg-white shadow-lg p-6 sticky top-6"
+              style={{
+                borderRadius: getCardBorderRadius(),
+                backgroundColor: theme.cardBackgroundColor || "#ffffff",
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
