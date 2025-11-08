@@ -430,7 +430,6 @@ const AllOrdersPage = () => {
           {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
         </Button>
       </motion.div>
-</parameter>
 
       {/* Orders List */}
       {loading ? (
@@ -475,8 +474,7 @@ const AllOrdersPage = () => {
               >
                 <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-300 group">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
-</parameter>
-                  <CardContent className="relative p-6">
+                        <CardContent className="relative p-6">
                     <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                       {/* Informações principais */}
                       <div className="flex-1 space-y-2">
@@ -488,7 +486,6 @@ const AllOrdersPage = () => {
                             {statusInfo.label}
                           </Badge>
                         </div>
-</parameter>
 
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-muted-foreground" />
@@ -515,7 +512,6 @@ const AllOrdersPage = () => {
                           </span>
                         </div>
                       </div>
-</parameter>
 
                       {/* Valor e Ação */}
                       <div className="sm:text-right space-y-3 sm:min-w-[180px]">
@@ -540,7 +536,6 @@ const AllOrdersPage = () => {
                               Ver Detalhes
                             </Button>
                           </DialogTrigger>
-</parameter>
                           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0">
                             <DialogHeader>
                               <DialogTitle className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -550,7 +545,6 @@ const AllOrdersPage = () => {
                                 Informações completas do pedido
                               </DialogDescription>
                             </DialogHeader>
-</parameter>
 
                           {selectedOrder && (
                             <div className="space-y-6 pt-4">
@@ -565,7 +559,6 @@ const AllOrdersPage = () => {
                                     </Badge>
                                   </div>
                                 </div>
-</parameter>
 
                                 {/* Cliente */}
                                 <div>
@@ -573,7 +566,6 @@ const AllOrdersPage = () => {
                                     Informações do Cliente
                                   </h4>
                                   <div className="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl space-y-3 backdrop-blur-sm">
-</parameter>
                                   <div className="flex items-start gap-2">
                                     <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
@@ -583,7 +575,6 @@ const AllOrdersPage = () => {
                                         <div className="font-medium dark:text-white">
                                           {selectedOrder.customerName}
                                         </div>
-  </parameter>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-2">
@@ -595,7 +586,6 @@ const AllOrdersPage = () => {
                                         <div className="font-medium dark:text-white">
                                           {selectedOrder.customerEmail}
                                         </div>
-  </parameter>
                                     </div>
                                   </div>
                                   {selectedOrder.customerPhone && (
@@ -608,7 +598,6 @@ const AllOrdersPage = () => {
                                           <div className="font-medium dark:text-white">
                                             {selectedOrder.customerPhone}
                                           </div>
-</parameter>
                                       </div>
                                     </div>
                                   )}
@@ -812,7 +801,6 @@ const AllOrdersPage = () => {
                   </CardContent>
                 </Card>
               </motion.div>
-</parameter>
             );
           })}
         </div>
