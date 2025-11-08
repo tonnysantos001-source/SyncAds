@@ -243,14 +243,15 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             (op: any) => String(op.id) === String(item.productId),
           );
           return {
-            id: item.productId || item.id,
+            id: item.productId || item.id || String(Math.random()),
             name: item.name || original?.name || original?.title || "Produto",
-            price: Number(item.price) || 0,
+            price: Number(item.price) || Number(item.total) || 0,
             quantity: Number(item.quantity) || 1,
             image:
               item.image ||
               original?.image ||
-              (Array.isArray(original?.images) ? original.images[0] : ""),
+              (Array.isArray(original?.images) ? original.images[0] : "") ||
+              "",
           };
         }),
         total: Number(order.total) || 0,
@@ -261,6 +262,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
       setCheckoutData(checkoutInfo);
       setOrderData(order);
+
+      // Definir método de pagamento padrão se estiver vazio ou inválido
+      const validPaymentMethod = order.paymentMethod;
+      if (
+        validPaymentMethod &&
+        (validPaymentMethod === "PIX" ||
+          validPaymentMethod === "CREDIT_CARD" ||
+          validPaymentMethod === "BOLETO")
+      ) {
+        setPaymentMethod(validPaymentMethod);
+      }
 
       // Carregar tema personalizado e dados da loja
       if (injectedTheme) {
@@ -320,7 +332,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       console.error("Erro ao carregar checkout:", error);
       toast({
         title: "Erro ao carregar checkout",
-        description: error.message,
+        description:
+          error.message || "Não foi possível carregar os dados do pedido",
         variant: "destructive",
       });
     } finally {
@@ -459,15 +472,18 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         const gw = config.gateway;
         if (!gw) continue;
 
+        // Priorizar gateway default
+        const isDefault = config.isDefault || false;
+
         if (paymentMethod === "PIX" && gw.supportsPix) {
           selectedConfig = config;
-          break;
+          if (isDefault) break; // Se for default, usa e para
         } else if (paymentMethod === "CREDIT_CARD" && gw.supportsCreditCard) {
           selectedConfig = config;
-          break;
+          if (isDefault) break;
         } else if (paymentMethod === "BOLETO" && gw.supportsBoleto) {
           selectedConfig = config;
-          break;
+          if (isDefault) break;
         }
       }
 
