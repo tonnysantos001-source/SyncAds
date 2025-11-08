@@ -151,8 +151,19 @@ const ModernStepper: React.FC<{ currentStep: number; theme: any }> = ({
 // COMPONENTE PRINCIPAL
 // ============================================
 
-const PublicCheckoutPageNovo: React.FC = () => {
-  const { orderId } = useParams<{ orderId: string }>();
+interface PublicCheckoutPageProps {
+  injectedOrderId?: string;
+  injectedTheme?: any;
+  previewMode?: boolean;
+}
+
+const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
+  injectedOrderId,
+  injectedTheme,
+  previewMode = false,
+}) => {
+  const { orderId: paramOrderId } = useParams<{ orderId: string }>();
+  const orderId = injectedOrderId || paramOrderId;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -252,7 +263,10 @@ const PublicCheckoutPageNovo: React.FC = () => {
       setOrderData(order);
 
       // Carregar tema personalizado e dados da loja
-      if (order.userId) {
+      if (injectedTheme) {
+        // Modo preview: usar tema injetado
+        setTheme({ ...DEFAULT_CHECKOUT_THEME, ...injectedTheme });
+      } else if (order.userId) {
         try {
           const customData = await checkoutApi.loadCustomization(order.userId);
           if (customData?.theme) {
@@ -261,8 +275,10 @@ const PublicCheckoutPageNovo: React.FC = () => {
         } catch (e) {
           console.log("Usando tema padrão");
         }
+      }
 
-        // Buscar dados da loja para o rodapé
+      // Buscar dados da loja para o rodapé
+      if (order.userId) {
         try {
           const { data: userData, error: userError } = await supabase
             .from("User")
