@@ -48,16 +48,70 @@ const CheckoutCustomizePage: React.FC = () => {
 
       if (!previewOrderId) {
         try {
-          const { data } = await supabase.functions.invoke(
-            "create-preview-order",
-            { body: {} },
-          );
+          // Criar pedido de preview diretamente
+          const previewProducts = [
+            {
+              id: "preview-product-1",
+              productId: "preview-product-1",
+              variantId: "preview-variant-1",
+              name: "Produto de Demonstração 1",
+              price: 199.99,
+              quantity: 1,
+              image:
+                "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+              sku: "DEMO-001",
+            },
+            {
+              id: "preview-product-2",
+              productId: "preview-product-2",
+              variantId: "preview-variant-2",
+              name: "Produto de Demonstração 2",
+              price: 149.99,
+              quantity: 2,
+              image:
+                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+              sku: "DEMO-002",
+            },
+          ];
 
-          if (data?.success && data.orderId) {
-            setPreviewOrderId(data.orderId);
+          const subtotal = 499.97;
+          const shipping = 29.99;
+          const total = 529.96;
+
+          const { data: order, error } = await supabase
+            .from("Order")
+            .insert({
+              userId: user.id,
+              status: "PREVIEW",
+              paymentStatus: "PENDING",
+              items: previewProducts,
+              subtotal: subtotal,
+              shipping: shipping,
+              tax: 0,
+              discount: 0,
+              total: total,
+              customerName: "Cliente de Demonstração",
+              customerEmail: "demo@exemplo.com",
+              customerPhone: "(11) 99999-9999",
+              metadata: {
+                isPreview: true,
+                originalProducts: previewProducts,
+                createdBy: "checkout-customizer",
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (!error && order) {
+            setPreviewOrderId(order.id);
+            console.log("✅ Preview order criado:", order.id);
+          } else {
+            console.error("❌ Erro ao criar preview order:", error);
           }
         } catch (e) {
-          console.error("Erro ao criar preview order:", e);
+          console.error("❌ Exceção ao criar preview order:", e);
         }
       }
     };
