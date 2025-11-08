@@ -221,38 +221,71 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     try {
       setLoading(true);
 
+      console.log("🔍 [DEBUG] loadCheckoutData iniciado");
+      console.log("🔍 [DEBUG] orderId:", orderId);
+      console.log("🔍 [DEBUG] injectedOrderId:", injectedOrderId);
+      console.log("🔍 [DEBUG] previewMode:", previewMode);
+
       const { data: order, error: orderError } = await supabase
         .from("Order")
         .select("*")
         .eq("id", orderId)
         .single();
 
+      console.log("🔍 [DEBUG] Query result:", { order, error: orderError });
+
       if (orderError || !order) {
+        console.error("❌ [DEBUG] Erro ao buscar pedido:", orderError);
         throw new Error("Pedido não encontrado");
       }
+
+      console.log("✅ [DEBUG] Pedido encontrado:", {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        items: order.items,
+        metadata: order.metadata,
+      });
 
       const items = Array.isArray(order.items) ? order.items : [];
       const originalProducts = Array.isArray(order.metadata?.originalProducts)
         ? order.metadata.originalProducts
         : [];
 
+      console.log("🔍 [DEBUG] Items processados:", {
+        itemsCount: items.length,
+        originalProductsCount: originalProducts.length,
+        firstItem: items[0],
+        firstOriginal: originalProducts[0],
+      });
+
       const checkoutInfo: CheckoutData = {
         orderId: order.id,
-        products: items.map((item: any) => {
+        products: items.map((item: any, index: number) => {
+          console.log(`🔍 [DEBUG] Processando item ${index}:`, item);
+
           const original = originalProducts.find(
-            (op: any) => String(op.id) === String(item.productId),
+            (op: any) => String(op?.id) === String(item?.productId),
           );
-          return {
-            id: item.productId || item.id || String(Math.random()),
-            name: item.name || original?.name || original?.title || "Produto",
-            price: Number(item.price) || Number(item.total) || 0,
-            quantity: Number(item.quantity) || 1,
+
+          console.log(
+            `🔍 [DEBUG] Original encontrado para item ${index}:`,
+            original,
+          );
+
+          const product = {
+            id: item?.productId || item?.id || `temp-${index}`,
+            name: item?.name || original?.name || original?.title || "Produto",
+            price: Number(item?.price) || Number(item?.total) || 0,
+            quantity: Number(item?.quantity) || 1,
             image:
-              item.image ||
+              item?.image ||
               original?.image ||
-              (Array.isArray(original?.images) ? original.images[0] : "") ||
+              (Array.isArray(original?.images) && original.images[0]) ||
               "",
           };
+
+          console.log(`✅ [DEBUG] Produto final ${index}:`, product);
+          return product;
         }),
         total: Number(order.total) || 0,
         subtotal: Number(order.subtotal) || 0,
@@ -260,8 +293,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         discount: Number(order.discount) || 0,
       };
 
+      console.log("✅ [DEBUG] CheckoutInfo criado:", checkoutInfo);
+
+      console.log("📝 [DEBUG] Setando checkoutData e orderData");
       setCheckoutData(checkoutInfo);
       setOrderData(order);
+
+      console.log("🔍 [DEBUG] Verificando paymentMethod:", order.paymentMethod);
 
       // Definir método de pagamento padrão se estiver vazio ou inválido
       const validPaymentMethod = order.paymentMethod;
@@ -329,7 +367,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         }
       }
     } catch (error: any) {
-      console.error("Erro ao carregar checkout:", error);
+      console.error("❌ [DEBUG] Erro ao carregar checkout:", error);
+      console.error("❌ [DEBUG] Stack trace:", error.stack);
       toast({
         title: "Erro ao carregar checkout",
         description:
@@ -337,6 +376,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         variant: "destructive",
       });
     } finally {
+      console.log("🏁 [DEBUG] loadCheckoutData finalizado");
       setLoading(false);
     }
   };

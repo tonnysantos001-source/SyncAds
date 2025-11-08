@@ -64,7 +64,11 @@ const CheckoutCustomizePage: React.FC = () => {
 
           if (!searchError && existingOrders && existingOrders.length > 0) {
             console.log("✅ Usando pedido existente:", existingOrders[0].id);
-            setPreviewOrderId(existingOrders[0].id);
+            const orderId = existingOrders[0].id;
+            console.log("✅ OrderId type:", typeof orderId);
+            console.log("✅ OrderId value:", orderId);
+            setPreviewOrderId(orderId);
+            setLoading(false);
             return;
           }
 
@@ -128,8 +132,10 @@ const CheckoutCustomizePage: React.FC = () => {
 
           if (!error && order) {
             console.log("✅ Preview order criado com sucesso:", order.id);
+            console.log("✅ Order completo:", JSON.stringify(order, null, 2));
             setPreviewOrderId(order.id);
             console.log("✅ previewOrderId setado para:", order.id);
+            setLoading(false);
           } else {
             console.error("❌ Erro ao criar preview order:", error);
             console.error("❌ Detalhes:", JSON.stringify(error, null, 2));
@@ -146,18 +152,27 @@ const CheckoutCustomizePage: React.FC = () => {
             if (anyOrder) {
               console.log("✅ Usando pedido fallback:", anyOrder.id);
               setPreviewOrderId(anyOrder.id);
+              setLoading(false);
             } else {
               console.error("❌ Nenhum pedido disponível para preview");
+              setLoading(false);
             }
           }
         } catch (e) {
           console.error("❌ Exceção ao criar preview order:", e);
+          setLoading(false);
         }
       } else {
         console.log("ℹ️ previewOrderId já existe:", previewOrderId);
+        setLoading(false);
       }
     };
-    run();
+
+    if (user?.id) {
+      run();
+    } else {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   const loadCustomization = async () => {
@@ -390,10 +405,15 @@ const CheckoutCustomizePage: React.FC = () => {
                           "🎨 Renderizando PublicCheckoutPage com orderId:",
                           previewOrderId,
                         )}
+                        {console.log(
+                          "🎨 Theme injetado:",
+                          customization?.theme,
+                        )}
+                        {console.log("🎨 Preview mode:", true)}
                       </div>
                       <PublicCheckoutPage
                         injectedOrderId={previewOrderId}
-                        injectedTheme={customization?.theme}
+                        injectedTheme={customization?.theme || null}
                         previewMode={true}
                       />
                     </>
