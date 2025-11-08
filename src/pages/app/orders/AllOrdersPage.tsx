@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -271,75 +272,129 @@ const AllOrdersPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Pedidos
         </h1>
-        <p className="text-gray-600 font-medium">
+        <p className="text-gray-600 dark:text-gray-400 font-medium">
           Visualize e gerencie todos os pedidos da sua loja
         </p>
-      </div>
+      </motion.div>
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Pedidos
-            </CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{orders.length}</div>
-            <p className="text-xs text-muted-foreground">Todos os pedidos</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Pagos</CardTitle>
-            <Package className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {paidOrders}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Pagamentos confirmados
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pedidos Pendentes
-            </CardTitle>
-            <PackageX className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {pendingOrders}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Aguardando pagamento
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">Pedidos pagos</p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total de Pedidos
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-blue-500 bg-opacity-10">
+                <ShoppingCart className="h-4 w-4 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                {orders.length}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Todos os pedidos</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Pedidos Pagos
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-green-500 bg-opacity-10">
+                <Package className="h-4 w-4 text-green-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-green-600 to-green-400 bg-clip-text text-transparent">
+                {paidOrders}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Pagamentos confirmados
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Pedidos Pendentes
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-yellow-500 bg-opacity-10">
+                <PackageX className="h-4 w-4 text-yellow-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-yellow-600 to-yellow-400 bg-clip-text text-transparent">
+                {pendingOrders}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Aguardando pagamento
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500 opacity-10 rounded-full blur-3xl" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Receita Total
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-purple-500 bg-opacity-10">
+                <DollarSign className="h-4 w-4 text-purple-500" />
+              </motion.div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-br from-purple-600 to-pink-500 bg-clip-text text-transparent">
+                {formatCurrency(totalRevenue)}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pedidos pagos</p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-center gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="flex flex-col sm:flex-row items-center gap-4"
+      >
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -367,14 +422,15 @@ const AllOrdersPage = () => {
           onClick={handleSyncShopify}
           disabled={syncing}
           variant="outline"
-          className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all duration-300"
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
         >
           <RefreshCw
             className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`}
           />
           {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
         </Button>
-      </div>
+      </motion.div>
+</parameter>
 
       {/* Orders List */}
       {loading ? (
@@ -384,154 +440,175 @@ const AllOrdersPage = () => {
           <Skeleton className="h-24 w-full" />
         </div>
       ) : filteredOrders.length === 0 ? (
-        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Nenhum pedido encontrado
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              {searchTerm || statusFilter !== "all"
-                ? "Tente ajustar os filtros de busca"
-                : "Os pedidos aparecerão aqui assim que forem criados"}
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">
+                Nenhum pedido encontrado
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                {searchTerm || statusFilter !== "all"
+                  ? "Tente ajustar os filtros de busca"
+                  : "Os pedidos aparecerão aqui assim que forem criados"}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       ) : (
         <div className="grid gap-4">
-          {filteredOrders.map((order) => {
+          {filteredOrders.map((order, index) => {
             const statusInfo = getStatusBadge(order.paymentStatus);
             const items = getOrderItems(order);
 
             return (
-              <Card
+              <motion.div
                 key={order.id}
-                className="overflow-hidden border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                whileHover={{ scale: 1.01 }}
               >
-                <CardContent className="p-6">
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    {/* Informações principais */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="font-mono text-lg font-bold">
-                          #{order.orderNumber}
+                <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-300 group">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+</parameter>
+                  <CardContent className="relative p-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      {/* Informações principais */}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className="font-mono text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            #{order.orderNumber}
+                          </div>
+                          <Badge className={statusInfo.color}>
+                            {statusInfo.label}
+                          </Badge>
                         </div>
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.label}
-                        </Badge>
-                      </div>
+</parameter>
 
-                      <div className="flex items-center gap-2 text-sm">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {order.customerName}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4" />
-                        <span>{order.customerEmail}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {format(
-                            new Date(order.createdAt),
-                            "dd/MM/yyyy 'às' HH:mm",
-                            {
-                              locale: ptBR,
-                            },
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Valor e Ação */}
-                    <div className="sm:text-right space-y-3 sm:min-w-[180px]">
-                      <div>
-                        <div className="text-sm text-muted-foreground">
-                          Total
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium dark:text-white">
+                            {order.customerName}
+                          </span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-600">
-                          {formatCurrency(order.total)}
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          <span>{order.customerEmail}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            {format(
+                              new Date(order.createdAt),
+                              "dd/MM/yyyy 'às' HH:mm",
+                              {
+                                locale: ptBR,
+                              },
+                            )}
+                          </span>
                         </div>
                       </div>
+</parameter>
 
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalhes
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle className="text-2xl">
-                              Pedido #{order.orderNumber}
-                            </DialogTitle>
-                            <DialogDescription>
-                              Informações completas do pedido
-                            </DialogDescription>
-                          </DialogHeader>
+                      {/* Valor e Ação */}
+                      <div className="sm:text-right space-y-3 sm:min-w-[180px]">
+                        <div>
+                          <div className="text-sm text-muted-foreground">
+                            Total
+                          </div>
+                          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            {formatCurrency(order.total)}
+                          </div>
+                        </div>
+
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </Button>
+                          </DialogTrigger>
+</parameter>
+                          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0">
+                            <DialogHeader>
+                              <DialogTitle className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                Pedido #{order.orderNumber}
+                              </DialogTitle>
+                              <DialogDescription>
+                                Informações completas do pedido
+                              </DialogDescription>
+                            </DialogHeader>
+</parameter>
 
                           {selectedOrder && (
                             <div className="space-y-6 pt-4">
-                              {/* Status */}
-                              <div>
-                                <h4 className="font-semibold mb-3 text-lg">
-                                  Status
-                                </h4>
-                                <div className="flex gap-2">
-                                  <Badge className={statusInfo.color}>
-                                    {statusInfo.label}
-                                  </Badge>
+                                {/* Status */}
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl">
+                                  <h4 className="font-semibold mb-3 text-lg dark:text-white">
+                                    Status
+                                  </h4>
+                                  <div className="flex gap-2">
+                                    <Badge className={statusInfo.color}>
+                                      {statusInfo.label}
+                                    </Badge>
+                                  </div>
                                 </div>
-                              </div>
+</parameter>
 
-                              {/* Cliente */}
-                              <div>
-                                <h4 className="font-semibold mb-3 text-lg">
-                                  Informações do Cliente
-                                </h4>
-                                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                                {/* Cliente */}
+                                <div>
+                                  <h4 className="font-semibold mb-3 text-lg dark:text-white">
+                                    Informações do Cliente
+                                  </h4>
+                                  <div className="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl space-y-3 backdrop-blur-sm">
+</parameter>
                                   <div className="flex items-start gap-2">
                                     <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Nome
-                                      </div>
-                                      <div className="font-medium">
-                                        {selectedOrder.customerName}
-                                      </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          Nome
+                                        </div>
+                                        <div className="font-medium dark:text-white">
+                                          {selectedOrder.customerName}
+                                        </div>
+  </parameter>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-2">
                                     <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Email
-                                      </div>
-                                      <div className="font-medium">
-                                        {selectedOrder.customerEmail}
-                                      </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          Email
+                                        </div>
+                                        <div className="font-medium dark:text-white">
+                                          {selectedOrder.customerEmail}
+                                        </div>
+  </parameter>
                                     </div>
                                   </div>
                                   {selectedOrder.customerPhone && (
                                     <div className="flex items-start gap-2">
                                       <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                                       <div>
-                                        <div className="text-sm text-muted-foreground">
-                                          Telefone
-                                        </div>
-                                        <div className="font-medium">
-                                          {selectedOrder.customerPhone}
-                                        </div>
+                                          <div className="text-sm text-muted-foreground">
+                                            Telefone
+                                          </div>
+                                          <div className="font-medium dark:text-white">
+                                            {selectedOrder.customerPhone}
+                                          </div>
+</parameter>
                                       </div>
                                     </div>
                                   )}
@@ -730,10 +807,12 @@ const AllOrdersPage = () => {
                           )}
                         </DialogContent>
                       </Dialog>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
+</parameter>
             );
           })}
         </div>
