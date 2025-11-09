@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -47,6 +48,10 @@ import {
   AlertCircle,
   RefreshCw,
   Copy,
+  Zap,
+  Target,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuthStore } from "@/store/authStore";
@@ -60,6 +65,56 @@ import {
 } from "@/lib/api/discountBannerApi";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 const DiscountBannerPage = () => {
   const [banners, setBanners] = useState<DiscountBanner[]>([]);
@@ -325,220 +380,233 @@ const DiscountBannerPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent">
             Faixas de Desconto
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 font-medium">
+          <p className="text-gray-600 dark:text-gray-400 font-medium mt-2">
             Crie banners promocionais para aumentar suas conversões
           </p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button
+          onClick={() => setShowDialog(true)}
+          size="lg"
+          className="shadow-lg hover:shadow-xl transition-all"
+        >
+          <Plus className="h-5 w-5 mr-2" />
           Novo Banner
         </Button>
-      </div>
+      </motion.div>
 
-      {/* Stats Cards */}
+      {/* Métricas com animação */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Banners Ativos
-              </CardTitle>
-              <Megaphone className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeBanners}</div>
-              <p className="text-xs text-muted-foreground">
-                de {stats.totalBanners} banners
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Impressões
-              </CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalImpressions.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">Visualizações</p>
-            </CardContent>
-          </Card>
-          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Cliques
-              </CardTitle>
-              <MousePointer className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalClicks.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                CTR: {formatPercent(stats.averageCTR)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversões</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.totalConversions.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Taxa: {formatPercent(stats.averageConversionRate)}
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-4">
+          <MetricCard
+            title="Banners Ativos"
+            value={stats.activeBanners}
+            icon={Megaphone}
+            color="bg-orange-500"
+            delay={0.1}
+            subtitle={`de ${stats.totalBanners} banners`}
+          />
+          <MetricCard
+            title="Total de Impressões"
+            value={stats.totalImpressions.toLocaleString()}
+            icon={Eye}
+            color="bg-blue-500"
+            delay={0.2}
+            subtitle="Visualizações totais"
+          />
+          <MetricCard
+            title="Total de Cliques"
+            value={stats.totalClicks.toLocaleString()}
+            icon={MousePointer}
+            color="bg-purple-500"
+            delay={0.3}
+            subtitle={`CTR: ${formatPercent(stats.averageCTR)}`}
+          />
+          <MetricCard
+            title="Conversões"
+            value={stats.totalConversions.toLocaleString()}
+            icon={TrendingUp}
+            color="bg-green-500"
+            delay={0.4}
+            subtitle={`Taxa: ${formatPercent(stats.averageConversionRate)}`}
+          />
         </div>
       )}
 
-      {/* Banners List */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Banners Cadastrados</CardTitle>
-            <CardDescription>
-              {banners.length} banner(s) cadastrado(s)
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={loadData}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+      {/* Banners List com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Banners Cadastrados
+              </CardTitle>
+              <CardDescription>
+                {banners.length} banner(s) cadastrado(s)
+              </CardDescription>
             </div>
-          ) : banners.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">
-                Nenhum banner cadastrado
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Crie seu primeiro banner promocional
-              </p>
-              <Button onClick={() => setShowDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Banner
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Impressões</TableHead>
-                  <TableHead className="text-right">Cliques</TableHead>
-                  <TableHead className="text-right">CTR</TableHead>
-                  <TableHead className="text-right">Conversões</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {banners.map((banner) => {
-                  const statusInfo = getStatusBadge(banner.status);
-                  const Icon = statusInfo.icon;
-                  const ctr =
-                    banner.impressions > 0
-                      ? (banner.clicks / banner.impressions) * 100
-                      : 0;
-
-                  return (
-                    <TableRow key={banner.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{banner.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {banner.title}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getBannerTypeLabel(banner.type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={statusInfo.variant} className="gap-1">
-                            <Icon className="h-3 w-3" />
-                            {statusInfo.label}
-                          </Badge>
-                          <Switch
-                            checked={banner.status === "ACTIVE"}
-                            onCheckedChange={(checked) =>
-                              handleToggle(banner.id, checked)
-                            }
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {banner.impressions.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {banner.clicks.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="outline">{formatPercent(ctr)}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-medium text-green-600">
-                          {banner.conversions.toLocaleString()}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(banner)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDuplicate(banner.id)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(banner.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <Button variant="outline" size="sm" onClick={loadData}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : banners.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 mb-4">
+                  <Megaphone className="h-12 w-12 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Nenhum banner cadastrado
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  Crie seu primeiro banner promocional e aumente suas conversões
+                </p>
+                <Button onClick={() => setShowDialog(true)} size="lg">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeiro Banner
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-md border border-gray-200 dark:border-gray-800">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Impressões</TableHead>
+                      <TableHead className="text-right">Cliques</TableHead>
+                      <TableHead className="text-right">CTR</TableHead>
+                      <TableHead className="text-right">Conversões</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {banners.map((banner, index) => {
+                      const statusInfo = getStatusBadge(banner.status);
+                      const Icon = statusInfo.icon;
+                      const ctr =
+                        banner.impressions > 0
+                          ? (banner.clicks / banner.impressions) * 100
+                          : 0;
+
+                      return (
+                        <motion.tr
+                          key={banner.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{banner.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {banner.title}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-medium">
+                              {getBannerTypeLabel(banner.type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={statusInfo.variant}
+                                className={`gap-1 ${banner.status === "ACTIVE" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {statusInfo.label}
+                              </Badge>
+                              <Switch
+                                checked={banner.status === "ACTIVE"}
+                                onCheckedChange={(checked) =>
+                                  handleToggle(banner.id, checked)
+                                }
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {banner.impressions.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {banner.clicks.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="outline">
+                              {formatPercent(ctr)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="font-medium text-green-600">
+                              {banner.conversions.toLocaleString()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingBanner(banner);
+                                  setFormData(banner);
+                                  setShowDialog(true);
+                                }}
+                                className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDuplicate(banner.id)}
+                                className="hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(banner.id)}
+                                className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
