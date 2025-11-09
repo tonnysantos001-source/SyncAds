@@ -611,54 +611,63 @@ const GatewaysPage = () => {
       )}
 
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Configurar {selectedGateway?.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
+                <CreditCard className="h-5 w-5 text-white" />
+              </div>
+              Configurar {selectedGateway?.name}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 mt-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>API Key *</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">API Key *</Label>
                 <Input
                   value={configForm.apiKey}
                   onChange={(e) =>
                     setConfigForm({ ...configForm, apiKey: e.target.value })
                   }
                   placeholder="sk_live_xxx"
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Secret Key</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Secret Key</Label>
                 <Input
                   value={configForm.secretKey}
                   onChange={(e) =>
                     setConfigForm({ ...configForm, secretKey: e.target.value })
                   }
                   placeholder="secret_xxx"
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Public Key</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Public Key</Label>
                 <Input
                   value={configForm.publicKey}
                   onChange={(e) =>
                     setConfigForm({ ...configForm, publicKey: e.target.value })
                   }
                   placeholder="pk_live_xxx"
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Webhook URL</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Webhook URL</Label>
                 <Input
                   value={configForm.webhookUrl}
                   onChange={(e) =>
                     setConfigForm({ ...configForm, webhookUrl: e.target.value })
                   }
                   placeholder="https://..."
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Taxa PIX (%)</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Taxa PIX (%)</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -669,10 +678,11 @@ const GatewaysPage = () => {
                       pixFee: parseFloat(e.target.value),
                     })
                   }
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-green-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Taxa Cartão (%)</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Taxa Cartão (%)</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -683,10 +693,13 @@ const GatewaysPage = () => {
                       creditCardFee: parseFloat(e.target.value),
                     })
                   }
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
-              <div>
-                <Label>Taxa Boleto (R$)</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">
+                  Taxa Boleto (R$)
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -697,41 +710,60 @@ const GatewaysPage = () => {
                       boletoFee: parseFloat(e.target.value),
                     })
                   }
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-orange-500/50 transition-all"
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center gap-3">
                 <Switch
                   checked={configForm.isTestMode}
                   onCheckedChange={(v) =>
                     setConfigForm({ ...configForm, isTestMode: v })
                   }
+                  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-purple-600"
                 />
-                <Label>Modo de Teste</Label>
+                <Label className="text-sm font-medium cursor-pointer">
+                  Modo de Teste
+                </Label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Switch
                   checked={configForm.isActive}
                   onCheckedChange={(v) =>
                     setConfigForm({ ...configForm, isActive: v })
                   }
+                  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-600"
                 />
-                <Label>Ativo</Label>
+                <Label className="text-sm font-medium cursor-pointer">
+                  Ativo
+                </Label>
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               onClick={() => setIsConfigDialogOpen(false)}
+              className="hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               Cancelar
             </Button>
-            <Button variant="outline" onClick={handleTestConnection}>
+            <Button
+              variant="outline"
+              onClick={handleTestConnection}
+              className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+            >
+              <Zap className="h-4 w-4 mr-2" />
               Testar Conexão
             </Button>
-            <Button onClick={handleSaveConfig}>Salvar Configuração</Button>
+            <Button
+              onClick={handleSaveConfig}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Salvar Configuração
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

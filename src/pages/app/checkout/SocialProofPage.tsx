@@ -30,7 +30,6 @@ import {
   Users,
   MessageSquare,
   TrendingUp,
-  Lightbulb,
   Sparkles,
   Zap,
   Target,
@@ -40,8 +39,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSocialProofExamples } from "@/hooks/useSocialProofExamples";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface MetricCardProps {
   title: string;
@@ -119,8 +116,6 @@ const SocialProofPage = () => {
   const [editingProof, setEditingProof] = useState<SocialProof | null>(null);
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
-  const { createExamplesForUser, loading: examplesLoading } =
-    useSocialProofExamples();
 
   const [formData, setFormData] = useState({
     type: "RECENT_PURCHASE" as "RECENT_PURCHASE" | "VISITOR_COUNT" | "REVIEW",
@@ -132,15 +127,6 @@ const SocialProofPage = () => {
   useEffect(() => {
     loadSocialProofs();
   }, []);
-
-  const handleCreateExamples = async () => {
-    if (!user?.id) return;
-
-    const success = await createExamplesForUser(user.id, 8);
-    if (success) {
-      loadSocialProofs();
-    }
-  };
 
   useEffect(() => {
     filterProofs();
@@ -307,17 +293,25 @@ const SocialProofPage = () => {
               Criar Prova Social
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
+                  <MessageSquare className="h-5 w-5 text-white" />
+                </div>
                 {editingProof ? "Editar Prova Social" : "Nova Prova Social"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Tipo *</Label>
+            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <div className="p-1 rounded bg-gradient-to-br from-purple-500 to-pink-600">
+                    <Target className="h-3 w-3 text-white" />
+                  </div>
+                  Tipo *
+                </Label>
                 <select
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-purple-500/50 transition-all"
                   value={formData.type}
                   onChange={(e: any) =>
                     setFormData({ ...formData, type: e.target.value })
@@ -328,17 +322,25 @@ const SocialProofPage = () => {
                   <option value="VISITOR_COUNT">Contador de Visitantes</option>
                   <option value="REVIEW">Avaliação</option>
                 </select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.type === "RECENT_PURCHASE" &&
-                    'Ex: "João acabou de comprar há 5 minutos"'}
-                  {formData.type === "VISITOR_COUNT" &&
-                    'Ex: "23 pessoas estão visualizando este produto"'}
-                  {formData.type === "REVIEW" &&
-                    'Ex: "★★★★★ Produto excelente! - Maria S."'}
-                </p>
+                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200/50 dark:border-blue-800/50">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {formData.type === "RECENT_PURCHASE" &&
+                      'Ex: "João acabou de comprar há 5 minutos"'}
+                    {formData.type === "VISITOR_COUNT" &&
+                      'Ex: "23 pessoas estão visualizando este produto"'}
+                    {formData.type === "REVIEW" &&
+                      'Ex: "★★★★★ Produto excelente! - Maria S."'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label>Mensagem *</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <div className="p-1 rounded bg-gradient-to-br from-blue-500 to-cyan-600">
+                    <MessageSquare className="h-3 w-3 text-white" />
+                  </div>
+                  Mensagem *
+                </Label>
                 <Textarea
                   value={formData.message}
                   onChange={(e) =>
@@ -346,11 +348,17 @@ const SocialProofPage = () => {
                   }
                   placeholder="Digite a mensagem que será exibida..."
                   rows={3}
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
                   required
                 />
               </div>
-              <div>
-                <Label>Duração de Exibição (segundos)</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <div className="p-1 rounded bg-gradient-to-br from-green-500 to-emerald-600">
+                    <Eye className="h-3 w-3 text-white" />
+                  </div>
+                  Duração de Exibição (segundos)
+                </Label>
                 <Input
                   type="number"
                   min="1"
@@ -362,29 +370,38 @@ const SocialProofPage = () => {
                       displayDuration: parseInt(e.target.value),
                     })
                   }
+                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-green-500/50 transition-all"
                   required
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) =>
                     setFormData({ ...formData, isActive: e.target.checked })
                   }
-                  className="rounded"
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2"
                 />
-                <Label>Ativo</Label>
+                <Label className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-purple-600" />
+                  Ativo
+                </Label>
               </div>
-              <DialogFooter>
+              <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
                   {editingProof ? "Atualizar" : "Criar"}
                 </Button>
               </DialogFooter>
@@ -451,32 +468,6 @@ const SocialProofPage = () => {
           className="pl-9 border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 backdrop-blur-sm"
         />
       </div>
-
-      {/* Alerta quando não há provas sociais */}
-      {!loading && socialProofs.length === 0 && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <Lightbulb className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="font-medium text-blue-900 mb-1">
-                Comece com exemplos prontos!
-              </p>
-              <p className="text-sm text-blue-700">
-                Crie 8 provas sociais de exemplo para testar no seu checkout.
-                Você pode editá-las ou excluí-las depois.
-              </p>
-            </div>
-            <Button
-              onClick={handleCreateExamples}
-              disabled={examplesLoading}
-              className="ml-4 bg-blue-600 hover:bg-blue-700"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {examplesLoading ? "Criando..." : "Criar Exemplos"}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
