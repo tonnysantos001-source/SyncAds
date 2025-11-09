@@ -1,92 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Background with gradient -->
-  <rect width="200" height="60" rx="8" fill="url(#ameGradient)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <!-- Background -->
+  <rect width="120" height="80" fill="#FFB800"/>
 
-  <defs>
-    <linearGradient id="ameGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFB800;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- Decorative circles -->
-  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
-  <circle cx="30" cy="30" r="16" fill="white" opacity="0.15"/>
-
-  <!-- Icon: Digital wallet with cashback symbol -->
-  <g transform="translate(22, 30)">
+  <!-- Icon: Digital wallet with dollar -->
+  <g transform="translate(12, 35)">
     <!-- Wallet base -->
-    <rect x="-10" y="-6" width="20" height="14" rx="2" fill="white" opacity="0.9"/>
-
-    <!-- Wallet top flap -->
-    <path d="M -10 -6 L -10 -10 Q -10 -11 -9 -11 L 9 -11 Q 10 -11 10 -10 L 10 -6"
-          fill="white" opacity="0.85"/>
-
-    <!-- Card inside wallet -->
-    <rect x="-7" y="-3" width="14" height="8" rx="1" fill="#FFB800" opacity="0.7"/>
-
-    <!-- Chip on card -->
-    <rect x="-5" y="-1" width="4" height="3" rx="0.5" fill="white" opacity="0.8"/>
-
-    <!-- Dollar sign (cashback) -->
-    <g transform="translate(3, 2)">
-      <circle cx="0" cy="0" r="3.5" fill="#FF8C00" opacity="0.9"/>
-      <text x="0" y="1.5" font-family="Arial, sans-serif" font-size="5" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-        $
-      </text>
-    </g>
+    <rect x="-6" y="-3" width="12" height="8" rx="1.5" fill="white" opacity="0.9"/>
+    <!-- Wallet flap -->
+    <path d="M -6 -3 L -6 -5 Q -6 -6 -5 -6 L 5 -6 Q 6 -6 6 -5 L 6 -3" fill="white" opacity="0.85"/>
+    <!-- Card inside -->
+    <rect x="-4" y="-1" width="8" height="4" rx="0.7" fill="#FFB800" opacity="0.7"/>
+    <!-- Dollar sign -->
+    <circle cx="4" cy="2" r="2" fill="#FF8C00" opacity="0.9"/>
+    <text x="4" y="3.2" font-family="Arial" font-size="3" font-weight="bold" fill="white" text-anchor="middle">$</text>
   </g>
 
   <!-- Text: Ame -->
-  <text x="52" y="33" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="white" letter-spacing="1">
+  <text x="60" y="46" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="1">
     Ame
   </text>
 
   <!-- Subtitle: Digital -->
-  <text x="52" y="46" font-family="Arial, sans-serif" font-size="9" fill="white" opacity="0.9">
+  <text x="60" y="60" font-family="Arial, sans-serif" font-size="8" fill="white" text-anchor="middle" opacity="0.9">
     Digital
   </text>
 
   <!-- Cashback badge -->
-  <g transform="translate(120, 25)">
-    <rect x="-20" y="-10" width="40" height="20" rx="3" fill="white" opacity="0.2"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+  <g transform="translate(100, 40)">
+    <rect x="-12" y="-6" width="24" height="12" rx="2" fill="white" opacity="0.2"/>
+    <text x="0" y="1" font-family="Arial, sans-serif" font-size="5" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
       CASHBACK
     </text>
   </g>
 
-  <!-- QR Code icon (payment method) -->
-  <g transform="translate(155, 45)">
-    <rect x="-4" y="-4" width="8" height="8" rx="0.5" fill="white" opacity="0.3"/>
-    <rect x="-3" y="-3" width="2" height="2" fill="white" opacity="0.6"/>
-    <rect x="1" y="-3" width="2" height="2" fill="white" opacity="0.6"/>
-    <rect x="-3" y="1" width="2" height="2" fill="white" opacity="0.6"/>
-    <rect x="1" y="1" width="2" height="2" fill="white" opacity="0.6"/>
+  <!-- Star decoration -->
+  <g transform="translate(95, 20)" opacity="0.4">
+    <path d="M 0 -1.5 L 0.4 -0.4 L 1.5 0 L 0.4 0.4 L 0 1.5 L -0.4 0.4 L -1.5 0 L -0.4 -0.4 Z" fill="white"/>
   </g>
-
-  <!-- Americanas group indicator -->
-  <g transform="translate(175, 30)">
-    <circle cx="0" cy="0" r="10" fill="white" opacity="0.15"/>
-    <text x="0" y="1" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      B2W
-    </text>
-  </g>
-
-  <!-- Money back icon (return arrow) -->
-  <g transform="translate(120, 45)">
-    <path d="M -5 0 L 5 0 M 2 -3 L 5 0 L 2 3" stroke="white" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="0" cy="0" r="1.5" fill="#FFD700" opacity="0.7"/>
-  </g>
-
-  <!-- Star decorations (points/rewards) -->
-  <g transform="translate(105, 15)" opacity="0.4">
-    <path d="M 0 -2 L 0.5 -0.5 L 2 0 L 0.5 0.5 L 0 2 L -0.5 0.5 L -2 0 L -0.5 -0.5 Z" fill="white"/>
-  </g>
-  <g transform="translate(95, 50)" opacity="0.3">
-    <path d="M 0 -1.5 L 0.3 -0.3 L 1.5 0 L 0.3 0.3 L 0 1.5 L -0.3 0.3 L -1.5 0 L -0.3 -0.3 Z" fill="white"/>
-  </g>
-
-  <!-- Decorative corner elements -->
-  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
-  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
 </svg>
