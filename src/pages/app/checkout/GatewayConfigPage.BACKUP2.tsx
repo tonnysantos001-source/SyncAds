@@ -10,18 +10,20 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft,
   ExternalLink,
-  HelpCircle,
   Loader2,
   CheckCircle2,
+  XCircle,
+  AlertCircle,
   Shield,
+  CreditCard,
+  Wallet,
+  FileText,
+  Zap,
   Settings,
   Eye,
   EyeOff,
   Copy,
   Check,
-  CreditCard,
-  Zap,
-  FileText,
 } from "lucide-react";
 import {
   getGatewayBySlug,
@@ -48,17 +50,11 @@ const GatewayConfigPage = () => {
   const user = useAuthStore((state) => state.user);
 
   const [gateway, setGateway] = useState<GatewayConfigType | null>(null);
-
   const [loading, setLoading] = useState(true);
-
   const [saving, setSaving] = useState(false);
-
   const [isActive, setIsActive] = useState(false);
-
   const [isVerified, setIsVerified] = useState(false);
-  const [environment, setEnvironment] = useState<"production" | "sandbox">(
-    "production",
-  );
+  const [environment, setEnvironment] = useState<"production" | "sandbox">("production");
   const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
   const [configId, setConfigId] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -66,9 +62,7 @@ const GatewayConfigPage = () => {
   const [enableCreditCard, setEnableCreditCard] = useState(false);
   const [enablePix, setEnablePix] = useState(false);
   const [enableBoleto, setEnableBoleto] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,7 +75,6 @@ const GatewayConfigPage = () => {
     try {
       setLoading(true);
 
-      // Get gateway configuration
       const gatewayConfig = getGatewayBySlug(slug!);
       if (!gatewayConfig) {
         toast({
@@ -95,11 +88,8 @@ const GatewayConfigPage = () => {
 
       setGateway(gatewayConfig);
 
-      // Load saved configuration from database
-
       if (user?.id) {
         const { data: dbGateway } = await supabase
-
           .from("Gateway")
           .select("id")
           .eq("slug", gatewayConfig.slug)
@@ -110,20 +100,17 @@ const GatewayConfigPage = () => {
             .from("GatewayConfig")
             .select("*")
             .eq("userId", user.id)
-
             .eq("gatewayId", dbGateway.id)
             .single();
 
           if (!error && data) {
             setIsActive(data.isActive || false);
-
             setIsVerified(data.isVerified ?? false);
             setEnvironment(data.environment ?? "production");
             setVerifiedAt(data.verifiedAt ?? null);
             setConfigId(data.id);
             setFormData(data.credentials || {});
 
-            // Carregar métodos de pagamento habilitados
             if (data.credentials?.enabledPaymentMethods) {
               const enabled = data.credentials.enabledPaymentMethods;
               setEnableCreditCard(enabled.includes("credit_card"));
@@ -147,7 +134,6 @@ const GatewayConfigPage = () => {
       let savedConfigId: string | null = null;
       setSaving(true);
 
-      // Validate required fields
       const missingFields = gateway.configFields
         .filter((field) => field.required && !formData[field.name])
         .map((field) => field.label);
@@ -161,7 +147,6 @@ const GatewayConfigPage = () => {
         return;
       }
 
-      // Map slug -> gatewayId from DB
       const { data: dbGateway, error: gwErr } = await supabase
         .from("Gateway")
         .select("id, slug, name")
@@ -173,29 +158,23 @@ const GatewayConfigPage = () => {
       }
 
       const { data: existingConfig } = await supabase
-
         .from("GatewayConfig")
-
         .select("id")
-
         .eq("userId", user.id)
-
         .eq("gatewayId", dbGateway.id)
         .single();
 
+      const enabledPaymentMethods = [];
+      if (enableCreditCard) enabledPaymentMethods.push("credit_card");
+      if (enablePix) enabledPaymentMethods.push("pix");
+      if (enableBoleto) enabledPaymentMethods.push("boleto");
+
+      const updatedCredentials = {
+        ...formData,
+        enabledPaymentMethods,
+      };
+
       if (existingConfig) {
-        // Update existing config
-        // Preparar métodos de pagamento habilitados
-        const enabledPaymentMethods = [];
-        if (enableCreditCard) enabledPaymentMethods.push("credit_card");
-        if (enablePix) enabledPaymentMethods.push("pix");
-        if (enableBoleto) enabledPaymentMethods.push("boleto");
-
-        const updatedCredentials = {
-          ...formData,
-          enabledPaymentMethods,
-        };
-
         const { error } = await supabase
           .from("GatewayConfig")
           .update({
@@ -206,36 +185,19 @@ const GatewayConfigPage = () => {
           .eq("id", existingConfig.id);
         if (!error) savedConfigId = existingConfig.id;
       } else {
-        // Create new config
-
         const { data: anyConfig } = await supabase
           .from("GatewayConfig")
           .select("id")
           .eq("userId", user.id)
           .limit(1);
 
-        // Preparar métodos de pagamento habilitados
-        const enabledPaymentMethods = [];
-        if (enableCreditCard) enabledPaymentMethods.push("credit_card");
-        if (enablePix) enabledPaymentMethods.push("pix");
-        if (enableBoleto) enabledPaymentMethods.push("boleto");
-
-        const credentialsWithMethods = {
-          ...formData,
-          enabledPaymentMethods,
-        };
-
         const { data: created, error } = await supabase
           .from("GatewayConfig")
           .insert({
             userId: user.id,
-
             gatewayId: dbGateway.id,
-
-            credentials: credentialsWithMethods,
-
+            credentials: updatedCredentials,
             isActive: isActive,
-
             isDefault: !anyConfig || anyConfig.length === 0,
           })
           .select("id")
@@ -246,11 +208,10 @@ const GatewayConfigPage = () => {
       }
 
       toast({
-        title: "Configuração salva!",
+        title: "✅ Configuração salva!",
         description: `Gateway ${gateway.name} foi configurado com sucesso.`,
       });
 
-      // Verificar automaticamente as credenciais em produção
       try {
         const payload: any = savedConfigId
           ? {
@@ -266,41 +227,30 @@ const GatewayConfigPage = () => {
 
         const { data, error } = await supabase.functions.invoke(
           "gateway-config-verify",
-          { body: payload },
+          { body: payload }
         );
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         if (data?.success) {
           toast({
-            title: "Credenciais verificadas",
+            title: "✅ Credenciais verificadas",
             description: data.message || "Gateway verificado com sucesso.",
-          });
-        } else {
-          toast({
-            title: "Falha na verificação",
-            description:
-              data?.message || "Confira suas credenciais e tente novamente.",
-            variant: "destructive",
           });
         }
       } catch (e: any) {
         toast({
-          title: "Erro ao verificar",
-          description:
-            e?.message || "Não foi possível verificar as credenciais.",
+          title: "⚠️ Erro ao verificar",
+          description: e?.message || "Não foi possível verificar as credenciais.",
           variant: "destructive",
         });
       }
 
-      // Recarregar dados ao invés de navegar
       await loadGateway();
     } catch (error) {
       console.error("Error saving gateway config:", error);
       toast({
-        title: "Erro ao salvar",
+        title: "❌ Erro ao salvar",
         description: "Não foi possível salvar a configuração.",
         variant: "destructive",
       });
@@ -313,45 +263,45 @@ const GatewayConfigPage = () => {
     if (!gateway || !user?.id) return;
     try {
       setVerifying(true);
-      const payload: any = {};
-      if (configId) {
-        payload.configId = configId;
-        payload.credentials = formData; // Sempre enviar credenciais do formulário
-        payload.persistCredentials = false;
-      } else {
-        payload.slug = gateway.slug;
-        payload.credentials = formData;
-        payload.persistCredentials = false;
-      }
+      const payload: any = configId
+        ? {
+            configId,
+            credentials: formData,
+            persistCredentials: false,
+          }
+        : {
+            slug: gateway.slug,
+            credentials: formData,
+            persistCredentials: false,
+          };
+
       const { data, error } = await supabase.functions.invoke(
         "gateway-config-verify",
-        {
-          body: payload,
-        },
+        { body: payload }
       );
+
       if (error) throw error;
+
       if (data?.success) {
         setIsVerified(true);
         setVerifiedAt(data.verifiedAt || new Date().toISOString());
         setEnvironment("production");
         toast({
-          title: "Verificação bem-sucedida",
+          title: "✅ Verificação bem-sucedida",
           description: data.message || "Credenciais verificadas com sucesso.",
         });
       } else {
         setIsVerified(false);
         toast({
-          title: "Falha na verificação",
-          description:
-            data?.message || "Não foi possível verificar as credenciais.",
+          title: "❌ Falha na verificação",
+          description: data?.message || "Não foi possível verificar as credenciais.",
           variant: "destructive",
         });
       }
     } catch (e: any) {
       toast({
-        title: "Erro na verificação",
-        description:
-          e?.message || "Erro inesperado ao verificar as credenciais.",
+        title: "❌ Erro na verificação",
+        description: e?.message || "Erro inesperado ao verificar as credenciais.",
         variant: "destructive",
       });
     } finally {
@@ -397,12 +347,8 @@ const GatewayConfigPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-48 w-full" />
           </div>
-          <div className="space-y-6">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
     );
@@ -413,7 +359,7 @@ const GatewayConfigPage = () => {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto p-6">
       {/* Breadcrumb */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
@@ -436,12 +382,7 @@ const GatewayConfigPage = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="flex items-start gap-6"
       >
-        <GatewayLogo
-          name={gateway.name}
-          logo={gateway.logo}
-          slug={gateway.slug}
-          size="xl"
-        />
+        <GatewayLogo name={gateway.name} logo={gateway.logo} slug={gateway.slug} size="xl" />
         <div className="flex-1">
           <div className="flex items-start justify-between">
             <div>
@@ -452,16 +393,16 @@ const GatewayConfigPage = () => {
                 {gateway.description}
               </p>
               <div className="flex gap-2 mt-3">
-                {(gateway.type === "nacional" || gateway.type === "both") && (
+                {gateway.type === "nacional" || gateway.type === "both" ? (
                   <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-0">
                     Nacional
                   </Badge>
-                )}
-                {(gateway.type === "global" || gateway.type === "both") && (
+                ) : null}
+                {gateway.type === "global" || gateway.type === "both" ? (
                   <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-0">
                     Global
                   </Badge>
-                )}
+                ) : null}
               </div>
             </div>
             <a
@@ -477,10 +418,11 @@ const GatewayConfigPage = () => {
         </div>
       </motion.div>
 
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Config Form */}
+        {/* Configuration Form - 2/3 */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Basic Info */}
+          {/* Credentials Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -496,13 +438,17 @@ const GatewayConfigPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {gateway.configFields.map((field) => (
-                  <div key={field.name} className="space-y-2">
-                    <Label htmlFor={field.name}>
-                      {field.label}{" "}
-                      {field.required && (
-                        <span className="text-red-500">*</span>
-                      )}
+                {gateway.configFields.map((field, index) => (
+                  <motion.div
+                    key={field.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
+                    className="space-y-2"
+                  >
+                    <Label htmlFor={field.name} className="text-sm font-medium">
+                      {field.label}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
                     </Label>
 
                     {field.type === "text" && (
@@ -512,18 +458,13 @@ const GatewayConfigPage = () => {
                           type="text"
                           placeholder={field.placeholder}
                           value={formData[field.name] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.name, e.target.value)
-                          }
+                          onChange={(e) => handleFieldChange(field.name, e.target.value)}
                           className="pr-10 dark:bg-gray-800 dark:border-gray-700"
-                          required={field.required}
                         />
                         {formData[field.name] && (
                           <button
                             type="button"
-                            onClick={() =>
-                              copyToClipboard(formData[field.name], field.name)
-                            }
+                            onClick={() => copyToClipboard(formData[field.name], field.name)}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                           >
                             {copiedField === field.name ? (
@@ -543,22 +484,14 @@ const GatewayConfigPage = () => {
                           type={showPasswords[field.name] ? "text" : "password"}
                           placeholder={field.placeholder}
                           value={formData[field.name] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.name, e.target.value)
-                          }
+                          onChange={(e) => handleFieldChange(field.name, e.target.value)}
                           className="pr-20 dark:bg-gray-800 dark:border-gray-700"
-                          required={field.required}
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
                           {formData[field.name] && (
                             <button
                               type="button"
-                              onClick={() =>
-                                copyToClipboard(
-                                  formData[field.name],
-                                  field.name,
-                                )
-                              }
+                              onClick={() => copyToClipboard(formData[field.name], field.name)}
                               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                             >
                               {copiedField === field.name ? (
@@ -586,14 +519,10 @@ const GatewayConfigPage = () => {
                     {field.type === "select" && field.options && (
                       <Select
                         value={formData[field.name] || ""}
-                        onValueChange={(value) =>
-                          handleFieldChange(field.name, value)
-                        }
+                        onValueChange={(value) => handleFieldChange(field.name, value)}
                       >
                         <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700">
-                          <SelectValue
-                            placeholder={field.placeholder || "Selecione"}
-                          />
+                          <SelectValue placeholder={field.placeholder || "Selecione"} />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options.map((option) => (
@@ -610,16 +539,14 @@ const GatewayConfigPage = () => {
                         <Switch
                           id={field.name}
                           checked={formData[field.name] || false}
-                          onCheckedChange={(checked) =>
-                            handleFieldChange(field.name, checked)
-                          }
+                          onCheckedChange={(checked) => handleFieldChange(field.name, checked)}
                         />
                         <Label htmlFor={field.name} className="cursor-pointer">
                           {field.label}
                         </Label>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </CardContent>
             </Card>
@@ -636,11 +563,9 @@ const GatewayConfigPage = () => {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 bg-opacity-10">
-                      <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <CardTitle className="text-xl">
-                      Métodos de Pagamento
-                    </CardTitle>
+                    <CardTitle className="text-xl">Métodos de Pagamento</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -662,10 +587,7 @@ const GatewayConfigPage = () => {
                           </p>
                         </div>
                       </div>
-                      <Switch
-                        checked={enableCreditCard}
-                        onCheckedChange={setEnableCreditCard}
-                      />
+                      <Switch checked={enableCreditCard} onCheckedChange={setEnableCreditCard} />
                     </motion.div>
                   )}
 
@@ -687,10 +609,7 @@ const GatewayConfigPage = () => {
                           </p>
                         </div>
                       </div>
-                      <Switch
-                        checked={enablePix}
-                        onCheckedChange={setEnablePix}
-                      />
+                      <Switch checked={enablePix} onCheckedChange={setEnablePix} />
                     </motion.div>
                   )}
 
@@ -712,10 +631,7 @@ const GatewayConfigPage = () => {
                           </p>
                         </div>
                       </div>
-                      <Switch
-                        checked={enableBoleto}
-                        onCheckedChange={setEnableBoleto}
-                      />
+                      <Switch checked={enableBoleto} onCheckedChange={setEnableBoleto} />
                     </motion.div>
                   )}
                 </CardContent>
@@ -724,7 +640,7 @@ const GatewayConfigPage = () => {
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - 1/3 */}
         <div className="space-y-6">
           {/* Status Card */}
           <motion.div
@@ -737,7 +653,7 @@ const GatewayConfigPage = () => {
                 "border-0 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2",
                 isActive
                   ? "bg-green-500/10 border-green-500/50"
-                  : "bg-gray-100/80 dark:bg-gray-800/80 border-gray-300 dark:border-gray-700",
+                  : "bg-gray-100/80 dark:bg-gray-800/80 border-gray-300 dark:border-gray-700"
               )}
             >
               <CardContent className="p-6">
@@ -749,7 +665,7 @@ const GatewayConfigPage = () => {
                   <div
                     className={cn(
                       "h-3 w-3 rounded-full animate-pulse",
-                      isActive ? "bg-green-500" : "bg-gray-400",
+                      isActive ? "bg-green-500" : "bg-gray-400"
                     )}
                   />
                 </div>
@@ -766,9 +682,7 @@ const GatewayConfigPage = () => {
                     >
                       <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                         <CheckCircle2 className="h-4 w-4" />
-                        <span className="text-xs font-medium">
-                          Gateway habilitado
-                        </span>
+                        <span className="text-xs font-medium">Gateway habilitado</span>
                       </div>
                     </motion.div>
                   )}
@@ -790,7 +704,6 @@ const GatewayConfigPage = () => {
                     <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     <h3 className="font-semibold">Verificação</h3>
                   </div>
-
                   {isVerified ? (
                     <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
                       <div className="flex items-start gap-3">
@@ -804,165 +717,8 @@ const GatewayConfigPage = () => {
                               {new Date(verifiedAt).toLocaleString("pt-BR")}
                             </p>
                           )}
-                          <p className="text-xs text-green-600 dark:text-green-500 mt-1">
-                            Ambiente: {environment}
-                          </p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                      <div className="flex items-start gap-3">
-                        <HelpCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                            Não Verificado
-                          </p>
-                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                            Verifique suas credenciais
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={async () => {
-                      await handleVerify();
-                    }}
-                    disabled={verifying}
-                    className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Verificando...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4" />
-                        Verificar Credenciais
-                      </>
-                    )}
-                  </Button>
-
-                  <a
-                    href={gateway.apiDocs}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mt-2"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                    <span>Documentação da API</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Gateway Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="p-6 space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Tipo
-                  </p>
-                  <div className="flex gap-2 mt-1">
-                    {(gateway.type === "nacional" ||
-                      gateway.type === "both") && (
-                      <Badge variant="secondary">Nacional</Badge>
-                    )}
-                    {(gateway.type === "global" || gateway.type === "both") && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-700"
-                      >
-                        Global
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Métodos de Pagamento
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {gateway.paymentMethods.map((method) => (
-                      <Badge key={method} variant="outline" className="text-xs">
-                        {method === "credit_card" && "Cartão de Crédito"}
-                        {method === "debit_card" && "Cartão de Débito"}
-                        {method === "pix" && "Pix"}
-                        {method === "boleto" && "Boleto"}
-                        {method === "wallet" && "Carteira Digital"}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Features
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {gateway.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        className="text-xs text-gray-700 dark:text-gray-300"
-                      >
-                        • {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700"
-      >
-        <Button
-          variant="outline"
-          onClick={() => navigate("/checkout/gateways")}
-          disabled={saving}
-          className="hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Salvar Configuração
-            </>
-          )}
-        </Button>
-      </motion.div>
-    </div>
-  );
-};
-
-export default GatewayConfigPage;
+                    <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-
