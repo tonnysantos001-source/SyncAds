@@ -320,466 +320,464 @@ const CouponsPage = () => {
   const activeCoupons = coupons.filter((c) => c.isActive).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
+            Cupons de Desconto
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
+            Gerencie cupons sincronizados com Shopify
+          </p>
+        </div>
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex gap-3"
         >
-          <div>
-            <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
-              Cupons de Desconto
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
-              Gerencie cupons sincronizados com Shopify
-            </p>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex gap-3"
+          <Button
+            onClick={handleSyncShopify}
+            disabled={syncing}
+            variant="outline"
+            size="lg"
+            className="border-2 hover:border-purple-500"
           >
-            <Button
-              onClick={handleSyncShopify}
-              disabled={syncing}
-              variant="outline"
-              size="lg"
-              className="border-2 hover:border-purple-500"
-            >
-              <RefreshCw
-                className={`mr-2 h-5 w-5 ${syncing ? "animate-spin" : ""}`}
-              />
-              {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
-            </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={resetForm}
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Criar Cupom
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {editingCoupon ? "Editar Cupom" : "Novo Cupom"}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Código *</Label>
-                      <Input
-                        value={formData.code}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            code: e.target.value.toUpperCase(),
-                          })
-                        }
-                        placeholder="DESCONTO20"
-                        className="mt-1.5"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Nome *</Label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="Nome do cupom"
-                        className="mt-1.5"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Tipo de Desconto</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(v: any) =>
-                          setFormData({ ...formData, type: v })
-                        }
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PERCENTAGE">
-                            Percentual (%)
-                          </SelectItem>
-                          <SelectItem value="FIXED_AMOUNT">
-                            Valor Fixo (R$)
-                          </SelectItem>
-                          <SelectItem value="FREE_SHIPPING">
-                            Frete Grátis
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Valor</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.value}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            value: parseFloat(e.target.value),
-                          })
-                        }
-                        placeholder="0.00"
-                        className="mt-1.5"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Compra Mínima (R$)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.minPurchaseAmount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            minPurchaseAmount: parseFloat(e.target.value),
-                          })
-                        }
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label>Desconto Máximo (R$)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.maxDiscountAmount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            maxDiscountAmount: parseFloat(e.target.value),
-                          })
-                        }
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Limite Total de Uso</Label>
-                      <Input
-                        type="number"
-                        value={formData.usageLimit}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            usageLimit: parseInt(e.target.value),
-                          })
-                        }
-                        placeholder="0 = ilimitado"
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label>Limite por Cliente</Label>
-                      <Input
-                        type="number"
-                        value={formData.perCustomerLimit}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            perCustomerLimit: parseInt(e.target.value),
-                          })
-                        }
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Data de Início</Label>
-                      <Input
-                        type="datetime-local"
-                        value={formData.startsAt}
-                        onChange={(e) =>
-                          setFormData({ ...formData, startsAt: e.target.value })
-                        }
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label>Data de Expiração</Label>
-                      <Input
-                        type="datetime-local"
-                        value={formData.expiresAt}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            expiresAt: e.target.value,
-                          })
-                        }
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={formData.isActive}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, isActive: checked })
+            <RefreshCw
+              className={`mr-2 h-5 w-5 ${syncing ? "animate-spin" : ""}`}
+            />
+            {syncing ? "Sincronizando..." : "Sincronizar Shopify"}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={resetForm}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Criar Cupom
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {editingCoupon ? "Editar Cupom" : "Novo Cupom"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Código *</Label>
+                    <Input
+                      value={formData.code}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          code: e.target.value.toUpperCase(),
+                        })
                       }
+                      placeholder="DESCONTO20"
+                      className="mt-1.5"
+                      required
                     />
-                    <Label>Cupom Ativo</Label>
                   </div>
+                  <div>
+                    <Label>Nome *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Nome do cupom"
+                      className="mt-1.5"
+                      required
+                    />
+                  </div>
+                </div>
 
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo de Desconto</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(v: any) =>
+                        setFormData({ ...formData, type: v })
+                      }
                     >
-                      Cancelar
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PERCENTAGE">
+                          Percentual (%)
+                        </SelectItem>
+                        <SelectItem value="FIXED_AMOUNT">
+                          Valor Fixo (R$)
+                        </SelectItem>
+                        <SelectItem value="FREE_SHIPPING">
+                          Frete Grátis
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Valor</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.value}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          value: parseFloat(e.target.value),
+                        })
+                      }
+                      placeholder="0.00"
+                      className="mt-1.5"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Compra Mínima (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.minPurchaseAmount}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          minPurchaseAmount: parseFloat(e.target.value),
+                        })
+                      }
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label>Desconto Máximo (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.maxDiscountAmount}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          maxDiscountAmount: parseFloat(e.target.value),
+                        })
+                      }
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Limite Total de Uso</Label>
+                    <Input
+                      type="number"
+                      value={formData.usageLimit}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          usageLimit: parseInt(e.target.value),
+                        })
+                      }
+                      placeholder="0 = ilimitado"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label>Limite por Cliente</Label>
+                    <Input
+                      type="number"
+                      value={formData.perCustomerLimit}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          perCustomerLimit: parseInt(e.target.value),
+                        })
+                      }
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Data de Início</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.startsAt}
+                      onChange={(e) =>
+                        setFormData({ ...formData, startsAt: e.target.value })
+                      }
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label>Data de Expiração</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.expiresAt}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          expiresAt: e.target.value,
+                        })
+                      }
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                  />
+                  <Label>Cupom Ativo</Label>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600"
+                  >
+                    {editingCoupon ? "Atualizar" : "Criar"} Cupom
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </motion.div>
+      </motion.div>
+
+      {/* Métricas */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total de Cupons"
+          value={coupons.length}
+          icon={Ticket}
+          color="bg-blue-500"
+          delay={0.1}
+        />
+        <MetricCard
+          title="Cupons Ativos"
+          value={activeCoupons}
+          icon={TrendingUp}
+          color="bg-green-500"
+          delay={0.2}
+          subtitle={`${((activeCoupons / coupons.length) * 100 || 0).toFixed(0)}% do total`}
+        />
+        <MetricCard
+          title="Usos Totais"
+          value={totalUsage}
+          icon={Users}
+          color="bg-purple-500"
+          delay={0.3}
+        />
+        <MetricCard
+          title="Média de Uso"
+          value={(totalUsage / coupons.length || 0).toFixed(1)}
+          icon={Percent}
+          color="bg-pink-500"
+          delay={0.4}
+          subtitle="por cupom"
+        />
+      </div>
+
+      {/* Busca */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="relative"
+      >
+        <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Input
+          placeholder="Buscar por código ou nome..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-12 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg"
+        />
+      </motion.div>
+
+      {/* Tabela */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              Lista de Cupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : filteredCoupons.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-16"
+              >
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl rounded-full" />
+                  <Ticket className="relative h-20 w-20 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">
+                  Nenhum cupom encontrado
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  {searchTerm
+                    ? "Tente ajustar os filtros"
+                    : "Sincronize com Shopify ou crie um cupom"}
+                </p>
+                {!searchTerm && (
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleSyncShopify}
+                      disabled={syncing}
+                      variant="outline"
+                      size="lg"
+                    >
+                      <RefreshCw
+                        className={`mr-2 h-5 w-5 ${syncing ? "animate-spin" : ""}`}
+                      />
+                      Sincronizar Shopify
                     </Button>
                     <Button
-                      type="submit"
+                      onClick={() => setIsDialogOpen(true)}
+                      size="lg"
                       className="bg-gradient-to-r from-blue-600 to-purple-600"
                     >
-                      {editingCoupon ? "Atualizar" : "Criar"} Cupom
+                      <Plus className="mr-2 h-5 w-5" />
+                      Criar Cupom
                     </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </motion.div>
-        </motion.div>
-
-        {/* Métricas */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Total de Cupons"
-            value={coupons.length}
-            icon={Ticket}
-            color="bg-blue-500"
-            delay={0.1}
-          />
-          <MetricCard
-            title="Cupons Ativos"
-            value={activeCoupons}
-            icon={TrendingUp}
-            color="bg-green-500"
-            delay={0.2}
-            subtitle={`${((activeCoupons / coupons.length) * 100 || 0).toFixed(0)}% do total`}
-          />
-          <MetricCard
-            title="Usos Totais"
-            value={totalUsage}
-            icon={Users}
-            color="bg-purple-500"
-            delay={0.3}
-          />
-          <MetricCard
-            title="Média de Uso"
-            value={(totalUsage / coupons.length || 0).toFixed(1)}
-            icon={Percent}
-            color="bg-pink-500"
-            delay={0.4}
-            subtitle="por cupom"
-          />
-        </div>
-
-        {/* Busca */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="relative"
-        >
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="Buscar por código ou nome..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg"
-          />
-        </motion.div>
-
-        {/* Tabela */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Lista de Cupons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : filteredCoupons.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-16"
-                >
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl rounded-full" />
-                    <Ticket className="relative h-20 w-20 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">
-                    Nenhum cupom encontrado
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    {searchTerm
-                      ? "Tente ajustar os filtros"
-                      : "Sincronize com Shopify ou crie um cupom"}
-                  </p>
-                  {!searchTerm && (
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={handleSyncShopify}
-                        disabled={syncing}
-                        variant="outline"
-                        size="lg"
-                      >
-                        <RefreshCw
-                          className={`mr-2 h-5 w-5 ${syncing ? "animate-spin" : ""}`}
-                        />
-                        Sincronizar Shopify
-                      </Button>
-                      <Button
-                        onClick={() => setIsDialogOpen(true)}
-                        size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600"
-                      >
-                        <Plus className="mr-2 h-5 w-5" />
-                        Criar Cupom
-                      </Button>
-                    </div>
-                  )}
-                </motion.div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Código</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Desconto</TableHead>
-                      <TableHead>Usos</TableHead>
-                      <TableHead>Validade</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCoupons.map((coupon, index) => (
-                      <motion.tr
-                        key={coupon.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                              <Ticket className="h-5 w-5 text-white" />
-                            </div>
-                            <span className="font-mono font-semibold">
-                              {coupon.code}
-                            </span>
+                )}
+              </motion.div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Desconto</TableHead>
+                    <TableHead>Usos</TableHead>
+                    <TableHead>Validade</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCoupons.map((coupon, index) => (
+                    <motion.tr
+                      key={coupon.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                            <Ticket className="h-5 w-5 text-white" />
                           </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {coupon.name}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {coupon.type === "PERCENTAGE" ? (
-                              <Percent className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <DollarSign className="h-4 w-4 text-green-500" />
-                            )}
-                            <span className="font-semibold">
-                              {getDiscountDisplay(coupon)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {coupon.usageCount || 0}
-                          {coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {coupon.expiresAt
-                            ? format(new Date(coupon.expiresAt), "dd/MM/yyyy", {
-                                locale: ptBR,
-                              })
-                            : "Sem expiração"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              coupon.isActive
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                            }
+                          <span className="font-mono font-semibold">
+                            {coupon.code}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {coupon.name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {coupon.type === "PERCENTAGE" ? (
+                            <Percent className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <DollarSign className="h-4 w-4 text-green-500" />
+                          )}
+                          <span className="font-semibold">
+                            {getDiscountDisplay(coupon)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {coupon.usageCount || 0}
+                        {coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {coupon.expiresAt
+                          ? format(new Date(coupon.expiresAt), "dd/MM/yyyy", {
+                              locale: ptBR,
+                            })
+                          : "Sem expiração"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            coupon.isActive
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                          }
+                        >
+                          {coupon.isActive ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(coupon)}
+                            className="hover:bg-blue-100 dark:hover:bg-blue-900/30"
                           >
-                            {coupon.isActive ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(coupon)}
-                              className="hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(coupon.id)}
-                              className="hover:bg-red-100 dark:hover:bg-red-900/30"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(coupon.id)}
+                            className="hover:bg-red-100 dark:hover:bg-red-900/30"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
