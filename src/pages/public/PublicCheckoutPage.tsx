@@ -32,6 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
+import { cn } from "@/lib/utils";
 import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { CheckoutInput } from "@/components/checkout/CheckoutInput";
 import { CheckoutFooter } from "@/components/checkout/CheckoutFooter";
@@ -159,12 +160,14 @@ interface PublicCheckoutPageProps {
   injectedOrderId?: string;
   injectedTheme?: any;
   previewMode?: boolean;
+  isMobile?: boolean;
 }
 
 const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   injectedOrderId,
   injectedTheme,
   previewMode = false,
+  isMobile = false,
 }) => {
   const { orderId: paramOrderId } = useParams<{ orderId: string }>();
   const orderId = injectedOrderId || paramOrderId;
@@ -731,12 +734,22 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div
+        className={cn(
+          "mx-auto py-6",
+          isMobile ? "px-2 max-w-full" : "px-4 max-w-7xl",
+        )}
+      >
+        <div
+          className={cn(
+            "grid gap-4",
+            isMobile ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3 gap-6",
+          )}
+        >
           {/* FORMULÁRIO - 2/3 */}
-          <div className="lg:col-span-2">
+          <div className={cn(isMobile ? "" : "lg:col-span-2")}>
             <motion.div
-              className="bg-white shadow-lg p-6"
+              className={cn("bg-white shadow-lg", isMobile ? "p-3" : "p-6")}
               style={{
                 borderRadius: getCardBorderRadius(),
                 backgroundColor: theme.cardBackgroundColor || "#ffffff",
@@ -745,9 +758,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
             >
               {/* Header */}
-              <div className="mb-6">
+              <div className={cn(isMobile ? "mb-3" : "mb-6")}>
                 <h1
-                  className="text-2xl font-bold mb-1"
+                  className={cn(
+                    "font-bold mb-1",
+                    isMobile ? "text-lg" : "text-2xl",
+                  )}
                   style={{ color: theme.headingColor || "#111827" }}
                 >
                   {navigationSteps === 1
@@ -791,7 +807,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       placeholder="Seu nome completo"
                       required
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                      className={cn(
+                        "grid gap-4",
+                        isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2",
+                      )}
+                    >
                       <CheckoutInput
                         label="E-mail"
                         type="email"
@@ -869,7 +890,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                         Endereço de Entrega
                       </h3>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div
+                      className={cn(
+                        "grid gap-4",
+                        isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3",
+                      )}
+                    >
                       <CheckoutInput
                         label="CEP"
                         type="text"
@@ -902,7 +928,14 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div
+                      className={cn(
+                        "grid gap-3",
+                        isMobile
+                          ? "grid-cols-2"
+                          : "grid-cols-2 md:grid-cols-4 gap-4",
+                      )}
+                    >
                       <CheckoutInput
                         label="Número"
                         type="text"
@@ -947,7 +980,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       placeholder="Seu bairro"
                       required
                     />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div
+                      className={cn(
+                        "grid",
+                        isMobile ? "grid-cols-1 gap-3" : "grid-cols-2 gap-4",
+                      )}
+                    >
                       <CheckoutInput
                         label="Cidade"
                         type="text"
@@ -1018,7 +1056,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                     )}
 
                     {/* Seletor de Método */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div
+                      className={cn(
+                        "grid gap-3",
+                        isMobile ? "grid-cols-1" : "grid-cols-3",
+                      )}
+                    >
                       <button
                         onClick={() => setPaymentMethod("PIX")}
                         className={`p-4 rounded-lg border-2 font-semibold transition ${
@@ -1084,7 +1127,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                           placeholder="Nome como está no cartão"
                           required
                         />
-                        <div className="grid grid-cols-3 gap-4">
+                        <div
+                          className={cn(
+                            "grid gap-3",
+                            isMobile ? "grid-cols-2" : "grid-cols-3 gap-4",
+                          )}
+                        >
                           <CheckoutInput
                             label="Mês"
                             type="text"
@@ -1238,9 +1286,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           </div>
 
           {/* RESUMO DO PEDIDO - 1/3 */}
-          <div className="lg:col-span-1">
+          <div className={cn(isMobile ? "" : "lg:col-span-1")}>
             <motion.div
-              className="bg-white shadow-lg p-6 sticky top-6"
+              className={cn(
+                "bg-white shadow-lg",
+                isMobile ? "p-3" : "p-6 sticky top-6",
+              )}
               style={{
                 borderRadius: getCardBorderRadius(),
                 backgroundColor: theme.cardBackgroundColor || "#ffffff",
@@ -1250,20 +1301,36 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
               transition={{ delay: 0.1 }}
             >
               <h2
-                className="text-xl font-bold mb-4 flex items-center gap-2"
+                className={cn(
+                  "font-bold mb-3 flex items-center gap-2",
+                  isMobile ? "text-base" : "text-xl mb-4",
+                )}
                 style={{ color: theme.headingColor || "#111827" }}
               >
-                <Package className="w-5 h-5" />
+                <Package className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} />
                 Resumo do Pedido
               </h2>
 
               {/* Produtos */}
-              <div className="space-y-3 mb-4">
+              <div
+                className={cn(
+                  "mb-3",
+                  isMobile ? "space-y-2" : "space-y-3 mb-4",
+                )}
+              >
                 {checkoutData?.products
                   ?.filter((p) => p && p.name)
                   .map((product, index) => (
-                    <div key={product?.id || index} className="flex gap-3">
-                      <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                    <div
+                      key={product?.id || index}
+                      className={cn("flex", isMobile ? "gap-2" : "gap-3")}
+                    >
+                      <div
+                        className={cn(
+                          "rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden",
+                          isMobile ? "w-12 h-12" : "w-16 h-16",
+                        )}
+                      >
                         {product?.image ? (
                           <img
                             src={product.image}
@@ -1272,18 +1339,38 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-400" />
+                            <Package
+                              className={cn(
+                                "text-gray-400",
+                                isMobile ? "w-6 h-6" : "w-8 h-8",
+                              )}
+                            />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm truncate">
+                        <h4
+                          className={cn(
+                            "font-semibold truncate",
+                            isMobile ? "text-xs" : "text-sm",
+                          )}
+                        >
                           {product?.name || "Produto"}
                         </h4>
-                        <p className="text-xs text-gray-500">
+                        <p
+                          className={cn(
+                            "text-gray-500",
+                            isMobile ? "text-[10px]" : "text-xs",
+                          )}
+                        >
                           Qtd: {product?.quantity || 1}
                         </p>
-                        <p className="text-sm font-bold text-gray-900 mt-1">
+                        <p
+                          className={cn(
+                            "font-bold text-gray-900",
+                            isMobile ? "text-xs mt-0.5" : "text-sm mt-1",
+                          )}
+                        >
                           R${" "}
                           {(
                             (product?.price || 0) * (product?.quantity || 1)
@@ -1295,18 +1382,28 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
               </div>
 
               {/* Divider */}
-              <div className="border-t my-4" />
+              <div className={cn("border-t", isMobile ? "my-3" : "my-4")} />
 
               {/* Totais */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className={cn(isMobile ? "space-y-1.5" : "space-y-2")}>
+                <div
+                  className={cn(
+                    "flex justify-between",
+                    isMobile ? "text-xs" : "text-sm",
+                  )}
+                >
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
                     R$ {checkoutData.subtotal.toFixed(2)}
                   </span>
                 </div>
                 {checkoutData.shipping > 0 && (
-                  <div className="flex justify-between text-sm">
+                  <div
+                    className={cn(
+                      "flex justify-between",
+                      isMobile ? "text-xs" : "text-sm",
+                    )}
+                  >
                     <span className="text-gray-600">Frete</span>
                     <span className="font-medium">
                       R$ {checkoutData.shipping.toFixed(2)}
@@ -1314,7 +1411,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                   </div>
                 )}
                 {checkoutData.discount && checkoutData.discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
+                  <div
+                    className={cn(
+                      "flex justify-between text-green-600",
+                      isMobile ? "text-xs" : "text-sm",
+                    )}
+                  >
                     <span>Desconto</span>
                     <span className="font-medium">
                       - R$ {checkoutData.discount.toFixed(2)}
@@ -1324,16 +1426,24 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
               </div>
 
               {/* Total */}
-              <div className="border-t mt-4 pt-4">
+              <div
+                className={cn("border-t", isMobile ? "mt-3 pt-3" : "mt-4 pt-4")}
+              >
                 <div className="flex justify-between items-center">
                   <span
-                    className="text-lg font-bold"
+                    className={cn(
+                      "font-bold",
+                      isMobile ? "text-base" : "text-lg",
+                    )}
                     style={{ color: theme.headingColor || "#111827" }}
                   >
                     Total
                   </span>
                   <span
-                    className="text-3xl font-bold"
+                    className={cn(
+                      "font-bold",
+                      isMobile ? "text-xl" : "text-3xl",
+                    )}
                     style={{
                       color: theme.primaryButtonBackgroundColor || "#8b5cf6",
                     }}
@@ -1345,9 +1455,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
               {/* Order Bumps no Resumo */}
               {selectedOrderBumps.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
+                <div
+                  className={cn(
+                    "border-t",
+                    isMobile ? "mt-3 pt-3" : "mt-4 pt-4",
+                  )}
+                >
                   <h4
-                    className="text-sm font-semibold mb-3"
+                    className={cn(
+                      "font-semibold",
+                      isMobile ? "text-xs mb-2" : "text-sm mb-3",
+                    )}
                     style={{ color: theme.headingColor || "#111827" }}
                   >
                     Itens Adicionais
@@ -1357,7 +1475,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                     .map((bump) => (
                       <div
                         key={bump.id}
-                        className="flex justify-between text-sm mb-2"
+                        className={cn(
+                          "flex justify-between",
+                          isMobile ? "text-xs mb-1.5" : "text-sm mb-2",
+                        )}
                       >
                         <span className="text-gray-600">{bump.title}</span>
                         <span className="font-medium text-gray-900">

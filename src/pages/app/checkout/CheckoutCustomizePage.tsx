@@ -94,6 +94,7 @@ const CheckoutCustomizePage: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewKey, setPreviewKey] = useState(0);
 
   // Detectar e aplicar dark mode do sistema
   useEffect(() => {
@@ -314,6 +315,8 @@ const CheckoutCustomizePage: React.FC = () => {
       },
     });
     setHasChanges(true);
+    // Força atualização do preview
+    setPreviewKey((prev) => prev + 1);
   };
 
   const toggleSection = (section: string) => {
@@ -461,13 +464,18 @@ const CheckoutCustomizePage: React.FC = () => {
             >
               <Card
                 className={cn(
-                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300 rounded-2xl",
+                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300",
                   previewMode === "desktop"
-                    ? "w-full max-w-6xl h-full"
-                    : "w-[390px] h-[844px]",
+                    ? "w-full max-w-6xl h-full rounded-2xl"
+                    : "w-[390px] h-[844px] rounded-3xl",
                 )}
               >
-                <div className="h-full w-full overflow-y-auto overflow-x-hidden">
+                <div
+                  className={cn(
+                    "h-full w-full overflow-y-auto overflow-x-hidden",
+                    previewMode === "mobile" && "scale-100",
+                  )}
+                >
                   {previewOrderId ? (
                     <>
                       <div className="hidden">
@@ -482,10 +490,11 @@ const CheckoutCustomizePage: React.FC = () => {
                         {console.log("🎨 Preview mode:", true)}
                       </div>
                       <PublicCheckoutPage
-                        key={JSON.stringify(customization?.theme || {})}
+                        key={previewKey}
                         injectedOrderId={previewOrderId}
                         injectedTheme={customization?.theme || null}
                         previewMode={true}
+                        isMobile={previewMode === "mobile"}
                       />
                     </>
                   ) : (

@@ -614,10 +614,16 @@ export const CheckoutCustomizationSidebar: React.FC<
         return (
           <div className="space-y-4">
             {/* Ativar escassez */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Ativar gatilho de escassez
-              </Label>
+            <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-red-500" />
+                  Ativar Gatilho de Escassez
+                </Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                  Countdown timer para criar urgência
+                </p>
+              </div>
               <Switch
                 checked={customization.theme.useVisible || false}
                 onCheckedChange={(checked: boolean) =>
@@ -625,6 +631,20 @@ export const CheckoutCustomizationSidebar: React.FC<
                 }
               />
             </div>
+
+            {/* Dica de uso */}
+            {customization.theme.useVisible && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                  <Zap className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Dica:</strong> Timers de 10-15 minutos têm maior
+                    taxa de conversão. O timer reseta a cada nova sessão do
+                    usuário.
+                  </span>
+                </p>
+              </div>
+            )}
 
             {/* Tag de desconto */}
             <ModernColorPicker
@@ -647,9 +667,13 @@ export const CheckoutCustomizationSidebar: React.FC<
 
             {/* Tempo de expiração */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
                 Tempo de expiração (minutos)
               </Label>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                Quanto tempo o usuário tem para finalizar a compra
+              </p>
               <Input
                 type="number"
                 value={customization.theme.expirationTime || 15}
@@ -658,29 +682,13 @@ export const CheckoutCustomizationSidebar: React.FC<
                     expirationTime: parseInt(e.target.value) || 15,
                   })
                 }
-                className="mt-2"
+                placeholder="15"
                 min="1"
-                max="120"
+                max="1440"
               />
-            </div>
-
-            {/* Tempo de remoção forçada */}
-            <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Tempo de remoção forçada (minutos)
-              </Label>
-              <Input
-                type="number"
-                value={customization.theme.forceRemovalTime || 20}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateTheme({
-                    forceRemovalTime: parseInt(e.target.value) || 20,
-                  })
-                }
-                className="mt-2"
-                min="1"
-                max="120"
-              />
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-1">
+                Recomendado: 10-15 minutos
+              </p>
             </div>
           </div>
         );
@@ -688,6 +696,24 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "ORDER_BUMP":
         return (
           <div className="space-y-4">
+            {/* Ativar Order Bump */}
+            <div className="flex items-center justify-between p-3 bg-violet-50 dark:bg-violet-950/20 rounded-lg border border-violet-200 dark:border-violet-800">
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Ativar Order Bump
+                </Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                  Exibir ofertas adicionais no checkout
+                </p>
+              </div>
+              <Switch
+                checked={customization.theme.orderBumpEnabled || false}
+                onCheckedChange={(checked: boolean) =>
+                  onUpdateTheme({ orderBumpEnabled: checked })
+                }
+              />
+            </div>
+
             {/* Cores do Order Bump */}
             <ModernColorPicker
               label="Cor do texto"
