@@ -8,10 +8,13 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Palette,
+  Layout,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
@@ -21,6 +24,56 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 import { CheckoutCustomizationSidebar } from "@/components/checkout/CheckoutCustomizationSidebar";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 const CheckoutCustomizePage: React.FC = () => {
   const navigate = useNavigate();
@@ -287,11 +340,11 @@ const CheckoutCustomizePage: React.FC = () => {
                 Voltar
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Personalizar Checkout
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Configure a aparência do seu checkout
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                  Configure a aparência e comportamento do seu checkout
                 </p>
               </div>
             </div>
@@ -379,6 +432,40 @@ const CheckoutCustomizePage: React.FC = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Métricas rápidas */}
+        {showPreview && (
+          <div className="px-6 py-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="grid gap-4 md:grid-cols-3">
+              <MetricCard
+                title="Tema Configurado"
+                value={customization?.theme?.primaryColor ? "Sim" : "Padrão"}
+                icon={Palette}
+                color="bg-violet-500"
+                delay={0.1}
+                subtitle="Cores personalizadas"
+              />
+              <MetricCard
+                title="Layout"
+                value={previewMode === "desktop" ? "Desktop" : "Mobile"}
+                icon={Layout}
+                color="bg-purple-500"
+                delay={0.2}
+                subtitle="Visualização atual"
+              />
+              <MetricCard
+                title="Alterações"
+                value={hasChanges ? "Pendentes" : "Salvas"}
+                icon={Zap}
+                color={hasChanges ? "bg-amber-500" : "bg-green-500"}
+                delay={0.3}
+                subtitle={
+                  hasChanges ? "Salvar para aplicar" : "Tudo sincronizado"
+                }
+              />
+            </div>
+          </div>
+        )}
 
         {/* Preview Area */}
         {showPreview ? (
