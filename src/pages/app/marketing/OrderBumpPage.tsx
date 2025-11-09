@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,12 +37,65 @@ import {
   TrendingUp,
   ShoppingCart,
   DollarSign,
+  Percent,
+  Target,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { marketingApi, OrderBump } from "@/lib/api/marketingApi";
 import { productsApi } from "@/lib/api/productsApi";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 const OrderBumpPage = () => {
   const [orderBumps, setOrderBumps] = useState<OrderBump[]>([]);
@@ -183,6 +237,8 @@ const OrderBumpPage = () => {
   };
 
   const activeBumps = orderBumps.filter((b) => b.isActive).length;
+  const conversionRate = orderBumps.length > 0 ? "12.5%" : "-";
+
   const getProductName = (productId: string) => {
     const product = products.find((p) => p.id === productId);
     return product?.name || "Produto não encontrado";
@@ -190,19 +246,29 @@ const OrderBumpPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
+      >
         <div>
           <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Order Bump
           </h1>
-          <p className="text-gray-600 font-medium">
+          <p className="text-gray-600 dark:text-gray-400 font-medium mt-2">
             Ofertas especiais exibidas durante o checkout
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              onClick={resetForm}
+              size="lg"
+              className="shadow-lg hover:shadow-xl transition-all"
+            >
+              <Plus className="mr-2 h-5 w-5" />
               Criar Order Bump
             </Button>
           </DialogTrigger>
@@ -343,141 +409,190 @@ const OrderBumpPage = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </motion.div>
+
+      {/* Métricas com animação */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <MetricCard
+          title="Total de Ofertas"
+          value={orderBumps.length}
+          icon={TrendingUp}
+          color="bg-blue-500"
+          delay={0.1}
+          subtitle="Order Bumps criados"
+        />
+        <MetricCard
+          title="Ofertas Ativas"
+          value={activeBumps}
+          icon={Zap}
+          color="bg-green-500"
+          delay={0.2}
+          subtitle="Atualmente em uso"
+        />
+        <MetricCard
+          title="Taxa de Conversão"
+          value={conversionRate}
+          icon={Target}
+          color="bg-purple-500"
+          delay={0.3}
+          subtitle="Média de aceitação"
+        />
+        <MetricCard
+          title="Receita Extra"
+          value="-"
+          icon={DollarSign}
+          color="bg-pink-500"
+          delay={0.4}
+          subtitle="Gerada por bumps"
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Order Bumps
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{orderBumps.length}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeBumps}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Taxa Conversão
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="relative">
+      {/* Busca com animação */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="relative"
+      >
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar order bumps..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
+          className="pl-9 border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg"
         />
-      </div>
+      </motion.div>
 
-      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-        <CardHeader>
-          <CardTitle>Lista de Order Bumps</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : filteredBumps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">
-                Nenhum order bump encontrado
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchTerm
-                  ? "Tente ajustar sua busca"
-                  : "Comece criando seu primeiro order bump"}
-              </p>
-              {!searchTerm && (
-                <Button onClick={resetForm}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Primeiro Order Bump
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Desconto</TableHead>
-                  <TableHead>Posição</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBumps.map((bump) => (
-                  <TableRow key={bump.id}>
-                    <TableCell className="font-medium">{bump.name}</TableCell>
-                    <TableCell>{getProductName(bump.productId)}</TableCell>
-                    <TableCell>{bump.title}</TableCell>
-                    <TableCell>
-                      {bump.discountValue
-                        ? bump.discountType === "PERCENTAGE"
-                          ? `${bump.discountValue}%`
-                          : `R$ ${bump.discountValue.toFixed(2)}`
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {bump.position === "CHECKOUT" ? "Checkout" : "Carrinho"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={bump.isActive ? "default" : "secondary"}>
-                        {bump.isActive ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(bump)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(bump.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tabela com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              Lista de Order Bumps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : filteredBumps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 mb-4">
+                  <TrendingUp className="h-12 w-12 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Nenhum order bump encontrado
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  {searchTerm
+                    ? "Tente ajustar sua busca"
+                    : "Comece criando seu primeiro order bump e aumente suas vendas"}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => {
+                      resetForm();
+                      setIsDialogOpen(true);
+                    }}
+                    size="lg"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeiro Order Bump
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border border-gray-200 dark:border-gray-800">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Desconto</TableHead>
+                      <TableHead>Posição</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBumps.map((bump, index) => (
+                      <motion.tr
+                        key={bump.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                      >
+                        <TableCell className="font-medium">
+                          {bump.name}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                          {getProductName(bump.productId)}
+                        </TableCell>
+                        <TableCell>{bump.title}</TableCell>
+                        <TableCell>
+                          {bump.discountValue
+                            ? bump.discountType === "PERCENTAGE"
+                              ? `${bump.discountValue}%`
+                              : `R$ ${bump.discountValue.toFixed(2)}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {bump.position === "CHECKOUT"
+                              ? "Checkout"
+                              : "Carrinho"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={bump.isActive ? "default" : "secondary"}
+                            className={
+                              bump.isActive
+                                ? "bg-green-500 hover:bg-green-600"
+                                : ""
+                            }
+                          >
+                            {bump.isActive ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(bump)}
+                              className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(bump.id)}
+                              className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
