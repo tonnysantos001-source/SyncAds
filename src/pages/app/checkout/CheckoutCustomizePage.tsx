@@ -356,7 +356,26 @@ const CheckoutCustomizePage: React.FC = () => {
           className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    SyncAds AI
+                  </h1>
+                  <Badge variant="secondary" className="text-xs">
+                    Editor
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                  Personalize a aparência do seu checkout
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="sm"
@@ -366,27 +385,6 @@ const CheckoutCustomizePage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      SyncAds AI
-                    </h1>
-                    <Badge variant="secondary" className="text-xs">
-                      Editor
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    Personalize a aparência do seu checkout
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
               {/* Toggle Preview */}
               <Button
                 variant="outline"
@@ -481,18 +479,13 @@ const CheckoutCustomizePage: React.FC = () => {
             >
               <Card
                 className={cn(
-                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300",
+                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300 rounded-2xl",
                   previewMode === "desktop"
                     ? "w-full max-w-6xl h-full"
-                    : "w-full max-w-[390px] h-full max-h-[844px]",
+                    : "w-[390px] h-[844px]",
                 )}
               >
-                <div
-                  className={cn(
-                    "h-full overflow-y-auto",
-                    previewMode === "mobile" && "overflow-x-hidden",
-                  )}
-                >
+                <div className="h-full w-full overflow-y-auto overflow-x-hidden">
                   {previewOrderId ? (
                     <>
                       <div className="hidden">

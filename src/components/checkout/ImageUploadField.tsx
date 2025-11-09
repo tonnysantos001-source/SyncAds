@@ -220,7 +220,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             >
               <div className="relative overflow-hidden rounded-xl border-2 border-violet-200/50 dark:border-violet-800/50 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-2 shadow-lg">
                 {/* Container de imagem com altura fixa */}
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-white dark:bg-gray-950">
+                <div className="relative w-full h-16 rounded-lg overflow-hidden bg-white dark:bg-gray-950">
                   <img
                     src={preview}
                     alt="Preview"
@@ -278,7 +278,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               onDrop={handleDrop}
               onClick={handleClick}
               className={cn(
-                "relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300",
+                "relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300",
                 dragActive
                   ? "border-violet-500 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 shadow-lg shadow-violet-500/20"
                   : "border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 bg-white/50 dark:bg-gray-800/50 hover:bg-gradient-to-br hover:from-violet-50 hover:to-purple-50 dark:hover:from-violet-950/20 dark:hover:to-purple-950/20 backdrop-blur-sm",
