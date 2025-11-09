@@ -1,107 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Background with gradient -->
-  <rect width="200" height="60" rx="8" fill="url(#worldpayGradient)"/>
-
-  <defs>
-    <linearGradient id="worldpayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#003087;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#005EB8;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- Decorative circles -->
-  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
-  <circle cx="30" cy="30" r="16" fill="white" opacity="0.15"/>
-
-  <!-- Icon: Globe with payment network -->
-  <g transform="translate(22, 30)">
-    <!-- Globe -->
-    <circle cx="0" cy="0" r="12" stroke="white" stroke-width="2" fill="none" opacity="0.85"/>
-
-    <!-- Latitude lines -->
-    <ellipse cx="0" cy="0" rx="12" ry="4" stroke="white" stroke-width="1" fill="none" opacity="0.6"/>
-    <ellipse cx="0" cy="0" rx="12" ry="8" stroke="white" stroke-width="1" fill="none" opacity="0.5"/>
-
-    <!-- Longitude line -->
-    <ellipse cx="0" cy="0" rx="5" ry="12" stroke="white" stroke-width="1" fill="none" opacity="0.7"/>
-
-    <!-- Payment node points (network) -->
-    <circle cx="0" cy="-10" r="2" fill="#FFD700" opacity="0.9"/>
-    <circle cx="8" cy="-6" r="2" fill="#FFD700" opacity="0.9"/>
-    <circle cx="10" cy="2" r="2" fill="#FFD700" opacity="0.9"/>
-    <circle cx="4" cy="10" r="2" fill="#FFD700" opacity="0.9"/>
-    <circle cx="-8" cy="6" r="2" fill="#FFD700" opacity="0.9"/>
-    <circle cx="-10" cy="-4" r="2" fill="#FFD700" opacity="0.9"/>
-
-    <!-- Connection lines -->
-    <line x1="0" y1="-10" x2="8" y2="-6" stroke="#FFD700" stroke-width="0.8" opacity="0.4"/>
-    <line x1="8" y1="-6" x2="10" y2="2" stroke="#FFD700" stroke-width="0.8" opacity="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <rect width="120" height="80" fill="#003087"/>
+  <g transform="translate(15, 40)">
+    <circle cx="0" cy="0" r="8" stroke="white" stroke-width="1.5" fill="none" opacity="0.85"/>
+    <ellipse cx="0" cy="0" rx="8" ry="3" stroke="white" stroke-width="1" fill="none" opacity="0.6"/>
+    <ellipse cx="0" cy="0" rx="3.5" ry="8" stroke="white" stroke-width="1" fill="none" opacity="0.7"/>
+    <circle cx="0" cy="-6" r="1.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="5" cy="-4" r="1.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="6" cy="1" r="1.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="3" cy="6" r="1.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="-5" cy="4" r="1.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="-6" cy="-3" r="1.5" fill="#FFD700" opacity="0.9"/>
   </g>
-
-  <!-- Text: Worldpay -->
-  <text x="52" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
-    World
-  </text>
-  <text x="101" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFD700">
-    pay
-  </text>
-
-  <!-- Subtitle: from FIS -->
-  <text x="52" y="42" font-family="Arial, sans-serif" font-size="7" fill="white" opacity="0.8">
-    from FIS
-  </text>
-
-  <!-- Tagline -->
-  <text x="52" y="50" font-family="Arial, sans-serif" font-size="7" fill="white" opacity="0.7">
-    Global Payment Solutions
-  </text>
-
-  <!-- FIS badge -->
-  <g transform="translate(145, 25)">
-    <rect x="-12" y="-10" width="24" height="20" rx="3" fill="white" opacity="0.2"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      FIS
-    </text>
+  <text x="60" y="44" font-family="Arial" font-size="17" font-weight="bold" fill="white" text-anchor="middle">World<tspan fill="#FFD700">pay</tspan></text>
+  <text x="60" y="56" font-family="Arial" font-size="6" fill="white" text-anchor="middle" opacity="0.8">from FIS</text>
+  <g transform="translate(100, 40)">
+    <rect x="-12" y="-6" width="24" height="12" rx="2" fill="white" opacity="0.2"/>
+    <text x="0" y="1" font-family="Arial" font-size="4" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">ENTERPRISE</text>
   </g>
-
-  <!-- Enterprise badge -->
-  <g transform="translate(170, 25)">
-    <rect x="-20" y="-10" width="40" height="20" rx="3" fill="white" opacity="0.15"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      ENTERPRISE
-    </text>
-  </g>
-
-  <!-- Omnichannel icons -->
-  <g transform="translate(140, 48)">
-    <!-- Store -->
-    <rect x="0" y="2" width="6" height="4" fill="white" opacity="0.4"/>
-    <path d="M -1 2 L 3 0 L 7 2" fill="white" opacity="0.5"/>
-
-    <!-- Online -->
-    <circle cx="13" cy="4" r="3" stroke="white" stroke-width="1" fill="none" opacity="0.4"/>
-    <circle cx="13" cy="4" r="1.5" fill="white" opacity="0.5"/>
-
-    <!-- Mobile -->
-    <rect x="22" y="1" width="4" height="6" rx="0.5" stroke="white" stroke-width="0.8" fill="none" opacity="0.4"/>
-    <rect x="23" y="2" width="2" height="3" fill="white" opacity="0.3"/>
-  </g>
-
-  <!-- Security shield -->
-  <g transform="translate(180, 45)">
-    <path d="M 0 -5 L 4 -4 L 4 0 Q 4 3 0 5 Q -4 3 -4 0 L -4 -4 Z" fill="white" opacity="0.3"/>
-    <path d="M -1.5 0 L -0.5 1.5 L 2 -2" stroke="white" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <!-- Network lines decoration -->
-  <g transform="translate(130, 15)" opacity="0.3">
-    <circle cx="0" cy="0" r="1" fill="white"/>
-    <circle cx="5" cy="0" r="1" fill="white"/>
-    <circle cx="10" cy="0" r="1" fill="white"/>
-    <line x1="0" y1="0" x2="10" y2="0" stroke="white" stroke-width="0.5"/>
-  </g>
-
-  <!-- Decorative corner elements -->
-  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
-  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
 </svg>

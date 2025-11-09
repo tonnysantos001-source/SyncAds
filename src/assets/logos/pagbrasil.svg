@@ -1,80 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Background with gradient -->
-  <rect width="200" height="60" rx="8" fill="url(#pagbrasilGradient)"/>
-
-  <defs>
-    <linearGradient id="pagbrasilGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#009B3A;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#007A2E;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- Decorative circles -->
-  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
-  <circle cx="30" cy="30" r="16" fill="white" opacity="0.15"/>
-
-  <!-- Icon: Map of South America with payment symbol -->
-  <g transform="translate(22, 30)">
-    <!-- Simplified South America map outline -->
-    <path d="M -4 -10 L -2 -8 L 0 -12 L 3 -10 L 5 -6 L 6 -2 L 5 4 L 3 8 L 0 10 L -3 8 L -5 4 L -6 0 L -5 -6 Z"
-          fill="white" opacity="0.9" stroke="white" stroke-width="1"/>
-
-    <!-- Brazil highlight (larger area) -->
-    <path d="M -2 -8 L 0 -10 L 2 -8 L 4 -4 L 3 2 L 1 6 L -1 6 L -3 2 L -3 -4 Z"
-          fill="#FFD700" opacity="0.7"/>
-
-    <!-- Payment icon overlay (dollar sign) -->
-    <circle cx="0" cy="0" r="5" fill="#FFD700" opacity="0.9"/>
-    <text x="0" y="2" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      $
-    </text>
-
-    <!-- Connection lines (LATAM network) -->
-    <line x1="0" y1="0" x2="8" y2="-8" stroke="#FFD700" stroke-width="1" opacity="0.5" stroke-dasharray="2,1"/>
-    <line x1="0" y1="0" x2="-8" y2="6" stroke="#FFD700" stroke-width="1" opacity="0.5" stroke-dasharray="2,1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <rect width="120" height="80" fill="#009B3A"/>
+  <g transform="translate(15, 40)">
+    <path d="M -3 -6 L -1.5 -5 L 0 -7 L 2 -6 L 3.5 -4 L 4 -1 L 3 3 L 1.5 5 L 0 6 L -2 5 L -3 2 L -4 0 L -3 -4 Z" fill="white" opacity="0.9" stroke="white" stroke-width="0.7"/>
+    <path d="M -1.5 -5 L 0 -6 L 1.5 -5 L 2.5 -2 L 2 1 L 0.5 4 L -0.5 4 L -2 1 L -2 -3 Z" fill="#FFD700" opacity="0.7"/>
+    <circle cx="0" cy="0" r="3" fill="#FFD700" opacity="0.9"/>
+    <text x="0" y="1.5" font-family="Arial" font-size="4" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">$</text>
   </g>
-
-  <!-- Text: PagBrasil -->
-  <text x="52" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
-    Pag
-  </text>
-  <text x="81" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFD700">
-    Brasil
-  </text>
-
-  <!-- Tagline -->
-  <text x="52" y="43" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
-    Pagamentos América Latina
-  </text>
-
-  <!-- LATAM badge -->
-  <g transform="translate(150, 25)">
-    <rect x="-18" y="-10" width="36" height="20" rx="3" fill="white" opacity="0.2"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      LATAM
-    </text>
+  <text x="60" y="44" font-family="Arial" font-size="17" font-weight="bold" fill="white" text-anchor="middle">Pag<tspan fill="#FFD700">Brasil</tspan></text>
+  <text x="60" y="58" font-family="Arial" font-size="7" fill="white" text-anchor="middle" opacity="0.85">Pagamentos América Latina</text>
+  <g transform="translate(100, 40)">
+    <rect x="-10" y="-6" width="20" height="12" rx="2" fill="white" opacity="0.2"/>
+    <text x="0" y="1" font-family="Arial" font-size="5" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">LATAM</text>
   </g>
-
-  <!-- Brasil flag colors indicator -->
-  <g transform="translate(145, 48)">
-    <rect x="0" y="0" width="8" height="6" rx="0.5" fill="#009B3A"/>
-    <rect x="9" y="0" width="8" height="6" rx="0.5" fill="#FFD700"/>
-    <rect x="18" y="0" width="8" height="6" rx="0.5" fill="#002776"/>
-  </g>
-
-  <!-- Globe icon (international) -->
-  <g transform="translate(180, 30)">
-    <circle cx="0" cy="0" r="7" stroke="white" stroke-width="1.5" fill="none" opacity="0.6"/>
-    <ellipse cx="0" cy="0" rx="3" ry="7" stroke="white" stroke-width="1" fill="none" opacity="0.6"/>
-    <line x1="-7" y1="0" x2="7" y2="0" stroke="white" stroke-width="1" opacity="0.6"/>
-  </g>
-
-  <!-- Star decoration (Brazil theme) -->
-  <g transform="translate(135, 15)" opacity="0.5">
-    <path d="M 0 -2.5 L 0.7 -0.7 L 2.5 0 L 0.7 0.7 L 0 2.5 L -0.7 0.7 L -2.5 0 L -0.7 -0.7 Z" fill="#FFD700"/>
-  </g>
-
-  <!-- Decorative corner elements -->
-  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
-  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
 </svg>
