@@ -1,7 +1,7 @@
-import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
-import DashboardLayout from './layout/DashboardLayout';
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import DashboardLayout from "./layout/DashboardLayout";
 
 const ProtectedRoute: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -12,9 +12,12 @@ const ProtectedRoute: React.FC = () => {
   }
 
   // Super Admin routes don't use DashboardLayout (they have their own layout)
-  const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
+  const isSuperAdminRoute = location.pathname.startsWith("/super-admin");
 
-  if (isSuperAdminRoute) {
+  // Checkout Customize page doesn't use DashboardLayout (has its own full-page editor)
+  const isCheckoutCustomizePage = location.pathname === "/checkout/customize";
+
+  if (isSuperAdminRoute || isCheckoutCustomizePage) {
     return <Outlet />;
   }
 

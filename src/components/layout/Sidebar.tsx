@@ -258,7 +258,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                     subItem.openInNewTab ? (
                       <a
                         key={subItem.to}
-                        href={subItem.to}
+                        href={`${window.location.origin}${subItem.to}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={cn(
