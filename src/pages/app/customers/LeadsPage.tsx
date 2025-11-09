@@ -270,342 +270,340 @@ const LeadsPage = () => {
     leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
+            Leads
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
+            Gerencie seus leads e contatos
+          </p>
+        </div>
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div>
-            <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
-              Leads
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
-              Gerencie seus leads e contatos
-            </p>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={resetForm}
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Adicionar Lead
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-gray-200 dark:border-gray-700">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {editingLead ? "Editar Lead" : "Novo Lead"}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-gray-700 dark:text-gray-300">
-                        Nome Completo
-                      </Label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700 dark:text-gray-300">
-                        E-mail
-                      </Label>
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700 dark:text-gray-300">
-                        Telefone
-                      </Label>
-                      <Input
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                        placeholder="(11) 99999-9999"
-                        className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700 dark:text-gray-300">
-                        Status
-                      </Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(v: any) =>
-                          setFormData({ ...formData, status: v })
-                        }
-                      >
-                        <SelectTrigger className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NEW">Novo</SelectItem>
-                          <SelectItem value="CONTACTED">Contatado</SelectItem>
-                          <SelectItem value="QUALIFIED">Qualificado</SelectItem>
-                          <SelectItem value="CONVERTED">Convertido</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-gray-700 dark:text-gray-300">
-                        Origem
-                      </Label>
-                      <Input
-                        value={formData.source}
-                        onChange={(e) =>
-                          setFormData({ ...formData, source: e.target.value })
-                        }
-                        placeholder="Ex: Facebook, Google Ads..."
-                        className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                      />
-                    </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={resetForm}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Adicionar Lead
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-gray-200 dark:border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {editingLead ? "Editar Lead" : "Novo Lead"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300">
+                      Nome Completo
+                    </Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                      required
+                    />
                   </div>
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                      className="border-gray-200 dark:border-gray-700"
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300">
+                      E-mail
+                    </Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300">
+                      Telefone
+                    </Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      placeholder="(11) 99999-9999"
+                      className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300">
+                      Status
+                    </Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(v: any) =>
+                        setFormData({ ...formData, status: v })
+                      }
                     >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    >
-                      {editingLead ? "Atualizar" : "Criar"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </motion.div>
+                      <SelectTrigger className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NEW">Novo</SelectItem>
+                        <SelectItem value="CONTACTED">Contatado</SelectItem>
+                        <SelectItem value="QUALIFIED">Qualificado</SelectItem>
+                        <SelectItem value="CONVERTED">Convertido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300">
+                      Origem
+                    </Label>
+                    <Input
+                      value={formData.source}
+                      onChange={(e) =>
+                        setFormData({ ...formData, source: e.target.value })
+                      }
+                      placeholder="Ex: Facebook, Google Ads..."
+                      className="mt-1.5 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                    />
+                  </div>
+                </div>
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    className="border-gray-200 dark:border-gray-700"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    {editingLead ? "Atualizar" : "Criar"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </motion.div>
+      </motion.div>
 
-        {/* Métricas */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Total de Leads"
-            value={leads.length}
-            icon={Users}
-            color="bg-blue-500"
-            delay={0.1}
-          />
-          <MetricCard
-            title="Novos"
-            value={newLeads}
-            icon={UserX}
-            color="bg-purple-500"
-            delay={0.2}
-            subtitle={`${((newLeads / leads.length) * 100 || 0).toFixed(0)}% do total`}
-          />
-          <MetricCard
-            title="Convertidos"
-            value={convertedLeads}
-            icon={UserCheck}
-            color="bg-green-500"
-            delay={0.3}
-            subtitle={`${((convertedLeads / leads.length) * 100 || 0).toFixed(0)}% do total`}
-          />
-          <MetricCard
-            title="Taxa de Conversão"
-            value={`${conversionRate}%`}
-            icon={TrendingUp}
-            color="bg-pink-500"
-            delay={0.4}
+      {/* Métricas */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total de Leads"
+          value={leads.length}
+          icon={Users}
+          color="bg-blue-500"
+          delay={0.1}
+        />
+        <MetricCard
+          title="Novos"
+          value={newLeads}
+          icon={UserX}
+          color="bg-purple-500"
+          delay={0.2}
+          subtitle={`${((newLeads / leads.length) * 100 || 0).toFixed(0)}% do total`}
+        />
+        <MetricCard
+          title="Convertidos"
+          value={convertedLeads}
+          icon={UserCheck}
+          color="bg-green-500"
+          delay={0.3}
+          subtitle={`${((convertedLeads / leads.length) * 100 || 0).toFixed(0)}% do total`}
+        />
+        <MetricCard
+          title="Taxa de Conversão"
+          value={`${conversionRate}%`}
+          icon={TrendingUp}
+          color="bg-pink-500"
+          delay={0.4}
+        />
+      </div>
+
+      {/* Filtros */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <Input
+            placeholder="Buscar leads..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-12 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg text-base"
           />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-64 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos os Status</SelectItem>
+            <SelectItem value="NEW">Novos</SelectItem>
+            <SelectItem value="CONTACTED">Contatados</SelectItem>
+            <SelectItem value="QUALIFIED">Qualificados</SelectItem>
+            <SelectItem value="CONVERTED">Convertidos</SelectItem>
+          </SelectContent>
+        </Select>
+      </motion.div>
 
-        {/* Filtros */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="flex flex-col sm:flex-row gap-4"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-            <Input
-              placeholder="Buscar leads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg text-base"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-64 h-12 border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Todos os Status</SelectItem>
-              <SelectItem value="NEW">Novos</SelectItem>
-              <SelectItem value="CONTACTED">Contatados</SelectItem>
-              <SelectItem value="QUALIFIED">Qualificados</SelectItem>
-              <SelectItem value="CONVERTED">Convertidos</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-
-        {/* Tabela */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Lista de Leads
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
+      {/* Tabela */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              Lista de Leads
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : filteredLeads.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
+              >
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl rounded-full" />
+                  <Users className="relative h-20 w-20 text-gray-400 dark:text-gray-600" />
                 </div>
-              ) : filteredLeads.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex flex-col items-center justify-center py-16 text-center"
-                >
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl rounded-full" />
-                    <Users className="relative h-20 w-20 text-gray-400 dark:text-gray-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    Nenhum lead encontrado
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-                    {searchTerm
-                      ? "Tente ajustar os filtros de busca"
-                      : "Comece adicionando o primeiro lead"}
-                  </p>
-                  {!searchTerm && (
-                    <Button
-                      onClick={() => setIsDialogOpen(true)}
-                      size="lg"
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    >
-                      <Plus className="mr-2 h-5 w-5" />
-                      Adicionar Primeiro Lead
-                    </Button>
-                  )}
-                </motion.div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent border-gray-200 dark:border-gray-700">
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                          Nome
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                          E-mail
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                          Telefone
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                          Origem
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                          Status
-                        </TableHead>
-                        <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300">
-                          Ações
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLeads.map((lead, index) => (
-                        <motion.tr
-                          key={lead.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-700"
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                                {lead.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="font-medium text-gray-900 dark:text-white">
-                                {lead.name}
-                              </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Nenhum lead encontrado
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                  {searchTerm
+                    ? "Tente ajustar os filtros de busca"
+                    : "Comece adicionando o primeiro lead"}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => setIsDialogOpen(true)}
+                    size="lg"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Adicionar Primeiro Lead
+                  </Button>
+                )}
+              </motion.div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-gray-200 dark:border-gray-700">
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                        Nome
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                        E-mail
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                        Telefone
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                        Origem
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300">
+                        Ações
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLeads.map((lead, index) => (
+                      <motion.tr
+                        key={lead.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-700"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                              {lead.name.charAt(0).toUpperCase()}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-300">
-                            {lead.email}
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                            {lead.phone || "-"}
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                            {lead.source || "-"}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(lead)}
-                                className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(lead.id)}
-                                className="hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {lead.name}
                             </div>
-                          </TableCell>
-                        </motion.tr>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-300">
+                          {lead.email}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500 dark:text-gray-400">
+                          {lead.phone || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500 dark:text-gray-400">
+                          {lead.source || "-"}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(lead)}
+                              className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(lead.id)}
+                              className="hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
