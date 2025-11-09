@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -28,10 +29,63 @@ import {
   Info,
   CheckCircle2,
   XCircle,
+  Zap,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useOptimizedSelectors";
 import { supabase } from "@/lib/supabase";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 interface PaymentMethodDiscount {
   id: string;
@@ -327,63 +381,51 @@ const DiscountsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+      {/* Header com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Descontos por Forma de Pagamento
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 font-medium mt-2">
+        <p className="text-gray-600 dark:text-gray-400 font-medium mt-2">
           Configure descontos automáticos baseados na forma de pagamento
           escolhida pelo cliente no checkout
         </p>
-      </div>
+      </motion.div>
 
-      {/* Estatísticas */}
+      {/* Métricas com animação */}
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Descontos
-            </CardTitle>
-            <Percent className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {stats.total === 0
-                ? "Nenhum desconto configurado"
-                : `${stats.total} ${stats.total === 1 ? "método configurado" : "métodos configurados"}`}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Descontos Ativos
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Aplicados no checkout
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Descontos Inativos
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Pausados temporariamente
-            </p>
-          </CardContent>
-        </Card>
+        <MetricCard
+          title="Total de Descontos"
+          value={stats.total}
+          icon={Percent}
+          color="bg-blue-500"
+          delay={0.1}
+          subtitle={
+            stats.total === 0
+              ? "Nenhum configurado"
+              : `${stats.total} ${stats.total === 1 ? "método" : "métodos"}`
+          }
+        />
+        <MetricCard
+          title="Descontos Ativos"
+          value={stats.active}
+          icon={Zap}
+          color="bg-green-500"
+          delay={0.2}
+          subtitle="Aplicados no checkout"
+        />
+        <MetricCard
+          title="Descontos Inativos"
+          value={stats.inactive}
+          icon={Target}
+          color="bg-gray-500"
+          delay={0.3}
+          subtitle="Pausados temporariamente"
+        />
       </div>
 
       {/* Alert informativo */}
@@ -401,7 +443,7 @@ const DiscountsPage: React.FC = () => {
       <div className="space-y-6">
         <h2 className="text-xl font-semibold">Configurar Descontos</h2>
 
-        {PAYMENT_METHODS.map((method) => {
+        {PAYMENT_METHODS.map((method, index) => {
           const Icon = method.icon;
           const existingDiscount = discounts.find(
             (d) => d.paymentMethod === method.key,
@@ -409,227 +451,236 @@ const DiscountsPage: React.FC = () => {
           const formData = forms[method.key];
 
           return (
-            <Card
+            <motion.div
               key={method.key}
-              className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
             >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-lg ${method.color} flex items-center justify-center`}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
+              <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-lg ${method.color} flex items-center justify-center`}
+                      >
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">
+                          {method.label}
+                        </CardTitle>
+                        <CardDescription>{method.description}</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{method.label}</CardTitle>
-                      <CardDescription>{method.description}</CardDescription>
+                    {existingDiscount && (
+                      <Badge
+                        variant={
+                          existingDiscount.isActive ? "default" : "secondary"
+                        }
+                      >
+                        {existingDiscount.isActive ? "Ativo" : "Inativo"}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Tipo de Desconto */}
+                    <div className="space-y-2">
+                      <Label>Tipo de Desconto</Label>
+                      <Select
+                        value={formData?.discountType || "PERCENTAGE"}
+                        onValueChange={(value) =>
+                          updateForm(
+                            method.key,
+                            "discountType",
+                            value as "PERCENTAGE" | "FIXED_AMOUNT",
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PERCENTAGE">
+                            Porcentagem (%)
+                          </SelectItem>
+                          <SelectItem value="FIXED_AMOUNT">
+                            Valor Fixo (R$)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Valor do Desconto */}
+                    <div className="space-y-2">
+                      <Label>
+                        Valor do Desconto{" "}
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={formData?.discountValue || ""}
+                          onChange={(e) =>
+                            updateForm(
+                              method.key,
+                              "discountValue",
+                              e.target.value,
+                            )
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
+                          {formData?.discountType === "PERCENTAGE" ? "%" : "R$"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Valor Mínimo da Compra */}
+                    <div className="space-y-2">
+                      <Label>Valor Mínimo da Compra</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={formData?.minPurchaseAmount || "0"}
+                          onChange={(e) =>
+                            updateForm(
+                              method.key,
+                              "minPurchaseAmount",
+                              e.target.value,
+                            )
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
+                          R$
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Desconto só se aplica acima deste valor
+                      </p>
+                    </div>
+
+                    {/* Desconto Máximo */}
+                    <div className="space-y-2">
+                      <Label>Desconto Máximo (Opcional)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Sem limite"
+                          value={formData?.maxDiscountAmount || ""}
+                          onChange={(e) =>
+                            updateForm(
+                              method.key,
+                              "maxDiscountAmount",
+                              e.target.value,
+                            )
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
+                          R$
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Limite máximo do desconto em reais
+                      </p>
                     </div>
                   </div>
-                  {existingDiscount && (
-                    <Badge
-                      variant={
-                        existingDiscount.isActive ? "default" : "secondary"
+
+                  {/* Descrição */}
+                  <div className="space-y-2">
+                    <Label>Descrição (Opcional)</Label>
+                    <Input
+                      placeholder="Ex: Desconto especial para pagamento à vista"
+                      value={formData?.description || ""}
+                      onChange={(e) =>
+                        updateForm(method.key, "description", e.target.value)
                       }
-                    >
-                      {existingDiscount.isActive ? "Ativo" : "Inativo"}
-                    </Badge>
+                    />
+                  </div>
+
+                  {/* Preview do Desconto */}
+                  {formData?.discountValue && (
+                    <Alert className="border-blue-200 bg-blue-50">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertTitle className="text-blue-900">
+                        Preview do Desconto
+                      </AlertTitle>
+                      <AlertDescription className="text-blue-800">
+                        <p className="mb-2">
+                          Para uma compra de R$ 100,00, o desconto será de{" "}
+                          <strong>
+                            R${" "}
+                            {calculateDiscountPreview(method.key, 100).toFixed(
+                              2,
+                            )}
+                          </strong>
+                        </p>
+                        <p>
+                          Total a pagar:{" "}
+                          <strong>
+                            R${" "}
+                            {(
+                              100 - calculateDiscountPreview(method.key, 100)
+                            ).toFixed(2)}
+                          </strong>
+                        </p>
+                      </AlertDescription>
+                    </Alert>
                   )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Tipo de Desconto */}
-                  <div className="space-y-2">
-                    <Label>Tipo de Desconto</Label>
-                    <Select
-                      value={formData?.discountType || "PERCENTAGE"}
-                      onValueChange={(value) =>
-                        updateForm(
-                          method.key,
-                          "discountType",
-                          value as "PERCENTAGE" | "FIXED_AMOUNT",
-                        )
+
+                  <Separator />
+
+                  {/* Switch Ativo/Inativo */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Status do Desconto</Label>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {formData?.isActive
+                          ? "Desconto será aplicado no checkout"
+                          : "Desconto pausado temporariamente"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData?.isActive ?? true}
+                      onCheckedChange={(checked) =>
+                        updateForm(method.key, "isActive", checked)
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PERCENTAGE">
-                          Porcentagem (%)
-                        </SelectItem>
-                        <SelectItem value="FIXED_AMOUNT">
-                          Valor Fixo (R$)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
 
-                  {/* Valor do Desconto */}
-                  <div className="space-y-2">
-                    <Label>
-                      Valor do Desconto <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={formData?.discountValue || ""}
-                        onChange={(e) =>
-                          updateForm(
-                            method.key,
-                            "discountValue",
-                            e.target.value,
-                          )
+                  {/* Botões de Ação */}
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    {existingDiscount && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          handleDeleteDiscount(existingDiscount.id, method.key)
                         }
-                        min="0"
-                        step="0.01"
-                      />
-                      <span className="text-gray-600 dark:text-gray-300 font-medium">
-                        {formData?.discountType === "PERCENTAGE" ? "%" : "R$"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Valor Mínimo da Compra */}
-                  <div className="space-y-2">
-                    <Label>Valor Mínimo da Compra</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={formData?.minPurchaseAmount || "0"}
-                        onChange={(e) =>
-                          updateForm(
-                            method.key,
-                            "minPurchaseAmount",
-                            e.target.value,
-                          )
-                        }
-                        min="0"
-                        step="0.01"
-                      />
-                      <span className="text-gray-600 dark:text-gray-300 font-medium">
-                        R$
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Desconto só se aplica acima deste valor
-                    </p>
-                  </div>
-
-                  {/* Desconto Máximo */}
-                  <div className="space-y-2">
-                    <Label>Desconto Máximo (Opcional)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Sem limite"
-                        value={formData?.maxDiscountAmount || ""}
-                        onChange={(e) =>
-                          updateForm(
-                            method.key,
-                            "maxDiscountAmount",
-                            e.target.value,
-                          )
-                        }
-                        min="0"
-                        step="0.01"
-                      />
-                      <span className="text-gray-600 dark:text-gray-300 font-medium">
-                        R$
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Limite máximo do desconto em reais
-                    </p>
-                  </div>
-                </div>
-
-                {/* Descrição */}
-                <div className="space-y-2">
-                  <Label>Descrição (Opcional)</Label>
-                  <Input
-                    placeholder="Ex: Desconto especial para pagamento à vista"
-                    value={formData?.description || ""}
-                    onChange={(e) =>
-                      updateForm(method.key, "description", e.target.value)
-                    }
-                  />
-                </div>
-
-                {/* Preview do Desconto */}
-                {formData?.discountValue && (
-                  <Alert className="border-blue-200 bg-blue-50">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertTitle className="text-blue-900">
-                      Preview do Desconto
-                    </AlertTitle>
-                    <AlertDescription className="text-blue-800">
-                      <p className="mb-2">
-                        Para uma compra de R$ 100,00, o desconto será de{" "}
-                        <strong>
-                          R${" "}
-                          {calculateDiscountPreview(method.key, 100).toFixed(2)}
-                        </strong>
-                      </p>
-                      <p>
-                        Total a pagar:{" "}
-                        <strong>
-                          R${" "}
-                          {(
-                            100 - calculateDiscountPreview(method.key, 100)
-                          ).toFixed(2)}
-                        </strong>
-                      </p>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Separator />
-
-                {/* Switch Ativo/Inativo */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Status do Desconto</Label>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {formData?.isActive
-                        ? "Desconto será aplicado no checkout"
-                        : "Desconto pausado temporariamente"}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData?.isActive ?? true}
-                    onCheckedChange={(checked) =>
-                      updateForm(method.key, "isActive", checked)
-                    }
-                  />
-                </div>
-
-                {/* Botões de Ação */}
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  {existingDiscount && (
+                        disabled={saving}
+                      >
+                        Remover
+                      </Button>
+                    )}
                     <Button
-                      variant="outline"
-                      onClick={() =>
-                        handleDeleteDiscount(existingDiscount.id, method.key)
-                      }
-                      disabled={saving}
+                      onClick={() => handleSaveDiscount(method.key)}
+                      disabled={saving || !formData?.discountValue}
+                      className="bg-pink-600 hover:bg-pink-700"
                     >
-                      Remover
+                      {saving ? "Salvando..." : "Salvar Desconto"}
                     </Button>
-                  )}
-                  <Button
-                    onClick={() => handleSaveDiscount(method.key)}
-                    disabled={saving || !formData?.discountValue}
-                    className="bg-pink-600 hover:bg-pink-700"
-                  >
-                    {saving ? "Salvando..." : "Salvar Desconto"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           );
         })}
       </div>
