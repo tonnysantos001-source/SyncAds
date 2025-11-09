@@ -353,29 +353,10 @@ const CheckoutCustomizePage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-4 shadow-lg"
+          className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-3 shadow-lg"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    SyncAds AI
-                  </h1>
-                  <Badge variant="secondary" className="text-xs">
-                    Editor
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  Personalize a aparência do seu checkout
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -385,6 +366,7 @@ const CheckoutCustomizePage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Button>
+
               {/* Toggle Preview */}
               <Button
                 variant="outline"
@@ -407,7 +389,7 @@ const CheckoutCustomizePage: React.FC = () => {
 
               {/* Preview Mode Toggle */}
               {showPreview && (
-                <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                   <Button
                     size="sm"
                     variant={previewMode === "desktop" ? "default" : "ghost"}
@@ -500,6 +482,7 @@ const CheckoutCustomizePage: React.FC = () => {
                         {console.log("🎨 Preview mode:", true)}
                       </div>
                       <PublicCheckoutPage
+                        key={JSON.stringify(customization?.theme || {})}
                         injectedOrderId={previewOrderId}
                         injectedTheme={customization?.theme || null}
                         previewMode={true}

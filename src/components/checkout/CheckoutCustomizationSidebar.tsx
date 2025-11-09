@@ -14,6 +14,7 @@ import {
   Clock,
   Zap,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -896,17 +897,27 @@ export const CheckoutCustomizationSidebar: React.FC<
 
   return (
     <div className="w-80 bg-gradient-to-b from-white/95 to-gray-50/95 dark:from-gray-900/95 dark:to-gray-800/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 flex flex-col overflow-hidden shadow-2xl">
-      {/* Header da Sidebar */}
-      <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-violet-500/20 backdrop-blur-sm">
-            <Palette className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+      {/* Header da Sidebar - Logo e Branding */}
+      <div className="px-4 py-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-md">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+            <h1 className="text-base font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              SyncAds AI
+            </h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pl-1">
+          <div className="p-1 rounded bg-violet-500/20">
+            <Palette className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-900 dark:text-white">
               Personalização
-            </h2>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
+            </p>
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
               Configure o visual do checkout
             </p>
           </div>
