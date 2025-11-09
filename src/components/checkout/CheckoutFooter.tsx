@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 interface CheckoutFooterProps {
   theme: any;
+  isMobile?: boolean;
   storeData?: {
     name?: string;
     cnpj?: string;
@@ -43,6 +44,7 @@ interface CheckoutFooterProps {
 
 export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
   theme,
+  isMobile = false,
   storeData = {},
   className = "",
 }) => {
@@ -108,20 +110,35 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
 
   return (
     <motion.footer
-      className={cn("border-t mt-12", className)}
+      className={cn("border-t", isMobile ? "mt-6" : "mt-12", className)}
       style={footerStyles}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div
+        className={cn(
+          "mx-auto",
+          isMobile ? "px-2 py-4" : "px-4 py-8 max-w-7xl",
+        )}
+      >
+        <div
+          className={cn(
+            "grid gap-6",
+            isMobile
+              ? "grid-cols-1 gap-4"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+          )}
+        >
           {/* COLUNA 1 - INFORMAÇÕES DA LOJA */}
           {(theme.showStoreName || theme.showCnpjCpf) && (
-            <div className="space-y-3">
+            <div className={cn(isMobile ? "space-y-2" : "space-y-3")}>
               {theme.showStoreName && (
                 <h3
-                  className="text-lg font-bold mb-4"
+                  className={cn(
+                    "font-bold",
+                    isMobile ? "text-sm mb-2" : "text-lg mb-4",
+                  )}
                   style={{ color: theme.footerTextColor || "#111827" }}
                 >
                   {name}
@@ -129,10 +146,20 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
               )}
 
               {theme.showCnpjCpf && (cnpj || cpf) && (
-                <div className="space-y-2 text-sm">
+                <div
+                  className={cn(
+                    "space-y-1.5",
+                    isMobile ? "text-xs" : "text-sm",
+                  )}
+                >
                   {cnpj && (
                     <p className="flex items-start gap-2">
-                      <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <FileText
+                        className={cn(
+                          "mt-0.5 flex-shrink-0",
+                          isMobile ? "w-3 h-3" : "w-4 h-4",
+                        )}
+                      />
                       <span>
                         <strong>CNPJ:</strong> {cnpj}
                       </span>
@@ -140,7 +167,12 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                   )}
                   {cpf && !cnpj && (
                     <p className="flex items-start gap-2">
-                      <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <FileText
+                        className={cn(
+                          "mt-0.5 flex-shrink-0",
+                          isMobile ? "w-3 h-3" : "w-4 h-4",
+                        )}
+                      />
                       <span>
                         <strong>CPF:</strong> {cpf}
                       </span>
@@ -153,21 +185,33 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
 
           {/* COLUNA 2 - CONTATO */}
           {(theme.showContactEmail || theme.showPhone) && (
-            <div className="space-y-3">
+            <div className={cn(isMobile ? "space-y-2" : "space-y-3")}>
               <h4
-                className="text-base font-semibold mb-4"
+                className={cn(
+                  "font-semibold",
+                  isMobile ? "text-sm mb-2" : "text-base mb-4",
+                )}
                 style={{ color: theme.footerTextColor || "#111827" }}
               >
                 Contato
               </h4>
-              <div className="space-y-3 text-sm">
+              <div
+                className={cn(
+                  isMobile ? "space-y-2 text-xs" : "space-y-3 text-sm",
+                )}
+              >
                 {theme.showContactEmail && email && (
                   <a
                     href={`mailto:${email}`}
                     className="flex items-center gap-2 hover:underline transition-all"
                     style={linkStyles}
                   >
-                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <Mail
+                      className={cn(
+                        "flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>{email}</span>
                   </a>
                 )}
@@ -177,13 +221,28 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                     className="flex items-center gap-2 hover:underline transition-all"
                     style={linkStyles}
                   >
-                    <Phone className="w-4 h-4 flex-shrink-0" />
+                    <Phone
+                      className={cn(
+                        "flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>{phone}</span>
                   </a>
                 )}
                 {theme.showAddress && address && (
-                  <p className="flex items-start gap-2 text-sm">
-                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p
+                    className={cn(
+                      "flex items-start gap-2",
+                      isMobile ? "text-xs" : "text-sm",
+                    )}
+                  >
+                    <MapPin
+                      className={cn(
+                        "mt-0.5 flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>{address}</span>
                   </p>
                 )}
@@ -195,14 +254,21 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
           {(theme.showPrivacyPolicy ||
             theme.showTermsConditions ||
             theme.showReturns) && (
-            <div className="space-y-3">
+            <div className={cn(isMobile ? "space-y-2" : "space-y-3")}>
               <h4
-                className="text-base font-semibold mb-4"
+                className={cn(
+                  "font-semibold",
+                  isMobile ? "text-sm mb-2" : "text-base mb-4",
+                )}
                 style={{ color: theme.footerTextColor || "#111827" }}
               >
                 Informações
               </h4>
-              <div className="space-y-2 text-sm">
+              <div
+                className={cn(
+                  isMobile ? "space-y-1.5 text-xs" : "space-y-2 text-sm",
+                )}
+              >
                 {theme.showPrivacyPolicy && (
                   <a
                     href="/politica-de-privacidade"
@@ -211,7 +277,12 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Shield className="w-4 h-4 flex-shrink-0" />
+                    <Shield
+                      className={cn(
+                        "flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>Política de Privacidade</span>
                   </a>
                 )}
@@ -223,7 +294,12 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <FileText className="w-4 h-4 flex-shrink-0" />
+                    <FileText
+                      className={cn(
+                        "flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>Termos e Condições</span>
                   </a>
                 )}
@@ -235,7 +311,12 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <RotateCcw className="w-4 h-4 flex-shrink-0" />
+                    <RotateCcw
+                      className={cn(
+                        "flex-shrink-0",
+                        isMobile ? "w-3 h-3" : "w-4 h-4",
+                      )}
+                    />
                     <span>Trocas e Devoluções</span>
                   </a>
                 )}
@@ -245,18 +326,26 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
 
           {/* COLUNA 4 - MÉTODOS DE PAGAMENTO */}
           {theme.showPaymentMethods && (
-            <div className="space-y-3">
+            <div className={cn(isMobile ? "space-y-2" : "space-y-3")}>
               <h4
-                className="text-base font-semibold mb-4"
+                className={cn(
+                  "font-semibold",
+                  isMobile ? "text-sm mb-2" : "text-base mb-4",
+                )}
                 style={{ color: theme.footerTextColor || "#111827" }}
               >
                 Formas de Pagamento
               </h4>
-              <div className="flex flex-wrap gap-3">
+              <div
+                className={cn("flex flex-wrap", isMobile ? "gap-2" : "gap-3")}
+              >
                 {paymentMethods.map((method, index) => (
                   <motion.div
                     key={method.name}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all hover:shadow-md"
+                    className={cn(
+                      "flex items-center rounded-lg border transition-all hover:shadow-md",
+                      isMobile ? "gap-1.5 px-2 py-1.5" : "gap-2 px-3 py-2",
+                    )}
                     style={{
                       borderColor: theme.footerTextColor
                         ? `${theme.footerTextColor}20`
@@ -271,26 +360,45 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
                     whileHover={{ scale: 1.05 }}
                   >
                     <method.icon
-                      className="w-5 h-5"
+                      className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")}
                       style={{ color: theme.footerTextColor || "#6b7280" }}
                     />
-                    <span className="text-xs font-medium">{method.name}</span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        isMobile ? "text-[10px]" : "text-xs",
+                      )}
+                    >
+                      {method.name}
+                    </span>
                   </motion.div>
                 ))}
               </div>
 
               {/* Selos de Segurança */}
-              <div className="mt-6 space-y-2">
-                <div className="flex items-center gap-2 text-xs">
+              <div
+                className={cn(isMobile ? "mt-3 space-y-1.5" : "mt-6 space-y-2")}
+              >
+                <div
+                  className={cn(
+                    "flex items-center gap-2",
+                    isMobile ? "text-[10px]" : "text-xs",
+                  )}
+                >
                   <Shield
-                    className="w-4 h-4"
+                    className={cn(isMobile ? "w-3 h-3" : "w-4 h-4")}
                     style={{ color: "#10b981" }}
                   />
                   <span>Compra 100% Segura</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
+                <div
+                  className={cn(
+                    "flex items-center gap-2",
+                    isMobile ? "text-[10px]" : "text-xs",
+                  )}
+                >
                   <Shield
-                    className="w-4 h-4"
+                    className={cn(isMobile ? "w-3 h-3" : "w-4 h-4")}
                     style={{ color: "#10b981" }}
                   />
                   <span>Certificado SSL</span>
@@ -302,7 +410,7 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
 
         {/* DIVIDER */}
         <div
-          className="my-6 h-px"
+          className={cn("h-px", isMobile ? "my-4" : "my-6")}
           style={{
             backgroundColor: theme.footerTextColor
               ? `${theme.footerTextColor}20`
@@ -311,11 +419,17 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
         />
 
         {/* COPYRIGHT */}
-        <div className="text-center text-sm">
+        <div className={cn("text-center", isMobile ? "text-xs" : "text-sm")}>
           <p>
-            © {new Date().getFullYear()} {theme.showStoreName ? name : "Todos os direitos reservados"}
+            © {new Date().getFullYear()}{" "}
+            {theme.showStoreName ? name : "Todos os direitos reservados"}
           </p>
-          <p className="mt-1 text-xs opacity-70">
+          <p
+            className={cn(
+              "mt-1 opacity-70",
+              isMobile ? "text-[10px]" : "text-xs",
+            )}
+          >
             Powered by{" "}
             <a
               href="https://syncads.com.br"

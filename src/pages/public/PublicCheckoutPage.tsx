@@ -1496,6 +1496,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       {/* Footer Customizável */}
       <CheckoutFooter
         theme={theme}
+        isMobile={isMobile}
         storeData={
           storeData || {
             name: "Minha Loja",
