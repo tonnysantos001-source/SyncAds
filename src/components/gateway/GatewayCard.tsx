@@ -5,14 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import GatewayLogo from "./GatewayLogo";
-import {
-  CheckCircle2,
-  Globe2,
-  MapPin,
-  Zap,
-  TrendingUp,
-  Settings,
-} from "lucide-react";
+import { CheckCircle2, Globe2, MapPin, Zap, TrendingUp } from "lucide-react";
 
 interface GatewayCardProps {
   id: string;
@@ -171,27 +164,6 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
                   Verificado
                 </Badge>
               )}
-            </div>
-          )}
-
-          {/* Environment Badge */}
-          {environment && (
-            <div className="flex items-center justify-between pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
-              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <Settings className="w-3 h-3" />
-                Ambiente
-              </span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-xs border-0",
-                  environment === "production"
-                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-                )}
-              >
-                {environment === "production" ? "Produção" : "Sandbox"}
-              </Badge>
             </div>
           )}
 

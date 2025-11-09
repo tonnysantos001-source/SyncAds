@@ -472,7 +472,6 @@ const GatewaysListPage = () => {
                 logo={gateway.logo}
                 type={gateway.type}
                 status={gateway.status}
-                environment={gateway.testMode ? "sandbox" : "production"}
                 isVerified={gateway.status === "active" && !gateway.testMode}
                 isActive={isActive}
                 isPopular={isPopular}
