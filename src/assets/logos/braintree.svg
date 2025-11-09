@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Background with gradient -->
+  <rect width="200" height="60" rx="8" fill="url(#braintreeGradient)"/>
+
+  <defs>
+    <linearGradient id="braintreeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E5C8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Decorative circles -->
+  <circle cx="25" cy="30" r="18" fill="white" opacity="0.1"/>
+  <circle cx="30" cy="30" r="22" fill="white" opacity="0.08"/>
+
+  <!-- Icon: Brain/Tree hybrid (simplified neural network) -->
+  <g transform="translate(22, 30)">
+    <!-- Central trunk/node -->
+    <circle cx="0" cy="0" r="4" fill="white" opacity="0.9"/>
+
+    <!-- Upper branches (neural connections) -->
+    <circle cx="-6" cy="-10" r="2.5" fill="white" opacity="0.8"/>
+    <circle cx="0" cy="-12" r="2.5" fill="white" opacity="0.8"/>
+    <circle cx="6" cy="-10" r="2.5" fill="white" opacity="0.8"/>
+
+    <!-- Middle branches -->
+    <circle cx="-8" cy="-3" r="2.5" fill="white" opacity="0.8"/>
+    <circle cx="8" cy="-3" r="2.5" fill="white" opacity="0.8"/>
+
+    <!-- Lower branches -->
+    <circle cx="-6" cy="8" r="2.5" fill="white" opacity="0.8"/>
+    <circle cx="6" cy="8" r="2.5" fill="white" opacity="0.8"/>
+
+    <!-- Connection lines (tree/neural structure) -->
+    <line x1="0" y1="0" x2="-6" y2="-10" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="0" y2="-12" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="6" y2="-10" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="-8" y2="-3" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="8" y2="-3" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="-6" y2="8" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="6" y2="8" stroke="white" stroke-width="1.5" opacity="0.6"/>
+
+    <!-- Root/base -->
+    <rect x="-1.5" y="10" width="3" height="4" fill="white" opacity="0.7"/>
+  </g>
+
+  <!-- Text: Braintree -->
+  <text x="52" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+    Brain
+  </text>
+  <text x="95" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" opacity="0.9">
+    tree
+  </text>
+
+  <!-- Tagline -->
+  <text x="52" y="43" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
+    A PayPal Service
+  </text>
+
+  <!-- PayPal badge -->
+  <g transform="translate(145, 30)">
+    <rect x="-18" y="-10" width="36" height="20" rx="3" fill="white" opacity="0.2"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      PayPal
+    </text>
+  </g>
+
+  <!-- Checkmark (secure) -->
+  <g transform="translate(175, 30)">
+    <circle cx="0" cy="0" r="8" fill="white" opacity="0.2"/>
+    <path d="M -3 0 L -1 3 L 4 -3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Decorative corner elements -->
+  <circle cx="188" cy="12" r="2" fill="white" opacity="0.5"/>
+  <circle cx="192" cy="48" r="1.5" fill="white" opacity="0.4"/>
+</svg>

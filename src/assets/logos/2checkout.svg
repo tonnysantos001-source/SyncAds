@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Background with gradient -->
+  <rect width="200" height="60" rx="8" fill="url(#2checkoutGradient)"/>
+
+  <defs>
+    <linearGradient id="2checkoutGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00A99D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#006B5F;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Decorative circles -->
+  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
+  <circle cx="30" cy="30" r="15" fill="white" opacity="0.15"/>
+
+  <!-- Icon: Number 2 with checkmark -->
+  <g transform="translate(22, 30)">
+    <!-- Large "2" -->
+    <path d="M -8 -10 Q -4 -14 0 -14 Q 6 -14 6 -8 Q 6 -4 2 0 L -8 10 L 6 10"
+          stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"
+          opacity="0.9"/>
+
+    <!-- Checkmark overlay -->
+    <g transform="translate(8, 0)">
+      <circle cx="0" cy="0" r="7" fill="white" opacity="0.85"/>
+      <path d="M -2.5 0 L -1 2.5 L 3 -3" stroke="#00A99D" stroke-width="2"
+            fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- Text: 2Checkout -->
+  <text x="50" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+    2Check
+  </text>
+  <text x="107" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" opacity="0.9">
+    out
+  </text>
+
+  <!-- Subtitle: Verifone -->
+  <text x="50" y="43" font-family="Arial, sans-serif" font-size="9" fill="white" opacity="0.85">
+    Powered by Verifone
+  </text>
+
+  <!-- Global badge -->
+  <g transform="translate(150, 25)">
+    <rect x="-18" y="-10" width="36" height="20" rx="3" fill="white" opacity="0.2"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      GLOBAL
+    </text>
+  </g>
+
+  <!-- Payment methods icons -->
+  <g transform="translate(145, 45)">
+    <!-- Card icon -->
+    <rect x="0" y="0" width="12" height="8" rx="1" fill="white" opacity="0.4"/>
+    <rect x="1" y="2" width="10" height="1.5" fill="#00A99D" opacity="0.6"/>
+
+    <!-- Digital wallet icon -->
+    <rect x="15" y="0" width="12" height="8" rx="1" fill="white" opacity="0.4"/>
+    <circle cx="21" cy="4" r="2" fill="#00A99D" opacity="0.6"/>
+
+    <!-- Bank transfer icon -->
+    <rect x="30" y="0" width="12" height="8" rx="1" fill="white" opacity="0.4"/>
+    <path d="M 33 2 L 36 0 L 39 2 L 39 6 L 33 6 Z" fill="#00A99D" opacity="0.6"/>
+  </g>
+
+  <!-- Security shield -->
+  <g transform="translate(178, 25)">
+    <path d="M 0 -6 L 4 -5 L 4 0 Q 4 3 0 6 Q -4 3 -4 0 L -4 -5 Z"
+          fill="white" opacity="0.4"/>
+    <circle cx="0" cy="0" r="1.5" fill="#00A99D" opacity="0.7"/>
+  </g>
+
+  <!-- Decorative corner elements -->
+  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
+  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
+</svg>

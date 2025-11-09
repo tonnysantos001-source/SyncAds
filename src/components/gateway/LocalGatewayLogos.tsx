@@ -26,6 +26,11 @@ import ebanxLogo from "@/assets/logos/ebanx.svg";
 import junoLogo from "@/assets/logos/juno.svg";
 import pagbankLogo from "@/assets/logos/pagbank.svg";
 import sumupLogo from "@/assets/logos/sumup.svg";
+import adyenLogo from "@/assets/logos/adyen.svg";
+import braintreeLogo from "@/assets/logos/braintree.svg";
+import squareLogo from "@/assets/logos/square.svg";
+import authorizenetLogo from "@/assets/logos/authorizenet.svg";
+import twocheckoutLogo from "@/assets/logos/2checkout.svg";
 
 // Mapeamento de slugs para logos locais
 export const localGatewayLogos: Record<string, string> = {
@@ -55,6 +60,13 @@ export const localGatewayLogos: Record<string, string> = {
   juno: junoLogo,
   pagbank: pagbankLogo,
   sumup: sumupLogo,
+  adyen: adyenLogo,
+  braintree: braintreeLogo,
+  square: squareLogo,
+  authorizenet: authorizenetLogo,
+  "authorize.net": authorizenetLogo, // Alias para authorize.net
+  "2checkout": twocheckoutLogo,
+  verifone: twocheckoutLogo, // Verifone owns 2Checkout
 };
 
 // Lista de gateways com logos oficiais locais
