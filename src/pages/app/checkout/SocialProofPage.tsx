@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,9 @@ import {
   TrendingUp,
   Lightbulb,
   Sparkles,
+  Zap,
+  Target,
+  Eye,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -38,6 +42,56 @@ import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocialProofExamples } from "@/hooks/useSocialProofExamples";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 interface SocialProof {
   id: string;
@@ -227,19 +281,29 @@ const SocialProofPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent">
             Prova Social
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 font-medium">
-            Notificações em tempo real para aumentar confiança
+          <p className="text-gray-600 dark:text-gray-400 font-medium mt-2">
+            Notificações em tempo real para aumentar confiança e conversões
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              onClick={resetForm}
+              size="lg"
+              className="shadow-lg hover:shadow-xl transition-all"
+            >
+              <Plus className="mr-2 h-5 w-5" />
               Criar Prova Social
             </Button>
           </DialogTrigger>
@@ -327,9 +391,37 @@ const SocialProofPage = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </motion.div>
+
+      {/* Métricas com animação */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <MetricCard
+          title="Total de Provas"
+          value={socialProofs.length}
+          icon={Sparkles}
+          color="bg-orange-500"
+          delay={0.1}
+          subtitle="Notificações criadas"
+        />
+        <MetricCard
+          title="Provas Ativas"
+          value={activeProofs}
+          icon={Zap}
+          color="bg-green-500"
+          delay={0.2}
+          subtitle="Exibindo no checkout"
+        />
+        <MetricCard
+          title="Impacto"
+          value="Alto"
+          icon={Target}
+          color="bg-red-500"
+          delay={0.3}
+          subtitle="Aumenta confiança"
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3" style={{ display: "none" }}>
         <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -386,90 +478,123 @@ const SocialProofPage = () => {
         </Alert>
       )}
 
-      <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-        <CardHeader>
-          <CardTitle>Lista de Provas Sociais</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : filteredProofs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">
-                Nenhuma prova social encontrada
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchTerm
-                  ? "Tente ajustar sua busca"
-                  : "Comece criando a primeira prova social"}
-              </p>
-              {!searchTerm && (
-                <Button onClick={resetForm}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Primeira Prova Social
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Mensagem</TableHead>
-                  <TableHead>Duração</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProofs.map((proof) => (
-                  <TableRow key={proof.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getTypeIcon(proof.type)}
-                        <span className="text-sm">
-                          {getTypeLabel(proof.type)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-md truncate">
-                      {proof.message}
-                    </TableCell>
-                    <TableCell>{proof.displayDuration}s</TableCell>
-                    <TableCell>
-                      <Badge variant={proof.isActive ? "default" : "secondary"}>
-                        {proof.isActive ? "Ativa" : "Inativa"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(proof)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(proof.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              Lista de Provas Sociais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : filteredProofs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 mb-4">
+                  <MessageSquare className="h-12 w-12 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Nenhuma prova social encontrada
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  {searchTerm
+                    ? "Tente ajustar sua busca"
+                    : "Comece criando provas sociais para aumentar a confiança dos seus clientes"}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => {
+                      resetForm();
+                      setIsDialogOpen(true);
+                    }}
+                    size="lg"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeira Prova Social
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border border-gray-200 dark:border-gray-800">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Mensagem</TableHead>
+                      <TableHead>Duração</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProofs.map((proof, index) => (
+                      <motion.tr
+                        key={proof.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getTypeIcon(proof.type)}
+                            <span className="text-sm">
+                              {getTypeLabel(proof.type)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-md truncate">
+                          {proof.message}
+                        </TableCell>
+                        <TableCell>{proof.displayDuration}s</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={proof.isActive ? "default" : "secondary"}
+                            className={
+                              proof.isActive
+                                ? "bg-green-500 hover:bg-green-600"
+                                : ""
+                            }
+                          >
+                            {proof.isActive ? "Ativa" : "Inativa"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(proof)}
+                              className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(proof.id)}
+                              className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
