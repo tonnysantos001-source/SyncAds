@@ -94,6 +94,30 @@ const CheckoutCustomizePage: React.FC = () => {
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Detectar e aplicar dark mode do sistema
+  useEffect(() => {
+    const isDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
   useEffect(() => {
     const run = async () => {
       if (!user?.id) {
@@ -301,17 +325,19 @@ const CheckoutCustomizePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-850 dark:to-purple-900/40">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-violet-500 mx-auto mb-4" />
-          <p className="text-gray-400">Carregando personalização...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Carregando personalização...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-850 dark:to-purple-900/40">
       {/* Sidebar de Personalização */}
       <CheckoutCustomizationSidebar
         expandedSections={expandedSections}
