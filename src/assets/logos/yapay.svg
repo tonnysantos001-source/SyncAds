@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Background with gradient -->
+  <rect width="200" height="60" rx="8" fill="url(#yapayGradient)"/>
+
+  <defs>
+    <linearGradient id="yapayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F7931E;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Decorative circles -->
+  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
+  <circle cx="30" cy="30" r="16" fill="white" opacity="0.15"/>
+
+  <!-- Icon: Y shape with payment elements -->
+  <g transform="translate(22, 30)">
+    <!-- Y shape (letter Y for Yapay) -->
+    <path d="M -8 -12 L -3 -3 L -3 8" stroke="white" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 2 -12 L -3 -3" stroke="white" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="round"/>
+
+    <!-- Payment symbol (circle with checkmark at intersection) -->
+    <circle cx="-3" cy="-3" r="5" fill="white" opacity="0.9"/>
+    <path d="M -5 -3 L -3.5 -1 L 0 -6" stroke="#FF6B35" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Speed lines (fast payment) -->
+    <line x1="4" y1="-8" x2="10" y2="-8" stroke="white" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+    <line x1="4" y1="-4" x2="8" y2="-4" stroke="white" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+    <line x1="4" y1="0" x2="12" y2="0" stroke="white" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Text: Yapay -->
+  <text x="52" y="33" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" letter-spacing="1">
+    Yapay
+  </text>
+
+  <!-- Tagline -->
+  <text x="52" y="46" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
+    Gateway Locaweb
+  </text>
+
+  <!-- Locaweb badge -->
+  <g transform="translate(140, 25)">
+    <rect x="-20" y="-10" width="40" height="20" rx="3" fill="white" opacity="0.2"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      LOCAWEB
+    </text>
+  </g>
+
+  <!-- Payment methods icons -->
+  <g transform="translate(140, 48)">
+    <!-- Card -->
+    <rect x="0" y="0" width="10" height="6" rx="0.5" fill="white" opacity="0.4"/>
+    <rect x="1" y="1.5" width="8" height="1" fill="#F7931E" opacity="0.6"/>
+
+    <!-- PIX -->
+    <path d="M 16 3 L 18 5 L 16 7 L 14 5 Z" fill="white" opacity="0.5"/>
+
+    <!-- Boleto -->
+    <rect x="24" y="0" width="1" height="7" fill="white" opacity="0.4"/>
+    <rect x="26" y="0" width="1" height="7" fill="white" opacity="0.4"/>
+    <rect x="28" y="0" width="1" height="7" fill="white" opacity="0.4"/>
+  </g>
+
+  <!-- Integration icon (API) -->
+  <g transform="translate(175, 30)">
+    <rect x="-8" y="-6" width="16" height="12" rx="2" fill="white" opacity="0.2"/>
+    <text x="0" y="1" font-family="monospace" font-size="5" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      API
+    </text>
+  </g>
+
+  <!-- Security indicator -->
+  <g transform="translate(185, 45)">
+    <circle cx="0" cy="0" r="5" fill="white" opacity="0.2"/>
+    <path d="M 0 -3 L 2 -2 L 2 1 Q 2 2 0 3 Q -2 2 -2 1 L -2 -2 Z" fill="white" opacity="0.6"/>
+  </g>
+
+  <!-- Arrow decoration (speed/efficiency) -->
+  <g transform="translate(125, 15)" opacity="0.4">
+    <path d="M 0 0 L 8 0 M 5 -2 L 8 0 L 5 2" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Decorative corner elements -->
+  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
+  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
+</svg>

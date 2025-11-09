@@ -36,6 +36,11 @@ import zoopLogo from "@/assets/logos/zoop.svg";
 import galaxpayLogo from "@/assets/logos/galaxpay.svg";
 import ameLogo from "@/assets/logos/ame.svg";
 import klarnaLogo from "@/assets/logos/klarna.svg";
+import banqiLogo from "@/assets/logos/banqi.svg";
+import pagbrasilLogo from "@/assets/logos/pagbrasil.svg";
+import nuvemshopLogo from "@/assets/logos/nuvemshop.svg";
+import yapayLogo from "@/assets/logos/yapay.svg";
+import worldpayLogo from "@/assets/logos/worldpay.svg";
 
 // Mapeamento de slugs para logos locais
 export const localGatewayLogos: Record<string, string> = {
@@ -78,6 +83,12 @@ export const localGatewayLogos: Record<string, string> = {
   ame: ameLogo,
   "ame digital": ameLogo, // Alias para ame digital
   klarna: klarnaLogo,
+  banqi: banqiLogo,
+  pagbrasil: pagbrasilLogo,
+  nuvemshop: nuvemshopLogo,
+  yapay: yapayLogo,
+  loovi: yapayLogo, // Loovi é marca da Yapay
+  worldpay: worldpayLogo,
 };
 
 // Lista de gateways com logos oficiais locais
