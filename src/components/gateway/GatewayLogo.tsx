@@ -43,7 +43,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
   // Nível 1: Tentar usar componente do react-pay-icons
   const IconComponent = slug ? ICON_COMPONENTS[slug.toLowerCase()] : null;
 
-  // Nível 2: Tentar usar logo customizado
+  // Nível 2: Tentar usar logo customizado SVG
   const CustomLogo = slug ? customGatewayLogos[slug.toLowerCase()] : null;
 
   // Classes base
@@ -68,16 +68,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 2: Se tiver logo customizado, usar ele
-  if (CustomLogo && !imageError) {
-    return (
-      <div className={baseClasses}>
-        <CustomLogo className="w-full h-full object-contain" />
-      </div>
-    );
-  }
-
-  // Nível 3: Se tiver URL de logo e não houver erro
+  // Nível 2: Se tiver URL de logo oficial e não houver erro, usar ela
   if (logo && !imageError) {
     return (
       <div className={baseClasses}>
@@ -100,7 +91,16 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 4: Fallback - Inicial do nome com gradiente
+  // Nível 3: Se tiver logo customizado SVG, usar ele (fallback se URL falhar)
+  if (CustomLogo) {
+    return (
+      <div className={baseClasses}>
+        <CustomLogo className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  // Nível 4: Fallback final - Inicial do nome com gradiente
   const initial = name.charAt(0).toUpperCase();
   const gradients = [
     "from-blue-500 to-purple-600",
