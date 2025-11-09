@@ -16,6 +16,11 @@ import asaasLogo from "@/assets/logos/asaas.png";
 import getnetLogo from "@/assets/logos/getnet.png";
 import vindiLogo from "@/assets/logos/vindi.svg";
 import efipayLogo from "@/assets/logos/efipay.svg";
+import pagseguroLogo from "@/assets/logos/pagseguro.svg";
+import paypalLogo from "@/assets/logos/paypal.svg";
+import paguexLogo from "@/assets/logos/paguex.svg";
+import pixLogo from "@/assets/logos/pix.svg";
+import boletoLogo from "@/assets/logos/boleto.svg";
 
 // Mapeamento de slugs para logos locais
 export const localGatewayLogos: Record<string, string> = {
@@ -34,6 +39,11 @@ export const localGatewayLogos: Record<string, string> = {
   vindi: vindiLogo,
   efipay: efipayLogo,
   gerencianet: efipayLogo, // EFI Pay / Gerencianet são o mesmo
+  pagseguro: pagseguroLogo,
+  paypal: paypalLogo,
+  paguex: paguexLogo,
+  pix: pixLogo,
+  boleto: boletoLogo,
 };
 
 // Lista de gateways com logos oficiais locais
