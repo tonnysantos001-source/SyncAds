@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -31,6 +32,10 @@ import {
   XCircle,
   Info,
   ExternalLink,
+  Target,
+  Zap,
+  BarChart3,
+  Eye,
 } from "lucide-react";
 import { usePixels } from "@/hooks/usePixels";
 import {
@@ -43,6 +48,56 @@ import type {
   PixelConfig,
   CreatePixelConfigInput,
 } from "@/types/pixel";
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  delay?: number;
+  subtitle?: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  delay = 0,
+  subtitle,
+}: MetricCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <div
+          className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-3xl`}
+        />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {title}
+          </CardTitle>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {value}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {subtitle}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 const PixelsPage: React.FC = () => {
   const {
@@ -189,62 +244,55 @@ const PixelsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      {/* Header com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
           Pixels de Rastreamento
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
+        <p className="text-gray-600 dark:text-gray-400 font-medium mt-2">
           Gerencie seus pixels do Meta, TikTok e Google Ads integrados com sua
           Shopify
         </p>
-      </div>
+      </motion.div>
 
-      {/* Estatísticas */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Pixels
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pixels Ativos</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pixels Inativos
-            </CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Plataformas</CardTitle>
-            <Info className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              Meta, TikTok, Google
-            </p>
-          </CardContent>
-        </Card>
+      {/* Métricas com animação */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <MetricCard
+          title="Total de Pixels"
+          value={stats.total}
+          icon={Target}
+          color="bg-indigo-500"
+          delay={0.1}
+          subtitle="Pixels configurados"
+        />
+        <MetricCard
+          title="Pixels Ativos"
+          value={stats.active}
+          icon={Zap}
+          color="bg-green-500"
+          delay={0.2}
+          subtitle="Rastreando eventos"
+        />
+        <MetricCard
+          title="Pixels Inativos"
+          value={stats.inactive}
+          icon={Eye}
+          color="bg-gray-500"
+          delay={0.3}
+          subtitle="Pausados"
+        />
+        <MetricCard
+          title="Plataformas"
+          value={3}
+          icon={BarChart3}
+          color="bg-purple-500"
+          delay={0.4}
+          subtitle="Meta, TikTok, Google"
+        />
       </div>
 
       {/* Alerta informativo */}
@@ -257,16 +305,22 @@ const PixelsPage: React.FC = () => {
         </AlertDescription>
       </Alert>
 
-      {/* Plataformas Disponíveis */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Plataformas Disponíveis</h2>
+      {/* Plataformas Disponíveis com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+          Plataformas Disponíveis
+        </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {Object.values(PIXEL_PLATFORMS).map((platform) => {
             const hasPixel = hasPixelForPlatform(platform.platform);
             return (
               <Card
                 key={platform.platform}
-                className="hover:shadow-md transition-shadow"
+                className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -320,124 +374,144 @@ const PixelsPage: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       <Separator />
 
-      {/* Lista de Pixels Cadastrados */}
-      <div>
+      {/* Lista de Pixels Cadastrados com animação */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Pixels Cadastrados</h2>
+          <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            Pixels Cadastrados
+          </h2>
           <Input
             type="text"
             placeholder="Buscar pixels..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
+            className="max-w-xs border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg"
           />
         </div>
 
         {filteredPixelConfigs.length === 0 ? (
-          <Card>
+          <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
             <CardContent className="py-12 text-center">
-              <Activity className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">
+              <div className="p-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 mb-4 mx-auto w-fit">
+                <Target className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
                 Nenhum pixel cadastrado
               </h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                 {searchTerm
                   ? "Nenhum pixel encontrado com esse filtro."
-                  : "Cadastre seu primeiro pixel para começar a rastrear conversões."}
+                  : "Cadastre seu primeiro pixel para começar a rastrear conversões e otimizar suas campanhas."}
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {filteredPixelConfigs.map((config) => {
+            {filteredPixelConfigs.map((config, index) => {
               const platformMeta = PIXEL_PLATFORMS[config.platform];
               return (
-                <Card key={config.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
-                          style={{ backgroundColor: platformMeta.color + "20" }}
-                        >
-                          {platformMeta.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg">
-                              {config.name || platformMeta.name}
-                            </h3>
-                            <Badge
-                              variant={
-                                config.isActive ? "default" : "secondary"
-                              }
-                            >
-                              {config.isActive ? "Ativo" : "Inativo"}
-                            </Badge>
+                <motion.div
+                  key={config.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
+                            style={{
+                              backgroundColor: platformMeta.color + "20",
+                            }}
+                          >
+                            {platformMeta.icon}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Pixel ID: {config.pixelId}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {config.events.slice(0, 4).map((event) => (
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-lg">
+                                {config.name || platformMeta.name}
+                              </h3>
                               <Badge
-                                key={event}
-                                variant="outline"
-                                className="text-xs"
+                                variant={
+                                  config.isActive ? "default" : "secondary"
+                                }
                               >
-                                {event}
+                                {config.isActive ? "Ativo" : "Inativo"}
                               </Badge>
-                            ))}
-                            {config.events.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{config.events.length - 4}
-                              </Badge>
-                            )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Pixel ID: {config.pixelId}
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {config.events.slice(0, 4).map((event) => (
+                                <Badge
+                                  key={event}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {event}
+                                </Badge>
+                              ))}
+                              {config.events.length > 4 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{config.events.length - 4}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              togglePixelConfig(config.id, !config.isActive)
+                            }
+                            disabled={updating}
+                            className="hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950"
+                          >
+                            <Power
+                              className={`w-4 h-4 ${config.isActive ? "text-green-600" : "text-gray-400"}`}
+                            />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleOpenEditDialog(config)}
+                            disabled={updating}
+                            className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeletePixel(config.id)}
+                            disabled={deleting}
+                            className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            togglePixelConfig(config.id, !config.isActive)
-                          }
-                          disabled={updating}
-                        >
-                          <Power
-                            className={`w-4 h-4 ${config.isActive ? "text-green-600" : "text-gray-400"}`}
-                          />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleOpenEditDialog(config)}
-                          disabled={updating}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeletePixel(config.id)}
-                          disabled={deleting}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Dialog de Criação */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
