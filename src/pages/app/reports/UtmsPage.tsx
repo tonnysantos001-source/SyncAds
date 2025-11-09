@@ -198,32 +198,37 @@ const UtmsPage = () => {
   };
 
   // Preparar dados para gráficos
-  const sourceChartData =
-    stats?.bySource?.map((item) => ({
-      name: item.utmSource || "Direto",
-      visitas: item.totalVisits,
-      conversões: item.totalConversions,
-      receita: item.totalRevenue,
-      taxa: item.conversionRate,
-    })) || [];
+  const sourceChartData = stats?.bySource
+    ? Object.values(stats.bySource).map((item) => ({
+        name: item.utmSource || "Direto",
+        visitas: item.totalVisits,
+        conversões: item.totalConversions,
+        receita: item.totalRevenue,
+        taxa: item.conversionRate,
+      }))
+    : [];
 
-  const mediumChartData =
-    stats?.byMedium?.map((item) => ({
-      name: item.utmMedium || "Não definido",
-      visitas: item.totalVisits,
-      conversões: item.totalConversions,
-      receita: item.totalRevenue,
-      taxa: item.conversionRate,
-    })) || [];
+  const mediumChartData = stats?.byMedium
+    ? Object.values(stats.byMedium).map((item) => ({
+        name: item.utmMedium || "Não definido",
+        visitas: item.totalVisits,
+        conversões: item.totalConversions,
+        receita: item.totalRevenue,
+        taxa: item.conversionRate,
+      }))
+    : [];
 
-  const campaignChartData =
-    stats?.byCampaign?.slice(0, 10).map((item) => ({
-      name: item.utmCampaign || "Sem campanha",
-      visitas: item.totalVisits,
-      conversões: item.totalConversions,
-      receita: item.totalRevenue,
-      taxa: item.conversionRate,
-    })) || [];
+  const campaignChartData = stats?.byCampaign
+    ? Object.values(stats.byCampaign)
+        .slice(0, 10)
+        .map((item) => ({
+          name: item.utmCampaign || "Sem campanha",
+          visitas: item.totalVisits,
+          conversões: item.totalConversions,
+          receita: item.totalRevenue,
+          taxa: item.conversionRate,
+        }))
+    : [];
 
   // Cores vibrantes para gráficos
   const COLORS = [
@@ -238,12 +243,13 @@ const UtmsPage = () => {
   ];
 
   // Filtrar dados de tabela
-  const filteredSources =
-    stats?.bySource?.filter((item) =>
-      (item.utmSource || "direto")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    ) || [];
+  const filteredSources = stats?.bySource
+    ? Object.values(stats.bySource).filter((item) =>
+        (item.utmSource || "direto")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()),
+      )
+    : [];
 
   if (loading) {
     return (
@@ -410,9 +416,7 @@ const UtmsPage = () => {
                   <DollarSign className="h-5 w-5 text-green-500" />
                   Receita por Fonte
                 </CardTitle>
-                <CardDescription>
-                  Faturamento gerado por origem
-                </CardDescription>
+                <CardDescription>Faturamento gerado por origem</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -612,7 +616,8 @@ const UtmsPage = () => {
                               <div
                                 className="w-2 h-2 rounded-full"
                                 style={{
-                                  backgroundColor: COLORS[index % COLORS.length],
+                                  backgroundColor:
+                                    COLORS[index % COLORS.length],
                                 }}
                               />
                               <span className="font-medium text-gray-900 dark:text-gray-100">
