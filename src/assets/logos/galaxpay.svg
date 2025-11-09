@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Background with gradient -->
+  <rect width="200" height="60" rx="8" fill="url(#galaxpayGradient)"/>
+
+  <defs>
+    <linearGradient id="galaxpayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667EEA;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764BA2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4C1D95;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Stars background (galaxy theme) -->
+  <circle cx="15" cy="15" r="1" fill="white" opacity="0.8"/>
+  <circle cx="35" cy="8" r="0.8" fill="white" opacity="0.6"/>
+  <circle cx="45" cy="18" r="1.2" fill="white" opacity="0.7"/>
+  <circle cx="185" cy="12" r="0.9" fill="white" opacity="0.6"/>
+  <circle cx="195" cy="25" r="1.1" fill="white" opacity="0.8"/>
+  <circle cx="190" cy="48" r="0.8" fill="white" opacity="0.5"/>
+
+  <!-- Icon: Planet with orbit (recurring/subscription) -->
+  <g transform="translate(22, 30)">
+    <!-- Central planet -->
+    <circle cx="0" cy="0" r="8" fill="white" opacity="0.9"/>
+    <circle cx="0" cy="0" r="6" fill="#764BA2" opacity="0.6"/>
+
+    <!-- Inner glow -->
+    <circle cx="0" cy="0" r="4" fill="white" opacity="0.4"/>
+
+    <!-- Orbit ring (recurring payment symbol) -->
+    <ellipse cx="0" cy="0" rx="14" ry="14" stroke="white" stroke-width="2" fill="none" opacity="0.6" stroke-dasharray="4,3"/>
+
+    <!-- Orbiting satellites (payment cycles) -->
+    <circle cx="14" cy="0" r="2.5" fill="#FFD700" opacity="0.9"/>
+    <circle cx="-14" cy="0" r="2.5" fill="#FFD700" opacity="0.7"/>
+    <circle cx="0" cy="14" r="2.5" fill="#00D9FF" opacity="0.8"/>
+
+    <!-- Rotation lines (movement) -->
+    <path d="M 10 -10 Q 12 -8 14 -6" stroke="white" stroke-width="1" opacity="0.4" fill="none" stroke-linecap="round"/>
+    <path d="M -10 10 Q -12 8 -14 6" stroke="white" stroke-width="1" opacity="0.4" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Text: Galaxpay -->
+  <text x="52" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+    Galax
+  </text>
+  <text x="96" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFD700">
+    pay
+  </text>
+
+  <!-- Tagline -->
+  <text x="52" y="43" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
+    Pagamentos Recorrentes
+  </text>
+
+  <!-- Subscription badge -->
+  <g transform="translate(150, 25)">
+    <rect x="-20" y="-10" width="40" height="20" rx="3" fill="white" opacity="0.15"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      ASSINATURAS
+    </text>
+  </g>
+
+  <!-- Recurring icon (circular arrows) -->
+  <g transform="translate(170, 45)">
+    <path d="M -4 0 Q -4 -4 0 -4 L 2 -4" stroke="white" stroke-width="1.5" fill="none" opacity="0.6" stroke-linecap="round"/>
+    <path d="M 4 0 Q 4 4 0 4 L -2 4" stroke="white" stroke-width="1.5" fill="none" opacity="0.6" stroke-linecap="round"/>
+    <path d="M 2 -4 L 3 -5 L 3 -3 Z" fill="white" opacity="0.6"/>
+    <path d="M -2 4 L -3 5 L -3 3 Z" fill="white" opacity="0.6"/>
+  </g>
+
+  <!-- Sparkle effect (galaxy magic) -->
+  <g transform="translate(120, 15)" opacity="0.5">
+    <path d="M 0 -3 L 0.5 -0.5 L 3 0 L 0.5 0.5 L 0 3 L -0.5 0.5 L -3 0 L -0.5 -0.5 Z" fill="white"/>
+  </g>
+  <g transform="translate(140, 50)" opacity="0.4">
+    <path d="M 0 -2 L 0.3 -0.3 L 2 0 L 0.3 0.3 L 0 2 L -0.3 0.3 L -2 0 L -0.3 -0.3 Z" fill="white"/>
+  </g>
+</svg>
