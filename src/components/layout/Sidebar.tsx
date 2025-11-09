@@ -46,6 +46,7 @@ interface SubMenuItem {
   label: string;
   icon?: React.ElementType;
   badge?: string;
+  openInNewTab?: boolean;
 }
 
 interface NavItem {
@@ -132,6 +133,7 @@ const navItems: NavItem[] = [
         to: "/checkout/customize",
         label: "Personalizar",
         icon: IoColorPalette,
+        openInNewTab: true,
       },
       {
         to: "/checkout/social-proof",
@@ -252,50 +254,68 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 className="overflow-hidden"
               >
                 <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                  {item.subItems.map((subItem) => (
-                    <NavLink
-                      key={subItem.to}
-                      to={subItem.to}
-                      className={({ isActive }) =>
-                        cn(
+                  {item.subItems.map((subItem) =>
+                    subItem.openInNewTab ? (
+                      <a
+                        key={subItem.to}
+                        href={subItem.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
                           "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
-                          isActive
-                            ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <div className="flex items-center gap-2 flex-1">
-                            {subItem.icon && (
-                              <subItem.icon className="h-4 w-4" />
+                          "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                          <span>{subItem.label}</span>
+                        </div>
+                      </a>
+                    ) : (
+                      <NavLink
+                        key={subItem.to}
+                        to={subItem.to}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
+                            isActive
+                              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+                          )
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <div className="flex items-center gap-2 flex-1">
+                              {subItem.icon && (
+                                <subItem.icon className="h-4 w-4" />
+                              )}
+                              <span>{subItem.label}</span>
+                            </div>
+                            {isActive && (
+                              <motion.div
+                                layoutId="activeSubDot"
+                                className="w-1.5 h-1.5 rounded-full bg-blue-600"
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 30,
+                                }}
+                              />
                             )}
-                            <span>{subItem.label}</span>
-                          </div>
-                          {isActive && (
-                            <motion.div
-                              layoutId="activeSubDot"
-                              className="w-1.5 h-1.5 rounded-full bg-blue-600"
-                              transition={{
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 30,
-                              }}
-                            />
-                          )}
-                          {subItem.badge && (
-                            <Badge
-                              variant="destructive"
-                              className="text-[9px] px-1 h-4"
-                            >
-                              {subItem.badge}
-                            </Badge>
-                          )}
-                        </>
-                      )}
-                    </NavLink>
-                  ))}
+                            {subItem.badge && (
+                              <Badge
+                                variant="destructive"
+                                className="text-[9px] px-1 h-4"
+                              >
+                                {subItem.badge}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    ),
+                  )}
                 </div>
               </motion.div>
             )}
