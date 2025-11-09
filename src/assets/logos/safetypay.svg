@@ -1,5 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <text x="100" y="40" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#FF6B35" text-anchor="middle">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <!-- Background -->
+  <rect width="120" height="80" fill="#0066CC"/>
+
+  <!-- Icon: Shield with lock -->
+  <g transform="translate(12, 30)">
+    <path d="M 6 0 L 10 -2 L 14 0 L 14 6 Q 14 10 10 12 Q 6 10 6 6 Z" fill="white" opacity="0.9"/>
+    <rect x="8.5" y="5" width="3" height="4" rx="0.5" fill="#0066CC" opacity="0.8"/>
+    <path d="M 8.5 5 L 8.5 3.5 Q 8.5 2 10 2 Q 11.5 2 11.5 3.5 L 11.5 5" stroke="#0066CC" stroke-width="1" fill="none" opacity="0.8"/>
+  </g>
+
+  <!-- Text: SafetyPay -->
+  <text x="60" y="45" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">
     SafetyPay
+  </text>
+
+  <!-- Subtitle -->
+  <text x="60" y="58" font-family="Arial, sans-serif" font-size="8" fill="white" text-anchor="middle" opacity="0.85">
+    Secure Payments
   </text>
 </svg>

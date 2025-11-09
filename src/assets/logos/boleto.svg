@@ -1,61 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
   <!-- Background -->
-  <rect width="200" height="60" rx="8" fill="#FF6B00"/>
-
-  <!-- Decorative gradient overlay -->
-  <rect width="200" height="60" rx="8" fill="url(#boletoGradient)" opacity="0.2"/>
-
-  <defs>
-    <linearGradient id="boletoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
-    </linearGradient>
-  </defs>
+  <rect width="120" height="80" fill="#FF6B00"/>
 
   <!-- Barcode icon (iconic element of Boleto) -->
-  <g transform="translate(12, 15)">
+  <g transform="translate(10, 28)">
     <!-- Barcode lines with varying widths -->
-    <rect x="0" y="0" width="2" height="30" fill="white"/>
-    <rect x="4" y="0" width="1" height="30" fill="white" opacity="0.9"/>
-    <rect x="7" y="0" width="3" height="30" fill="white"/>
-    <rect x="12" y="0" width="1" height="30" fill="white" opacity="0.9"/>
-    <rect x="15" y="0" width="2" height="30" fill="white"/>
-    <rect x="19" y="0" width="1" height="30" fill="white" opacity="0.9"/>
-    <rect x="22" y="0" width="3" height="30" fill="white"/>
-    <rect x="27" y="0" width="1" height="30" fill="white" opacity="0.9"/>
-    <rect x="30" y="0" width="2" height="30" fill="white"/>
+    <rect x="0" y="0" width="1.5" height="20" fill="white"/>
+    <rect x="2.5" y="0" width="1" height="20" fill="white" opacity="0.9"/>
+    <rect x="4.5" y="0" width="2" height="20" fill="white"/>
+    <rect x="7.5" y="0" width="1" height="20" fill="white" opacity="0.9"/>
+    <rect x="9.5" y="0" width="1.5" height="20" fill="white"/>
+    <rect x="12" y="0" width="1" height="20" fill="white" opacity="0.9"/>
+    <rect x="14" y="0" width="2" height="20" fill="white"/>
+    <rect x="17" y="0" width="1" height="20" fill="white" opacity="0.9"/>
+    <rect x="19" y="0" width="1.5" height="20" fill="white"/>
   </g>
 
   <!-- Text: Boleto -->
-  <text x="55" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+  <text x="60" y="48" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">
     Boleto
   </text>
 
   <!-- Subtitle: Bancário -->
-  <text x="55" y="43" font-family="Arial, sans-serif" font-size="10" fill="white" opacity="0.9">
+  <text x="60" y="62" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle" opacity="0.9">
     Bancário
   </text>
 
   <!-- Bank icon -->
-  <g transform="translate(145, 25)">
-    <!-- Building/Bank structure -->
-    <path d="M 0 -8 L 8 -12 L 16 -8 L 16 0 L 0 0 Z" fill="white" opacity="0.3"/>
-    <rect x="2" y="-6" width="3" height="6" fill="white" opacity="0.6"/>
-    <rect x="6.5" y="-6" width="3" height="6" fill="white" opacity="0.6"/>
-    <rect x="11" y="-6" width="3" height="6" fill="white" opacity="0.6"/>
-    <rect x="0" y="1" width="16" height="2" fill="white" opacity="0.5"/>
+  <g transform="translate(95, 35)">
+    <path d="M 0 -5 L 5 -7 L 10 -5 L 10 0 L 0 0 Z" fill="white" opacity="0.3"/>
+    <rect x="1.5" y="-4" width="2" height="4" fill="white" opacity="0.6"/>
+    <rect x="4" y="-4" width="2" height="4" fill="white" opacity="0.6"/>
+    <rect x="6.5" y="-4" width="2" height="4" fill="white" opacity="0.6"/>
+    <rect x="0" y="1" width="10" height="1.5" fill="white" opacity="0.5"/>
   </g>
-
-  <!-- Document icon -->
-  <g transform="translate(170, 20)">
-    <rect x="0" y="0" width="16" height="20" rx="2" fill="white" opacity="0.25"/>
-    <line x1="3" y1="5" x2="13" y2="5" stroke="white" stroke-width="1" opacity="0.5"/>
-    <line x1="3" y1="9" x2="13" y2="9" stroke="white" stroke-width="1" opacity="0.5"/>
-    <line x1="3" y1="13" x2="10" y2="13" stroke="white" stroke-width="1" opacity="0.5"/>
-  </g>
-
-  <!-- Decorative dots -->
-  <circle cx="128" cy="15" r="1.5" fill="white" opacity="0.4"/>
-  <circle cx="133" cy="15" r="1.5" fill="white" opacity="0.3"/>
-  <circle cx="138" cy="15" r="1.5" fill="white" opacity="0.2"/>
 </svg>
