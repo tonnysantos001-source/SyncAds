@@ -2,6 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Visa, Mastercard, Amex, Discover, Jcb, Diners } from "react-pay-icons";
 import { customGatewayLogos } from "./CustomGatewayLogos";
+import { getLocalLogo, hasLocalLogo } from "./LocalGatewayLogos";
 
 interface GatewayLogoProps {
   name: string;
@@ -40,10 +41,14 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
   const [imageError, setImageError] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
 
-  // Nível 1: Tentar usar componente do react-pay-icons
+  // Nível 1: Prioridade máxima - Logos oficiais locais
+  const localLogo = slug ? getLocalLogo(slug) : undefined;
+  const hasLocal = slug ? hasLocalLogo(slug) : false;
+
+  // Nível 2: Tentar usar componente do react-pay-icons
   const IconComponent = slug ? ICON_COMPONENTS[slug.toLowerCase()] : null;
 
-  // Nível 2: Tentar usar logo customizado SVG
+  // Nível 3: Tentar usar logo customizado SVG
   const CustomLogo = slug ? customGatewayLogos[slug.toLowerCase()] : null;
 
   // Classes base
@@ -56,7 +61,20 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     className,
   );
 
-  // Nível 1: Se tiver ícone do react-pay-icons, usar ele
+  // Nível 1: PRIORIDADE MÁXIMA - Logo oficial local (SVG/PNG transparente)
+  if (localLogo && hasLocal) {
+    return (
+      <div className={baseClasses}>
+        <img
+          src={localLogo}
+          alt={`${name} logo`}
+          className="w-full h-full object-contain p-2"
+        />
+      </div>
+    );
+  }
+
+  // Nível 2: Se tiver ícone do react-pay-icons, usar ele
   if (IconComponent && !imageError) {
     return (
       <div className={baseClasses}>
@@ -68,7 +86,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 2: Se tiver URL de logo oficial e não houver erro, usar ela
+  // Nível 3: Se tiver URL de logo oficial externa e não houver erro, usar ela
   if (logo && !imageError) {
     return (
       <div className={baseClasses}>
@@ -91,7 +109,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 3: Se tiver logo customizado SVG, usar ele (fallback se URL falhar)
+  // Nível 4: Se tiver logo customizado SVG, usar ele (fallback se URL falhar)
   if (CustomLogo) {
     return (
       <div className={baseClasses}>
@@ -100,7 +118,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 4: Fallback final - Inicial do nome com gradiente
+  // Nível 5: Fallback final - Inicial do nome com gradiente
   const initial = name.charAt(0).toUpperCase();
   const gradients = [
     "from-blue-500 to-purple-600",
