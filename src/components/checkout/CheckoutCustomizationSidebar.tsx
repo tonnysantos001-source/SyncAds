@@ -897,7 +897,7 @@ export const CheckoutCustomizationSidebar: React.FC<
   return (
     <div className="w-80 bg-gradient-to-b from-white/95 to-gray-50/95 dark:from-gray-900/95 dark:to-gray-800/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar */}
-      <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
+      <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-violet-500/20 backdrop-blur-sm">
             <Palette className="h-5 w-5 text-violet-600 dark:text-violet-400" />

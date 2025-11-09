@@ -365,13 +365,23 @@ const CheckoutCustomizePage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Button>
-              <div>
-                <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Personalizar Checkout
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  Configure a aparência e comportamento do seu checkout
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      SyncAds AI
+                    </h1>
+                    <Badge variant="secondary" className="text-xs">
+                      Editor
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                    Personalize a aparência do seu checkout
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -459,40 +469,6 @@ const CheckoutCustomizePage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Métricas rápidas */}
-        {showPreview && (
-          <div className="px-6 py-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
-            <div className="grid gap-4 md:grid-cols-3">
-              <MetricCard
-                title="Tema Configurado"
-                value={customization?.theme?.primaryColor ? "Sim" : "Padrão"}
-                icon={Palette}
-                color="bg-violet-500"
-                delay={0.1}
-                subtitle="Cores personalizadas"
-              />
-              <MetricCard
-                title="Layout"
-                value={previewMode === "desktop" ? "Desktop" : "Mobile"}
-                icon={Layout}
-                color="bg-purple-500"
-                delay={0.2}
-                subtitle="Visualização atual"
-              />
-              <MetricCard
-                title="Alterações"
-                value={hasChanges ? "Pendentes" : "Salvas"}
-                icon={Zap}
-                color={hasChanges ? "bg-amber-500" : "bg-green-500"}
-                delay={0.3}
-                subtitle={
-                  hasChanges ? "Salvar para aplicar" : "Tudo sincronizado"
-                }
-              />
-            </div>
-          </div>
-        )}
-
         {/* Preview Area */}
         {showPreview ? (
           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-6">
@@ -507,10 +483,15 @@ const CheckoutCustomizePage: React.FC = () => {
                   "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300",
                   previewMode === "desktop"
                     ? "w-full max-w-6xl h-full"
-                    : "w-full max-w-md h-full max-h-[844px]",
+                    : "w-full max-w-[390px] h-full max-h-[844px]",
                 )}
               >
-                <div className="h-full overflow-y-auto">
+                <div
+                  className={cn(
+                    "h-full overflow-y-auto",
+                    previewMode === "mobile" && "overflow-x-hidden",
+                  )}
+                >
                   {previewOrderId ? (
                     <>
                       <div className="hidden">
