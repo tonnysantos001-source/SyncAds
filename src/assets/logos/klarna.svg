@@ -1,92 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Background with gradient -->
-  <rect width="200" height="60" rx="8" fill="url(#klarnaGradient)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <!-- Background -->
+  <rect width="120" height="80" fill="#FFB3C7"/>
 
-  <defs>
-    <linearGradient id="klarnaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFB3C7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FF88A5;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- Decorative circles -->
-  <circle cx="25" cy="30" r="20" fill="white" opacity="0.1"/>
-  <circle cx="30" cy="30" r="16" fill="white" opacity="0.15"/>
-
-  <!-- Icon: Shopping bag with split payment symbol -->
-  <g transform="translate(22, 30)">
+  <!-- Icon: Shopping bag with split payment -->
+  <g transform="translate(12, 32)">
     <!-- Shopping bag -->
-    <path d="M -8 -4 L -8 10 L 8 10 L 8 -4 Z" fill="white" opacity="0.9" stroke="white" stroke-width="0.5"/>
-
+    <path d="M -5 -2 L -5 6 L 5 6 L 5 -2 Z" fill="white" opacity="0.9" stroke="white" stroke-width="0.3"/>
     <!-- Bag handles -->
-    <path d="M -5 -4 L -5 -6 Q -5 -10 0 -10 Q 5 -10 5 -6 L 5 -4"
-          stroke="white" stroke-width="2" fill="none" opacity="0.85"/>
-
-    <!-- Split payment indicator (divided sections) -->
-    <rect x="-6" y="-1" width="5" height="8" fill="#FF88A5" opacity="0.6"/>
-    <rect x="1" y="-1" width="5" height="8" fill="#FFD700" opacity="0.7"/>
-
-    <!-- Dividing line -->
-    <line x1="0" y1="-1" x2="0" y2="7" stroke="white" stroke-width="1.5" opacity="0.8"/>
-
-    <!-- Small numbers (installments) -->
-    <text x="-3.5" y="4" font-family="Arial, sans-serif" font-size="4" font-weight="bold" fill="white" text-anchor="middle">
-      1
-    </text>
-    <text x="3.5" y="4" font-family="Arial, sans-serif" font-size="4" font-weight="bold" fill="white" text-anchor="middle">
-      4
-    </text>
+    <path d="M -3 -2 L -3 -4 Q -3 -6 0 -6 Q 3 -6 3 -4 L 3 -2" stroke="white" stroke-width="1.5" fill="none" opacity="0.85"/>
+    <!-- Split indicator -->
+    <rect x="-4" y="0" width="3.5" height="5" fill="#FF88A5" opacity="0.6"/>
+    <rect x="0.5" y="0" width="3.5" height="5" fill="#FFD700" opacity="0.7"/>
+    <line x1="0" y1="0" x2="0" y2="5" stroke="white" stroke-width="1" opacity="0.8"/>
+    <!-- Installment numbers -->
+    <text x="-2.5" y="3.5" font-family="Arial" font-size="2.5" font-weight="bold" fill="white" text-anchor="middle">1</text>
+    <text x="2.5" y="3.5" font-family="Arial" font-size="2.5" font-weight="bold" fill="white" text-anchor="middle">4</text>
   </g>
 
   <!-- Text: Klarna -->
-  <text x="52" y="33" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" letter-spacing="1">
+  <text x="60" y="46" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="1">
     Klarna
   </text>
 
-  <!-- Tagline -->
-  <text x="52" y="46" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.9">
+  <!-- Subtitle -->
+  <text x="60" y="60" font-family="Arial, sans-serif" font-size="7" fill="white" text-anchor="middle" opacity="0.9">
     Buy Now, Pay Later
   </text>
 
-  <!-- BNPL badge -->
-  <g transform="translate(145, 25)">
-    <rect x="-18" y="-10" width="36" height="20" rx="3" fill="white" opacity="0.2"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      BNPL
-    </text>
+  <!-- 4x badge -->
+  <g transform="translate(100, 40)">
+    <rect x="-8" y="-5" width="16" height="10" rx="2" fill="white" opacity="0.25"/>
+    <text x="0" y="-1" font-family="Arial" font-size="4" font-weight="bold" fill="white" text-anchor="middle">4x</text>
+    <text x="0" y="2.5" font-family="Arial" font-size="2.5" fill="white" text-anchor="middle" opacity="0.9">0%</text>
   </g>
-
-  <!-- 4x interest-free indicator -->
-  <g transform="translate(145, 48)">
-    <rect x="-15" y="-7" width="30" height="14" rx="2" fill="white" opacity="0.25"/>
-    <text x="0" y="-1" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      4x
-    </text>
-    <text x="0" y="4" font-family="Arial, sans-serif" font-size="4" fill="white" text-anchor="middle" dominant-baseline="middle" opacity="0.9">
-      0% juros
-    </text>
-  </g>
-
-  <!-- Shopping cart icon -->
-  <g transform="translate(175, 25)">
-    <circle cx="0" cy="6" r="1.5" fill="white" opacity="0.6"/>
-    <circle cx="5" cy="6" r="1.5" fill="white" opacity="0.6"/>
-    <path d="M -3 -6 L -1 -6 L 1 4 L 6 4" stroke="white" stroke-width="1.5" fill="none" opacity="0.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M -1 -6 L 0 -2 L 7 -2 L 6 4" stroke="white" stroke-width="1.5" fill="none" opacity="0.6" stroke-linejoin="round"/>
-  </g>
-
-  <!-- Checkmark (smooth checkout) -->
-  <g transform="translate(180, 45)">
-    <circle cx="0" cy="0" r="6" fill="white" opacity="0.25"/>
-    <path d="M -2 0 L -1 2 L 3 -3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <!-- Heart decoration (customer love) -->
-  <g transform="translate(125, 15)" opacity="0.4">
-    <path d="M 0 2 L -2 0 Q -3 -1 -2 -2 Q -1 -3 0 -2 Q 1 -3 2 -2 Q 3 -1 2 0 Z" fill="white"/>
-  </g>
-
-  <!-- Decorative corner elements -->
-  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
-  <circle cx="186" cy="50" r="1.5" fill="white" opacity="0.4"/>
 </svg>

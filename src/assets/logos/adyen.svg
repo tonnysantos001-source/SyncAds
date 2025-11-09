@@ -1,66 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Background with gradient -->
-  <rect width="200" height="60" rx="8" fill="url(#adyenGradient)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none">
+  <!-- Background -->
+  <rect width="120" height="80" fill="#0ABF53"/>
 
-  <defs>
-    <linearGradient id="adyenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0ABF53;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#00875A;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- Decorative circles -->
-  <circle cx="25" cy="30" r="20" fill="white" opacity="0.08"/>
-  <circle cx="30" cy="30" r="16" fill="white" opacity="0.12"/>
-
-  <!-- Icon: Connected nodes (representing unified commerce) -->
-  <g transform="translate(20, 30)">
+  <!-- Icon: Connected nodes (unified commerce) -->
+  <g transform="translate(15, 40)">
     <!-- Center node -->
-    <circle cx="0" cy="0" r="5" fill="white" opacity="0.9"/>
-
+    <circle cx="0" cy="0" r="3.5" fill="white" opacity="0.9"/>
     <!-- Surrounding nodes -->
-    <circle cx="0" cy="-12" r="3" fill="white" opacity="0.8"/>
-    <circle cx="10" cy="-6" r="3" fill="white" opacity="0.8"/>
-    <circle cx="10" cy="6" r="3" fill="white" opacity="0.8"/>
-    <circle cx="0" cy="12" r="3" fill="white" opacity="0.8"/>
-    <circle cx="-10" cy="6" r="3" fill="white" opacity="0.8"/>
-    <circle cx="-10" cy="-6" r="3" fill="white" opacity="0.8"/>
-
+    <circle cx="0" cy="-8" r="2" fill="white" opacity="0.8"/>
+    <circle cx="7" cy="-4" r="2" fill="white" opacity="0.8"/>
+    <circle cx="7" cy="4" r="2" fill="white" opacity="0.8"/>
+    <circle cx="0" cy="8" r="2" fill="white" opacity="0.8"/>
+    <circle cx="-7" cy="4" r="2" fill="white" opacity="0.8"/>
+    <circle cx="-7" cy="-4" r="2" fill="white" opacity="0.8"/>
     <!-- Connection lines -->
-    <line x1="0" y1="0" x2="0" y2="-12" stroke="white" stroke-width="1.5" opacity="0.6"/>
-    <line x1="0" y1="0" x2="10" y2="-6" stroke="white" stroke-width="1.5" opacity="0.6"/>
-    <line x1="0" y1="0" x2="10" y2="6" stroke="white" stroke-width="1.5" opacity="0.6"/>
-    <line x1="0" y1="0" x2="0" y2="12" stroke="white" stroke-width="1.5" opacity="0.6"/>
-    <line x1="0" y1="0" x2="-10" y2="6" stroke="white" stroke-width="1.5" opacity="0.6"/>
-    <line x1="0" y1="0" x2="-10" y2="-6" stroke="white" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="0" y2="-8" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="0" y1="0" x2="7" y2="-4" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="0" y1="0" x2="7" y2="4" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="0" y1="0" x2="0" y2="8" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="0" y1="0" x2="-7" y2="4" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="0" y1="0" x2="-7" y2="-4" stroke="white" stroke-width="1" opacity="0.6"/>
   </g>
 
   <!-- Text: Adyen -->
-  <text x="52" y="32" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="white" letter-spacing="0.5">
+  <text x="60" y="46" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="0.5">
     Adyen
   </text>
 
-  <!-- Tagline -->
-  <text x="52" y="45" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
-    Unified Commerce Platform
+  <!-- Subtitle -->
+  <text x="60" y="60" font-family="Arial, sans-serif" font-size="7" fill="white" text-anchor="middle" opacity="0.85">
+    Unified Commerce
   </text>
 
   <!-- Global badge -->
-  <g transform="translate(145, 30)">
-    <rect x="-18" y="-10" width="36" height="20" rx="3" fill="white" opacity="0.15"/>
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
-      GLOBAL
-    </text>
+  <g transform="translate(100, 40)">
+    <circle cx="0" cy="0" r="5" stroke="white" stroke-width="1" fill="none" opacity="0.5"/>
+    <ellipse cx="0" cy="0" rx="2" ry="5" stroke="white" stroke-width="0.7" fill="none" opacity="0.5"/>
+    <line x1="-5" y1="0" x2="5" y2="0" stroke="white" stroke-width="0.7" opacity="0.5"/>
   </g>
-
-  <!-- Globe icon (small) -->
-  <g transform="translate(178, 30)">
-    <circle cx="0" cy="0" r="8" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
-    <ellipse cx="0" cy="0" rx="3" ry="8" stroke="white" stroke-width="1" fill="none" opacity="0.5"/>
-    <line x1="-8" y1="0" x2="8" y2="0" stroke="white" stroke-width="1" opacity="0.5"/>
-  </g>
-
-  <!-- Decorative corner elements -->
-  <circle cx="190" cy="12" r="2" fill="white" opacity="0.4"/>
-  <circle cx="190" cy="48" r="2" fill="white" opacity="0.4"/>
 </svg>
