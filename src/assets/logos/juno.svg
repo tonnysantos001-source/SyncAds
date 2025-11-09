@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Background with gradient -->
+  <rect width="200" height="60" rx="8" fill="url(#junoGradient)"/>
+
+  <defs>
+    <linearGradient id="junoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6D28D9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Decorative background circles -->
+  <circle cx="25" cy="30" r="18" fill="white" opacity="0.1"/>
+  <circle cx="30" cy="30" r="22" fill="white" opacity="0.08"/>
+
+  <!-- Icon: Simplified rocket/payment symbol -->
+  <g transform="translate(20, 30)">
+    <!-- Rocket body -->
+    <path d="M 0 -12 L 3 -8 L 3 8 L 0 12 L -3 8 L -3 -8 Z" fill="white" opacity="0.9"/>
+
+    <!-- Rocket window -->
+    <circle cx="0" cy="-3" r="3" fill="#8B5CF6" opacity="0.8"/>
+
+    <!-- Rocket flames -->
+    <path d="M -2 8 L -4 14 L -2 12 Z" fill="#FCD34D" opacity="0.7"/>
+    <path d="M 2 8 L 4 14 L 2 12 Z" fill="#FCD34D" opacity="0.7"/>
+    <path d="M 0 10 L 0 16 L -1 13 L 1 13 Z" fill="#FBBF24" opacity="0.8"/>
+
+    <!-- Stars decoration -->
+    <circle cx="-10" cy="-8" r="1" fill="white" opacity="0.6"/>
+    <circle cx="10" cy="-10" r="1.5" fill="white" opacity="0.5"/>
+    <circle cx="12" cy="2" r="1" fill="white" opacity="0.4"/>
+  </g>
+
+  <!-- Text: Juno -->
+  <text x="52" y="32" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" letter-spacing="1">
+    Juno
+  </text>
+
+  <!-- Tagline -->
+  <text x="52" y="45" font-family="Arial, sans-serif" font-size="8" fill="white" opacity="0.85">
+    Pagamentos e Cobranças
+  </text>
+
+  <!-- Speed lines decoration -->
+  <g transform="translate(130, 25)" opacity="0.4">
+    <line x1="0" y1="0" x2="15" y2="0" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="5" x2="12" y2="5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="10" x2="18" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Badge: Fast payments -->
+  <g transform="translate(165, 30)">
+    <rect x="-15" y="-10" width="30" height="20" rx="3" fill="white" opacity="0.2"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      RÁPIDO
+    </text>
+  </g>
+
+  <!-- Decorative corner elements -->
+  <circle cx="190" cy="12" r="2" fill="white" opacity="0.5"/>
+  <circle cx="185" cy="48" r="1.5" fill="white" opacity="0.4"/>
+</svg>

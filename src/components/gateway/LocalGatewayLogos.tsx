@@ -21,6 +21,11 @@ import paypalLogo from "@/assets/logos/paypal.svg";
 import paguexLogo from "@/assets/logos/paguex.svg";
 import pixLogo from "@/assets/logos/pix.svg";
 import boletoLogo from "@/assets/logos/boleto.svg";
+import pagarmeLogo from "@/assets/logos/pagarme.svg";
+import ebanxLogo from "@/assets/logos/ebanx.svg";
+import junoLogo from "@/assets/logos/juno.svg";
+import pagbankLogo from "@/assets/logos/pagbank.svg";
+import sumupLogo from "@/assets/logos/sumup.svg";
 
 // Mapeamento de slugs para logos locais
 export const localGatewayLogos: Record<string, string> = {
@@ -44,6 +49,12 @@ export const localGatewayLogos: Record<string, string> = {
   paguex: paguexLogo,
   pix: pixLogo,
   boleto: boletoLogo,
+  pagarme: pagarmeLogo,
+  "pagar.me": pagarmeLogo, // Alias para pagar.me
+  ebanx: ebanxLogo,
+  juno: junoLogo,
+  pagbank: pagbankLogo,
+  sumup: sumupLogo,
 };
 
 // Lista de gateways com logos oficiais locais
