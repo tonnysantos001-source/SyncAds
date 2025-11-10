@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -28,37 +29,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Power,
-  PowerOff,
-  Check,
-  X,
-  Zap,
-  Crown,
-  Star,
-  MessageSquare,
-  Image as ImageIcon,
-  ShoppingBag,
-  Globe,
-  BarChart3,
-  Headphones,
-  Code,
-  DollarSign,
-  Percent,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+  HiCurrencyDollar,
+  HiUsers,
+  HiPlus,
+  HiPencil,
+  HiTrash,
+  HiXMark,
+  HiChatBubbleBottomCenterText,
+  HiShoppingBag,
+  HiGlobeAlt,
+  HiChartBar,
+  HiPhone,
+  HiCodeBracket,
+  HiArrowTrendingUp,
+  HiRocketLaunch,
+  HiBolt,
+  HiStar,
+} from "react-icons/hi2";
+import { IoRocketSharp, IoPower } from "react-icons/io5";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
@@ -105,6 +95,51 @@ interface Stats {
   totalSubscriptions: number;
   totalMRR: number;
 }
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: React.ElementType;
+  gradient: string;
+  delay?: number;
+}
+
+const StatCard = ({
+  title,
+  value,
+  description,
+  icon: Icon,
+  gradient,
+  delay = 0,
+}: StatCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    whileHover={{ scale: 1.02 }}
+  >
+    <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl hover:border-gray-600 transition-all group cursor-pointer relative overflow-hidden">
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`}
+      />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-gray-300">
+          {title}
+        </CardTitle>
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}
+        >
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+      </CardHeader>
+      <CardContent className="relative z-10">
+        <div className="text-3xl font-bold text-white mb-1">{value}</div>
+        <p className="text-xs text-gray-400">{description}</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
 
 export default function PlansManagementPage() {
   const { toast } = useToast();
@@ -412,10 +447,10 @@ export default function PlansManagementPage() {
 
   const getPlanIcon = (planName: string) => {
     const name = planName.toLowerCase();
-    if (name.includes("enterprise")) return Crown;
-    if (name.includes("pro")) return Star;
-    if (name.includes("starter")) return Zap;
-    return ShoppingBag;
+    if (name.includes("enterprise")) return HiRocketLaunch;
+    if (name.includes("pro")) return HiStar;
+    if (name.includes("starter")) return HiBolt;
+    return IoRocketSharp;
   };
 
   const getIntervalLabel = (interval: string, count: number) => {
@@ -432,8 +467,12 @@ export default function PlansManagementPage() {
   if (loading) {
     return (
       <SuperAdminLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-76px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full"
+          />
         </div>
       </SuperAdminLayout>
     );
@@ -443,12 +482,16 @@ export default function PlansManagementPage() {
     <SuperAdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
               Gestão de Planos
             </h1>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-400 mt-1">
               Configure planos, limites e preços para seus usuários
             </p>
           </div>
@@ -459,17 +502,18 @@ export default function PlansManagementPage() {
                   resetForm();
                   setEditingPlan(null);
                 }}
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <HiPlus className="h-5 w-5 mr-2" />
                 Novo Plano
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-white">
                   {editingPlan ? "Editar Plano" : "Criar Novo Plano"}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-gray-400">
                   Configure todos os detalhes e limites do plano
                 </DialogDescription>
               </DialogHeader>
@@ -477,31 +521,35 @@ export default function PlansManagementPage() {
               <div className="space-y-6">
                 {/* Informações Básicas */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Informações Básicas</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Informações Básicas
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Nome do Plano *</Label>
+                      <Label className="text-gray-300">Nome do Plano *</Label>
                       <Input
                         value={formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
                         placeholder="Ex: Plano Pro"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Slug (URL) *</Label>
+                      <Label className="text-gray-300">Slug (URL) *</Label>
                       <Input
                         value={formData.slug}
                         onChange={(e) =>
                           setFormData({ ...formData, slug: e.target.value })
                         }
                         placeholder="Ex: pro"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label>Descrição</Label>
+                    <Label className="text-gray-300">Descrição</Label>
                     <Textarea
                       value={formData.description}
                       onChange={(e) =>
@@ -512,16 +560,19 @@ export default function PlansManagementPage() {
                       }
                       placeholder="Descrição do plano"
                       rows={3}
+                      className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                 </div>
 
                 {/* Preço */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Preço e Cobrança</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Preço e Cobrança
+                  </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <Label>Preço (R$) *</Label>
+                      <Label className="text-gray-300">Preço (R$) *</Label>
                       <Input
                         type="number"
                         value={formData.price}
@@ -533,20 +584,21 @@ export default function PlansManagementPage() {
                         }
                         min={0}
                         step={0.01}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Intervalo</Label>
+                      <Label className="text-gray-300">Intervalo</Label>
                       <Select
                         value={formData.interval}
                         onValueChange={(value: any) =>
                           setFormData({ ...formData, interval: value })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-800 border-gray-700">
                           <SelectItem value="day">Diário</SelectItem>
                           <SelectItem value="week">Semanal</SelectItem>
                           <SelectItem value="month">Mensal</SelectItem>
@@ -556,7 +608,7 @@ export default function PlansManagementPage() {
                       </Select>
                     </div>
                     <div>
-                      <Label>Quantidade</Label>
+                      <Label className="text-gray-300">Quantidade</Label>
                       <Input
                         type="number"
                         value={formData.intervalCount}
@@ -567,6 +619,7 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
@@ -574,37 +627,69 @@ export default function PlansManagementPage() {
 
                 {/* Limites Diários de IA */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="text-lg font-semibold text-white">
                     Limites Diários de IA
                   </h3>
-                  <div>
-                    <Label htmlFor="maxAiMessagesDaily">
-                      Mensagens IA por Dia *
-                    </Label>
-                    <Input
-                      id="maxAiMessagesDaily"
-                      type="number"
-                      value={formData.maxAiMessagesDaily}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          maxAiMessagesDaily: parseInt(e.target.value) || 0,
-                        })
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      0 = ilimitado | Quantidade de mensagens de chat com IA
-                      permitidas por dia
-                    </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="maxAiMessagesDaily"
+                        className="text-gray-300"
+                      >
+                        Mensagens IA por Dia *
+                      </Label>
+                      <Input
+                        id="maxAiMessagesDaily"
+                        type="number"
+                        value={formData.maxAiMessagesDaily}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            maxAiMessagesDaily: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        0 = ilimitado | Mensagens de chat com IA por dia
+                      </p>
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="maxAiImagesDaily"
+                        className="text-gray-300"
+                      >
+                        Imagens IA por Dia *
+                      </Label>
+                      <Input
+                        id="maxAiImagesDaily"
+                        type="number"
+                        value={formData.maxAiImagesDaily}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            maxAiImagesDaily: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        0 = ilimitado | Imagens geradas por IA por dia
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Outros Limites */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Limites de Recursos</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Limites de Recursos
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Páginas de Checkout</Label>
+                      <Label className="text-gray-300">
+                        Páginas de Checkout
+                      </Label>
                       <Input
                         type="number"
                         value={formData.maxCheckoutPages}
@@ -615,10 +700,11 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Produtos</Label>
+                      <Label className="text-gray-300">Produtos</Label>
                       <Input
                         type="number"
                         value={formData.maxProducts}
@@ -629,10 +715,11 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Projetos</Label>
+                      <Label className="text-gray-300">Projetos</Label>
                       <Input
                         type="number"
                         value={formData.maxProjects}
@@ -643,10 +730,11 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Integrações</Label>
+                      <Label className="text-gray-300">Integrações</Label>
                       <Input
                         type="number"
                         value={formData.maxIntegrations}
@@ -657,6 +745,7 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
@@ -664,10 +753,14 @@ export default function PlansManagementPage() {
 
                 {/* Taxas de Transação */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Taxas de Transação</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Taxas de Transação
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Taxa Percentual (%)</Label>
+                      <Label className="text-gray-300">
+                        Taxa Percentual (%)
+                      </Label>
                       <Input
                         type="number"
                         value={formData.transactionFeePercentage}
@@ -682,10 +775,11 @@ export default function PlansManagementPage() {
                         min={0}
                         max={100}
                         step={0.01}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Taxa Fixa (R$)</Label>
+                      <Label className="text-gray-300">Taxa Fixa (R$)</Label>
                       <Input
                         type="number"
                         value={formData.transactionFeeFixed}
@@ -697,6 +791,7 @@ export default function PlansManagementPage() {
                         }
                         min={0}
                         step={0.01}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
@@ -704,10 +799,14 @@ export default function PlansManagementPage() {
 
                 {/* Features Booleanas */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Features Incluídas</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Features Incluídas
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Domínio Personalizado</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">
+                        Domínio Personalizado
+                      </Label>
                       <Switch
                         checked={formData.hasCustomDomain}
                         onCheckedChange={(checked) =>
@@ -715,8 +814,10 @@ export default function PlansManagementPage() {
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Analytics Avançado</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">
+                        Analytics Avançado
+                      </Label>
                       <Switch
                         checked={formData.hasAdvancedAnalytics}
                         onCheckedChange={(checked) =>
@@ -727,8 +828,10 @@ export default function PlansManagementPage() {
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Suporte Prioritário</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">
+                        Suporte Prioritário
+                      </Label>
                       <Switch
                         checked={formData.hasPrioritySupport}
                         onCheckedChange={(checked) =>
@@ -739,8 +842,8 @@ export default function PlansManagementPage() {
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Acesso à API</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">Acesso à API</Label>
                       <Switch
                         checked={formData.hasApiAccess}
                         onCheckedChange={(checked) =>
@@ -753,7 +856,7 @@ export default function PlansManagementPage() {
 
                 {/* Lista de Features */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="text-lg font-semibold text-white">
                     Features Descritivas
                   </h3>
                   <div className="flex gap-2">
@@ -761,6 +864,7 @@ export default function PlansManagementPage() {
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
                       placeholder="Digite uma feature e pressione Enter"
+                      className="bg-gray-800 border-gray-700 text-white"
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -768,23 +872,28 @@ export default function PlansManagementPage() {
                         }
                       }}
                     />
-                    <Button type="button" onClick={addFeature}>
-                      <Plus className="h-4 w-4" />
+                    <Button
+                      type="button"
+                      onClick={addFeature}
+                      className="bg-gray-800 hover:bg-gray-700 border-gray-700"
+                    >
+                      <HiPlus className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="space-y-2">
                     {formData.features.map((feature, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                        className="flex items-center justify-between p-2 bg-gray-800/50 border border-gray-700 rounded"
                       >
-                        <span className="text-sm">{feature}</span>
+                        <span className="text-sm text-white">{feature}</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFeature(index)}
+                          className="hover:bg-gray-700"
                         >
-                          <X className="h-4 w-4" />
+                          <HiXMark className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
@@ -793,10 +902,12 @@ export default function PlansManagementPage() {
 
                 {/* Configurações Adicionais */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Configurações</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Configurações
+                  </h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Plano Ativo</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">Plano Ativo</Label>
                       <Switch
                         checked={formData.active}
                         onCheckedChange={(checked) =>
@@ -804,8 +915,10 @@ export default function PlansManagementPage() {
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Marcar como Popular</Label>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">
+                        Marcar como Popular
+                      </Label>
                       <Switch
                         checked={formData.isPopular}
                         onCheckedChange={(checked) =>
@@ -813,8 +926,8 @@ export default function PlansManagementPage() {
                         }
                       />
                     </div>
-                    <div>
-                      <Label>Ordem de Exibição</Label>
+                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-300">Ordem de Exibição</Label>
                       <Input
                         type="number"
                         value={formData.sortOrder}
@@ -825,6 +938,7 @@ export default function PlansManagementPage() {
                           })
                         }
                         min={0}
+                        className="bg-gray-800 border-gray-700 text-white mt-2"
                       />
                     </div>
                   </div>
@@ -835,286 +949,283 @@ export default function PlansManagementPage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={editingPlan ? handleUpdatePlan : handleCreatePlan}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
                 >
                   {editingPlan ? "Atualizar" : "Criar"} Plano
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Planos
-              </CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPlans}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.activePlans} ativos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Assinaturas Ativas
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalSubscriptions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total de assinantes
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">MRR</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R${" "}
-                {stats.totalMRR.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Receita mensal recorrente
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">ARR</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R${" "}
-                {(stats.totalMRR * 12).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Receita anual recorrente
-              </p>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Total de Planos"
+            value={stats.totalPlans}
+            description={`${stats.activePlans} ativos`}
+            icon={HiShoppingBag}
+            gradient="from-orange-500 to-red-500"
+            delay={0.1}
+          />
+          <StatCard
+            title="Assinaturas Ativas"
+            value={stats.totalSubscriptions}
+            description="Total de assinantes"
+            icon={HiUsers}
+            gradient="from-blue-500 to-cyan-500"
+            delay={0.2}
+          />
+          <StatCard
+            title="MRR"
+            value={`R$ ${stats.totalMRR.toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })}`}
+            description="Receita mensal recorrente"
+            icon={HiCurrencyDollar}
+            gradient="from-green-500 to-emerald-500"
+            delay={0.3}
+          />
+          <StatCard
+            title="ARR"
+            value={`R$ ${(stats.totalMRR * 12).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })}`}
+            description="Receita anual recorrente"
+            icon={HiArrowTrendingUp}
+            gradient="from-purple-500 to-pink-500"
+            delay={0.4}
+          />
         </div>
 
         {/* Alert Info */}
-        <Alert>
-          <MessageSquare className="h-4 w-4" />
-          <AlertTitle>Limites Diários de IA</AlertTitle>
-          <AlertDescription>
-            Configure quantas mensagens e imagens cada plano pode gerar por dia.
-            Os contadores são resetados automaticamente à meia-noite.
-          </AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Alert className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+            <HiChatBubbleBottomCenterText className="h-4 w-4 text-purple-400" />
+            <AlertTitle className="text-white">
+              Limites Diários de IA
+            </AlertTitle>
+            <AlertDescription className="text-gray-400">
+              Configure quantas mensagens e imagens cada plano pode gerar por
+              dia. Os contadores são resetados automaticamente à meia-noite.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
 
         {/* Plans Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Planos Disponíveis</CardTitle>
-            <CardDescription>
-              Gerenciar todos os planos de assinatura
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {plans.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">Nenhum plano configurado</p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeiro Plano
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {plans.map((plan) => {
-                  const Icon = getPlanIcon(plan.name);
-                  return (
-                    <Card
-                      key={plan.id}
-                      className={!plan.active ? "opacity-60" : ""}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div
-                              className={`p-3 rounded-lg ${plan.active ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20" : "bg-gray-100 dark:bg-gray-800"}`}
-                            >
-                              <Icon
-                                className={`h-6 w-6 ${plan.active ? "text-blue-600" : "text-gray-400"}`}
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <CardTitle className="text-xl">
-                                  {plan.name}
-                                </CardTitle>
-                                {plan.isPopular && (
-                                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500">
-                                    Popular
-                                  </Badge>
-                                )}
-                                <Badge
-                                  variant={
-                                    plan.active ? "default" : "secondary"
-                                  }
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-white">Planos Disponíveis</CardTitle>
+              <CardDescription className="text-gray-400">
+                Gerenciar todos os planos de assinatura
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {plans.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 mb-4">Nenhum plano configurado</p>
+                  <Button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
+                  >
+                    <HiPlus className="h-4 w-4 mr-2" />
+                    Criar Primeiro Plano
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {plans.map((plan, index) => {
+                    const Icon = getPlanIcon(plan.name);
+                    return (
+                      <motion.div
+                        key={plan.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card
+                          className={`border-gray-700/50 bg-gray-800/50 backdrop-blur-xl ${!plan.active ? "opacity-60" : ""}`}
+                        >
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3 flex-1">
+                                <div
+                                  className={`p-3 rounded-lg ${plan.active ? "bg-gradient-to-br from-orange-500/20 to-red-500/20" : "bg-gray-800"}`}
                                 >
-                                  {plan.active ? "Ativo" : "Inativo"}
-                                </Badge>
+                                  <Icon
+                                    className={`h-6 w-6 ${plan.active ? "text-orange-400" : "text-gray-500"}`}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <CardTitle className="text-xl text-white">
+                                      {plan.name}
+                                    </CardTitle>
+                                    {plan.isPopular && (
+                                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0">
+                                        Popular
+                                      </Badge>
+                                    )}
+                                    <Badge
+                                      className={
+                                        plan.active
+                                          ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border-green-500/30 border"
+                                          : "bg-gray-700/50 text-gray-400 border-gray-600"
+                                      }
+                                    >
+                                      {plan.active ? "Ativo" : "Inativo"}
+                                    </Badge>
+                                  </div>
+                                  <CardDescription className="text-gray-400">
+                                    {plan.description}
+                                  </CardDescription>
+                                  <div className="mt-2 flex items-baseline gap-1">
+                                    <span className="text-2xl font-bold text-white">
+                                      R${" "}
+                                      {plan.price.toLocaleString("pt-BR", {
+                                        minimumFractionDigits: 2,
+                                      })}
+                                    </span>
+                                    <span className="text-sm text-gray-400">
+                                      /{" "}
+                                      {getIntervalLabel(
+                                        plan.interval,
+                                        plan.intervalCount,
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <CardDescription>
-                                {plan.description}
-                              </CardDescription>
-                              <div className="mt-2 flex items-baseline gap-1">
-                                <span className="text-2xl font-bold">
-                                  R${" "}
-                                  {plan.price.toLocaleString("pt-BR", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                  /{" "}
-                                  {getIntervalLabel(
-                                    plan.interval,
-                                    plan.intervalCount,
-                                  )}
-                                </span>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleTogglePlan(plan.id, plan.active)
+                                  }
+                                  className="hover:bg-gray-700 text-gray-300"
+                                >
+                                  <IoPower
+                                    className={`h-4 w-4 ${plan.active ? "text-red-400" : "text-green-400"}`}
+                                  />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditDialog(plan)}
+                                  className="hover:bg-gray-700 text-gray-300"
+                                >
+                                  <HiPencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePlan(plan.id)}
+                                  className="hover:bg-gray-700 text-red-400"
+                                >
+                                  <HiTrash className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleTogglePlan(plan.id, plan.active)
-                              }
-                            >
-                              {plan.active ? (
-                                <PowerOff className="h-4 w-4" />
-                              ) : (
-                                <Power className="h-4 w-4" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Msgs IA/dia
+                                </p>
+                                <p className="text-lg font-semibold text-white">
+                                  {plan.maxAiMessagesDaily || "∞"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Imgs IA/dia
+                                </p>
+                                <p className="text-lg font-semibold text-white">
+                                  {plan.maxAiImagesDaily || "∞"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Checkouts
+                                </p>
+                                <p className="text-lg font-semibold text-white">
+                                  {plan.maxCheckoutPages}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Assinantes
+                                </p>
+                                <p className="text-lg font-semibold text-white">
+                                  {plan._count?.subscriptions || 0}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {plan.hasCustomDomain && (
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 border-gray-600 text-gray-300"
+                                >
+                                  <HiGlobeAlt className="h-3 w-3" />
+                                  Domínio Personalizado
+                                </Badge>
                               )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(plan)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeletePlan(plan.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Msgs IA/dia
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {plan.maxAiMessagesDaily || "∞"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Imgs IA/dia
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {plan.maxAiImagesDaily || "∞"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Checkouts
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {plan.maxCheckoutPages}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Assinantes
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {plan._count?.subscriptions || 0}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {plan.hasCustomDomain && (
-                            <Badge
-                              variant="outline"
-                              className="flex items-center gap-1"
-                            >
-                              <Globe className="h-3 w-3" />
-                              Domínio Personalizado
-                            </Badge>
-                          )}
-                          {plan.hasAdvancedAnalytics && (
-                            <Badge
-                              variant="outline"
-                              className="flex items-center gap-1"
-                            >
-                              <BarChart3 className="h-3 w-3" />
-                              Analytics Avançado
-                            </Badge>
-                          )}
-                          {plan.hasPrioritySupport && (
-                            <Badge
-                              variant="outline"
-                              className="flex items-center gap-1"
-                            >
-                              <Headphones className="h-3 w-3" />
-                              Suporte Prioritário
-                            </Badge>
-                          )}
-                          {plan.hasApiAccess && (
-                            <Badge
-                              variant="outline"
-                              className="flex items-center gap-1"
-                            >
-                              <Code className="h-3 w-3" />
-                              Acesso API
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                              {plan.hasAdvancedAnalytics && (
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 border-gray-600 text-gray-300"
+                                >
+                                  <HiChartBar className="h-3 w-3" />
+                                  Analytics Avançado
+                                </Badge>
+                              )}
+                              {plan.hasPrioritySupport && (
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 border-gray-600 text-gray-300"
+                                >
+                                  <HiPhone className="h-3 w-3" />
+                                  Suporte Prioritário
+                                </Badge>
+                              )}
+                              {plan.hasApiAccess && (
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 border-gray-600 text-gray-300"
+                                >
+                                  <HiCodeBracket className="h-3 w-3" />
+                                  Acesso API
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </SuperAdminLayout>
   );
