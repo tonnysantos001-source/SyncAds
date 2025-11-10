@@ -72,6 +72,12 @@ const GlobalAiPage = lazy(() => import("./pages/super-admin/GlobalAiPage"));
 const OAuthConfigPage = lazy(
   () => import("./pages/super-admin/OAuthConfigPage"),
 );
+const PaymentSplitPage = lazy(
+  () => import("./pages/super-admin/PaymentSplitPage"),
+);
+const PlansManagementPage = lazy(
+  () => import("./pages/super-admin/PlansManagementPage"),
+);
 
 // Reports pages
 const ReportsOverviewPage = lazy(
@@ -270,6 +276,14 @@ function App() {
               <Route
                 path="/super-admin/oauth-config"
                 element={<OAuthConfigPage />}
+              />
+              <Route
+                path="/super-admin/payment-split"
+                element={<PaymentSplitPage />}
+              />
+              <Route
+                path="/super-admin/plans"
+                element={<PlansManagementPage />}
               />
             </Route>
 

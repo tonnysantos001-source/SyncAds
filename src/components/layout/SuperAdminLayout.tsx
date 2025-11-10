@@ -1,7 +1,7 @@
-import { ReactNode, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ReactNode, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,24 +9,26 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
-  Bot, 
-  LayoutDashboard, 
+} from "@/components/ui/dropdown-menu";
+import {
+  Bot,
+  LayoutDashboard,
   LogOut,
   Shield,
   Settings,
   Users,
   DollarSign,
-  BarChart3,
   CreditCard,
+  BarChart3,
   Menu,
   X,
   MessageSquare,
-  Plug
-} from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import Logo from '@/components/Logo';
+  Plug,
+  Shuffle,
+  Package,
+} from "lucide-react";
+import { useStore } from "@/store/useStore";
+import Logo from "@/components/Logo";
 
 interface SuperAdminLayoutProps {
   children: ReactNode;
@@ -34,44 +36,54 @@ interface SuperAdminLayoutProps {
 
 const menuItems = [
   {
-    label: 'Dashboard',
+    label: "Dashboard",
     icon: LayoutDashboard,
-    path: '/super-admin',
+    path: "/super-admin",
   },
   {
-    label: 'Chat Admin',
+    label: "Chat Admin",
     icon: MessageSquare,
-    path: '/super-admin/chat',
+    path: "/super-admin/chat",
   },
   {
-    label: 'Clientes',
+    label: "Clientes",
     icon: Users,
-    path: '/super-admin/clients',
+    path: "/super-admin/clients",
   },
   {
-    label: 'Faturamento',
+    label: "Faturamento",
     icon: DollarSign,
-    path: '/super-admin/billing',
+    path: "/super-admin/billing",
   },
   {
-    label: 'Uso de IA',
+    label: "Uso de IA",
     icon: BarChart3,
-    path: '/super-admin/usage',
+    path: "/super-admin/usage",
   },
   {
-    label: 'Gateways',
+    label: "Gateways",
     icon: CreditCard,
-    path: '/super-admin/gateways',
+    path: "/super-admin/gateways",
   },
   {
-    label: 'Conexões de IA',
+    label: "Conexões de IA",
     icon: Bot,
-    path: '/super-admin/ai-connections',
+    path: "/super-admin/ai-connections",
   },
   {
-    label: 'Integrações OAuth',
+    label: "Integrações OAuth",
     icon: Plug,
-    path: '/super-admin/oauth-config',
+    path: "/super-admin/oauth-config",
+  },
+  {
+    label: "Split de Pagamento",
+    icon: Shuffle,
+    path: "/super-admin/payment-split",
+  },
+  {
+    label: "Gestão de Planos",
+    icon: Package,
+    path: "/super-admin/plans",
   },
 ];
 
@@ -86,11 +98,11 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     try {
       await logout();
       // Forçar redirect completo (não apenas navigate)
-      window.location.href = '/login';
+      window.location.href = "/login";
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error("Erro ao fazer logout:", error);
       // Mesmo se der erro, redirecionar
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   };
 
@@ -100,19 +112,23 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50" />
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl" />
-      
+
       {/* Content */}
       <div className="relative flex h-screen w-full z-10">
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
           <div className="flex h-full flex-col bg-gray-900 backdrop-blur-xl border-r border-gray-700">
             {/* Logo */}
             <div className="flex h-16 items-center gap-2 border-b border-gray-700 px-6">
               <Logo />
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white">SyncAds</span>
+                <span className="text-sm font-semibold text-white">
+                  SyncAds
+                </span>
                 <span className="text-xs text-purple-400 font-medium flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Super Admin
@@ -141,13 +157,17 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-gray-300 hover:bg-gray-700/50'
+                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30"
+                        : "text-gray-300 hover:bg-gray-700/50"
                     }`}
                   >
-                    <Icon className={`h-5 w-5 ${
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-400'
-                    }`} />
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isActive
+                          ? "text-white"
+                          : "text-gray-400 group-hover:text-blue-400"
+                      }`}
+                    />
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 );
@@ -159,8 +179,12 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
               <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
                 <Shield className="h-4 w-4 text-blue-400" />
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-white">Área Restrita</p>
-                  <p className="text-xs text-gray-400">Acesso total ao sistema</p>
+                  <p className="text-xs font-medium text-white">
+                    Área Restrita
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Acesso total ao sistema
+                  </p>
                 </div>
               </div>
             </div>
@@ -189,9 +213,15 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
               <div className="flex items-center gap-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Button
+                      variant="ghost"
+                      className="relative h-10 w-10 rounded-full"
+                    >
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
+                        <AvatarImage
+                          src={user?.avatar || undefined}
+                          alt={user?.name}
+                        />
                         <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
                           {user?.name?.charAt(0).toUpperCase()}
                         </AvatarFallback>
@@ -212,7 +242,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
                       <Settings className="mr-2 h-4 w-4" />
                       Configurações
                     </DropdownMenuItem>
@@ -228,9 +258,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
           {/* Main Content */}
           <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-            <div className="max-w-7xl mx-auto">
-              {children}
-            </div>
+            <div className="max-w-7xl mx-auto">{children}</div>
           </main>
         </div>
       </div>
