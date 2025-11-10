@@ -35,6 +35,7 @@ import {
   HiBeaker,
   HiCog6Tooth,
   HiXMark,
+  HiCpuChip,
 } from "react-icons/hi2";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
