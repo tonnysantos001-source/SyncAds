@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -38,21 +39,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Plus,
-  Edit,
-  Trash2,
-  Power,
-  PowerOff,
-  Shuffle,
-  Clock,
-  DollarSign,
-  Percent,
-  AlertCircle,
-  Activity,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-} from "lucide-react";
+  HiPlus,
+  HiPencil,
+  HiTrash,
+  HiArrowsRightLeft,
+  HiClock,
+  HiCurrencyDollar,
+  HiExclamationCircle,
+  HiChartBar,
+  HiCheckCircle,
+  HiXCircle,
+  HiArrowPath,
+  HiBanknotes,
+} from "react-icons/hi2";
+import { IoPower } from "react-icons/io5";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
@@ -91,6 +91,51 @@ interface Stats {
   adminRevenue: number;
   splitPercentage: number;
 }
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: React.ElementType;
+  gradient: string;
+  delay?: number;
+}
+
+const StatCard = ({
+  title,
+  value,
+  description,
+  icon: Icon,
+  gradient,
+  delay = 0,
+}: StatCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    whileHover={{ scale: 1.02 }}
+  >
+    <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl hover:border-gray-600 transition-all group cursor-pointer relative overflow-hidden">
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`}
+      />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-gray-300">
+          {title}
+        </CardTitle>
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}
+        >
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+      </CardHeader>
+      <CardContent className="relative z-10">
+        <div className="text-3xl font-bold text-white mb-1">{value}</div>
+        <p className="text-xs text-gray-400">{description}</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
 
 export default function PaymentSplitPage() {
   const { toast } = useToast();
@@ -423,15 +468,15 @@ export default function PaymentSplitPage() {
   const getRuleIcon = (type: string) => {
     switch (type) {
       case "frequency":
-        return Shuffle;
+        return HiArrowsRightLeft;
       case "percentage":
-        return Percent;
+        return HiBanknotes;
       case "value":
-        return DollarSign;
+        return HiCurrencyDollar;
       case "time":
-        return Clock;
+        return HiClock;
       default:
-        return Activity;
+        return HiChartBar;
     }
   };
 
@@ -451,8 +496,12 @@ export default function PaymentSplitPage() {
   if (loading) {
     return (
       <SuperAdminLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-76px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full"
+          />
         </div>
       </SuperAdminLayout>
     );
@@ -462,67 +511,76 @@ export default function PaymentSplitPage() {
     <SuperAdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Split de Pagamento
             </h1>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-400 mt-1">
               Controle a distribuição de transações entre seu gateway e o dos
               clientes
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button
+                onClick={resetForm}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+              >
+                <HiPlus className="h-5 w-5 mr-2" />
                 Nova Regra
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-white">
                   {editingRule ? "Editar Regra" : "Criar Nova Regra"}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-gray-400">
                   Configure como as transações serão distribuídas
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div>
-                  <Label>Nome da Regra</Label>
+                  <Label className="text-gray-300">Nome da Regra</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Ex: Split 20% Admin"
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label>Descrição</Label>
+                  <Label className="text-gray-300">Descrição</Label>
                   <Input
                     value={formData.description}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label>Tipo de Regra</Label>
+                  <Label className="text-gray-300">Tipo de Regra</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value: any) =>
                       setFormData({ ...formData, type: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       <SelectItem value="frequency">
                         Frequência (A cada X transações)
                       </SelectItem>
@@ -539,7 +597,9 @@ export default function PaymentSplitPage() {
                 {formData.type === "frequency" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>A cada quantas transações?</Label>
+                      <Label className="text-gray-300">
+                        A cada quantas transações?
+                      </Label>
                       <Input
                         type="number"
                         value={formData.frequencyEvery}
@@ -550,10 +610,13 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Quantas vão para o admin?</Label>
+                      <Label className="text-gray-300">
+                        Quantas vão para o admin?
+                      </Label>
                       <Input
                         type="number"
                         value={formData.frequencyTake}
@@ -564,6 +627,7 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
@@ -571,7 +635,9 @@ export default function PaymentSplitPage() {
 
                 {formData.type === "percentage" && (
                   <div>
-                    <Label>Percentual para o admin (%)</Label>
+                    <Label className="text-gray-300">
+                      Percentual para o admin (%)
+                    </Label>
                     <Input
                       type="number"
                       value={formData.percentage}
@@ -584,6 +650,7 @@ export default function PaymentSplitPage() {
                       min={0}
                       max={100}
                       step={0.1}
+                      className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                 )}
@@ -591,7 +658,7 @@ export default function PaymentSplitPage() {
                 {formData.type === "value" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Valor Mínimo (R$)</Label>
+                      <Label className="text-gray-300">Valor Mínimo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.minValue}
@@ -603,10 +670,11 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Valor Máximo (R$)</Label>
+                      <Label className="text-gray-300">Valor Máximo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.maxValue}
@@ -618,23 +686,24 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <Label>Gateway do Admin</Label>
+                  <Label className="text-gray-300">Gateway do Admin</Label>
                   <Select
                     value={formData.adminGatewayId}
                     onValueChange={(value) =>
                       setFormData({ ...formData, adminGatewayId: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Selecione um gateway" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       {gateways.map((gateway) => (
                         <SelectItem key={gateway.id} value={gateway.id}>
                           {gateway.name}
@@ -645,7 +714,9 @@ export default function PaymentSplitPage() {
                 </div>
 
                 <div>
-                  <Label>Prioridade (maior = maior prioridade)</Label>
+                  <Label className="text-gray-300">
+                    Prioridade (maior = maior prioridade)
+                  </Label>
                   <Input
                     type="number"
                     value={formData.priority}
@@ -656,11 +727,12 @@ export default function PaymentSplitPage() {
                       })
                     }
                     min={0}
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <Label>Regra Ativa</Label>
+                <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <Label className="text-gray-300">Regra Ativa</Label>
                   <Switch
                     checked={formData.isActive}
                     onCheckedChange={(checked) =>
@@ -674,220 +746,207 @@ export default function PaymentSplitPage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>
+                <Button
+                  onClick={handleSave}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                >
                   {editingRule ? "Atualizar" : "Criar"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalTransactions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Transações processadas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Admin</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.adminTransactions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.splitPercentage.toFixed(1)}% do total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Cliente</CardTitle>
-              <XCircle className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.clientTransactions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {(100 - stats.splitPercentage).toFixed(1)}% do total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Receita Admin
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R${" "}
-                {stats.adminRevenue.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground">Via split</p>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Total"
+            value={stats.totalTransactions}
+            description="Transações processadas"
+            icon={HiChartBar}
+            gradient="from-cyan-500 to-blue-500"
+            delay={0.1}
+          />
+          <StatCard
+            title="Admin"
+            value={stats.adminTransactions}
+            description={`${stats.splitPercentage.toFixed(1)}% do total`}
+            icon={HiCheckCircle}
+            gradient="from-green-500 to-emerald-500"
+            delay={0.2}
+          />
+          <StatCard
+            title="Cliente"
+            value={stats.clientTransactions}
+            description={`${(100 - stats.splitPercentage).toFixed(1)}% do total`}
+            icon={HiXCircle}
+            gradient="from-blue-500 to-indigo-500"
+            delay={0.3}
+          />
+          <StatCard
+            title="Receita Admin"
+            value={`R$ ${stats.adminRevenue.toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })}`}
+            description="Via split"
+            icon={HiCurrencyDollar}
+            gradient="from-purple-500 to-pink-500"
+            delay={0.4}
+          />
         </div>
 
         {/* Gateway Admin Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Gateway do Admin (Seu Gateway)</CardTitle>
-            <CardDescription>
-              Configure o gateway que receberá as transações quando o split
-              direcionar para o admin. Use suas credenciais da Pague-X ou outro
-              gateway compatível.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Sistema Multi-Gateway com Auto-Detecção</AlertTitle>
-                <AlertDescription>
-                  O sistema detecta automaticamente qual gateway você está
-                  usando. Suporta: Pague-X, Mercado Pago, PagSeguro, Stripe,
-                  Asaas e outros. Insira suas credenciais e clique em "Testar
-                  Conexão".
-                </AlertDescription>
-              </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-white">
+                Gateway do Admin (Seu Gateway)
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Configure o gateway que receberá as transações quando o split
+                direcionar para o admin. Use suas credenciais da Pague-X ou
+                outro gateway compatível.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert className="border-gray-700/50 bg-gray-800/50">
+                  <HiExclamationCircle className="h-4 w-4 text-cyan-400" />
+                  <AlertTitle className="text-white">
+                    Sistema Multi-Gateway com Auto-Detecção
+                  </AlertTitle>
+                  <AlertDescription className="text-gray-400">
+                    O sistema detecta automaticamente qual gateway você está
+                    usando. Suporta: Pague-X, Mercado Pago, PagSeguro, Stripe,
+                    Asaas e outros. Insira suas credenciais e clique em "Testar
+                    Conexão".
+                  </AlertDescription>
+                </Alert>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Gateway</Label>
-                  {credentialsStatus.configured &&
-                  credentialsStatus.gatewayName ? (
-                    <div className="flex items-center gap-2 p-2 border rounded bg-green-50 dark:bg-green-900/20">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium">
-                        {credentialsStatus.gatewayName}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="p-2 border rounded bg-gray-50 dark:bg-gray-800 text-sm text-muted-foreground">
-                      Auto-detectado após testar conexão
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Suportamos: Pague-X, Mercado Pago, PagSeguro, Stripe, Asaas
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Public Key</Label>
-                  <Input
-                    type="text"
-                    placeholder="Sua Public Key da Pague-X"
-                    className="font-mono text-sm"
-                    value={adminCredentials.publicKey}
-                    onChange={(e) =>
-                      setAdminCredentials({
-                        ...adminCredentials,
-                        publicKey: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Secret Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="Sua Secret Key da Pague-X"
-                    className="font-mono text-sm"
-                    value={adminCredentials.secretKey}
-                    onChange={(e) =>
-                      setAdminCredentials({
-                        ...adminCredentials,
-                        secretKey: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button onClick={handleSaveCredentials} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Salvar Credenciais
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleTestConnection}
-                  disabled={isTesting}
-                >
-                  {isTesting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Testando...
-                    </>
-                  ) : (
-                    "Testar Conexão"
-                  )}
-                </Button>
-              </div>
-
-              {credentialsStatus.configured && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded">
-                      <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                        Gateway Configurado
-                      </h4>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        {credentialsStatus.gatewayName || "Gateway"} •
-                        Configurado e ativo
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                        Public Key: {credentialsStatus.publicKey}
-                      </p>
-                    </div>
-                    <Badge className="bg-green-500">Ativo</Badge>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Gateway</Label>
+                    {credentialsStatus.configured &&
+                    credentialsStatus.gatewayName ? (
+                      <div className="flex items-center gap-2 p-2 border rounded bg-green-50 dark:bg-green-900/20">
+                        <HiCheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium">
+                          {credentialsStatus.gatewayName}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-2 border rounded bg-gray-50 dark:bg-gray-800 text-sm text-muted-foreground">
+                        Auto-detectado após testar conexão
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Suportamos: Pague-X, Mercado Pago, PagSeguro, Stripe,
+                      Asaas
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Public Key</Label>
+                    <Input
+                      type="text"
+                      placeholder="Sua Public Key da Pague-X"
+                      className="font-mono text-sm"
+                      value={adminCredentials.publicKey}
+                      onChange={(e) =>
+                        setAdminCredentials({
+                          ...adminCredentials,
+                          publicKey: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Secret Key</Label>
+                    <Input
+                      type="password"
+                      placeholder="Sua Secret Key da Pague-X"
+                      className="font-mono text-sm"
+                      value={adminCredentials.secretKey}
+                      onChange={(e) =>
+                        setAdminCredentials({
+                          ...adminCredentials,
+                          secretKey: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveCredentials} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <HiArrowPath className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <HiCheckCircle className="h-4 w-4 mr-2" />
+                        Salvar Credenciais
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? (
+                      <>
+                        <HiArrowPath className="h-4 w-4 mr-2 animate-spin" />
+                        Testando...
+                      </>
+                    ) : (
+                      "Testar Conexão"
+                    )}
+                  </Button>
+                </div>
+
+                {credentialsStatus.configured && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded">
+                        <HiCurrencyDollar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                          Gateway Configurado
+                        </h4>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          {credentialsStatus.gatewayName || "Gateway"} •
+                          Configurado e ativo
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Public Key: {credentialsStatus.publicKey}
+                        </p>
+                      </div>
+                      <Badge className="bg-green-500">Ativo</Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Alert */}
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <HiExclamationCircle className="h-4 w-4" />
           <AlertTitle>Como funciona?</AlertTitle>
           <AlertDescription>
             O sistema distribui automaticamente as transações entre seu gateway
@@ -909,7 +968,7 @@ export default function PaymentSplitPage() {
               <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">Nenhuma regra configurada</p>
                 <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <HiPlus className="h-4 w-4 mr-2" />
                   Criar Primeira Regra
                 </Button>
               </div>
@@ -959,7 +1018,7 @@ export default function PaymentSplitPage() {
                               size="sm"
                               onClick={() => handleResetCounter(rule.id)}
                             >
-                              <RefreshCw className="h-3 w-3" />
+                              <HiArrowPath className="h-3 w-3" />
                             </Button>
                           </div>
                         </TableCell>
@@ -989,26 +1048,27 @@ export default function PaymentSplitPage() {
                               onClick={() =>
                                 handleToggle(rule.id, rule.isActive)
                               }
+                              className="hover:bg-gray-700 text-gray-300"
                             >
-                              {rule.isActive ? (
-                                <PowerOff className="h-4 w-4" />
-                              ) : (
-                                <Power className="h-4 w-4" />
-                              )}
+                              <IoPower
+                                className={`h-4 w-4 ${rule.isActive ? "text-red-400" : "text-green-400"}`}
+                              />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => openEdit(rule)}
+                              className="hover:bg-gray-700 text-gray-300"
                             >
-                              <Edit className="h-4 w-4" />
+                              <HiPencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(rule.id)}
+                              className="hover:bg-gray-700 text-red-400"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <HiTrash className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
