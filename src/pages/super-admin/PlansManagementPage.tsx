@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -29,7 +35,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Plus,
   Edit,
@@ -50,11 +56,11 @@ import {
   Percent,
   TrendingUp,
   Users,
-} from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
-import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Plan {
   id: string;
@@ -63,7 +69,7 @@ interface Plan {
   description: string;
   price: number;
   currency: string;
-  interval: 'day' | 'week' | 'month' | 'year' | 'lifetime';
+  interval: "day" | "week" | "month" | "year" | "lifetime";
   intervalCount: number;
   features: string[];
   maxAiMessages: number;
@@ -111,12 +117,12 @@ export default function PlansManagementPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
+    name: "",
+    slug: "",
+    description: "",
     price: 0,
-    currency: 'BRL',
-    interval: 'month' as const,
+    currency: "BRL",
+    interval: "month" as const,
     intervalCount: 1,
     features: [] as string[],
     maxAiMessages: 0,
@@ -136,7 +142,7 @@ export default function PlansManagementPage() {
     isPopular: false,
     sortOrder: 0,
   });
-  const [newFeature, setNewFeature] = useState('');
+  const [newFeature, setNewFeature] = useState("");
 
   useEffect(() => {
     loadData();
@@ -147,11 +153,11 @@ export default function PlansManagementPage() {
     try {
       await Promise.all([loadPlans(), loadStats()]);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os dados',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível carregar os dados",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -160,9 +166,9 @@ export default function PlansManagementPage() {
 
   const loadPlans = async () => {
     const { data, error } = await supabase
-      .from('Plan')
-      .select('*')
-      .order('sortOrder', { ascending: true });
+      .from("PricingPlan")
+      .select("*")
+      .order("sortOrder", { ascending: true });
 
     if (error) throw error;
 
@@ -170,38 +176,38 @@ export default function PlansManagementPage() {
     const plansWithCount = await Promise.all(
       (data || []).map(async (plan) => {
         const { count } = await supabase
-          .from('Subscription')
-          .select('*', { count: 'exact', head: true })
-          .eq('planId', plan.id)
-          .eq('status', 'active');
+          .from("Subscription")
+          .select("*", { count: "exact", head: true })
+          .eq("planId", plan.id)
+          .eq("status", "active");
 
         return {
           ...plan,
           _count: { subscriptions: count || 0 },
         };
-      })
+      }),
     );
 
     setPlans(plansWithCount);
   };
 
   const loadStats = async () => {
-    const { data: plansData } = await supabase.from('Plan').select('*');
+    const { data: plansData } = await supabase.from("PricingPlan").select("*");
 
     const { data: subsData } = await supabase
-      .from('Subscription')
-      .select('planId')
-      .eq('status', 'active');
+      .from("Subscription")
+      .select("planId")
+      .eq("status", "active");
 
     const totalPlans = plansData?.length || 0;
-    const activePlans = plansData?.filter(p => p.active).length || 0;
+    const activePlans = plansData?.filter((p) => p.active).length || 0;
     const totalSubscriptions = subsData?.length || 0;
 
     // Calcular MRR
     let totalMRR = 0;
     if (subsData && plansData) {
       for (const sub of subsData) {
-        const plan = plansData.find(p => p.id === sub.planId);
+        const plan = plansData.find((p) => p.id === sub.planId);
         if (plan) {
           totalMRR += plan.price;
         }
@@ -218,7 +224,7 @@ export default function PlansManagementPage() {
 
   const handleCreatePlan = async () => {
     try {
-      const { error } = await supabase.from('Plan').insert({
+      const { error } = await supabase.from("PricingPlan").insert({
         ...formData,
         features: JSON.stringify(formData.features),
       });
@@ -226,8 +232,8 @@ export default function PlansManagementPage() {
       if (error) throw error;
 
       toast({
-        title: 'Sucesso!',
-        description: 'Plano criado com sucesso',
+        title: "Sucesso!",
+        description: "Plano criado com sucesso",
       });
 
       setIsDialogOpen(false);
@@ -235,9 +241,9 @@ export default function PlansManagementPage() {
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -247,18 +253,18 @@ export default function PlansManagementPage() {
 
     try {
       const { error } = await supabase
-        .from('Plan')
+        .from("PricingPlan")
         .update({
           ...formData,
           features: JSON.stringify(formData.features),
         })
-        .eq('id', editingPlan.id);
+        .eq("id", editingPlan.id);
 
       if (error) throw error;
 
       toast({
-        title: 'Sucesso!',
-        description: 'Plano atualizado com sucesso',
+        title: "Sucesso!",
+        description: "Plano atualizado com sucesso",
       });
 
       setIsDialogOpen(false);
@@ -267,32 +273,35 @@ export default function PlansManagementPage() {
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
   const handleDeletePlan = async (planId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+    if (!confirm("Tem certeza que deseja excluir este plano?")) return;
 
     try {
-      const { error } = await supabase.from('Plan').delete().eq('id', planId);
+      const { error } = await supabase
+        .from("PricingPlan")
+        .delete()
+        .eq("id", planId);
 
       if (error) throw error;
 
       toast({
-        title: 'Sucesso!',
-        description: 'Plano excluído com sucesso',
+        title: "Sucesso!",
+        description: "Plano excluído com sucesso",
       });
 
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -300,35 +309,35 @@ export default function PlansManagementPage() {
   const handleTogglePlan = async (planId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
-        .from('Plan')
+        .from("PricingPlan")
         .update({ active: !currentStatus })
-        .eq('id', planId);
+        .eq("id", planId);
 
       if (error) throw error;
 
       toast({
-        title: 'Sucesso!',
-        description: `Plano ${!currentStatus ? 'ativado' : 'desativado'} com sucesso`,
+        title: "Sucesso!",
+        description: `Plano ${!currentStatus ? "ativado" : "desativado"} com sucesso`,
       });
 
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro',
+        title: "Erro",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      slug: '',
-      description: '',
+      name: "",
+      slug: "",
+      description: "",
       price: 0,
-      currency: 'BRL',
-      interval: 'month',
+      currency: "BRL",
+      interval: "month",
       intervalCount: 1,
       features: [],
       maxAiMessages: 0,
@@ -348,7 +357,7 @@ export default function PlansManagementPage() {
       isPopular: false,
       sortOrder: 0,
     });
-    setNewFeature('');
+    setNewFeature("");
   };
 
   const openEditDialog = (plan: Plan) => {
@@ -356,7 +365,7 @@ export default function PlansManagementPage() {
     setFormData({
       name: plan.name,
       slug: plan.slug,
-      description: plan.description || '',
+      description: plan.description || "",
       price: plan.price,
       currency: plan.currency,
       interval: plan.interval,
@@ -388,7 +397,7 @@ export default function PlansManagementPage() {
         ...formData,
         features: [...formData.features, newFeature.trim()],
       });
-      setNewFeature('');
+      setNewFeature("");
     }
   };
 
@@ -401,19 +410,19 @@ export default function PlansManagementPage() {
 
   const getPlanIcon = (planName: string) => {
     const name = planName.toLowerCase();
-    if (name.includes('enterprise')) return Crown;
-    if (name.includes('pro')) return Star;
-    if (name.includes('starter')) return Zap;
+    if (name.includes("enterprise")) return Crown;
+    if (name.includes("pro")) return Star;
+    if (name.includes("starter")) return Zap;
     return ShoppingBag;
   };
 
   const getIntervalLabel = (interval: string, count: number) => {
     const labels: Record<string, string> = {
-      day: 'dia',
-      week: 'semana',
-      month: 'mês',
-      year: 'ano',
-      lifetime: 'vitalício',
+      day: "dia",
+      week: "semana",
+      month: "mês",
+      year: "ano",
+      lifetime: "vitalício",
     };
     return count > 1 ? `${count} ${labels[interval]}s` : labels[interval];
   };
@@ -456,7 +465,7 @@ export default function PlansManagementPage() {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingPlan ? 'Editar Plano' : 'Criar Novo Plano'}
+                  {editingPlan ? "Editar Plano" : "Criar Novo Plano"}
                 </DialogTitle>
                 <DialogDescription>
                   Configure todos os detalhes e limites do plano
@@ -494,7 +503,10 @@ export default function PlansManagementPage() {
                     <Textarea
                       value={formData.description}
                       onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
                       }
                       placeholder="Descrição do plano"
                       rows={3}
@@ -512,7 +524,10 @@ export default function PlansManagementPage() {
                         type="number"
                         value={formData.price}
                         onChange={(e) =>
-                          setFormData({ ...formData, price: parseFloat(e.target.value) })
+                          setFormData({
+                            ...formData,
+                            price: parseFloat(e.target.value),
+                          })
                         }
                         min={0}
                         step={0.01}
@@ -557,7 +572,9 @@ export default function PlansManagementPage() {
 
                 {/* Limites Diários de IA */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Limites Diários de IA</h3>
+                  <h3 className="text-lg font-semibold">
+                    Limites Diários de IA
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Mensagens IA por Dia</Label>
@@ -671,7 +688,9 @@ export default function PlansManagementPage() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            transactionFeePercentage: parseFloat(e.target.value),
+                            transactionFeePercentage: parseFloat(
+                              e.target.value,
+                            ),
                           })
                         }
                         min={0}
@@ -715,7 +734,10 @@ export default function PlansManagementPage() {
                       <Switch
                         checked={formData.hasAdvancedAnalytics}
                         onCheckedChange={(checked) =>
-                          setFormData({ ...formData, hasAdvancedAnalytics: checked })
+                          setFormData({
+                            ...formData,
+                            hasAdvancedAnalytics: checked,
+                          })
                         }
                       />
                     </div>
@@ -724,7 +746,10 @@ export default function PlansManagementPage() {
                       <Switch
                         checked={formData.hasPrioritySupport}
                         onCheckedChange={(checked) =>
-                          setFormData({ ...formData, hasPrioritySupport: checked })
+                          setFormData({
+                            ...formData,
+                            hasPrioritySupport: checked,
+                          })
                         }
                       />
                     </div>
@@ -742,14 +767,16 @@ export default function PlansManagementPage() {
 
                 {/* Lista de Features */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Features Descritivas</h3>
+                  <h3 className="text-lg font-semibold">
+                    Features Descritivas
+                  </h3>
                   <div className="flex gap-2">
                     <Input
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
                       placeholder="Digite uma feature e pressione Enter"
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           addFeature();
                         }
@@ -819,11 +846,16 @@ export default function PlansManagementPage() {
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Cancelar
                 </Button>
-                <Button onClick={editingPlan ? handleUpdatePlan : handleCreatePlan}>
-                  {editingPlan ? 'Atualizar' : 'Criar'} Plano
+                <Button
+                  onClick={editingPlan ? handleUpdatePlan : handleCreatePlan}
+                >
+                  {editingPlan ? "Atualizar" : "Criar"} Plano
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -834,7 +866,9 @@ export default function PlansManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total de Planos</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total de Planos
+              </CardTitle>
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -847,12 +881,18 @@ export default function PlansManagementPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Assinaturas Ativas
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSubscriptions}</div>
-              <p className="text-xs text-muted-foreground">Total de assinantes</p>
+              <div className="text-2xl font-bold">
+                {stats.totalSubscriptions}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total de assinantes
+              </p>
             </CardContent>
           </Card>
 
@@ -863,9 +903,14 @@ export default function PlansManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                R$ {stats.totalMRR.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R${" "}
+                {stats.totalMRR.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                })}
               </div>
-              <p className="text-xs text-muted-foreground">Receita mensal recorrente</p>
+              <p className="text-xs text-muted-foreground">
+                Receita mensal recorrente
+              </p>
             </CardContent>
           </Card>
 
@@ -876,9 +921,14 @@ export default function PlansManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                R$ {(stats.totalMRR * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R${" "}
+                {(stats.totalMRR * 12).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                })}
               </div>
-              <p className="text-xs text-muted-foreground">Receita anual recorrente</p>
+              <p className="text-xs text-muted-foreground">
+                Receita anual recorrente
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -888,4 +938,198 @@ export default function PlansManagementPage() {
           <MessageSquare className="h-4 w-4" />
           <AlertTitle>Limites Diários de IA</AlertTitle>
           <AlertDescription>
-            Configure quantas mensagens e imagens cada plano pode gerar por dia. Os contadores são reset
+            Configure quantas mensagens e imagens cada plano pode gerar por dia.
+            Os contadores são resetados automaticamente à meia-noite.
+          </AlertDescription>
+        </Alert>
+
+        {/* Plans Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Planos Disponíveis</CardTitle>
+            <CardDescription>
+              Gerenciar todos os planos de assinatura
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {plans.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">Nenhum plano configurado</p>
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeiro Plano
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {plans.map((plan) => {
+                  const Icon = getPlanIcon(plan.name);
+                  return (
+                    <Card
+                      key={plan.id}
+                      className={!plan.active ? "opacity-60" : ""}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div
+                              className={`p-3 rounded-lg ${plan.active ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20" : "bg-gray-100 dark:bg-gray-800"}`}
+                            >
+                              <Icon
+                                className={`h-6 w-6 ${plan.active ? "text-blue-600" : "text-gray-400"}`}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CardTitle className="text-xl">
+                                  {plan.name}
+                                </CardTitle>
+                                {plan.isPopular && (
+                                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500">
+                                    Popular
+                                  </Badge>
+                                )}
+                                <Badge
+                                  variant={
+                                    plan.active ? "default" : "secondary"
+                                  }
+                                >
+                                  {plan.active ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </div>
+                              <CardDescription>
+                                {plan.description}
+                              </CardDescription>
+                              <div className="mt-2 flex items-baseline gap-1">
+                                <span className="text-2xl font-bold">
+                                  R${" "}
+                                  {plan.price.toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2,
+                                  })}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                  /{" "}
+                                  {getIntervalLabel(
+                                    plan.interval,
+                                    plan.intervalCount,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleTogglePlan(plan.id, plan.active)
+                              }
+                            >
+                              {plan.active ? (
+                                <PowerOff className="h-4 w-4" />
+                              ) : (
+                                <Power className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditDialog(plan)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePlan(plan.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Msgs IA/dia
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {plan.maxAiMessagesDaily || "∞"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Imgs IA/dia
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {plan.maxAiImagesDaily || "∞"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Checkouts
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {plan.maxCheckoutPages}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Assinantes
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {plan._count?.subscriptions || 0}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {plan.hasCustomDomain && (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
+                            >
+                              <Globe className="h-3 w-3" />
+                              Domínio Personalizado
+                            </Badge>
+                          )}
+                          {plan.hasAdvancedAnalytics && (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
+                            >
+                              <BarChart3 className="h-3 w-3" />
+                              Analytics Avançado
+                            </Badge>
+                          )}
+                          {plan.hasPrioritySupport && (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
+                            >
+                              <Headphones className="h-3 w-3" />
+                              Suporte Prioritário
+                            </Badge>
+                          )}
+                          {plan.hasApiAccess && (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
+                            >
+                              <Code className="h-3 w-3" />
+                              Acesso API
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </SuperAdminLayout>
+  );
+}
