@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -58,99 +58,120 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: HiHome, to: "/" },
-  { label: "Chat IA", icon: HiChatBubbleBottomCenterText, to: "/chat" },
+  { to: "/chat", icon: HiChatBubbleBottomCenterText, label: "Chat IA" },
+  { to: "/onboarding", icon: HiHome, label: "Página inicial" },
   {
-    label: "Relatórios",
     icon: HiChartBar,
+    label: "Relatórios",
     subItems: [
-      { label: "Visão Geral", to: "/reports", icon: IoEye },
-      { label: "Vendas", to: "/reports/sales", icon: IoCart },
-      { label: "Produtos", to: "/reports/products", icon: IoGift },
+      { to: "/reports/overview", label: "Visão geral", icon: IoEye },
+      { to: "/reports/audience", label: "Público alvo", icon: IoPeople },
+      { to: "/reports/utms", label: "UTMs", icon: IoBarcode },
+    ],
+  },
+  {
+    icon: HiShoppingCart,
+    label: "Pedidos",
+    subItems: [
+      { to: "/orders/all", label: "Ver todos", icon: IoCart },
       {
-        label: "Conversões",
-        to: "/reports/conversions",
-        icon: IoTrendingUp,
-      },
-      { label: "Pedidos", to: "/reports/orders", icon: IoBarcode },
-      { label: "Clientes", to: "/reports/customers", icon: IoPeople },
-      { label: "Leads", to: "/reports/leads", icon: IoPersonAdd },
-      { label: "Cupons", to: "/reports/coupons", icon: IoTicket },
-      {
-        label: "Campanhas",
-        to: "/reports/campaigns",
-        icon: IoRocketSharp,
-      },
-      {
-        label: "Abandono",
-        to: "/reports/abandonment",
+        to: "/orders/abandoned-carts",
+        label: "Carrinhos abandonados",
         icon: IoTrendingDownSharp,
       },
       {
-        label: "Tráfego Loja",
-        to: "/reports/traffic",
-        icon: IoStorefront,
+        to: "/orders/pix-recovered",
+        label: "Pix Recuperados",
+        icon: IoTrendingUp,
       },
     ],
   },
   {
-    label: "Vendas",
-    icon: HiShoppingCart,
+    icon: HiCube,
+    label: "Produtos",
     subItems: [
-      { label: "Pedidos", to: "/orders", icon: IoCart },
-      { label: "Produtos", to: "/products", icon: IoGift },
-      { label: "Cupons", to: "/coupons", icon: IoTicket },
-      { label: "Backlog", to: "/backlog", icon: IoLayersSharp },
+      { to: "/products/all", label: "Ver todos", icon: IoStorefront },
+      { to: "/products/collections", label: "Coleções", icon: IoLayersSharp },
+      { to: "/products/kits", label: "Kit de Produtos", icon: IoGift },
     ],
   },
-  { label: "Estoque", icon: HiCube, to: "/inventory" },
-  { label: "Clientes", icon: HiUsers, to: "/customers" },
-  { label: "Marketing", icon: HiMegaphone, to: "/marketing" },
   {
-    label: "Pagamentos",
+    icon: HiUsers,
+    label: "Clientes",
+    subItems: [
+      { to: "/customers/all", label: "Ver todos", icon: IoPeople },
+      { to: "/customers/leads", label: "Leads", icon: IoPersonAdd },
+    ],
+  },
+  {
+    icon: HiMegaphone,
+    label: "Marketing",
+    subItems: [
+      { to: "/marketing/coupons", label: "Cupons", icon: IoTicket },
+      { to: "/marketing/order-bump", label: "Order Bump", icon: IoRocketSharp },
+      { to: "/marketing/upsell", label: "Upsell", icon: IoTrendingUp },
+      {
+        to: "/marketing/cross-sell",
+        label: "Cross-Sell",
+        icon: IoSwapHorizontal,
+      },
+      {
+        to: "/marketing/discount-banner",
+        label: "Faixa de desconto",
+        icon: IoGift,
+      },
+      { to: "/marketing/cashback", label: "Cashback", icon: IoTicket },
+      { to: "/marketing/pixels", label: "Pixels", icon: IoBarcode },
+    ],
+  },
+  {
     icon: HiCreditCard,
+    label: "Checkout",
     subItems: [
-      { label: "Transações", to: "/transactions", icon: IoSwapHorizontal },
-      { label: "Gateways", to: "/gateways", icon: IoShieldCheckmark },
+      { to: "/checkout/discounts", label: "Descontos", icon: IoTicket },
       {
-        label: "Pagamento PIX",
-        to: "/pix-payment",
-        icon: HiCreditCard,
-      },
-    ],
-  },
-  {
-    label: "Integrações",
-    icon: HiPuzzlePiece,
-    subItems: [
-      { label: "Apps", to: "/integrations" },
-      { label: "Domínios", to: "/domains" },
-      {
-        label: "Checkout",
-        to: "/checkout-customize",
+        to: "/checkout/customize",
+        label: "Personalizar",
         icon: IoColorPalette,
         openInNewTab: true,
       },
+      {
+        to: "/checkout/social-proof",
+        label: "Provas Sociais",
+        icon: IoShieldCheckmark,
+      },
+      { to: "/checkout/gateways", label: "Gateways", icon: HiCreditCard },
+      {
+        to: "/checkout/redirect",
+        label: "Redirecionamento",
+        icon: IoSwapHorizontal,
+      },
     ],
   },
-  { label: "Configurações", icon: HiCog6Tooth, to: "/settings" },
+  { to: "/integrations", icon: HiPuzzlePiece, label: "Integrações" },
+  { to: "/billing", icon: HiCreditCard, label: "Faturamento" },
+  { to: "/settings", icon: HiCog6Tooth, label: "Configurações" },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const location = useLocation();
+  const hasAutoExpanded = useRef(false);
 
   const toggleMenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? null : label);
   };
 
   useEffect(() => {
-    // Expande automaticamente o menu que contém a rota atual
-    const activeMenu = navItems.find((item) =>
-      item.subItems?.some((s) => location.pathname.startsWith(s.to)),
-    );
-    if (activeMenu) {
-      setExpandedMenu(activeMenu.label);
+    // Expande automaticamente o menu que contém a rota atual apenas uma vez
+    if (!hasAutoExpanded.current) {
+      const activeMenu = navItems.find((item) =>
+        item.subItems?.some((s) => location.pathname.startsWith(s.to)),
+      );
+      if (activeMenu) {
+        setExpandedMenu(activeMenu.label);
+        hasAutoExpanded.current = true;
+      }
     }
   }, [location.pathname]);
 
@@ -417,7 +438,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto px-3 pt-8 pb-4 space-y-1 scrollbar-hide">
         {navItems.map((item) => (
           <NavItem key={item.label} item={item} />
         ))}
