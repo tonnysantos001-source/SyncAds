@@ -394,6 +394,7 @@ export default function BillingPage() {
                       className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                     />
                   </div>
+                </div>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger className="w-32">
                     <SelectValue placeholder="Status" />
