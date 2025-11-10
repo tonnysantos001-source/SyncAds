@@ -838,12 +838,12 @@ export default function PaymentSplitPage() {
                     credentialsStatus.gatewayName ? (
                       <div className="flex items-center gap-2 p-3 border-0 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 ring-1 ring-green-200 dark:ring-green-800/50">
                         <HiCheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <span className="text-sm font-semibold text-white">
                           {credentialsStatus.gatewayName}
                         </span>
                       </div>
                     ) : (
-                      <div className="p-3 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700">
+                      <div className="p-3 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700">
                         Auto-detectado após testar conexão
                       </div>
                     )}
@@ -924,14 +924,14 @@ export default function PaymentSplitPage() {
                         <HiCurrencyDollar className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">
+                        <h4 className="font-bold text-white mb-1">
                           Gateway Configurado
                         </h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                        <p className="text-sm text-gray-300">
                           {credentialsStatus.gatewayName || "Gateway"} •
                           Configurado e ativo
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
                           Public Key: {credentialsStatus.publicKey}
                         </p>
                       </div>
@@ -999,21 +999,21 @@ export default function PaymentSplitPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="rounded-lg overflow-hidden border-gray-700/50">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-50 dark:bg-gray-800/50">
-                        <TableHead className="font-semibold">Nome</TableHead>
-                        <TableHead className="font-semibold">Tipo</TableHead>
-                        <TableHead className="font-semibold">
+                      <TableRow className="bg-gray-800/30">
+                        <TableHead className="font-semibold text-gray-300">Nome</TableHead>
+                        <TableHead className="font-semibold text-gray-300">Tipo</TableHead>
+                        <TableHead className="font-semibold text-gray-300">
                           Configuração
                         </TableHead>
-                        <TableHead className="font-semibold">
+                        <TableHead className="font-semibold text-gray-300">
                           Contador
                         </TableHead>
-                        <TableHead className="font-semibold">Stats</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="text-right font-semibold">
+                        <TableHead className="font-semibold text-gray-300">Stats</TableHead>
+                        <TableHead className="font-semibold text-gray-300">Status</TableHead>
+                        <TableHead className="text-right font-semibold text-gray-300">
                           Ações
                         </TableHead>
                       </TableRow>
@@ -1027,35 +1027,35 @@ export default function PaymentSplitPage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors"
                           >
                             <TableCell>
-                              <div className="font-semibold text-gray-900 dark:text-white">
+                              <div className="font-semibold text-white">
                                 {rule.name}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                              <div className="text-sm text-gray-400">
                                 {rule.description}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge className="flex items-center gap-1 w-fit bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-0">
+                              <Badge className="flex items-center gap-1 w-fit bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border-0">
                                 <Icon className="h-3 w-3" />
                                 {rule.type}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm text-gray-700 dark:text-gray-300">
+                            <TableCell className="text-sm text-gray-300">
                               {getRuleDescription(rule)}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                                <span className="font-mono text-sm font-semibold text-white">
                                   {rule.transactionCounter}
                                 </span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleResetCounter(rule.id)}
-                                  className="hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                                  className="hover:bg-blue-500/10"
                                 >
                                   <HiArrowPath className="h-4 w-4" />
                                 </Button>
@@ -1063,13 +1063,13 @@ export default function PaymentSplitPage() {
                             </TableCell>
                             <TableCell>
                               <div className="text-sm space-y-1">
-                                <div className="font-medium text-gray-900 dark:text-white">
+                                <div className="font-medium text-white">
                                   Total: {rule.totalTransactions}
                                 </div>
-                                <div className="text-green-600 dark:text-green-400 font-medium">
+                                <div className="text-green-400 font-medium">
                                   Admin: {rule.adminTransactions}
                                 </div>
-                                <div className="text-blue-600 dark:text-blue-400 font-medium">
+                                <div className="text-blue-400 font-medium">
                                   Cliente: {rule.clientTransactions}
                                 </div>
                               </div>
@@ -1080,7 +1080,7 @@ export default function PaymentSplitPage() {
                                   Ativa
                                 </Badge>
                               ) : (
-                                <Badge className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-0">
+                                <Badge className="bg-gray-700 text-gray-300 border-0">
                                   Inativa
                                 </Badge>
                               )}
@@ -1093,7 +1093,7 @@ export default function PaymentSplitPage() {
                                   onClick={() =>
                                     handleToggle(rule.id, rule.isActive)
                                   }
-                                  className="hover:bg-gray-700 text-gray-300"
+                                  className="hover:bg-gray-800/50 text-gray-400"
                                 >
                                   <IoPower
                                     className={`h-4 w-4 ${rule.isActive ? "text-red-500" : "text-green-500"}`}
@@ -1103,7 +1103,7 @@ export default function PaymentSplitPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => openEdit(rule)}
-                                  className="hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-600 dark:text-blue-400"
+                                  className="hover:bg-blue-500/10 text-blue-400"
                                 >
                                   <HiPencil className="h-4 w-4" />
                                 </Button>
