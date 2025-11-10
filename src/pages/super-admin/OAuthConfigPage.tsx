@@ -307,7 +307,7 @@ export default function OAuthConfigPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="text-5xl p-3 rounded-xl bg-white dark:bg-gray-800 shadow-md">
+                      <div className="text-5xl p-3 rounded-xl bg-gray-800/50 shadow-md">
                         {config.icon}
                       </div>
                       <div>
@@ -368,7 +368,7 @@ export default function OAuthConfigPage() {
                           e.target.value,
                         )
                       }
-                      className="mt-2 font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      className="mt-2 font-mono text-sm bg-gray-800/50 border-gray-700"
                     />
                   </div>
 
@@ -395,7 +395,7 @@ export default function OAuthConfigPage() {
                             e.target.value,
                           )
                         }
-                        className="pr-12 font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="pr-12 font-mono text-sm bg-gray-800/50 border-gray-700"
                       />
                       <button
                         type="button"
@@ -412,7 +412,7 @@ export default function OAuthConfigPage() {
                   </div>
 
                   {/* Status */}
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-800/50 border border-gray-700/50">
                     <input
                       type="checkbox"
                       id={`${config.platform}-active`}
