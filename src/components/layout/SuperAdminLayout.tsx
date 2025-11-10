@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   HiSparkles,
@@ -14,14 +14,9 @@ import {
   HiPuzzlePiece,
 } from "react-icons/hi2";
 import {
-  IoChevronDown,
   IoShieldCheckmark,
   IoSwapHorizontal,
-  IoBarChart,
-  IoCard,
   IoLogOut,
-  IoMenu,
-  IoClose,
   IoRocketSharp,
   IoStorefront,
 } from "react-icons/io5";
@@ -37,7 +32,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import Logo from "@/components/Logo";
 
 interface SuperAdminLayoutProps {
   children: React.ReactNode;
@@ -76,16 +70,10 @@ const navItems: NavItem[] = [
 ];
 
 export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -98,136 +86,95 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
   return (
     <div className="flex h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <AnimatePresence mode="wait">
-        <motion.aside
-          initial={{ x: -280 }}
-          animate={{ x: sidebarOpen ? 0 : -280 }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className={cn(
-            "fixed left-0 top-0 h-full w-64 bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50 z-50 flex flex-col shadow-2xl",
-            "md:translate-x-0 md:static",
-          )}
-        >
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl blur-md opacity-50" />
-                  <div className="relative h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <IoShieldCheckmark className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    Super Admin
-                  </h1>
-                  <p className="text-xs text-gray-400">Painel Administrativo</p>
-                </div>
+      {/* Sidebar - Sempre visível */}
+      <aside className="w-64 bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col shadow-2xl">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-700/50">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl blur-md opacity-50" />
+              <div className="relative h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <IoShieldCheckmark className="w-6 h-6 text-white" />
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="md:hidden p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            </div>
+            <div>
+              <h1 className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Super Admin
+              </h1>
+              <p className="text-xs text-gray-400">Painel Administrativo</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.to;
+            const Icon = item.icon;
+
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
+                  isActive
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800/50",
+                )}
               >
-                <IoClose className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.to;
-              const Icon = item.icon;
-
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
-                    isActive
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800/50",
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl"
-                      transition={{ type: "spring", duration: 0.6 }}
-                    />
-                  )}
-                  <Icon
-                    className={cn(
-                      "w-5 h-5 relative z-10 transition-transform group-hover:scale-110",
-                      isActive && "text-white",
-                    )}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl"
+                    transition={{ type: "spring", duration: 0.6 }}
                   />
-                  <span className="font-medium relative z-10">
-                    {item.label}
-                  </span>
-                  {item.badge && (
-                    <Badge
-                      variant="destructive"
-                      className="ml-auto relative z-10 text-xs"
-                    >
-                      {item.badge}
-                    </Badge>
+                )}
+                <Icon
+                  className={cn(
+                    "w-5 h-5 relative z-10 transition-transform group-hover:scale-110",
+                    isActive && "text-white",
                   )}
-                </NavLink>
-              );
-            })}
-          </nav>
+                />
+                <span className="font-medium relative z-10">{item.label}</span>
+                {item.badge && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-auto relative z-10 text-xs"
+                  >
+                    {item.badge}
+                  </Badge>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
 
-          {/* User Info */}
-          <div className="p-4 border-t border-gray-700/50">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/50">
-              <Avatar className="h-10 w-10 border-2 border-purple-500">
-                <AvatarImage src={user?.avatarUrl} />
-                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold">
-                  {user?.name?.substring(0, 2).toUpperCase() || "SA"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
-                  {user?.name || "Super Admin"}
-                </p>
-                <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-              </div>
+        {/* User Info */}
+        <div className="p-4 border-t border-gray-700/50">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/50">
+            <Avatar className="h-10 w-10 border-2 border-purple-500">
+              <AvatarImage src={user?.avatarUrl} />
+              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold">
+                {user?.name?.substring(0, 2).toUpperCase() || "SA"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">
+                {user?.name || "Super Admin"}
+              </p>
+              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
             </div>
           </div>
-        </motion.aside>
-      </AnimatePresence>
+        </div>
+      </aside>
 
       {/* Main Content */}
       <div className="flex flex-col flex-1 relative z-10">
         {/* Header */}
         <header className="h-16 border-b border-gray-700/50 bg-gray-900/95 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 shadow-lg">
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <IoMenu className="w-6 h-6 text-gray-400" />
-          </button>
-
           {/* Page Title */}
-          <div className="flex-1 md:ml-0">
+          <div className="flex-1">
             <h2 className="text-lg md:text-xl font-bold text-white">
               {navItems.find((item) => item.to === location.pathname)?.label ||
                 "Super Admin"}
