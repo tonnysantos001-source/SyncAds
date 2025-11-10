@@ -274,32 +274,33 @@ const UnifiedDashboardPage: React.FC = () => {
 
   const loadRealtimeData = async () => {
     try {
-      // Simular usuários online (em produção, usar websockets/analytics real)
-      const mockOnlineUsers: OnlineUser[] = [
-        {
-          id: "1",
-          page: "Checkout - Pagamento",
-          timeOnPage: 45,
-          device: "mobile",
-        },
-        {
-          id: "2",
-          page: "Checkout - Dados Pessoais",
-          timeOnPage: 120,
-          device: "desktop",
-        },
-        {
-          id: "3",
-          page: "Produto - Fones XYZ",
-          timeOnPage: 30,
-          device: "mobile",
-        },
-      ];
+      // Contar usuários com atividade recente (últimos 5 minutos)
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
 
-      setOnlineUsers(mockOnlineUsers);
-      setMetrics((prev) => ({ ...prev, onlineNow: mockOnlineUsers.length }));
+      const { count: activeUsersCount, error } = await supabase
+        .from("User")
+        .select("*", { count: "exact", head: true })
+        .gte("lastSeen", fiveMinutesAgo.toISOString());
+
+      if (error) {
+        console.error("Erro ao contar usuários ativos:", error);
+        // Fallback: contar total de usuários
+        const { count: totalCount } = await supabase
+          .from("User")
+          .select("*", { count: "exact", head: true });
+
+        setMetrics((prev) => ({ ...prev, onlineNow: totalCount || 0 }));
+      } else {
+        setMetrics((prev) => ({ ...prev, onlineNow: activeUsersCount || 0 }));
+      }
+
+      // Limpar array de usuários online (feature removida temporariamente)
+      setOnlineUsers([]);
     } catch (error) {
       console.error("Erro ao carregar dados em tempo real:", error);
+      setMetrics((prev) => ({ ...prev, onlineNow: 0 }));
+      setOnlineUsers([]);
     }
   };
 
@@ -344,7 +345,7 @@ const UnifiedDashboardPage: React.FC = () => {
     return Object.entries(grouped).map(([date, revenue]) => ({
       date,
       revenue,
-      orders: Math.floor(Math.random() * 20) + 5, // Placeholder
+      orders: 0, // TODO: Calcular pedidos reais por data
     }));
   };
 

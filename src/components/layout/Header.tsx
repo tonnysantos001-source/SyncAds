@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -9,6 +9,10 @@ import {
   Menu,
   Moon,
   Sun,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Megaphone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -25,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useAuthStore } from "@/store/authStore";
 import { useStore } from "@/store/useStore";
-import { mockNotifications, Notification } from "@/data/notifications";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -39,10 +43,52 @@ interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
+interface Notification {
+  id: string;
+  type: "success" | "warning" | "info" | "campaign";
+  title: string;
+  description: string;
+  createdAt: string;
+  read: boolean;
+  userId: string;
+}
+
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case "success":
+      return CheckCircle;
+    case "warning":
+      return AlertTriangle;
+    case "campaign":
+      return Megaphone;
+    default:
+      return Info;
+  }
+};
+
+const getTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMins = Math.floor(diffInMs / 60000);
+
+  if (diffInMins < 1) return "Agora";
+  if (diffInMins < 60) return `${diffInMins} min atrás`;
+
+  const diffInHours = Math.floor(diffInMins / 60);
+  if (diffInHours < 24) return `${diffInHours}h atrás`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Ontem";
+  if (diffInDays < 7) return `${diffInDays} dias atrás`;
+
+  return date.toLocaleDateString("pt-BR");
+};
+
 const NotificationItem: React.FC<{ notification: Notification }> = ({
   notification,
 }) => {
-  const Icon = notification.icon;
+  const Icon = getNotificationIcon(notification.type);
   return (
     <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg">
       {!notification.read && (
@@ -60,7 +106,7 @@ const NotificationItem: React.FC<{ notification: Notification }> = ({
           {notification.description}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          {notification.time}
+          {getTimeAgo(notification.createdAt)}
         </p>
       </div>
     </div>
@@ -75,12 +121,45 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
   const setSearchTerm = useStore((state) => state.setSearchTerm);
   const navigate = useNavigate();
 
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
   const handleLogout = async () => {
     await logout();
     window.location.href = "/login";
   };
 
-  const unreadCount = mockNotifications.filter((n) => !n.read).length;
+  // Carregar notificações do Supabase
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications();
+    }
+  }, [user?.id]);
+
+  const loadNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+
+      const { data, error } = await supabase
+        .from("Notification")
+        .select("*")
+        .eq("userId", user?.id)
+        .order("createdAt", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar notificações:", error);
+      // Em caso de erro, manter array vazio
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <header
@@ -217,8 +296,12 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
                 <CardTitle className="text-base">Notificações</CardTitle>
               </CardHeader>
               <CardContent className="p-0 max-h-96 overflow-y-auto">
-                {mockNotifications.length > 0 ? (
-                  mockNotifications.map((notif) => (
+                {loadingNotifications ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <p>Carregando notificações...</p>
+                  </div>
+                ) : notifications.length > 0 ? (
+                  notifications.map((notif) => (
                     <NotificationItem key={notif.id} notification={notif} />
                   ))
                 ) : (
@@ -245,7 +328,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
               <Avatar className="h-9 w-9 ring-2 ring-gray-200 dark:ring-gray-700 ring-offset-2 ring-offset-white dark:ring-offset-gray-950">
                 <AvatarImage src={user?.avatarUrl} alt={user?.name} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
-                  {user?.name.charAt(0).toUpperCase()}
+                  {user?.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               {/* Online Indicator */}

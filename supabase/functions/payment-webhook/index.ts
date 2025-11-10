@@ -176,8 +176,12 @@ function validateWebhookSignature(
   gateway: string,
 ): boolean {
   if (!signature || !secret) {
-    log("warn", "No signature or secret provided for validation", { gateway });
-    return true; // Permitir se não houver configuração
+    log(
+      "error",
+      "Missing webhook signature or secret - REJECTED for security",
+      { gateway },
+    );
+    return false; // 🔒 REJEITAR por segurança
   }
 
   try {
