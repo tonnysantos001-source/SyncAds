@@ -577,7 +577,7 @@ export default function AdminChatPage() {
                 size="sm"
                 className="h-7 w-7 p-0"
               >
-                <X className="h-4 w-4" />
+                <HiXMark className="h-4 w-4" />
               </Button>
             </div>
             <Button
@@ -585,7 +585,7 @@ export default function AdminChatPage() {
               className="w-full gap-2"
               size="sm"
             >
-              <PlusCircle className="h-4 w-4" />
+              <HiPlusCircle className="h-4 w-4" />
               Nova Conversa
             </Button>
           </div>
@@ -602,7 +602,7 @@ export default function AdminChatPage() {
                 }`}
                 onClick={() => loadConversationMessages(conv.id)}
               >
-                <MessageSquare className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <HiChatBubbleBottomCenterText className="h-4 w-4 text-gray-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {conv.title}
@@ -620,7 +620,7 @@ export default function AdminChatPage() {
                   size="sm"
                   className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                  <HiTrash className="h-3.5 w-3.5 text-red-500" />
                 </Button>
               </div>
             ))}
@@ -640,11 +640,11 @@ export default function AdminChatPage() {
                     size="sm"
                     className="h-9 w-9 p-0"
                   >
-                    <Menu className="h-5 w-5" />
+                    <HiBars3 className="h-5 w-5" />
                   </Button>
                 )}
                 <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
-                  <Shield className="h-6 w-6 text-white" />
+                  <HiShieldCheck className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">
@@ -660,11 +660,11 @@ export default function AdminChatPage() {
                   size="sm"
                   className="gap-2 hover:bg-red-50 hover:border-red-300"
                 >
-                  <Trash2 className="h-4 w-4 text-red-500" />
+                  <HiTrash className="h-4 w-4 text-red-500" />
                   Limpar Chat
                 </Button>
                 <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <HiSparkles className="h-3 w-3 mr-1" />
                   Online
                 </Badge>
               </div>
@@ -690,10 +690,10 @@ export default function AdminChatPage() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-2">
                       {message.role === "ASSISTANT" && (
-                        <Shield className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                        <HiShieldCheck className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
                       )}
                       {message.role === "SYSTEM" && (
-                        <Sparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
+                        <HiSparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                       )}
                       <div className="flex-1">
                         <div
@@ -749,7 +749,7 @@ export default function AdminChatPage() {
                 <Card className="bg-white">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <HiArrowPath className="h-4 w-4 animate-spin text-blue-600" />
                       <span className="text-sm text-gray-500">
                         Processando...
                       </span>
@@ -784,9 +784,9 @@ export default function AdminChatPage() {
                 size="lg"
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <HiArrowPath className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <HiPaperAirplane className="h-5 w-5" />
                 )}
               </Button>
             </div>
