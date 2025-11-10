@@ -395,7 +395,7 @@ export default function GlobalAiPage() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 mr-2" />
+                <HiPlus className="h-4 w-4 mr-2" />
                 Nova IA
               </Button>
             </DialogTrigger>
@@ -531,7 +531,7 @@ export default function GlobalAiPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="bg-purple-50 p-3 rounded-lg">
-                      <Bot className="h-6 w-6 text-purple-600" />
+                      <HiCpuChip className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ export default function GlobalAiPage() {
                       onClick={() => openPromptDialog(ai)}
                       title="Configurar prompt e mensagens"
                     >
-                      <Settings2 className="h-4 w-4 mr-2" />
+                      <HiCog6Tooth className="h-4 w-4 mr-2" />
                       Configurar
                     </Button>
                     <Button
@@ -564,7 +564,7 @@ export default function GlobalAiPage() {
                       onClick={() => testAiConnection(ai)}
                       title="Testar conexão com a IA"
                     >
-                      <TestTube2 className="h-4 w-4 mr-2" />
+                      <HiBeaker className="h-4 w-4 mr-2" />
                       Testar
                     </Button>
                     <Button
@@ -580,7 +580,7 @@ export default function GlobalAiPage() {
                       onClick={() => deleteAiConnection(ai.id, ai.name)}
                       title="Remover IA"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <HiTrash className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -615,7 +615,7 @@ export default function GlobalAiPage() {
           {aiConnections.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
-                <Bot className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <HiCpuChip className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   Nenhuma IA configurada
                 </h3>
@@ -623,7 +623,7 @@ export default function GlobalAiPage() {
                   Adicione sua primeira conexão de IA para começar
                 </p>
                 <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <HiPlus className="h-4 w-4 mr-2" />
                   Adicionar IA
                 </Button>
               </CardContent>
@@ -682,7 +682,7 @@ export default function GlobalAiPage() {
                       );
                     }}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <HiPlus className="h-4 w-4 mr-1" />
                     Adicionar
                   </Button>
                 </div>
@@ -720,7 +720,7 @@ export default function GlobalAiPage() {
                             );
                           }}
                         >
-                          <X className="h-4 w-4" />
+                          <HiXMark className="h-4 w-4" />
                         </Button>
                       </div>
                     ),
