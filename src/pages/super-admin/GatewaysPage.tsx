@@ -255,14 +255,18 @@ export default function GatewaysPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle className="text-white">Adicionar Gateway de Pagamento</DialogTitle>
+                <DialogTitle className="text-white">
+                  Adicionar Gateway de Pagamento
+                </DialogTitle>
                 <DialogDescription className="text-gray-400">
                   Configure um novo meio de recebimento
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-gray-300">Nome</Label>
+                  <Label htmlFor="name" className="text-gray-300">
+                    Nome
+                  </Label>
                   <Input
                     id="name"
                     placeholder="Ex: Stripe Principal"
@@ -275,7 +279,9 @@ export default function GatewaysPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="provider" className="text-gray-300">Provider</Label>
+                  <Label htmlFor="provider" className="text-gray-300">
+                    Provider
+                  </Label>
                   <Select
                     value={formData.provider}
                     onValueChange={(value) =>
@@ -299,7 +305,9 @@ export default function GatewaysPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="publicKey" className="text-gray-300">Public Key</Label>
+                  <Label htmlFor="publicKey" className="text-gray-300">
+                    Public Key
+                  </Label>
                   <Input
                     id="publicKey"
                     placeholder="pk_test_..."
@@ -312,7 +320,9 @@ export default function GatewaysPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="secretKey" className="text-gray-300">Secret Key</Label>
+                  <Label htmlFor="secretKey" className="text-gray-300">
+                    Secret Key
+                  </Label>
                   <Input
                     id="secretKey"
                     type="password"
@@ -349,7 +359,11 @@ export default function GatewaysPage() {
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
             <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-300">
@@ -358,7 +372,9 @@ export default function GatewaysPage() {
                 <HiCreditCard className="h-4 w-4 text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                <div className="text-2xl font-bold text-white">
+                  {stats.total}
+                </div>
                 <p className="text-xs text-gray-400">
                   Total de meios de pagamento
                 </p>
@@ -366,7 +382,11 @@ export default function GatewaysPage() {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
             <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-300">
@@ -375,18 +395,24 @@ export default function GatewaysPage() {
                 <HiCheck className="h-4 w-4 text-green-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{stats.active}</div>
-                <p className="text-xs text-gray-400">
-                  Recebendo pagamentos
-                </p>
+                <div className="text-2xl font-bold text-white">
+                  {stats.active}
+                </div>
+                <p className="text-xs text-gray-400">Recebendo pagamentos</p>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
             <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Transações</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-300">
+                  Transações
+                </CardTitle>
                 <HiCog6Tooth className="h-4 w-4 text-purple-400" />
               </CardHeader>
               <CardContent>
@@ -421,86 +447,89 @@ export default function GatewaysPage() {
               </CardContent>
             </Card>
           ) : (
-            {gateways.map((gateway, index) => {
-            const providerInfo = getProviderInfo(gateway.provider);
-            return (
-              <motion.div
-                key={gateway.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="relative overflow-hidden border-gray-700/50 bg-gray-800/50 backdrop-blur-xl">
-                  <div
-                    className={`absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full ${
-                      gateway.isActive ? "bg-green-500/10" : "bg-gray-500/10"
-                    }`}
-                  />
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="text-3xl">{providerInfo.icon}</div>
-                        <div>
-                          <CardTitle className="text-lg text-white">
-                            {gateway.name}
-                          </CardTitle>
-                          <CardDescription className="text-gray-400">
-                            {providerInfo.label}
-                          </CardDescription>
+            gateways.map((gateway, index) => {
+              const providerInfo = getProviderInfo(gateway.provider);
+              return (
+                <motion.div
+                  key={gateway.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="relative overflow-hidden border-gray-700/50 bg-gray-800/50 backdrop-blur-xl">
+                    <div
+                      className={`absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full ${
+                        gateway.isActive ? "bg-green-500/10" : "bg-gray-500/10"
+                      }`}
+                    />
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl">{providerInfo.icon}</div>
+                          <div>
+                            <CardTitle className="text-lg text-white">
+                              {gateway.name}
+                            </CardTitle>
+                            <CardDescription className="text-gray-400">
+                              {providerInfo.label}
+                            </CardDescription>
+                          </div>
                         </div>
+                        <Badge
+                          variant={gateway.isActive ? "default" : "outline"}
+                        >
+                          {gateway.isActive ? "Ativo" : "Inativo"}
+                        </Badge>
                       </div>
-                      <Badge variant={gateway.isActive ? "default" : "outline"}>
-                        {gateway.isActive ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Public Key</p>
-                      <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded block overflow-hidden text-ellipsis">
-                        {gateway.publicKey}
-                      </code>
-                    </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Public Key</p>
+                        <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded block overflow-hidden text-ellipsis">
+                          {gateway.publicKey}
+                        </code>
+                      </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Transações</span>
-                      <span className="font-medium text-white">
-                        {gateway.transactionsCount || 0}
-                      </span>
-                    </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Transações</span>
+                        <span className="font-medium text-white">
+                          {gateway.transactionsCount || 0}
+                        </span>
+                      </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        size="sm"
-                        onClick={() => {
-                          /* TODO: Editar gateway */
-                        }}
-                        className="border-gray-700 hover:bg-gray-700"
-                      >
-                        <HiCog6Tooth className="h-4 w-4 mr-1" />
-                        Configurar
-                      </Button>
-                      <Button
-                        variant={gateway.isActive ? "destructive" : "default"}
-                        size="sm"
-                        onClick={() =>
-                          toggleGatewayStatus(gateway.id, !gateway.isActive)
-                        }
-                      >
-                        {gateway.isActive ? (
-                          <HiXMark className="h-4 w-4" />
-                        ) : (
-                          <HiCheck className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          size="sm"
+                          onClick={() => {
+                            /* TODO: Editar gateway */
+                          }}
+                          className="border-gray-700 hover:bg-gray-700"
+                        >
+                          <HiCog6Tooth className="h-4 w-4 mr-1" />
+                          Configurar
+                        </Button>
+                        <Button
+                          variant={gateway.isActive ? "destructive" : "default"}
+                          size="sm"
+                          onClick={() =>
+                            toggleGatewayStatus(gateway.id, !gateway.isActive)
+                          }
+                        >
+                          {gateway.isActive ? (
+                            <HiXMark className="h-4 w-4" />
+                          ) : (
+                            <HiCheck className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
     </SuperAdminLayout>
