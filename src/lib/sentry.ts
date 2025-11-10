@@ -114,19 +114,12 @@ export function captureMessage(
 /**
  * Define usuário no contexto
  */
-export function setUser(user: {
-  id: string;
-  email?: string;
-  name?: string;
-  organizationId?: string;
-}) {
+export function setUser(user: { id: string; email?: string; name?: string }) {
   Sentry.setUser({
     id: user.id,
     email: user.email,
     username: user.name,
   });
-
-  Sentry.setTag("organization_id", user.organizationId);
 }
 
 /**
