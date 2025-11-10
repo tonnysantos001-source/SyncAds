@@ -42,137 +42,113 @@ interface SidebarProps {
 }
 
 interface SubMenuItem {
-  to: string;
   label: string;
+  to: string;
   icon?: React.ElementType;
   badge?: string;
   openInNewTab?: boolean;
 }
 
 interface NavItem {
-  to?: string;
-  icon: React.ElementType;
   label: string;
-  badge?: string;
+  icon: React.ElementType;
+  to?: string;
   subItems?: SubMenuItem[];
+  badge?: string;
 }
 
 const navItems: NavItem[] = [
-  { to: "/chat", icon: HiChatBubbleBottomCenterText, label: "Chat IA" },
-  { to: "/onboarding", icon: HiHome, label: "Página inicial" },
+  { label: "Dashboard", icon: HiHome, to: "/" },
+  { label: "Chat IA", icon: HiChatBubbleBottomCenterText, to: "/chat" },
   {
-    icon: HiChartBar,
     label: "Relatórios",
+    icon: HiChartBar,
     subItems: [
-      { to: "/reports/overview", label: "Visão geral", icon: IoEye },
-      { to: "/reports/audience", label: "Público alvo", icon: IoPeople },
-      { to: "/reports/utms", label: "UTMs", icon: IoBarcode },
-    ],
-  },
-  {
-    icon: HiShoppingCart,
-    label: "Pedidos",
-    subItems: [
-      { to: "/orders/all", label: "Ver todos", icon: IoCart },
+      { label: "Visão Geral", to: "/reports", icon: IoEye },
+      { label: "Vendas", to: "/reports/sales", icon: IoCart },
+      { label: "Produtos", to: "/reports/products", icon: IoGift },
       {
-        to: "/orders/abandoned-carts",
-        label: "Carrinhos abandonados",
+        label: "Conversões",
+        to: "/reports/conversions",
+        icon: IoTrendingUp,
+      },
+      { label: "Pedidos", to: "/reports/orders", icon: IoBarcode },
+      { label: "Clientes", to: "/reports/customers", icon: IoPeople },
+      { label: "Leads", to: "/reports/leads", icon: IoPersonAdd },
+      { label: "Cupons", to: "/reports/coupons", icon: IoTicket },
+      {
+        label: "Campanhas",
+        to: "/reports/campaigns",
+        icon: IoRocketSharp,
+      },
+      {
+        label: "Abandono",
+        to: "/reports/abandonment",
         icon: IoTrendingDownSharp,
       },
       {
-        to: "/orders/pix-recovered",
-        label: "Pix Recuperados",
-        icon: IoTrendingUp,
+        label: "Tráfego Loja",
+        to: "/reports/traffic",
+        icon: IoStorefront,
       },
     ],
   },
   {
-    icon: HiCube,
-    label: "Produtos",
+    label: "Vendas",
+    icon: HiShoppingCart,
     subItems: [
-      { to: "/products/all", label: "Ver todos", icon: IoStorefront },
-      { to: "/products/collections", label: "Coleções", icon: IoLayersSharp },
-      { to: "/products/kits", label: "Kit de Produtos", icon: IoGift },
+      { label: "Pedidos", to: "/orders", icon: IoCart },
+      { label: "Produtos", to: "/products", icon: IoGift },
+      { label: "Cupons", to: "/coupons", icon: IoTicket },
+      { label: "Backlog", to: "/backlog", icon: IoLayersSharp },
     ],
   },
+  { label: "Estoque", icon: HiCube, to: "/inventory" },
+  { label: "Clientes", icon: HiUsers, to: "/customers" },
+  { label: "Marketing", icon: HiMegaphone, to: "/marketing" },
   {
-    icon: HiUsers,
-    label: "Clientes",
-    subItems: [
-      { to: "/customers/all", label: "Ver todos", icon: IoPeople },
-      { to: "/customers/leads", label: "Leads", icon: IoPersonAdd },
-    ],
-  },
-  {
-    icon: HiMegaphone,
-    label: "Marketing",
-    subItems: [
-      { to: "/marketing/coupons", label: "Cupons", icon: IoTicket },
-      { to: "/marketing/order-bump", label: "Order Bump", icon: IoRocketSharp },
-      { to: "/marketing/upsell", label: "Upsell", icon: IoTrendingUp },
-      {
-        to: "/marketing/cross-sell",
-        label: "Cross-Sell",
-        icon: IoSwapHorizontal,
-      },
-      {
-        to: "/marketing/discount-banner",
-        label: "Faixa de desconto",
-        icon: IoGift,
-      },
-      { to: "/marketing/cashback", label: "Cashback", icon: IoTicket },
-      { to: "/marketing/pixels", label: "Pixels", icon: IoBarcode },
-    ],
-  },
-  {
+    label: "Pagamentos",
     icon: HiCreditCard,
-    label: "Checkout",
     subItems: [
-      { to: "/checkout/discounts", label: "Descontos", icon: IoTicket },
+      { label: "Transações", to: "/transactions", icon: IoSwapHorizontal },
+      { label: "Gateways", to: "/gateways", icon: IoShieldCheckmark },
       {
-        to: "/checkout/customize",
-        label: "Personalizar",
+        label: "Pagamento PIX",
+        to: "/pix-payment",
+        icon: HiCreditCard,
+      },
+    ],
+  },
+  {
+    label: "Integrações",
+    icon: HiPuzzlePiece,
+    subItems: [
+      { label: "Apps", to: "/integrations" },
+      { label: "Domínios", to: "/domains" },
+      {
+        label: "Checkout",
+        to: "/checkout-customize",
         icon: IoColorPalette,
         openInNewTab: true,
       },
-      {
-        to: "/checkout/social-proof",
-        label: "Provas Sociais",
-        icon: IoShieldCheckmark,
-      },
-      { to: "/checkout/gateways", label: "Gateways", icon: HiCreditCard },
-      {
-        to: "/checkout/redirect",
-        label: "Redirecionamento",
-        icon: IoSwapHorizontal,
-      },
     ],
   },
-  { to: "/integrations", icon: HiPuzzlePiece, label: "Integrações" },
-  { to: "/billing", icon: HiCreditCard, label: "Faturamento" },
-  { to: "/settings", icon: HiCog6Tooth, label: "Configurações" },
+  { label: "Configurações", icon: HiCog6Tooth, to: "/settings" },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const location = useLocation();
-  const isChatPage = location.pathname === "/chat";
 
   const toggleMenu = (label: string) => {
-    // Garante que só um menu fica aberto por vez
-    if (expandedMenu === label) {
-      setExpandedMenu(null);
-    } else {
-      setExpandedMenu(label);
-    }
+    setExpandedMenu(expandedMenu === label ? null : label);
   };
 
   useEffect(() => {
-    // Encontra apenas o primeiro menu que contém a rota atual
+    // Expande automaticamente o menu que contém a rota atual
     const activeMenu = navItems.find((item) =>
       item.subItems?.some((s) => location.pathname.startsWith(s.to)),
     );
-
     if (activeMenu) {
       setExpandedMenu(activeMenu.label);
     }
@@ -195,9 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold transition-all duration-200",
               isExpanded
                 ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-                : isChatPage
-                  ? "text-gray-300 hover:bg-gray-800/50"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
+                : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
             )}
           >
             <motion.div
@@ -217,9 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                   "h-6 w-6 transition-colors",
                   isExpanded
                     ? "text-white"
-                    : isChatPage
-                      ? "text-gray-400"
-                      : "text-gray-600",
+                    : "text-gray-600 dark:text-gray-400",
                 )}
               />
               {isExpanded && (
@@ -245,11 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               <IoChevronDown
                 className={cn(
                   "h-4 w-4",
-                  isExpanded
-                    ? "text-white"
-                    : isChatPage
-                      ? "text-gray-400"
-                      : "text-gray-400",
+                  isExpanded ? "text-white" : "text-gray-400",
                 )}
               />
             </motion.div>
@@ -264,27 +232,15 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div
-                  className={cn(
-                    "ml-10 mt-1 space-y-0.5 pl-4 border-l-2",
-                    isChatPage
-                      ? "border-gray-700"
-                      : "border-blue-200 dark:border-blue-800",
-                  )}
-                >
-                  {item.subItems.map((subItem) =>
+                <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                  {item.subItems?.map((subItem) =>
                     subItem.openInNewTab ? (
                       <a
                         key={subItem.to}
                         href={`${window.location.origin}${subItem.to}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={cn(
-                          "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
-                          isChatPage
-                            ? "text-gray-400 hover:bg-gray-800/50 hover:text-blue-400"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
-                        )}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
                       >
                         <div className="flex items-center gap-2 flex-1">
                           {subItem.icon && <subItem.icon className="h-4 w-4" />}
@@ -300,9 +256,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                             "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
                             isActive
                               ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20"
-                              : isChatPage
-                                ? "text-gray-400 hover:bg-gray-800/50 hover:text-blue-400"
-                                : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+                              : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
                           )
                         }
                       >
@@ -354,23 +308,28 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold transition-all duration-200",
             isActive
               ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-              : isChatPage
-                ? "text-gray-300 hover:bg-gray-800/50"
-                : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
+              : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
           )
         }
       >
         {({ isActive }) => (
           <>
-            <motion.div whileHover={{ scale: 1.1 }} className="relative">
+            <motion.div
+              animate={
+                isActive
+                  ? {
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 360],
+                    }
+                  : {}
+              }
+              transition={{ duration: 0.5 }}
+              className="relative"
+            >
               <item.icon
                 className={cn(
                   "h-6 w-6 transition-colors",
-                  isActive
-                    ? "text-white"
-                    : isChatPage
-                      ? "text-gray-400"
-                      : "text-gray-600",
+                  isActive ? "text-white" : "text-gray-600 dark:text-gray-400",
                 )}
               />
               {isActive && (
@@ -385,13 +344,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             </motion.div>
             <span className="flex-1">{item.label}</span>
             {item.badge && (
-              <Badge
-                variant="destructive"
-                className={cn(
-                  "text-[10px] px-1.5 h-5",
-                  isActive && "bg-white/20 text-white border-0",
-                )}
-              >
+              <Badge variant="destructive" className="text-[10px] px-1.5 h-5">
                 {item.badge}
               </Badge>
             )}
@@ -409,21 +362,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   const SidebarContent = () => (
-    <div
-      className={cn(
-        "flex h-full flex-col",
-        isChatPage ? "bg-[#12121A]" : "bg-white dark:bg-gray-950",
-      )}
-    >
+    <div className="flex h-full flex-col bg-white dark:bg-gray-950">
       {/* Logo Header */}
-      <div
-        className={cn(
-          "flex items-center gap-3 px-5 py-6 border-b",
-          isChatPage
-            ? "border-gray-700/50"
-            : "border-gray-200 dark:border-gray-800",
-        )}
-      >
+      <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
         <div className="relative">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
             <motion.div
@@ -466,41 +407,24 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
           />
         </div>
         <div>
-          <h1
-            className={cn(
-              "text-xl font-black leading-tight",
-              isChatPage ? "text-white" : "text-gray-900 dark:text-white",
-            )}
-          >
+          <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white">
             SyncAds
           </h1>
-          <p
-            className={cn(
-              "text-[11px] font-bold tracking-wider",
-              isChatPage ? "text-blue-400" : "text-blue-600 dark:text-blue-400",
-            )}
-          >
+          <p className="text-[11px] font-bold tracking-wider text-blue-600 dark:text-blue-400">
             MARKETING AI
           </p>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pt-24 pb-4 space-y-1 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-hide">
         {navItems.map((item) => (
           <NavItem key={item.label} item={item} />
         ))}
       </nav>
 
       {/* Footer */}
-      <div
-        className={cn(
-          "px-4 py-4 border-t",
-          isChatPage
-            ? "border-gray-700/50"
-            : "border-gray-200 dark:border-gray-800",
-        )}
-      >
+      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
           <motion.div
             animate={{
@@ -540,25 +464,13 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : "-100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r",
-          isChatPage
-            ? "border-gray-700/50"
-            : "border-gray-200 dark:border-gray-800",
-        )}
+        className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
       >
         <SidebarContent />
       </motion.aside>
 
       {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          "hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r",
-          isChatPage
-            ? "border-gray-700/50"
-            : "border-gray-200 dark:border-gray-800",
-        )}
-      >
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-gray-200 dark:border-gray-800">
         <SidebarContent />
       </aside>
     </>

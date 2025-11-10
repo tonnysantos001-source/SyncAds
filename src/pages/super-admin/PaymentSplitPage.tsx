@@ -56,12 +56,7 @@ import { IoPower } from "react-icons/io5";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  autoDetectGateway,
-  getSupportedGateways,
-} from "@/lib/gateways/gatewayAutoDetect";
+import { autoDetectGateway } from "@/lib/gateways/gatewayAutoDetect";
 
 interface PaymentSplitRule {
   id: string;
@@ -154,7 +149,7 @@ export default function PaymentSplitPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    type: "frequency" as const,
+    type: "frequency" as "frequency" | "percentage" | "value" | "time",
     frequencyEvery: 10,
     frequencyTake: 2,
     percentage: 20,
@@ -212,13 +207,13 @@ export default function PaymentSplitPage() {
     if (data) {
       const totalTransactions = data.length;
       const adminTransactions = data.filter(
-        (log) => log.decision === "admin",
+        (log: any) => log.decision === "admin",
       ).length;
       const clientTransactions = data.filter(
-        (log) => log.decision === "client",
+        (log: any) => log.decision === "client",
       ).length;
       const adminRevenue = data.reduce(
-        (sum, log) => sum + (log.adminRevenue || 0),
+        (sum: number, log: any) => sum + (log.adminRevenue || 0),
         0,
       );
       const splitPercentage =
@@ -363,14 +358,23 @@ export default function PaymentSplitPage() {
       const payload = {
         name: formData.name,
         description: formData.description,
-        type: formData.type,
+        type: formData.type as "frequency" | "percentage" | "value" | "time",
         frequencyEvery:
-          formData.type === "frequency" ? formData.frequencyEvery : null,
+          (formData.type as string) === "frequency"
+            ? formData.frequencyEvery
+            : null,
         frequencyTake:
-          formData.type === "frequency" ? formData.frequencyTake : null,
-        percentage: formData.type === "percentage" ? formData.percentage : null,
-        minValue: formData.type === "value" ? formData.minValue : null,
-        maxValue: formData.type === "value" ? formData.maxValue : null,
+          (formData.type as string) === "frequency"
+            ? formData.frequencyTake
+            : null,
+        percentage:
+          (formData.type as string) === "percentage"
+            ? formData.percentage
+            : null,
+        minValue:
+          (formData.type as string) === "value" ? formData.minValue : null,
+        maxValue:
+          (formData.type as string) === "value" ? formData.maxValue : null,
         adminGatewayId: formData.adminGatewayId || null,
         isActive: formData.isActive,
         priority: formData.priority,
@@ -435,7 +439,7 @@ export default function PaymentSplitPage() {
     setFormData({
       name: rule.name,
       description: rule.description || "",
-      type: rule.type,
+      type: rule.type as "frequency" | "percentage" | "value" | "time",
       frequencyEvery: rule.frequencyEvery || 10,
       frequencyTake: rule.frequencyTake || 2,
       percentage: rule.percentage || 20,
@@ -550,9 +554,9 @@ export default function PaymentSplitPage() {
                   <Label className="text-gray-300">Nome da Regra</Label>
                   <Input
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setFormData({ ...formData, name: e.target.value });
+                    }}
                     placeholder="Ex: Split 20% Admin"
                     className="bg-gray-800 border-gray-700 text-white"
                   />
@@ -562,9 +566,9 @@ export default function PaymentSplitPage() {
                   <Label className="text-gray-300">Descrição</Label>
                   <Input
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setFormData({ ...formData, description: e.target.value });
+                    }}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
@@ -603,7 +607,7 @@ export default function PaymentSplitPage() {
                       <Input
                         type="number"
                         value={formData.frequencyEvery}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData({
                             ...formData,
                             frequencyEvery: parseInt(e.target.value),
@@ -620,7 +624,7 @@ export default function PaymentSplitPage() {
                       <Input
                         type="number"
                         value={formData.frequencyTake}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData({
                             ...formData,
                             frequencyTake: parseInt(e.target.value),
@@ -633,7 +637,8 @@ export default function PaymentSplitPage() {
                   </div>
                 )}
 
-                {formData.type === "percentage" && (
+                {((formData.type as string) === "percentage" ||
+                  (formData.type as string) === "value") && (
                   <div>
                     <Label className="text-gray-300">
                       Percentual para o admin (%)
@@ -641,7 +646,7 @@ export default function PaymentSplitPage() {
                     <Input
                       type="number"
                       value={formData.percentage}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setFormData({
                           ...formData,
                           percentage: parseFloat(e.target.value),
@@ -655,14 +660,15 @@ export default function PaymentSplitPage() {
                   </div>
                 )}
 
-                {formData.type === "value" && (
+                {((formData.type as string) === "value" ||
+                  (formData.type as string) === "percentage") && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-300">Valor Mínimo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.minValue}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData({
                             ...formData,
                             minValue: parseFloat(e.target.value),
@@ -678,7 +684,7 @@ export default function PaymentSplitPage() {
                       <Input
                         type="number"
                         value={formData.maxValue}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData({
                             ...formData,
                             maxValue: parseFloat(e.target.value),
@@ -696,7 +702,7 @@ export default function PaymentSplitPage() {
                   <Label className="text-gray-300">Gateway do Admin</Label>
                   <Select
                     value={formData.adminGatewayId}
-                    onValueChange={(value) =>
+                    onValueChange={(value: string) =>
                       setFormData({ ...formData, adminGatewayId: value })
                     }
                   >
@@ -720,7 +726,7 @@ export default function PaymentSplitPage() {
                   <Input
                     type="number"
                     value={formData.priority}
-                    onChange={(e) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData({
                         ...formData,
                         priority: parseInt(e.target.value),
@@ -735,7 +741,7 @@ export default function PaymentSplitPage() {
                   <Label className="text-gray-300">Regra Ativa</Label>
                   <Switch
                     checked={formData.isActive}
-                    onCheckedChange={(checked) =>
+                    onCheckedChange={(checked: boolean) =>
                       setFormData({ ...formData, isActive: checked })
                     }
                   />
@@ -862,7 +868,7 @@ export default function PaymentSplitPage() {
                       placeholder="Sua Public Key da Pague-X"
                       className="font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       value={adminCredentials.publicKey}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdminCredentials({
                           ...adminCredentials,
                           publicKey: e.target.value,
@@ -877,7 +883,7 @@ export default function PaymentSplitPage() {
                       placeholder="Sua Secret Key da Pague-X"
                       className="font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       value={adminCredentials.secretKey}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdminCredentials({
                           ...adminCredentials,
                           secretKey: e.target.value,
@@ -954,9 +960,7 @@ export default function PaymentSplitPage() {
         >
           <Alert className="border-gray-700/50 bg-gray-800/50">
             <HiExclamationCircle className="h-5 w-5 text-cyan-400" />
-            <AlertTitle className="text-white">
-              Como funciona?
-            </AlertTitle>
+            <AlertTitle className="text-white">Como funciona?</AlertTitle>
             <AlertDescription className="text-gray-400">
               O sistema distribui automaticamente as transações entre seu
               gateway (configurado acima) e o gateway do cliente. Configure
@@ -1003,16 +1007,24 @@ export default function PaymentSplitPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-800/30">
-                        <TableHead className="font-semibold text-gray-300">Nome</TableHead>
-                        <TableHead className="font-semibold text-gray-300">Tipo</TableHead>
+                        <TableHead className="font-semibold text-gray-300">
+                          Nome
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-300">
+                          Tipo
+                        </TableHead>
                         <TableHead className="font-semibold text-gray-300">
                           Configuração
                         </TableHead>
                         <TableHead className="font-semibold text-gray-300">
                           Contador
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-300">Stats</TableHead>
-                        <TableHead className="font-semibold text-gray-300">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-300">
+                          Stats
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-300">
+                          Status
+                        </TableHead>
                         <TableHead className="text-right font-semibold text-gray-300">
                           Ações
                         </TableHead>
