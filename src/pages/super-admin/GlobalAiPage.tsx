@@ -400,7 +400,7 @@ export default function GlobalAiPage() {
                 Nova IA
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
               <DialogHeader>
                 <DialogTitle>Nova Conexão de IA</DialogTitle>
                 <DialogDescription>
@@ -634,7 +634,7 @@ export default function GlobalAiPage() {
 
         {/* Prompt Configuration Dialog */}
         <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
             <DialogHeader>
               <DialogTitle>Configurar IA: {selectedAi?.name}</DialogTitle>
               <DialogDescription>
