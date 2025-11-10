@@ -20,6 +20,8 @@ import {
   setUser as setSentryUser,
   clearUser as clearSentryUser,
 } from "./lib/sentry";
+import { useInactivityLogout } from "./hooks/useInactivityLogout";
+import { InactivityWarning } from "./components/InactivityWarning";
 
 // Lazy load pages
 const LandingPage = lazy(() => import("./pages/public/LandingPage"));
@@ -156,6 +158,7 @@ function App() {
   const user = useAuthStore((state) => state.user);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const initAuth = useAuthStore((state) => state.initAuth);
+  const logout = useAuthStore((state) => state.logout);
 
   // Data loaders (novos stores)
   const loadCampaigns = useCampaignsStore((state) => state.loadCampaigns);
@@ -164,6 +167,13 @@ function App() {
     (state) => state.loadIntegrations,
   );
   const loadAiConnections = useStore((state) => state.loadAiConnections);
+
+  // Inactivity logout (30 minutos de inatividade)
+  const { isWarning, remainingTime, resetTimer } = useInactivityLogout({
+    timeout: 30 * 60 * 1000, // 30 minutos
+    warningTime: 2 * 60 * 1000, // 2 minutos de aviso
+    enabled: isAuthenticated,
+  });
 
   // Init Sentry on mount
   useEffect(() => {
@@ -220,6 +230,15 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {/* Warning de inatividade */}
+      {isWarning && (
+        <InactivityWarning
+          remainingTime={remainingTime}
+          onContinue={resetTimer}
+          onLogout={logout}
+        />
+      )}
+
       <Router>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>

@@ -549,7 +549,7 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex bg-[#0A0A0F]">
+    <div className="h-screen flex bg-[#0A0A0F] overflow-hidden">
       {/* SIDEBAR - Dark Theme */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -674,7 +674,7 @@ const ChatPage: React.FC = () => {
       {/* ÁREA PRINCIPAL */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="bg-[#12121A]/95 backdrop-blur-xl border-b border-gray-700/50 p-4 shadow-lg">
+        <div className="bg-[#12121A]/95 backdrop-blur-xl border-b border-gray-700/50 px-4 py-3 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <motion.button
@@ -731,7 +731,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
           {activeConversation ? (
             <>
               {activeConversation.messages.map((message: any) => {
@@ -861,7 +861,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Input */}
-        <div className="bg-[#12121A]/95 backdrop-blur-xl border-t border-gray-700/50 p-4 shadow-2xl">
+        <div className="bg-[#12121A]/95 backdrop-blur-xl border-t border-gray-700/50 px-6 py-3 shadow-2xl">
           <div className="hidden sm:flex gap-2 mb-3">
             {quickSuggestions.map((s) => (
               <motion.button
