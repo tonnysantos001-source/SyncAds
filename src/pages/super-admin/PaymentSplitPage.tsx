@@ -115,7 +115,7 @@ const StatCard = ({
     transition={{ delay }}
     whileHover={{ scale: 1.02 }}
   >
-    <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl hover:shadow-2xl transition-all duration-300 group cursor-pointer relative overflow-hidden ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl shadow-lg">
+    <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl hover:border-gray-600 transition-all group cursor-pointer relative overflow-hidden">
       <div
         className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`}
       />
@@ -130,12 +130,8 @@ const StatCard = ({
         </div>
       </CardHeader>
       <CardContent className="relative z-10">
-        <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent mb-1">
-          {value}
-        </div>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
-          {description}
-        </p>
+        <div className="text-3xl font-bold text-white mb-1">{value}</div>
+        <p className="text-xs text-gray-400">{description}</p>
       </CardContent>
     </Card>
   </motion.div>
@@ -521,10 +517,10 @@ export default function PaymentSplitPage() {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Split de Pagamento
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-gray-400 mt-1">
               Controle a distribuição de transações entre seu gateway e o dos
               clientes
             </p>
@@ -539,52 +535,52 @@ export default function PaymentSplitPage() {
                 Nova Regra
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-white">
                   {editingRule ? "Editar Regra" : "Criar Nova Regra"}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-gray-400">
                   Configure como as transações serão distribuídas
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div>
-                  <Label>Nome da Regra</Label>
+                  <Label className="text-gray-300">Nome da Regra</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Ex: Split 20% Admin"
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label>Descrição</Label>
+                  <Label className="text-gray-300">Descrição</Label>
                   <Input
                     value={formData.description}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label>Tipo de Regra</Label>
+                  <Label className="text-gray-300">Tipo de Regra</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value: any) =>
                       setFormData({ ...formData, type: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       <SelectItem value="frequency">
                         Frequência (A cada X transações)
                       </SelectItem>
@@ -601,7 +597,9 @@ export default function PaymentSplitPage() {
                 {formData.type === "frequency" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>A cada quantas transações?</Label>
+                      <Label className="text-gray-300">
+                        A cada quantas transações?
+                      </Label>
                       <Input
                         type="number"
                         value={formData.frequencyEvery}
@@ -612,11 +610,13 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Quantas vão para o admin?</Label>
+                      <Label className="text-gray-300">
+                        Quantas vão para o admin?
+                      </Label>
                       <Input
                         type="number"
                         value={formData.frequencyTake}
@@ -627,7 +627,7 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
@@ -635,7 +635,9 @@ export default function PaymentSplitPage() {
 
                 {formData.type === "percentage" && (
                   <div>
-                    <Label>Percentual para o admin (%)</Label>
+                    <Label className="text-gray-300">
+                      Percentual para o admin (%)
+                    </Label>
                     <Input
                       type="number"
                       value={formData.percentage}
@@ -648,7 +650,7 @@ export default function PaymentSplitPage() {
                       min={0}
                       max={100}
                       step={0.1}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                 )}
@@ -656,7 +658,7 @@ export default function PaymentSplitPage() {
                 {formData.type === "value" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Valor Mínimo (R$)</Label>
+                      <Label className="text-gray-300">Valor Mínimo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.minValue}
@@ -668,11 +670,11 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                     <div>
-                      <Label>Valor Máximo (R$)</Label>
+                      <Label className="text-gray-300">Valor Máximo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.maxValue}
@@ -684,24 +686,24 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <Label>Gateway do Admin</Label>
+                  <Label className="text-gray-300">Gateway do Admin</Label>
                   <Select
                     value={formData.adminGatewayId}
                     onValueChange={(value) =>
                       setFormData({ ...formData, adminGatewayId: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Selecione um gateway" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       {gateways.map((gateway) => (
                         <SelectItem key={gateway.id} value={gateway.id}>
                           {gateway.name}
@@ -712,7 +714,9 @@ export default function PaymentSplitPage() {
                 </div>
 
                 <div>
-                  <Label>Prioridade (maior = maior prioridade)</Label>
+                  <Label className="text-gray-300">
+                    Prioridade (maior = maior prioridade)
+                  </Label>
                   <Input
                     type="number"
                     value={formData.priority}
@@ -723,12 +727,12 @@ export default function PaymentSplitPage() {
                       })
                     }
                     min={0}
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800/50">
-                  <Label>Regra Ativa</Label>
+                <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <Label className="text-gray-300">Regra Ativa</Label>
                   <Switch
                     checked={formData.isActive}
                     onCheckedChange={(checked) =>
@@ -742,12 +746,13 @@ export default function PaymentSplitPage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
                 >
                   {editingRule ? "Atualizar" : "Criar"}
                 </Button>
@@ -800,12 +805,12 @@ export default function PaymentSplitPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl">
+          <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">
+              <CardTitle className="text-white">
                 Gateway do Admin (Seu Gateway)
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-gray-400">
                 Configure o gateway que receberá as transações quando o split
                 direcionar para o admin. Use suas credenciais da Pague-X ou
                 outro gateway compatível.
@@ -813,12 +818,12 @@ export default function PaymentSplitPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Alert className="border-0 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 backdrop-blur-sm ring-1 ring-cyan-200/50 dark:ring-cyan-700/50 rounded-xl">
+                <Alert className="border-gray-700/50 bg-gray-800/50">
                   <HiExclamationCircle className="h-4 w-4 text-cyan-400" />
-                  <AlertTitle className="text-gray-900 dark:text-white font-semibold">
+                  <AlertTitle className="text-white">
                     Sistema Multi-Gateway com Auto-Detecção
                   </AlertTitle>
-                  <AlertDescription className="text-gray-700 dark:text-gray-300">
+                  <AlertDescription className="text-gray-400">
                     O sistema detecta automaticamente qual gateway você está
                     usando. Suporta: Pague-X, Mercado Pago, PagSeguro, Stripe,
                     Asaas e outros. Insira suas credenciais e clique em "Testar
