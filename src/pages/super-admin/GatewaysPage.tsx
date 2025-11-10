@@ -1,16 +1,43 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreditCard, Plus, Check, X, Settings } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
-import { gatewaysApi } from '@/lib/api/gatewaysApi';
-import { useErrorHandler } from '@/hooks/useErrorHandler'; // ✅ NOVO: Error handling padronizado
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  HiCreditCard,
+  HiPlus,
+  HiCheck,
+  HiXMark,
+  HiCog6Tooth,
+} from "react-icons/hi2";
+import { supabase } from "@/lib/supabase";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import { gatewaysApi } from "@/lib/api/gatewaysApi";
+import { useErrorHandler } from "@/hooks/useErrorHandler"; // ✅ NOVO: Error handling padronizado
 
 interface Gateway {
   id: string;
@@ -23,23 +50,24 @@ interface Gateway {
 }
 
 const GATEWAY_PROVIDERS = [
-  { value: 'stripe', label: 'Stripe', icon: '💳' },
-  { value: 'mercadopago', label: 'Mercado Pago', icon: '🇧🇷' },
-  { value: 'pagseguro', label: 'PagSeguro', icon: '🔒' },
-  { value: 'paypal', label: 'PayPal', icon: '🅿️' },
-  { value: 'asaas', label: 'Asaas', icon: '💰' },
+  { value: "stripe", label: "Stripe", icon: "💳" },
+  { value: "mercadopago", label: "Mercado Pago", icon: "🇧🇷" },
+  { value: "pagseguro", label: "PagSeguro", icon: "🔒" },
+  { value: "paypal", label: "PayPal", icon: "🅿️" },
+  { value: "asaas", label: "Asaas", icon: "💰" },
 ];
 
 export default function GatewaysPage() {
-  const { showError, showSuccess, executeWithErrorHandling } = useErrorHandler();
+  const { showError, showSuccess, executeWithErrorHandling } =
+    useErrorHandler();
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    name: '',
-    provider: '',
-    publicKey: '',
-    secretKey: '',
+    name: "",
+    provider: "",
+    publicKey: "",
+    secretKey: "",
   });
 
   useEffect(() => {
@@ -48,110 +76,121 @@ export default function GatewaysPage() {
 
   const loadGateways = async () => {
     setLoading(true);
-    
-    const result = await executeWithErrorHandling(async () => {
-      const gateways = await gatewaysApi.list();
-      
-      // Buscar contagem de transações para cada gateway
-      const gatewaysWithStats = await Promise.all(
-        gateways.map(async (gateway) => {
-          try {
-            const { count } = await supabase
-              .from('Transaction')
-              .select('*', { count: 'exact', head: true })
-              .eq('gatewayId', gateway.id);
-            
-            return {
-              id: gateway.id,
-              name: gateway.name,
-              provider: gateway.type,
-              publicKey: gateway.apiKey?.slice(0, 20) + '***' || 'N/A',
-              isActive: gateway.isActive,
-              createdAt: gateway.createdAt,
-              transactionsCount: count || 0,
-            };
-          } catch {
-            return {
-              id: gateway.id,
-              name: gateway.name,
-              provider: gateway.type,
-              publicKey: gateway.apiKey?.slice(0, 20) + '***' || 'N/A',
-              isActive: gateway.isActive,
-              createdAt: gateway.createdAt,
-              transactionsCount: 0,
-            };
-          }
-        })
-      );
-      
-      return gatewaysWithStats;
-    }, {
-      errorMessage: 'Não foi possível carregar os gateways',
-    });
-    
+
+    const result = await executeWithErrorHandling(
+      async () => {
+        const gateways = await gatewaysApi.list();
+
+        // Buscar contagem de transações para cada gateway
+        const gatewaysWithStats = await Promise.all(
+          gateways.map(async (gateway) => {
+            try {
+              const { count } = await supabase
+                .from("Transaction")
+                .select("*", { count: "exact", head: true })
+                .eq("gatewayId", gateway.id);
+
+              return {
+                id: gateway.id,
+                name: gateway.name,
+                provider: gateway.type,
+                publicKey: gateway.apiKey?.slice(0, 20) + "***" || "N/A",
+                isActive: gateway.isActive,
+                createdAt: gateway.createdAt,
+                transactionsCount: count || 0,
+              };
+            } catch {
+              return {
+                id: gateway.id,
+                name: gateway.name,
+                provider: gateway.type,
+                publicKey: gateway.apiKey?.slice(0, 20) + "***" || "N/A",
+                isActive: gateway.isActive,
+                createdAt: gateway.createdAt,
+                transactionsCount: 0,
+              };
+            }
+          }),
+        );
+
+        return gatewaysWithStats;
+      },
+      {
+        errorMessage: "Não foi possível carregar os gateways",
+      },
+    );
+
     if (result) {
       setGateways(result);
     }
-    
+
     setLoading(false);
   };
 
   const createGateway = async () => {
     // Validação
-    if (!formData.name || !formData.provider || !formData.publicKey || !formData.secretKey) {
-      showError(
-        new Error('Campos obrigatórios'),
-        'Preencha todos os campos'
-      );
+    if (
+      !formData.name ||
+      !formData.provider ||
+      !formData.publicKey ||
+      !formData.secretKey
+    ) {
+      showError(new Error("Campos obrigatórios"), "Preencha todos os campos");
       return;
     }
 
-    const result = await executeWithErrorHandling(async () => {
-      const { data, error } = await supabase
-        .from('Gateway')
-        .insert({
-          name: formData.name,
-          type: formData.provider,
-          apiKey: formData.publicKey,
-          secretKey: formData.secretKey,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    }, {
-      successMessage: `${formData.name} foi configurado com sucesso.`,
-      errorMessage: 'Não foi possível adicionar o gateway',
-    });
+    const result = await executeWithErrorHandling(
+      async () => {
+        const { data, error } = await supabase
+          .from("Gateway")
+          .insert({
+            name: formData.name,
+            type: formData.provider,
+            apiKey: formData.publicKey,
+            secretKey: formData.secretKey,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      },
+      {
+        successMessage: `${formData.name} foi configurado com sucesso.`,
+        errorMessage: "Não foi possível adicionar o gateway",
+      },
+    );
 
     if (result) {
       setIsDialogOpen(false);
       setFormData({
-        name: '',
-        provider: '',
-        publicKey: '',
-        secretKey: '',
+        name: "",
+        provider: "",
+        publicKey: "",
+        secretKey: "",
       });
       loadGateways();
     }
   };
 
   const toggleGatewayStatus = async (gatewayId: string, isActive: boolean) => {
-    const result = await executeWithErrorHandling(async () => {
-      const { error } = await supabase
-        .from('Gateway')
-        .update({ isActive, updatedAt: new Date().toISOString() })
-        .eq('id', gatewayId);
-      
-      if (error) throw error;
-      return true;
-    }, {
-      successMessage: isActive ? 'Gateway ativado' : 'Gateway desativado',
-      errorMessage: 'Não foi possível atualizar o status',
-    });
+    const result = await executeWithErrorHandling(
+      async () => {
+        const { error } = await supabase
+          .from("Gateway")
+          .update({ isActive, updatedAt: new Date().toISOString() })
+          .eq("id", gatewayId);
+
+        if (error) throw error;
+        return true;
+      },
+      {
+        successMessage: isActive ? "Gateway ativado" : "Gateway desativado",
+        errorMessage: "Não foi possível atualizar o status",
+      },
+    );
 
     if (result) {
       loadGateways();
@@ -159,14 +198,22 @@ export default function GatewaysPage() {
   };
 
   const getProviderInfo = (provider: string) => {
-    return GATEWAY_PROVIDERS.find(p => p.value === provider) || { label: provider, icon: '💳' };
+    return (
+      GATEWAY_PROVIDERS.find((p) => p.value === provider) || {
+        label: provider,
+        icon: "💳",
+      }
+    );
   };
 
   const calculateStats = () => {
     return {
       total: gateways.length,
-      active: gateways.filter(g => g.isActive).length,
-      totalTransactions: gateways.reduce((acc, g) => acc + (g.transactionsCount || 0), 0),
+      active: gateways.filter((g) => g.isActive).length,
+      totalTransactions: gateways.reduce(
+        (acc, g) => acc + (g.transactionsCount || 0),
+        0,
+      ),
     };
   };
 
@@ -186,10 +233,18 @@ export default function GatewaysPage() {
     <SuperAdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gateways de Pagamento</h1>
-            <p className="text-gray-500 dark:text-gray-400">Gerencie os meios de recebimento dos clientes</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Gateways de Pagamento
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Gerencie os meios de recebimento dos clientes
+            </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -198,31 +253,39 @@ export default function GatewaysPage() {
                 Adicionar Gateway
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle>Adicionar Gateway de Pagamento</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-white">Adicionar Gateway de Pagamento</DialogTitle>
+                <DialogDescription className="text-gray-400">
                   Configure um novo meio de recebimento
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Nome do Gateway</Label>
+                  <Label htmlFor="name" className="text-gray-300">Nome</Label>
                   <Input
                     id="name"
                     placeholder="Ex: Stripe Principal"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="provider">Provider</Label>
-                  <Select value={formData.provider} onValueChange={(value) => setFormData({ ...formData, provider: value })}>
-                    <SelectTrigger>
+                  <Label htmlFor="provider" className="text-gray-300">Provider</Label>
+                  <Select
+                    value={formData.provider}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, provider: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Selecione um provider" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       {GATEWAY_PROVIDERS.map((provider) => (
                         <SelectItem key={provider.value} value={provider.value}>
                           <div className="flex items-center gap-2">
@@ -236,73 +299,104 @@ export default function GatewaysPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="publicKey">Public Key</Label>
+                  <Label htmlFor="publicKey" className="text-gray-300">Public Key</Label>
                   <Input
                     id="publicKey"
                     placeholder="pk_test_..."
                     value={formData.publicKey}
-                    onChange={(e) => setFormData({ ...formData, publicKey: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, publicKey: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="secretKey">Secret Key</Label>
+                  <Label htmlFor="secretKey" className="text-gray-300">Secret Key</Label>
                   <Input
                     id="secretKey"
                     type="password"
                     placeholder="sk_test_..."
                     value={formData.secretKey}
-                    onChange={(e) => setFormData({ ...formData, secretKey: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, secretKey: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-700 text-white"
                   />
-                  <p className="text-xs text-gray-500">Esta chave será armazenada de forma segura e criptografada</p>
+                  <p className="text-xs text-gray-500">
+                    Esta chave será armazenada de forma segura e criptografada
+                  </p>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
                   Cancelar
                 </Button>
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-500" onClick={createGateway}>
+                <Button
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                  onClick={createGateway}
+                >
                   Adicionar Gateway
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gateways Configurados</CardTitle>
-              <CreditCard className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Total de meios de pagamento</p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-300">
+                  Gateways Configurados
+                </CardTitle>
+                <HiCreditCard className="h-4 w-4 text-blue-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                <p className="text-xs text-gray-400">
+                  Total de meios de pagamento
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gateways Ativos</CardTitle>
-              <Check className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.active}</div>
-              <p className="text-xs text-muted-foreground">Recebendo pagamentos</p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-300">
+                  Gateways Ativos
+                </CardTitle>
+                <HiCheck className="h-4 w-4 text-green-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{stats.active}</div>
+                <p className="text-xs text-gray-400">
+                  Recebendo pagamentos
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Transações</CardTitle>
-              <Settings className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-              <p className="text-xs text-muted-foreground">Total processadas</p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-300">Transações</CardTitle>
+                <HiCog6Tooth className="h-4 w-4 text-purple-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">
+                  {stats.totalTransactions}
+                </div>
+                <p className="text-xs text-gray-400">Total processadas</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Gateways Grid */}
@@ -317,34 +411,46 @@ export default function GatewaysPage() {
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
                   Adicione seu primeiro gateway de pagamento
                 </p>
-                <Button 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500"
+                <Button
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
                   onClick={() => setIsDialogOpen(true)}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <HiPlus className="h-5 w-5 mr-2" />
                   Adicionar Gateway
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            gateways.map((gateway) => {
-              const providerInfo = getProviderInfo(gateway.provider);
-              return (
-                <Card key={gateway.id} className="relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full ${
-                    gateway.isActive ? 'bg-green-500/10' : 'bg-gray-500/10'
-                  }`} />
+            {gateways.map((gateway, index) => {
+            const providerInfo = getProviderInfo(gateway.provider);
+            return (
+              <motion.div
+                key={gateway.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="relative overflow-hidden border-gray-700/50 bg-gray-800/50 backdrop-blur-xl">
+                  <div
+                    className={`absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full ${
+                      gateway.isActive ? "bg-green-500/10" : "bg-gray-500/10"
+                    }`}
+                  />
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="text-3xl">{providerInfo.icon}</div>
                         <div>
-                          <CardTitle className="text-lg">{gateway.name}</CardTitle>
-                          <CardDescription>{providerInfo.label}</CardDescription>
+                          <CardTitle className="text-lg text-white">
+                            {gateway.name}
+                          </CardTitle>
+                          <CardDescription className="text-gray-400">
+                            {providerInfo.label}
+                          </CardDescription>
                         </div>
                       </div>
-                      <Badge variant={gateway.isActive ? 'default' : 'outline'}>
-                        {gateway.isActive ? 'Ativo' : 'Inativo'}
+                      <Badge variant={gateway.isActive ? "default" : "outline"}>
+                        {gateway.isActive ? "Ativo" : "Inativo"}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -357,8 +463,10 @@ export default function GatewaysPage() {
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Transações</span>
-                      <span className="font-medium">{gateway.transactionsCount || 0}</span>
+                      <span className="text-gray-400">Transações</span>
+                      <span className="font-medium text-white">
+                        {gateway.transactionsCount || 0}
+                      </span>
                     </div>
 
                     <div className="flex gap-2">
@@ -366,24 +474,33 @@ export default function GatewaysPage() {
                         variant="outline"
                         className="flex-1"
                         size="sm"
-                        onClick={() => {/* TODO: Editar gateway */}}
+                        onClick={() => {
+                          /* TODO: Editar gateway */
+                        }}
+                        className="border-gray-700 hover:bg-gray-700"
                       >
-                        <Settings className="h-4 w-4 mr-1" />
+                        <HiCog6Tooth className="h-4 w-4 mr-1" />
                         Configurar
                       </Button>
                       <Button
-                        variant={gateway.isActive ? 'destructive' : 'default'}
+                        variant={gateway.isActive ? "destructive" : "default"}
                         size="sm"
-                        onClick={() => toggleGatewayStatus(gateway.id, !gateway.isActive)}
+                        onClick={() =>
+                          toggleGatewayStatus(gateway.id, !gateway.isActive)
+                        }
                       >
-                        {gateway.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                        {gateway.isActive ? (
+                          <HiXMark className="h-4 w-4" />
+                        ) : (
+                          <HiCheck className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })
-          )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </SuperAdminLayout>
