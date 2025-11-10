@@ -115,7 +115,7 @@ const StatCard = ({
     transition={{ delay }}
     whileHover={{ scale: 1.02 }}
   >
-    <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl hover:border-gray-600 transition-all group cursor-pointer relative overflow-hidden">
+    <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl hover:shadow-2xl transition-all duration-300 group cursor-pointer relative overflow-hidden ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl shadow-lg">
       <div
         className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`}
       />
@@ -130,8 +130,12 @@ const StatCard = ({
         </div>
       </CardHeader>
       <CardContent className="relative z-10">
-        <div className="text-3xl font-bold text-white mb-1">{value}</div>
-        <p className="text-xs text-gray-400">{description}</p>
+        <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent mb-1">
+          {value}
+        </div>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          {description}
+        </p>
       </CardContent>
     </Card>
   </motion.div>
@@ -517,10 +521,10 @@ export default function PaymentSplitPage() {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
               Split de Pagamento
             </h1>
-            <p className="text-gray-400 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Controle a distribuição de transações entre seu gateway e o dos
               clientes
             </p>
@@ -529,58 +533,58 @@ export default function PaymentSplitPage() {
             <DialogTrigger asChild>
               <Button
                 onClick={resetForm}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <HiPlus className="h-5 w-5 mr-2" />
                 Nova Regra
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle>
                   {editingRule ? "Editar Regra" : "Criar Nova Regra"}
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription>
                   Configure como as transações serão distribuídas
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div>
-                  <Label className="text-gray-300">Nome da Regra</Label>
+                  <Label>Nome da Regra</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Ex: Split 20% Admin"
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-gray-300">Descrição</Label>
+                  <Label>Descrição</Label>
                   <Input
                     value={formData.description}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-gray-300">Tipo de Regra</Label>
+                  <Label>Tipo de Regra</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value: any) =>
                       setFormData({ ...formData, type: value })
                     }
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent>
                       <SelectItem value="frequency">
                         Frequência (A cada X transações)
                       </SelectItem>
@@ -597,9 +601,7 @@ export default function PaymentSplitPage() {
                 {formData.type === "frequency" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">
-                        A cada quantas transações?
-                      </Label>
+                      <Label>A cada quantas transações?</Label>
                       <Input
                         type="number"
                         value={formData.frequencyEvery}
@@ -610,13 +612,11 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">
-                        Quantas vão para o admin?
-                      </Label>
+                      <Label>Quantas vão para o admin?</Label>
                       <Input
                         type="number"
                         value={formData.frequencyTake}
@@ -627,7 +627,7 @@ export default function PaymentSplitPage() {
                           })
                         }
                         min={1}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       />
                     </div>
                   </div>
@@ -635,9 +635,7 @@ export default function PaymentSplitPage() {
 
                 {formData.type === "percentage" && (
                   <div>
-                    <Label className="text-gray-300">
-                      Percentual para o admin (%)
-                    </Label>
+                    <Label>Percentual para o admin (%)</Label>
                     <Input
                       type="number"
                       value={formData.percentage}
@@ -650,7 +648,7 @@ export default function PaymentSplitPage() {
                       min={0}
                       max={100}
                       step={0.1}
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                     />
                   </div>
                 )}
@@ -658,7 +656,7 @@ export default function PaymentSplitPage() {
                 {formData.type === "value" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">Valor Mínimo (R$)</Label>
+                      <Label>Valor Mínimo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.minValue}
@@ -670,11 +668,11 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Valor Máximo (R$)</Label>
+                      <Label>Valor Máximo (R$)</Label>
                       <Input
                         type="number"
                         value={formData.maxValue}
@@ -686,24 +684,24 @@ export default function PaymentSplitPage() {
                         }
                         min={0}
                         step={0.01}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <Label className="text-gray-300">Gateway do Admin</Label>
+                  <Label>Gateway do Admin</Label>
                   <Select
                     value={formData.adminGatewayId}
                     onValueChange={(value) =>
                       setFormData({ ...formData, adminGatewayId: value })
                     }
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione um gateway" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent>
                       {gateways.map((gateway) => (
                         <SelectItem key={gateway.id} value={gateway.id}>
                           {gateway.name}
@@ -714,9 +712,7 @@ export default function PaymentSplitPage() {
                 </div>
 
                 <div>
-                  <Label className="text-gray-300">
-                    Prioridade (maior = maior prioridade)
-                  </Label>
+                  <Label>Prioridade (maior = maior prioridade)</Label>
                   <Input
                     type="number"
                     value={formData.priority}
@@ -727,12 +723,12 @@ export default function PaymentSplitPage() {
                       })
                     }
                     min={0}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <Label className="text-gray-300">Regra Ativa</Label>
+                <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800/50">
+                  <Label>Regra Ativa</Label>
                   <Switch
                     checked={formData.isActive}
                     onCheckedChange={(checked) =>
@@ -746,13 +742,12 @@ export default function PaymentSplitPage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   {editingRule ? "Atualizar" : "Criar"}
                 </Button>
@@ -805,12 +800,12 @@ export default function PaymentSplitPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
+          <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl">
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle className="text-gray-900 dark:text-white">
                 Gateway do Admin (Seu Gateway)
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Configure o gateway que receberá as transações quando o split
                 direcionar para o admin. Use suas credenciais da Pague-X ou
                 outro gateway compatível.
@@ -818,12 +813,12 @@ export default function PaymentSplitPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Alert className="border-gray-700/50 bg-gray-800/50">
+                <Alert className="border-0 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 backdrop-blur-sm ring-1 ring-cyan-200/50 dark:ring-cyan-700/50 rounded-xl">
                   <HiExclamationCircle className="h-4 w-4 text-cyan-400" />
-                  <AlertTitle className="text-white">
+                  <AlertTitle className="text-gray-900 dark:text-white font-semibold">
                     Sistema Multi-Gateway com Auto-Detecção
                   </AlertTitle>
-                  <AlertDescription className="text-gray-400">
+                  <AlertDescription className="text-gray-700 dark:text-gray-300">
                     O sistema detecta automaticamente qual gateway você está
                     usando. Suporta: Pague-X, Mercado Pago, PagSeguro, Stripe,
                     Asaas e outros. Insira suas credenciais e clique em "Testar
@@ -836,18 +831,18 @@ export default function PaymentSplitPage() {
                     <Label>Gateway</Label>
                     {credentialsStatus.configured &&
                     credentialsStatus.gatewayName ? (
-                      <div className="flex items-center gap-2 p-2 border rounded bg-green-50 dark:bg-green-900/20">
+                      <div className="flex items-center gap-2 p-3 border-0 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 ring-1 ring-green-200 dark:ring-green-800/50">
                         <HiCheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
                           {credentialsStatus.gatewayName}
                         </span>
                       </div>
                     ) : (
-                      <div className="p-2 border rounded bg-gray-50 dark:bg-gray-800 text-sm text-muted-foreground">
+                      <div className="p-3 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700">
                         Auto-detectado após testar conexão
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Suportamos: Pague-X, Mercado Pago, PagSeguro, Stripe,
                       Asaas
                     </p>
@@ -860,7 +855,7 @@ export default function PaymentSplitPage() {
                     <Input
                       type="text"
                       placeholder="Sua Public Key da Pague-X"
-                      className="font-mono text-sm"
+                      className="font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       value={adminCredentials.publicKey}
                       onChange={(e) =>
                         setAdminCredentials({
@@ -875,7 +870,7 @@ export default function PaymentSplitPage() {
                     <Input
                       type="password"
                       placeholder="Sua Secret Key da Pague-X"
-                      className="font-mono text-sm"
+                      className="font-mono text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                       value={adminCredentials.secretKey}
                       onChange={(e) =>
                         setAdminCredentials({
@@ -918,24 +913,26 @@ export default function PaymentSplitPage() {
                 </div>
 
                 {credentialsStatus.configured && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="p-5 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 backdrop-blur-sm rounded-xl border-0 ring-1 ring-blue-200/50 dark:ring-blue-700/50 shadow-lg">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded">
-                        <HiCurrencyDollar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <div className="p-2.5 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl shadow-lg">
+                        <HiCurrencyDollar className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">
                           Gateway Configurado
                         </h4>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
                           {credentialsStatus.gatewayName || "Gateway"} •
                           Configurado e ativo
                         </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
                           Public Key: {credentialsStatus.publicKey}
                         </p>
                       </div>
-                      <Badge className="bg-green-500">Ativo</Badge>
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 shadow-md">
+                        Ativo
+                      </Badge>
                     </div>
                   </div>
                 )}
@@ -945,141 +942,186 @@ export default function PaymentSplitPage() {
         </motion.div>
 
         {/* Alert */}
-        <Alert>
-          <HiExclamationCircle className="h-4 w-4" />
-          <AlertTitle>Como funciona?</AlertTitle>
-          <AlertDescription>
-            O sistema distribui automaticamente as transações entre seu gateway
-            (configurado acima) e o gateway do cliente. Configure regras
-            baseadas em frequência, percentual ou valor.
-          </AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Alert className="border-0 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 backdrop-blur-sm ring-1 ring-amber-200/50 dark:ring-amber-700/50 rounded-xl shadow-lg">
+            <HiExclamationCircle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-gray-900 dark:text-white font-bold">
+              Como funciona?
+            </AlertTitle>
+            <AlertDescription className="text-gray-700 dark:text-gray-300">
+              O sistema distribui automaticamente as transações entre seu
+              gateway (configurado acima) e o gateway do cliente. Configure
+              regras baseadas em frequência, percentual ou valor.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
 
         {/* Rules Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Regras Configuradas</CardTitle>
-            <CardDescription>
-              Gerenciar regras de split de pagamento
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {rules.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">Nenhuma regra configurada</p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <HiPlus className="h-4 w-4 mr-2" />
-                  Criar Primeira Regra
-                </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Configuração</TableHead>
-                    <TableHead>Contador</TableHead>
-                    <TableHead>Stats</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rules.map((rule) => {
-                    const Icon = getRuleIcon(rule.type);
-                    return (
-                      <TableRow key={rule.id}>
-                        <TableCell>
-                          <div className="font-medium">{rule.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {rule.description}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="flex items-center gap-1 w-fit"
-                          >
-                            <Icon className="h-3 w-3" />
-                            {rule.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {getRuleDescription(rule)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm">
-                              {rule.transactionCounter}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResetCounter(rule.id)}
-                            >
-                              <HiArrowPath className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>Total: {rule.totalTransactions}</div>
-                            <div className="text-green-600">
-                              Admin: {rule.adminTransactions}
-                            </div>
-                            <div className="text-blue-600">
-                              Cliente: {rule.clientTransactions}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={rule.isActive ? "default" : "secondary"}
-                          >
-                            {rule.isActive ? "Ativa" : "Inativa"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleToggle(rule.id, rule.isActive)
-                              }
-                              className="hover:bg-gray-700 text-gray-300"
-                            >
-                              <IoPower
-                                className={`h-4 w-4 ${rule.isActive ? "text-red-400" : "text-green-400"}`}
-                              />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEdit(rule)}
-                              className="hover:bg-gray-700 text-gray-300"
-                            >
-                              <HiPencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(rule.id)}
-                              className="hover:bg-gray-700 text-red-400"
-                            >
-                              <HiTrash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl text-gray-900 dark:text-white flex items-center gap-2">
+                <HiChartBar className="h-6 w-6 text-cyan-600" />
+                Regras Configuradas
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Gerenciar regras de split de pagamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {rules.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="p-4 rounded-xl bg-gray-100 dark:bg-gray-800 w-fit mx-auto mb-4">
+                    <HiChartBar className="h-12 w-12 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg font-medium">
+                    Nenhuma regra configurada
+                  </p>
+                  <Button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <HiPlus className="h-5 w-5 mr-2" />
+                    Criar Primeira Regra
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 dark:bg-gray-800/50">
+                        <TableHead className="font-semibold">Nome</TableHead>
+                        <TableHead className="font-semibold">Tipo</TableHead>
+                        <TableHead className="font-semibold">
+                          Configuração
+                        </TableHead>
+                        <TableHead className="font-semibold">
+                          Contador
+                        </TableHead>
+                        <TableHead className="font-semibold">Stats</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="text-right font-semibold">
+                          Ações
+                        </TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {rules.map((rule, index) => {
+                        const Icon = getRuleIcon(rule.type);
+                        return (
+                          <motion.tr
+                            key={rule.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <TableCell>
+                              <div className="font-semibold text-gray-900 dark:text-white">
+                                {rule.name}
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {rule.description}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className="flex items-center gap-1 w-fit bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-0">
+                                <Icon className="h-3 w-3" />
+                                {rule.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-700 dark:text-gray-300">
+                              {getRuleDescription(rule)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                                  {rule.transactionCounter}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResetCounter(rule.id)}
+                                  className="hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                                >
+                                  <HiArrowPath className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm space-y-1">
+                                <div className="font-medium text-gray-900 dark:text-white">
+                                  Total: {rule.totalTransactions}
+                                </div>
+                                <div className="text-green-600 dark:text-green-400 font-medium">
+                                  Admin: {rule.adminTransactions}
+                                </div>
+                                <div className="text-blue-600 dark:text-blue-400 font-medium">
+                                  Cliente: {rule.clientTransactions}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {rule.isActive ? (
+                                <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
+                                  Ativa
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-0">
+                                  Inativa
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleToggle(rule.id, rule.isActive)
+                                  }
+                                  className="hover:bg-gray-700 text-gray-300"
+                                >
+                                  <IoPower
+                                    className={`h-4 w-4 ${rule.isActive ? "text-red-500" : "text-green-500"}`}
+                                  />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEdit(rule)}
+                                  className="hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-600 dark:text-blue-400"
+                                >
+                                  <HiPencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(rule.id)}
+                                  className="hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400"
+                                >
+                                  <HiTrash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </SuperAdminLayout>
   );
