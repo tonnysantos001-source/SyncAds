@@ -173,9 +173,9 @@ export const CheckoutCustomizationSidebar: React.FC<
                 Mensagem
               </Label>
               <Textarea
-                value={customization.theme.noticeBarMessage || ""}
+                value={customization.theme.noticeBarText || ""}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  onUpdateTheme({ noticeBarMessage: e.target.value })
+                  onUpdateTheme({ noticeBarText: e.target.value })
                 }
                 placeholder="🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!"
                 className="mt-2 resize-none"
@@ -201,13 +201,56 @@ export const CheckoutCustomizationSidebar: React.FC<
               }
             />
 
+            {/* Estilo */}
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Estilo
+              </Label>
+              <Select
+                value={customization.theme.noticeBarStyle || "normal"}
+                onValueChange={(value: string) =>
+                  onUpdateTheme({ noticeBarStyle: value })
+                }
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="highlight">Destaque</SelectItem>
+                  <SelectItem value="urgent">Urgência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Posição */}
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Posição
+              </Label>
+              <Select
+                value={customization.theme.noticeBarPosition || "top"}
+                onValueChange={(value: string) =>
+                  onUpdateTheme({ noticeBarPosition: value })
+                }
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">Topo</SelectItem>
+                  <SelectItem value="bottom">Rodapé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Animação */}
             <div>
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Animação
               </Label>
               <Select
-                value={customization.theme.noticeBarAnimation || "none"}
+                value={customization.theme.noticeBarAnimation || "slide"}
                 onValueChange={(value: string) =>
                   onUpdateTheme({ noticeBarAnimation: value })
                 }
@@ -216,9 +259,9 @@ export const CheckoutCustomizationSidebar: React.FC<
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem animação</SelectItem>
                   <SelectItem value="slide">Deslizar</SelectItem>
-                  <SelectItem value="fade">Fade</SelectItem>
+                  <SelectItem value="fade">Fade In/Out</SelectItem>
+                  <SelectItem value="scale">Escala</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -684,11 +727,27 @@ export const CheckoutCustomizationSidebar: React.FC<
                 }
                 placeholder="15"
                 min="1"
-                max="1440"
+                max="120"
               />
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-1">
-                Recomendado: 10-15 minutos
-              </p>
+            </div>
+
+            {/* Tempo de remoção forçada */}
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Tempo de remoção forçada (minutos)
+              </Label>
+              <Input
+                type="number"
+                value={customization.theme.forceRemovalTime || 20}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onUpdateTheme({
+                    forceRemovalTime: parseInt(e.target.value) || 20,
+                  })
+                }
+                className="mt-2"
+                min="1"
+                max="120"
+              />
             </div>
           </div>
         );

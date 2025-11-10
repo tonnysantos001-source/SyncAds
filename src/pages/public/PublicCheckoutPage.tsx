@@ -41,6 +41,9 @@ import { ScarcityTimer } from "@/components/checkout/ScarcityTimer";
 import { ProgressBar } from "@/components/checkout/ProgressBar";
 import { LogoHeader } from "@/components/checkout/LogoHeader";
 import { ExtraFields } from "@/components/checkout/ExtraFields";
+import { NoticeBar } from "@/components/checkout/NoticeBar";
+import { SecurityBadges } from "@/components/checkout/SecurityBadges";
+import { PaymentMethodIcons } from "@/components/checkout/PaymentMethodIcons";
 
 // ============================================
 // INTERFACES
@@ -689,18 +692,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         fontFamily: getFontFamily(),
       }}
     >
-      {/* Notice Bar */}
-      {theme.noticeBarEnabled && theme.noticeBarMessage && (
-        <div
-          className="py-3 px-4 text-center text-sm font-medium"
-          style={{
-            backgroundColor: theme.noticeBarBackgroundColor || "#8b5cf6",
-            color: theme.noticeBarTextColor || "#ffffff",
-          }}
-        >
-          {theme.noticeBarMessage}
-        </div>
-      )}
+      {/* Notice Bar com Animações */}
+      <NoticeBar theme={theme} isMobile={isMobile} closeable={false} />
 
       {/* Logo - Componente Customizável */}
       <LogoHeader
@@ -1055,6 +1048,23 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       </h3>
                     )}
 
+                    {/* Ícones de Métodos de Pagamento */}
+                    <div className="mb-4">
+                      <PaymentMethodIcons
+                        theme={theme}
+                        isMobile={isMobile}
+                        variant="horizontal"
+                        methods={[
+                          "visa",
+                          "mastercard",
+                          "amex",
+                          "elo",
+                          "pix",
+                          "boleto",
+                        ]}
+                      />
+                    </div>
+
                     {/* Seletor de Método */}
                     <div
                       className={cn(
@@ -1271,16 +1281,14 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 </CheckoutButton>
               </div>
 
-              {/* Trust Badges */}
-              <div className="mt-6 pt-6 border-t flex items-center justify-center gap-6 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-green-600" />
-                  <span>Compra Segura</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-green-600" />
-                  <span>SSL Certificado</span>
-                </div>
+              {/* Security Badges Profissionais */}
+              <div className="mt-6 pt-6 border-t">
+                <SecurityBadges
+                  theme={theme}
+                  isMobile={isMobile}
+                  variant="horizontal"
+                  showText={true}
+                />
               </div>
             </motion.div>
           </div>
