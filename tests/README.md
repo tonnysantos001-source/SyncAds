@@ -1,226 +1,114 @@
-# 🧪 Guia de Testes - SyncAds
+# Testes - SyncAds
 
-## 📋 Visão Geral
+Este diretório contém scripts de teste end-to-end para validar funcionalidades do SyncAds.
 
-Este diretório contém testes automatizados de segurança e performance para o SyncAds.
+## Teste de Pedido com Frete
 
-## 🚀 Como Executar
+### Arquivo: `test-order-with-shipping.ts`
 
-### Executar todos os testes
-```bash
-npm test
-```
+Este teste valida todo o fluxo de criação de pedido com aplicação de frete:
 
-### Executar testes em modo UI (interface visual)
-```bash
-npm run test:ui
-```
+**O que o teste faz:**
+1. Autentica o usuário
+2. Verifica/cria métodos de frete (Frete Grátis, PAC, SEDEX)
+3. Cria um produto de teste
+4. Cria um cliente de teste
+5. Cria um pedido aplicando frete
+6. Valida os cálculos (subtotal + frete = total)
+7. Verifica o pedido no banco de dados
+8. (Opcional) Limpa os dados de teste
 
-### Executar testes uma vez (CI/CD)
-```bash
-npm run test:run
-```
+### Como executar:
 
-### Executar com relatório de cobertura
-```bash
-npm run test:coverage
-```
+1. **Configurar credenciais**
+   
+   Edite o arquivo `test-order-with-shipping.ts` e altere as credenciais de autenticação:
+   
+   ```typescript
+   const user = await authenticateUser(
+     'seu-email@example.com', // ALTERE AQUI
+     'sua-senha' // ALTERE AQUI
+   );
+   ```
 
-## 📁 Estrutura de Testes
+2. **Executar o teste**
+   
+   ```bash
+   cd SyncAds
+   npx tsx tests/test-order-with-shipping.ts
+   ```
 
-```
-tests/
-├── setup.ts                 # Configuração inicial
-├── security.test.ts         # Testes de segurança
-├── performance.test.ts      # Testes de performance
-└── README.md               # Este arquivo
-```
+3. **Interpretar resultados**
+   
+   O teste exibirá logs detalhados de cada etapa:
+   - ✅ = Sucesso
+   - ❌ = Erro
+   
+   Ao final, você verá um resumo com validações dos cálculos.
 
-## 🛡️ Testes de Segurança
-
-### O que é testado:
-
-1. **Variáveis de Ambiente**
-   - ✅ URL do Supabase configurada
-   - ✅ Anon key configurada
-   - ✅ Sem credenciais hardcoded
-
-2. **RLS Policies**
-   - ✅ Acesso não autorizado bloqueado
-   - ✅ Isolamento de dados por organização
-   - ✅ Proteção de tabelas sensíveis
-
-3. **SQL Injection**
-   - ✅ Sanitização de inputs
-   - ✅ Prevenção de comandos maliciosos
-
-4. **Autenticação**
-   - ✅ Endpoints protegidos
-   - ✅ Tokens JWT validados
-
-5. **CORS**
-   - ✅ Headers configurados
-   - ✅ Origens permitidas
-
-6. **Criptografia**
-   - ✅ HTTPS obrigatório
-   - ✅ Dados sensíveis protegidos
-
-7. **Error Handling**
-   - ✅ Sem vazamento de informações
-
-## ⚡ Testes de Performance
-
-### O que é testado:
-
-1. **Queries de Banco**
-   - ✅ Queries simples < 500ms
-   - ✅ Queries com JOIN < 1000ms
-   - ✅ Queries complexas < 1500ms
-
-2. **Índices**
-   - ✅ Uso eficiente de índices
-   - ✅ Queries filtradas rápidas
-
-3. **RLS Performance**
-   - ✅ Políticas otimizadas
-   - ✅ Sem impacto significativo
-
-4. **API Response Time**
-   - ✅ Health check < 500ms
-   - ✅ Requisições concorrentes < 2s
-
-5. **N+1 Prevention**
-   - ✅ Joins eficientes
-   - ✅ Sem queries redundantes
-
-6. **Memory Usage**
-   - ✅ Paginação implementada
-   - ✅ Limites de dados
-
-7. **Edge Functions**
-   - ✅ Latência baixa
-   - ✅ Respostas rápidas
-
-## 🎯 Métricas de Performance
-
-| Operação | Meta | Status |
-|----------|------|--------|
-| Query simples | < 500ms | ✅ |
-| Query com JOIN | < 1000ms | ✅ |
-| Query complexa | < 1500ms | ✅ |
-| API Health Check | < 500ms | ✅ |
-| Concurrent Requests | < 2000ms | ✅ |
-| RLS Policy Check | < 400ms | ✅ |
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente
-
-Crie um arquivo `.env.test` com:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### Dependências
-
-Todas as dependências já estão instaladas via `package.json`:
-
-- `vitest` - Framework de testes
-- `@testing-library/react` - Testes de componentes
-- `@testing-library/jest-dom` - Matchers personalizados
-- `jsdom` - Environment do DOM
-- `@vitest/ui` - Interface visual
-
-## 📊 Relatórios
-
-### Cobertura de Código
-
-Após executar `npm run test:coverage`, você encontrará:
+### Estrutura do Teste
 
 ```
-coverage/
-├── index.html           # Relatório visual
-├── coverage-final.json  # Dados brutos
-└── lcov.info           # Formato LCOV
+🚀 Iniciando teste
+├── 🔐 Autenticação
+├── 📦 Verificação de métodos de frete
+├── 🛍️ Criação de produto
+├── 👤 Criação de cliente
+├── 🛒 Criação de pedido com frete
+├── 🔍 Verificação do pedido
+├── ✨ Validações
+└── 🧹 Limpeza (opcional)
 ```
 
-Abra `coverage/index.html` no navegador para visualizar.
+### Limpeza de Dados
 
-## ✅ Checklist de Testes
+Por padrão, a limpeza está **comentada** para permitir inspeção manual dos dados criados.
 
-Antes de fazer deploy:
+Para ativar a limpeza automática, descomente a linha:
 
-- [ ] Todos os testes de segurança passando
-- [ ] Todos os testes de performance passando
-- [ ] Cobertura de código > 70%
-- [ ] Sem vulnerabilidades conhecidas
-- [ ] RLS policies otimizadas
-- [ ] Índices criados
-- [ ] Rate limiting configurado
-
-## 🚨 Troubleshooting
-
-### Erro: "Supabase URL not configured"
-```bash
-# Crie .env.test com suas credenciais
-cp .env .env.test
+```typescript
+await cleanup(product.id, customer.id, orderResult.orderId);
 ```
 
-### Erro: "Test timeout"
-```bash
-# Aumente o timeout em vitest.config.ts
-testTimeout: 20000 // 20s
+### Troubleshooting
+
+**Erro de autenticação:**
+- Verifique se o email e senha estão corretos
+- Verifique se o usuário existe no banco de dados
+
+**Erro ao criar métodos de frete:**
+- Verifique se a tabela `ShippingMethod` existe
+- Verifique as políticas RLS da tabela
+
+**Erro ao criar pedido:**
+- Verifique se a tabela `Order` possui os campos: `shipping`, `shippingCarrier`, `shippingAddress`
+- Verifique as políticas RLS da tabela `Order`
+
+### Verificação Manual
+
+Após executar o teste, você pode verificar os dados criados diretamente no Supabase:
+
+```sql
+-- Ver métodos de frete
+SELECT * FROM "ShippingMethod" WHERE "userId" = 'seu-user-id';
+
+-- Ver pedido criado
+SELECT 
+  id, 
+  subtotal, 
+  shipping, 
+  total, 
+  "shippingCarrier",
+  status 
+FROM "Order" 
+WHERE id = 'order-id-do-teste';
 ```
 
-### Erro: "Cannot connect to database"
-```bash
-# Verifique se o Supabase está acessível
-curl https://your-project.supabase.co
-```
+## Próximos Testes
 
-## 📚 Recursos
-
-- [Vitest Docs](https://vitest.dev/)
-- [Testing Library](https://testing-library.com/)
-- [Supabase Testing](https://supabase.com/docs/guides/testing)
-
-## 🔄 Integração Contínua
-
-Adicione ao seu `.github/workflows/test.yml`:
-
-```yaml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run test:run
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-```
-
-## 💡 Dicas
-
-1. **Execute testes frequentemente** - Integre no seu workflow
-2. **Monitore performance** - Use os benchmarks como baseline
-3. **Atualize testes** - Quando adicionar features
-4. **Revise cobertura** - Mantenha acima de 70%
-5. **Automatize** - Configure CI/CD
-
----
-
-**Última atualização:** 29/10/2024
-**Versão:** 1.0.0
-
+Outros testes que podem ser adicionados:
+- Teste de cálculo de frete por peso
+- Teste de frete por valor mínimo
+- Teste de frete grátis acima de X valor
+- Teste de múltiplos métodos de entrega
+- Teste de endereços em diferentes regiões
