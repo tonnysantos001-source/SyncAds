@@ -47,6 +47,7 @@ import {
   cleanAdminBlocksFromResponse,
 } from "@/lib/ai/adminTools";
 import { integrationSystemPrompt } from "@/lib/integrations/integrationParsers";
+import { SyncAdsWatermarkBg } from "@/components/backgrounds/SyncAdsWatermarkBg";
 import {
   integrationControlPrompt,
   cleanIntegrationBlocksFromResponse,
@@ -549,7 +550,10 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-[#0A0A0F] overflow-hidden">
+    <div className="h-screen flex overflow-hidden relative">
+      {/* Background com marca d'água */}
+      <SyncAdsWatermarkBg watermarkOpacity={0.08} variant="default" />
+
       {/* SIDEBAR - Dark Theme */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -558,10 +562,10 @@ const ChatPage: React.FC = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -320, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed md:relative w-80 h-full bg-[#12121A]/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col z-50 shadow-2xl"
+            className="fixed md:relative w-80 h-full bg-white/10 backdrop-blur-xl border-r border-white/20 flex flex-col z-50 shadow-2xl"
           >
             {/* Header */}
-            <div className="p-4 border-b border-gray-700/50 bg-gradient-to-b from-gray-800/50 to-transparent">
+            <div className="p-4 border-b border-white/10 bg-gradient-to-b from-white/5 to-transparent">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <motion.div
@@ -592,7 +596,7 @@ const ChatPage: React.FC = () => {
                 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleNewConversation}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 font-medium transition-all shadow-lg shadow-blue-500/30"
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 font-medium transition-all shadow-lg border border-white/20"
               >
                 <motion.div
                   animate={{ rotate: [0, 90, 90, 0] }}
@@ -674,7 +678,7 @@ const ChatPage: React.FC = () => {
       {/* ÁREA PRINCIPAL */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="bg-[#12121A]/95 backdrop-blur-xl border-b border-gray-700/50 px-4 py-3 shadow-lg">
+        <div className="bg-white/10 backdrop-blur-xl border-b border-white/20 px-4 py-3 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <motion.button
@@ -731,7 +735,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-transparent custom-scrollbar">
           {activeConversation ? (
             <>
               {activeConversation.messages.map((message: any) => {
@@ -754,7 +758,7 @@ const ChatPage: React.FC = () => {
                       className="flex justify-start"
                     >
                       <div className="max-w-[80%]">
-                        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 mb-2 border border-gray-700/30">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 mb-2 border border-white/30 shadow-lg">
                           <div className="flex items-start gap-3">
                             <motion.div
                               whileHover={{ rotate: 10, scale: 1.1 }}
@@ -762,7 +766,7 @@ const ChatPage: React.FC = () => {
                             >
                               <IconBrandOpenai className="w-6 h-6 text-blue-400" />
                             </motion.div>
-                            <div className="flex-1 text-gray-200">
+                            <div className="flex-1 text-gray-800 font-medium">
                               {cleanContent}
                             </div>
                           </div>
@@ -790,10 +794,10 @@ const ChatPage: React.FC = () => {
                   >
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl p-4 backdrop-blur-sm",
+                        "max-w-[80%] rounded-2xl p-4 backdrop-blur-sm shadow-lg",
                         message.role === "user"
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20 border border-blue-400/30"
-                          : "bg-gray-800/50 text-gray-200 border border-gray-700/30",
+                          ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-gray-900 border border-purple-400/50 font-medium"
+                          : "bg-white/20 text-gray-800 border border-white/30 font-medium",
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -805,7 +809,7 @@ const ChatPage: React.FC = () => {
                             whileHover={{ rotate: 10, scale: 1.1 }}
                             className="flex-shrink-0"
                           >
-                            <IconBrandOpenai className="w-6 h-6 text-blue-400" />
+                            <IconBrandOpenai className="w-6 h-6 text-purple-600" />
                           </motion.div>
                         )}
                         {message.role === "user" && (
@@ -816,7 +820,7 @@ const ChatPage: React.FC = () => {
                             whileHover={{ scale: 1.1 }}
                             className="flex-shrink-0"
                           >
-                            <IconUserCircle className="w-6 h-6 text-white" />
+                            <IconUserCircle className="w-6 h-6 text-purple-700" />
                           </motion.div>
                         )}
                         <div className="flex-1 whitespace-pre-wrap break-words">
@@ -861,7 +865,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Input */}
-        <div className="bg-[#12121A]/95 backdrop-blur-xl border-t border-gray-700/50 px-6 py-3 shadow-2xl">
+        <div className="bg-white/10 backdrop-blur-xl border-t border-white/20 px-6 py-3 shadow-2xl">
           <div className="hidden sm:flex gap-2 mb-3">
             {quickSuggestions.map((s) => (
               <motion.button
@@ -872,7 +876,7 @@ const ChatPage: React.FC = () => {
                 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setInput(s)}
-                className="px-3 py-1.5 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 text-sm transition-all border border-gray-700/30 backdrop-blur-sm"
+                className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-gray-800 text-sm transition-all border border-white/30 backdrop-blur-sm shadow-sm font-medium"
               >
                 {s}
               </motion.button>
@@ -889,7 +893,7 @@ const ChatPage: React.FC = () => {
                 }
               }}
               placeholder="Digite sua mensagem..."
-              className="w-full resize-none rounded-xl bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 text-white placeholder-gray-500 p-4 pr-32 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:bg-gray-800/70 transition-all shadow-inner"
+              className="w-full resize-none rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-gray-800 placeholder-gray-600 p-4 pr-32 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/30 focus:bg-white/20 transition-all shadow-inner"
               minRows={1}
               maxRows={5}
               maxLength={MAX_CHARS}
@@ -966,8 +970,8 @@ const ChatPage: React.FC = () => {
                 className={cn(
                   "p-2.5 rounded-lg transition-all",
                   input.trim() === "" || !activeConversationId
-                    ? "bg-gray-700/50 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl",
+                    ? "bg-white/10 text-gray-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-xl border border-purple-400/50",
                 )}
               >
                 <IconSend className="w-5 h-5" />
@@ -978,8 +982,8 @@ const ChatPage: React.FC = () => {
             <AIUsageBadge />
             <p
               className={cn(
-                "text-xs",
-                input.length > MAX_CHARS ? "text-red-400" : "text-gray-500",
+                "text-xs font-medium",
+                input.length > MAX_CHARS ? "text-red-600" : "text-gray-700",
               )}
             >
               {input.length} / {MAX_CHARS}
