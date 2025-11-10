@@ -115,9 +115,21 @@ export default function PaymentSplitPage() {
     isActive: true,
     priority: 0,
   });
+  const [adminCredentials, setAdminCredentials] = useState({
+    publicKey: "",
+    secretKey: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [credentialsStatus, setCredentialsStatus] = useState<{
+    configured: boolean;
+    publicKey?: string;
+  }>({ configured: false });
+</parameter>
 
   useEffect(() => {
     loadData();
+    loadAdminCredentials();
   }, []);
 
   const loadData = async () => {
@@ -181,6 +193,120 @@ export default function PaymentSplitPage() {
       .eq("isActive", true)
       .order("name");
     if (data) setGateways(data);
+  };
+
+  const loadAdminCredentials = async () => {
+    // Buscar configuração do gateway admin (Pague-X) no GatewayConfig
+    const { data } = await supabase
+      .from("GatewayConfig")
+      .select("credentials")
+      .eq("gatewayId", "ebac558d-e799-4246-b7fe-2c7c68393460") // ID do Pague-X
+      .eq("userId", "admin") // Credenciais do admin
+      .single();
+
+    if (data?.credentials) {
+      const creds = data.credentials as any;
+      setCredentialsStatus({
+        configured: true,
+        publicKey: creds.publicKey?.substring(0, 20) + "***",
+      });
+      setAdminCredentials({
+        publicKey: creds.publicKey || "",
+        secretKey: creds.secretKey || "",
+      });
+    }
+  };
+
+  const handleSaveCredentials = async () => {
+    if (!adminCredentials.publicKey || !adminCredentials.secretKey) {
+      toast({
+        title: "Erro",
+        description: "Preencha Public Key e Secret Key",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Salvar no GatewayConfig
+      const { error } = await supabase.from("GatewayConfig").upsert({
+        gatewayId: "ebac558d-e799-4246-b7fe-2c7c68393460", // Pague-X
+        userId: "admin",
+        credentials: {
+          publicKey: adminCredentials.publicKey,
+          secretKey: adminCredentials.secretKey,
+        },
+        isActive: true,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: "Credenciais salvas com sucesso",
+      });
+
+      loadAdminCredentials();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!adminCredentials.publicKey || !adminCredentials.secretKey) {
+      toast({
+        title: "Erro",
+        description: "Preencha as credenciais antes de testar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      const authString = btoa(
+        `${adminCredentials.publicKey}:${adminCredentials.secretKey}`,
+      );
+
+      const response = await fetch(
+        "https://api.inpagamentos.com/v1/transactions?limit=1",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${authString}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.ok) {
+        toast({
+          title: "Conexão OK!",
+          description: "Credenciais válidas. Gateway funcionando.",
+        });
+      } else {
+        toast({
+          title: "Erro de Autenticação",
+          description: `Status ${response.status}: Verifique suas credenciais`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro de Conexão",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -621,14 +747,150 @@ export default function PaymentSplitPage() {
           </Card>
         </div>
 
+        {/* Gateway Admin Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Gateway do Admin (Seu Gateway)</CardTitle>
+            <CardDescription>
+              Configure o gateway que receberá as transações quando o split
+              direcionar para o admin. Use suas credenciais da Pague-X ou outro
+              gateway compatível.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Credenciais Pague-X</AlertTitle>
+                <AlertDescription>
+                  As credenciais podem ser obtidas no painel da Pague-X em{" "}
+                  <a
+                    href="https://app.inpagamentos.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    app.inpagamentos.com
+                  </a>
+                  . Você precisa de uma Public Key e Secret Key.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Gateway</Label>
+                  <Select defaultValue="paguex" disabled>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paguex">
+                        Pague-X (inpagamentos.com)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Atualmente suportamos apenas Pague-X
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Public Key</Label>
+                  <Input
+                    type="text"
+                    placeholder="Sua Public Key da Pague-X"
+                    className="font-mono text-sm"
+                    value={adminCredentials.publicKey}
+                    onChange={(e) =>
+                      setAdminCredentials({
+                        ...adminCredentials,
+                        publicKey: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Secret Key</Label>
+                  <Input
+                    type="password"
+                    placeholder="Sua Secret Key da Pague-X"
+                    className="font-mono text-sm"
+                    value={adminCredentials.secretKey}
+                    onChange={(e) =>
+                      setAdminCredentials({
+                        ...adminCredentials,
+                        secretKey: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleSaveCredentials} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Salvar Credenciais
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleTestConnection}
+                  disabled={isTesting}
+                >
+                  {isTesting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Testando...
+                    </>
+                  ) : (
+                    "Testar Conexão"
+                  )}
+                </Button>
+              </div>
+
+              {credentialsStatus.configured && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded">
+                      <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        Gateway Configurado
+                      </h4>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Pague-X • Configurado e ativo
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        Public Key: {credentialsStatus.publicKey}
+                      </p>
+                    </div>
+                    <Badge className="bg-green-500">Ativo</Badge>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Alert */}
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Como funciona?</AlertTitle>
           <AlertDescription>
             O sistema distribui automaticamente as transações entre seu gateway
-            e o gateway do cliente. Configure regras baseadas em frequência,
-            percentual ou valor.
+            (configurado acima) e o gateway do cliente. Configure regras
+            baseadas em frequência, percentual ou valor.
           </AlertDescription>
         </Alert>
 
