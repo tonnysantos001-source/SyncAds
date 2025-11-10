@@ -52,6 +52,11 @@ import {
   cleanIntegrationBlocksFromResponse,
 } from "@/lib/ai/integrationTools";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  canSendAiMessage,
+  incrementAiMessageUsage,
+} from "@/lib/plans/planLimits";
+import { AIUsageBadge } from "@/components/chat/AIUsageBadge";
 
 const quickSuggestions = [
   "Criar campanha de Facebook Ads",
@@ -208,6 +213,20 @@ const ChatPage: React.FC = () => {
     )
       return;
 
+    // Verificar limite de mensagens IA
+    if (user) {
+      const limitCheck = await canSendAiMessage(user.id);
+      if (!limitCheck.allowed) {
+        toast({
+          title: "Limite de mensagens atingido",
+          description:
+            limitCheck.message + ". Faça upgrade do seu plano para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const userMessage = input;
 
     const lowerMessage = userMessage.toLowerCase();
@@ -308,6 +327,9 @@ const ChatPage: React.FC = () => {
           activeConversationId,
           cleanedResponse,
         );
+
+        // Incrementar contador de mensagens IA após resposta bem-sucedida
+        await incrementAiMessageUsage(user.id);
       }
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
@@ -952,14 +974,17 @@ const ChatPage: React.FC = () => {
               </motion.button>
             </div>
           </div>
-          <p
-            className={cn(
-              "text-xs text-right mt-2",
-              input.length > MAX_CHARS ? "text-red-400" : "text-gray-500",
-            )}
-          >
-            {input.length} / {MAX_CHARS}
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <AIUsageBadge />
+            <p
+              className={cn(
+                "text-xs",
+                input.length > MAX_CHARS ? "text-red-400" : "text-gray-500",
+              )}
+            >
+              {input.length} / {MAX_CHARS}
+            </p>
+          </div>
         </div>
       </div>
     </div>
