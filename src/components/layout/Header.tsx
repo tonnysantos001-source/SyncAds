@@ -45,21 +45,25 @@ interface HeaderProps {
 
 interface Notification {
   id: string;
-  type: "success" | "warning" | "info" | "campaign";
+  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "CAMPAIGN_STARTED";
   title: string;
-  description: string;
+  message: string;
   createdAt: string;
-  read: boolean;
+  isRead: boolean;
   userId: string;
+  readAt?: string;
+  actionUrl?: string;
+  metadata?: any;
 }
 
 const getNotificationIcon = (type: string) => {
-  switch (type) {
-    case "success":
+  switch (type.toUpperCase()) {
+    case "SUCCESS":
       return CheckCircle;
-    case "warning":
+    case "WARNING":
+    case "ERROR":
       return AlertTriangle;
-    case "campaign":
+    case "CAMPAIGN_STARTED":
       return Megaphone;
     default:
       return Info;
@@ -91,20 +95,18 @@ const NotificationItem: React.FC<{ notification: Notification }> = ({
   const Icon = getNotificationIcon(notification.type);
   return (
     <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg">
-      {!notification.read && (
+      {!notification.isRead && (
         <div className="h-2 w-2 mt-1.5 rounded-full bg-primary" />
       )}
       <Icon
         className={cn(
           "h-5 w-5 mt-1 flex-shrink-0",
-          notification.read ? "text-muted-foreground" : "text-primary",
+          notification.isRead ? "text-muted-foreground" : "text-primary",
         )}
       />
       <div className="flex-1">
         <p className="text-sm font-medium">{notification.title}</p>
-        <p className="text-sm text-muted-foreground">
-          {notification.description}
-        </p>
+        <p className="text-sm text-muted-foreground">{notification.message}</p>
         <p className="text-xs text-muted-foreground mt-1">
           {getTimeAgo(notification.createdAt)}
         </p>
@@ -159,7 +161,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <header
