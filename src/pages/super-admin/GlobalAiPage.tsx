@@ -402,14 +402,14 @@ export default function GlobalAiPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
               <DialogHeader>
-                <DialogTitle>Nova Conexão de IA</DialogTitle>
+                <DialogTitle className="text-white">Nova Conexão de IA</DialogTitle>
                 <DialogDescription>
                   Adicionar uma nova IA global ao sistema
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Nome</Label>
+                  <Label htmlFor="name" className="text-gray-300">Nome</Label>
                   <Input
                     id="name"
                     placeholder="OpenAI GPT-4"
@@ -420,7 +420,7 @@ export default function GlobalAiPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="provider">Provider</Label>
+                  <Label htmlFor="provider" className="text-gray-300">Provider</Label>
                   <Select
                     value={formData.provider}
                     onValueChange={(value) => {
@@ -464,7 +464,7 @@ export default function GlobalAiPage() {
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="apiKey">API Key</Label>
+                  <Label htmlFor="apiKey" className="text-gray-300">API Key</Label>
                   <Input
                     id="apiKey"
                     type="password"
@@ -476,7 +476,7 @@ export default function GlobalAiPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="model">Modelo</Label>
+                  <Label htmlFor="model" className="text-gray-300">Modelo</Label>
                   <Input
                     id="model"
                     placeholder={
@@ -495,7 +495,7 @@ export default function GlobalAiPage() {
                   </p>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="baseUrl">Base URL</Label>
+                  <Label htmlFor="baseUrl" className="text-gray-300">Base URL</Label>
                   <Input
                     id="baseUrl"
                     placeholder={
@@ -527,18 +527,18 @@ export default function GlobalAiPage() {
 
         <div className="grid grid-cols-1 gap-6 mt-6">
           {aiConnections.map((ai) => (
-            <Card key={ai.id} className="bg-white border-gray-200">
+            <Card key={ai.id} className="border-gray-700/50 bg-gray-800/30 hover:bg-gray-800/50 transition-all">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <HiCpuChip className="h-6 w-6 text-purple-600" />
+                    <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-lg">
+                      <HiCpuChip className="h-6 w-6 text-white" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <CardTitle>{ai.name}</CardTitle>
                         {ai.isActive && (
-                          <Badge className="bg-green-500">✓ Testada</Badge>
+                          <Badge className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border-green-500/30 border">✓ Testada</Badge>
                         )}
                       </div>
                       <CardDescription className="mt-1 flex items-center gap-2">
@@ -589,21 +589,21 @@ export default function GlobalAiPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">API Key</span>
+                    <span className="text-gray-400">API Key</span>
                     <div className="font-mono text-xs mt-1">
                       {ai.apiKey.substring(0, 10)}...
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Max Tokens</span>
+                    <span className="text-gray-400">Max Tokens</span>
                     <div className="font-medium mt-1">{ai.maxTokens}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Temperature</span>
+                    <span className="text-gray-400">Temperature</span>
                     <div className="font-medium mt-1">{ai.temperature}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Criada em</span>
+                    <span className="text-gray-400">Criada em</span>
                     <div className="font-medium mt-1">
                       {new Date(ai.createdAt).toLocaleDateString("pt-BR")}
                     </div>
