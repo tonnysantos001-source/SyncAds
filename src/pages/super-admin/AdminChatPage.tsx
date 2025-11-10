@@ -565,12 +565,12 @@ export default function AdminChatPage() {
       <div className="h-[calc(100vh-80px)] flex">
         {/* SIDEBAR - Conversas Antigas */}
         <div
-          className={`${isSidebarOpen ? "w-72" : "w-0"} transition-all duration-300 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden`}
+          className={`${isSidebarOpen ? "w-72" : "w-0"} transition-all duration-300 bg-gray-900/50 border-r border-gray-700/50 flex flex-col overflow-hidden`}
         >
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700">Conversas</h2>
+              <h2 className="text-sm font-semibold text-gray-300">Conversas</h2>
               <Button
                 onClick={() => setIsSidebarOpen(false)}
                 variant="ghost"
@@ -602,12 +602,12 @@ export default function AdminChatPage() {
                 }`}
                 onClick={() => loadConversationMessages(conv.id)}
               >
-                <HiChatBubbleBottomCenterText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <HiChatBubbleBottomCenterText className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {conv.title}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-400">
                     {new Date(conv.updatedAt).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
@@ -630,7 +630,7 @@ export default function AdminChatPage() {
         {/* ÁREA PRINCIPAL DO CHAT */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl p-4">
+          <div className="border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {!isSidebarOpen && (
@@ -650,7 +650,7 @@ export default function AdminChatPage() {
                   <h1 className="text-xl font-bold text-gray-900">
                     Chat Administrativo
                   </h1>
-                  <p className="text-sm text-gray-500">Chat com IA</p>
+                  <p className="text-sm text-gray-400">Chat com IA</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -726,7 +726,7 @@ export default function AdminChatPage() {
                       className={`text-xs mt-2 ${
                         message.role === "USER"
                           ? "text-white/70"
-                          : "text-gray-500"
+                          : "text-gray-400"
                       }`}
                     >
                       {message.timestamp.toLocaleTimeString("pt-BR")}
@@ -746,11 +746,11 @@ export default function AdminChatPage() {
             )}
             {isLoading && (
               <div className="flex justify-start">
-                <Card className="bg-white">
+                <Card className="bg-gray-800/50 border-gray-700">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2">
                       <HiArrowPath className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-400">
                         Processando...
                       </span>
                     </div>
@@ -762,7 +762,7 @@ export default function AdminChatPage() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 p-4 bg-white/80 backdrop-blur-xl">
+          <div className="border-t border-gray-700/50 p-4 bg-gray-900/50 backdrop-blur-xl">
             <div className="flex gap-2">
               <Textarea
                 value={input}
