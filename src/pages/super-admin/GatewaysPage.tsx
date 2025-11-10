@@ -500,12 +500,11 @@ export default function GatewaysPage() {
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 border-gray-700 hover:bg-gray-700"
                           size="sm"
                           onClick={() => {
                             /* TODO: Editar gateway */
                           }}
-                          className="border-gray-700 hover:bg-gray-700"
                         >
                           <HiCog6Tooth className="h-4 w-4 mr-1" />
                           Configurar
