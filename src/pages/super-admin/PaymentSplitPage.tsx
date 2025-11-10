@@ -58,6 +58,10 @@ import { useToast } from "@/components/ui/use-toast";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  autoDetectGateway,
+  getSupportedGateways,
+} from "@/lib/gateways/gatewayAutoDetect";
 
 interface PaymentSplitRule {
   id: string;
@@ -124,6 +128,8 @@ export default function PaymentSplitPage() {
   const [credentialsStatus, setCredentialsStatus] = useState<{
     configured: boolean;
     publicKey?: string;
+    gatewayName?: string;
+    gatewaySlug?: string;
   }>({ configured: false });
 
   useEffect(() => {
@@ -259,10 +265,10 @@ export default function PaymentSplitPage() {
   };
 
   const handleTestConnection = async () => {
-    if (!adminCredentials.publicKey || !adminCredentials.secretKey) {
+    if (!adminCredentials.publicKey && !adminCredentials.secretKey) {
       toast({
         title: "Erro",
-        description: "Preencha as credenciais antes de testar",
+        description: "Preencha pelo menos uma credencial antes de testar",
         variant: "destructive",
       });
       return;
@@ -270,30 +276,29 @@ export default function PaymentSplitPage() {
 
     setIsTesting(true);
     try {
-      const authString = btoa(
-        `${adminCredentials.publicKey}:${adminCredentials.secretKey}`,
-      );
+      // Auto-detectar gateway
+      const result = await autoDetectGateway({
+        publicKey: adminCredentials.publicKey,
+        secretKey: adminCredentials.secretKey,
+      });
 
-      const response = await fetch(
-        "https://api.inpagamentos.com/v1/transactions?limit=1",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Basic ${authString}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (response.ok) {
+      if (result.success && result.gateway) {
         toast({
-          title: "Conexão OK!",
-          description: "Credenciais válidas. Gateway funcionando.",
+          title: `${result.gateway.name} Detectado!`,
+          description: result.message,
+        });
+
+        // Atualizar status com gateway detectado
+        setCredentialsStatus({
+          configured: true,
+          publicKey: adminCredentials.publicKey?.substring(0, 20) + "***",
+          gatewayName: result.gateway.name,
+          gatewaySlug: result.gateway.slug,
         });
       } else {
         toast({
-          title: "Erro de Autenticação",
-          description: `Status ${response.status}: Verifique suas credenciais`,
+          title: "Gateway Não Detectado",
+          description: result.message,
           variant: "destructive",
         });
       }
@@ -760,36 +765,33 @@ export default function PaymentSplitPage() {
             <div className="space-y-4">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Credenciais Pague-X</AlertTitle>
+                <AlertTitle>Sistema Multi-Gateway com Auto-Detecção</AlertTitle>
                 <AlertDescription>
-                  As credenciais podem ser obtidas no painel da Pague-X em{" "}
-                  <a
-                    href="https://app.inpagamentos.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    app.inpagamentos.com
-                  </a>
-                  . Você precisa de uma Public Key e Secret Key.
+                  O sistema detecta automaticamente qual gateway você está
+                  usando. Suporta: Pague-X, Mercado Pago, PagSeguro, Stripe,
+                  Asaas e outros. Insira suas credenciais e clique em "Testar
+                  Conexão".
                 </AlertDescription>
               </Alert>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Gateway</Label>
-                  <Select defaultValue="paguex" disabled>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="paguex">
-                        Pague-X (inpagamentos.com)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {credentialsStatus.configured &&
+                  credentialsStatus.gatewayName ? (
+                    <div className="flex items-center gap-2 p-2 border rounded bg-green-50 dark:bg-green-900/20">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">
+                        {credentialsStatus.gatewayName}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-2 border rounded bg-gray-50 dark:bg-gray-800 text-sm text-muted-foreground">
+                      Auto-detectado após testar conexão
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Atualmente suportamos apenas Pague-X
+                    Suportamos: Pague-X, Mercado Pago, PagSeguro, Stripe, Asaas
                   </p>
                 </div>
               </div>
@@ -868,7 +870,8 @@ export default function PaymentSplitPage() {
                         Gateway Configurado
                       </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        Pague-X • Configurado e ativo
+                        {credentialsStatus.gatewayName || "Gateway"} •
+                        Configurado e ativo
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         Public Key: {credentialsStatus.publicKey}
