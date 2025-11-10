@@ -134,7 +134,7 @@ export default function ClientsPage() {
             .eq("userId", user.id);
 
           const { count: messagesCount } = await supabase
-            .from("ChatConversation")
+            .from("ChatMessage")
             .select("*", { count: "exact", head: true })
             .eq("userId", user.id);
 
