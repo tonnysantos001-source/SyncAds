@@ -125,7 +125,6 @@ export default function PaymentSplitPage() {
     configured: boolean;
     publicKey?: string;
   }>({ configured: false });
-</parameter>
 
   useEffect(() => {
     loadData();
