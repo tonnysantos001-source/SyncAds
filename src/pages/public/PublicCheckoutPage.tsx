@@ -531,46 +531,102 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
       if (updateError) throw updateError;
 
-      // Buscar gateway configurado para o usuário
-      const { data: gatewayConfigs } = await supabase
-        .from("GatewayConfig")
-        .select(
-          `
-          *,
-          gateway:Gateway(*)
-        `,
-        )
-        .eq("userId", orderData.userId)
-        .eq("isActive", true);
+      // ============================================
+      // SISTEMA DE SPLIT DE PAGAMENTO
+      // ============================================
 
-      if (!gatewayConfigs || gatewayConfigs.length === 0) {
-        throw new Error("Nenhum gateway de pagamento configurado");
+      // 1. Determinar qual gateway usar (Admin ou Cliente)
+      const { data: splitDecision, error: splitError } = await supabase.rpc(
+        "determine_split_gateway",
+        {
+          p_user_id: orderData.userId,
+          p_order_value: checkoutData.total,
+        },
+      );
+
+      if (splitError) {
+        console.error("Erro ao determinar split:", splitError);
       }
 
-      // Filtrar gateway que suporta o método de pagamento
+      console.log("[Split] Decisão:", splitDecision);
+
       let selectedConfig: any = null;
-      for (const config of gatewayConfigs) {
-        const gw = config.gateway;
-        if (!gw) continue;
+      let isAdminGateway = false;
 
-        // Priorizar gateway default
-        const isDefault = config.isDefault || false;
+      // 2. Se a decisão for ADMIN, buscar gateway do admin
+      if (splitDecision?.decision === "admin" && splitDecision?.gatewayId) {
+        console.log("[Split] Usando gateway do ADMIN");
 
-        if (paymentMethod === "PIX" && gw.supportsPix) {
-          selectedConfig = config;
-          if (isDefault) break; // Se for default, usa e para
-        } else if (paymentMethod === "CREDIT_CARD" && gw.supportsCreditCard) {
-          selectedConfig = config;
-          if (isDefault) break;
-        } else if (paymentMethod === "BOLETO" && gw.supportsBoleto) {
-          selectedConfig = config;
-          if (isDefault) break;
+        // Buscar configuração do gateway admin
+        const { data: adminConfig } = await supabase
+          .from("GatewayConfig")
+          .select(
+            `
+            *,
+            gateway:Gateway(*)
+          `,
+          )
+          .eq("userId", "admin")
+          .eq("gatewayId", splitDecision.gatewayId)
+          .eq("isActive", true)
+          .single();
+
+        if (adminConfig) {
+          selectedConfig = adminConfig;
+          isAdminGateway = true;
+        }
+      }
+
+      // 3. Se não encontrou gateway admin OU decisão foi CLIENTE, usar gateway do cliente
+      if (!selectedConfig) {
+        console.log("[Split] Usando gateway do CLIENTE");
+
+        // Buscar gateway configurado para o usuário
+        const { data: gatewayConfigs } = await supabase
+          .from("GatewayConfig")
+          .select(
+            `
+            *,
+            gateway:Gateway(*)
+          `,
+          )
+          .eq("userId", orderData.userId)
+          .eq("isActive", true);
+
+        if (!gatewayConfigs || gatewayConfigs.length === 0) {
+          throw new Error("Nenhum gateway de pagamento configurado");
+        }
+
+        // Filtrar gateway que suporta o método de pagamento
+        for (const config of gatewayConfigs) {
+          const gw = config.gateway;
+          if (!gw) continue;
+
+          // Priorizar gateway default
+          const isDefault = config.isDefault || false;
+
+          if (paymentMethod === "PIX" && gw.supportsPix) {
+            selectedConfig = config;
+            if (isDefault) break; // Se for default, usa e para
+          } else if (paymentMethod === "CREDIT_CARD" && gw.supportsCreditCard) {
+            selectedConfig = config;
+            if (isDefault) break;
+          } else if (paymentMethod === "BOLETO" && gw.supportsBoleto) {
+            selectedConfig = config;
+            if (isDefault) break;
+          }
         }
       }
 
       if (!selectedConfig) {
         throw new Error(`Gateway de ${paymentMethod} não configurado`);
       }
+
+      console.log(
+        "[Split] Gateway selecionado:",
+        selectedConfig.gateway?.name,
+        isAdminGateway ? "(ADMIN)" : "(CLIENTE)",
+      );
 
       // Criar transação
       const { data: transaction, error: transactionError } = await supabase
@@ -613,6 +669,35 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         throw new Error(
           paymentResponse?.error || "Erro ao processar pagamento",
         );
+      }
+
+      // ============================================
+      // REGISTRAR NO LOG DE SPLIT
+      // ============================================
+
+      if (splitDecision) {
+        await supabase.from("PaymentSplitLog").insert({
+          transactionId: transaction.id,
+          orderId: orderId,
+          userId: orderData.userId,
+          ruleId: splitDecision.ruleId || null,
+          decision: splitDecision.decision || "client",
+          gatewayId: selectedConfig.gatewayId,
+          gatewayName: selectedConfig.gateway?.name,
+          amount: checkoutData.total,
+          adminRevenue: isAdminGateway ? checkoutData.total : 0,
+          clientRevenue: isAdminGateway ? 0 : checkoutData.total,
+          ruleType: splitDecision.ruleType || null,
+          ruleName: splitDecision.ruleName || null,
+          reason: splitDecision.reason || "No split rule active",
+          counterValue: splitDecision.counterValue || null,
+          metadata: {
+            paymentMethod: paymentMethod,
+            isAdminGateway: isAdminGateway,
+          },
+        });
+
+        console.log("[Split] Log registrado com sucesso");
       }
 
       // Redirecionar conforme método
