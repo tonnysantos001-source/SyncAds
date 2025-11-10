@@ -24,8 +24,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-</text>
-
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 md:ml-64 relative z-10">
