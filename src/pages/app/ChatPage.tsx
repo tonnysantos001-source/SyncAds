@@ -57,6 +57,7 @@ import {
   incrementAiMessageUsage,
 } from "@/lib/plans/planLimits";
 import { AIUsageBadge } from "@/components/chat/AIUsageBadge";
+import { PlanDebugInfo } from "@/components/debug/PlanDebugInfo";
 
 const quickSuggestions = [
   "Criar campanha de Facebook Ads",
@@ -550,6 +551,10 @@ const ChatPage: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] flex bg-[#0A0A0F]">
+      {/* Debug Info - Remover em produção */}
+      <div className="fixed top-20 right-4 z-50 max-w-md">
+        <PlanDebugInfo />
+      </div>
       {/* SIDEBAR - Dark Theme */}
       <AnimatePresence>
         {sidebarOpen && (

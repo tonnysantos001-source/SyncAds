@@ -577,41 +577,25 @@ export default function PlansManagementPage() {
                   <h3 className="text-lg font-semibold">
                     Limites Diários de IA
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Mensagens IA por Dia</Label>
-                      <Input
-                        type="number"
-                        value={formData.maxAiMessagesDaily}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            maxAiMessagesDaily: parseInt(e.target.value),
-                          })
-                        }
-                        min={0}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        0 = ilimitado
-                      </p>
-                    </div>
-                    <div>
-                      <Label>Imagens IA por Dia</Label>
-                      <Input
-                        type="number"
-                        value={formData.maxAiImagesDaily}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            maxAiImagesDaily: parseInt(e.target.value),
-                          })
-                        }
-                        min={0}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        0 = ilimitado
-                      </p>
-                    </div>
+                  <div>
+                    <Label htmlFor="maxAiMessagesDaily">
+                      Mensagens IA por Dia *
+                    </Label>
+                    <Input
+                      id="maxAiMessagesDaily"
+                      type="number"
+                      value={formData.maxAiMessagesDaily}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          maxAiMessagesDaily: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      0 = ilimitado | Quantidade de mensagens de chat com IA
+                      permitidas por dia
+                    </p>
                   </div>
                 </div>
 
