@@ -55,6 +55,27 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    console.log("📊 DEBUG - Resultado da query:", {
+      hasData: !!aiConnection,
+      hasError: !!aiError,
+      errorMessage: aiError?.message,
+    });
+
+    if (aiConnection) {
+      console.log("📊 DEBUG - AI Connection encontrada:", {
+        id: aiConnection.id,
+        name: aiConnection.name,
+        provider: aiConnection.provider,
+        model: aiConnection.model,
+        isActive: aiConnection.isActive,
+        hasApiKey: !!aiConnection.apiKey,
+        apiKeyLength: aiConnection.apiKey?.length || 0,
+        apiKeyStart: aiConnection.apiKey?.substring(0, 10) + "...",
+      });
+    } else {
+      console.log("❌ DEBUG - Nenhuma AI Connection encontrada!");
+    }
+
     if (aiError) {
       console.error("❌ Erro ao buscar IA:", aiError);
       return new Response(
@@ -69,8 +90,8 @@ serve(async (req) => {
       );
     }
 
-    if (!aiConnection || !aiConnection.apiKey) {
-      console.warn("⚠️ Nenhuma IA ativa configurada");
+    if (!aiConnection) {
+      console.warn("⚠️ Nenhuma AI Connection encontrada no banco");
       return new Response(
         JSON.stringify({
           error: "No AI configured",
@@ -83,6 +104,27 @@ serve(async (req) => {
         },
       );
     }
+
+    if (!aiConnection.apiKey) {
+      console.warn("⚠️ AI Connection sem API Key:", {
+        id: aiConnection.id,
+        name: aiConnection.name,
+        hasApiKey: !!aiConnection.apiKey,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "No API Key",
+          message:
+            "⚠️ IA configurada mas sem API Key. Configure uma API Key válida.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    console.log("✅ AI Connection válida, prosseguindo com chat...");
 
     console.log("✅ Usando GlobalAiConnection:", aiConnection.name);
 
