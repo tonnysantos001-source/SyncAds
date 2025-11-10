@@ -40,6 +40,8 @@ import {
   Plus,
   Edit,
   Trash2,
+  Power,
+  PowerOff,
   Check,
   X,
   Zap,
