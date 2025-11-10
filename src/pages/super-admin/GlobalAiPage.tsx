@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -11,14 +18,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Bot, Trash2, TestTube2, Settings2, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
-import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  HiPlus,
+  HiSparkles,
+  HiTrash,
+  HiBeaker,
+  HiCog6Tooth,
+  HiXMark,
+} from "react-icons/hi2";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 
 interface GlobalAiConnection {
   id: string;
@@ -45,11 +65,11 @@ export default function GlobalAiPage() {
 
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    provider: 'OPENAI',
-    apiKey: '',
-    baseUrl: '',
-    model: '',
+    name: "",
+    provider: "OPENAI",
+    apiKey: "",
+    baseUrl: "",
+    model: "",
     maxTokens: 4096,
     temperature: 0.7,
   });
@@ -62,17 +82,17 @@ export default function GlobalAiPage() {
     try {
       // Load AI connections
       const { data: aiData, error: aiError } = await supabase
-        .from('GlobalAiConnection')
-        .select('*')
-        .order('createdAt', { ascending: false });
+        .from("GlobalAiConnection")
+        .select("*")
+        .order("createdAt", { ascending: false });
 
       if (aiError) throw aiError;
       setAiConnections(aiData || []);
     } catch (error: any) {
       toast({
-        title: 'Erro ao carregar dados',
+        title: "Erro ao carregar dados",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -82,15 +102,20 @@ export default function GlobalAiPage() {
   const createAiConnection = async () => {
     try {
       // Verificar autenticação antes de inserir
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        throw new Error('Você precisa estar autenticado. Faça login novamente.');
+        throw new Error(
+          "Você precisa estar autenticado. Faça login novamente.",
+        );
       }
 
-      console.log('✅ Usuário autenticado:', user.id, user.email);
+      console.log("✅ Usuário autenticado:", user.id, user.email);
 
-      const { error } = await supabase.from('GlobalAiConnection').insert({
+      const { error } = await supabase.from("GlobalAiConnection").insert({
         name: formData.name,
         provider: formData.provider,
         apiKey: formData.apiKey,
@@ -102,33 +127,33 @@ export default function GlobalAiPage() {
       });
 
       if (error) {
-        console.error('❌ Erro RLS:', error);
+        console.error("❌ Erro RLS:", error);
         throw error;
       }
 
       toast({
-        title: '✅ IA adicionada!',
+        title: "✅ IA adicionada!",
         description: `${formData.name} foi criada com sucesso.`,
       });
 
       setIsDialogOpen(false);
       loadData();
-      
+
       // Reset form
       setFormData({
-        name: '',
-        provider: 'OPENAI',
-        apiKey: '',
-        baseUrl: '',
-        model: '',
+        name: "",
+        provider: "OPENAI",
+        apiKey: "",
+        baseUrl: "",
+        model: "",
         maxTokens: 4096,
         temperature: 0.7,
       });
     } catch (error: any) {
       toast({
-        title: 'Erro ao criar IA',
+        title: "Erro ao criar IA",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -136,23 +161,23 @@ export default function GlobalAiPage() {
   const toggleAiStatus = async (id: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
-        .from('GlobalAiConnection')
+        .from("GlobalAiConnection")
         .update({ isActive: !currentStatus })
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
-        title: 'Status atualizado',
-        description: `IA ${!currentStatus ? 'ativada' : 'desativada'}.`,
+        title: "Status atualizado",
+        description: `IA ${!currentStatus ? "ativada" : "desativada"}.`,
       });
 
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro ao atualizar status',
+        title: "Erro ao atualizar status",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -161,69 +186,74 @@ export default function GlobalAiPage() {
     try {
       // Validar se tem API key
       if (!ai.apiKey || ai.apiKey.length < 10) {
-        throw new Error('API Key inválida ou muito curta');
+        throw new Error("API Key inválida ou muito curta");
       }
 
       toast({
-        title: '🧪 Validando configuração...',
+        title: "🧪 Validando configuração...",
         description: `Verificando ${ai.provider}`,
       });
 
       // Ativar a IA no banco após validação básica
       const { error } = await supabase
-        .from('GlobalAiConnection')
+        .from("GlobalAiConnection")
         .update({ isActive: true })
-        .eq('id', ai.id);
+        .eq("id", ai.id);
 
       if (error) throw error;
 
       // Atualizar estado local
-      setAiConnections(prev => prev.map(conn => 
-        conn.id === ai.id ? { ...conn, isActive: true } : conn
-      ));
-      
+      setAiConnections((prev) =>
+        prev.map((conn) =>
+          conn.id === ai.id ? { ...conn, isActive: true } : conn,
+        ),
+      );
+
       toast({
-        title: '✅ Configuração válida!',
+        title: "✅ Configuração válida!",
         description: `${ai.provider} configurada e ativada. Teste no chat para confirmar funcionamento.`,
       });
     } catch (error: any) {
-      console.error('Validação falhou:', error);
+      console.error("Validação falhou:", error);
       toast({
-        title: '❌ Erro na validação',
+        title: "❌ Erro na validação",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
   const deleteAiConnection = async (id: string, name: string) => {
-    if (!confirm(`Tem certeza que deseja remover "${name}"?\n\nEsta ação não pode ser desfeita.`)) {
+    if (
+      !confirm(
+        `Tem certeza que deseja remover "${name}"?\n\nEsta ação não pode ser desfeita.`,
+      )
+    ) {
       return;
     }
 
     try {
       const { error } = await supabase
-        .from('GlobalAiConnection')
+        .from("GlobalAiConnection")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
-        title: '🗑️ IA removida!',
+        title: "🗑️ IA removida!",
         description: `${name} foi removida com sucesso.`,
       });
 
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro ao remover IA',
+        title: "Erro ao remover IA",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
-
 
   const openPromptDialog = (ai: GlobalAiConnection) => {
     setSelectedAi(ai);
@@ -235,103 +265,108 @@ export default function GlobalAiPage() {
 
     try {
       const { error } = await supabase
-        .from('GlobalAiConnection')
+        .from("GlobalAiConnection")
         .update({
           systemPrompt: selectedAi.systemPrompt,
           initialGreetings: selectedAi.initialGreetings,
         })
-        .eq('id', selectedAi.id);
+        .eq("id", selectedAi.id);
 
       if (error) throw error;
 
       toast({
-        title: '✅ Configuração salva!',
-        description: 'Prompt e mensagens iniciais atualizados.',
+        title: "✅ Configuração salva!",
+        description: "Prompt e mensagens iniciais atualizados.",
       });
 
       setIsPromptDialogOpen(false);
       loadData();
     } catch (error: any) {
       toast({
-        title: 'Erro ao salvar configuração',
+        title: "Erro ao salvar configuração",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
-
   const getProviderBadge = (provider: string) => {
     const colors: Record<string, string> = {
-      OPENAI: 'bg-green-100 text-green-800',
-      ANTHROPIC: 'bg-orange-100 text-orange-800',
-      GOOGLE: 'bg-blue-100 text-blue-800',
-      OPENROUTER: 'bg-indigo-100 text-indigo-800',
-      GROQ: 'bg-red-100 text-red-800',
-      COHERE: 'bg-purple-100 text-purple-800',
-      MISTRAL: 'bg-amber-100 text-amber-800',
-      PERPLEXITY: 'bg-cyan-100 text-cyan-800',
-      TOGETHER: 'bg-pink-100 text-pink-800',
-      FIREWORKS: 'bg-yellow-100 text-yellow-800',
+      OPENAI: "bg-green-100 text-green-800",
+      ANTHROPIC: "bg-orange-100 text-orange-800",
+      GOOGLE: "bg-blue-100 text-blue-800",
+      OPENROUTER: "bg-indigo-100 text-indigo-800",
+      GROQ: "bg-red-100 text-red-800",
+      COHERE: "bg-purple-100 text-purple-800",
+      MISTRAL: "bg-amber-100 text-amber-800",
+      PERPLEXITY: "bg-cyan-100 text-cyan-800",
+      TOGETHER: "bg-pink-100 text-pink-800",
+      FIREWORKS: "bg-yellow-100 text-yellow-800",
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[provider] || 'bg-gray-100 text-gray-800'}`}>
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${colors[provider] || "bg-gray-100 text-gray-800"}`}
+      >
         {provider}
       </span>
     );
   };
 
   // Provider examples and defaults
-  const providerExamples: Record<string, { model: string; baseUrl: string; description: string }> = {
+  const providerExamples: Record<
+    string,
+    { model: string; baseUrl: string; description: string }
+  > = {
     OPENAI: {
-      model: 'gpt-4o-mini',
-      baseUrl: 'https://api.openai.com/v1',
-      description: 'GPT-4, GPT-3.5, DALL-E, Whisper',
+      model: "gpt-4o-mini",
+      baseUrl: "https://api.openai.com/v1",
+      description: "GPT-4, GPT-3.5, DALL-E, Whisper",
     },
     ANTHROPIC: {
-      model: 'claude-3-5-sonnet-20241022',
-      baseUrl: 'https://api.anthropic.com/v1',
-      description: 'Claude 3.5 Sonnet, Claude 3 Opus',
+      model: "claude-3-5-sonnet-20241022",
+      baseUrl: "https://api.anthropic.com/v1",
+      description: "Claude 3.5 Sonnet, Claude 3 Opus",
     },
     GOOGLE: {
-      model: 'gemini-2.0-flash-exp',
-      baseUrl: 'https://generativelanguage.googleapis.com/v1',
-      description: 'Gemini Pro, Gemini Flash',
+      model: "gemini-2.0-flash-exp",
+      baseUrl: "https://generativelanguage.googleapis.com/v1",
+      description: "Gemini Pro, Gemini Flash",
     },
     OPENROUTER: {
-      model: 'openai/gpt-4-turbo',
-      baseUrl: 'https://openrouter.ai/api/v1',
-      description: 'Acesso a 200+ modelos (OpenAI, Anthropic, Google, Meta, etc)',
+      model: "openai/gpt-4-turbo",
+      baseUrl: "https://openrouter.ai/api/v1",
+      description:
+        "Acesso a 200+ modelos (OpenAI, Anthropic, Google, Meta, etc)",
     },
     GROQ: {
-      model: 'llama-3.3-70b-versatile',
-      baseUrl: 'https://api.groq.com/openai/v1',
-      description: 'Llama 3.3, Mixtral - Ultra rápido',
+      model: "llama-3.3-70b-versatile",
+      baseUrl: "https://api.groq.com/openai/v1",
+      description: "Llama 3.3, Mixtral - Ultra rápido",
     },
     COHERE: {
-      model: 'command-r-plus',
-      baseUrl: 'https://api.cohere.ai/v1',
-      description: 'Command R+, Command R',
+      model: "command-r-plus",
+      baseUrl: "https://api.cohere.ai/v1",
+      description: "Command R+, Command R",
     },
     MISTRAL: {
-      model: 'mistral-large-latest',
-      baseUrl: 'https://api.mistral.ai/v1',
-      description: 'Mistral Large, Mistral Medium',
+      model: "mistral-large-latest",
+      baseUrl: "https://api.mistral.ai/v1",
+      description: "Mistral Large, Mistral Medium",
     },
     PERPLEXITY: {
-      model: 'llama-3.1-sonar-large-128k-online',
-      baseUrl: 'https://api.perplexity.ai',
-      description: 'Sonar Online - IA com busca web',
+      model: "llama-3.1-sonar-large-128k-online",
+      baseUrl: "https://api.perplexity.ai",
+      description: "Sonar Online - IA com busca web",
     },
     TOGETHER: {
-      model: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-      baseUrl: 'https://api.together.xyz/v1',
-      description: 'Llama, Qwen, DeepSeek',
+      model: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+      baseUrl: "https://api.together.xyz/v1",
+      description: "Llama, Qwen, DeepSeek",
     },
     FIREWORKS: {
-      model: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
-      baseUrl: 'https://api.fireworks.ai/inference/v1',
-      description: 'Modelos open source otimizados',
+      model: "accounts/fireworks/models/llama-v3p1-405b-instruct",
+      baseUrl: "https://api.fireworks.ai/inference/v1",
+      description: "Modelos open source otimizados",
     },
   };
 
@@ -357,112 +392,137 @@ export default function GlobalAiPage() {
               Adicionar e gerenciar IAs que serão atribuídas às organizações
             </p>
           </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova IA
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Nova Conexão de IA</DialogTitle>
-                  <DialogDescription>
-                    Adicionar uma nova IA global ao sistema
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Nome</Label>
-                    <Input
-                      id="name"
-                      placeholder="OpenAI GPT-4"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="provider">Provider</Label>
-                    <Select
-                      value={formData.provider}
-                      onValueChange={(value) => {
-                        const example = providerExamples[value];
-                        setFormData({ 
-                          ...formData, 
-                          provider: value,
-                          model: example?.model || '',
-                          baseUrl: example?.baseUrl || '',
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OPENAI">🤖 OpenAI</SelectItem>
-                        <SelectItem value="ANTHROPIC">🧠 Anthropic (Claude)</SelectItem>
-                        <SelectItem value="GOOGLE">🔵 Google (Gemini)</SelectItem>
-                        <SelectItem value="OPENROUTER">🌐 OpenRouter (200+ modelos)</SelectItem>
-                        <SelectItem value="GROQ">⚡ Groq (Ultra rápido)</SelectItem>
-                        <SelectItem value="MISTRAL">🇫🇷 Mistral AI</SelectItem>
-                        <SelectItem value="COHERE">💜 Cohere</SelectItem>
-                        <SelectItem value="PERPLEXITY">🔍 Perplexity (Web)</SelectItem>
-                        <SelectItem value="TOGETHER">🤝 Together AI</SelectItem>
-                        <SelectItem value="FIREWORKS">🎆 Fireworks AI</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {providerExamples[formData.provider] && (
-                      <p className="text-xs text-gray-500">
-                        {providerExamples[formData.provider].description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="apiKey">API Key</Label>
-                    <Input
-                      id="apiKey"
-                      type="password"
-                      placeholder="sk-..."
-                      value={formData.apiKey}
-                      onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="model">Modelo</Label>
-                    <Input
-                      id="model"
-                      placeholder={providerExamples[formData.provider]?.model || "gpt-4-turbo"}
-                      value={formData.model}
-                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                    />
-                    <p className="text-xs text-gray-500">
-                      {formData.provider === 'OPENROUTER' 
-                        ? 'Formato: provider/model (ex: openai/gpt-4-turbo, anthropic/claude-3-5-sonnet)'
-                        : 'Nome do modelo a ser usado'}
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="baseUrl">Base URL</Label>
-                    <Input
-                      id="baseUrl"
-                      placeholder={providerExamples[formData.provider]?.baseUrl || "https://api.openai.com/v1"}
-                      value={formData.baseUrl}
-                      onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
-                    />
-                    <p className="text-xs text-gray-500">
-                      URL da API do provider
-                    </p>
-                  </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova IA
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Nova Conexão de IA</DialogTitle>
+                <DialogDescription>
+                  Adicionar uma nova IA global ao sistema
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    placeholder="OpenAI GPT-4"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={createAiConnection}>Criar IA</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="provider">Provider</Label>
+                  <Select
+                    value={formData.provider}
+                    onValueChange={(value) => {
+                      const example = providerExamples[value];
+                      setFormData({
+                        ...formData,
+                        provider: value,
+                        model: example?.model || "",
+                        baseUrl: example?.baseUrl || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OPENAI">🤖 OpenAI</SelectItem>
+                      <SelectItem value="ANTHROPIC">
+                        🧠 Anthropic (Claude)
+                      </SelectItem>
+                      <SelectItem value="GOOGLE">🔵 Google (Gemini)</SelectItem>
+                      <SelectItem value="OPENROUTER">
+                        🌐 OpenRouter (200+ modelos)
+                      </SelectItem>
+                      <SelectItem value="GROQ">
+                        ⚡ Groq (Ultra rápido)
+                      </SelectItem>
+                      <SelectItem value="MISTRAL">🇫🇷 Mistral AI</SelectItem>
+                      <SelectItem value="COHERE">💜 Cohere</SelectItem>
+                      <SelectItem value="PERPLEXITY">
+                        🔍 Perplexity (Web)
+                      </SelectItem>
+                      <SelectItem value="TOGETHER">🤝 Together AI</SelectItem>
+                      <SelectItem value="FIREWORKS">🎆 Fireworks AI</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {providerExamples[formData.provider] && (
+                    <p className="text-xs text-gray-500">
+                      {providerExamples[formData.provider].description}
+                    </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="sk-..."
+                    value={formData.apiKey}
+                    onChange={(e) =>
+                      setFormData({ ...formData, apiKey: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="model">Modelo</Label>
+                  <Input
+                    id="model"
+                    placeholder={
+                      providerExamples[formData.provider]?.model ||
+                      "gpt-4-turbo"
+                    }
+                    value={formData.model}
+                    onChange={(e) =>
+                      setFormData({ ...formData, model: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-500">
+                    {formData.provider === "OPENROUTER"
+                      ? "Formato: provider/model (ex: openai/gpt-4-turbo, anthropic/claude-3-5-sonnet)"
+                      : "Nome do modelo a ser usado"}
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="baseUrl">Base URL</Label>
+                  <Input
+                    id="baseUrl"
+                    placeholder={
+                      providerExamples[formData.provider]?.baseUrl ||
+                      "https://api.openai.com/v1"
+                    }
+                    value={formData.baseUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, baseUrl: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-500">
+                    URL da API do provider
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={createAiConnection}>Criar IA</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="grid grid-cols-1 gap-6 mt-6">
           {aiConnections.map((ai) => (
@@ -482,7 +542,9 @@ export default function GlobalAiPage() {
                       </div>
                       <CardDescription className="mt-1 flex items-center gap-2">
                         {getProviderBadge(ai.provider)}
-                        {ai.model && <span className="text-sm">• {ai.model}</span>}
+                        {ai.model && (
+                          <span className="text-sm">• {ai.model}</span>
+                        )}
                       </CardDescription>
                     </div>
                   </div>
@@ -507,10 +569,10 @@ export default function GlobalAiPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant={ai.isActive ? 'outline' : 'default'}
+                      variant={ai.isActive ? "outline" : "default"}
                       onClick={() => toggleAiStatus(ai.id, ai.isActive)}
                     >
-                      {ai.isActive ? 'Desativar' : 'Ativar'}
+                      {ai.isActive ? "Desativar" : "Ativar"}
                     </Button>
                     <Button
                       size="sm"
@@ -542,7 +604,7 @@ export default function GlobalAiPage() {
                   <div>
                     <span className="text-gray-500">Criada em</span>
                     <div className="font-medium mt-1">
-                      {new Date(ai.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(ai.createdAt).toLocaleDateString("pt-BR")}
                     </div>
                   </div>
                 </div>
@@ -569,107 +631,119 @@ export default function GlobalAiPage() {
           )}
         </div>
 
-
-      {/* Prompt Configuration Dialog */}
-      <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Configurar IA: {selectedAi?.name}</DialogTitle>
-            <DialogDescription>
-              Configure o prompt de sistema e mensagens iniciais da IA
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* System Prompt */}
-            <div className="space-y-2">
-              <Label htmlFor="systemPrompt">Prompt de Sistema</Label>
-              <Textarea
-                id="systemPrompt"
-                value={selectedAi?.systemPrompt || ''}
-                onChange={(e) =>
-                  setSelectedAi(prev =>
-                    prev ? { ...prev, systemPrompt: e.target.value } : null
-                  )
-                }
-                rows={12}
-                className="font-mono text-sm"
-                placeholder="Digite o prompt de sistema que define o comportamento da IA..."
-              />
-              <p className="text-xs text-gray-500">
-                Este prompt define a personalidade, capacidades e comportamento da IA.
-                Seja específico sobre o que a IA pode fazer.
-              </p>
-            </div>
-
-            {/* Initial Greetings */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Mensagens Iniciais</Label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const newGreetings = [
-                      ...(selectedAi?.initialGreetings || []),
-                      'Nova mensagem inicial'
-                    ];
-                    setSelectedAi(prev =>
-                      prev ? { ...prev, initialGreetings: newGreetings } : null
-                    );
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar
-                </Button>
-              </div>
-              
+        {/* Prompt Configuration Dialog */}
+        <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Configurar IA: {selectedAi?.name}</DialogTitle>
+              <DialogDescription>
+                Configure o prompt de sistema e mensagens iniciais da IA
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* System Prompt */}
               <div className="space-y-2">
-                {(selectedAi?.initialGreetings || []).map((greeting, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={greeting}
-                      onChange={(e) => {
-                        const newGreetings = [...(selectedAi?.initialGreetings || [])];
-                        newGreetings[index] = e.target.value;
-                        setSelectedAi(prev =>
-                          prev ? { ...prev, initialGreetings: newGreetings } : null
-                        );
-                      }}
-                      placeholder={`Mensagem inicial ${index + 1}`}
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        const newGreetings = (selectedAi?.initialGreetings || []).filter(
-                          (_, i) => i !== index
-                        );
-                        setSelectedAi(prev =>
-                          prev ? { ...prev, initialGreetings: newGreetings } : null
-                        );
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                <Label htmlFor="systemPrompt">Prompt de Sistema</Label>
+                <Textarea
+                  id="systemPrompt"
+                  value={selectedAi?.systemPrompt || ""}
+                  onChange={(e) =>
+                    setSelectedAi((prev) =>
+                      prev ? { ...prev, systemPrompt: e.target.value } : null,
+                    )
+                  }
+                  rows={12}
+                  className="font-mono text-sm"
+                  placeholder="Digite o prompt de sistema que define o comportamento da IA..."
+                />
+                <p className="text-xs text-gray-500">
+                  Este prompt define a personalidade, capacidades e
+                  comportamento da IA. Seja específico sobre o que a IA pode
+                  fazer.
+                </p>
               </div>
-              
-              <p className="text-xs text-gray-500">
-                A IA escolherá aleatoriamente uma dessas mensagens para saudar novos usuários.
-              </p>
+
+              {/* Initial Greetings */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Mensagens Iniciais</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const newGreetings = [
+                        ...(selectedAi?.initialGreetings || []),
+                        "Nova mensagem inicial",
+                      ];
+                      setSelectedAi((prev) =>
+                        prev
+                          ? { ...prev, initialGreetings: newGreetings }
+                          : null,
+                      );
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {(selectedAi?.initialGreetings || []).map(
+                    (greeting, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={greeting}
+                          onChange={(e) => {
+                            const newGreetings = [
+                              ...(selectedAi?.initialGreetings || []),
+                            ];
+                            newGreetings[index] = e.target.value;
+                            setSelectedAi((prev) =>
+                              prev
+                                ? { ...prev, initialGreetings: newGreetings }
+                                : null,
+                            );
+                          }}
+                          placeholder={`Mensagem inicial ${index + 1}`}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const newGreetings = (
+                              selectedAi?.initialGreetings || []
+                            ).filter((_, i) => i !== index);
+                            setSelectedAi((prev) =>
+                              prev
+                                ? { ...prev, initialGreetings: newGreetings }
+                                : null,
+                            );
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  A IA escolherá aleatoriamente uma dessas mensagens para saudar
+                  novos usuários.
+                </p>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPromptDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={savePromptConfig}>
-              Salvar Configuração
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsPromptDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={savePromptConfig}>Salvar Configuração</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SuperAdminLayout>
   );
