@@ -249,7 +249,7 @@ export default function GatewaysPage() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-                <Plus className="h-4 w-4 mr-2" />
+                <HiPlus className="h-4 w-4 mr-2" />
                 Adicionar Gateway
               </Button>
             </DialogTrigger>
