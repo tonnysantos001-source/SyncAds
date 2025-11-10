@@ -1,16 +1,22 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/store/authStore';
-import { useToast } from '@/components/ui/use-toast';
-import Logo from '@/components/Logo';
-import { registerSchema, type RegisterFormData } from '@/schemas/authSchemas';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuthStore } from "@/store/authStore";
+import { useToast } from "@/components/ui/use-toast";
+import Logo from "@/components/Logo";
+import { registerSchema, type RegisterFormData } from "@/schemas/authSchemas";
 
 export default function RegisterPage() {
   const { register: registerUser } = useAuthStore();
@@ -26,34 +32,40 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    console.log('🚀 [REGISTER] Iniciando registro...', {
+    console.log("🚀 [REGISTER] Iniciando registro...", {
       email: data.email,
       name: data.name,
       hasCpf: !!data.cpf,
-      hasBirthDate: !!data.birthDate
+      hasBirthDate: !!data.birthDate,
     });
 
     try {
-      console.log('📝 [REGISTER] Chamando registerUser...');
-      await registerUser(data.email, data.password, data.name, data.cpf, data.birthDate);
+      console.log("📝 [REGISTER] Chamando registerUser...");
+      await registerUser(
+        data.email,
+        data.password,
+        data.name,
+        data.cpf,
+        data.birthDate,
+      );
 
-      console.log('✅ [REGISTER] Registro bem-sucedido!');
+      console.log("✅ [REGISTER] Registro bem-sucedido!");
       toast({
-        title: 'Conta criada com sucesso!',
-        description: 'Bem-vindo ao SyncAds.',
+        title: "Conta criada com sucesso!",
+        description: "Bem-vindo ao SyncAds.",
       });
 
-      console.log('🔄 [REGISTER] Navegando para /onboarding...');
-      navigate('/onboarding');
+      console.log("🔄 [REGISTER] Navegando para /onboarding...");
+      navigate("/onboarding");
     } catch (error: any) {
-      console.error('❌ [REGISTER] Erro completo:', error);
-      console.error('❌ [REGISTER] Mensagem:', error.message);
-      console.error('❌ [REGISTER] Stack:', error.stack);
+      console.error("❌ [REGISTER] Erro completo:", error);
+      console.error("❌ [REGISTER] Mensagem:", error.message);
+      console.error("❌ [REGISTER] Stack:", error.stack);
 
       toast({
-        title: 'Erro ao criar conta',
-        description: error.message || 'Tente novamente mais tarde.',
-        variant: 'destructive',
+        title: "Erro ao criar conta",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
       });
     }
   };
@@ -90,14 +102,23 @@ export default function RegisterPage() {
             </div>
           </div>
           <div className="mb-6">
-            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <h1
+              className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               SyncAds
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider font-semibold">MARKETING AI</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider font-semibold">
+              MARKETING AI
+            </p>
           </div>
 
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Crie sua conta</CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">Começe a economizar hoje mesmo</CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+            Crie sua conta
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Começe a economizar hoje mesmo
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -107,10 +128,12 @@ export default function RegisterPage() {
                 <Input
                   id="name"
                   placeholder="Seu Nome"
-                  {...register('name')}
+                  {...register("name")}
                   disabled={isSubmitting}
                 />
-                {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
+                {errors.name && (
+                  <p className="text-sm text-red-600">{errors.name.message}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -118,32 +141,40 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="nome@exemplo.com"
-                  {...register('email')}
+                  {...register("email")}
                   disabled={isSubmitting}
                 />
-                {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cpf">CPF</Label>
                 <Input
                   id="cpf"
                   placeholder="000.000.000-00"
-                  {...register('cpf')}
+                  {...register("cpf")}
                   maxLength={14}
                   disabled={isSubmitting}
                 />
-                {errors.cpf && <p className="text-sm text-red-600">{errors.cpf.message}</p>}
+                {errors.cpf && (
+                  <p className="text-sm text-red-600">{errors.cpf.message}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="birthDate">Data de Nascimento</Label>
                 <Input
                   id="birthDate"
                   type="date"
-                  {...register('birthDate')}
-                  max={new Date().toISOString().split('T')[0]}
+                  {...register("birthDate")}
+                  max={new Date().toISOString().split("T")[0]}
                   disabled={isSubmitting}
                 />
-                {errors.birthDate && <p className="text-sm text-red-600">{errors.birthDate.message}</p>}
+                {errors.birthDate && (
+                  <p className="text-sm text-red-600">
+                    {errors.birthDate.message}
+                  </p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Senha</Label>
@@ -151,19 +182,26 @@ export default function RegisterPage() {
                   id="password"
                   type="password"
                   placeholder="Mínimo 6 caracteres"
-                  {...register('password')}
+                  {...register("password")}
                   disabled={isSubmitting}
                 />
-                {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+                {errors.password && (
+                  <p className="text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]"
                 disabled={isSubmitting}
-                onClick={() => console.log('🔘 [REGISTER] Botão clicado!', { isSubmitting, errors })}
+                onClick={() =>
+                  console.log("🔘 [REGISTER] Botão clicado!", {
+                    isSubmitting,
+                    errors,
+                  })
+                }
               >
-</text>
-
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 animate-spin" />
@@ -181,11 +219,14 @@ export default function RegisterPage() {
           {/* Benefícios */}
           <div className="mt-6 space-y-3">
             {[
-              'Resultados em minutos',
-              'Sem contratos ou multas',
-              'Suporte via chat IA'
+              "Resultados em minutos",
+              "Sem contratos ou multas",
+              "Suporte via chat IA",
             ].map((benefit, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <div
+                key={i}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+              >
                 <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
                 <span>{benefit}</span>
               </div>
@@ -193,14 +234,20 @@ export default function RegisterPage() {
           </div>
 
           <div className="mt-6 text-center text-sm">
-            Já tem uma conta?{' '}
-            <Link to="/login" className="font-semibold text-blue-600 hover:text-purple-600 transition-colors">
+            Já tem uma conta?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-blue-600 hover:text-purple-600 transition-colors"
+            >
               Fazer login
             </Link>
           </div>
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Ao criar conta, você concorda com nossos <Link to="/terms" className="underline">Termos</Link>
+              Ao criar conta, você concorda com nossos{" "}
+              <Link to="/terms" className="underline">
+                Termos
+              </Link>
             </p>
           </div>
         </CardContent>
