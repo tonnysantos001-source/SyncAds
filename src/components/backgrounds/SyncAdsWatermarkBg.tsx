@@ -40,10 +40,14 @@ export function SyncAdsWatermarkBg({
 }: SyncAdsWatermarkBgProps) {
   // Definir gradientes por variante
   const gradients = {
-    default: "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
-    reversed: "linear-gradient(135deg, rgb(201, 205, 214) 0%, rgb(70, 56, 71) 100%)",
-    diagonal: "linear-gradient(45deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
-    radial: "radial-gradient(circle at center, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
+    default:
+      "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
+    reversed:
+      "linear-gradient(135deg, rgb(201, 205, 214) 0%, rgb(70, 56, 71) 100%)",
+    diagonal:
+      "linear-gradient(45deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
+    radial:
+      "radial-gradient(circle at center, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
   };
 
   return (
@@ -89,44 +93,46 @@ export function SyncAdsWatermarkBg({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="relative"
+              className="flex flex-col items-center"
             >
-              <h1
-                className="font-black tracking-tight leading-none"
-                style={{
-                  fontSize: "clamp(4rem, 15vw, 12rem)",
-                  color: "#3f3f46",
-                  textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                SyncAds
-              </h1>
-              <span
-                className="absolute -top-2 -right-4 md:-right-8 font-bold"
-                style={{
-                  fontSize: "clamp(1.5rem, 4vw, 3rem)",
-                  color: "#52525b",
-                }}
-              >
-                AI
-              </span>
-            </motion.div>
+              <div className="flex items-baseline gap-1">
+                <h1
+                  className="font-black tracking-tight leading-none"
+                  style={{
+                    fontSize: "clamp(2.5rem, 8vw, 6rem)",
+                    color: "#3f3f46",
+                    textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  SyncAds
+                </h1>
+                <span
+                  className="font-bold"
+                  style={{
+                    fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
+                    color: "#52525b",
+                  }}
+                >
+                  AI
+                </span>
+              </div>
 
-            {/* Marketing Inteligente - Subtítulo */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-              className="font-semibold tracking-wide mt-2 md:mt-4"
-              style={{
-                fontSize: "clamp(1rem, 3vw, 2.5rem)",
-                color: "#52525b",
-                letterSpacing: "0.1em",
-              }}
-            >
-              MARKETING INTELIGENTE
-            </motion.p>
+              {/* Marketing Inteligente - Subtítulo */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
+                className="font-semibold tracking-wide mt-2"
+                style={{
+                  fontSize: "clamp(0.75rem, 2vw, 1.5rem)",
+                  color: "#52525b",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                MARKETING INTELIGENTE
+              </motion.p>
+            </motion.div>
           </div>
         </div>
       )}
@@ -204,7 +210,8 @@ export function MobileWatermark() {
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
+          background:
+            "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
         }}
       />
 
@@ -214,19 +221,30 @@ export function MobileWatermark() {
           className="text-center transform -rotate-12 px-4"
           style={{ opacity: 0.06 }}
         >
-          <h1
-            className="font-black tracking-tight leading-none"
-            style={{
-              fontSize: "clamp(3rem, 20vw, 6rem)",
-              color: "#3f3f46",
-            }}
-          >
-            SyncAds
-          </h1>
+          <div className="flex items-baseline gap-1 justify-center">
+            <h1
+              className="font-black tracking-tight leading-none"
+              style={{
+                fontSize: "clamp(2rem, 15vw, 4rem)",
+                color: "#3f3f46",
+              }}
+            >
+              SyncAds
+            </h1>
+            <span
+              className="font-bold"
+              style={{
+                fontSize: "clamp(1rem, 6vw, 1.75rem)",
+                color: "#52525b",
+              }}
+            >
+              AI
+            </span>
+          </div>
           <p
             className="font-semibold tracking-wider mt-2"
             style={{
-              fontSize: "clamp(0.75rem, 3vw, 1.25rem)",
+              fontSize: "clamp(0.625rem, 2.5vw, 1rem)",
               color: "#52525b",
             }}
           >
@@ -249,7 +267,8 @@ export function RepeatedWatermark() {
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
+          background:
+            "linear-gradient(135deg, rgb(70, 56, 71) 0%, rgb(201, 205, 214) 100%)",
         }}
       />
 

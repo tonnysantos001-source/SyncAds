@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { SyncAdsWatermarkBg } from "@/components/backgrounds/SyncAdsWatermarkBg";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,8 +17,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+      {/* Background customizado - apenas quando NÃO for chat */}
+      {!isFullPageRoute && (
+        <SyncAdsWatermarkBg watermarkOpacity={0.08} variant="default" />
+      )}
+
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+</text>
+
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 md:ml-64 relative z-10">
