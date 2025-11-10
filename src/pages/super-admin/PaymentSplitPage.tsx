@@ -952,12 +952,12 @@ export default function PaymentSplitPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <Alert className="border-0 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 backdrop-blur-sm ring-1 ring-amber-200/50 dark:ring-amber-700/50 rounded-xl shadow-lg">
-            <HiExclamationCircle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-gray-900 dark:text-white font-bold">
+          <Alert className="border-gray-700/50 bg-gray-800/50">
+            <HiExclamationCircle className="h-5 w-5 text-cyan-400" />
+            <AlertTitle className="text-white">
               Como funciona?
             </AlertTitle>
-            <AlertDescription className="text-gray-700 dark:text-gray-300">
+            <AlertDescription className="text-gray-400">
               O sistema distribui automaticamente as transações entre seu
               gateway (configurado acima) e o gateway do cliente. Configure
               regras baseadas em frequência, percentual ou valor.
@@ -971,23 +971,23 @@ export default function PaymentSplitPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
         >
-          <Card className="border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl ring-1 ring-gray-200/50 dark:ring-gray-700/50 rounded-xl">
+          <Card className="border-gray-700/50 bg-gray-900/50 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900 dark:text-white flex items-center gap-2">
+              <CardTitle className="text-white flex items-center gap-2">
                 <HiChartBar className="h-6 w-6 text-cyan-600" />
                 Regras Configuradas
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-gray-400">
                 Gerenciar regras de split de pagamento
               </CardDescription>
             </CardHeader>
             <CardContent>
               {rules.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="p-4 rounded-xl bg-gray-100 dark:bg-gray-800 w-fit mx-auto mb-4">
+                  <div className="p-4 rounded-xl bg-gray-800 w-fit mx-auto mb-4">
                     <HiChartBar className="h-12 w-12 text-gray-400" />
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg font-medium">
+                  <p className="text-gray-400 mb-6 text-lg font-medium">
                     Nenhuma regra configurada
                   </p>
                   <Button
