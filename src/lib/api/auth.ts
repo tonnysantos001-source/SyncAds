@@ -1,5 +1,5 @@
-import { supabase } from '../supabase';
-import { GLOBAL_ORGANIZATION_ID } from '../constants';
+import { supabase } from "../supabase";
+import { GLOBAL_ORGANIZATION_ID } from "../constants";
 
 export interface SignUpData {
   email: string;
@@ -18,42 +18,80 @@ export const authApi = {
   // Sign up with email and password
   signUp: async (data: SignUpData) => {
     try {
+      console.log("🔐 [AUTH API] signUp iniciado...", {
+        email: data.email,
+        name: data.name,
+        hasCpf: !!data.cpf,
+        hasBirthDate: !!data.birthDate,
+      });
+
       // Create user in auth system
+      console.log("📝 [AUTH API] Criando usuário no Supabase Auth...");
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
+      if (authError) {
+        console.error("❌ [AUTH API] Erro no Supabase Auth:", authError);
+        throw authError;
+      }
+      if (!authData.user) {
+        console.error("❌ [AUTH API] Auth não retornou usuário!");
+        throw new Error("Failed to create user");
+      }
+
+      console.log("✅ [AUTH API] Usuário criado no Auth:", authData.user.id);
 
       // Create user record in database
       const userId = authData.user.id;
       const now = new Date().toISOString();
 
-      const { error: userError } = await supabase
-        .from('User')
-        .insert({
-          id: userId,
-          email: data.email,
-          name: data.name,
-          cpf: data.cpf || null,
-          birthDate: data.birthDate || null,
-          emailVerified: false,
-          authProvider: 'EMAIL',
-          plan: 'FREE',
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          role: 'MEMBER',
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        });
+      const userData = {
+        id: userId,
+        email: data.email,
+        name: data.name,
+        cpf: data.cpf || null,
+        birthDate: data.birthDate || null,
+        emailVerified: false,
+        authProvider: "EMAIL",
+        plan: "FREE",
+        trialEndsAt: new Date(
+          Date.now() + 14 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        role: "MEMBER",
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-      if (userError) throw userError;
+      console.log(
+        "📝 [AUTH API] Inserindo usuário na tabela User...",
+        userData,
+      );
+
+      const { error: userError } = await supabase.from("User").insert(userData);
+
+      if (userError) {
+        console.error(
+          "❌ [AUTH API] Erro ao inserir na tabela User:",
+          userError,
+        );
+        console.error("❌ [AUTH API] Código do erro:", userError.code);
+        console.error("❌ [AUTH API] Mensagem:", userError.message);
+        console.error("❌ [AUTH API] Detalhes:", userError.details);
+        throw userError;
+      }
+
+      console.log("✅ [AUTH API] Usuário inserido na tabela User com sucesso!");
+      console.log("✅ [AUTH API] Retornando user e session...");
 
       return { user: authData.user, session: authData.session };
-    } catch (error) {
-      console.error('Sign up error:', error);
+    } catch (error: any) {
+      console.error("❌ [AUTH API] Sign up error:", error);
+      console.error("❌ [AUTH API] Error name:", error.name);
+      console.error("❌ [AUTH API] Error message:", error.message);
+      console.error("❌ [AUTH API] Error stack:", error.stack);
       throw error;
     }
   },
@@ -70,7 +108,7 @@ export const authApi = {
 
       return { user: authData.user, session: authData.session };
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error("Sign in error:", error);
       throw error;
     }
   },
@@ -81,7 +119,7 @@ export const authApi = {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error("Sign out error:", error);
       throw error;
     }
   },
@@ -89,16 +127,19 @@ export const authApi = {
   // Get current user
   getCurrentUser: async () => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError) throw authError;
       if (!user) return null;
 
       // Get user data from database
       const { data: userData, error: userError } = await supabase
-        .from('User')
-        .select('*')
-        .eq('id', user.id)
+        .from("User")
+        .select("*")
+        .eq("id", user.id)
         .single();
 
       if (userError) throw userError;
@@ -109,11 +150,11 @@ export const authApi = {
       try {
         // Query direta com maybeSingle para retornar null se não existir
         const { data: superAdminCheck } = await supabase
-          .from('SuperAdmin')
-          .select('id')
-          .eq('id', user.id)
+          .from("SuperAdmin")
+          .select("id")
+          .eq("id", user.id)
           .maybeSingle();
-        
+
         isSuperAdmin = !!superAdminCheck;
       } catch (e) {
         // Ignora erro silenciosamente - user não é super admin ou tabela não existe
@@ -125,7 +166,7 @@ export const authApi = {
         isSuperAdmin,
       };
     } catch (error) {
-      console.error('Get current user error:', error);
+      console.error("Get current user error:", error);
       return null;
     }
   },
@@ -133,11 +174,14 @@ export const authApi = {
   // Get current session
   getSession: async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
       if (error) throw error;
       return session;
     } catch (error) {
-      console.error('Get session error:', error);
+      console.error("Get session error:", error);
       return null;
     }
   },
@@ -155,7 +199,7 @@ export const authApi = {
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Reset password error:', error);
+      console.error("Reset password error:", error);
       throw error;
     }
   },
@@ -168,7 +212,7 @@ export const authApi = {
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Update password error:', error);
+      console.error("Update password error:", error);
       throw error;
     }
   },

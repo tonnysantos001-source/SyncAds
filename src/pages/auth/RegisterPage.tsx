@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const { register: registerUser } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const {
     register,
     handleSubmit,
@@ -26,14 +26,30 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
+    console.log('🚀 [REGISTER] Iniciando registro...', {
+      email: data.email,
+      name: data.name,
+      hasCpf: !!data.cpf,
+      hasBirthDate: !!data.birthDate
+    });
+
     try {
+      console.log('📝 [REGISTER] Chamando registerUser...');
       await registerUser(data.email, data.password, data.name, data.cpf, data.birthDate);
+
+      console.log('✅ [REGISTER] Registro bem-sucedido!');
       toast({
         title: 'Conta criada com sucesso!',
         description: 'Bem-vindo ao SyncAds.',
       });
+
+      console.log('🔄 [REGISTER] Navegando para /onboarding...');
       navigate('/onboarding');
     } catch (error: any) {
+      console.error('❌ [REGISTER] Erro completo:', error);
+      console.error('❌ [REGISTER] Mensagem:', error.message);
+      console.error('❌ [REGISTER] Stack:', error.stack);
+
       toast({
         title: 'Erro ao criar conta',
         description: error.message || 'Tente novamente mais tarde.',
@@ -50,8 +66,8 @@ export default function RegisterPage() {
       <div className="fixed bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl -z-10" />
 
       {/* Botão Voltar */}
-      <Link 
-        to="/" 
+      <Link
+        to="/"
         className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="h-5 w-5" />
@@ -61,7 +77,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-2 border-gray-200/50 dark:border-gray-800/50 shadow-2xl">
         {/* Gradient top border */}
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500" />
-        
+
         <CardHeader className="text-center pt-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
@@ -79,7 +95,7 @@ export default function RegisterPage() {
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider font-semibold">MARKETING AI</p>
           </div>
-          
+
           <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Crie sua conta</CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-400">Começe a economizar hoje mesmo</CardDescription>
         </CardHeader>
@@ -88,9 +104,9 @@ export default function RegisterPage() {
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Nome Completo</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Seu Nome" 
+                <Input
+                  id="name"
+                  placeholder="Seu Nome"
                   {...register('name')}
                   disabled={isSubmitting}
                 />
@@ -98,10 +114,10 @@ export default function RegisterPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="nome@exemplo.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="nome@exemplo.com"
                   {...register('email')}
                   disabled={isSubmitting}
                 />
@@ -109,9 +125,9 @@ export default function RegisterPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input 
-                  id="cpf" 
-                  placeholder="000.000.000-00" 
+                <Input
+                  id="cpf"
+                  placeholder="000.000.000-00"
                   {...register('cpf')}
                   maxLength={14}
                   disabled={isSubmitting}
@@ -120,9 +136,9 @@ export default function RegisterPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="birthDate">Data de Nascimento</Label>
-                <Input 
-                  id="birthDate" 
-                  type="date" 
+                <Input
+                  id="birthDate"
+                  type="date"
                   {...register('birthDate')}
                   max={new Date().toISOString().split('T')[0]}
                   disabled={isSubmitting}
@@ -131,20 +147,23 @@ export default function RegisterPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   placeholder="Mínimo 6 caracteres"
                   {...register('password')}
                   disabled={isSubmitting}
                 />
                 {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]" 
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]"
                 disabled={isSubmitting}
+                onClick={() => console.log('🔘 [REGISTER] Botão clicado!', { isSubmitting, errors })}
               >
+</text>
+
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 animate-spin" />

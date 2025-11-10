@@ -131,6 +131,14 @@ export const useAuthStore = create<AuthState>()(
         birthDate?: string,
       ) => {
         try {
+          console.log("🔐 [AUTH STORE] Register iniciado...", {
+            email,
+            name,
+            hasCpf: !!cpf,
+            hasBirthDate: !!birthDate,
+          });
+
+          console.log("📝 [AUTH STORE] Chamando authApi.signUp...");
           const { user } = await authApi.signUp({
             email,
             password,
@@ -138,7 +146,14 @@ export const useAuthStore = create<AuthState>()(
             cpf,
             birthDate,
           });
+          console.log("✅ [AUTH STORE] signUp retornou:", !!user);
           if (user) {
+            console.log("✅ [AUTH STORE] Usuário criado, setando estado...", {
+              userId: user.id,
+              email: user.email,
+              name: name,
+            });
+
             // Usar dados do signUp diretamente (não buscar de novo)
             set({
               isAuthenticated: true,
@@ -153,9 +168,19 @@ export const useAuthStore = create<AuthState>()(
                 isSuperAdmin: false,
               },
             });
+
+            console.log("✅ [AUTH STORE] Estado atualizado com sucesso!");
+          } else {
+            console.error("❌ [AUTH STORE] signUp não retornou usuário!");
           }
-        } catch (error) {
-          console.error("Register error:", error);
+        } catch (error: any) {
+          console.error("❌ [AUTH STORE] Register error:", error);
+          console.error("❌ [AUTH STORE] Error message:", error.message);
+          console.error("❌ [AUTH STORE] Error details:", {
+            name: error.name,
+            code: error.code,
+            status: error.status,
+          });
           throw error;
         }
       },
