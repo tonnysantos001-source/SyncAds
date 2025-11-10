@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import {
-  Loader2,
-  Send,
-  Shield,
-  Sparkles,
-  PlusCircle,
-  Trash2,
-  Menu,
-  X,
-  MessageSquare,
-} from "lucide-react";
+  HiArrowPath,
+  HiPaperAirplane,
+  HiShieldCheck,
+  HiSparkles,
+  HiPlusCircle,
+  HiTrash,
+  HiBars3,
+  HiXMark,
+  HiChatBubbleBottomCenterText,
+} from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
