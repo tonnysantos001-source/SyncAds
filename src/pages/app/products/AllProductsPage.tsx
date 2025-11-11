@@ -55,14 +55,15 @@ import { shopifySyncApi } from "@/lib/api/shopifySync";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useProducts } from "@/hooks/useProducts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const AllProductsPage = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [syncStats, setSyncStats] = useState({
@@ -72,6 +73,28 @@ const AllProductsPage = () => {
   });
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
+
+  // Debounce search term para evitar queries excessivas
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // Hook otimizado com React Query
+  const {
+    data: products,
+    isLoading: loading,
+    totalCount,
+    totalPages,
+    refetch: refetchProducts,
+  } = useProducts({
+    userId: user?.id || "",
+    page: currentPage,
+    pageSize: 50,
+    search: debouncedSearch,
+    status: statusFilter,
+    enabled: !!user?.id,
+  });
+
+  // Usar products diretamente (não precisa mais de filteredProducts)
+  const filteredProducts = products;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -86,45 +109,16 @@ const AllProductsPage = () => {
 
   // Estatísticas
   const stats = {
-    total: products.length,
+    total: totalCount,
     active: products.filter((p) => p.status === "ACTIVE").length,
     totalValue: products.reduce((sum, p) => sum + p.price * p.stock, 0),
   };
 
   useEffect(() => {
     if (user?.id) {
-      loadProducts();
       loadSyncStats();
     }
   }, [user?.id]);
-
-  useEffect(() => {
-    filterProducts();
-  }, [searchTerm, statusFilter, products]);
-
-  const loadProducts = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Buscar produtos sincronizados da Shopify
-      const data = await productsApi.listFromShopify(user.id);
-      setProducts(data);
-      setFilteredProducts(data);
-    } catch (error: any) {
-      console.error("Erro ao carregar produtos:", error);
-      toast({
-        title: "Erro ao carregar produtos",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadSyncStats = async () => {
     if (!user?.id) return;
@@ -135,6 +129,10 @@ const AllProductsPage = () => {
       // Silenciar erro de sync stats - não é crítico
       console.debug("Sync stats não disponíveis:", error);
     }
+  };
+
+  const loadProducts = async () => {
+    await refetchProducts();
   };
 
   const handleSyncShopify = async () => {
@@ -166,7 +164,7 @@ const AllProductsPage = () => {
           description: result.message,
         });
 
-        await loadProducts();
+        await refetchProducts();
         await loadSyncStats();
       } else {
         toast({
@@ -184,27 +182,6 @@ const AllProductsPage = () => {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const filterProducts = () => {
-    let filtered = products;
-
-    // Filtro de busca
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description?.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    }
-
-    // Filtro de status
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((p) => p.status === statusFilter);
-    }
-
-    setFilteredProducts(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,7 +222,7 @@ const AllProductsPage = () => {
 
       setIsDialogOpen(false);
       resetForm();
-      loadProducts();
+      await refetchProducts();
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
       toast({
@@ -514,199 +491,236 @@ const AllProductsPage = () => {
                 : `Mostrando ${filteredProducts.length} de ${products.length} produtos`}
             </CardDescription>
           </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center justify-center h-64"
-            >
-              <Package className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
-              <p className="text-muted-foreground text-center mb-4 dark:text-gray-300">
-                {searchTerm || statusFilter !== "all"
-                  ? "Nenhum produto encontrado com os filtros aplicados"
-                  : "Nenhum produto cadastrado"}
-              </p>
-              {!searchTerm && statusFilter === "all" && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSyncShopify}
-                    variant="outline"
-                    disabled={syncing}
-                  >
-                    <RefreshCw
-                      className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
-                    />
-                    Sincronizar Shopify
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      resetForm();
-                      setIsDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Primeiro Produto
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 hover:from-purple-100 hover:to-pink-100 dark:hover:from-gray-700 dark:hover:to-gray-700">
-                    <TableHead>Imagem</TableHead>
-                    <TableHead className="font-semibold dark:text-gray-300">
-                      Produto
-                    </TableHead>
-                    <TableHead className="font-semibold dark:text-gray-300">
-                      SKU
-                    </TableHead>
-                    <TableHead className="font-semibold dark:text-gray-300">
-                      Preço
-                    </TableHead>
-                    <TableHead className="font-semibold dark:text-gray-300">
-                      Estoque
-                    </TableHead>
-                    <TableHead className="font-semibold dark:text-gray-300">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-right font-semibold dark:text-gray-300">
-                      Ações
-                    </TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map((product, index) => {
-                    const shopifyImages = product.metadata?.images || [];
-                    const imageUrl =
-                      shopifyImages.length > 0
-                        ? shopifyImages[0]?.src || shopifyImages[0]
-                        : null;
+          <CardContent>
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center justify-center h-64"
+              >
+                <Package className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-muted-foreground text-center mb-4 dark:text-gray-300">
+                  {searchTerm || statusFilter !== "all"
+                    ? "Nenhum produto encontrado com os filtros aplicados"
+                    : "Nenhum produto cadastrado"}
+                </p>
+                {!searchTerm && statusFilter === "all" && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSyncShopify}
+                      variant="outline"
+                      disabled={syncing}
+                    >
+                      <RefreshCw
+                        className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+                      />
+                      Sincronizar Shopify
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        resetForm();
+                        setIsDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Adicionar Primeiro Produto
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 hover:from-purple-100 hover:to-pink-100 dark:hover:from-gray-700 dark:hover:to-gray-700">
+                      <TableHead>Imagem</TableHead>
+                      <TableHead className="font-semibold dark:text-gray-300">
+                        Produto
+                      </TableHead>
+                      <TableHead className="font-semibold dark:text-gray-300">
+                        SKU
+                      </TableHead>
+                      <TableHead className="font-semibold dark:text-gray-300">
+                        Preço
+                      </TableHead>
+                      <TableHead className="font-semibold dark:text-gray-300">
+                        Estoque
+                      </TableHead>
+                      <TableHead className="font-semibold dark:text-gray-300">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-right font-semibold dark:text-gray-300">
+                        Ações
+                      </TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((product, index) => {
+                      const shopifyImages = product.metadata?.images || [];
+                      const imageUrl =
+                        shopifyImages.length > 0
+                          ? shopifyImages[0]?.src || shopifyImages[0]
+                          : null;
 
-                    return (
-                      <motion.tr
-                        key={product.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-gray-800/50 dark:hover:to-gray-800/50 transition-all duration-200"
-                      >
-                        <TableCell>
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={product.name}
-                              className="w-12 h-12 object-cover rounded-md border"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center">
-                              <Package className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium dark:text-white">{product.name}</div>
-                            {product.description && (
-                              <div className="text-sm text-muted-foreground line-clamp-1">
-                                {product.description}
+                      return (
+                        <motion.tr
+                          key={product.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-gray-800/50 dark:hover:to-gray-800/50 transition-all duration-200"
+                        >
+                          <TableCell>
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={product.name}
+                                className="w-12 h-12 object-cover rounded-md border"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center">
+                                <Package className="h-6 w-6 text-muted-foreground" />
                               </div>
                             )}
-                            {product.metadata?.shopifyId && (
-                              <Badge variant="outline" className="mt-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700">
-                                <ShoppingBag className="h-3 w-3 mr-1" />
-                                Shopify
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 px-2 py-1 rounded dark:text-gray-300">
-                            {product.sku || "N/A"}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                              {formatCurrency(product.price)}
-                            </div>
-                            {product.comparePrice &&
-                              product.comparePrice > product.price && (
-                                <div className="text-xs text-muted-foreground line-through">
-                                  {formatCurrency(product.comparePrice)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium dark:text-white">
+                                {product.name}
+                              </div>
+                              {product.description && (
+                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                  {product.description}
                                 </div>
                               )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              product.stock > 10
-                                ? "default"
-                                : product.stock > 0
-                                  ? "warning"
-                                  : "destructive"
-                            }
-                          >
-                            {product.stock} un.
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              product.status === "ACTIVE"
-                                ? "default"
+                              {product.metadata?.shopifyId && (
+                                <Badge
+                                  variant="outline"
+                                  className="mt-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700"
+                                >
+                                  <ShoppingBag className="h-3 w-3 mr-1" />
+                                  Shopify
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 px-2 py-1 rounded dark:text-gray-300">
+                              {product.sku || "N/A"}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                {formatCurrency(product.price)}
+                              </div>
+                              {product.comparePrice &&
+                                product.comparePrice > product.price && (
+                                  <div className="text-xs text-muted-foreground line-through">
+                                    {formatCurrency(product.comparePrice)}
+                                  </div>
+                                )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.stock > 10
+                                  ? "default"
+                                  : product.stock > 0
+                                    ? "warning"
+                                    : "destructive"
+                              }
+                            >
+                              {product.stock} un.
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.status === "ACTIVE"
+                                  ? "default"
+                                  : product.status === "DRAFT"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {product.status === "ACTIVE"
+                                ? "Ativo"
                                 : product.status === "DRAFT"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {product.status === "ACTIVE"
-                              ? "Ativo"
-                              : product.status === "DRAFT"
-                                ? "Rascunho"
-                                : "Arquivado"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(product)}
-                              className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-gray-800 dark:hover:to-gray-800"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(product.id)}
-                              className="hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                                  ? "Rascunho"
+                                  : "Arquivado"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(product)}
+                                className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-gray-800 dark:hover:to-gray-800"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(product.id)}
+                                className="hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Paginação */}
+            {!loading && filteredProducts.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 px-2">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage + 1} de {totalPages} ({totalCount}{" "}
+                  produtos no total)
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+                    }
+                    disabled={currentPage >= totalPages - 1}
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Add/Edit Product Dialog */}

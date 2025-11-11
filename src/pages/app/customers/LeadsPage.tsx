@@ -38,11 +38,15 @@ import {
   UserX,
   TrendingUp,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { customersApi } from "@/lib/api/customersApi";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useLeads } from "@/hooks/useLeads";
 
 interface MetricCardProps {
   title: string;
@@ -95,15 +99,35 @@ const MetricCard = ({
 };
 
 const LeadsPage = () => {
-  const [leads, setLeads] = useState<any[]>([]);
-  const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any | null>(null);
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
+
+  // Debounce search para evitar queries excessivas
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // Hook otimizado com React Query
+  const {
+    data: leads,
+    isLoading: loading,
+    totalCount,
+    totalPages,
+    refetch: refetchLeads,
+  } = useLeads({
+    userId: user?.id || "",
+    page: currentPage,
+    pageSize: 50,
+    search: debouncedSearch,
+    status: statusFilter,
+    enabled: !!user?.id,
+  });
+
+  // Usar leads diretamente
+  const filteredLeads = leads;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -114,48 +138,9 @@ const LeadsPage = () => {
   });
 
   useEffect(() => {
-    loadLeads();
-  }, []);
-
-  useEffect(() => {
-    filterLeads();
-  }, [searchTerm, statusFilter, leads]);
-
-  const loadLeads = async () => {
-    try {
-      if (!user?.organizationId) return;
-      const data = await customersApi.leads.list(user.organizationId);
-      setLeads(data);
-      setFilteredLeads(data);
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar leads",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterLeads = () => {
-    let filtered = leads;
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (l) =>
-          l.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          l.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          l.phone?.includes(searchTerm),
-      );
-    }
-
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter((l) => l.status === statusFilter);
-    }
-
-    setFilteredLeads(filtered);
-  };
+    // Reset page quando search ou filtros mudarem
+    setCurrentPage(0);
+  }, [searchTerm, statusFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +161,7 @@ const LeadsPage = () => {
       }
       setIsDialogOpen(false);
       resetForm();
-      loadLeads();
+      refetchLeads();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -191,7 +176,7 @@ const LeadsPage = () => {
     try {
       await customersApi.leads.delete(id);
       toast({ title: "Lead deletado" });
-      loadLeads();
+      refetchLeads();
     } catch (error: any) {
       toast({
         title: "Erro ao deletar",
@@ -599,6 +584,38 @@ const LeadsPage = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {/* Paginação */}
+            {!loading && filteredLeads.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 px-2">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage + 1} de {totalPages} ({totalCount} leads
+                  no total)
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+                    }
+                    disabled={currentPage >= totalPages - 1}
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

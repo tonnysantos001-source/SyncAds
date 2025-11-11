@@ -22,6 +22,8 @@ import {
   RefreshCw,
   TrendingUp,
   UserCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { customersApi, Customer } from "@/lib/api/customersApi";
@@ -30,6 +32,8 @@ import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useCustomers } from "@/hooks/useCustomers";
 
 interface MetricCardProps {
   title: string;
@@ -82,46 +86,42 @@ const MetricCard = ({
 };
 
 const AllCustomersPage = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadCustomers();
-    }
-  }, [user?.id]);
+  // Debounce search para evitar queries excessivas
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // Hook otimizado com React Query
+  const {
+    data: customers,
+    isLoading: loading,
+    totalCount,
+    totalPages,
+    refetch: refetchCustomers,
+  } = useCustomers({
+    userId: user?.id || "",
+    page: currentPage,
+    pageSize: 50,
+    search: debouncedSearch,
+    type: typeFilter,
+    enabled: !!user?.id,
+  });
+
+  // Usar customers diretamente
+  const filteredCustomers = customers;
 
   useEffect(() => {
-    filterCustomers();
+    // Reset page quando search ou filtros mudarem
+    setCurrentPage(0);
   }, [searchTerm, customers]);
 
   const loadCustomers = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Buscar clientes sincronizados da Shopify
-      const data = await customersApi.listFromShopify(user.id);
-      setCustomers(data);
-      setFilteredCustomers(data);
-    } catch (error: any) {
-      console.error("Erro ao carregar clientes:", error);
-      toast({
-        title: "Erro ao carregar clientes",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    await refetchCustomers();
   };
 
   const handleSyncShopify = async () => {
@@ -148,7 +148,7 @@ const AllCustomersPage = () => {
           title: "Sincronização concluída!",
           description: result.message,
         });
-        await loadCustomers();
+        await refetchCustomers();
       } else {
         toast({
           title: "Erro na sincronização",
@@ -165,21 +165,6 @@ const AllCustomersPage = () => {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const filterCustomers = () => {
-    if (!searchTerm) {
-      setFilteredCustomers(customers);
-      return;
-    }
-
-    const filtered = customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.cpf?.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-    setFilteredCustomers(filtered);
   };
 
   const formatCurrency = (value: number) => {
@@ -442,6 +427,38 @@ const AllCustomersPage = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {/* Paginação */}
+            {!loading && filteredCustomers.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 px-2">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage + 1} de {totalPages} ({totalCount}{" "}
+                  clientes no total)
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+                    }
+                    disabled={currentPage >= totalPages - 1}
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
