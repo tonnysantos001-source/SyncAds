@@ -7,11 +7,14 @@ import {
   MapPin,
   User,
   Loader2,
+  Upload,
+  X,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import * as z from "zod";
+import { validateCPF, formatCPF } from "@/lib/utils/cpfValidator";
 
 import { Button } from "@/components/ui/button";
 import {

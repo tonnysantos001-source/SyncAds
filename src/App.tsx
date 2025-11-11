@@ -46,6 +46,9 @@ const IntegrationDetailPage = lazy(
   () => import("./pages/app/IntegrationDetailPage"),
 );
 const SettingsPage = lazy(() => import("./pages/app/SettingsPage"));
+const EmailVerificationPage = lazy(
+  () => import("./pages/app/EmailVerificationPage"),
+);
 const IntegrationCallbackPage = lazy(
   () => import("./pages/IntegrationCallbackPage"),
 );
@@ -401,6 +404,10 @@ function App() {
                 element={<IntegrationDetailPage />}
               />
               <Route path="/settings/*" element={<SettingsPage />} />
+              <Route
+                path="/settings/email-verification"
+                element={<EmailVerificationPage />}
+              />
             </Route>
 
             {/* Not Found Route */}
