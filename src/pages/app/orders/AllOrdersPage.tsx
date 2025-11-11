@@ -31,6 +31,8 @@ import {
   ShoppingBag,
   Phone,
   MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ordersApi, Order } from "@/lib/api/ordersApi";
@@ -48,6 +50,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface OrderItemData {
   productId?: string;
@@ -68,16 +71,25 @@ const AllOrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 50;
+
+  // Debounce para busca
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
   useEffect(() => {
     filterOrders();
-  }, [searchTerm, statusFilter, orders]);
+  }, [debouncedSearchTerm, statusFilter, orders]);
 
   const loadOrders = async () => {
     try {

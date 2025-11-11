@@ -1,4 +1,7 @@
-import { supabase } from '../supabase';
+import { supabase } from "@/lib/supabase";
+
+// Paginação padrão
+const DEFAULT_PAGE_SIZE = 50;
 
 // ============================================
 // TYPES
@@ -23,9 +26,26 @@ export interface Order {
   tax: number;
   total: number;
   currency: string;
-  paymentMethod: 'CREDIT_CARD' | 'DEBIT_CARD' | 'PIX' | 'BOLETO' | 'PAYPAL' | 'WALLET';
-  paymentStatus: 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
-  fulfillmentStatus: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  paymentMethod:
+    | "CREDIT_CARD"
+    | "DEBIT_CARD"
+    | "PIX"
+    | "BOLETO"
+    | "PAYPAL"
+    | "WALLET";
+  paymentStatus:
+    | "PENDING"
+    | "PROCESSING"
+    | "PAID"
+    | "FAILED"
+    | "REFUNDED"
+    | "CANCELLED";
+  fulfillmentStatus:
+    | "PENDING"
+    | "PROCESSING"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
   shippingMethod?: string;
   shippingCarrier?: string;
   trackingNumber?: string;
@@ -73,14 +93,16 @@ export const ordersApi = {
   // Get all orders
   async getAll(userId: string) {
     const { data, error } = await supabase
-      .from('Order')
-      .select(`
+      .from("Order")
+      .select(
+        `
         *,
         items:OrderItem(*),
         history:OrderHistory(*)
-      `)
-      .eq('userId', userId)
-      .order('createdAt', { ascending: false });
+      `,
+      )
+      .eq("userId", userId)
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     return data as (Order & { items: OrderItem[]; history: OrderHistory[] })[];
@@ -89,13 +111,15 @@ export const ordersApi = {
   // Get order by ID
   async getById(id: string) {
     const { data, error } = await supabase
-      .from('Order')
-      .select(`
+      .from("Order")
+      .select(
+        `
         *,
         items:OrderItem(*),
         history:OrderHistory(*)
-      `)
-      .eq('id', id)
+      `,
+      )
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -105,22 +129,24 @@ export const ordersApi = {
   // Get orders by customer
   async getByCustomer(customerId: string) {
     const { data, error } = await supabase
-      .from('Order')
-      .select(`
+      .from("Order")
+      .select(
+        `
         *,
         items:OrderItem(*)
-      `)
-      .eq('customerId', customerId)
-      .order('createdAt', { ascending: false });
+      `,
+      )
+      .eq("customerId", customerId)
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     return data as (Order & { items: OrderItem[] })[];
   },
 
   // Create order
-  async create(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(order: Omit<Order, "id" | "createdAt" | "updatedAt">) {
     const { data, error } = await supabase
-      .from('Order')
+      .from("Order")
       .insert(order)
       .select()
       .single();
@@ -132,9 +158,9 @@ export const ordersApi = {
   // Update order
   async update(id: string, updates: Partial<Order>) {
     const { data, error } = await supabase
-      .from('Order')
+      .from("Order")
       .update({ ...updates, updatedAt: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -144,17 +170,17 @@ export const ordersApi = {
 
   // Update payment status
   async updatePaymentStatus(
-    id: string, 
-    status: Order['paymentStatus'], 
-    paidAt?: string
+    id: string,
+    status: Order["paymentStatus"],
+    paidAt?: string,
   ) {
     const updates: Partial<Order> = { paymentStatus: status };
     if (paidAt) updates.paidAt = paidAt;
 
     const { data, error } = await supabase
-      .from('Order')
+      .from("Order")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -165,15 +191,19 @@ export const ordersApi = {
   // Update fulfillment status
   async updateFulfillmentStatus(
     id: string,
-    status: Order['fulfillmentStatus'],
-    metadata?: { shippedAt?: string; deliveredAt?: string; cancelledAt?: string }
+    status: Order["fulfillmentStatus"],
+    metadata?: {
+      shippedAt?: string;
+      deliveredAt?: string;
+      cancelledAt?: string;
+    },
   ) {
     const updates: Partial<Order> = { fulfillmentStatus: status, ...metadata };
 
     const { data, error } = await supabase
-      .from('Order')
+      .from("Order")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -184,15 +214,15 @@ export const ordersApi = {
   // Cancel order
   async cancel(id: string, reason?: string) {
     const updates: Partial<Order> = {
-      paymentStatus: 'CANCELLED',
-      fulfillmentStatus: 'CANCELLED',
+      paymentStatus: "CANCELLED",
+      fulfillmentStatus: "CANCELLED",
       cancelledAt: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
-      .from('Order')
+      .from("Order")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -200,7 +230,11 @@ export const ordersApi = {
 
     // Add to history
     if (data) {
-      await ordersApi.addHistory(id, 'ORDER_CANCELLED', reason || 'Order cancelled');
+      await ordersApi.addHistory(
+        id,
+        "ORDER_CANCELLED",
+        reason || "Order cancelled",
+      );
     }
 
     return data as Order;
@@ -208,10 +242,7 @@ export const ordersApi = {
 
   // Delete order
   async delete(id: string) {
-    const { error } = await supabase
-      .from('Order')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("Order").delete().eq("id", id);
 
     if (error) throw error;
   },
@@ -225,18 +256,18 @@ export const orderItemsApi = {
   // Get items by order
   async getByOrder(orderId: string) {
     const { data, error } = await supabase
-      .from('OrderItem')
-      .select('*')
-      .eq('orderId', orderId);
+      .from("OrderItem")
+      .select("*")
+      .eq("orderId", orderId);
 
     if (error) throw error;
     return data as OrderItem[];
   },
 
   // Add item
-  async add(item: Omit<OrderItem, 'id' | 'createdAt'>) {
+  async add(item: Omit<OrderItem, "id" | "createdAt">) {
     const { data, error } = await supabase
-      .from('OrderItem')
+      .from("OrderItem")
       .insert(item)
       .select()
       .single();
@@ -248,9 +279,9 @@ export const orderItemsApi = {
   // Update item
   async update(id: string, updates: Partial<OrderItem>) {
     const { data, error } = await supabase
-      .from('OrderItem')
+      .from("OrderItem")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -260,10 +291,7 @@ export const orderItemsApi = {
 
   // Remove item
   async remove(id: string) {
-    const { error } = await supabase
-      .from('OrderItem')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("OrderItem").delete().eq("id", id);
 
     if (error) throw error;
   },
@@ -277,10 +305,10 @@ export const orderHistoryApi = {
   // Get history by order
   async getByOrder(orderId: string) {
     const { data, error } = await supabase
-      .from('OrderHistory')
-      .select('*')
-      .eq('orderId', orderId)
-      .order('createdAt', { ascending: false });
+      .from("OrderHistory")
+      .select("*")
+      .eq("orderId", orderId)
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     return data as OrderHistory[];
@@ -291,10 +319,10 @@ export const orderHistoryApi = {
     orderId: string,
     action: string,
     description?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ) {
     const { data, error } = await supabase
-      .from('OrderHistory')
+      .from("OrderHistory")
       .insert({
         orderId,
         action,

@@ -1,5 +1,8 @@
 import { supabase } from "../supabase";
 
+// Paginação padrão
+const DEFAULT_PAGE_SIZE = 50;
+
 // ============================================
 // TYPES
 // ============================================
