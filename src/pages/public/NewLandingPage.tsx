@@ -770,10 +770,10 @@ const NewLandingPage = () => {
             <Button
               size="lg"
               asChild
-              className="text-lg px-10 py-7 bg-white text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:scale-105 shadow-2xl transform transition-all font-black border-2 border-white"
+              className="text-lg px-10 py-7 bg-white hover:bg-gray-50 text-gray-900 hover:scale-105 shadow-2xl transform transition-all font-black"
             >
               <Link to="/register" className="flex items-center gap-2">
-                <Rocket className="h-6 w-6 text-purple-600" />
+                <Rocket className="h-6 w-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" />
                 Criar Minha Conta Grátis
                 <ArrowRight className="h-6 w-6 text-purple-600" />
               </Link>

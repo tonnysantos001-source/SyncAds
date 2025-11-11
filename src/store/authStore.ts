@@ -129,6 +129,15 @@ export const useAuthStore = create<AuthState>()(
         name: string,
         cpf?: string,
         birthDate?: string,
+        addressData?: {
+          cep: string;
+          street: string;
+          number: string;
+          complement?: string;
+          neighborhood: string;
+          city: string;
+          state: string;
+        },
       ) => {
         try {
           console.log("🔐 [AUTH STORE] Register iniciado...", {
@@ -136,6 +145,7 @@ export const useAuthStore = create<AuthState>()(
             name,
             hasCpf: !!cpf,
             hasBirthDate: !!birthDate,
+            hasAddress: !!addressData,
           });
 
           console.log("📝 [AUTH STORE] Chamando authApi.signUp...");
@@ -145,6 +155,7 @@ export const useAuthStore = create<AuthState>()(
             name,
             cpf,
             birthDate,
+            ...addressData,
           });
           console.log("✅ [AUTH STORE] signUp retornou:", !!user);
           if (user) {

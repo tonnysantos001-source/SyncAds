@@ -7,6 +7,13 @@ export interface SignUpData {
   name: string;
   cpf?: string;
   birthDate?: string;
+  cep?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
 }
 
 export interface SignInData {
@@ -23,6 +30,7 @@ export const authApi = {
         name: data.name,
         hasCpf: !!data.cpf,
         hasBirthDate: !!data.birthDate,
+        hasAddress: !!data.cep,
       });
 
       // Create user in auth system
@@ -53,6 +61,13 @@ export const authApi = {
         name: data.name,
         cpf: data.cpf || null,
         birthDate: data.birthDate || null,
+        cep: data.cep || null,
+        street: data.street || null,
+        number: data.number || null,
+        complement: data.complement || null,
+        neighborhood: data.neighborhood || null,
+        city: data.city || null,
+        state: data.state || null,
         emailVerified: false,
         authProvider: "EMAIL",
         plan: "FREE",
