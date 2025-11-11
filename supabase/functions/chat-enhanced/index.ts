@@ -38,10 +38,24 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // ✅ Rate limiting - 10 mensagens por minuto por usuário
-    const rateLimitResponse = await rateLimitByUser(user.id, "AI_CHAT");
-    if (rateLimitResponse) {
-      return rateLimitResponse;
+    // Verificar se é admin (admins não têm rate limit)
+    const { data: userData } = await supabase
+      .from("User")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isAdmin =
+      userData?.role === "ADMIN" || userData?.role === "SUPER_ADMIN";
+
+    // ✅ Rate limiting - 10 mensagens por minuto por usuário (não aplica para admins)
+    if (!isAdmin) {
+      const rateLimitResponse = await rateLimitByUser(user.id, "AI_CHAT");
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
+    } else {
+      console.log("🔓 Admin bypass - rate limit disabled for user:", user.id);
     }
 
     // ✅ SISTEMA SIMPLIFICADO: SEM ORGANIZAÇÕES
