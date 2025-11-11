@@ -319,7 +319,11 @@ const NewLandingPage = () => {
                 {/* Floating Elements */}
                 <motion.div
                   animate={{ y: [0, -20, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                   className="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl shadow-blue-500/50 flex items-center justify-center transform rotate-12"
                 >
                   <CreditCard className="h-12 w-12 text-white" />
@@ -327,7 +331,12 @@ const NewLandingPage = () => {
 
                 <motion.div
                   animate={{ y: [0, 20, 0] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  transition={{
+                    duration: 5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 0.5,
+                  }}
                   className="absolute -bottom-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl shadow-2xl shadow-pink-500/50 flex items-center justify-center transform -rotate-12"
                 >
                   <Bot className="h-12 w-12 text-white" />
@@ -335,7 +344,12 @@ const NewLandingPage = () => {
 
                 <motion.div
                   animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  transition={{
+                    duration: 6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1,
+                  }}
                   className="absolute top-1/2 -left-16 w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full shadow-2xl shadow-purple-500/50 flex items-center justify-center"
                 >
                   <BarChart3 className="h-10 w-10 text-white" />
@@ -408,9 +422,21 @@ const NewLandingPage = () => {
                     {/* Chart Bars */}
                     <div className="space-y-3">
                       {[
-                        { label: "PIX", value: 85, color: "from-blue-500 to-blue-600" },
-                        { label: "Cartão", value: 65, color: "from-purple-500 to-purple-600" },
-                        { label: "Boleto", value: 45, color: "from-pink-500 to-pink-600" },
+                        {
+                          label: "PIX",
+                          value: 85,
+                          color: "from-blue-500 to-blue-600",
+                        },
+                        {
+                          label: "Cartão",
+                          value: 65,
+                          color: "from-purple-500 to-purple-600",
+                        },
+                        {
+                          label: "Boleto",
+                          value: 45,
+                          color: "from-pink-500 to-pink-600",
+                        },
                       ].map((item, i) => (
                         <div key={i}>
                           <div className="flex justify-between mb-1">
@@ -576,7 +602,10 @@ const NewLandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-gray-50 dark:bg-gray-900 relative">
+      <section
+        id="pricing"
+        className="py-24 bg-gray-50 dark:bg-gray-900 relative"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <motion.div
             initial="hidden"
