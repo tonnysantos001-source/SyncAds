@@ -64,7 +64,6 @@ interface Plan {
   interval: "day" | "week" | "month" | "year" | "lifetime";
   intervalCount: number;
   features: string[];
-  maxAiMessages: number;
   maxAiMessagesDaily: number;
   maxAiImagesDaily: number;
   maxProjects: number;
@@ -162,7 +161,6 @@ export default function PlansManagementPage() {
     interval: "month" as const,
     intervalCount: 1,
     features: [] as string[],
-    maxAiMessages: 0,
     maxAiMessagesDaily: 10,
     maxAiImagesDaily: 5,
     maxProjects: 1,
@@ -377,7 +375,6 @@ export default function PlansManagementPage() {
       interval: "month",
       intervalCount: 1,
       features: [],
-      maxAiMessages: 0,
       maxAiMessagesDaily: 10,
       maxAiImagesDaily: 5,
       maxProjects: 1,
@@ -408,7 +405,6 @@ export default function PlansManagementPage() {
       interval: plan.interval,
       intervalCount: plan.intervalCount,
       features: Array.isArray(plan.features) ? plan.features : [],
-      maxAiMessages: plan.maxAiMessages || 0,
       maxAiMessagesDaily: plan.maxAiMessagesDaily || 10,
       maxAiImagesDaily: plan.maxAiImagesDaily || 5,
       maxProjects: plan.maxProjects || 1,
