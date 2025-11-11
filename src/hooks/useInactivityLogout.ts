@@ -33,8 +33,8 @@
  * ```
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useAuthStore } from "@/store/authStore";
 
 interface UseInactivityLogoutOptions {
   /** Tempo de inatividade antes do logout (ms) */
@@ -66,20 +66,26 @@ interface UseInactivityLogoutReturn {
   lastActivity: Date | null;
 }
 
-const STORAGE_KEY = 'syncads_last_activity';
+const STORAGE_KEY = "syncads_last_activity";
 const DEFAULT_TIMEOUT = 30 * 60 * 1000; // 30 minutos
 const DEFAULT_WARNING = 2 * 60 * 1000; // 2 minutos
 const DEFAULT_EVENTS = [
-  'mousedown',
-  'mousemove',
-  'keypress',
-  'scroll',
-  'touchstart',
-  'click',
+  "mousedown",
+  "mousemove",
+  "keypress",
+  "scroll",
+  "touchstart",
+  "touchmove",
+  "touchend",
+  "touchcancel",
+  "click",
+  "wheel",
+  "input",
+  "change",
 ];
 
 export function useInactivityLogout(
-  options: UseInactivityLogoutOptions = {}
+  options: UseInactivityLogoutOptions = {},
 ): UseInactivityLogoutReturn {
   const {
     timeout = DEFAULT_TIMEOUT,
@@ -145,7 +151,7 @@ export function useInactivityLogout(
     }
 
     // Aguardar um pouco para o callback
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Fazer logout
     await logout();
@@ -169,7 +175,10 @@ export function useInactivityLogout(
     const warningEndTime = Date.now() + warningTime;
 
     countdownIntervalRef.current = setInterval(() => {
-      const remaining = Math.max(0, Math.ceil((warningEndTime - Date.now()) / 1000));
+      const remaining = Math.max(
+        0,
+        Math.ceil((warningEndTime - Date.now()) / 1000),
+      );
       setRemainingTime(remaining);
 
       if (remaining === 0) {
@@ -199,7 +208,15 @@ export function useInactivityLogout(
     warningTimeoutRef.current = setTimeout(() => {
       startWarning();
     }, timeout - warningTime);
-  }, [enabled, isPaused, clearTimers, saveLastActivity, startWarning, timeout, warningTime]);
+  }, [
+    enabled,
+    isPaused,
+    clearTimers,
+    saveLastActivity,
+    startWarning,
+    timeout,
+    warningTime,
+  ]);
 
   // ============================================
   // PAUSE/RESUME
@@ -222,9 +239,9 @@ export function useInactivityLogout(
   const handleActivity = useCallback(() => {
     if (!enabled || isPaused || !isAuthenticated) return;
 
-    // Throttle: só registra se passou 1 segundo desde última atividade
+    // Throttle: só registra se passou 500ms desde última atividade (mais sensível no mobile)
     const now = Date.now();
-    if (now - lastActivityRef.current < 1000) return;
+    if (now - lastActivityRef.current < 500) return;
 
     resetTimer();
   }, [enabled, isPaused, isAuthenticated, resetTimer]);
@@ -263,7 +280,16 @@ export function useInactivityLogout(
 
     // Iniciar timer normal
     resetTimer();
-  }, [enabled, isAuthenticated, timeout, warningTime, getLastActivity, performLogout, startWarning, resetTimer]);
+  }, [
+    enabled,
+    isAuthenticated,
+    timeout,
+    warningTime,
+    getLastActivity,
+    performLogout,
+    startWarning,
+    resetTimer,
+  ]);
 
   // ============================================
   // EVENT LISTENERS
@@ -272,10 +298,27 @@ export function useInactivityLogout(
   useEffect(() => {
     if (!enabled || !isAuthenticated) return;
 
-    // Adicionar listeners
-    events.forEach(event => {
-      window.addEventListener(event, handleActivity, { passive: true });
+    // Adicionar listeners (com passive false para garantir captura no mobile)
+    events.forEach((event) => {
+      // Touch events precisam de passive: false no iOS Safari
+      const isTouch = event.startsWith("touch");
+      window.addEventListener(event, handleActivity, {
+        passive: !isTouch,
+        capture: true, // Usar capture para pegar eventos antes de outros handlers
+      });
     });
+
+    // Adicionar listener específico para orientação mobile
+    const handleOrientationChange = () => {
+      handleActivity();
+    };
+    if (window.screen && window.screen.orientation) {
+      window.screen.orientation.addEventListener(
+        "change",
+        handleOrientationChange,
+      );
+    }
+    window.addEventListener("orientationchange", handleOrientationChange);
 
     // Listener para mudanças de visibilidade
     const handleVisibilityChange = () => {
@@ -283,7 +326,7 @@ export function useInactivityLogout(
         handleActivity();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Listener para storage (sincronizar entre abas)
     const handleStorageChange = (e: StorageEvent) => {
@@ -297,18 +340,35 @@ export function useInactivityLogout(
         }
       }
     };
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // Cleanup
     return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, handleActivity);
+      events.forEach((event) => {
+        const isTouch = event.startsWith("touch");
+        window.removeEventListener(event, handleActivity, {
+          capture: true,
+        });
       });
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorageChange);
+      if (window.screen && window.screen.orientation) {
+        window.screen.orientation.removeEventListener(
+          "change",
+          handleOrientationChange,
+        );
+      }
+      window.removeEventListener("orientationchange", handleOrientationChange);
       clearTimers();
     };
-  }, [enabled, isAuthenticated, events, handleActivity, resetTimer, clearTimers]);
+  }, [
+    enabled,
+    isAuthenticated,
+    events,
+    handleActivity,
+    resetTimer,
+    clearTimers,
+  ]);
 
   // ============================================
   // CLEANUP AO DESMONTAR
@@ -336,7 +396,7 @@ export function useInactivityLogout(
 export function formatRemainingTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 /**
