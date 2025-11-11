@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { useCachedQuery } from "@/hooks/useCachedQuery";
+import { CACHE_TTL, CACHE_NAMESPACES } from "@/lib/cache/redis";
 
 export interface DashboardMetrics {
   revenue: number;
@@ -34,8 +36,9 @@ export interface DashboardMetrics {
 export const useDashboardMetrics = () => {
   const user = useAuthStore((state) => state.user);
 
-  return useQuery<DashboardMetrics>({
+  return useCachedQuery<DashboardMetrics>({
     queryKey: ["dashboard-metrics", user?.id],
+    cacheKey: `dashboard:${user?.id}`,
     queryFn: async () => {
       if (!user?.id) {
         throw new Error("User not authenticated");
@@ -51,6 +54,10 @@ export const useDashboardMetrics = () => {
       }
 
       return data as DashboardMetrics;
+    },
+    cacheOptions: {
+      namespace: CACHE_NAMESPACES.METRICS,
+      ttl: CACHE_TTL.VERY_SHORT, // 1 minute (dashboard data changes frequently)
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000, // 2 minutos
