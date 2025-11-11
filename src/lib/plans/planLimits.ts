@@ -9,7 +9,7 @@
  * - Projetos
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
 interface PlanLimits {
   maxAiMessagesDaily: number;
@@ -41,29 +41,31 @@ interface CheckLimitResult {
 /**
  * Busca os limites do plano do usuário
  */
-export async function getUserPlanLimits(userId: string): Promise<PlanLimits | null> {
+export async function getUserPlanLimits(
+  userId: string,
+): Promise<PlanLimits | null> {
   try {
     // Buscar plano atual do usuário
     const { data: user, error: userError } = await supabase
-      .from('User')
-      .select('currentPlanId')
-      .eq('id', userId)
+      .from("User")
+      .select("currentPlanId")
+      .eq("id", userId)
       .single();
 
     if (userError || !user?.currentPlanId) {
-      console.error('Erro ao buscar plano do usuário:', userError);
+      console.error("Erro ao buscar plano do usuário:", userError);
       return null;
     }
 
     // Buscar limites do plano
     const { data: plan, error: planError } = await supabase
-      .from('PricingPlan')
-      .select('*')
-      .eq('id', user.currentPlanId)
+      .from("PricingPlan")
+      .select("*")
+      .eq("id", user.currentPlanId)
       .single();
 
     if (planError || !plan) {
-      console.error('Erro ao buscar plano:', planError);
+      console.error("Erro ao buscar plano:", planError);
       return null;
     }
 
@@ -80,7 +82,7 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits | nu
       hasApiAccess: plan.hasApiAccess || false,
     };
   } catch (error) {
-    console.error('Erro ao buscar limites do plano:', error);
+    console.error("Erro ao buscar limites do plano:", error);
     return null;
   }
 }
@@ -88,26 +90,29 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits | nu
 /**
  * Busca o uso diário atual do usuário
  */
-export async function getDailyUsage(userId: string): Promise<DailyUsage | null> {
+export async function getDailyUsage(
+  userId: string,
+): Promise<DailyUsage | null> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
 
     const { data, error } = await supabase
-      .from('PlanDailyUsage')
-      .select('*')
-      .eq('userId', userId)
-      .eq('date', today)
+      .from("PlanDailyUsage")
+      .select("*")
+      .eq("userId", userId)
+      .eq("date", today)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-      console.error('Erro ao buscar uso diário:', error);
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 = not found
+      console.error("Erro ao buscar uso diário:", error);
       return null;
     }
 
     if (!data) {
       // Criar registro para hoje
       const { data: newUsage, error: createError } = await supabase
-        .from('PlanDailyUsage')
+        .from("PlanDailyUsage")
         .insert({
           userId,
           date: today,
@@ -118,7 +123,7 @@ export async function getDailyUsage(userId: string): Promise<DailyUsage | null> 
         .single();
 
       if (createError) {
-        console.error('Erro ao criar uso diário:', createError);
+        console.error("Erro ao criar uso diário:", createError);
         return null;
       }
 
@@ -135,15 +140,54 @@ export async function getDailyUsage(userId: string): Promise<DailyUsage | null> 
       date: data.date,
     };
   } catch (error) {
-    console.error('Erro ao buscar uso diário:', error);
+    console.error("Erro ao buscar uso diário:", error);
     return null;
   }
 }
 
 /**
- * Verifica se o usuário pode enviar uma mensagem IA
+ * Verifica se o usuário é admin
  */
-export async function canSendAiMessage(userId: string): Promise<CheckLimitResult> {
+async function isUserAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("User")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      return false;
+    }
+
+    return data.role === "ADMIN" || data.role === "SUPER_ADMIN";
+  } catch (error) {
+    console.error("Erro ao verificar se é admin:", error);
+    return false;
+  }
+}
+
+/**
+ * Verifica se o usuário pode enviar uma mensagem IA
+ * ADMINS TÊM LIMITE ILIMITADO
+ */
+export async function canSendAiMessage(
+  userId: string,
+): Promise<CheckLimitResult> {
+  // 1. VERIFICAR SE É ADMIN - ADMIN NÃO TEM LIMITE
+  const isAdmin = await isUserAdmin(userId);
+
+  if (isAdmin) {
+    return {
+      allowed: true,
+      current: 0,
+      limit: 0,
+      message: "Mensagens ilimitadas (Admin)",
+      percentage: 0,
+    };
+  }
+
+  // 2. VERIFICAR LIMITES DO PLANO PARA USUÁRIOS NORMAIS
   const limits = await getUserPlanLimits(userId);
   const usage = await getDailyUsage(userId);
 
@@ -152,22 +196,23 @@ export async function canSendAiMessage(userId: string): Promise<CheckLimitResult
       allowed: false,
       current: 0,
       limit: 0,
-      message: 'Erro ao verificar limites',
+      message: "Erro ao verificar limites",
       percentage: 0,
     };
   }
 
-  // 0 = ilimitado
+  // 3. VERIFICAR SE O PLANO TEM LIMITE 0 (ILIMITADO)
   if (limits.maxAiMessagesDaily === 0) {
     return {
       allowed: true,
       current: usage.aiMessagesUsed,
       limit: 0,
-      message: 'Mensagens ilimitadas',
+      message: "Mensagens ilimitadas",
       percentage: 0,
     };
   }
 
+  // 4. VERIFICAR SE AINDA TEM CRÉDITOS DISPONÍVEIS
   const allowed = usage.aiMessagesUsed < limits.maxAiMessagesDaily;
   const percentage = (usage.aiMessagesUsed / limits.maxAiMessagesDaily) * 100;
 
@@ -184,8 +229,25 @@ export async function canSendAiMessage(userId: string): Promise<CheckLimitResult
 
 /**
  * Verifica se o usuário pode gerar uma imagem IA
+ * ADMINS TÊM LIMITE ILIMITADO
  */
-export async function canGenerateAiImage(userId: string): Promise<CheckLimitResult> {
+export async function canGenerateAiImage(
+  userId: string,
+): Promise<CheckLimitResult> {
+  // 1. VERIFICAR SE É ADMIN - ADMIN NÃO TEM LIMITE
+  const isAdmin = await isUserAdmin(userId);
+
+  if (isAdmin) {
+    return {
+      allowed: true,
+      current: 0,
+      limit: 0,
+      message: "Imagens ilimitadas (Admin)",
+      percentage: 0,
+    };
+  }
+
+  // 2. VERIFICAR LIMITES DO PLANO PARA USUÁRIOS NORMAIS
   const limits = await getUserPlanLimits(userId);
   const usage = await getDailyUsage(userId);
 
@@ -194,22 +256,23 @@ export async function canGenerateAiImage(userId: string): Promise<CheckLimitResu
       allowed: false,
       current: 0,
       limit: 0,
-      message: 'Erro ao verificar limites',
+      message: "Erro ao verificar limites",
       percentage: 0,
     };
   }
 
-  // 0 = ilimitado
+  // 3. VERIFICAR SE O PLANO TEM LIMITE 0 (ILIMITADO)
   if (limits.maxAiImagesDaily === 0) {
     return {
       allowed: true,
       current: usage.aiImagesUsed,
       limit: 0,
-      message: 'Imagens ilimitadas',
+      message: "Imagens ilimitadas",
       percentage: 0,
     };
   }
 
+  // 4. VERIFICAR SE AINDA TEM CRÉDITOS DISPONÍVEIS
   const allowed = usage.aiImagesUsed < limits.maxAiImagesDaily;
   const percentage = (usage.aiImagesUsed / limits.maxAiImagesDaily) * 100;
 
@@ -227,21 +290,23 @@ export async function canGenerateAiImage(userId: string): Promise<CheckLimitResu
 /**
  * Incrementa o contador de mensagens IA (usa função SQL)
  */
-export async function incrementAiMessageUsage(userId: string): Promise<boolean> {
+export async function incrementAiMessageUsage(
+  userId: string,
+): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc('increment_daily_usage', {
+    const { data, error } = await supabase.rpc("increment_daily_usage", {
       p_user_id: userId,
-      p_message_type: 'message',
+      p_message_type: "message",
     });
 
     if (error) {
-      console.error('Erro ao incrementar mensagens:', error);
+      console.error("Erro ao incrementar mensagens:", error);
       return false;
     }
 
     return data === true;
   } catch (error) {
-    console.error('Erro ao incrementar mensagens:', error);
+    console.error("Erro ao incrementar mensagens:", error);
     return false;
   }
 }
@@ -251,19 +316,19 @@ export async function incrementAiMessageUsage(userId: string): Promise<boolean> 
  */
 export async function incrementAiImageUsage(userId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc('increment_daily_usage', {
+    const { data, error } = await supabase.rpc("increment_daily_usage", {
       p_user_id: userId,
-      p_message_type: 'image',
+      p_message_type: "image",
     });
 
     if (error) {
-      console.error('Erro ao incrementar imagens:', error);
+      console.error("Erro ao incrementar imagens:", error);
       return false;
     }
 
     return data === true;
   } catch (error) {
-    console.error('Erro ao incrementar imagens:', error);
+    console.error("Erro ao incrementar imagens:", error);
     return false;
   }
 }
@@ -271,7 +336,9 @@ export async function incrementAiImageUsage(userId: string): Promise<boolean> {
 /**
  * Verifica se o usuário pode criar mais checkouts
  */
-export async function canCreateCheckout(userId: string): Promise<CheckLimitResult> {
+export async function canCreateCheckout(
+  userId: string,
+): Promise<CheckLimitResult> {
   const limits = await getUserPlanLimits(userId);
 
   if (!limits) {
@@ -279,24 +346,24 @@ export async function canCreateCheckout(userId: string): Promise<CheckLimitResul
       allowed: false,
       current: 0,
       limit: 0,
-      message: 'Erro ao verificar limites',
+      message: "Erro ao verificar limites",
       percentage: 0,
     };
   }
 
   // Contar checkouts existentes
   const { count, error } = await supabase
-    .from('CheckoutSection')
-    .select('*', { count: 'exact', head: true })
-    .eq('userId', userId);
+    .from("CheckoutSection")
+    .select("*", { count: "exact", head: true })
+    .eq("userId", userId);
 
   if (error) {
-    console.error('Erro ao contar checkouts:', error);
+    console.error("Erro ao contar checkouts:", error);
     return {
       allowed: false,
       current: 0,
       limit: limits.maxCheckoutPages,
-      message: 'Erro ao verificar checkouts',
+      message: "Erro ao verificar checkouts",
       percentage: 0,
     };
   }
@@ -319,7 +386,9 @@ export async function canCreateCheckout(userId: string): Promise<CheckLimitResul
 /**
  * Verifica se o usuário pode criar mais produtos
  */
-export async function canCreateProduct(userId: string): Promise<CheckLimitResult> {
+export async function canCreateProduct(
+  userId: string,
+): Promise<CheckLimitResult> {
   const limits = await getUserPlanLimits(userId);
 
   if (!limits) {
@@ -327,24 +396,24 @@ export async function canCreateProduct(userId: string): Promise<CheckLimitResult
       allowed: false,
       current: 0,
       limit: 0,
-      message: 'Erro ao verificar limites',
+      message: "Erro ao verificar limites",
       percentage: 0,
     };
   }
 
   // Contar produtos existentes
   const { count, error } = await supabase
-    .from('Product')
-    .select('*', { count: 'exact', head: true })
-    .eq('userId', userId);
+    .from("Product")
+    .select("*", { count: "exact", head: true })
+    .eq("userId", userId);
 
   if (error) {
-    console.error('Erro ao contar produtos:', error);
+    console.error("Erro ao contar produtos:", error);
     return {
       allowed: false,
       current: 0,
       limit: limits.maxProducts,
-      message: 'Erro ao verificar produtos',
+      message: "Erro ao verificar produtos",
       percentage: 0,
     };
   }
