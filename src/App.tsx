@@ -25,6 +25,10 @@ import { InactivityWarning } from "./components/InactivityWarning";
 
 // Lazy load pages
 const LandingPage = lazy(() => import("./pages/public/LandingPage"));
+const NewLandingPage = lazy(() => import("./pages/public/NewLandingPage"));
+const TermsOfService = lazy(() => import("./pages/public/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
+const RefundPolicy = lazy(() => import("./pages/public/RefundPolicy"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const ForgotPasswordPage = lazy(
@@ -253,7 +257,10 @@ function App() {
                 )
               }
             />
-            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/landing" element={<NewLandingPage />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/refund" element={<RefundPolicy />} />
 
             {/* Auth Routes (only for non-authenticated users) */}
             <Route element={<PublicRoute />}>
