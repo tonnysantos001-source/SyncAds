@@ -47,7 +47,14 @@ interface Plan {
   price: number;
   interval: string;
   features: string[];
-  maxAiMessages: number;
+  maxAiMessagesDaily: number;
+  maxAiImagesDaily: number;
+  maxCheckoutPages: number;
+  maxProducts: number;
+  hasCustomDomain: boolean;
+  hasAdvancedAnalytics: boolean;
+  hasPrioritySupport: boolean;
+  hasApiAccess: boolean;
   isPopular: boolean;
 }
 
@@ -137,9 +144,10 @@ const BillingPage: React.FC = () => {
     try {
       // Get free plan
       const { data: freePlan, error: planError } = await supabase
-        .from("Plan")
+        .from("PricingPlan")
         .select("*")
         .eq("slug", "free")
+        .eq("active", true)
         .single();
 
       if (planError || !freePlan) {
@@ -160,8 +168,6 @@ const BillingPage: React.FC = () => {
           status: "active",
           currentPeriodStart: now.toISOString(),
           currentPeriodEnd: oneYearFromNow.toISOString(),
-          usedAiMessages: 0,
-          aiMessagesResetAt: now.toISOString(),
         })
         .select()
         .single();
@@ -175,8 +181,7 @@ const BillingPage: React.FC = () => {
       await supabase
         .from("User")
         .update({
-          currentPlanId: freePlan.id,
-          currentSubscriptionId: subscription.id,
+          planId: freePlan.id,
         })
         .eq("id", user!.id);
 
@@ -193,7 +198,32 @@ const BillingPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Load subscription
+      // Load user plan
+      const { data: userData, error: userError } = await supabase
+        .from("User")
+        .select(
+          `
+          *,
+          plan:planId (*)
+        `,
+        )
+        .eq("id", user!.id)
+        .single();
+
+      if (!userError && userData?.plan) {
+        setSubscription({
+          id: "active",
+          planId: userData.planId,
+          status: "active",
+          currentPeriodStart: new Date().toISOString(),
+          currentPeriodEnd: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          plan: userData.plan as Plan,
+        });
+      }
+
+      // Load subscription (deprecated, keeping for backwards compatibility)
       const { data: subData, error: subError } = await supabase
         .from("Subscription")
         .select(
@@ -206,7 +236,7 @@ const BillingPage: React.FC = () => {
         .eq("status", "active")
         .single();
 
-      if (!subError && subData) {
+      if (!subError && subData && !userData?.plan) {
         setSubscription(subData as any);
       }
 
@@ -235,7 +265,7 @@ const BillingPage: React.FC = () => {
 
       // Load plans
       const { data: plansData, error: plansError } = await supabase
-        .from("Plan")
+        .from("PricingPlan")
         .select("*")
         .eq("active", true)
         .order("sortOrder");
@@ -448,22 +478,121 @@ const BillingPage: React.FC = () => {
 
                     {/* Features */}
                     <div className="space-y-3 mb-4">
-                      {currentPlan.features.map((feature, index) => (
+                      <motion.div
+                        className="flex items-center gap-3 text-sm group"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                      >
+                        <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {currentPlan.maxAiMessagesDaily} mensagens IA por dia
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        className="flex items-center gap-3 text-sm group"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                      >
+                        <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {currentPlan.maxAiImagesDaily} imagens IA por dia
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        className="flex items-center gap-3 text-sm group"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {currentPlan.maxCheckoutPages > 100
+                            ? "Páginas de checkout ilimitadas"
+                            : `${currentPlan.maxCheckoutPages} páginas de checkout`}
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        className="flex items-center gap-3 text-sm group"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {currentPlan.maxProducts > 1000
+                            ? "Produtos ilimitados"
+                            : `Até ${currentPlan.maxProducts} produtos`}
+                        </span>
+                      </motion.div>
+                      {currentPlan.hasCustomDomain && (
                         <motion.div
-                          key={index}
                           className="flex items-center gap-3 text-sm group"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          transition={{ delay: 0.4 }}
                         >
                           <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
                             <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                           </div>
                           <span className="text-gray-700 dark:text-gray-300">
-                            {feature}
+                            Domínio customizado
                           </span>
                         </motion.div>
-                      ))}
+                      )}
+                      {currentPlan.hasAdvancedAnalytics && (
+                        <motion.div
+                          className="flex items-center gap-3 text-sm group"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 }}
+                        >
+                          <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            Analytics avançados
+                          </span>
+                        </motion.div>
+                      )}
+                      {currentPlan.hasPrioritySupport && (
+                        <motion.div
+                          className="flex items-center gap-3 text-sm group"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 }}
+                        >
+                          <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            Suporte prioritário
+                          </span>
+                        </motion.div>
+                      )}
+                      {currentPlan.hasApiAccess && (
+                        <motion.div
+                          className="flex items-center gap-3 text-sm group"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.7 }}
+                        >
+                          <div className="p-1 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm group-hover:shadow-md transition-shadow">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            API Access completo
+                          </span>
+                        </motion.div>
+                      )}
                     </div>
 
                     {/* Período ativo */}
@@ -848,19 +977,100 @@ const BillingPage: React.FC = () => {
                     </p>
                   </div>
                   <ul className="space-y-2 mb-6">
-                    {plan.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        className="flex items-start gap-2 text-sm"
-                      >
-                        <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
-                        </div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
+                    {Array.isArray(plan.features) &&
+                      plan.features.map((feature, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start gap-2 text-sm"
+                        >
+                          <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    {!plan.features && (
+                      <>
+                        <li className="flex items-start gap-2 text-sm">
+                          <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {plan.maxAiMessagesDaily} mensagens IA/dia
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {plan.maxAiImagesDaily} imagens IA/dia
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {plan.maxCheckoutPages > 100
+                              ? "Páginas ilimitadas"
+                              : `${plan.maxCheckoutPages} páginas`}
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {plan.maxProducts > 1000
+                              ? "Produtos ilimitados"
+                              : `${plan.maxProducts} produtos`}
+                          </span>
+                        </li>
+                        {plan.hasCustomDomain && (
+                          <li className="flex items-start gap-2 text-sm">
+                            <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                              <CheckCircle2 className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Domínio customizado
+                            </span>
+                          </li>
+                        )}
+                        {plan.hasAdvancedAnalytics && (
+                          <li className="flex items-start gap-2 text-sm">
+                            <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                              <CheckCircle2 className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Analytics avançados
+                            </span>
+                          </li>
+                        )}
+                        {plan.hasPrioritySupport && (
+                          <li className="flex items-start gap-2 text-sm">
+                            <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                              <CheckCircle2 className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Suporte prioritário
+                            </span>
+                          </li>
+                        )}
+                        {plan.hasApiAccess && (
+                          <li className="flex items-start gap-2 text-sm">
+                            <div className="p-0.5 rounded bg-gradient-to-br from-green-500 to-emerald-600 mt-0.5">
+                              <CheckCircle2 className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              API Access completo
+                            </span>
+                          </li>
+                        )}
+                      </>
+                    )}
                   </ul>
                   <Button
                     onClick={() => handleChangePlan(plan.id)}
