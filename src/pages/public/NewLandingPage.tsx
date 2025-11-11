@@ -1,43 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import {
   Sparkles,
-  CheckCircle2,
   ArrowRight,
   CreditCard,
   ShoppingCart,
   BarChart3,
   Zap,
   Shield,
-  Globe,
   Bot,
   Rocket,
-  TrendingUp,
-  Users,
   Star,
   ChevronDown,
   Menu,
   X,
-  MessageSquare,
-  Image as ImageIcon,
-  Lock,
-  Crown,
   Check,
-  Mail,
-  Phone,
-  MapPin,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
 import { FAQItem, LandingFooter } from "./NewLandingPageFooter";
 import { FeatureCard, PricingCard } from "./NewLandingPageComponents";
@@ -66,24 +47,57 @@ const NewLandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-purple-950">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" />
-        <div
-          className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "1s" }}
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      {/* Animated Background Pattern */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Gradient Orbs */}
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-3xl"
         />
-        <div
-          className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "2s" }}
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+          className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl"
         />
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+          className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"
+        />
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
 
       {/* Header */}
       <motion.header
         style={{ opacity: headerOpacity }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-lg"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50"
       >
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -93,19 +107,19 @@ const NewLandingPage = () => {
             <nav className="hidden md:flex items-center gap-8">
               <a
                 href="#features"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 Recursos
               </a>
               <a
                 href="#pricing"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 Planos
               </a>
               <a
                 href="#faq"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 FAQ
               </a>
@@ -118,7 +132,7 @@ const NewLandingPage = () => {
               <Button
                 size="sm"
                 asChild
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
+                className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/30"
               >
                 <Link to="/register">Começar Grátis</Link>
               </Button>
@@ -148,19 +162,19 @@ const NewLandingPage = () => {
               <nav className="flex flex-col gap-3">
                 <a
                   href="#features"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 py-2"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 py-2"
                 >
                   Recursos
                 </a>
                 <a
                   href="#pricing"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 py-2"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 py-2"
                 >
                   Planos
                 </a>
                 <a
                   href="#faq"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-pink-600 py-2"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 py-2"
                 >
                   FAQ
                 </a>
@@ -170,7 +184,7 @@ const NewLandingPage = () => {
                   </Button>
                   <Button
                     asChild
-                    className="bg-gradient-to-r from-pink-500 to-purple-600"
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
                   >
                     <Link to="/register">Começar Grátis</Link>
                   </Button>
@@ -182,109 +196,245 @@ const NewLandingPage = () => {
       </motion.header>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="max-w-4xl mx-auto text-center"
-          >
-            {/* Badge */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
             <motion.div
-              variants={fadeInUp}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 mb-8"
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              className="text-center lg:text-left"
             >
-              <Sparkles className="h-4 w-4 text-pink-500" />
-              <span className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                Checkout de Pagamento 7 Dias Grátis
-              </span>
-            </motion.div>
-
-            {/* Main Headline */}
-            <motion.h1
-              variants={fadeInUp}
-              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight mb-6"
-            >
-              <span className="block text-gray-900 dark:text-white mb-2">
-                Checkout Inteligente +
-              </span>
-              <span className="block bg-gradient-to-r from-pink-600 via-purple-600 to-pink-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                IA que Vende 24/7
-              </span>
-            </motion.h1>
-
-            {/* Description */}
-            <motion.p
-              variants={fadeInUp}
-              className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
-            >
-              Plataforma completa de <strong>checkout customizado</strong> com
-              múltiplos gateways de pagamento +
-              <strong className="text-pink-600">
-                {" "}
-                Inteligência Artificial
-              </strong>{" "}
-              para gerenciar seu e-commerce automaticamente.
-            </motion.p>
-
-            {/* CTA Buttons */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
-            >
-              <Button
-                size="lg"
-                asChild
-                className="text-lg px-8 py-6 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-2xl shadow-pink-500/30 transform hover:scale-105 transition-all"
+              {/* Badge */}
+              <motion.div
+                variants={fadeInUp}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-blue-500/20 mb-6"
               >
-                <Link to="/register" className="flex items-center gap-2">
-                  <Rocket className="h-5 w-5" />
-                  Começar Grátis Agora
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="text-lg px-8 py-6 border-2"
-              >
-                <a href="#pricing">Ver Planos</a>
-              </Button>
-            </motion.div>
-
-            {/* Social Proof */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-600 dark:text-gray-400"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white text-xs font-bold"
-                    >
-                      {String.fromCharCode(64 + i)}
-                    </div>
-                  ))}
-                </div>
-                <span className="font-semibold">
-                  2.847+ profissionais economizando
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Checkout de Pagamento 7 Dias Grátis
                 </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star
-                    key={i}
-                    className="h-5 w-5 fill-yellow-400 text-yellow-400"
-                  />
-                ))}
-                <span className="ml-2 font-semibold">4.9/5 avaliação</span>
+              </motion.div>
+
+              {/* Main Heading */}
+              <motion.h1
+                variants={fadeInUp}
+                className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight"
+              >
+                <span className="text-gray-900 dark:text-white">
+                  Checkout Inteligente +
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  IA que Vende 24/7
+                </span>
+              </motion.h1>
+
+              {/* Description */}
+              <motion.p
+                variants={fadeInUp}
+                className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto lg:mx-0"
+              >
+                Plataforma completa de{" "}
+                <strong className="text-gray-900 dark:text-white">
+                  checkout customizado
+                </strong>{" "}
+                com múltiplos gateways +{" "}
+                <strong className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Inteligência Artificial
+                </strong>{" "}
+                para gerenciar seu e-commerce automaticamente.
+              </motion.p>
+
+              {/* CTA Buttons */}
+              <motion.div
+                variants={fadeInUp}
+                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-12"
+              >
+                <Button
+                  size="lg"
+                  asChild
+                  className="text-lg px-8 py-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl shadow-purple-500/30 transform hover:scale-105 transition-all"
+                >
+                  <Link to="/register" className="flex items-center gap-2">
+                    <Rocket className="h-5 w-5" />
+                    Começar Grátis Agora
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  asChild
+                  className="text-lg px-8 py-6 border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:hover:border-blue-600"
+                >
+                  <a href="#pricing">Ver Planos</a>
+                </Button>
+              </motion.div>
+
+              {/* Social Proof */}
+              <motion.div
+                variants={fadeInUp}
+                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-600 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white text-xs font-bold"
+                      >
+                        {String.fromCharCode(64 + i)}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">
+                    2.847+ profissionais economizando
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star
+                      key={i}
+                      className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                    />
+                  ))}
+                  <span className="ml-2 font-semibold text-gray-700 dark:text-gray-300">
+                    4.9/5 avaliação
+                  </span>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Right Illustration */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotateY: -20 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="relative hidden lg:block"
+            >
+              {/* Main Illustration SVG */}
+              <div className="relative">
+                {/* Floating Elements */}
+                <motion.div
+                  animate={{ y: [0, -20, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl shadow-blue-500/50 flex items-center justify-center transform rotate-12"
+                >
+                  <CreditCard className="h-12 w-12 text-white" />
+                </motion.div>
+
+                <motion.div
+                  animate={{ y: [0, 20, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  className="absolute -bottom-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl shadow-2xl shadow-pink-500/50 flex items-center justify-center transform -rotate-12"
+                >
+                  <Bot className="h-12 w-12 text-white" />
+                </motion.div>
+
+                <motion.div
+                  animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute top-1/2 -left-16 w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full shadow-2xl shadow-purple-500/50 flex items-center justify-center"
+                >
+                  <BarChart3 className="h-10 w-10 text-white" />
+                </motion.div>
+
+                {/* Main Card */}
+                <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-800">
+                  {/* Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl -z-10" />
+
+                  {/* Content */}
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                          Dashboard
+                        </h3>
+                        <p className="text-sm text-gray-500">Tempo Real</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-sm font-medium text-green-600">
+                          Online
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 rounded-2xl p-4 border border-blue-200 dark:border-blue-800"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <ShoppingCart className="h-5 w-5 text-blue-600" />
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            Vendas
+                          </span>
+                        </div>
+                        <p className="text-3xl font-black text-blue-600">
+                          R$ 45.2k
+                        </p>
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                          <ArrowRight className="h-3 w-3 rotate-[-45deg]" />
+                          +28% hoje
+                        </p>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 rounded-2xl p-4 border border-purple-200 dark:border-purple-800"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Bot className="h-5 w-5 text-purple-600" />
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            IA Ativa
+                          </span>
+                        </div>
+                        <p className="text-3xl font-black text-purple-600">
+                          24/7
+                        </p>
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                          <Check className="h-3 w-3" />
+                          Automático
+                        </p>
+                      </motion.div>
+                    </div>
+
+                    {/* Chart Bars */}
+                    <div className="space-y-3">
+                      {[
+                        { label: "PIX", value: 85, color: "from-blue-500 to-blue-600" },
+                        { label: "Cartão", value: 65, color: "from-purple-500 to-purple-600" },
+                        { label: "Boleto", value: 45, color: "from-pink-500 to-pink-600" },
+                      ].map((item, i) => (
+                        <div key={i}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {item.label}
+                            </span>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                              {item.value}%
+                            </span>
+                          </div>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.value}%` }}
+                            transition={{ duration: 1, delay: i * 0.2 }}
+                            className={`h-3 rounded-full bg-gradient-to-r ${item.color} shadow-lg`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Scroll Indicator */}
@@ -299,7 +449,7 @@ const NewLandingPage = () => {
       </section>
 
       {/* Checkout Payment Highlight */}
-      <section className="py-16 bg-gradient-to-r from-green-500 to-emerald-600 relative overflow-hidden">
+      <section className="py-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-20" />
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -381,42 +531,42 @@ const NewLandingPage = () => {
                 title: "Checkout Customizado",
                 description:
                   "Crie páginas de checkout personalizadas com sua marca. Sem redirecionamentos, conversão máxima.",
-                gradient: "from-pink-500 to-rose-600",
+                gradient: "from-blue-500 to-blue-600",
               },
               {
                 icon: CreditCard,
                 title: "Múltiplos Gateways",
                 description:
                   "Integre com + de 55 gateways de pagamento. PIX, cartão, boleto e mais.",
-                gradient: "from-purple-500 to-indigo-600",
+                gradient: "from-purple-500 to-purple-600",
               },
               {
                 icon: Bot,
                 title: "IA que Gerencia Tudo",
                 description:
                   "Assistente de IA 24/7 para gerenciar campanhas, analisar dados e otimizar vendas.",
-                gradient: "from-blue-500 to-cyan-600",
+                gradient: "from-pink-500 to-pink-600",
               },
               {
                 icon: Zap,
                 title: "Integração Shopify",
                 description:
                   "Conecte sua loja Shopify em minutos e comece a vender com checkout personalizado.",
-                gradient: "from-green-500 to-emerald-600",
+                gradient: "from-blue-500 to-purple-600",
               },
               {
                 icon: BarChart3,
                 title: "Analytics Avançado",
                 description:
                   "Dashboards completos com métricas em tempo real. Tome decisões baseadas em dados.",
-                gradient: "from-orange-500 to-amber-600",
+                gradient: "from-purple-500 to-pink-600",
               },
               {
                 icon: Shield,
                 title: "Segurança Total",
                 description:
                   "Certificado SSL, PCI Compliance e criptografia de ponta a ponta.",
-                gradient: "from-red-500 to-pink-600",
+                gradient: "from-pink-500 to-blue-600",
               },
             ].map((feature, index) => (
               <FeatureCard key={index} {...feature} delay={index * 0.1} />
@@ -426,7 +576,7 @@ const NewLandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-gray-50 dark:bg-gray-900/50">
+      <section id="pricing" className="py-24 bg-gray-50 dark:bg-gray-900 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <motion.div
             initial="hidden"
@@ -450,7 +600,6 @@ const NewLandingPage = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-            {/* Free Plan */}
             <PricingCard
               name="Gratuito"
               price="R$ 0"
@@ -534,49 +683,11 @@ const NewLandingPage = () => {
               delay={0.3}
             />
           </div>
-
-          {/* Checkout Payment Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 text-center"
-          >
-            <Card className="max-w-4xl mx-auto border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                  <CreditCard className="h-6 w-6 text-green-600" />
-                  Checkout de Pagamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
-                  <strong>7 dias grátis</strong> para testar +{" "}
-                  <strong>1,5%</strong> sobre transações pagas. Aceite PIX,
-                  cartão e boleto sem complicação!
-                </p>
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Lock className="h-4 w-4" />
-                    Pagamentos seguros
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Shield className="h-4 w-4" />
-                    PCI Compliant
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Zap className="h-4 w-4" />
-                    Setup instantâneo
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-24">
+      <section id="faq" className="py-24 bg-white dark:bg-gray-950">
         <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
           <motion.div
             initial="hidden"
@@ -640,7 +751,7 @@ const NewLandingPage = () => {
       </section>
 
       {/* CTA Final */}
-      <section className="py-24 bg-gradient-to-r from-pink-500 via-purple-600 to-pink-500 relative overflow-hidden">
+      <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-20" />
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <motion.div
@@ -659,12 +770,12 @@ const NewLandingPage = () => {
             <Button
               size="lg"
               asChild
-              className="text-lg px-10 py-7 bg-white text-pink-600 hover:bg-gray-100 shadow-2xl transform hover:scale-105 transition-all"
+              className="text-lg px-10 py-7 bg-white text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:scale-105 shadow-2xl transform transition-all font-black border-2 border-white"
             >
               <Link to="/register" className="flex items-center gap-2">
-                <Rocket className="h-6 w-6" />
+                <Rocket className="h-6 w-6 text-purple-600" />
                 Criar Minha Conta Grátis
-                <ArrowRight className="h-6 w-6" />
+                <ArrowRight className="h-6 w-6 text-purple-600" />
               </Link>
             </Button>
             <p className="text-white/80 mt-6 text-sm">

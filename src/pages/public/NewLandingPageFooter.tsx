@@ -169,28 +169,34 @@ export const LandingFooter = () => {
             <h3 className="text-lg font-bold mb-4">Legal</h3>
             <ul className="space-y-3">
               <li>
-                <Link
-                  to="/terms"
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Termos de Uso
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/privacy"
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Política de Privacidade
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/refund"
+                <a
+                  href="/refund"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Política de Reembolso
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
