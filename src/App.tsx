@@ -135,6 +135,9 @@ const CashbackPage = lazy(() => import("./pages/app/marketing/CashbackPage"));
 const PixelsPage = lazy(() => import("./pages/app/marketing/PixelsPage"));
 
 // Checkout pages
+const CheckoutsManagementPage = lazy(
+  () => import("./pages/app/checkouts/CheckoutsManagementPage"),
+);
 const CheckoutDiscountsPage = lazy(
   () => import("./pages/app/checkout/DiscountsPage"),
 );
@@ -369,6 +372,7 @@ function App() {
               <Route path="/marketing/pixels" element={<PixelsPage />} />
 
               {/* Checkout */}
+              <Route path="/checkouts" element={<CheckoutsManagementPage />} />
               <Route path="/onboarding" element={<CheckoutOnboardingPage />} />
               <Route
                 path="/checkout/domain"

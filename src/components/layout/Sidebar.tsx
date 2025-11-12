@@ -128,6 +128,7 @@ const navItems: NavItem[] = [
     icon: HiCreditCard,
     label: "Checkout",
     subItems: [
+      { to: "/checkouts", label: "Meus Checkouts", icon: IoStorefront },
       { to: "/checkout/discounts", label: "Descontos", icon: IoTicket },
       {
         to: "/checkout/customize",
