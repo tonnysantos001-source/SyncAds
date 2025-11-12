@@ -34,10 +34,16 @@ export default function CheckoutOnboardingPage() {
   }, [user?.id]);
 
   const loadOnboardingStatus = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("⚠️ [ONBOARDING] Sem usuário, redirecionando...");
+      navigate("/login");
+      return;
+    }
+
+    console.log("🔄 [ONBOARDING] Carregando status para usuário:", user.id);
 
     try {
-      // Buscar status de cada etapa em paralelo
+      // Buscar status de cada etapa em paralelo com tratamento de erro individual
       const [
         emailVerified,
         billingCompleted,
@@ -45,12 +51,35 @@ export default function CheckoutOnboardingPage() {
         gatewayCompleted,
         shippingCompleted,
       ] = await Promise.all([
-        checkEmailVerificationStatus(),
-        checkBillingStatus(),
-        checkDomainStatus(),
-        checkGatewayStatus(),
-        checkShippingStatus(),
+        checkEmailVerificationStatus().catch((e) => {
+          console.error("❌ [ONBOARDING] Erro em emailVerified:", e);
+          return false;
+        }),
+        checkBillingStatus().catch((e) => {
+          console.error("❌ [ONBOARDING] Erro em billing:", e);
+          return false;
+        }),
+        checkDomainStatus().catch((e) => {
+          console.error("❌ [ONBOARDING] Erro em domain:", e);
+          return false;
+        }),
+        checkGatewayStatus().catch((e) => {
+          console.error("❌ [ONBOARDING] Erro em gateway:", e);
+          return false;
+        }),
+        checkShippingStatus().catch((e) => {
+          console.error("❌ [ONBOARDING] Erro em shipping:", e);
+          return false;
+        }),
       ]);
+
+      console.log("✅ [ONBOARDING] Status carregado:", {
+        emailVerified,
+        billingCompleted,
+        domainCompleted,
+        gatewayCompleted,
+        shippingCompleted,
+      });
 
       const onboardingSteps: OnboardingStep[] = [
         {
@@ -100,8 +129,57 @@ export default function CheckoutOnboardingPage() {
       ];
 
       setSteps(onboardingSteps);
+      console.log("✅ [ONBOARDING] Steps definidos com sucesso");
     } catch (error) {
-      console.error("Erro ao carregar status de onboarding:", error);
+      console.error("❌ [ONBOARDING] Erro ao carregar status:", error);
+      // Mesmo com erro, mostrar as etapas como não concluídas
+      const defaultSteps: OnboardingStep[] = [
+        {
+          id: "email-verification",
+          title: "Verificação de Email",
+          description:
+            "Verifique seu endereço de email para ativar todos os recursos",
+          icon: Mail,
+          completed: false,
+          route: "/settings/email-verification",
+        },
+        {
+          id: "billing",
+          title: "Faturamento",
+          description: "Configure seu plano e método de pagamento",
+          icon: CreditCard,
+          completed: false,
+          route: "/billing",
+        },
+        {
+          id: "domain",
+          title: "Domínio",
+          description:
+            "Verifique seu domínio. Deve ser o mesmo utilizado na shopify, woocommerce ou na sua landing page.",
+          icon: Monitor,
+          completed: false,
+          route: "/checkout/domain",
+        },
+        {
+          id: "gateway",
+          title: "Gateway",
+          description:
+            "Configure os meios de pagamentos que serão exibidos em sua loja.",
+          icon: DollarSign,
+          completed: false,
+          route: "/checkout/gateways",
+        },
+        {
+          id: "shipping",
+          title: "Frete",
+          description:
+            "Crie métodos de entrega para ser exibido no seu checkout.",
+          icon: Truck,
+          completed: false,
+          route: "/checkout/shipping",
+        },
+      ];
+      setSteps(defaultSteps);
     } finally {
       setLoading(false);
     }
@@ -112,15 +190,23 @@ export default function CheckoutOnboardingPage() {
     if (!user?.id) return false;
 
     try {
-      const { data: userData } = await supabase
+      console.log("🔍 [ONBOARDING] Verificando email...");
+      const { data: userData, error } = await supabase
         .from("User")
         .select("emailVerified")
         .eq("id", user.id)
         .single();
 
-      return userData?.emailVerified === true;
+      if (error) {
+        console.error("❌ [ONBOARDING] Erro ao buscar emailVerified:", error);
+        return false;
+      }
+
+      const verified = userData?.emailVerified === true;
+      console.log("✅ [ONBOARDING] Email verificado:", verified);
+      return verified;
     } catch (error) {
-      console.error("Erro ao verificar status de email:", error);
+      console.error("❌ [ONBOARDING] Exceção ao verificar email:", error);
       return false;
     }
   };
@@ -130,29 +216,45 @@ export default function CheckoutOnboardingPage() {
     if (!user?.id) return false;
 
     try {
+      console.log("🔍 [ONBOARDING] Verificando billing...");
+
       // Verificar se usuário tem um plano atribuído (mesmo que gratuito)
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from("User")
-        .select("currentPlanId")
+        .select("currentPlanId, planId")
         .eq("id", user.id)
         .single();
 
+      if (userError) {
+        console.error(
+          "❌ [ONBOARDING] Erro ao buscar plano do usuário:",
+          userError,
+        );
+      }
+
       // Se tem plano atribuído, billing está OK
-      if (userData?.currentPlanId) {
+      if (userData?.currentPlanId || userData?.planId) {
+        console.log("✅ [ONBOARDING] Billing OK - plano encontrado");
         return true;
       }
 
       // Verificar se tem subscrição ativa (mesmo gratuita)
-      const { data: subscription } = await supabase
+      const { data: subscription, error: subError } = await supabase
         .from("Subscription")
         .select("id, status")
         .eq("userId", user.id)
         .eq("status", "active")
-        .single();
+        .maybeSingle();
 
-      return !!subscription;
+      if (subError && !subError.message.includes("does not exist")) {
+        console.error("❌ [ONBOARDING] Erro ao buscar subscription:", subError);
+      }
+
+      const hasSub = !!subscription;
+      console.log("✅ [ONBOARDING] Billing:", hasSub ? "OK" : "Pendente");
+      return hasSub;
     } catch (error) {
-      console.error("Erro ao verificar billing:", error);
+      console.error("❌ [ONBOARDING] Exceção ao verificar billing:", error);
       return false;
     }
   };
@@ -161,16 +263,28 @@ export default function CheckoutOnboardingPage() {
     if (!user?.id) return false;
 
     try {
+      console.log("🔍 [ONBOARDING] Verificando domínio...");
+
       // Verificar se usuário tem domínio verificado
-      const { data: userData } = await supabase
+      const { data: userData, error } = await supabase
         .from("User")
         .select("domain, domainVerified")
         .eq("id", user.id)
         .single();
 
-      return !!(userData?.domain && userData?.domainVerified);
+      if (error) {
+        console.error("❌ [ONBOARDING] Erro ao buscar domínio:", error);
+        return false;
+      }
+
+      const verified = !!(userData?.domain && userData?.domainVerified);
+      console.log(
+        "✅ [ONBOARDING] Domínio:",
+        verified ? "Verificado" : "Pendente",
+      );
+      return verified;
     } catch (error) {
-      console.error("Erro ao verificar domínio:", error);
+      console.error("❌ [ONBOARDING] Exceção ao verificar domínio:", error);
       return false;
     }
   };
@@ -179,17 +293,29 @@ export default function CheckoutOnboardingPage() {
     if (!user?.id) return false;
 
     try {
+      console.log("🔍 [ONBOARDING] Verificando gateway...");
+
       // Verificar se usuário tem pelo menos 1 gateway configurado e ativo
-      const { data: gateways } = await supabase
+      const { data: gateways, error } = await supabase
         .from("GatewayConfig")
         .select("id, isActive")
         .eq("userId", user.id)
         .eq("isActive", true)
         .limit(1);
 
-      return (gateways?.length || 0) > 0;
+      if (error) {
+        console.error("❌ [ONBOARDING] Erro ao buscar gateway:", error);
+        return false;
+      }
+
+      const hasGateway = (gateways?.length || 0) > 0;
+      console.log(
+        "✅ [ONBOARDING] Gateway:",
+        hasGateway ? "Configurado" : "Pendente",
+      );
+      return hasGateway;
     } catch (error) {
-      console.error("Erro ao verificar gateway:", error);
+      console.error("❌ [ONBOARDING] Exceção ao verificar gateway:", error);
       return false;
     }
   };
@@ -198,16 +324,33 @@ export default function CheckoutOnboardingPage() {
     if (!user?.id) return false;
 
     try {
+      console.log("🔍 [ONBOARDING] Verificando frete...");
+
       // Verificar se usuário tem pelo menos 1 método de frete configurado
-      const { data: shippingMethods } = await supabase
+      const { data: shippingMethods, error } = await supabase
         .from("ShippingMethod")
         .select("id")
         .eq("userId", user.id)
         .limit(1);
 
-      return (shippingMethods?.length || 0) > 0;
+      if (error) {
+        // Se tabela não existir, apenas log e retornar false
+        if (error.message.includes("does not exist")) {
+          console.log("⚠️ [ONBOARDING] Tabela ShippingMethod não existe ainda");
+        } else {
+          console.error("❌ [ONBOARDING] Erro ao buscar frete:", error);
+        }
+        return false;
+      }
+
+      const hasShipping = (shippingMethods?.length || 0) > 0;
+      console.log(
+        "✅ [ONBOARDING] Frete:",
+        hasShipping ? "Configurado" : "Pendente",
+      );
+      return hasShipping;
     } catch (error) {
-      console.error("Erro ao verificar frete:", error);
+      console.error("❌ [ONBOARDING] Exceção ao verificar frete:", error);
       // Se tabela não existir ainda, retornar false
       return false;
     }
