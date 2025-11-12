@@ -157,7 +157,7 @@ const GatewayConfigPage = lazy(
 );
 const RedirectPage = lazy(() => import("./pages/app/checkout/RedirectPage"));
 const CheckoutOnboardingPage = lazy(
-  () => import("./pages/app/CheckoutOnboardingPageSimple"),
+  () => import("./pages/app/CheckoutOnboardingPage"),
 );
 const DomainValidationPage = lazy(
   () => import("./pages/app/DomainValidationPage"),
