@@ -13,6 +13,9 @@ import {
   AlertTriangle,
   Info,
   Megaphone,
+  Plus,
+  Store,
+  ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -54,6 +57,16 @@ interface Notification {
   readAt?: string;
   actionUrl?: string;
   metadata?: any;
+}
+
+interface Checkout {
+  id: string;
+  name: string;
+  userId: string;
+  isActive: boolean;
+  theme: any;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -125,18 +138,42 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [checkouts, setCheckouts] = useState<Checkout[]>([]);
+  const [currentCheckout, setCurrentCheckout] = useState<Checkout | null>(null);
 
   const handleLogout = async () => {
     await logout();
     window.location.href = "/login";
   };
 
-  // Carregar notificações do Supabase
+  // Carregar notificações e checkouts
   useEffect(() => {
     if (user?.id) {
       loadNotifications();
+      loadCheckouts();
     }
   }, [user?.id]);
+
+  const loadCheckouts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("CheckoutCustomization")
+        .select("*")
+        .eq("userId", user?.id)
+        .order("createdAt", { ascending: false });
+
+      if (error) throw error;
+      setCheckouts(data || []);
+
+      // Definir o primeiro checkout ativo como atual
+      if (data && data.length > 0) {
+        const activeCheckout = data.find((c) => c.isActive) || data[0];
+        setCurrentCheckout(activeCheckout);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar checkouts:", error);
+    }
+  };
 
   const loadNotifications = async () => {
     try {
@@ -154,11 +191,19 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
       setNotifications(data || []);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
-      // Em caso de erro, manter array vazio
       setNotifications([]);
     } finally {
       setLoadingNotifications(false);
     }
+  };
+
+  const handleCreateNewCheckout = () => {
+    navigate("/checkouts");
+  };
+
+  const handleSelectCheckout = (checkout: Checkout) => {
+    setCurrentCheckout(checkout);
+    window.open(`/app/workspace/${checkout.id}`, "_blank");
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -174,6 +219,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
     >
       {/* Gradient Overlay */}
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+
       <Button
         size="icon"
         variant="outline"
@@ -187,6 +233,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle Menu</span>
       </Button>
+
       <div className="relative flex-1 md:grow-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
@@ -204,8 +251,54 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        {/* Dark Mode Toggle - Animado */}
+      <div className="ml-auto flex items-center gap-3">
+        {/* Seletor de Checkout */}
+        {checkouts.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 min-w-[180px] justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Store className="h-4 w-4" />
+                  <span className="truncate max-w-[120px]">
+                    {currentCheckout?.name || "Selecionar"}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[240px]">
+              <DropdownMenuLabel>Meus Checkouts</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {checkouts.map((checkout) => (
+                <DropdownMenuItem
+                  key={checkout.id}
+                  onClick={() => handleSelectCheckout(checkout)}
+                  className="cursor-pointer"
+                >
+                  <Store className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">{checkout.name}</span>
+                  {checkout.isActive && (
+                    <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Botão Criar Novo Checkout */}
+        <Button
+          onClick={handleCreateNewCheckout}
+          className="gap-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-lg"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="hidden md:inline">Novo Checkout</span>
+        </Button>
+
+        {/* Dark Mode Toggle */}
         <motion.button
           onClick={toggleTheme}
           className={cn(
@@ -219,7 +312,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Background Gradient Animado */}
           <motion.div
             className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-yellow-500/20 dark:to-orange-500/20"
             initial={{ opacity: 0 }}
@@ -227,7 +319,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             transition={{ duration: 0.3 }}
           />
 
-          {/* Ícones com Animação */}
           <div className="relative w-5 h-5">
             <AnimatePresence mode="wait">
               {theme === "dark" ? (
@@ -256,7 +347,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             </AnimatePresence>
           </div>
 
-          {/* Tooltip */}
           <motion.span
             className={cn(
               "absolute -bottom-10 left-1/2 -translate-x-1/2",
@@ -270,6 +360,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
           </motion.span>
         </motion.button>
 
+        {/* Notificações */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -321,6 +412,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -333,7 +425,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
                   {user?.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
-              {/* Online Indicator */}
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-950" />
             </Button>
           </DropdownMenuTrigger>

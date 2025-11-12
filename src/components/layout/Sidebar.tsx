@@ -154,26 +154,23 @@ const navItems: NavItem[] = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const location = useLocation();
-  const hasAutoExpanded = useRef(false);
+
+  // Calcula o menu inicial apenas uma vez
+  const initialExpandedMenu = React.useMemo(() => {
+    const activeMenu = navItems.find((item) =>
+      item.subItems?.some((s) => location.pathname.startsWith(s.to)),
+    );
+    return activeMenu?.label || null;
+  }, []); // Array vazio - calcula apenas uma vez
+
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(
+    initialExpandedMenu,
+  );
 
   const toggleMenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? null : label);
   };
-
-  useEffect(() => {
-    // Auto-expande apenas uma vez na montagem do componente
-    if (!hasAutoExpanded.current) {
-      const activeMenu = navItems.find((item) =>
-        item.subItems?.some((s) => location.pathname.startsWith(s.to)),
-      );
-      if (activeMenu) {
-        setExpandedMenu(activeMenu.label);
-        hasAutoExpanded.current = true;
-      }
-    }
-  }, []);
 
   const NavItem: React.FC<{ item: NavItem }> = ({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
