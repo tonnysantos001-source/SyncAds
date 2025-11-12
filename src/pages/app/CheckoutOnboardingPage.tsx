@@ -7,10 +7,12 @@ import {
   Truck,
   Loader2,
   Mail,
+  AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OnboardingStep {
   id: string;
@@ -26,23 +28,85 @@ export default function CheckoutOnboardingPage() {
   const navigate = useNavigate();
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
 
   useEffect(() => {
+    console.log("🔄 [ONBOARDING] Component mounted", {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+    });
+
     if (user?.id) {
       loadOnboardingStatus();
+    } else {
+      console.error("⚠️ [ONBOARDING] Sem usuário no mount");
+      setError("Usuário não encontrado. Redirecionando...");
+      setTimeout(() => navigate("/login"), 1500);
     }
   }, [user?.id]);
 
+  const checkSupabaseSession = async () => {
+    try {
+      console.log("🔍 [ONBOARDING] Verificando sessão Supabase...");
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("❌ [ONBOARDING] Erro ao buscar sessão:", sessionError);
+        throw sessionError;
+      }
+
+      if (!session) {
+        console.error("❌ [ONBOARDING] Sessão não encontrada");
+        setError("Sessão expirada. Redirecionando para login...");
+        setTimeout(() => navigate("/login"), 1500);
+        return false;
+      }
+
+      console.log("✅ [ONBOARDING] Sessão válida:", {
+        userId: session.user.id,
+        expiresAt: new Date(session.expires_at! * 1000).toISOString(),
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Erro ao verificar sessão:", error);
+      setError("Erro ao verificar sessão. Por favor, faça login novamente.");
+      return false;
+    }
+  };
+
   const loadOnboardingStatus = async () => {
     if (!user?.id) {
-      console.log("⚠️ [ONBOARDING] Sem usuário, redirecionando...");
-      navigate("/login");
+      console.error("⚠️ [ONBOARDING] Sem usuário, redirecionando...");
+      setError("Usuário não encontrado. Redirecionando para login...");
+      setTimeout(() => navigate("/login"), 1500);
       return;
     }
 
-    console.log("🔄 [ONBOARDING] Carregando status para usuário:", user.id);
+    console.log("🔄 [ONBOARDING] Carregando status para usuário:", {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      isSuperAdmin: user.isSuperAdmin,
+    });
+
+    setLoading(true);
+    setError(null);
 
     try {
+      // Primeiro verificar sessão do Supabase
+      const hasValidSession = await checkSupabaseSession();
+      if (!hasValidSession) {
+        setLoading(false);
+        return;
+      }
+
       // Buscar status de cada etapa em paralelo com tratamento de erro individual
       const [
         emailVerified,
@@ -129,9 +193,43 @@ export default function CheckoutOnboardingPage() {
       ];
 
       setSteps(onboardingSteps);
-      console.log("✅ [ONBOARDING] Steps definidos com sucesso");
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Erro ao carregar status:", error);
+      console.log(
+        "✅ [ONBOARDING] Steps definidos com sucesso:",
+        onboardingSteps.length,
+      );
+      setError(null);
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Erro CRÍTICO ao carregar status:", {
+        error,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        stack: error?.stack,
+      });
+
+      // Definir mensagem de erro específica
+      let errorMessage = "Erro ao carregar configurações. ";
+      if (
+        error?.message?.includes("JWT") ||
+        error?.message?.includes("token")
+      ) {
+        errorMessage +=
+          "Problema de autenticação. Por favor, faça login novamente.";
+        setTimeout(() => {
+          useAuthStore.getState().logout();
+          navigate("/login");
+        }, 2000);
+      } else if (error?.code === "PGRST116") {
+        errorMessage += "Nenhum dado encontrado.";
+      } else if (error?.message?.includes("Failed to fetch")) {
+        errorMessage += "Erro de conexão. Verifique sua internet.";
+      } else {
+        errorMessage += error?.message || "Erro desconhecido.";
+      }
+
+      setError(errorMessage);
+
       // Mesmo com erro, mostrar as etapas como não concluídas
       const defaultSteps: OnboardingStep[] = [
         {
@@ -187,10 +285,13 @@ export default function CheckoutOnboardingPage() {
 
   // ✅ Verificar se email foi verificado
   const checkEmailVerificationStatus = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.id) {
+      console.warn("⚠️ [ONBOARDING] checkEmailVerificationStatus: sem userId");
+      return false;
+    }
 
     try {
-      console.log("🔍 [ONBOARDING] Verificando email...");
+      console.log("🔍 [ONBOARDING] Verificando email para userId:", user.id);
       const { data: userData, error } = await supabase
         .from("User")
         .select("emailVerified")
@@ -198,25 +299,35 @@ export default function CheckoutOnboardingPage() {
         .single();
 
       if (error) {
-        console.error("❌ [ONBOARDING] Erro ao buscar emailVerified:", error);
-        return false;
+        console.error("❌ [ONBOARDING] Erro ao buscar emailVerified:", {
+          error,
+          message: error.message,
+          code: error.code,
+        });
+        throw error;
       }
 
       const verified = userData?.emailVerified === true;
       console.log("✅ [ONBOARDING] Email verificado:", verified);
       return verified;
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Exceção ao verificar email:", error);
-      return false;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Exceção ao verificar email:", {
+        error,
+        message: error?.message,
+      });
+      throw error;
     }
   };
 
   // ✅ SISTEMA SIMPLIFICADO: Verificações baseadas apenas no userId
   const checkBillingStatus = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.id) {
+      console.warn("⚠️ [ONBOARDING] checkBillingStatus: sem userId");
+      return false;
+    }
 
     try {
-      console.log("🔍 [ONBOARDING] Verificando billing...");
+      console.log("🔍 [ONBOARDING] Verificando billing para userId:", user.id);
 
       // Verificar se usuário tem um plano atribuído (mesmo que gratuito)
       const { data: userData, error: userError } = await supabase
@@ -226,10 +337,12 @@ export default function CheckoutOnboardingPage() {
         .single();
 
       if (userError) {
-        console.error(
-          "❌ [ONBOARDING] Erro ao buscar plano do usuário:",
-          userError,
-        );
+        console.error("❌ [ONBOARDING] Erro ao buscar plano do usuário:", {
+          error: userError,
+          message: userError.message,
+          code: userError.code,
+        });
+        throw userError;
       }
 
       // Se tem plano atribuído, billing está OK
@@ -247,23 +360,34 @@ export default function CheckoutOnboardingPage() {
         .maybeSingle();
 
       if (subError && !subError.message.includes("does not exist")) {
-        console.error("❌ [ONBOARDING] Erro ao buscar subscription:", subError);
+        console.error("❌ [ONBOARDING] Erro ao buscar subscription:", {
+          error: subError,
+          message: subError.message,
+          code: subError.code,
+        });
+        throw subError;
       }
 
       const hasSub = !!subscription;
       console.log("✅ [ONBOARDING] Billing:", hasSub ? "OK" : "Pendente");
       return hasSub;
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Exceção ao verificar billing:", error);
-      return false;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Exceção ao verificar billing:", {
+        error,
+        message: error?.message,
+      });
+      throw error;
     }
   };
 
   const checkDomainStatus = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.id) {
+      console.warn("⚠️ [ONBOARDING] checkDomainStatus: sem userId");
+      return false;
+    }
 
     try {
-      console.log("🔍 [ONBOARDING] Verificando domínio...");
+      console.log("🔍 [ONBOARDING] Verificando domínio para userId:", user.id);
 
       // Verificar se usuário tem domínio verificado
       const { data: userData, error } = await supabase
@@ -273,8 +397,12 @@ export default function CheckoutOnboardingPage() {
         .single();
 
       if (error) {
-        console.error("❌ [ONBOARDING] Erro ao buscar domínio:", error);
-        return false;
+        console.error("❌ [ONBOARDING] Erro ao buscar domínio:", {
+          error,
+          message: error.message,
+          code: error.code,
+        });
+        throw error;
       }
 
       const verified = !!(userData?.domain && userData?.domainVerified);
@@ -283,17 +411,23 @@ export default function CheckoutOnboardingPage() {
         verified ? "Verificado" : "Pendente",
       );
       return verified;
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Exceção ao verificar domínio:", error);
-      return false;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Exceção ao verificar domínio:", {
+        error,
+        message: error?.message,
+      });
+      throw error;
     }
   };
 
   const checkGatewayStatus = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.id) {
+      console.warn("⚠️ [ONBOARDING] checkGatewayStatus: sem userId");
+      return false;
+    }
 
     try {
-      console.log("🔍 [ONBOARDING] Verificando gateway...");
+      console.log("🔍 [ONBOARDING] Verificando gateway para userId:", user.id);
 
       // Verificar se usuário tem pelo menos 1 gateway configurado e ativo
       const { data: gateways, error } = await supabase
@@ -304,8 +438,12 @@ export default function CheckoutOnboardingPage() {
         .limit(1);
 
       if (error) {
-        console.error("❌ [ONBOARDING] Erro ao buscar gateway:", error);
-        return false;
+        console.error("❌ [ONBOARDING] Erro ao buscar gateway:", {
+          error,
+          message: error.message,
+          code: error.code,
+        });
+        throw error;
       }
 
       const hasGateway = (gateways?.length || 0) > 0;
@@ -314,17 +452,23 @@ export default function CheckoutOnboardingPage() {
         hasGateway ? "Configurado" : "Pendente",
       );
       return hasGateway;
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Exceção ao verificar gateway:", error);
-      return false;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Exceção ao verificar gateway:", {
+        error,
+        message: error?.message,
+      });
+      throw error;
     }
   };
 
   const checkShippingStatus = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.id) {
+      console.warn("⚠️ [ONBOARDING] checkShippingStatus: sem userId");
+      return false;
+    }
 
     try {
-      console.log("🔍 [ONBOARDING] Verificando frete...");
+      console.log("🔍 [ONBOARDING] Verificando frete para userId:", user.id);
 
       // Verificar se usuário tem pelo menos 1 método de frete configurado
       const { data: shippingMethods, error } = await supabase
@@ -337,10 +481,14 @@ export default function CheckoutOnboardingPage() {
         // Se tabela não existir, apenas log e retornar false
         if (error.message.includes("does not exist")) {
           console.log("⚠️ [ONBOARDING] Tabela ShippingMethod não existe ainda");
-        } else {
-          console.error("❌ [ONBOARDING] Erro ao buscar frete:", error);
+          return false;
         }
-        return false;
+        console.error("❌ [ONBOARDING] Erro ao buscar frete:", {
+          error,
+          message: error.message,
+          code: error.code,
+        });
+        throw error;
       }
 
       const hasShipping = (shippingMethods?.length || 0) > 0;
@@ -349,17 +497,159 @@ export default function CheckoutOnboardingPage() {
         hasShipping ? "Configurado" : "Pendente",
       );
       return hasShipping;
-    } catch (error) {
-      console.error("❌ [ONBOARDING] Exceção ao verificar frete:", error);
-      // Se tabela não existir ainda, retornar false
-      return false;
+    } catch (error: any) {
+      console.error("❌ [ONBOARDING] Exceção ao verificar frete:", {
+        error,
+        message: error?.message,
+      });
+      // Se tabela não existir ainda, retornar false sem erro
+      if (error?.message?.includes("does not exist")) {
+        return false;
+      }
+      throw error;
     }
+  };
+
+  const runDiagnostic = async () => {
+    console.log("🔍 [DIAGNOSTIC] Iniciando diagnóstico completo...");
+    const info: any = {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user?.id,
+        email: user?.email,
+        name: user?.name,
+        isSuperAdmin: user?.isSuperAdmin,
+        plan: user?.plan,
+      },
+      authStore: {
+        isAuthenticated: useAuthStore.getState().isAuthenticated,
+        isInitialized: useAuthStore.getState().isInitialized,
+      },
+      localStorage: {
+        authStorage: localStorage.getItem("auth-storage"),
+      },
+      supabase: {},
+    };
+
+    try {
+      // Verificar sessão Supabase
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      info.supabase.session = {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        expiresAt: session?.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
+        error: sessionError?.message,
+      };
+
+      // Verificar user na tabela User
+      const { data: userData, error: userError } = await supabase
+        .from("User")
+        .select("id, email, name, emailVerified, plan, isSuperAdmin")
+        .eq("id", user?.id)
+        .single();
+      info.supabase.user = {
+        found: !!userData,
+        data: userData,
+        error: userError?.message,
+      };
+
+      // Verificar billing
+      try {
+        const { data: subscription, error: subError } = await supabase
+          .from("Subscription")
+          .select("id, status")
+          .eq("userId", user?.id)
+          .eq("status", "active")
+          .maybeSingle();
+        info.supabase.billing = {
+          hasActiveSubscription: !!subscription,
+          error: subError?.message,
+        };
+      } catch (e: any) {
+        info.supabase.billing = { error: e.message };
+      }
+
+      // Verificar domain
+      try {
+        const { data: domain, error: domainError } = await supabase
+          .from("User")
+          .select("domain, domainVerified")
+          .eq("id", user?.id)
+          .single();
+        info.supabase.domain = {
+          domain: domain?.domain,
+          verified: domain?.domainVerified,
+          error: domainError?.message,
+        };
+      } catch (e: any) {
+        info.supabase.domain = { error: e.message };
+      }
+
+      // Verificar gateways
+      try {
+        const { data: gateways, error: gatewayError } = await supabase
+          .from("GatewayConfig")
+          .select("id, isActive")
+          .eq("userId", user?.id)
+          .eq("isActive", true);
+        info.supabase.gateways = {
+          count: gateways?.length || 0,
+          error: gatewayError?.message,
+        };
+      } catch (e: any) {
+        info.supabase.gateways = { error: e.message };
+      }
+
+      console.log("✅ [DIAGNOSTIC] Diagnóstico completo:", info);
+    } catch (e: any) {
+      info.error = e.message;
+      console.error("❌ [DIAGNOSTIC] Erro no diagnóstico:", e);
+    }
+
+    setDiagnosticInfo(info);
+    setShowDiagnostic(true);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Carregando suas configurações...
+        </p>
+      </div>
+    );
+  }
+
+  // Mostrar erro se houver
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-6">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <button
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            loadOnboardingStatus();
+          }}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+        >
+          Tentar Novamente
+        </button>
+        <button
+          onClick={() => navigate("/login")}
+          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+        >
+          Voltar para Login
+        </button>
       </div>
     );
   }
@@ -437,14 +727,59 @@ export default function CheckoutOnboardingPage() {
       </div>
 
       {/* Floating Help Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
         <button
           className="rounded-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 shadow-lg transition-colors"
           onClick={() => navigate("/chat")}
         >
           Precisa de ajuda?
         </button>
+        <button
+          className="rounded-full bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 shadow-lg transition-colors text-sm"
+          onClick={runDiagnostic}
+        >
+          🔍 Diagnóstico
+        </button>
       </div>
+
+      {/* Diagnostic Modal */}
+      {showDiagnostic && diagnosticInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Informações de Diagnóstico</h2>
+              <button
+                onClick={() => setShowDiagnostic(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded text-xs overflow-auto">
+              {JSON.stringify(diagnosticInfo, null, 2)}
+            </pre>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    JSON.stringify(diagnosticInfo, null, 2),
+                  );
+                  alert("Diagnóstico copiado para área de transferência!");
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => setShowDiagnostic(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
