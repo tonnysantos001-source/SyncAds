@@ -58,30 +58,63 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
+      console.log("🔐 [LOGIN] Iniciando login...");
+
       // Fazer login
       await login(data.email, data.password);
+      console.log("✅ [LOGIN] Login API concluído");
 
-      // Aguardar um pouco para garantir que o estado foi atualizado
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Aguardar mais tempo para garantir que o estado foi atualizado
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Pegar dados atualizados do usuário
-      const user = useAuthStore.getState().user;
+      const authState = useAuthStore.getState();
+      const user = authState.user;
+      const isAuthenticated = authState.isAuthenticated;
+
+      console.log("🔐 [LOGIN] Estado após login:", {
+        isAuthenticated,
+        hasUser: !!user,
+        userId: user?.id,
+        isSuperAdmin: user?.isSuperAdmin,
+      });
+
+      // Verificar se realmente está autenticado
+      if (!isAuthenticated || !user) {
+        throw new Error("Falha ao autenticar usuário");
+      }
 
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
+        description: `Bem-vindo de volta, ${user.name}!`,
       });
 
+      // Aguardar toast ser exibido
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Redirecionar para página inicial correta
-      const redirectPath = user?.isSuperAdmin ? "/super-admin" : "/onboarding";
+      const redirectPath = user.isSuperAdmin ? "/super-admin" : "/onboarding";
+      console.log("🔐 [LOGIN] Redirecionando para:", redirectPath);
 
       // Usar window.location para garantir reload completo
       window.location.href = redirectPath;
     } catch (error: any) {
+      console.error("❌ [LOGIN] Erro no login:", error);
+
+      // Mensagem de erro mais específica
+      let errorMessage = "Verifique suas credenciais e tente novamente.";
+
+      if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Email ou senha incorretos.";
+      } else if (error.message?.includes("Email not confirmed")) {
+        errorMessage = "Por favor, confirme seu email antes de fazer login.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Erro ao fazer login",
-        description:
-          error.message || "Verifique suas credenciais e tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

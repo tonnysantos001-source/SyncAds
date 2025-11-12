@@ -142,12 +142,75 @@ export const authApi = {
   // Get current user
   getCurrentUser: async () => {
     try {
+      // Verificar sessão antes de buscar usuário
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("❌ [AUTH API] Erro ao buscar sessão:", sessionError);
+        // Limpar storage se sessão inválida
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
+      if (!session) {
+        console.log("⚠️ [AUTH API] Sem sessão ativa");
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
+      // Verificar se token está próximo de expirar (menos de 5 minutos)
+      const expiresAt = session.expires_at || 0;
+      const now = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = expiresAt - now;
+
+      if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
+        console.log("🔄 [AUTH API] Token próximo de expirar, renovando...");
+        try {
+          const {
+            data: { session: newSession },
+            error: refreshError,
+          } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error(
+              "❌ [AUTH API] Erro ao renovar sessão:",
+              refreshError,
+            );
+            localStorage.removeItem("auth-storage");
+            return null;
+          }
+          if (newSession) {
+            console.log("✅ [AUTH API] Sessão renovada com sucesso");
+          }
+        } catch (refreshErr) {
+          console.error("❌ [AUTH API] Exceção ao renovar sessão:", refreshErr);
+          localStorage.removeItem("auth-storage");
+          return null;
+        }
+      } else if (timeUntilExpiry <= 0) {
+        console.error("❌ [AUTH API] Token expirado");
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
-
-      if (authError) throw authError;
+      if (authError) {
+        console.error("❌ [AUTH API] Erro ao buscar user:", authError);
+        // Se erro 401, limpar storage
+        if (
+          authError.message?.includes("401") ||
+          authError.message?.includes("JWT")
+        ) {
+          console.log("🧹 [AUTH API] Limpando storage por token inválido");
+          localStorage.removeItem("auth-storage");
+        }
+        throw authError;
+      }
       if (!user) return null;
 
       // Get user data from database
@@ -160,26 +223,46 @@ export const authApi = {
       if (userError) throw userError;
 
       // Check if user is Super Admin
-      // Simplificado: apenas tenta query direta com tratamento silencioso de erros
-      let isSuperAdmin = false;
+      // Garantir que sempre retorne boolean
+      let isSuperAdmin: boolean = false;
       try {
         // Query direta com maybeSingle para retornar null se não existir
-        const { data: superAdminCheck } = await supabase
+        const { data: superAdminCheck, error: superAdminError } = await supabase
           .from("SuperAdmin")
           .select("id")
           .eq("id", user.id)
           .maybeSingle();
 
-        isSuperAdmin = !!superAdminCheck;
+        // Garantir que seja boolean
+        isSuperAdmin = Boolean(superAdminCheck);
+
+        console.log("🔐 [AUTH API] Super Admin check:", {
+          userId: user.id,
+          isSuperAdmin,
+          hasData: !!superAdminCheck,
+          error: superAdminError?.message,
+        });
       } catch (e) {
         // Ignora erro silenciosamente - user não é super admin ou tabela não existe
+        console.log(
+          "⚠️ [AUTH API] Super Admin check failed (user is not admin):",
+          e,
+        );
         isSuperAdmin = false;
       }
 
-      return {
+      const result = {
         ...userData,
-        isSuperAdmin,
+        isSuperAdmin: Boolean(isSuperAdmin), // Garantir boolean
       };
+
+      console.log("✅ [AUTH API] getCurrentUser result:", {
+        id: result.id,
+        email: result.email,
+        isSuperAdmin: result.isSuperAdmin,
+      });
+
+      return result;
     } catch (error) {
       console.error("Get current user error:", error);
       return null;
