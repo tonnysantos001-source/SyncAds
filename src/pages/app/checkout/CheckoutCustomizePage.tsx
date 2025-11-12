@@ -260,15 +260,8 @@ const CheckoutCustomizePage: React.FC = () => {
       const data = await checkoutApi.loadCustomization(user!.id);
       if (data) {
         setCustomization(data);
-      } else {
-        const defaultCustomization = {
-          userId: user!.id,
-          name: "Tema Padrão Profissional",
-          theme: DEFAULT_CHECKOUT_THEME,
-          isActive: true,
-        };
-        setCustomization(defaultCustomization as CheckoutCustomization);
       }
+      // Não criar workspace automaticamente se não houver customização
     } catch (error) {
       console.error("Erro ao carregar personalização:", error);
       toast({

@@ -196,12 +196,15 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               animate={
                 isExpanded
                   ? {
-                      scale: [1, 1.2, 1],
-                      rotate: [0, 360],
+                      scale: [1, 1.15, 1],
+                      rotate: [0, 180, 360],
                     }
                   : {}
               }
-              transition={{ duration: 0.5 }}
+              transition={{
+                duration: 0.6,
+                ease: "easeInOut",
+              }}
               className="relative"
             >
               <item.icon
@@ -230,7 +233,10 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             )}
             <motion.div
               animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{
+                duration: 0.4,
+                ease: [0.4, 0, 0.2, 1],
+              }}
             >
               <IoChevronDown
                 className={cn(
@@ -244,10 +250,13 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
           <AnimatePresence>
             {isExpanded && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ height: 0, opacity: 0, y: -10 }}
+                animate={{ height: "auto", opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: -10 }}
+                transition={{
+                  duration: 0.3,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
                 className="overflow-hidden"
               >
                 <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
@@ -292,8 +301,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                                 className="w-1.5 h-1.5 rounded-full bg-blue-600"
                                 transition={{
                                   type: "spring",
-                                  stiffness: 400,
-                                  damping: 30,
+                                  stiffness: 500,
+                                  damping: 35,
+                                  mass: 0.5,
                                 }}
                               />
                             )}
@@ -332,7 +342,16 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       >
         {({ isActive }) => (
           <>
-            <motion.div whileHover={{ scale: 1.1 }} className="relative">
+            <motion.div
+              whileHover={{ scale: 1.15, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 20,
+              }}
+              className="relative"
+            >
               <item.icon
                 className={cn(
                   "h-6 w-6 transition-colors",
@@ -365,7 +384,12 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               <motion.div
                 layoutId="activeIndicator"
                 className="absolute left-0 w-1 h-10 bg-white rounded-r-full"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 35,
+                  mass: 0.5,
+                }}
               />
             )}
           </>
@@ -385,7 +409,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 rotate: [0, 360],
               }}
               transition={{
-                duration: 20,
+                duration: 15,
                 repeat: Infinity,
                 ease: "linear",
               }}
@@ -409,12 +433,13 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
           </div>
           <motion.div
             animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
             }}
             transition={{
-              duration: 2,
+              duration: 3,
               repeat: Infinity,
+              ease: "easeInOut",
             }}
             className="absolute inset-0 rounded-2xl bg-blue-400/30 blur-xl -z-10"
           />
@@ -476,10 +501,15 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       <motion.aside
         initial={false}
         animate={{ x: sidebarOpen ? 0 : "-100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        transition={{
+          type: "spring",
+          damping: 30,
+          stiffness: 300,
+          mass: 0.8,
+        }}
         className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
       >
-        <SidebarContent />
+        <MainSidebar />
       </motion.aside>
 
       {/* Desktop Sidebar */}
