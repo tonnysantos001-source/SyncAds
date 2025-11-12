@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
                     : userData.plan === "FREE"
                       ? "Free"
                       : "Enterprise",
-                isSuperAdmin: userData.isSuperAdmin || false,
+                isSuperAdmin: Boolean(userData.isSuperAdmin),
               },
               isInitialized: true,
             });
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
                       : userData.plan === "FREE"
                         ? "Free"
                         : "Enterprise",
-                  isSuperAdmin: userData.isSuperAdmin || false,
+                  isSuperAdmin: Boolean(userData.isSuperAdmin),
                 },
               });
               console.log(

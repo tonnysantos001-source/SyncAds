@@ -211,7 +211,7 @@ function App() {
 
   // Load user data after authentication (só se não for super admin)
   useEffect(() => {
-    if (isAuthenticated && user && !user.isSuperAdmin) {
+    if (isAuthenticated && user && user.isSuperAdmin !== true) {
       Promise.all([
         loadCampaigns(user.id),
         loadConversations(user.id),
@@ -237,7 +237,8 @@ function App() {
   // Determine where to redirect authenticated users
   // Super Admin vai direto para /super-admin
   // Usuários normais vão para /onboarding (página inicial de checkout)
-  const redirectPath = user?.isSuperAdmin ? "/super-admin" : "/onboarding";
+  const redirectPath =
+    user?.isSuperAdmin === true ? "/super-admin" : "/onboarding";
 
   return (
     <ErrorBoundary>

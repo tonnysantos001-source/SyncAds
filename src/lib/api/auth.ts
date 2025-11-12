@@ -160,26 +160,46 @@ export const authApi = {
       if (userError) throw userError;
 
       // Check if user is Super Admin
-      // Simplificado: apenas tenta query direta com tratamento silencioso de erros
-      let isSuperAdmin = false;
+      // Garantir que sempre retorne boolean
+      let isSuperAdmin: boolean = false;
       try {
         // Query direta com maybeSingle para retornar null se não existir
-        const { data: superAdminCheck } = await supabase
+        const { data: superAdminCheck, error: superAdminError } = await supabase
           .from("SuperAdmin")
           .select("id")
           .eq("id", user.id)
           .maybeSingle();
 
-        isSuperAdmin = !!superAdminCheck;
+        // Garantir que seja boolean
+        isSuperAdmin = Boolean(superAdminCheck);
+
+        console.log("🔐 [AUTH API] Super Admin check:", {
+          userId: user.id,
+          isSuperAdmin,
+          hasData: !!superAdminCheck,
+          error: superAdminError?.message,
+        });
       } catch (e) {
         // Ignora erro silenciosamente - user não é super admin ou tabela não existe
+        console.log(
+          "⚠️ [AUTH API] Super Admin check failed (user is not admin):",
+          e,
+        );
         isSuperAdmin = false;
       }
 
-      return {
+      const result = {
         ...userData,
-        isSuperAdmin,
+        isSuperAdmin: Boolean(isSuperAdmin), // Garantir boolean
       };
+
+      console.log("✅ [AUTH API] getCurrentUser result:", {
+        id: result.id,
+        email: result.email,
+        isSuperAdmin: result.isSuperAdmin,
+      });
+
+      return result;
     } catch (error) {
       console.error("Get current user error:", error);
       return null;
