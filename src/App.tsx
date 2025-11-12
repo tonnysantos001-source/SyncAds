@@ -11,6 +11,7 @@ import { useCampaignsStore } from "./store/campaignsStore";
 import { useChatStore } from "./store/chatStore";
 import { useIntegrationsStore } from "./store/integrationsStore";
 import { useStore } from "./store/useStore";
+import { supabase } from "./lib/supabase";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -208,6 +209,56 @@ function App() {
       clearSentryUser();
     }
   }, [user]);
+
+  // Auto-refresh token periodically
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    console.log("🔄 [APP] Iniciando verificação periódica de sessão");
+
+    const checkAndRefreshSession = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error || !session) {
+          console.error("❌ [APP] Sessão inválida, fazendo logout");
+          await logout();
+          window.location.href = "/login";
+          return;
+        }
+
+        // Verificar se token expira em menos de 10 minutos
+        const expiresAt = session.expires_at || 0;
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = expiresAt - now;
+
+        if (timeUntilExpiry < 600 && timeUntilExpiry > 0) {
+          console.log("🔄 [APP] Token expirando em breve, renovando...");
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error("❌ [APP] Erro ao renovar sessão:", refreshError);
+            await logout();
+            window.location.href = "/login";
+          } else {
+            console.log("✅ [APP] Sessão renovada com sucesso");
+          }
+        }
+      } catch (error) {
+        console.error("❌ [APP] Erro ao verificar sessão:", error);
+      }
+    };
+
+    // Verificar sessão a cada 5 minutos
+    const interval = setInterval(checkAndRefreshSession, 5 * 60 * 1000);
+
+    // Verificar imediatamente ao montar
+    checkAndRefreshSession();
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, logout]);
 
   // Load user data after authentication (só se não for super admin)
   useEffect(() => {

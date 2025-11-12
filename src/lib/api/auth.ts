@@ -142,12 +142,75 @@ export const authApi = {
   // Get current user
   getCurrentUser: async () => {
     try {
+      // Verificar sessão antes de buscar usuário
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("❌ [AUTH API] Erro ao buscar sessão:", sessionError);
+        // Limpar storage se sessão inválida
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
+      if (!session) {
+        console.log("⚠️ [AUTH API] Sem sessão ativa");
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
+      // Verificar se token está próximo de expirar (menos de 5 minutos)
+      const expiresAt = session.expires_at || 0;
+      const now = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = expiresAt - now;
+
+      if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
+        console.log("🔄 [AUTH API] Token próximo de expirar, renovando...");
+        try {
+          const {
+            data: { session: newSession },
+            error: refreshError,
+          } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error(
+              "❌ [AUTH API] Erro ao renovar sessão:",
+              refreshError,
+            );
+            localStorage.removeItem("auth-storage");
+            return null;
+          }
+          if (newSession) {
+            console.log("✅ [AUTH API] Sessão renovada com sucesso");
+          }
+        } catch (refreshErr) {
+          console.error("❌ [AUTH API] Exceção ao renovar sessão:", refreshErr);
+          localStorage.removeItem("auth-storage");
+          return null;
+        }
+      } else if (timeUntilExpiry <= 0) {
+        console.error("❌ [AUTH API] Token expirado");
+        localStorage.removeItem("auth-storage");
+        return null;
+      }
+
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
-
-      if (authError) throw authError;
+      if (authError) {
+        console.error("❌ [AUTH API] Erro ao buscar user:", authError);
+        // Se erro 401, limpar storage
+        if (
+          authError.message?.includes("401") ||
+          authError.message?.includes("JWT")
+        ) {
+          console.log("🧹 [AUTH API] Limpando storage por token inválido");
+          localStorage.removeItem("auth-storage");
+        }
+        throw authError;
+      }
       if (!user) return null;
 
       // Get user data from database

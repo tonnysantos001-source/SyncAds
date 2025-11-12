@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
       // Estado inicial
       isAuthenticated: false,
       user: null,
-      isInitialized: false,
+      isInitialized: false, // Sempre começa como false e será setado para true após verificação
 
       // Init Auth - Verifica autenticação ao carregar app
       initAuth: async () => {
@@ -64,19 +64,29 @@ export const useAuthStore = create<AuthState>()(
                       : "Enterprise",
                 isSuperAdmin: Boolean(userData.isSuperAdmin),
               },
-              isInitialized: true,
+              isInitialized: true, // Sempre true quando há usuário
             });
             console.log(
               "✅ [AUTH] InitAuth OK! isSuperAdmin:",
               userData.isSuperAdmin,
             );
           } else {
-            set({ isInitialized: true });
+            // IMPORTANTE: Sempre setar isInitialized como true, mesmo sem usuário
+            set({
+              isAuthenticated: false,
+              user: null,
+              isInitialized: true,
+            });
             console.log("⚠️ [AUTH] Nenhum usuário autenticado");
           }
         } catch (error) {
           console.error("❌ [AUTH] Init auth error:", error);
-          set({ isInitialized: true });
+          // IMPORTANTE: Mesmo com erro, setar como inicializado
+          set({
+            isAuthenticated: false,
+            user: null,
+            isInitialized: true,
+          });
         }
       },
 
@@ -94,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
             if (userData) {
               set({
                 isAuthenticated: true,
-                isInitialized: true, // ✅ FIX: adicionar isInitialized
+                isInitialized: true, // Garantir que está inicializado após login
                 user: {
                   id: userData.id,
                   name: userData.name,
@@ -114,10 +124,18 @@ export const useAuthStore = create<AuthState>()(
                 "✅ [AUTH] Login completo! isSuperAdmin:",
                 userData.isSuperAdmin,
               );
+            } else {
+              // Se não conseguiu buscar userData, logar erro mas manter inicializado
+              console.error(
+                "❌ [AUTH] Login OK mas não conseguiu buscar userData",
+              );
+              set({ isInitialized: true });
             }
           }
         } catch (error) {
           console.error("❌ [AUTH] Login error:", error);
+          // Garantir que está inicializado mesmo com erro de login
+          set({ isInitialized: true });
           throw error;
         }
       },
@@ -235,7 +253,22 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
+        isInitialized: state.isInitialized, // Persistir também isInitialized
       }),
+      // Garantir que ao hidratar, isInitialized seja sempre boolean
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Se isInitialized não estiver definido, setar como false
+          if (typeof state.isInitialized !== "boolean") {
+            state.isInitialized = false;
+          }
+          console.log("🔄 [AUTH] Storage hidratado:", {
+            isAuthenticated: state.isAuthenticated,
+            hasUser: !!state.user,
+            isInitialized: state.isInitialized,
+          });
+        }
+      },
     },
   ),
 );
