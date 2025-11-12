@@ -35,7 +35,7 @@ export const useIntegrationsStore = create<IntegrationsState>((set, get) => ({
         .select("*")
         .eq("userId", userId)
         .eq("isActive", true)
-        .single();
+        .maybeSingle();
 
       // Se tem Shopify ativo, adicionar à lista
       const allIntegrations = [...(data || [])];
