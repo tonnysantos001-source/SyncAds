@@ -509,7 +509,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         }}
         className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
       >
-        <MainSidebar />
+        <SidebarContent />
       </motion.aside>
 
       {/* Desktop Sidebar */}
