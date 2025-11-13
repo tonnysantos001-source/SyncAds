@@ -56,6 +56,11 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Força modo escuro permanentemente
+  React.useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       console.log("🔐 [LOGIN] Iniciando login...");
@@ -121,51 +126,51 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
-      {/* Background gradients - mesmo da landing */}
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 -z-10" />
-      <div className="fixed top-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -z-10" />
-      <div className="fixed bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl -z-10" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 bg-gray-950">
+      {/* Background gradients - modo escuro permanente */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-purple-900/40 -z-10" />
+      <div className="fixed top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
+      <div className="fixed bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
 
       {/* Botão Voltar */}
       <Link
         to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors bg-gray-800/50 backdrop-blur-xl px-4 py-2 rounded-lg border border-gray-700/50 hover:border-gray-600"
       >
         <ArrowLeft className="h-5 w-5" />
         <span className="text-sm font-medium">Voltar</span>
       </Link>
 
-      <Card className="w-full max-w-md relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-2 border-gray-200/50 dark:border-gray-800/50 shadow-2xl">
+      <Card className="w-full max-w-md relative bg-gray-900/95 backdrop-blur-xl border-2 border-gray-800/50 shadow-2xl shadow-blue-500/20">
         {/* Gradient top border */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse" />
 
         <CardHeader className="text-center pt-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl blur-xl opacity-50" />
-              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl blur-xl opacity-50 animate-pulse" />
+              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/50">
                 <span className="text-white font-black text-3xl">S</span>
-                <div className="absolute -top-2 -right-2 h-3 w-3 bg-yellow-400 rounded-full animate-pulse" />
+                <div className="absolute -top-2 -right-2 h-3 w-3 bg-yellow-400 rounded-full animate-pulse shadow-lg shadow-yellow-400/50" />
               </div>
             </div>
           </div>
           <div className="mb-6">
             <h1
-              className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1"
+              className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-1"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
               SyncAds
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider font-semibold">
+            <p className="text-xs text-gray-400 tracking-wider font-semibold">
               MARKETING AI
             </p>
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+          <CardTitle className="text-2xl font-bold text-white drop-shadow-lg">
             Bem-vindo de volta!
           </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">
+          <CardDescription className="text-gray-400">
             Acesse sua conta para continuar
           </CardDescription>
         </CardHeader>
@@ -173,26 +178,29 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-gray-300">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="nome@exemplo.com"
                   {...register("email")}
                   disabled={isSubmitting}
+                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {errors.email.message}
-                  </p>
+                  <p className="text-sm text-red-400">{errors.email.message}</p>
                 )}
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password" className="text-gray-300">
+                    Senha
+                  </Label>
                   <Link
                     to="/forgot-password"
-                    className="ml-auto inline-block text-sm underline"
+                    className="ml-auto inline-block text-sm underline text-blue-400 hover:text-blue-300"
                   >
                     Esqueceu sua senha?
                   </Link>
@@ -202,41 +210,43 @@ export default function LoginPage() {
                   type="password"
                   {...register("password")}
                   disabled={isSubmitting}
+                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
                 />
                 {errors.password && (
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                  <p className="text-sm text-red-400">
                     {errors.password.message}
                   </p>
                 )}
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02]"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/50 transition-all hover:scale-[1.02] relative overflow-hidden group"
                 disabled={isSubmitting}
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {isSubmitting ? (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 relative z-10">
                     <Sparkles className="h-4 w-4 animate-spin" />
                     Entrando...
                   </span>
                 ) : (
-                  "Entrar"
+                  <span className="relative z-10">Entrar</span>
                 )}
               </Button>
             </div>
           </form>
-          <Separator className="my-6" />
+          <Separator className="my-6 bg-gray-800" />
           <Button
             variant="outline"
-            className="w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+            className="w-full hover:bg-gray-800 transition-all border-gray-700 bg-gray-800/50 text-white hover:border-gray-600"
           >
             <GoogleIcon className="mr-2 h-4 w-4" /> Continuar com Google
           </Button>
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-sm text-gray-400">
             Não tem uma conta?{" "}
             <Link
               to="/register"
-              className="font-semibold text-blue-600 hover:text-purple-600 transition-colors"
+              className="font-semibold text-blue-400 hover:text-purple-400 transition-colors"
             >
               Criar cadastro
             </Link>

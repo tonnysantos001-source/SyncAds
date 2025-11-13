@@ -28,18 +28,19 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Background gradients */}
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 -z-10" />
-      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-3xl -z-10" />
-      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-3xl -z-10" />
+    <div className="flex flex-col min-h-screen bg-gray-950">
+      {/* Background gradients - Modo escuro permanente */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-purple-900/40 -z-10" />
+      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-b border-gray-200/50 shadow-sm">
+      <header className="sticky top-0 z-50 bg-gray-950/95 backdrop-blur-2xl border-b border-gray-800/50 shadow-2xl">
         {/* Barra Superior - Destaque Checkout Grátis */}
-        <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 py-2">
-          <div className="container mx-auto px-4 sm:px-6">
-            <p className="text-center text-white text-sm sm:text-base font-bold flex items-center justify-center gap-2">
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 py-2.5 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="container mx-auto px-4 sm:px-6 relative">
+            <p className="text-center text-white text-sm sm:text-base font-bold flex items-center justify-center gap-2 animate-pulse">
               <CreditCard className="h-4 w-4" />
               <span>🎉 CHECKOUT DE PAGAMENTO 100% GRÁTIS - SEM TAXAS!</span>
               <Sparkles className="h-4 w-4" />
@@ -52,15 +53,23 @@ const LandingPage = () => {
           <div className="flex justify-between items-center">
             <Logo />
             <nav className="flex items-center gap-3">
-              <Button variant="outline" size="sm" asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="border-gray-700 bg-gray-800/50 text-white hover:bg-gray-700 hover:border-gray-600"
+              >
                 <Link to="/login">Entrar</Link>
               </Button>
               <Button
                 size="sm"
                 asChild
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/50 transform hover:scale-105 transition-all"
               >
-                <Link to="/register">Criar Cadastro</Link>
+                <Link to="/register" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Criar Cadastro
+                </Link>
               </Button>
             </nav>
           </div>
@@ -73,9 +82,9 @@ const LandingPage = () => {
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-4xl mx-auto text-center">
               {/* Badge de urgência */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 mb-8 animate-pulse">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 mb-8 animate-pulse backdrop-blur-xl">
+                <Sparkles className="h-4 w-4 text-orange-400" />
+                <span className="text-sm font-semibold text-orange-300">
                   ⚠️ Pare de Jogar Dinheiro Fora em "Gurus"!
                 </span>
               </div>
@@ -85,32 +94,32 @@ const LandingPage = () => {
                 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6"
                 style={{ fontFamily: "Poppins, sans-serif" }}
               >
-                <span className="block text-gray-900 dark:text-white">
+                <span className="block text-white drop-shadow-lg">
                   Chega de Pagar
                 </span>
-                <span className="block bg-gradient-to-r from-red-600 via-orange-500 to-red-600 bg-clip-text text-transparent animate-gradient">
+                <span className="block bg-gradient-to-r from-red-500 via-orange-400 to-red-500 bg-clip-text text-transparent animate-gradient drop-shadow-2xl">
                   R$ 3.000+ em Mentorias
                 </span>
-                <span className="block text-gray-900 dark:text-white mt-2">
+                <span className="block text-white mt-2 drop-shadow-lg">
                   que{" "}
                   <span className="relative inline-block">
                     <span>Não Funcionam</span>
-                    <X className="absolute -right-8 top-0 h-12 w-12 text-red-500 animate-bounce" />
+                    <X className="absolute -right-8 top-0 h-12 w-12 text-red-400 animate-bounce drop-shadow-xl" />
                   </span>
                 </span>
               </h1>
 
-              <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl sm:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
                 Nossa{" "}
-                <span className="font-bold text-blue-600">
+                <span className="font-bold text-blue-400">
                   Inteligência Artificial
                 </span>{" "}
                 faz{" "}
-                <span className="underline decoration-purple-500 decoration-wavy">
+                <span className="underline decoration-purple-400 decoration-wavy decoration-2">
                   TODO o trabalho
                 </span>{" "}
                 que os "gurus" cobram R$ 5.000+ para ensinar...
-                <span className="block mt-2 text-2xl font-bold text-green-600">
+                <span className="block mt-2 text-2xl font-bold text-green-400 animate-pulse">
                   Mas por uma fração do preço!
                 </span>
               </p>
@@ -120,23 +129,27 @@ const LandingPage = () => {
                 <Button
                   size="lg"
                   asChild
-                  className="text-lg px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all"
+                  className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl shadow-blue-500/80 transform hover:scale-110 transition-all relative overflow-hidden group"
                 >
-                  <Link to="/register" className="flex items-center gap-2">
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     🚀 CRIAR MINHA CONTA AGORA
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
               </div>
 
               {/* Social Proof */}
               <div className="flex items-center justify-center gap-8 flex-wrap">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-xl rounded-2xl p-4 border border-gray-700/50">
                   <div className="flex -space-x-2">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
-                        className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white font-bold text-sm"
+                        className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 border-2 border-gray-800 flex items-center justify-center text-white font-bold text-sm shadow-lg"
                       >
                         {String.fromCharCode(64 + i)}
                       </div>
@@ -151,7 +164,7 @@ const LandingPage = () => {
                         />
                       ))}
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-300 font-medium">
                       2.847+ profissionais economizando
                     </p>
                   </div>
@@ -183,9 +196,9 @@ const LandingPage = () => {
                   ].map((company, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all"
+                      className="flex items-center justify-center p-4 bg-gray-800/50 backdrop-blur-xl rounded-lg border border-gray-700/50 hover:border-blue-500 hover:bg-gray-700/50 transition-all transform hover:scale-105"
                     >
-                      <span className="text-lg font-black text-gray-700 dark:text-gray-300">
+                      <span className="text-lg font-black text-gray-200">
                         {company.abbr}
                       </span>
                     </div>
@@ -197,11 +210,11 @@ const LandingPage = () => {
         </section>
 
         {/* Section - Problema (DOR) */}
-        <section className="py-20 bg-gradient-to-b from-red-50 to-white dark:from-red-950/20 dark:to-gray-900">
-          <div className="container mx-auto px-4 sm:px-6">
+        <section className="py-20 bg-gradient-to-b from-red-950/20 to-gray-900/50 relative">
+          <div className="container mx-auto px-4 sm:px-6 relative z-10">
             <div className="max-w-4xl mx-auto">
               <h2
-                className="text-3xl sm:text-5xl font-black text-center mb-12"
+                className="text-3xl sm:text-5xl font-black text-center mb-12 text-white drop-shadow-2xl"
                 style={{ fontFamily: "Poppins, sans-serif" }}
               >
                 ❌ Você Já Passou Por Isso?
@@ -238,21 +251,21 @@ const LandingPage = () => {
                     key={i}
                     className={`p-6 rounded-2xl border-2 ${
                       item.highlight
-                        ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800"
-                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                    } shadow-lg transform hover:scale-105 transition-all`}
+                        ? "bg-red-950/30 backdrop-blur-xl border-red-800/50"
+                        : "bg-gray-800/50 backdrop-blur-xl border-gray-700/50"
+                    } shadow-2xl transform hover:scale-105 transition-all hover:shadow-red-500/20`}
                   >
-                    <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <p className="text-lg font-semibold text-gray-100">
                       {item.text}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-12 p-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-3xl border-2 border-yellow-400 dark:border-yellow-600">
-                <p className="text-2xl font-bold text-center text-gray-900 dark:text-white">
+              <div className="mt-12 p-8 bg-gradient-to-r from-yellow-950/30 to-orange-950/30 backdrop-blur-xl rounded-3xl border-2 border-yellow-600/50 shadow-2xl shadow-yellow-500/20">
+                <p className="text-2xl font-bold text-center text-white">
                   🔥 Se você se identificou com 3+ situações acima...
-                  <span className="block mt-2 text-3xl text-orange-600">
+                  <span className="block mt-2 text-3xl text-orange-400 animate-pulse">
                     É HORA DE MUDAR!
                   </span>
                 </p>
@@ -262,23 +275,23 @@ const LandingPage = () => {
         </section>
 
         {/* Section - Solução (TRANSFORMAÇÃO) */}
-        <section className="py-20 bg-gradient-to-b from-white to-blue-50 dark:from-gray-900 dark:to-blue-950/20">
-          <div className="container mx-auto px-4 sm:px-6">
+        <section className="py-20 bg-gradient-to-b from-gray-900/50 to-blue-950/20 relative">
+          <div className="container mx-auto px-4 sm:px-6 relative z-10">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-16">
                 <h2
-                  className="text-3xl sm:text-5xl font-black mb-6"
+                  className="text-3xl sm:text-5xl font-black mb-6 text-white drop-shadow-2xl"
                   style={{ fontFamily: "Poppins, sans-serif" }}
                 >
                   ✨ Imagine Ter uma{" "}
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                     IA Especialista
                   </span>{" "}
                   Trabalhando 24/7 Pra Você
                 </h2>
-                <p className="text-xl text-gray-600 dark:text-gray-300">
+                <p className="text-xl text-gray-300">
                   Enquanto os "gurus" cobram R$ 5.000+ para te ensinar...{" "}
-                  <span className="font-bold text-green-600">
+                  <span className="font-bold text-green-400">
                     Nossa IA FAZ tudo por você!
                   </span>
                 </p>
@@ -310,16 +323,16 @@ const LandingPage = () => {
                 ].map((feature, i) => (
                   <div key={i} className="group relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all" />
-                    <div className="relative p-8 bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-2">
+                    <div className="relative p-8 bg-gray-800/50 backdrop-blur-xl rounded-3xl border-2 border-gray-700/50 shadow-2xl hover:shadow-blue-500/20 transition-all transform hover:-translate-y-2 hover:border-blue-500/50">
                       <div
-                        className={`h-16 w-16 rounded-2xl bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 flex items-center justify-center mb-6 shadow-lg shadow-${feature.color}-500/50`}
+                        className={`h-16 w-16 rounded-2xl bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 flex items-center justify-center mb-6 shadow-lg shadow-${feature.color}-500/50 group-hover:scale-110 transition-transform`}
                       >
                         <feature.icon className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                      <h3 className="text-2xl font-bold mb-4 text-white">
                         {feature.title}
                       </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
+                      <p className="text-gray-300 text-lg leading-relaxed">
                         {feature.description}
                       </p>
                     </div>
@@ -875,37 +888,37 @@ const LandingPage = () => {
         <section className="py-20 bg-gradient-to-b from-white to-purple-50 dark:from-gray-900 dark:to-purple-950/20">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl shadow-green-500/50 mb-8">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl shadow-green-500/80 mb-8 animate-pulse">
                 <Shield className="h-12 w-12 text-white" />
               </div>
 
               <h2
-                className="text-3xl sm:text-5xl font-black mb-6"
+                className="text-3xl sm:text-5xl font-black mb-6 text-white drop-shadow-2xl"
                 style={{ fontFamily: "Poppins, sans-serif" }}
               >
-                🛡️ Garantia <span className="text-green-600">100%</span> Sem
+                🛡️ Garantia <span className="text-green-400">100%</span> Sem
                 Riscos
               </h2>
 
-              <p className="text-2xl text-gray-700 dark:text-gray-200 mb-8 leading-relaxed">
+              <p className="text-2xl text-gray-200 mb-8 leading-relaxed">
                 Teste o SyncAds por{" "}
-                <span className="font-black text-blue-600">14 dias GRÁTIS</span>
+                <span className="font-black text-blue-400">14 dias GRÁTIS</span>
                 .<br />
                 Se não economizar pelo menos{" "}
-                <span className="font-black text-green-600">R$ 1.000</span> em
+                <span className="font-black text-green-400">R$ 1.000</span> em
                 anúncios...
                 <br />
-                <span className="text-3xl font-black block mt-4 text-purple-600">
+                <span className="text-3xl font-black block mt-4 text-purple-400 animate-pulse">
                   Devolvemos 100% + R$ 500 de bônus!
                 </span>
               </p>
 
-              <div className="p-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-3xl border-2 border-yellow-400 mb-12">
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <div className="p-8 bg-gradient-to-r from-yellow-950/30 to-orange-950/30 backdrop-blur-xl rounded-3xl border-2 border-yellow-600/50 mb-12 shadow-2xl shadow-yellow-500/20">
+                <p className="text-xl font-bold text-white">
                   🔥 Isso mesmo! Se você não lucrar...{" "}
-                  <span className="text-green-600">NÓS PAGAMOS VOCÊ!</span>
+                  <span className="text-green-400">NÓS PAGAMOS VOCÊ!</span>
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                <p className="text-sm text-gray-300 mt-2">
                   (Porque temos CERTEZA que nossa IA vai transformar seus
                   resultados)
                 </p>
@@ -914,7 +927,7 @@ const LandingPage = () => {
               <Button
                 size="lg"
                 asChild
-                className="text-xl px-12 py-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-2xl shadow-green-500/50 transform hover:scale-110 transition-all"
+                className="text-xl px-12 py-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-2xl shadow-green-500/80 transform hover:scale-110 transition-all animate-pulse hover:animate-none"
               >
                 <Link to="/register" className="flex items-center gap-3">
                   <Sparkles className="h-6 w-6" />
@@ -923,7 +936,7 @@ const LandingPage = () => {
                 </Link>
               </Button>
 
-              <p className="mt-6 text-gray-500 text-sm">
+              <p className="mt-6 text-gray-400 text-sm font-medium">
                 ✅ Sem cartão | ✅ Sem pegadinhas | ✅ Cancele quando quiser
               </p>
             </div>
@@ -933,8 +946,8 @@ const LandingPage = () => {
         {/* Section - Urgência (GATILHO DE ESCASSEZ) */}
         <section className="py-20 bg-gradient-to-b from-purple-50 to-red-50 dark:from-purple-950/20 dark:to-red-950/20">
           <div className="container mx-auto px-4 sm:px-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="p-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-3xl shadow-2xl text-center text-white">
+            <div className="max-w-4xl mx-auto relative z-10">
+              <div className="p-12 bg-gradient-to-r from-red-700/50 to-orange-700/50 backdrop-blur-xl rounded-3xl border-2 border-red-600/50 shadow-2xl shadow-red-500/20 text-center text-white">
                 <h2
                   className="text-4xl sm:text-5xl font-black mb-6"
                   style={{ fontFamily: "Poppins, sans-serif" }}

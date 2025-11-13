@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -60,6 +60,11 @@ export default function RegisterPage() {
   const { register: registerUser } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Força modo escuro permanentemente
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
 
   // Form Step 1
   const form1 = useForm<Step1Data>({
@@ -183,25 +188,26 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 py-12">
-      {/* Animated Background */}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 py-12 bg-gray-950">
+      {/* Animated Background - Modo escuro permanente */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-purple-900/40 -z-10" />
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <motion.div
           animate={{
             scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
+            opacity: [0.1, 0.15, 0.1],
           }}
           transition={{
             duration: 8,
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-3xl"
+          className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{
             scale: [1, 1.3, 1],
-            opacity: [0.3, 0.5, 0.3],
+            opacity: [0.1, 0.15, 0.1],
           }}
           transition={{
             duration: 10,
@@ -209,9 +215,8 @@ export default function RegisterPage() {
             ease: "easeInOut",
             delay: 1,
           }}
-          className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl"
+          className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
 
       {/* Botão Voltar */}
@@ -223,9 +228,9 @@ export default function RegisterPage() {
         <span className="text-sm font-medium">Voltar</span>
       </Link>
 
-      <Card className="w-full max-w-2xl relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 shadow-2xl z-10">
+      <Card className="w-full max-w-2xl relative bg-gray-900/95 backdrop-blur-xl border-2 border-gray-800/50 shadow-2xl shadow-blue-500/20 z-10">
         {/* Gradient top border */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-pulse" />
 
         <CardHeader className="text-center pt-8 pb-6">
           {/* Logo */}
@@ -236,17 +241,17 @@ export default function RegisterPage() {
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
               className="relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-50" />
-              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-50 animate-pulse" />
+              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/50">
                 <span className="text-white font-black text-3xl">S</span>
               </div>
             </motion.div>
           </div>
 
-          <CardTitle className="text-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <CardTitle className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
             Criar Conta
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-base text-gray-300">
             {currentStep === 1
               ? "Preencha seus dados pessoais"
               : "Agora, informe seu endereço"}
@@ -258,18 +263,16 @@ export default function RegisterPage() {
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                   currentStep >= 1
-                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-500"
+                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
+                    : "bg-gray-800 text-gray-500"
                 }`}
               >
                 {currentStep > 1 ? <CheckCircle2 className="h-5 w-5" /> : "1"}
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Dados
-              </span>
+              <span className="text-sm font-medium text-gray-300">Dados</span>
             </div>
 
-            <div className="w-16 h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="w-16 h-1 bg-gray-800 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
                 initial={{ width: "0%" }}
@@ -282,13 +285,13 @@ export default function RegisterPage() {
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                   currentStep >= 2
-                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-500"
+                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
+                    : "bg-gray-800 text-gray-500"
                 }`}
               >
                 2
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-gray-300">
                 Endereço
               </span>
             </div>
