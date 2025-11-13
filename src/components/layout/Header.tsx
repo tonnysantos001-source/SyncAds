@@ -158,15 +158,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
     }
   };
 
-  const handleCreateNewCheckout = () => {
-    navigate("/checkouts");
-  };
-
-  const handleSelectCheckout = (checkout: Checkout) => {
-    setCurrentCheckout(checkout);
-    window.open(`/app/workspace/${checkout.id}`, "_blank");
-  };
-
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
