@@ -4,6 +4,7 @@ import {
   Route,
   Routes,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Toaster } from "./components/ui/toaster";
 import { useAuthStore } from "./store/authStore";

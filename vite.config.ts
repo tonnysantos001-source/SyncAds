@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  base: "/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -94,6 +95,8 @@ export default defineConfig({
   // Otimizações de preview
   preview: {
     port: 4173,
+    strictPort: false,
+    host: true,
   },
   // Otimizações de dependências
   optimizeDeps: {

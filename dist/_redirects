@@ -1,1 +1,23 @@
-/*    /index.html   200
+# SPA Fallback - Todas as rotas vão para index.html
+# Exceto arquivos estáticos
+
+# API routes (se houver)
+/api/*  /api/:splat  200
+
+# Arquivos estáticos
+/assets/*  /assets/:splat  200
+/favicon.svg  /favicon.svg  200
+/logo.svg  /logo.svg  200
+*.js  /:splat  200
+*.css  /:splat  200
+*.png  /:splat  200
+*.jpg  /:splat  200
+*.svg  /:splat  200
+*.ico  /:splat  200
+*.json  /:splat  200
+*.woff  /:splat  200
+*.woff2  /:splat  200
+*.ttf  /:splat  200
+
+# Todas as outras rotas vão para index.html (SPA)
+/*  /index.html  200
