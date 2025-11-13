@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,11 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStoreV2();
+
+  // Força modo escuro sempre
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -199,7 +204,10 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           <span className="font-medium text-sm flex-1 text-left">{item.label}</span>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{
+              duration: 0.3,
+              ease: [0.4, 0, 0.2, 1]
+            }}
           >
             <svg
               className="w-4 h-4"
@@ -217,14 +225,27 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           </motion.div>
         </button>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {isExpanded && item.submenu && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+              animate={{
+                height: "auto",
+                opacity: 1,
+                transition: {
+                  height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+                  opacity: { duration: 0.25, delay: 0.1 }
+                }
+              }}
+              exit={{
+                height: 0,
+                opacity: 0,
+                transition: {
+                  height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+                  opacity: { duration: 0.15 }
+                }
+              }}
+              className="overflow-hidden will-change-[height,opacity]"
             >
               <div className="mt-1 space-y-1 pl-4">
                 {item.submenu.map((subItem) => {
@@ -262,12 +283,13 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       <SyncAdsWatermarkBg watermarkOpacity={0.08} variant="default" />
 
       {/* Mobile Overlay */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setSidebarOpen(false)}
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
           />
@@ -277,14 +299,29 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ x: sidebarOpen ? 0 : "-100%" }}
+        animate={{
+          x: sidebarOpen ? 0 : "-100%",
+          opacity: sidebarOpen ? 1 : 0.95
+        }}
         transition={{
-          type: "spring",
-          damping: 30,
-          stiffness: 300,
+          type: "tween",
+          duration: 0.3,
+          ease: [0.4, 0, 0.2, 1]
         }}
         className="fixed md:static inset-y-0 left-0 z-50 w-64 bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col shadow-2xl"
       >
+</text>
+
+<old_text line=251>
+        <AnimatePresence>
+          {isExpanded && item.submenu && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
         {/* Logo */}
         <div className="p-6 border-b border-gray-700/50">
           <div className="flex items-center justify-between">
@@ -404,13 +441,16 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       </div>
 
       {/* Chat IA Flutuante */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {chatOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              duration: 0.25,
+              ease: [0.4, 0, 0.2, 1]
+            }}
             className="fixed bottom-24 right-6 w-96 h-[600px] z-50 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden"
           >
             {/* Chat Header */}

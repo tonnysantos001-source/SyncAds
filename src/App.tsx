@@ -188,6 +188,22 @@ function App() {
     enabled: isAuthenticated,
   });
 
+  // Força modo escuro permanentemente
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    // Remove a classe se alguém tentar remover
+    const observer = new MutationObserver(() => {
+      if (!document.documentElement.classList.contains("dark")) {
+        document.documentElement.classList.add("dark");
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // Init Sentry on mount
   useEffect(() => {
     initSentry();

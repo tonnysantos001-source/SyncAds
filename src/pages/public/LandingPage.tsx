@@ -1,11 +1,12 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { 
-  TrendingUp, 
-  DollarSign, 
-  Zap, 
-  Shield, 
-  CheckCircle2, 
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  TrendingUp,
+  DollarSign,
+  Zap,
+  Shield,
+  CheckCircle2,
   ArrowRight,
   Star,
   Sparkles,
@@ -16,11 +17,16 @@ import {
   Check,
   CreditCard,
   Crown,
-  Rocket
-} from 'lucide-react';
-import Logo from '@/components/Logo';
+  Rocket,
+} from "lucide-react";
+import Logo from "@/components/Logo";
 
 const LandingPage = () => {
+  // Força modo escuro permanentemente
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Background gradients */}
@@ -40,7 +46,7 @@ const LandingPage = () => {
             </p>
           </div>
         </div>
-        
+
         {/* Menu Principal */}
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
@@ -49,7 +55,11 @@ const LandingPage = () => {
               <Button variant="outline" size="sm" asChild>
                 <Link to="/login">Entrar</Link>
               </Button>
-              <Button size="sm" asChild className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30">
+              <Button
+                size="sm"
+                asChild
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30"
+              >
                 <Link to="/register">Criar Cadastro</Link>
               </Button>
             </nav>
@@ -71,7 +81,10 @@ const LandingPage = () => {
               </div>
 
               {/* Headline com gatilho mental */}
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              <h1
+                className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
                 <span className="block text-gray-900 dark:text-white">
                   Chega de Pagar
                 </span>
@@ -79,7 +92,8 @@ const LandingPage = () => {
                   R$ 3.000+ em Mentorias
                 </span>
                 <span className="block text-gray-900 dark:text-white mt-2">
-                  que <span className="relative inline-block">
+                  que{" "}
+                  <span className="relative inline-block">
                     <span>Não Funcionam</span>
                     <X className="absolute -right-8 top-0 h-12 w-12 text-red-500 animate-bounce" />
                   </span>
@@ -87,13 +101,27 @@ const LandingPage = () => {
               </h1>
 
               <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Nossa <span className="font-bold text-blue-600">Inteligência Artificial</span> faz <span className="underline decoration-purple-500 decoration-wavy">TODO o trabalho</span> que os "gurus" cobram R$ 5.000+ para ensinar... 
-                <span className="block mt-2 text-2xl font-bold text-green-600">Mas por uma fração do preço!</span>
+                Nossa{" "}
+                <span className="font-bold text-blue-600">
+                  Inteligência Artificial
+                </span>{" "}
+                faz{" "}
+                <span className="underline decoration-purple-500 decoration-wavy">
+                  TODO o trabalho
+                </span>{" "}
+                que os "gurus" cobram R$ 5.000+ para ensinar...
+                <span className="block mt-2 text-2xl font-bold text-green-600">
+                  Mas por uma fração do preço!
+                </span>
               </p>
 
               {/* CTA Principal */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                <Button size="lg" asChild className="text-lg px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all">
+                <Button
+                  size="lg"
+                  asChild
+                  className="text-lg px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all"
+                >
                   <Link to="/register" className="flex items-center gap-2">
                     🚀 CRIAR MINHA CONTA AGORA
                     <ArrowRight className="h-5 w-5" />
@@ -105,19 +133,27 @@ const LandingPage = () => {
               <div className="flex items-center justify-center gap-8 flex-wrap">
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-2">
-                    {[1,2,3,4,5].map((i) => (
-                      <div key={i} className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white font-bold text-sm">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white font-bold text-sm"
+                      >
                         {String.fromCharCode(64 + i)}
                       </div>
                     ))}
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-1">
-                      {[1,2,3,4,5].map((i) => (
-                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          className="h-4 w-4 fill-yellow-400 text-yellow-400"
+                        />
                       ))}
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">2.847+ profissionais economizando</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      2.847+ profissionais economizando
+                    </p>
                   </div>
                 </div>
               </div>
@@ -129,23 +165,26 @@ const LandingPage = () => {
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 items-center opacity-60 grayscale hover:grayscale-0 transition-all">
                   {[
-                    { name: 'Magazine Luiza', abbr: 'MAGALU' },
-                    { name: 'Nubank', abbr: 'NU' },
-                    { name: 'Natura', abbr: 'NATURA' },
-                    { name: 'Ambev', abbr: 'AMBEV' },
-                    { name: 'Itaú', abbr: 'ITAÚ' },
-                    { name: 'Bradesco', abbr: 'BRADESCO' },
-                    { name: 'Petrobras', abbr: 'PETROBRAS' },
-                    { name: 'Vale', abbr: 'VALE' },
-                    { name: 'B3', abbr: 'B3' },
-                    { name: 'Embraer', abbr: 'EMBRAER' },
-                    { name: 'Globo', abbr: 'GLOBO' },
-                    { name: 'Record', abbr: 'RECORD' },
-                    { name: 'Casas Bahia', abbr: 'C.BAHIA' },
-                    { name: 'Renner', abbr: 'RENNER' },
-                    { name: 'Localiza', abbr: 'LOCALIZA' }
+                    { name: "Magazine Luiza", abbr: "MAGALU" },
+                    { name: "Nubank", abbr: "NU" },
+                    { name: "Natura", abbr: "NATURA" },
+                    { name: "Ambev", abbr: "AMBEV" },
+                    { name: "Itaú", abbr: "ITAÚ" },
+                    { name: "Bradesco", abbr: "BRADESCO" },
+                    { name: "Petrobras", abbr: "PETROBRAS" },
+                    { name: "Vale", abbr: "VALE" },
+                    { name: "B3", abbr: "B3" },
+                    { name: "Embraer", abbr: "EMBRAER" },
+                    { name: "Globo", abbr: "GLOBO" },
+                    { name: "Record", abbr: "RECORD" },
+                    { name: "Casas Bahia", abbr: "C.BAHIA" },
+                    { name: "Renner", abbr: "RENNER" },
+                    { name: "Localiza", abbr: "LOCALIZA" },
                   ].map((company, i) => (
-                    <div key={i} className="flex items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all">
+                    <div
+                      key={i}
+                      className="flex items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all"
+                    >
                       <span className="text-lg font-black text-gray-700 dark:text-gray-300">
                         {company.abbr}
                       </span>
@@ -161,24 +200,48 @@ const LandingPage = () => {
         <section className="py-20 bg-gradient-to-b from-red-50 to-white dark:from-red-950/20 dark:to-gray-900">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl sm:text-5xl font-black text-center mb-12" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              <h2
+                className="text-3xl sm:text-5xl font-black text-center mb-12"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
                 ❌ Você Já Passou Por Isso?
               </h2>
-              
+
               <div className="grid sm:grid-cols-2 gap-6">
                 {[
-                  { text: '💸 Gastou R$ 3.000+ em curso de "guru" que só ensina o básico do Google Ads', highlight: true },
-                  { text: '😰 Perdeu HORAS tentando entender métricas confusas (CTR, CPA, ROAS...)', highlight: true },
-                  { text: '🤯 Criou 10 campanhas diferentes e NENHUMA deu resultado', highlight: true },
-                  { text: '⏰ Trabalha até de madrugada ajustando lances e segmentações manualmente', highlight: true },
-                  { text: '📉 Vê seu dinheiro sendo queimado em anúncios que não convertem', highlight: true },
-                  { text: '🙏 Reza para a campanha melhorar "magicamente" amanhã', highlight: true },
+                  {
+                    text: '💸 Gastou R$ 3.000+ em curso de "guru" que só ensina o básico do Google Ads',
+                    highlight: true,
+                  },
+                  {
+                    text: "😰 Perdeu HORAS tentando entender métricas confusas (CTR, CPA, ROAS...)",
+                    highlight: true,
+                  },
+                  {
+                    text: "🤯 Criou 10 campanhas diferentes e NENHUMA deu resultado",
+                    highlight: true,
+                  },
+                  {
+                    text: "⏰ Trabalha até de madrugada ajustando lances e segmentações manualmente",
+                    highlight: true,
+                  },
+                  {
+                    text: "📉 Vê seu dinheiro sendo queimado em anúncios que não convertem",
+                    highlight: true,
+                  },
+                  {
+                    text: '🙏 Reza para a campanha melhorar "magicamente" amanhã',
+                    highlight: true,
+                  },
                 ].map((item, i) => (
-                  <div key={i} className={`p-6 rounded-2xl border-2 ${
-                    item.highlight 
-                      ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800' 
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                  } shadow-lg transform hover:scale-105 transition-all`}>
+                  <div
+                    key={i}
+                    className={`p-6 rounded-2xl border-2 ${
+                      item.highlight
+                        ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800"
+                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                    } shadow-lg transform hover:scale-105 transition-all`}
+                  >
                     <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                       {item.text}
                     </p>
@@ -189,7 +252,9 @@ const LandingPage = () => {
               <div className="mt-12 p-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-3xl border-2 border-yellow-400 dark:border-yellow-600">
                 <p className="text-2xl font-bold text-center text-gray-900 dark:text-white">
                   🔥 Se você se identificou com 3+ situações acima...
-                  <span className="block mt-2 text-3xl text-orange-600">É HORA DE MUDAR!</span>
+                  <span className="block mt-2 text-3xl text-orange-600">
+                    É HORA DE MUDAR!
+                  </span>
                 </p>
               </div>
             </div>
@@ -201,11 +266,21 @@ const LandingPage = () => {
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-16">
-                <h2 className="text-3xl sm:text-5xl font-black mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  ✨ Imagine Ter uma <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">IA Especialista</span> Trabalhando 24/7 Pra Você
+                <h2
+                  className="text-3xl sm:text-5xl font-black mb-6"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
+                  ✨ Imagine Ter uma{" "}
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    IA Especialista
+                  </span>{" "}
+                  Trabalhando 24/7 Pra Você
                 </h2>
                 <p className="text-xl text-gray-600 dark:text-gray-300">
-                  Enquanto os "gurus" cobram R$ 5.000+ para te ensinar... <span className="font-bold text-green-600">Nossa IA FAZ tudo por você!</span>
+                  Enquanto os "gurus" cobram R$ 5.000+ para te ensinar...{" "}
+                  <span className="font-bold text-green-600">
+                    Nossa IA FAZ tudo por você!
+                  </span>
                 </p>
               </div>
 
@@ -213,31 +288,40 @@ const LandingPage = () => {
                 {[
                   {
                     icon: Bot,
-                    title: 'Cria Campanhas Profissionais',
-                    description: 'IA analisa seu negócio e cria campanhas otimizadas em segundos. Sem precisar estudar por meses!',
-                    color: 'blue'
+                    title: "Cria Campanhas Profissionais",
+                    description:
+                      "IA analisa seu negócio e cria campanhas otimizadas em segundos. Sem precisar estudar por meses!",
+                    color: "blue",
                   },
                   {
                     icon: BarChart3,
-                    title: 'Analisa Tudo Automaticamente',
-                    description: 'Esqueça planilhas complicadas! IA mostra EXATAMENTE o que está funcionando (ou não).',
-                    color: 'purple'
+                    title: "Analisa Tudo Automaticamente",
+                    description:
+                      "Esqueça planilhas complicadas! IA mostra EXATAMENTE o que está funcionando (ou não).",
+                    color: "purple",
                   },
                   {
                     icon: Zap,
-                    title: 'Otimiza Sozinha',
-                    description: 'IA ajusta lances, pausaanúncios ruins e aumenta budget nos que convertem. Você só acompanha os resultados!',
-                    color: 'green'
-                  }
+                    title: "Otimiza Sozinha",
+                    description:
+                      "IA ajusta lances, pausaanúncios ruins e aumenta budget nos que convertem. Você só acompanha os resultados!",
+                    color: "green",
+                  },
                 ].map((feature, i) => (
                   <div key={i} className="group relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all" />
                     <div className="relative p-8 bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-2">
-                      <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 flex items-center justify-center mb-6 shadow-lg shadow-${feature.color}-500/50`}>
+                      <div
+                        className={`h-16 w-16 rounded-2xl bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 flex items-center justify-center mb-6 shadow-lg shadow-${feature.color}-500/50`}
+                      >
                         <feature.icon className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{feature.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">{feature.description}</p>
+                      <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
+                        {feature.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -265,11 +349,21 @@ const LandingPage = () => {
             <div className="max-w-7xl mx-auto">
               {/* Header */}
               <div className="text-center mb-16">
-                <h2 className="text-4xl sm:text-6xl font-black mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  💎 Escolha Seu <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Plano Perfeito</span>
+                <h2
+                  className="text-4xl sm:text-6xl font-black mb-6"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
+                  💎 Escolha Seu{" "}
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Plano Perfeito
+                  </span>
                 </h2>
                 <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                  Todos os planos incluem <span className="font-bold text-green-600">Checkout Grátis</span> - economize mais de R$ 200/mês em taxas!
+                  Todos os planos incluem{" "}
+                  <span className="font-bold text-green-600">
+                    Checkout Grátis
+                  </span>{" "}
+                  - economize mais de R$ 200/mês em taxas!
                 </p>
               </div>
 
@@ -278,13 +372,19 @@ const LandingPage = () => {
                 {/* Plano Free */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-6 shadow-lg hover:shadow-xl transition-all">
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Grátis</h3>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                      Grátis
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-5xl font-black text-gray-900 dark:text-white">R$ 0</span>
+                      <span className="text-5xl font-black text-gray-900 dark:text-white">
+                        R$ 0
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      por mês
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -300,10 +400,12 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-600">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
+
                   <Button variant="outline" className="w-full" asChild>
                     <Link to="/register">Começar Grátis</Link>
                   </Button>
@@ -315,13 +417,19 @@ const LandingPage = () => {
                     <div className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full mb-2">
                       POPULAR
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Pro</h3>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                      Pro
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-5xl font-black text-gray-900 dark:text-white">R$ 100</span>
+                      <span className="text-5xl font-black text-gray-900 dark:text-white">
+                        R$ 100
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      por mês
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -341,11 +449,16 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-600">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700" asChild>
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                    asChild
+                  >
                     <Link to="/register">Começar Agora</Link>
                   </Button>
                 </div>
@@ -356,13 +469,19 @@ const LandingPage = () => {
                     🔥 RECOMENDADO
                   </div>
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Business</h3>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                      Business
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-5xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">R$ 250</span>
+                      <span className="text-5xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                        R$ 250
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      por mês
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -386,11 +505,16 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-600">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 shadow-lg" asChild>
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 shadow-lg"
+                    asChild
+                  >
                     <Link to="/register">Começar Agora</Link>
                   </Button>
                 </div>
@@ -398,13 +522,19 @@ const LandingPage = () => {
                 {/* Plano Scale */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-orange-500 dark:border-orange-600 p-6 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Scale</h3>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                      Scale
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ 1.000</span>
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">
+                        R$ 1.000
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      por mês
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
@@ -432,11 +562,16 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-600">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
-                  <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700" asChild>
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                    asChild
+                  >
                     <Link to="/register">Começar Agora</Link>
                   </Button>
                 </div>
@@ -448,13 +583,19 @@ const LandingPage = () => {
                       <Rocket className="h-3 w-3" />
                       AGÊNCIAS
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Growth</h3>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                      Growth
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ 2.500</span>
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">
+                        R$ 2.500
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">por mês</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      por mês
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -482,11 +623,16 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-600">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-600">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
-                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700" asChild>
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+                    asChild
+                  >
                     <Link to="/register">Começar Agora</Link>
                   </Button>
                 </div>
@@ -494,25 +640,31 @@ const LandingPage = () => {
                 {/* Plano Enterprise */}
                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-yellow-500 p-6 shadow-2xl hover:shadow-3xl transition-all relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full blur-2xl" />
-                  
+
                   <div className="relative text-center mb-6">
                     <div className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 text-xs font-black rounded-full mb-2">
                       <Crown className="h-3 w-3" />
                       VIP
                     </div>
-                    <h3 className="text-2xl font-black text-white mb-2">Enterprise</h3>
+                    <h3 className="text-2xl font-black text-white mb-2">
+                      Enterprise
+                    </h3>
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
                         Personalizado
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">contato com vendas</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      contato com vendas
+                    </p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-start gap-2 text-sm text-white">
                       <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                      <span className="font-semibold">Créditos customizados</span>
+                      <span className="font-semibold">
+                        Créditos customizados
+                      </span>
                     </li>
                     <li className="flex items-start gap-2 text-sm text-white">
                       <Check className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -536,11 +688,16 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm text-white">
                       <Check className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
-                      <span className="font-bold text-green-400">✅ Checkout Grátis</span>
+                      <span className="font-bold text-green-400">
+                        ✅ Checkout Grátis
+                      </span>
                     </li>
                   </ul>
-                  
-                  <Button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 hover:from-yellow-500 hover:to-orange-600 font-bold shadow-lg shadow-yellow-500/50" asChild>
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 hover:from-yellow-500 hover:to-orange-600 font-bold shadow-lg shadow-yellow-500/50"
+                    asChild
+                  >
                     <Link to="/register">Falar com Vendas</Link>
                   </Button>
                 </div>
@@ -559,11 +716,21 @@ const LandingPage = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-3">
-                          🎉 Nosso Diferencial: <span className="text-green-600">Checkout 100% Grátis!</span>
+                          🎉 Nosso Diferencial:{" "}
+                          <span className="text-green-600">
+                            Checkout 100% Grátis!
+                          </span>
                         </h3>
                         <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
-                          Enquanto outras plataformas cobram <span className="font-bold text-red-600">R$ 200+/mês</span> só pelo gateway de pagamento, 
-                          <span className="font-bold text-green-600"> nós oferecemos GRÁTIS em todos os planos!</span>
+                          Enquanto outras plataformas cobram{" "}
+                          <span className="font-bold text-red-600">
+                            R$ 200+/mês
+                          </span>{" "}
+                          só pelo gateway de pagamento,
+                          <span className="font-bold text-green-600">
+                            {" "}
+                            nós oferecemos GRÁTIS em todos os planos!
+                          </span>
                         </p>
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                           <div className="px-4 py-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-500">
@@ -596,14 +763,26 @@ const LandingPage = () => {
                   </h4>
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div className="p-6 bg-red-50 dark:bg-red-950/30 rounded-xl border-2 border-red-300">
-                      <p className="text-lg font-bold text-red-600 mb-2">❌ Outras Plataformas</p>
-                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">R$ 3.400/ano</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">R$ 100 plano + R$ 200 checkout</p>
+                      <p className="text-lg font-bold text-red-600 mb-2">
+                        ❌ Outras Plataformas
+                      </p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">
+                        R$ 3.400/ano
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        R$ 100 plano + R$ 200 checkout
+                      </p>
                     </div>
                     <div className="p-6 bg-green-50 dark:bg-green-950/30 rounded-xl border-2 border-green-500">
-                      <p className="text-lg font-bold text-green-600 mb-2">✅ SyncAds (Plano Pro)</p>
-                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">R$ 1.200/ano</p>
-                      <p className="text-sm text-green-600 dark:text-green-400 font-bold">Economia de R$ 2.200/ano! 🎉</p>
+                      <p className="text-lg font-bold text-green-600 mb-2">
+                        ✅ SyncAds (Plano Pro)
+                      </p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">
+                        R$ 1.200/ano
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-400 font-bold">
+                        Economia de R$ 2.200/ano! 🎉
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -616,27 +795,34 @@ const LandingPage = () => {
         <section className="py-20 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950/20 dark:to-gray-900">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-6xl mx-auto">
-              <h2 className="text-3xl sm:text-5xl font-black text-center mb-16" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              <h2
+                className="text-3xl sm:text-5xl font-black text-center mb-16"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
                 ⚖️ Você Decide: Guru ou IA?
               </h2>
 
               <div className="grid md:grid-cols-2 gap-8">
                 {/* Coluna Guru */}
                 <div className="p-8 bg-red-50 dark:bg-red-950/30 rounded-3xl border-2 border-red-300 dark:border-red-800">
-                  <h3 className="text-3xl font-black text-red-600 mb-6 text-center">❌ Mentoria de "Guru"</h3>
+                  <h3 className="text-3xl font-black text-red-600 mb-6 text-center">
+                    ❌ Mentoria de "Guru"
+                  </h3>
                   <ul className="space-y-4">
                     {[
-                      '💸 R$ 3.000 a R$ 10.000 (só pra começar)',
-                      '⏰ 6+ meses para dominar (se dominar)',
-                      '😰 Você faz TUDO manualmente',
-                      '📚 Horas de vídeo-aulas chatas',
-                      '🤷 Suporte? Boa sorte no grupo lotado',
-                      '📉 Resultado? Depende MUITO de você',
-                      '🔄 Precisa pagar de novo para atualizar'
+                      "💸 R$ 3.000 a R$ 10.000 (só pra começar)",
+                      "⏰ 6+ meses para dominar (se dominar)",
+                      "😰 Você faz TUDO manualmente",
+                      "📚 Horas de vídeo-aulas chatas",
+                      "🤷 Suporte? Boa sorte no grupo lotado",
+                      "📉 Resultado? Depende MUITO de você",
+                      "🔄 Precisa pagar de novo para atualizar",
                     ].map((item, i) => (
                       <li key={i} className="flex items-start gap-3 text-lg">
                         <X className="h-6 w-6 text-red-500 flex-shrink-0 mt-1" />
-                        <span className="text-gray-800 dark:text-gray-200">{item}</span>
+                        <span className="text-gray-800 dark:text-gray-200">
+                          {item}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -645,29 +831,38 @@ const LandingPage = () => {
                 {/* Coluna SyncAds */}
                 <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-3xl border-2 border-green-400 dark:border-green-600 shadow-2xl shadow-green-500/20 relative">
                   <div className="absolute -top-4 -right-4 px-6 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-lg animate-pulse">
-                    <span className="font-black text-white">MELHOR ESCOLHA! 🏆</span>
+                    <span className="font-black text-white">
+                      MELHOR ESCOLHA! 🏆
+                    </span>
                   </div>
-                  <h3 className="text-3xl font-black text-green-600 mb-6 text-center">✅ SyncAds com IA</h3>
+                  <h3 className="text-3xl font-black text-green-600 mb-6 text-center">
+                    ✅ SyncAds com IA
+                  </h3>
                   <ul className="space-y-4">
                     {[
-                      '💰 A partir de R$ 97/mês (100% automático)',
-                      '⚡ Resultados em MINUTOS (não meses)',
-                      '🤖 IA trabalha 24/7 pra você',
-                      '🎯 Zero curva de aprendizado',
-                      '💬 Suporte personalizado via chat IA',
-                      '📈 Resultados garantidos ou devolv seu dinheiro',
-                      '🆓 Atualizações grátis para sempre'
+                      "💰 A partir de R$ 97/mês (100% automático)",
+                      "⚡ Resultados em MINUTOS (não meses)",
+                      "🤖 IA trabalha 24/7 pra você",
+                      "🎯 Zero curva de aprendizado",
+                      "💬 Suporte personalizado via chat IA",
+                      "📈 Resultados garantidos ou devolv seu dinheiro",
+                      "🆓 Atualizações grátis para sempre",
                     ].map((item, i) => (
                       <li key={i} className="flex items-start gap-3 text-lg">
                         <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-                        <span className="font-semibold text-gray-800 dark:text-gray-200">{item}</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">
+                          {item}
+                        </span>
                       </li>
                     ))}
                   </ul>
-                  
+
                   <div className="mt-8 p-6 bg-white dark:bg-gray-900 rounded-2xl border-2 border-green-400">
                     <p className="text-center text-xl font-bold text-gray-900 dark:text-white">
-                      💡 ECONOMIA: <span className="text-green-600 text-3xl">R$ 2.903/mês</span>
+                      💡 ECONOMIA:{" "}
+                      <span className="text-green-600 text-3xl">
+                        R$ 2.903/mês
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -683,34 +878,51 @@ const LandingPage = () => {
               <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl shadow-green-500/50 mb-8">
                 <Shield className="h-12 w-12 text-white" />
               </div>
-              
-              <h2 className="text-3xl sm:text-5xl font-black mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                🛡️ Garantia <span className="text-green-600">100%</span> Sem Riscos
+
+              <h2
+                className="text-3xl sm:text-5xl font-black mb-6"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
+                🛡️ Garantia <span className="text-green-600">100%</span> Sem
+                Riscos
               </h2>
-              
+
               <p className="text-2xl text-gray-700 dark:text-gray-200 mb-8 leading-relaxed">
-                Teste o SyncAds por <span className="font-black text-blue-600">14 dias GRÁTIS</span>.<br/>
-                Se não economizar pelo menos <span className="font-black text-green-600">R$ 1.000</span> em anúncios...<br/>
-                <span className="text-3xl font-black block mt-4 text-purple-600">Devolvemos 100% + R$ 500 de bônus!</span>
+                Teste o SyncAds por{" "}
+                <span className="font-black text-blue-600">14 dias GRÁTIS</span>
+                .<br />
+                Se não economizar pelo menos{" "}
+                <span className="font-black text-green-600">R$ 1.000</span> em
+                anúncios...
+                <br />
+                <span className="text-3xl font-black block mt-4 text-purple-600">
+                  Devolvemos 100% + R$ 500 de bônus!
+                </span>
               </p>
 
               <div className="p-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-3xl border-2 border-yellow-400 mb-12">
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
-                  🔥 Isso mesmo! Se você não lucrar... <span className="text-green-600">NÓS PAGAMOS VOCÊ!</span>
+                  🔥 Isso mesmo! Se você não lucrar...{" "}
+                  <span className="text-green-600">NÓS PAGAMOS VOCÊ!</span>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  (Porque temos CERTEZA que nossa IA vai transformar seus resultados)
+                  (Porque temos CERTEZA que nossa IA vai transformar seus
+                  resultados)
                 </p>
               </div>
 
-              <Button size="lg" asChild className="text-xl px-12 py-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-2xl shadow-green-500/50 transform hover:scale-110 transition-all">
+              <Button
+                size="lg"
+                asChild
+                className="text-xl px-12 py-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-2xl shadow-green-500/50 transform hover:scale-110 transition-all"
+              >
                 <Link to="/register" className="flex items-center gap-3">
                   <Sparkles className="h-6 w-6" />
                   QUERO COMEÇAR AGORA!
                   <ArrowRight className="h-6 w-6" />
                 </Link>
               </Button>
-              
+
               <p className="mt-6 text-gray-500 text-sm">
                 ✅ Sem cartão | ✅ Sem pegadinhas | ✅ Cancele quando quiser
               </p>
@@ -723,13 +935,20 @@ const LandingPage = () => {
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-4xl mx-auto">
               <div className="p-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-3xl shadow-2xl text-center text-white">
-                <h2 className="text-4xl sm:text-5xl font-black mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <h2
+                  className="text-4xl sm:text-5xl font-black mb-6"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
                   ⚠️ ATENÇÃO: Vagas Limitadas!
                 </h2>
                 <p className="text-2xl mb-8 leading-relaxed">
-                  Por questões de infraestrutura de IA, estamos aceitando apenas <span className="font-black underline">50 novos usuários</span> esta semana.
+                  Por questões de infraestrutura de IA, estamos aceitando apenas{" "}
+                  <span className="font-black underline">
+                    50 novos usuários
+                  </span>{" "}
+                  esta semana.
                 </p>
-                
+
                 <div className="flex items-center justify-center gap-4 mb-8">
                   <div className="px-6 py-4 bg-white/20 rounded-xl backdrop-blur">
                     <p className="text-sm opacity-90">Vagas Restantes</p>
@@ -737,28 +956,37 @@ const LandingPage = () => {
                   </div>
                 </div>
 
-                <Button size="default" asChild className="text-base px-8 py-6 bg-white text-red-600 hover:bg-gray-100 shadow-xl transform hover:scale-105 transition-all">
-                  <Link to="/register" className="flex items-center gap-2 font-bold">
+                <Button
+                  size="default"
+                  asChild
+                  className="text-base px-8 py-6 bg-white text-red-600 hover:bg-gray-100 shadow-xl transform hover:scale-105 transition-all"
+                >
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-2 font-bold"
+                  >
                     CRIAR CONTA AGORA
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
 
                 <p className="mt-6 text-lg">
-                  ⏰ Oferta expira em: <span className="font-black text-2xl">23h 45min</span>
+                  ⏰ Oferta expira em:{" "}
+                  <span className="font-black text-2xl">23h 45min</span>
                 </p>
               </div>
             </div>
           </div>
         </section>
-
       </main>
 
       {/* Footer */}
       <footer className="py-12 bg-gray-900 text-white">
         <div className="container mx-auto px-4 sm:px-6 text-center">
           <Logo />
-          <p className="mt-6 text-gray-400">&copy; 2025 SyncAds. Todos os direitos reservados.</p>
+          <p className="mt-6 text-gray-400">
+            &copy; 2025 SyncAds. Todos os direitos reservados.
+          </p>
           <p className="mt-2 text-sm text-gray-500">
             Transformando "gurus" caros em resultados reais com IA 🚀
           </p>

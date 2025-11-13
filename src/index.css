@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Força modo escuro permanentemente */
+:root {
+    color-scheme: dark;
+}
+
+html {
+    color-scheme: dark;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+/* Previne que o modo claro seja aplicado */
+html:not(.dark) {
+    filter: invert(0) !important;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
