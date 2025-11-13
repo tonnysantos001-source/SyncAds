@@ -78,7 +78,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login", { replace: true });
+      navigate("/login-v2", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
     }

@@ -1,10 +1,16 @@
-import { Link } from 'react-router-dom';
-import { Bot } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Bot } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordPage() {
   return (
@@ -17,22 +23,28 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle className="text-2xl">Esqueceu sua senha?</CardTitle>
           <CardDescription>
-            Sem problemas. Insira seu email e enviaremos um link para você resetar sua senha.
+            Sem problemas. Insira seu email e enviaremos um link para você
+            resetar sua senha.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="nome@exemplo.com" required />
+              <Input
+                id="email"
+                type="email"
+                placeholder="nome@exemplo.com"
+                required
+              />
             </div>
             <Button type="submit" className="w-full">
               Enviar Link de Recuperação
             </Button>
           </div>
           <div className="mt-6 text-center text-sm">
-            Lembrou sua senha?{' '}
-            <Link to="/login" className="underline">
+            Lembrou sua senha?{" "}
+            <Link to="/login-v2" className="underline">
               Fazer Login
             </Link>
           </div>

@@ -117,7 +117,7 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      navigate("/login", { replace: true });
+      navigate("/login-v2", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 

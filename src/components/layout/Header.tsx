@@ -128,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/login";
+    window.location.href = "/login-v2";
   };
   useEffect(() => {
     if (user?.id) {

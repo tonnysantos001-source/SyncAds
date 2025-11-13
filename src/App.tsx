@@ -243,7 +243,7 @@ function App() {
         if (error || !session) {
           console.error("❌ [APP] Sessão inválida, fazendo logout");
           await logout();
-          window.location.href = "/login";
+          window.location.href = "/login-v2";
           return;
         }
 
@@ -258,7 +258,7 @@ function App() {
           if (refreshError) {
             console.error("❌ [APP] Erro ao renovar sessão:", refreshError);
             await logout();
-            window.location.href = "/login";
+            window.location.href = "/login-v2";
           } else {
             console.log("✅ [APP] Sessão renovada com sucesso");
           }

@@ -59,7 +59,7 @@ const LandingPage = () => {
                 asChild
                 className="border-gray-700 bg-gray-800/50 text-white hover:bg-gray-700 hover:border-gray-600"
               >
-                <Link to="/login">Entrar</Link>
+                <Link to="/login-v2">Entrar</Link>
               </Button>
               <Button
                 size="sm"

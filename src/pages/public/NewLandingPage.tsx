@@ -127,7 +127,7 @@ const NewLandingPage = () => {
 
             <div className="hidden md:flex items-center gap-3">
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/login">Entrar</Link>
+                <Link to="/login-v2">Entrar</Link>
               </Button>
               <Button
                 size="sm"
@@ -180,7 +180,7 @@ const NewLandingPage = () => {
                 </a>
                 <div className="flex flex-col gap-2 pt-4 border-t border-gray-200 dark:border-gray-800">
                   <Button variant="outline" asChild>
-                    <Link to="/login">Entrar</Link>
+                    <Link to="/login-v2">Entrar</Link>
                   </Button>
                   <Button
                     asChild

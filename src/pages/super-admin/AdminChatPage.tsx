@@ -191,7 +191,7 @@ export default function AdminChatPage() {
             description: "Você precisa fazer login novamente.",
             variant: "destructive",
           });
-          window.location.href = "/login";
+          window.location.href = "/login-v2";
           return;
         }
 

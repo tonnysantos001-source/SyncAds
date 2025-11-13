@@ -8,7 +8,7 @@ const ProtectedRoute: React.FC = () => {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login-v2" replace />;
   }
 
   // Super Admin routes don't use DashboardLayout (they have their own layout)

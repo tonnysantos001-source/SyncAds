@@ -589,7 +589,7 @@ export default function RegisterPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Já tem uma conta?{" "}
               <Link
-                to="/login"
+                to="/login-v2"
                 className="font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent hover:underline"
               >
                 Faça login
