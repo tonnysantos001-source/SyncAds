@@ -1,193 +1,57 @@
-import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import {
-  Loader2,
-  Mail,
-  CreditCard,
-  Monitor,
-  DollarSign,
-  Truck,
-} from "lucide-react";
+import { Mail, CreditCard, Monitor, DollarSign, Truck } from "lucide-react";
 
 interface OnboardingStep {
   id: string;
   title: string;
   description: string;
   icon: React.ElementType;
-  completed: boolean;
   route: string;
 }
 
 export default function CheckoutOnboardingPage() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
-  const [steps, setSteps] = useState<OnboardingStep[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user?.id) {
-      navigate("/login");
-      return;
-    }
-
-    loadOnboardingStatus();
-  }, [user?.id, navigate]);
-
-  const loadOnboardingStatus = async () => {
-    try {
-      setLoading(true);
-
-      // Verificações simplificadas sem throw
-      const emailVerified = await checkEmailVerification();
-      const billingCompleted = await checkBilling();
-      const domainCompleted = await checkDomain();
-      const gatewayCompleted = await checkGateway();
-      const shippingCompleted = await checkShipping();
-
-      const onboardingSteps: OnboardingStep[] = [
-        {
-          id: "email",
-          title: "Verificação de Email",
-          description: "Verifique seu endereço de email",
-          icon: Mail,
-          completed: emailVerified,
-          route: "/settings/email-verification",
-        },
-        {
-          id: "billing",
-          title: "Faturamento",
-          description: "Configure seu plano e pagamento",
-          icon: CreditCard,
-          completed: billingCompleted,
-          route: "/billing",
-        },
-        {
-          id: "domain",
-          title: "Domínio",
-          description: "Verifique seu domínio",
-          icon: Monitor,
-          completed: domainCompleted,
-          route: "/checkout/domain",
-        },
-        {
-          id: "gateway",
-          title: "Gateway de Pagamento",
-          description: "Configure meios de pagamento",
-          icon: DollarSign,
-          completed: gatewayCompleted,
-          route: "/checkout/gateways",
-        },
-        {
-          id: "shipping",
-          title: "Frete",
-          description: "Configure métodos de entrega",
-          icon: Truck,
-          completed: shippingCompleted,
-          route: "/checkout/shipping",
-        },
-      ];
-
-      setSteps(onboardingSteps);
-    } catch (error) {
-      console.error("Erro ao carregar onboarding:", error);
-      // Define steps vazios em caso de erro
-      setSteps([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkEmailVerification = async (): Promise<boolean> => {
-    try {
-      const { data } = await supabase
-        .from("User")
-        .select("emailVerified")
-        .eq("id", user?.id)
-        .maybeSingle();
-
-      return data?.emailVerified === true;
-    } catch {
-      return false;
-    }
-  };
-
-  const checkBilling = async (): Promise<boolean> => {
-    try {
-      const { data: userData } = await supabase
-        .from("User")
-        .select("currentPlanId, planId")
-        .eq("id", user?.id)
-        .maybeSingle();
-
-      if (userData?.currentPlanId || userData?.planId) {
-        return true;
-      }
-
-      const { data: subscription } = await supabase
-        .from("Subscription")
-        .select("id")
-        .eq("userId", user?.id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      return !!subscription;
-    } catch {
-      return false;
-    }
-  };
-
-  const checkDomain = async (): Promise<boolean> => {
-    try {
-      const { data } = await supabase
-        .from("User")
-        .select("domain, domainVerified")
-        .eq("id", user?.id)
-        .maybeSingle();
-
-      return !!(data?.domain && data?.domainVerified);
-    } catch {
-      return false;
-    }
-  };
-
-  const checkGateway = async (): Promise<boolean> => {
-    try {
-      const { data } = await supabase
-        .from("GatewayConfig")
-        .select("id")
-        .eq("userId", user?.id)
-        .eq("isActive", true)
-        .limit(1);
-
-      return (data?.length || 0) > 0;
-    } catch {
-      return false;
-    }
-  };
-
-  const checkShipping = async (): Promise<boolean> => {
-    try {
-      const { data } = await supabase
-        .from("ShippingMethod")
-        .select("id")
-        .eq("userId", user?.id)
-        .limit(1);
-
-      return (data?.length || 0) > 0;
-    } catch {
-      return false;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  // Steps fixos - sem verificação assíncrona
+  const steps: OnboardingStep[] = [
+    {
+      id: "email",
+      title: "Verificação de Email",
+      description: "Verifique seu endereço de email",
+      icon: Mail,
+      route: "/settings/email-verification",
+    },
+    {
+      id: "billing",
+      title: "Faturamento",
+      description: "Configure seu plano e pagamento",
+      icon: CreditCard,
+      route: "/billing",
+    },
+    {
+      id: "domain",
+      title: "Domínio",
+      description: "Verifique seu domínio",
+      icon: Monitor,
+      route: "/checkout/domain",
+    },
+    {
+      id: "gateway",
+      title: "Gateway de Pagamento",
+      description: "Configure meios de pagamento",
+      icon: DollarSign,
+      route: "/checkout/gateways",
+    },
+    {
+      id: "shipping",
+      title: "Frete",
+      description: "Configure métodos de entrega",
+      icon: Truck,
+      route: "/checkout/shipping",
+    },
+  ];
 
   const userName = user?.name || user?.email?.split("@")[0] || "usuário";
 
@@ -204,7 +68,7 @@ export default function CheckoutOnboardingPage() {
       {/* Instructions */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-          Para ativar seu checkout você precisa concluir todos os passos abaixo:
+          Para ativar seu checkout, complete os passos abaixo:
         </h2>
       </div>
 
@@ -216,12 +80,12 @@ export default function CheckoutOnboardingPage() {
           return (
             <div
               key={step.id}
-              className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+              className="flex items-start gap-4 p-4 border-2 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-all"
               onClick={() => navigate(step.route)}
             >
               {/* Icon */}
               <div className="flex-shrink-0">
-                <StepIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                <StepIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
 
               {/* Content */}
@@ -234,14 +98,21 @@ export default function CheckoutOnboardingPage() {
                 </p>
               </div>
 
-              {/* Status Indicator */}
+              {/* Arrow */}
               <div className="flex-shrink-0 pt-1">
-                <div
-                  className={`h-3 w-3 rounded-full ${
-                    step.completed ? "bg-green-500" : "bg-red-500"
-                  }`}
-                  title={step.completed ? "Concluído" : "Pendente"}
-                />
+                <svg
+                  className="h-6 w-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </div>
             </div>
           );
