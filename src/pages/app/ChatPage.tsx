@@ -62,6 +62,7 @@ import {
   requiresAdvancedProcessing,
   type ChatAttachment,
 } from "@/lib/ai/chatHandlers";
+import { ChatAttachmentList } from "@/components/chat/ChatAttachment";
 
 const quickSuggestions = [
   "Criar campanha de Facebook Ads",
@@ -244,13 +245,13 @@ const ChatPage: React.FC = () => {
     // Configurar tool e reasoning baseado na mensagem
     const lowerMessage = userMessage.toLowerCase();
     if (lowerMessage.includes("gere") && lowerMessage.includes("imagem")) {
-      setCurrentTool("generate_image");
+      setCurrentTool("generate_image" as any);
       setAiReasoning("Gerando imagem com DALL-E 3...");
     } else if (
       lowerMessage.includes("gere") &&
       lowerMessage.includes("vídeo")
     ) {
-      setCurrentTool("generate_video");
+      setCurrentTool("generate_video" as any);
       setAiReasoning("Preparando geração de vídeo...");
     } else if (
       lowerMessage.includes("pesquis") ||
@@ -264,7 +265,7 @@ const ChatPage: React.FC = () => {
       lowerMessage.includes("crie") &&
       lowerMessage.includes("arquivo")
     ) {
-      setCurrentTool("create_file");
+      setCurrentTool("create_file" as any);
       setAiReasoning("Criando arquivo...");
     } else {
       setCurrentTool(null);
@@ -305,19 +306,15 @@ const ChatPage: React.FC = () => {
           !advancedResult.metadata?.skipAdvancedProcessing
         ) {
           // Processar resultado avançado
-          if (
-            advancedResult.attachments &&
-            advancedResult.attachments.length > 0
-          ) {
-            setCurrentAttachments(advancedResult.attachments);
-          }
+          const messageId = `msg-${Date.now() + 1}`;
 
-          // Adicionar resposta com attachments
-          await streamAssistantResponse(
-            user.id,
-            activeConversationId,
-            advancedResult.content,
-          );
+          // Adicionar mensagem com attachments
+          addMessage(user.id, activeConversationId, {
+            id: messageId,
+            role: "assistant",
+            content: advancedResult.content,
+            attachments: advancedResult.attachments || [],
+          });
 
           await incrementAiMessageUsage(user.id);
           setAssistantTyping(false);
@@ -895,6 +892,16 @@ const ChatPage: React.FC = () => {
                         )}
                         <div className="flex-1 whitespace-pre-wrap break-words">
                           {message.content}
+
+                          {/* Renderizar attachments se existirem */}
+                          {message.attachments &&
+                            message.attachments.length > 0 && (
+                              <div className="mt-3">
+                                <ChatAttachmentList
+                                  attachments={message.attachments}
+                                />
+                              </div>
+                            )}
                         </div>
                       </div>
                       <div
@@ -917,15 +924,28 @@ const ChatPage: React.FC = () => {
               })}
 
               {isAssistantTyping && (
-                <AiThinkingIndicator
-                  isThinking={isAssistantTyping}
-                  currentTool={currentTool}
-                  reasoning={aiReasoning}
-                  sources={aiSources}
-                  status="thinking"
-                  progress={aiProgress}
-                  modernStyle={true}
-                />
+                <>
+                  <AiThinkingIndicator
+                    isThinking={isAssistantTyping}
+                    currentTool={currentTool}
+                    reasoning={aiReasoning}
+                    sources={aiSources}
+                    status="thinking"
+                    progress={aiProgress}
+                    modernStyle={true}
+                  />
+
+                  {/* Preview de attachments sendo gerados */}
+                  {currentAttachments.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="ml-4"
+                    >
+                      <ChatAttachmentList attachments={currentAttachments} />
+                    </motion.div>
+                  )}
+                </>
               )}
               <div ref={messagesEndRef} />
             </>

@@ -1,0 +1,165 @@
+# ============================================
+# SYNCADS PYTHON MICROSERVICE - DOCKER COMPOSE
+# ============================================
+# Orquestração de containers para desenvolvimento e produção
+# ============================================
+
+version: '3.9'
+
+services:
+  # ==========================================
+  # PYTHON MICROSERVICE (FastAPI)
+  # ==========================================
+  python-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: syncads-python-service
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      # Server
+      - PORT=8000
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-true}
+      - WORKERS=${WORKERS:-4}
+
+      # CORS
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+
+      # Anthropic
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+
+      # Google
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+
+      # Image Generation
+      - RUNWAY_API_KEY=${RUNWAY_API_KEY}
+      - PIKA_API_KEY=${PIKA_API_KEY}
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+
+      # Web Search
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY}
+
+      # Shopify
+      - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
+      - SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN}
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379
+
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+
+      # Security
+      - JWT_SECRET=${JWT_SECRET:-change-this-super-secret-key}
+
+      # Feature Flags
+      - ENABLE_SCRAPING=${ENABLE_SCRAPING:-true}
+      - ENABLE_ML=${ENABLE_ML:-true}
+      - ENABLE_NLP=${ENABLE_NLP:-true}
+      - ENABLE_IMAGE_PROCESSING=${ENABLE_IMAGE_PROCESSING:-true}
+      - ENABLE_PDF_GENERATION=${ENABLE_PDF_GENERATION:-true}
+
+      # Other APIs
+      - REMOVE_BG_API_KEY=${REMOVE_BG_API_KEY}
+      - TINIFY_API_KEY=${TINIFY_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+
+    volumes:
+      # Mount do código para hot reload (apenas dev)
+      - ./app:/app/app:delegated
+      - ./temp:/app/temp:delegated
+      - ./uploads:/app/uploads:delegated
+      - ./logs:/app/logs:delegated
+
+    networks:
+      - syncads-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================
+  # REDIS (Cache & Queue)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: syncads-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-syncads123}
+    volumes:
+      - redis-data:/data
+    networks:
+      - syncads-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # REDIS COMMANDER (GUI para Redis - Opcional)
+  # ==========================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: syncads-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-syncads123}
+    ports:
+      - "8081:8081"
+    networks:
+      - syncads-network
+    depends_on:
+      - redis
+    profiles:
+      - dev
+
+# ==========================================
+# NETWORKS
+# ==========================================
+networks:
+  syncads-network:
+    name: syncads-network
+    driver: bridge
+
+# ==========================================
+# VOLUMES
+# ==========================================
+volumes:
+  redis-data:
+    name: syncads-redis-data
