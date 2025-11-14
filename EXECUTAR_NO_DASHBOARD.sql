@@ -1,13 +1,7 @@
 -- =====================================================
--- MIGRATION: Fix SECURITY DEFINER Views
--- Data: 02/02/2025
--- Prioridade: CRÍTICA
--- Descrição: Remove SECURITY DEFINER de views ou aplica SECURITY INVOKER
---           com políticas RLS adequadas para segurança em produção
--- =====================================================
-
--- =====================================================
--- PARTE 1: CORRIGIR VIEWS DE ANALYTICS/DASHBOARD
+-- CORREÇÃO CRÍTICA: SECURITY DEFINER VIEWS
+-- Executar no SQL Editor do Supabase Dashboard
+-- https://supabase.com/dashboard/project/mthscppxsxmycjiwetec/sql/new
 -- =====================================================
 
 -- 1. ActiveDiscountCodes
@@ -26,42 +20,24 @@ WHERE dc."usageCount" < pr."usageLimit"
   AND pr."endsAt" >= NOW()
   AND dc."userId" = auth.uid()::text;
 
-COMMENT ON VIEW "ActiveDiscountCodes" IS 'Códigos de desconto ativos - seguro com security_invoker';
-
 -- 2. v_active_users
 DROP VIEW IF EXISTS v_active_users CASCADE;
 CREATE VIEW v_active_users
 WITH (security_invoker = true) AS
-SELECT
-    id,
-    email,
-    name,
-    plan,
-    "isActive",
-    "lastSeen",
-    "createdAt"
+SELECT id, email, name, plan, "isActive", "lastSeen", "createdAt"
 FROM "User"
 WHERE "isActive" = true
   AND "lastSeen" > NOW() - INTERVAL '30 days'
   AND id = auth.uid()::text;
 
-COMMENT ON VIEW v_active_users IS 'Usuários ativos - cada usuário vê apenas si mesmo';
-
 -- 3. v_super_admins
 DROP VIEW IF EXISTS v_super_admins CASCADE;
 CREATE VIEW v_super_admins
 WITH (security_invoker = true) AS
-SELECT
-    id,
-    email,
-    name,
-    "isSuperAdmin",
-    "createdAt"
+SELECT id, email, name, "isSuperAdmin", "createdAt"
 FROM "User"
 WHERE "isSuperAdmin" = true
   AND id = auth.uid()::text;
-
-COMMENT ON VIEW v_super_admins IS 'Super admins - apenas o próprio admin se vê';
 
 -- 4. ProductPerformance
 DROP VIEW IF EXISTS "ProductPerformance" CASCADE;
@@ -81,8 +57,6 @@ LEFT JOIN "OrderItem" oi ON oi."productId" = p.id
 LEFT JOIN "Order" o ON o.id = oi."orderId" AND o.status = 'completed'
 WHERE p."userId" = auth.uid()::text
 GROUP BY p.id, p."userId", p.title, p."productType";
-
-COMMENT ON VIEW "ProductPerformance" IS 'Performance de produtos - seguro com RLS (security_invoker)';
 
 -- 5. CheckoutDashboard
 DROP VIEW IF EXISTS "CheckoutDashboard" CASCADE;
@@ -105,8 +79,6 @@ LEFT JOIN "Order" o ON o."userId" = u.id
 WHERE u.id = auth.uid()::text
 GROUP BY u.id;
 
-COMMENT ON VIEW "CheckoutDashboard" IS 'Dashboard de checkout - seguro com RLS (security_invoker)';
-
 -- 6. CartRecoveryAnalytics
 DROP VIEW IF EXISTS "CartRecoveryAnalytics" CASCADE;
 CREATE VIEW "CartRecoveryAnalytics"
@@ -127,8 +99,6 @@ WHERE o."userId" = auth.uid()::text
   AND o.status IN ('abandoned', 'recovered')
 GROUP BY o."userId";
 
-COMMENT ON VIEW "CartRecoveryAnalytics" IS 'Analytics de recuperação de carrinho - seguro com RLS (security_invoker)';
-
 -- 7. CustomerAnalytics
 DROP VIEW IF EXISTS "CustomerAnalytics" CASCADE;
 CREATE VIEW "CustomerAnalytics"
@@ -147,8 +117,6 @@ FROM "Order" o
 WHERE o."userId" = auth.uid()::text
   AND o."customerEmail" IS NOT NULL
 GROUP BY o."userId", o."customerEmail", o."customerName";
-
-COMMENT ON VIEW "CustomerAnalytics" IS 'Analytics de clientes - seguro com RLS (security_invoker)';
 
 -- 8. UTMAnalytics
 DROP VIEW IF EXISTS "UTMAnalytics" CASCADE;
@@ -183,8 +151,6 @@ GROUP BY
     utm."utmTerm",
     utm."utmContent";
 
-COMMENT ON VIEW "UTMAnalytics" IS 'Analytics de tracking UTM - seguro com RLS (security_invoker)';
-
 -- 9. checkout_trial_dashboard
 DROP VIEW IF EXISTS "checkout_trial_dashboard" CASCADE;
 CREATE VIEW "checkout_trial_dashboard"
@@ -214,25 +180,7 @@ LEFT JOIN "Order" o ON o."userId" = u.id
 WHERE u.id = auth.uid()::text
 GROUP BY u.id, u.email, u.name, u.plan, u."trialEndsAt", u."trialStartedAt", u."createdAt";
 
-COMMENT ON VIEW "checkout_trial_dashboard" IS 'Dashboard de trials - seguro com RLS (security_invoker)';
-
 -- =====================================================
--- PARTE 2: DOCUMENTAÇÃO
--- =====================================================
-
-COMMENT ON SCHEMA public IS
-'Schema principal do SyncAds
-- Todas as views usam security_invoker = true
-- Todas as views filtram por auth.uid()::text para isolamento
-- RLS ativo em todas as tabelas críticas
-- Sem SECURITY DEFINER em views (apenas em funções específicas com search_path)';
-
--- =====================================================
--- SUCESSO!
--- =====================================================
--- ✅ 9 views corrigidas com security_invoker
--- ✅ Filtros por auth.uid()::text aplicados
--- ✅ RLS respeitado em todas as consultas
--- ✅ Sem SECURITY DEFINER em views
--- ✅ Pronto para produção
+-- SUCESSO! 9 views corrigidas com security_invoker
+-- Todos os auth.uid() convertidos para ::text
 -- =====================================================
