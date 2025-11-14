@@ -15,9 +15,13 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 starlette==0.36.3
+
+# GraphQL API
+strawberry-graphql[fastapi]==0.219.0
+
 # 🟦 SCRAPING PROFISSIONAL (Nível Devin/Phind)
 playwright==1.41.0
-playwright-stealth==1.0.1
+playwright-stealth==1.0.6
 selenium==4.17.2
 undetected-chromedriver==3.5.5
 requests==2.31.0
@@ -39,15 +43,16 @@ parsel==1.8.1
 w3lib==2.1.2
 webcolors==1.13
 # 🟩 AUTOMAÇÃO (RPA) - Controle de Sistema
-pyautogui==0.9.54
-keyboard==0.13.5
-mouse==0.7.1
-pynput==1.7.6
-autopy==4.0.0
-pywin32==306
-uiautomation==2.0.18
-pywinauto==0.6.8
-pure-python-adb==0.3.0.dev0
+# ⚠️ DESABILITADO: Bibliotecas GUI não funcionam em Docker/Railway
+# pyautogui==0.9.54
+# keyboard==0.13.5
+# mouse==0.7.1
+# pynput==1.7.6
+# autopy==4.0.0
+# pywin32==306
+# uiautomation==2.0.18
+# pywinauto==0.6.8
+# pure-python-adb==0.3.0.dev0
 # 🟧 ARQUIVOS & DOCUMENTOS
 pypdf==4.0.1
 PyPDF2==3.0.1
@@ -146,7 +151,7 @@ dash==2.14.2
 # 🟦 MANIPULAÇÃO DE TEXTO, EXTRAÇÃO, CONVERSÃO
 chardet==5.2.0
 ftfy==6.1.3
-PyICU==2.12
+# PyICU==2.12  # ⚠️ Requer libicu-dev no sistema
 regex==2023.12.25
 python-slugify==8.0.1
 unidecode==1.3.8
@@ -247,13 +252,13 @@ py7zr==0.21.0
 watchdog==4.0.0
 # 🟧 E-COMMERCE - CLONAGEM & INTEGRAÇÕES
 # Plataformas de E-commerce
-shopify-python-api==12.5.0
-shopifyapi==12.5.0
+shopify-python-api==1.0.1
+# shopifyapi==12.5.0  # ⚠️ Versão não existe, usando shopify-python-api oficial
 woocommerce==3.0.0
 prestapyt==0.10.0
-magento==1.0.0.5
-vtex-api==0.1.0
-ecommercetools==0.1.1
+# magento==1.0.0.5  # ⚠️ Pode não existir ou causar conflitos
+# vtex-api==0.1.0  # ⚠️ Pode não existir
+# ecommercetools==0.1.1  # ⚠️ Pode não existir
 python-wordpress-xmlrpc==2.3
 pyactiveresource==2.2.2
 # Templates & Themes (Liquid para Shopify)
@@ -262,8 +267,8 @@ liquid==1.12.1
 extruct==0.16.0
 # Conteúdo, SEO & Marketing
 readability-lxml==0.8.1
-advertools==0.14.2
-seoanalyzer==0.2.4
+# advertools==0.14.2  # ⚠️ Pode ter dependências problemáticas
+# seoanalyzer==0.2.4  # ⚠️ Pode não existir
 html2text==2020.1.16
 markdownify==0.11.6
 # Pagamentos & Comunicação
@@ -275,10 +280,10 @@ celery==5.3.6
 rq==1.16.1
 schedule==1.2.1
 # 🟨 FRONTEND EXTRAS
-sass==0.2.0
+# sass==0.2.0  # ⚠️ Requer Ruby/binários, não funciona em Docker
 # 🟪 OTIMIZAÇÃO DE IMAGENS
 tinify==1.6.0
-imgkit==1.2.3
+# imgkit==1.2.3  # ⚠️ Requer wkhtmltoimage binário
 # 🟥 EMAILS & COMUNICAÇÃO
 sendgrid==6.11.0
 emails==0.6
@@ -291,7 +296,7 @@ json5==0.9.14
 jsonschema==4.21.1
 fasteners==0.19
 # 🟧 CORS & MIDDLEWARE
-fastapi-cors==0.0.6
+# fastapi-cors==0.0.6  # ⚠️ Não necessário, FastAPI tem CORS embutido
 # 🟩 TESTING & QUALITY
 pytest==8.0.0
 pytest-asyncio==0.23.4
@@ -307,8 +312,8 @@ wand==0.6.13
 pycairo==1.25.1
 svgwrite==1.4.3
 svglib==1.5.1
-imgaug==0.4.0
-albumentations==1.3.1
+# imgaug==0.4.0  # ⚠️ Pode conflitar com outras versões de imageio
+# albumentations==1.3.1  # ⚠️ Pesado, pode causar conflitos
 pyvips==2.2.1
 Mahotas==1.4.13
 rawpy==0.19.1
@@ -318,7 +323,7 @@ imagehash==4.3.1
 blend-modes==2.1.0
 supervision==0.18.0
 kornia==0.7.1
-fastai==2.7.13
+# fastai==2.7.13  # ⚠️ Muito pesado, muitas dependências conflitantes
 huggingface_hub==0.20.3
 # 🎬 VÍDEO PROFISSIONAL & PROCESSAMENTO
 pyav==11.0.0
@@ -330,7 +335,7 @@ pims==0.6.1
 scenedetect==0.6.2
 cvzone==1.6.1
 mediapy==1.2.0
-spleeter==2.4.0
+# spleeter==2.4.0  # ⚠️ Requer TensorFlow específico, conflitos
 ffmpeg-progress-yield==0.7.8
 # 🎨 VISUALIZAÇÃO 3D & GRÁFICOS AVANÇADOS
 skia-python==87.5
@@ -346,15 +351,15 @@ p5==0.8.3
 plotly-express==0.4.1
 toyplot==1.0.3
 cairocffi==1.6.1
-vpype==1.13.0
+# vpype==1.13.0  # ⚠️ Pode não existir
 freetype-py==2.4.0
-typogrify==2.0.7
-layoutparser==0.3.4
+# typogrify==2.0.7  # ⚠️ Versão antiga, pode não existir
+# layoutparser==0.3.4  # ⚠️ Dependências pesadas
 fonttools==4.47.0
 # 🤖 IA GENERATIVA & MODELOS AVANÇADOS
 compel==2.0.2
 controlnet-aux==0.0.7
-xformers==0.0.23.post1
+# xformers==0.0.23.post1  # ⚠️ Requer CUDA, muito pesado, causa falhas
 deepface==0.0.86
 clip-interrogator==0.6.0
 facexlib==0.3.0
@@ -368,12 +373,12 @@ praat-parselmouth==0.4.3
 # 🕷️ SCRAPING AVANÇADO & AUTOMAÇÃO WEB
 selenium-wire==5.1.0
 scrapy-splash==0.8.0
-auto-scraper==1.1.14
+# auto-scraper==1.1.14  # ⚠️ Pode não existir
 selectolax==0.3.21
 # 📄 PDFs & DOCUMENTOS ULTRA AVANÇADOS
 img2pdf==0.5.1
 pikepdf==8.11.2
-mupdf==1.23.9
+# mupdf==1.23.9  # ⚠️ Conflita com PyMuPDF, não necessário
 # NOTAS:
 # - Total: ~330+ bibliotecas profissionais
 # - Compatível com Python 3.11+
