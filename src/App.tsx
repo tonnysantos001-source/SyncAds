@@ -340,7 +340,12 @@ function App() {
 
             {/* Auth Routes (only for non-authenticated users) */}
             <Route element={<PublicRoute />}>
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login-v2" element={<LoginPage />} />
+              {/* Redirect old login route to new one */}
+              <Route
+                path="/login"
+                element={<Navigate to="/login-v2" replace />}
+              />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             </Route>
