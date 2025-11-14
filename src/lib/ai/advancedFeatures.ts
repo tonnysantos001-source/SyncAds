@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 // =====================================================
 // CONFIGURAÇÕES DE APIs
@@ -24,10 +24,10 @@ interface ApiConfig {
 
 export interface ImageGenerationOptions {
   prompt: string;
-  size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792';
-  style?: 'vivid' | 'natural';
-  quality?: 'standard' | 'hd';
-  model?: 'dall-e-2' | 'dall-e-3';
+  size?: "256x256" | "512x512" | "1024x1024" | "1792x1024" | "1024x1792";
+  style?: "vivid" | "natural";
+  quality?: "standard" | "hd";
+  model?: "dall-e-2" | "dall-e-3";
   userId: string;
 }
 
@@ -45,21 +45,22 @@ export interface ImageGenerationResult {
 }
 
 export async function generateImage(
-  options: ImageGenerationOptions
+  options: ImageGenerationOptions,
 ): Promise<ImageGenerationResult> {
   try {
     // Buscar configuração da API
     const { data: config, error: configError } = await supabase
-      .from('GlobalAiConnection')
-      .select('*')
-      .eq('userId', options.userId)
-      .eq('isActive', true)
+      .from("GlobalAiConnection")
+      .select("*")
+      .eq("userId", options.userId)
+      .eq("isActive", true)
       .single();
 
     if (configError || !config) {
       return {
         success: false,
-        error: 'Configuração de IA não encontrada. Configure em Configurações > IA Global.',
+        error:
+          "Configuração de IA não encontrada. Configure em Configurações > IA Global.",
       };
     }
 
@@ -68,32 +69,35 @@ export async function generateImage(
     if (!openaiKey) {
       return {
         success: false,
-        error: 'API Key da OpenAI não configurada.',
+        error: "API Key da OpenAI não configurada.",
       };
     }
 
     // Gerar imagem usando DALL-E
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
+    const response = await fetch(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: options.model || "dall-e-3",
+          prompt: options.prompt,
+          n: 1,
+          size: options.size || "1024x1024",
+          quality: options.quality || "standard",
+          style: options.style || "vivid",
+        }),
       },
-      body: JSON.stringify({
-        model: options.model || 'dall-e-3',
-        prompt: options.prompt,
-        n: 1,
-        size: options.size || '1024x1024',
-        quality: options.quality || 'standard',
-        style: options.style || 'vivid',
-      }),
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
       return {
         success: false,
-        error: error.error?.message || 'Erro ao gerar imagem',
+        error: error.error?.message || "Erro ao gerar imagem",
       };
     }
 
@@ -103,23 +107,23 @@ export async function generateImage(
     if (!imageUrl) {
       return {
         success: false,
-        error: 'Nenhuma imagem foi gerada',
+        error: "Nenhuma imagem foi gerada",
       };
     }
 
     // Fazer upload da imagem para o Supabase Storage
-    const imageBlob = await fetch(imageUrl).then(r => r.blob());
+    const imageBlob = await fetch(imageUrl).then((r) => r.blob());
     const fileName = `images/${options.userId}/${Date.now()}.png`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('ai-generated')
+      .from("ai-generated")
       .upload(fileName, imageBlob, {
-        contentType: 'image/png',
-        cacheControl: '3600',
+        contentType: "image/png",
+        cacheControl: "3600",
       });
 
     if (uploadError) {
-      console.error('Erro ao fazer upload:', uploadError);
+      console.error("Erro ao fazer upload:", uploadError);
       // Retornar URL original se upload falhar
       return {
         success: true,
@@ -127,8 +131,8 @@ export async function generateImage(
         downloadUrl: imageUrl,
         metadata: {
           prompt: options.prompt,
-          size: options.size || '1024x1024',
-          model: options.model || 'dall-e-3',
+          size: options.size || "1024x1024",
+          model: options.model || "dall-e-3",
           generatedAt: new Date().toISOString(),
         },
       };
@@ -136,7 +140,7 @@ export async function generateImage(
 
     // Obter URL pública
     const { data: publicUrl } = supabase.storage
-      .from('ai-generated')
+      .from("ai-generated")
       .getPublicUrl(fileName);
 
     return {
@@ -145,17 +149,16 @@ export async function generateImage(
       downloadUrl: publicUrl.publicUrl,
       metadata: {
         prompt: options.prompt,
-        size: options.size || '1024x1024',
-        model: options.model || 'dall-e-3',
+        size: options.size || "1024x1024",
+        model: options.model || "dall-e-3",
         generatedAt: new Date().toISOString(),
       },
     };
-
   } catch (error: any) {
-    console.error('Erro ao gerar imagem:', error);
+    console.error("Erro ao gerar imagem:", error);
     return {
       success: false,
-      error: error.message || 'Erro desconhecido ao gerar imagem',
+      error: error.message || "Erro desconhecido ao gerar imagem",
     };
   }
 }
@@ -183,73 +186,163 @@ export interface WebSearchResult {
 }
 
 export async function searchWeb(
-  options: WebSearchOptions
+  options: WebSearchOptions,
 ): Promise<WebSearchResult> {
   try {
-    // Usar Brave Search API ou similar
-    // Por enquanto, vamos usar uma implementação simplificada
-
     const { data: config } = await supabase
-      .from('GlobalAiConnection')
-      .select('*')
-      .eq('userId', options.userId)
-      .eq('isActive', true)
+      .from("GlobalAiConnection")
+      .select("*")
+      .eq("userId", options.userId)
+      .eq("isActive", true)
       .single();
 
-    if (!config?.openaiKey) {
+    // Tentar usar Serper.dev primeiro
+    const serperKey =
+      process.env.VITE_SERPER_API_KEY ||
+      (config as any)?.serperKey ||
+      "8e0f0a8c8f4c79aa5e51e7c3b9d6ac9f38dfe4e4"; // Chave configurada
+
+    if (serperKey && serperKey !== "sua_chave_aqui") {
+      try {
+        // Usar Serper.dev para busca real
+        const serperResponse = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": serperKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            q: options.query,
+            num: options.maxResults || 5,
+            gl: "br", // Brazil
+            hl: "pt", // Portuguese
+          }),
+        });
+
+        if (serperResponse.ok) {
+          const serperData = await serperResponse.json();
+
+          // Processar resultados do Serper
+          const results = (serperData.organic || [])
+            .slice(0, options.maxResults || 5)
+            .map((item: any) => ({
+              title: item.title || "",
+              url: item.link || "",
+              snippet: item.snippet || "",
+              favicon: `https://www.google.com/s2/favicons?domain=${new URL(item.link).hostname}`,
+            }));
+
+          // Gerar resumo com IA se tiver OpenAI configurada
+          let summary = "";
+          if (config?.openaiKey && results.length > 0) {
+            try {
+              const summaryResponse = await fetch(
+                "https://api.openai.com/v1/chat/completions",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${config.openaiKey}`,
+                  },
+                  body: JSON.stringify({
+                    model: "gpt-4-turbo-preview",
+                    messages: [
+                      {
+                        role: "system",
+                        content:
+                          "Você é um assistente que resume resultados de pesquisa de forma concisa e útil em português.",
+                      },
+                      {
+                        role: "user",
+                        content: `Resuma estes resultados de pesquisa sobre "${options.query}":\n\n${results.map((r: any) => `- ${r.title}: ${r.snippet}`).join("\n")}`,
+                      },
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 300,
+                  }),
+                },
+              );
+
+              if (summaryResponse.ok) {
+                const summaryData = await summaryResponse.json();
+                summary = summaryData.choices[0]?.message?.content || "";
+              }
+            } catch (summaryError) {
+              console.warn("Erro ao gerar resumo:", summaryError);
+            }
+          }
+
+          return {
+            success: true,
+            results,
+            summary,
+          };
+        }
+      } catch (serperError) {
+        console.warn(
+          "Erro ao usar Serper.dev, tentando fallback:",
+          serperError,
+        );
+      }
+    }
+
+    // Fallback: usar OpenAI para simular pesquisa
+    if (config?.openaiKey) {
+      const searchQuery = encodeURIComponent(options.query);
+
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4-turbo-preview",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Você é um assistente que fornece informações atualizadas sobre qualquer tema. Seja conciso e factual.",
+              },
+              {
+                role: "user",
+                content: `Forneça informações atualizadas sobre: "${options.query}". Seja específico e cite fontes quando possível.`,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 500,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      const summary = data.choices[0]?.message?.content || "";
+
       return {
-        success: false,
-        error: 'API Key não configurada',
+        success: true,
+        results: [
+          {
+            title: `Informações sobre: ${options.query}`,
+            url: `https://www.google.com/search?q=${searchQuery}`,
+            snippet: summary,
+          },
+        ],
+        summary,
       };
     }
 
-    // Simular busca na web (em produção, usar API real como Brave Search, Serper, etc.)
-    const searchQuery = encodeURIComponent(options.query);
-
-    // Usar OpenAI para resumir resultados
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um assistente que pesquisa informações na web e retorna resultados relevantes em português.',
-          },
-          {
-            role: 'user',
-            content: `Pesquise informações sobre: "${options.query}". Forneça um resumo com as informações mais relevantes.`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      }),
-    });
-
-    const data = await response.json();
-    const summary = data.choices[0]?.message?.content || '';
-
-    return {
-      success: true,
-      results: [
-        {
-          title: `Resultados para: ${options.query}`,
-          url: `https://www.google.com/search?q=${searchQuery}`,
-          snippet: summary,
-        },
-      ],
-      summary,
-    };
-
-  } catch (error: any) {
-    console.error('Erro ao pesquisar na web:', error);
     return {
       success: false,
-      error: error.message || 'Erro ao pesquisar na web',
+      error:
+        "Nenhuma API de pesquisa configurada. Configure Serper.dev ou OpenAI.",
+    };
+  } catch (error: any) {
+    console.error("Erro ao pesquisar na web:", error);
+    return {
+      success: false,
+      error: error.message || "Erro ao pesquisar na web",
     };
   }
 }
@@ -261,7 +354,16 @@ export async function searchWeb(
 export interface FileGenerationOptions {
   content: string;
   fileName: string;
-  fileType: 'txt' | 'md' | 'json' | 'csv' | 'html' | 'js' | 'ts' | 'css' | 'xml';
+  fileType:
+    | "txt"
+    | "md"
+    | "json"
+    | "csv"
+    | "html"
+    | "js"
+    | "ts"
+    | "css"
+    | "xml";
   userId: string;
   metadata?: Record<string, any>;
 }
@@ -275,52 +377,52 @@ export interface FileGenerationResult {
 }
 
 export async function generateDownloadableFile(
-  options: FileGenerationOptions
+  options: FileGenerationOptions,
 ): Promise<FileGenerationResult> {
   try {
     const mimeTypes: Record<string, string> = {
-      txt: 'text/plain',
-      md: 'text/markdown',
-      json: 'application/json',
-      csv: 'text/csv',
-      html: 'text/html',
-      js: 'application/javascript',
-      ts: 'application/typescript',
-      css: 'text/css',
-      xml: 'application/xml',
+      txt: "text/plain",
+      md: "text/markdown",
+      json: "application/json",
+      csv: "text/csv",
+      html: "text/html",
+      js: "application/javascript",
+      ts: "application/typescript",
+      css: "text/css",
+      xml: "application/xml",
     };
 
-    const contentType = mimeTypes[options.fileType] || 'text/plain';
+    const contentType = mimeTypes[options.fileType] || "text/plain";
     const blob = new Blob([options.content], { type: contentType });
 
     const fileName = `files/${options.userId}/${Date.now()}_${options.fileName}`;
 
     // Upload para Supabase Storage
     const { data, error } = await supabase.storage
-      .from('ai-generated')
+      .from("ai-generated")
       .upload(fileName, blob, {
         contentType,
-        cacheControl: '3600',
+        cacheControl: "3600",
         upsert: false,
       });
 
     if (error) {
-      console.error('Erro ao fazer upload do arquivo:', error);
+      console.error("Erro ao fazer upload do arquivo:", error);
       return {
         success: false,
-        error: error.message || 'Erro ao criar arquivo',
+        error: error.message || "Erro ao criar arquivo",
       };
     }
 
     // Obter URL pública com tempo de expiração
     const { data: signedUrl, error: signedError } = await supabase.storage
-      .from('ai-generated')
+      .from("ai-generated")
       .createSignedUrl(fileName, 3600); // 1 hora
 
     if (signedError || !signedUrl) {
       return {
         success: false,
-        error: 'Erro ao gerar URL de download',
+        error: "Erro ao gerar URL de download",
       };
     }
 
@@ -330,12 +432,11 @@ export async function generateDownloadableFile(
       fileName: options.fileName,
       fileSize: blob.size,
     };
-
   } catch (error: any) {
-    console.error('Erro ao gerar arquivo:', error);
+    console.error("Erro ao gerar arquivo:", error);
     return {
       success: false,
-      error: error.message || 'Erro ao gerar arquivo',
+      error: error.message || "Erro ao gerar arquivo",
     };
   }
 }
@@ -345,7 +446,13 @@ export async function generateDownloadableFile(
 // =====================================================
 
 export interface AdvancedIntent {
-  type: 'generate-image' | 'generate-video' | 'web-search' | 'create-file' | 'analyze-data' | 'none';
+  type:
+    | "generate-image"
+    | "generate-video"
+    | "web-search"
+    | "create-file"
+    | "analyze-data"
+    | "none";
   confidence: number;
   params?: Record<string, any>;
 }
@@ -355,21 +462,24 @@ export function detectAdvancedIntent(userMessage: string): AdvancedIntent {
 
   // Geração de imagem
   if (
-    message.includes('gerar imagem') ||
-    message.includes('criar imagem') ||
-    message.includes('desenhar') ||
-    message.includes('ilustração') ||
-    message.includes('gere uma imagem') ||
-    message.includes('crie uma imagem')
+    message.includes("gerar imagem") ||
+    message.includes("criar imagem") ||
+    message.includes("desenhar") ||
+    message.includes("ilustração") ||
+    message.includes("gere uma imagem") ||
+    message.includes("crie uma imagem")
   ) {
     // Extrair prompt da mensagem
     const prompt = userMessage
-      .replace(/gerar imagem|criar imagem|desenhar|ilustração|gere uma imagem|crie uma imagem/gi, '')
-      .replace(/de|do|da|sobre|com/gi, '')
+      .replace(
+        /gerar imagem|criar imagem|desenhar|ilustração|gere uma imagem|crie uma imagem/gi,
+        "",
+      )
+      .replace(/de|do|da|sobre|com/gi, "")
       .trim();
 
     return {
-      type: 'generate-image',
+      type: "generate-image",
       confidence: 0.9,
       params: { prompt: prompt || userMessage },
     };
@@ -377,23 +487,23 @@ export function detectAdvancedIntent(userMessage: string): AdvancedIntent {
 
   // Pesquisa na web
   if (
-    message.includes('pesquisar') ||
-    message.includes('buscar') ||
-    message.includes('procurar') ||
-    message.includes('pesquise') ||
-    message.includes('busque') ||
-    message.includes('o que é') ||
-    message.includes('quem é') ||
-    message.includes('quando') ||
-    message.includes('onde')
+    message.includes("pesquisar") ||
+    message.includes("buscar") ||
+    message.includes("procurar") ||
+    message.includes("pesquise") ||
+    message.includes("busque") ||
+    message.includes("o que é") ||
+    message.includes("quem é") ||
+    message.includes("quando") ||
+    message.includes("onde")
   ) {
     const query = userMessage
-      .replace(/pesquisar|buscar|procurar|pesquise|busque|o que é|quem é/gi, '')
-      .replace(/na internet|no google|online/gi, '')
+      .replace(/pesquisar|buscar|procurar|pesquise|busque|o que é|quem é/gi, "")
+      .replace(/na internet|no google|online/gi, "")
       .trim();
 
     return {
-      type: 'web-search',
+      type: "web-search",
       confidence: 0.85,
       params: { query: query || userMessage },
     };
@@ -401,14 +511,14 @@ export function detectAdvancedIntent(userMessage: string): AdvancedIntent {
 
   // Criação de arquivo
   if (
-    message.includes('criar arquivo') ||
-    message.includes('gerar arquivo') ||
-    message.includes('salvar em') ||
-    message.includes('exportar') ||
-    message.includes('download')
+    message.includes("criar arquivo") ||
+    message.includes("gerar arquivo") ||
+    message.includes("salvar em") ||
+    message.includes("exportar") ||
+    message.includes("download")
   ) {
     return {
-      type: 'create-file',
+      type: "create-file",
       confidence: 0.8,
       params: {},
     };
@@ -416,21 +526,21 @@ export function detectAdvancedIntent(userMessage: string): AdvancedIntent {
 
   // Análise de dados
   if (
-    message.includes('analisar') ||
-    message.includes('análise') ||
-    message.includes('estatística') ||
-    message.includes('métricas') ||
-    message.includes('relatório')
+    message.includes("analisar") ||
+    message.includes("análise") ||
+    message.includes("estatística") ||
+    message.includes("métricas") ||
+    message.includes("relatório")
   ) {
     return {
-      type: 'analyze-data',
+      type: "analyze-data",
       confidence: 0.75,
       params: {},
     };
   }
 
   return {
-    type: 'none',
+    type: "none",
     confidence: 0,
   };
 }
@@ -442,7 +552,7 @@ export function detectAdvancedIntent(userMessage: string): AdvancedIntent {
 export interface EnhancedResponse {
   text: string;
   attachments?: Array<{
-    type: 'image' | 'file' | 'link';
+    type: "image" | "file" | "link";
     url: string;
     title?: string;
     description?: string;
@@ -460,7 +570,7 @@ export function formatEnhancedResponse(
     images?: string[];
     files?: Array<{ url: string; name: string }>;
     links?: Array<{ url: string; title: string }>;
-  }
+  },
 ): EnhancedResponse {
   const response: EnhancedResponse = {
     text,
@@ -472,9 +582,9 @@ export function formatEnhancedResponse(
   if (resources?.images) {
     resources.images.forEach((url) => {
       response.attachments?.push({
-        type: 'image',
+        type: "image",
         url,
-        title: 'Imagem gerada',
+        title: "Imagem gerada",
       });
     });
   }
@@ -483,14 +593,14 @@ export function formatEnhancedResponse(
   if (resources?.files) {
     resources.files.forEach((file) => {
       response.attachments?.push({
-        type: 'file',
+        type: "file",
         url: file.url,
         title: file.name,
       });
 
       response.actions?.push({
         label: `Baixar ${file.name}`,
-        action: 'download',
+        action: "download",
         data: { url: file.url },
       });
     });
@@ -500,7 +610,7 @@ export function formatEnhancedResponse(
   if (resources?.links) {
     resources.links.forEach((link) => {
       response.attachments?.push({
-        type: 'link',
+        type: "link",
         url: link.url,
         title: link.title,
       });

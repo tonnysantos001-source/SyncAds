@@ -57,6 +57,11 @@ import {
   incrementAiMessageUsage,
 } from "@/lib/plans/planLimits";
 import { AIUsageBadge } from "@/components/chat/AIUsageBadge";
+import {
+  processUserMessage,
+  requiresAdvancedProcessing,
+  type ChatAttachment,
+} from "@/lib/ai/chatHandlers";
 
 const quickSuggestions = [
   "Criar campanha de Facebook Ads",
@@ -79,6 +84,10 @@ const ChatPage: React.FC = () => {
   >(null);
   const [aiReasoning, setAiReasoning] = useState<string>("");
   const [aiSources, setAiSources] = useState<string[]>([]);
+  const [aiProgress, setAiProgress] = useState<number>(0);
+  const [currentAttachments, setCurrentAttachments] = useState<
+    ChatAttachment[]
+  >([]);
 
   const [isRecording, setIsRecording] = useState(false);
   const [, setAudioBlob] = useState<Blob | null>(null);
@@ -229,20 +238,40 @@ const ChatPage: React.FC = () => {
 
     const userMessage = input;
 
+    // Detectar se requer processamento avançado
+    const needsAdvanced = requiresAdvancedProcessing(userMessage);
+
+    // Configurar tool e reasoning baseado na mensagem
     const lowerMessage = userMessage.toLowerCase();
-    if (
+    if (lowerMessage.includes("gere") && lowerMessage.includes("imagem")) {
+      setCurrentTool("generate_image");
+      setAiReasoning("Gerando imagem com DALL-E 3...");
+    } else if (
+      lowerMessage.includes("gere") &&
+      lowerMessage.includes("vídeo")
+    ) {
+      setCurrentTool("generate_video");
+      setAiReasoning("Preparando geração de vídeo...");
+    } else if (
       lowerMessage.includes("pesquis") ||
       lowerMessage.includes("busca") ||
       lowerMessage.includes("google")
     ) {
       setCurrentTool("web_search");
       setAiReasoning(`Pesquisando: "${userMessage}"`);
-      setAiSources(["Google Search", "Exa AI"]);
+      setAiSources(["Google Search", "Serper API"]);
+    } else if (
+      lowerMessage.includes("crie") &&
+      lowerMessage.includes("arquivo")
+    ) {
+      setCurrentTool("create_file");
+      setAiReasoning("Criando arquivo...");
     } else {
       setCurrentTool(null);
       setAiReasoning("Processando...");
       setAiSources([]);
     }
+    setAiProgress(0);
 
     if (user) {
       addMessage(user.id, activeConversationId, {
@@ -256,6 +285,51 @@ const ChatPage: React.FC = () => {
     setAssistantTyping(true);
 
     try {
+      // Se requer processamento avançado (imagem, vídeo, pesquisa)
+      if (needsAdvanced && user) {
+        const advancedResult = await processUserMessage(
+          {
+            userId: user.id,
+            conversationId: activeConversationId,
+            userMessage,
+            conversationHistory: [],
+          },
+          (status, progress) => {
+            setAiReasoning(status);
+            if (progress) setAiProgress(progress);
+          },
+        );
+
+        if (
+          advancedResult.success &&
+          !advancedResult.metadata?.skipAdvancedProcessing
+        ) {
+          // Processar resultado avançado
+          if (
+            advancedResult.attachments &&
+            advancedResult.attachments.length > 0
+          ) {
+            setCurrentAttachments(advancedResult.attachments);
+          }
+
+          // Adicionar resposta com attachments
+          await streamAssistantResponse(
+            user.id,
+            activeConversationId,
+            advancedResult.content,
+          );
+
+          await incrementAiMessageUsage(user.id);
+          setAssistantTyping(false);
+          setCurrentTool(null);
+          setAiReasoning("");
+          setAiSources([]);
+          setAiProgress(0);
+          setCurrentAttachments([]);
+          return;
+        }
+      }
+
       const conversation = conversations.find(
         (c: any) => c.id === activeConversationId,
       );
@@ -849,6 +923,8 @@ const ChatPage: React.FC = () => {
                   reasoning={aiReasoning}
                   sources={aiSources}
                   status="thinking"
+                  progress={aiProgress}
+                  modernStyle={true}
                 />
               )}
               <div ref={messagesEndRef} />
