@@ -789,17 +789,28 @@ async function detectAutoLogin(tabId) {
           if (supabaseAuthKey) {
             const authData = localStorage.getItem(supabaseAuthKey);
             if (authData) {
-              const parsed = JSON.parse(authData);
-              const user = parsed?.user || parsed?.currentUser;
-              const accessToken = parsed?.access_token;
-              if (user?.id && accessToken) {
-                return {
-                  userId: user.id,
-                  email: user.email,
-                  accessToken: accessToken,
-                  found: true,
-                  source: "supabase-modern",
-                };
+              try {
+                const parsed = JSON.parse(authData);
+                console.log("🔍 Parsed auth data:", {
+                  hasUser: !!parsed?.user,
+                  hasToken: !!parsed?.access_token,
+                });
+
+                const user = parsed?.user;
+                const accessToken = parsed?.access_token;
+
+                if (user?.id && accessToken) {
+                  console.log("✅ Token encontrado via supabase-modern");
+                  return {
+                    userId: user.id,
+                    email: user.email,
+                    accessToken: accessToken,
+                    found: true,
+                    source: "supabase-modern",
+                  };
+                }
+              } catch (e) {
+                console.error("❌ Erro ao parsear auth data:", e);
               }
             }
           }
@@ -807,18 +818,23 @@ async function detectAutoLogin(tabId) {
           // 2. Buscar formato legado: supabase.auth.token
           const legacyAuth = localStorage.getItem("supabase.auth.token");
           if (legacyAuth) {
-            const parsed = JSON.parse(legacyAuth);
-            const user = parsed?.currentSession?.user || parsed?.user;
-            const accessToken =
-              parsed?.currentSession?.access_token || parsed?.access_token;
-            if (user?.id && accessToken) {
-              return {
-                userId: user.id,
-                email: user.email,
-                accessToken: accessToken,
-                found: true,
-                source: "supabase-legacy",
-              };
+            try {
+              const parsed = JSON.parse(legacyAuth);
+              const user = parsed?.currentSession?.user || parsed?.user;
+              const accessToken =
+                parsed?.currentSession?.access_token || parsed?.access_token;
+              if (user?.id && accessToken) {
+                console.log("✅ Token encontrado via supabase-legacy");
+                return {
+                  userId: user.id,
+                  email: user.email,
+                  accessToken: accessToken,
+                  found: true,
+                  source: "supabase-legacy",
+                };
+              }
+            } catch (e) {
+              console.error("❌ Erro ao parsear legacyAuth:", e);
             }
           }
 
@@ -831,32 +847,58 @@ async function detectAutoLogin(tabId) {
           if (sessionAuthKey) {
             const authData = sessionStorage.getItem(sessionAuthKey);
             if (authData) {
-              const parsed = JSON.parse(authData);
-              const user = parsed?.user || parsed?.currentUser;
-              const accessToken = parsed?.access_token;
-              if (user?.id && accessToken) {
-                return {
-                  userId: user.id,
-                  email: user.email,
-                  accessToken: accessToken,
-                  found: true,
-                  source: "supabase-session",
-                };
+              try {
+                const parsed = JSON.parse(authData);
+                const user = parsed?.user;
+                const accessToken = parsed?.access_token;
+                if (user?.id && accessToken) {
+                  console.log("✅ Token encontrado via supabase-session");
+                  return {
+                    userId: user.id,
+                    email: user.email,
+                    accessToken: accessToken,
+                    found: true,
+                    source: "supabase-session",
+                  };
+                }
+              } catch (e) {
+                console.error("❌ Erro ao parsear sessionStorage:", e);
               }
             }
           }
 
-          // 4. Fallback: userId direto
-          const directUserId = localStorage.getItem("userId");
-          if (directUserId) {
-            return {
-              userId: directUserId,
-              found: true,
-              source: "direct",
-            };
+          // 4. Debug: mostrar todas as chaves que começam com 'sb-'
+          const supabaseKeys = keys.filter((k) => k.startsWith("sb-"));
+          console.log("🔑 Chaves Supabase encontradas:", supabaseKeys);
+
+          // Tentar ler todas as chaves supabase para debug
+          if (supabaseKeys.length > 0) {
+            for (const key of supabaseKeys) {
+              try {
+                const data = localStorage.getItem(key);
+                if (data) {
+                  const parsed = JSON.parse(data);
+                  console.log(`📦 Conteúdo de ${key}:`, {
+                    hasUser: !!parsed?.user,
+                    hasAccessToken: !!parsed?.access_token,
+                    userId: parsed?.user?.id?.substring(0, 8) + "...",
+                    tokenPreview:
+                      parsed?.access_token?.substring(0, 20) + "...",
+                  });
+                }
+              } catch (e) {
+                console.log(`⚠️ Erro ao ler ${key}:`, e.message);
+              }
+            }
           }
 
-          return { found: false };
+          return {
+            found: false,
+            debugInfo: {
+              totalKeys: keys.length,
+              supabaseKeys: supabaseKeys.length,
+            },
+          };
         } catch (e) {
           return { found: false, error: e.message };
         }
