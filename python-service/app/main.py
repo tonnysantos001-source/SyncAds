@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
+import httpx
 import jwt
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,6 +43,80 @@ ENHANCED_SYSTEM_PROMPT = """VOCÊ TEM AS SEGUINTES CAPACIDADES ATIVADAS E FUNCIO
 ✅ PESQUISAR NA WEB - DuckDuckGo integrado e funcional
 ✅ CRIAR ARQUIVOS - Sistema de arquivos integrado e funcional
 ✅ EXECUTAR PYTHON - Sandbox RestrictedPython integrado e funcional
+✅ AUTOMAÇÃO DE NAVEGADOR - Extensão Chrome integrada e funcional
+
+🌐 CAPACIDADES DA EXTENSÃO DO NAVEGADOR (NOVO!):
+
+Você pode CONTROLAR o navegador do usuário através da extensão SyncAds AI!
+
+**COMANDOS DISPONÍVEIS:**
+
+1. **NAVEGAR** - Abrir qualquer URL
+   Exemplo: "Abra o site facebook.com/ads"
+
+2. **CLICAR** - Clicar em elementos da página
+   Exemplo: "Clique no botão 'Criar Campanha'"
+
+3. **PREENCHER** - Preencher formulários automaticamente
+   Exemplo: "Preencha o campo 'Nome da Campanha' com 'Black Friday 2025'"
+
+4. **LER DADOS** - Extrair informações da página
+   Exemplo: "Leia o texto do elemento com classe 'campaign-status'"
+
+5. **TIRAR PRINT** - Capturar screenshot da página
+   Exemplo: "Tire um print da tela atual"
+
+6. **ROLAR PÁGINA** - Scroll automático
+   Exemplo: "Role a página para baixo"
+
+7. **AGUARDAR** - Esperar elemento aparecer
+   Exemplo: "Aguarde o botão 'Salvar' aparecer"
+
+**PLATAFORMAS SUPORTADAS:**
+- Facebook Ads Manager
+- Google Ads
+- Instagram Ads
+- TikTok Ads
+- LinkedIn Ads
+- Shopify Admin
+- WordPress
+- Qualquer site que o usuário tenha acesso
+
+**COMO USAR:**
+
+Quando o usuário pedir algo como:
+- "Crie uma campanha no Facebook Ads"
+- "Preencha o formulário de anúncio"
+- "Verifique minhas métricas no Google Ads"
+- "Adicione um produto no Shopify"
+
+Você deve AUTOMATICAMENTE:
+1. Navegar até a página necessária
+2. Preencher os campos solicitados
+3. Clicar nos botões necessários
+4. Confirmar a ação
+
+**EXEMPLO COMPLETO:**
+
+Usuário: "Crie uma campanha de tráfego no Facebook Ads para minha loja"
+
+Você responde: "Vou criar a campanha no Facebook Ads para você agora!"
+
+E executa:
+1. NAVEGAR → https://business.facebook.com/adsmanager
+2. AGUARDAR → Botão "Criar"
+3. CLICAR → Botão "Criar"
+4. CLICAR → "Campanha"
+5. CLICAR → Objetivo "Tráfego"
+6. PREENCHER → Nome: "Campanha Loja - [data]"
+7. CLICAR → "Continuar"
+8. Confirmar ao usuário: "Campanha criada com sucesso!"
+
+**IMPORTANTE:**
+- NUNCA diga "não posso acessar o navegador"
+- NUNCA peça para o usuário fazer manualmente
+- SEMPRE execute as ações automaticamente
+- Se a extensão não estiver conectada, informe: "Por favor, clique no ícone da extensão SyncAds AI e conecte"
 
 QUANDO O USUÁRIO PEDIR IMAGENS OU VÍDEOS:
 - NUNCA diga "não posso", "não tenho capacidade" ou "sugiro usar outras ferramentas"
@@ -57,9 +132,12 @@ Você: "Vou criar uma imagem de um gato para você agora!" [e usa a ferramenta]
 Usuário: "gere um vídeo de produto"
 Você: "Perfeito! Vou gerar o vídeo para você!" [e usa a ferramenta]
 
+Usuário: "crie uma campanha no Facebook"
+Você: "Vou criar a campanha no Facebook Ads agora!" [e usa a extensão]
+
 NUNCA mencione limitações da Anthropic, Claude API, ou falta de capacidades.
 VOCÊ JÁ TEM TUDO INTEGRADO E FUNCIONANDO.
-Se o usuário perguntar "o que você pode fazer", liste estas 5 capacidades como DISPONÍVEIS AGORA."""
+Se o usuário perguntar "o que você pode fazer", liste TODAS as 6 capacidades como DISPONÍVEIS AGORA."""
 
 # ==========================================
 # CRIAR APP FASTAPI
@@ -104,6 +182,101 @@ app.add_middleware(
 
 
 # ==========================================
+# SUPABASE HTTP FALLBACK
+# ==========================================
+class SupabaseHTTP:
+    """Cliente Supabase alternativo usando httpx direto"""
+
+    def __init__(self, url: str, key: str):
+        self.url = url.rstrip("/")
+        self.key = key
+        self.headers = {
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+
+    async def table(self, table_name: str):
+        return SupabaseTableHTTP(self.url, table_name, self.headers)
+
+
+class SupabaseTableHTTP:
+    """Operações de tabela usando httpx"""
+
+    def __init__(self, base_url: str, table_name: str, headers: dict):
+        self.base_url = base_url
+        self.table_name = table_name
+        self.headers = headers
+        self.endpoint = f"{base_url}/rest/v1/{table_name}"
+
+    async def insert(self, data: dict):
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(self.endpoint, json=data, headers=self.headers)
+            return {"data": response.json() if response.status_code == 201 else None}
+
+    async def select(self, columns: str = "*"):
+        return SupabaseSelectHTTP(self.endpoint, columns, self.headers)
+
+    async def update(self, data: dict):
+        return SupabaseUpdateHTTP(self.endpoint, data, self.headers)
+
+    async def upsert(self, data: dict):
+        headers = {**self.headers, "Prefer": "resolution=merge-duplicates"}
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(self.endpoint, json=data, headers=headers)
+            return {
+                "data": response.json() if response.status_code in [200, 201] else None
+            }
+
+
+class SupabaseSelectHTTP:
+    def __init__(self, endpoint: str, columns: str, headers: dict):
+        self.endpoint = endpoint
+        self.columns = columns
+        self.headers = headers
+        self.filters = []
+
+    def eq(self, column: str, value: str):
+        self.filters.append(f"{column}=eq.{value}")
+        return self
+
+    async def execute(self):
+        params = {"select": self.columns}
+        if self.filters:
+            for filter_str in self.filters:
+                key, val = filter_str.split("=", 1)
+                params[key] = val
+
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        url = f"{self.endpoint}?{query_string}"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, headers=self.headers)
+            return {"data": response.json() if response.status_code == 200 else []}
+
+
+class SupabaseUpdateHTTP:
+    def __init__(self, endpoint: str, data: dict, headers: dict):
+        self.endpoint = endpoint
+        self.data = data
+        self.headers = headers
+        self.filters = []
+
+    def eq(self, column: str, value: str):
+        self.filters.append(f"{column}=eq.{value}")
+        return self
+
+    async def execute(self):
+        query_string = "&".join(self.filters)
+        url = f"{self.endpoint}?{query_string}"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.patch(url, json=self.data, headers=self.headers)
+            return {"data": response.json() if response.status_code == 200 else None}
+
+
+# ==========================================
 # SUPABASE CLIENT
 # ==========================================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -111,14 +284,86 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
 supabase: Optional[Client] = None
+supabase_http: Optional[SupabaseHTTP] = None
+
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        logger.info("✅ Supabase client initialized successfully")
+        logger.info("✅ Supabase SDK initialized successfully")
     except Exception as e:
-        logger.warning(f"⚠️ Supabase initialization failed: {e}")
-        logger.warning("⚠️ Running without Supabase connection")
-        supabase = None
+        logger.warning(f"⚠️ Supabase SDK initialization failed: {e}")
+        logger.info("🔄 Trying HTTP fallback...")
+        try:
+            supabase_http = SupabaseHTTP(SUPABASE_URL, SUPABASE_KEY)
+            logger.info("✅ Supabase HTTP fallback initialized successfully")
+        except Exception as e2:
+            logger.error(f"❌ Supabase HTTP fallback also failed: {e2}")
+            logger.warning("⚠️ Running without Supabase connection")
+
+
+# ==========================================
+# BROWSER AUTOMATION DETECTION
+# ==========================================
+def detect_browser_automation_intent(message: str) -> Optional[Dict]:
+    """Detecta intenção de automação de navegador na mensagem"""
+    message_lower = message.lower()
+
+    # Navegar para URL
+    if any(word in message_lower for word in ["abra", "abrir", "navegue", "vá para", "acesse"]):
+        # Extrair URL se houver
+        import re
+        url_pattern = r'https?://[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?'
+        urls = re.findall(url_pattern, message)
+        if urls:
+            return {
+                "type": "NAVIGATE",
+                "data": {"url": urls[0]}
+            }
+
+    # Clicar em elemento
+    if any(word in message_lower for word in ["clique", "clicar", "pressione", "aperte"]):
+        # Extrair texto do botão/elemento
+        button_patterns = [
+            r'bot[ãa]o ["\']([^"\']+)["\']',
+            r'em ["\']([^"\']+)["\']',
+            r'no bot[ãa]o ([^\s]+)',
+        ]
+        for pattern in button_patterns:
+            import re
+            match = re.search(pattern, message_lower)
+            if match:
+                return {
+                    "type": "DOM_CLICK",
+                    "data": {"selector": f"button:contains('{match.group(1)}')", "text": match.group(1)}
+                }
+
+    # Preencher campo
+    if any(word in message_lower for word in ["preencha", "preencher", "digite", "escreva", "insira"]):
+        # Extrair campo e valor
+        import re
+        fill_pattern = r'campo ["\']?([^"\']+)["\']? (?:com|de) ["\']?([^"\']+)["\']?'
+        match = re.search(fill_pattern, message_lower)
+        if match:
+            return {
+                "type": "DOM_FILL",
+                "data": {"selector": f"input[name*='{match.group(1)}']", "value": match.group(2)}
+            }
+
+    # Tirar screenshot
+    if any(word in message_lower for word in ["print", "screenshot", "captura", "tire uma foto"]):
+        return {
+            "type": "SCREENSHOT",
+            "data": {}
+        }
+
+    # Ler dados da página
+    if any(word in message_lower for word in ["leia", "extraia", "pegue", "busque"]) and any(word in message_lower for word in ["página", "tela", "site"]):
+        return {
+            "type": "DOM_READ",
+            "data": {"selector": "body"}
+        }
+
+    return None
 
 
 # ==========================================
@@ -278,11 +523,56 @@ async def chat(
         )
         user_id = request.userId or user_payload.get("sub")
 
+        # 1.5 Verificar se usuário tem extensão conectada
+        user_devices = [
+            device
+            for device_id, device in extension_devices.items()
+            if device.get("user_id") == user_id and device.get("status") == "online"
+        ]
+        has_extension = len(user_devices) > 0
+
+        if has_extension:
+            logger.info(
+                f"✅ Usuário {user_id} tem {len(user_devices)} extensão(ões) conectada(s)"
+            )
+        else:
+            logger.info(f"⚠️ Usuário {user_id} sem extensões conectadas")
+
         # 2. Detectar se precisa usar ferramenta AI
         logger.info(f"📝 Mensagem recebida: '{request.message}'")
         tool_intent = detect_tool_intent(request.message)
         logger.info(f"🔍 Detecção de intent resultado: {tool_intent}")
         tool_result = None
+
+        # 2.5 Detectar automação de navegador
+        browser_intent = detect_browser_automation_intent(request.message)
+        if browser_intent and has_extension:
+            logger.info(f"🌐 Automação de navegador detectada: {browser_intent['type']}")
+
+            # Criar comando para extensão
+            if user_devices:
+                device_id = user_devices[0]["device_id"]
+                command_id = f"cmd_{int(time.time() * 1000)}"
+
+                command_data = {
+                    "id": command_id,
+                    "user_id": user_id,
+                    "device_id": device_id,
+                    "type": browser_intent["type"],
+                    "data": browser_intent["data"],
+                    "status": "pending",
+                    "created_at": datetime.utcnow().isoformat(),
+                }
+
+                # Salvar comando
+                extension_commands[command_id] = command_data
+                logger.info(f"✅ Comando criado: {command_id}")
+
+                # Adicionar ao contexto da resposta
+                tool_result = f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
+</parameter>
+
+</invoke>
 
         if tool_intent:
             logger.info(f"🛠️ TOOL DETECTED! Executando ferramenta: {tool_intent}")
@@ -391,9 +681,9 @@ async def chat(
                     executor = create_python_executor()
                     tool_result = await executor.execute(code)
 
-            except Exception as e:
-                logger.error(f"❌ ERRO NA FERRAMENTA {tool_intent}: {e}", exc_info=True)
-                tool_result = {"success": False, "error": str(e)}
+            except Exception as tool_error:
+                logger.error(f"❌ ERRO NA FERRAMENTA {tool_intent}: {tool_error}", exc_info=True)
+                tool_result = {"success": False, "error": str(tool_error)}
         else:
             logger.info("ℹ️ Nenhuma ferramenta detectada - resposta normal de chat")
 
@@ -439,9 +729,49 @@ async def chat(
         base_system_prompt = ai_config.get(
             "systemPrompt", "Você é um assistente útil de marketing digital."
         )
-        system_prompt = f"{base_system_prompt}\n\n{ENHANCED_SYSTEM_PROMPT}"
 
-        logger.info(f"🤖 Using provider: {provider}, model: {model}")
+        # Condicionar system prompt baseado em extensão
+        extension_status = ""
+        if has_extension:
+            extension_status = """
+
+✅ EXTENSÃO DO NAVEGADOR CONECTADA E ATIVA!
+
+O usuário tem a extensão SyncAds AI instalada e conectada.
+Você PODE e DEVE usar os comandos de automação de navegador!
+
+Quando o usuário pedir para:
+- Criar campanhas
+- Preencher formulários
+- Navegar em sites
+- Clicar em botões
+- Ler dados de páginas
+
+EXECUTE automaticamente usando a extensão!
+NUNCA diga "não posso acessar o navegador" - VOCÊ PODE!
+"""
+        else:
+            extension_status = """
+
+⚠️ EXTENSÃO DO NAVEGADOR NÃO CONECTADA
+
+O usuário NÃO tem a extensão SyncAds AI conectada no momento.
+
+Se ele pedir automação de navegador:
+1. Informe: "Para realizar essa automação, preciso que você conecte a extensão SyncAds AI"
+2. Instrua: "Clique no ícone da extensão no Chrome e clique em 'Conectar'"
+3. Ofereça alternativas: "Posso ajudar de outras formas enquanto isso?"
+
+NÃO prometa funcionalidades de navegador sem extensão conectada.
+"""
+
+        system_prompt = (
+            f"{base_system_prompt}\n\n{ENHANCED_SYSTEM_PROMPT}\n\n{extension_status}"
+        )
+
+        logger.info(
+            f"🤖 Using provider: {provider}, model: {model}, extension: {has_extension}"
+        )
 
         # 8. Gerar resposta com streaming
         if provider == "ANTHROPIC":
@@ -807,6 +1137,60 @@ async def receive_extension_log(request: Request):
     except Exception as e:
         logger.error(f"❌ Log error: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.get("/api/extension/devices/{user_id}")
+async def get_user_devices(user_id: str):
+    """
+    Lista dispositivos conectados de um usuário
+    """
+    try:
+        # Buscar em memória primeiro
+        user_devices = [
+            {
+                "device_id": device_id,
+                "browser_info": device.get("browser_info"),
+                "version": device.get("version"),
+                "status": device.get("status"),
+                "last_seen": device.get("last_seen"),
+            }
+            for device_id, device in extension_devices.items()
+            if device.get("user_id") == user_id
+        ]
+
+        # Se tiver Supabase, buscar lá também
+        if supabase:
+            try:
+                result = (
+                    supabase.table("extension_devices")
+                    .select("*")
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+                if result.data:
+                    # Adicionar devices do Supabase que não estão em memória
+                    memory_device_ids = {d["device_id"] for d in user_devices}
+                    for db_device in result.data:
+                        if db_device["device_id"] not in memory_device_ids:
+                            user_devices.append(
+                                {
+                                    "device_id": db_device["device_id"],
+                                    "browser_info": db_device.get("browser_info"),
+                                    "version": db_device.get("version"),
+                                    "status": db_device.get("status"),
+                                    "last_seen": db_device.get("last_seen"),
+                                }
+                            )
+            except Exception as e:
+                logger.warning(f"⚠️ Erro ao buscar devices no Supabase: {e}")
+
+        logger.info(f"📱 Usuário {user_id} tem {len(user_devices)} dispositivos")
+
+        return {"success": True, "devices": user_devices, "count": len(user_devices)}
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar dispositivos: {e}")
+        return {"success": False, "devices": [], "error": str(e)}
 
 
 # ==========================================
