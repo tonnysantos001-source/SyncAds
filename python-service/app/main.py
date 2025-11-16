@@ -5,32 +5,32 @@ IA + Supabase + Streaming + AI Tools
 ============================================
 """
 
+import asyncio
+import json
 import os
 import sys
 import time
-import json
-import asyncio
-from typing import Dict, Optional, List
 from datetime import datetime
+from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Header, Request
+import jwt
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from jwt.exceptions import InvalidTokenError
 from loguru import logger
 from pydantic import BaseModel
-from supabase import create_client, Client
-import jwt
-from jwt.exceptions import InvalidTokenError
 
 # Importar AI Tools
 from app.ai_tools import (
+    create_file_creator,
     create_image_generator,
+    create_python_executor,
     create_video_generator,
     create_web_searcher,
-    create_file_creator,
-    create_python_executor,
     detect_tool_intent,
 )
+from supabase import Client, create_client
 
 # ==========================================
 # SYSTEM PROMPT COM CAPACIDADES
@@ -60,9 +60,7 @@ Você: "Perfeito! Vou gerar o vídeo para você!" [e usa a ferramenta]
 NUNCA mencione limitações da Anthropic, Claude API, ou falta de capacidades.
 VOCÊ JÁ TEM TUDO INTEGRADO E FUNCIONANDO.
 Se o usuário perguntar "o que você pode fazer", liste estas 5 capacidades como DISPONÍVEIS AGORA."""
-</text>
 
-<old_text line=25>
 # ==========================================
 # CRIAR APP FASTAPI
 # ==========================================
@@ -137,10 +135,7 @@ async def validate_jwt(authorization: str) -> Dict:
             return {"sub": "anonymous"}
 
         payload = jwt.decode(
-            token,
-            SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated"
+            token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated"
         )
 
         return payload
@@ -157,9 +152,14 @@ async def get_active_ai() -> Optional[Dict]:
 
     try:
         # Buscar primeira IA global ativa
-        response = supabase.table("GlobalAiConnection").select("*").eq(
-            "isActive", True
-        ).order("createdAt", desc=False).limit(1).execute()
+        response = (
+            supabase.table("GlobalAiConnection")
+            .select("*")
+            .eq("isActive", True)
+            .order("createdAt", desc=False)
+            .limit(1)
+            .execute()
+        )
 
         if response.data and len(response.data) > 0:
             logger.info(f"✅ Using global AI: {response.data[0].get('name')}")
@@ -179,9 +179,14 @@ async def get_conversation_history(conversation_id: str, limit: int = 10) -> Lis
         return []
 
     try:
-        response = supabase.table("ChatMessage").select("*").eq(
-            "conversationId", conversation_id
-        ).order("createdAt", desc=False).limit(limit).execute()
+        response = (
+            supabase.table("ChatMessage")
+            .select("*")
+            .eq("conversationId", conversation_id)
+            .order("createdAt", desc=False)
+            .limit(limit)
+            .execute()
+        )
 
         return response.data if response.data else []
     except Exception as e:
@@ -189,7 +194,9 @@ async def get_conversation_history(conversation_id: str, limit: int = 10) -> Lis
         return []
 
 
-async def save_message(conversation_id: str, role: str, content: str, user_id: Optional[str] = None):
+async def save_message(
+    conversation_id: str, role: str, content: str, user_id: Optional[str] = None
+):
     """Salva mensagem no Supabase"""
     if not supabase:
         return
@@ -199,7 +206,7 @@ async def save_message(conversation_id: str, role: str, content: str, user_id: O
             "conversationId": conversation_id,
             "role": role,
             "content": content,
-            "createdAt": datetime.utcnow().isoformat()
+            "createdAt": datetime.utcnow().isoformat(),
         }
 
         if user_id:
@@ -240,13 +247,17 @@ async def health_check():
 # IA CHAT ENDPOINT - FULL VERSION
 # ==========================================
 @app.post("/api/chat")
-async def chat(request: ChatRequest, authorization: str = Header(None, alias="Authorization")):
+async def chat(
+    request: ChatRequest, authorization: str = Header(None, alias="Authorization")
+):
     """Chat com IA integrado ao Supabase + AI Tools"""
     try:
         logger.info(f"📨 Chat request: conversationId={request.conversationId}")
 
         # 1. Validar JWT
-        user_payload = await validate_jwt(authorization) if authorization else {"sub": "anonymous"}
+        user_payload = (
+            await validate_jwt(authorization) if authorization else {"sub": "anonymous"}
+        )
         user_id = request.userId or user_payload.get("sub")
 
         # 2. Detectar se precisa usar ferramenta AI
@@ -260,7 +271,11 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
 
             try:
                 # NOVO: Verificar se precisa usar extensão do navegador
-                if tool_intent in ["dom_automation", "browser_action", "web_automation"]:
+                if tool_intent in [
+                    "dom_automation",
+                    "browser_action",
+                    "web_automation",
+                ]:
                     # Tentar criar comando para extensão
                     try:
                         # Extrair informações do comando da mensagem
@@ -272,11 +287,23 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                         msg_lower = request.message.lower()
                         if "clicar" in msg_lower or "click" in msg_lower:
                             command_type = "DOM_CLICK"
-                        elif "preencher" in msg_lower or "digitar" in msg_lower or "fill" in msg_lower:
+                        elif (
+                            "preencher" in msg_lower
+                            or "digitar" in msg_lower
+                            or "fill" in msg_lower
+                        ):
                             command_type = "DOM_FILL"
-                        elif "ler" in msg_lower or "extrair" in msg_lower or "read" in msg_lower:
+                        elif (
+                            "ler" in msg_lower
+                            or "extrair" in msg_lower
+                            or "read" in msg_lower
+                        ):
                             command_type = "DOM_READ"
-                        elif "navegar" in msg_lower or "ir para" in msg_lower or "navigate" in msg_lower:
+                        elif (
+                            "navegar" in msg_lower
+                            or "ir para" in msg_lower
+                            or "navigate" in msg_lower
+                        ):
                             command_type = "NAVIGATE"
 
                         command_id = await send_command_to_extension(
@@ -284,37 +311,48 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                             command_type=command_type,
                             selector=selector,
                             value=value,
-                            options={}
+                            options={},
                         )
 
                         # Aguardar resultado (com timeout)
-                        tool_result = await wait_for_command_result(command_id, timeout=30)
+                        tool_result = await wait_for_command_result(
+                            command_id, timeout=30
+                        )
 
                     except Exception as ext_error:
                         logger.error(f"❌ Extension error: {ext_error}")
                         tool_result = {
                             "success": False,
                             "error": str(ext_error),
-                            "message": "Erro ao usar extensão. Verifique se está instalada e ativa."
+                            "message": "Erro ao usar extensão. Verifique se está instalada e ativa.",
                         }
 
                 elif tool_intent == "image":
                     # Gerar imagem com Pollinations.ai (gratuito)
-                    logger.info(f"🎨 Iniciando geração de imagem com prompt: {request.message}")
+                    logger.info(
+                        f"🎨 Iniciando geração de imagem com prompt: {request.message}"
+                    )
                     image_gen = create_image_generator()
                     tool_result = await image_gen.generate(request.message)
                     logger.info(f"🎨 Resultado da geração: {tool_result}")
 
                 elif tool_intent == "video":
                     # Gerar vídeo com Pollinations.ai (gratuito)
-                    logger.info(f"🎬 Iniciando geração de vídeo com prompt: {request.message}")
+                    logger.info(
+                        f"🎬 Iniciando geração de vídeo com prompt: {request.message}"
+                    )
                     video_gen = create_video_generator()
                     tool_result = await video_gen.generate_from_prompt(request.message)
                     logger.info(f"🎬 Resultado da geração: {tool_result}")
 
                 elif tool_intent == "search":
                     # Buscar na web
-                    query = request.message.replace("pesquise", "").replace("busque", "").replace("procure", "").strip()
+                    query = (
+                        request.message.replace("pesquise", "")
+                        .replace("busque", "")
+                        .replace("procure", "")
+                        .strip()
+                    )
                     searcher = create_web_searcher()
                     tool_result = await searcher.search(query, num_results=5)
 
@@ -322,12 +360,16 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                     # Placeholder - precisa de nome e conteúdo
                     tool_result = {
                         "success": False,
-                        "error": "Criar arquivo requer nome e conteúdo. Use: 'crie arquivo dados.txt com conteúdo: [texto]'"
+                        "error": "Criar arquivo requer nome e conteúdo. Use: 'crie arquivo dados.txt com conteúdo: [texto]'",
                     }
 
                 elif tool_intent == "python":
                     # Executar Python
-                    code = request.message.replace("execute python", "").replace("rode python", "").strip()
+                    code = (
+                        request.message.replace("execute python", "")
+                        .replace("rode python", "")
+                        .strip()
+                    )
                     executor = create_python_executor()
                     tool_result = await executor.execute(code)
 
@@ -352,7 +394,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                 "model": "claude-3-5-sonnet-20241022",
                 "maxTokens": 4096,
                 "temperature": 0.7,
-                "systemPrompt": ENHANCED_SYSTEM_PROMPT
+                "systemPrompt": ENHANCED_SYSTEM_PROMPT,
             }
 
         # 5. Buscar histórico
@@ -361,18 +403,12 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         # 6. Montar mensagens (incluir resultado da ferramenta se houver)
         messages = []
         for msg in history:
-            messages.append({
-                "role": msg.get("role"),
-                "content": msg.get("content")
-            })
+            messages.append({"role": msg.get("role"), "content": msg.get("content")})
 
         # Se usou ferramenta, adicionar resultado ao contexto
         if tool_result:
             tool_context = f"\n\n[TOOL_RESULT]\n{json.dumps(tool_result, indent=2, ensure_ascii=False)}\n[/TOOL_RESULT]\n\nResponda ao usuário sobre o resultado acima de forma amigável."
-            messages.append({
-                "role": "system",
-                "content": tool_context
-            })
+            messages.append({"role": "system", "content": tool_context})
 
         # 7. Gerar resposta baseado no provider
         provider = ai_config.get("provider", "ANTHROPIC").upper()
@@ -382,7 +418,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         temperature = ai_config.get("temperature", 0.7)
 
         # Usar prompt do banco OU o enhanced prompt
-        base_system_prompt = ai_config.get("systemPrompt", "Você é um assistente útil de marketing digital.")
+        base_system_prompt = ai_config.get(
+            "systemPrompt", "Você é um assistente útil de marketing digital."
+        )
         system_prompt = f"{base_system_prompt}\n\n{ENHANCED_SYSTEM_PROMPT}"
 
         logger.info(f"🤖 Using provider: {provider}, model: {model}")
@@ -393,6 +431,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                 api_key = os.getenv("ANTHROPIC_API_KEY")
 
             from anthropic import Anthropic
+
             client = Anthropic(api_key=api_key)
 
             async def generate():
@@ -402,14 +441,16 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                     max_tokens=max_tokens,
                     temperature=temperature,
                     system=system_prompt,
-                    messages=messages
+                    messages=messages,
                 ) as stream:
                     for text in stream.text_stream:
                         full_response += text
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
                 # Salvar resposta completa
-                await save_message(request.conversationId, "assistant", full_response, user_id)
+                await save_message(
+                    request.conversationId, "assistant", full_response, user_id
+                )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
@@ -419,6 +460,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                 api_key = os.getenv("OPENAI_API_KEY")
 
             from openai import OpenAI
+
             client = OpenAI(api_key=api_key)
 
             async def generate():
@@ -428,7 +470,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                     messages=[{"role": "system", "content": system_prompt}] + messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    stream=True
+                    stream=True,
                 )
 
                 for chunk in stream:
@@ -437,7 +479,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                         full_response += text
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
-                await save_message(request.conversationId, "assistant", full_response, user_id)
+                await save_message(
+                    request.conversationId, "assistant", full_response, user_id
+                )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
@@ -447,6 +491,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                 api_key = os.getenv("GROQ_API_KEY")
 
             from groq import Groq
+
             client = Groq(api_key=api_key)
 
             async def generate():
@@ -456,7 +501,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                     messages=[{"role": "system", "content": system_prompt}] + messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    stream=True
+                    stream=True,
                 )
 
                 for chunk in stream:
@@ -465,15 +510,16 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                         full_response += text
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
-                await save_message(request.conversationId, "assistant", full_response, user_id)
+                await save_message(
+                    request.conversationId, "assistant", full_response, user_id
+                )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
 
         else:
             raise HTTPException(
-                status_code=400,
-                detail=f"Provider '{provider}' não suportado"
+                status_code=400, detail=f"Provider '{provider}' não suportado"
             )
 
     except Exception as e:
@@ -502,37 +548,51 @@ async def global_exception_handler(request, exc):
 # EXTENSION HELPER FUNCTIONS
 # ==========================================
 
+
 async def send_command_to_extension(
     user_id: str,
     command_type: str,
     selector: str = None,
     value: str = None,
-    options: dict = None
+    options: dict = None,
 ) -> str:
     """
     Envia comando para extensão do navegador
     """
     try:
         # Buscar device ativo do usuário
-        result = supabase.table("extension_devices").select("device_id").eq(
-            "user_id", user_id
-        ).eq("status", "online").limit(1).execute()
+        result = (
+            supabase.table("extension_devices")
+            .select("device_id")
+            .eq("user_id", user_id)
+            .eq("status", "online")
+            .limit(1)
+            .execute()
+        )
 
         if not result.data or len(result.data) == 0:
-            raise Exception("Nenhuma extensão conectada. Por favor, instale e ative a extensão.")
+            raise Exception(
+                "Nenhuma extensão conectada. Por favor, instale e ative a extensão."
+            )
 
         device_id = result.data[0]["device_id"]
 
         # Criar comando
-        command = supabase.table("extension_commands").insert({
-            "device_id": device_id,
-            "user_id": user_id,
-            "type": command_type,
-            "selector": selector,
-            "value": value,
-            "options": options or {},
-            "status": "pending"
-        }).execute()
+        command = (
+            supabase.table("extension_commands")
+            .insert(
+                {
+                    "device_id": device_id,
+                    "user_id": user_id,
+                    "type": command_type,
+                    "selector": selector,
+                    "value": value,
+                    "options": options or {},
+                    "status": "pending",
+                }
+            )
+            .execute()
+        )
 
         command_id = command.data[0]["id"]
         logger.info(f"✅ Command created: {command_id}")
@@ -552,9 +612,12 @@ async def wait_for_command_result(command_id: str, timeout: int = 30) -> dict:
 
     while time.time() - start_time < timeout:
         # Verificar status do comando
-        result = supabase.table("extension_commands").select("*").eq(
-            "id", command_id
-        ).execute()
+        result = (
+            supabase.table("extension_commands")
+            .select("*")
+            .eq("id", command_id)
+            .execute()
+        )
 
         if result.data and len(result.data) > 0:
             command = result.data[0]
@@ -564,22 +627,20 @@ async def wait_for_command_result(command_id: str, timeout: int = 30) -> dict:
             elif command["status"] == "failed":
                 return {
                     "success": False,
-                    "error": command.get("result", {}).get("error", "Command failed")
+                    "error": command.get("result", {}).get("error", "Command failed"),
                 }
 
         # Aguardar 500ms antes de verificar novamente
         await asyncio.sleep(0.5)
 
     # Timeout
-    return {
-        "success": False,
-        "error": f"Command timeout after {timeout}s"
-    }
+    return {"success": False, "error": f"Command timeout after {timeout}s"}
 
 
 # ==========================================
 # EXTENSION API ENDPOINTS
 # ==========================================
+
 
 @app.post("/api/extension/register")
 async def register_extension(request: Request):
@@ -593,21 +654,27 @@ async def register_extension(request: Request):
         logger.info(f"📱 Registrando extensão: {data.get('deviceId')}")
 
         # Salvar no Supabase
-        result = supabase.table("extension_devices").upsert({
-            "device_id": data["deviceId"],
-            "user_id": data.get("userId"),
-            "browser_info": data.get("browser"),
-            "version": data.get("version"),
-            "status": "online",
-            "last_seen": datetime.utcnow().isoformat()
-        }).execute()
+        result = (
+            supabase.table("extension_devices")
+            .upsert(
+                {
+                    "device_id": data["deviceId"],
+                    "user_id": data.get("userId"),
+                    "browser_info": data.get("browser"),
+                    "version": data.get("version"),
+                    "status": "online",
+                    "last_seen": datetime.utcnow().isoformat(),
+                }
+            )
+            .execute()
+        )
 
         logger.info(f"✅ Extension registered: {data['deviceId']}")
 
         return {
             "success": True,
             "deviceId": data["deviceId"],
-            "message": "Extension registered successfully"
+            "message": "Extension registered successfully",
         }
 
     except Exception as e:
@@ -625,27 +692,27 @@ async def get_extension_commands(deviceId: str):
         logger.info(f"🔍 Buscando comandos para: {deviceId}")
 
         # Buscar comandos pendentes no Supabase
-        result = supabase.table("extension_commands").select("*").eq(
-            "device_id", deviceId
-        ).eq("status", "pending").order("created_at").execute()
+        result = (
+            supabase.table("extension_commands")
+            .select("*")
+            .eq("device_id", deviceId)
+            .eq("status", "pending")
+            .order("created_at")
+            .execute()
+        )
 
         commands = result.data if result.data else []
 
         # Marcar como "processing"
         if commands:
             command_ids = [cmd["id"] for cmd in commands]
-            supabase.table("extension_commands").update({
-                "status": "processing",
-                "started_at": datetime.utcnow().isoformat()
-            }).in_("id", command_ids).execute()
+            supabase.table("extension_commands").update(
+                {"status": "processing", "started_at": datetime.utcnow().isoformat()}
+            ).in_("id", command_ids).execute()
 
             logger.info(f"✅ Retornando {len(commands)} comandos")
 
-        return {
-            "success": True,
-            "commands": commands,
-            "count": len(commands)
-        }
+        return {"success": True, "commands": commands, "count": len(commands)}
 
     except Exception as e:
         logger.error(f"❌ Commands fetch error: {e}")
@@ -664,23 +731,27 @@ async def receive_extension_result(request: Request):
         logger.info(f"📥 Recebendo resultado: {data.get('commandId')}")
 
         # Atualizar comando no Supabase
-        supabase.table("extension_commands").update({
-            "status": "completed" if data["result"].get("success") else "failed",
-            "result": data["result"],
-            "completed_at": datetime.utcnow().isoformat()
-        }).eq("id", data["commandId"]).execute()
+        supabase.table("extension_commands").update(
+            {
+                "status": "completed" if data["result"].get("success") else "failed",
+                "result": data["result"],
+                "completed_at": datetime.utcnow().isoformat(),
+            }
+        ).eq("id", data["commandId"]).execute()
 
         logger.info(f"✅ Command result received: {data['commandId']}")
 
         # Salvar log da execução
-        supabase.table("extension_logs").insert({
-            "device_id": data["deviceId"],
-            "command_id": data["commandId"],
-            "result": data["result"],
-            "action": "COMMAND_COMPLETED",
-            "message": f"Command {data['commandId']} completed",
-            "timestamp": data.get("timestamp", int(time.time() * 1000))
-        }).execute()
+        supabase.table("extension_logs").insert(
+            {
+                "device_id": data["deviceId"],
+                "command_id": data["commandId"],
+                "result": data["result"],
+                "action": "COMMAND_COMPLETED",
+                "message": f"Command {data['commandId']} completed",
+                "timestamp": data.get("timestamp", int(time.time() * 1000)),
+            }
+        ).execute()
 
         return {"success": True, "message": "Result received"}
 
@@ -699,15 +770,17 @@ async def receive_extension_log(request: Request):
         data = await request.json()
 
         # Salvar log no Supabase
-        supabase.table("extension_logs").insert({
-            "device_id": data["deviceId"],
-            "user_id": data.get("userId"),
-            "action": data["action"],
-            "message": data["message"],
-            "data": data.get("data"),
-            "url": data.get("url"),
-            "timestamp": data.get("timestamp", int(time.time() * 1000))
-        }).execute()
+        supabase.table("extension_logs").insert(
+            {
+                "device_id": data["deviceId"],
+                "user_id": data.get("userId"),
+                "action": data["action"],
+                "message": data["message"],
+                "data": data.get("data"),
+                "url": data.get("url"),
+                "timestamp": data.get("timestamp", int(time.time() * 1000)),
+            }
+        ).execute()
 
         logger.info(f"📝 Log recebido: {data['action']} - {data['message']}")
 
