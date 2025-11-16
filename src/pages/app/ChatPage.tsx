@@ -29,7 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { sendSecureMessage } from "@/lib/api/chat";
+import chatService from "@/lib/api/chatService";
 import { supabase } from "@/lib/supabase";
 import {
   detectCampaignIntent,
@@ -351,13 +351,31 @@ const ChatPage: React.FC = () => {
           content: msg.content,
         }));
 
-      const result = await sendSecureMessage(
+      // Usar novo chatService com streaming
+      let fullResponse = "";
+
+      const result = await chatService.sendMessage(
         userMessage,
         activeConversationId,
-        conversationHistory,
-        systemMessage,
+        {
+          onChunk: (chunk) => {
+            fullResponse += chunk;
+            // Atualizar mensagem em tempo real
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === tempMessageId
+                  ? { ...msg, content: fullResponse }
+                  : msg,
+              ),
+            );
+          },
+          onComplete: (response) => {
+            fullResponse = response;
+          },
+        },
       );
-      const response = result.response;
+
+      const response = fullResponse;
 
       const campaignIntent = detectCampaignIntent(response);
 
