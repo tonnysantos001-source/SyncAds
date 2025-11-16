@@ -589,29 +589,87 @@ function checkAuthState() {
   try {
     const keys = Object.keys(localStorage);
 
-    // Buscar qualquer chave que possa conter auth
-    for (const key of keys) {
+    // Buscar chaves do Supabase especificamente
+    const supabaseAuthKey = keys.find(
+      (key) => key.startsWith("sb-") && key.includes("-auth-token"),
+    );
+
+    if (supabaseAuthKey) {
       try {
-        const value = localStorage.getItem(key);
-        if (!value) continue;
+        const value = localStorage.getItem(supabaseAuthKey);
+        if (!value) return;
 
-        // Tentar parsear como JSON
         const parsed = JSON.parse(value);
-        const user = parsed?.user || parsed?.currentUser;
+        const user = parsed?.user;
+        const accessToken = parsed?.access_token;
 
-        if (user && user.id) {
-          const currentState = JSON.stringify(user.id);
+        if (user && user.id && accessToken) {
+          const currentState = JSON.stringify({
+            id: user.id,
+            token: accessToken.substring(0, 20),
+          });
 
           // Apenas notificar se mudou
           if (currentState !== lastAuthState) {
-            console.log("🔐 Login detectado:", user.id);
+            console.log("🔐 ✅ LOGIN DETECTADO!");
+            console.log("   👤 User ID:", user.id);
+            console.log("   📧 Email:", user.email || "N/A");
+            console.log("   🔑 Token:", accessToken.substring(0, 30) + "...");
 
             chrome.runtime
               .sendMessage({
                 type: "AUTO_LOGIN_DETECTED",
                 userId: user.id,
                 email: user.email || "",
-                source: "localStorage-monitor",
+                accessToken: accessToken,
+                source: "localStorage-supabase",
+              })
+              .then((response) => {
+                console.log("   ✅ Mensagem enviada ao background:", response);
+              })
+              .catch((error) => {
+                console.error("   ❌ Erro ao enviar mensagem:", error);
+              });
+
+            lastAuthState = currentState;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("❌ Erro ao parsear auth do Supabase:", e);
+      }
+    }
+
+    // Fallback: buscar em todas as chaves
+    for (const key of keys) {
+      if (!key.includes("supabase") && !key.includes("sb-")) continue;
+
+      try {
+        const value = localStorage.getItem(key);
+        if (!value) continue;
+
+        const parsed = JSON.parse(value);
+        const user =
+          parsed?.user || parsed?.currentUser || parsed?.currentSession?.user;
+        const accessToken =
+          parsed?.access_token || parsed?.currentSession?.access_token;
+
+        if (user && user.id && accessToken) {
+          const currentState = JSON.stringify({
+            id: user.id,
+            token: accessToken.substring(0, 20),
+          });
+
+          if (currentState !== lastAuthState) {
+            console.log("🔐 Login detectado (fallback):", user.id);
+
+            chrome.runtime
+              .sendMessage({
+                type: "AUTO_LOGIN_DETECTED",
+                userId: user.id,
+                email: user.email || "",
+                accessToken: accessToken,
+                source: "localStorage-fallback",
               })
               .catch(() => {});
 
@@ -620,7 +678,6 @@ function checkAuthState() {
           }
         }
       } catch (e) {
-        // Não é JSON ou erro ao parsear, continuar
         continue;
       }
     }
