@@ -48,7 +48,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     // Abrir página de boas-vindas
     chrome.tabs.create({
-      url: `${CONFIG.serverUrl}/extension-setup`,
+      url: `${CONFIG.serverUrl}/app`,
     });
   } else if (details.reason === "update") {
     console.log("🔄 Extension updated");
@@ -72,6 +72,8 @@ async function initialize() {
       "deviceId",
       "userId",
       "config",
+      "isConnected",
+      "lastConnected",
     ]);
 
     // Gerar ou recuperar deviceId
@@ -89,8 +91,21 @@ async function initialize() {
       state.userId = stored.userId;
       console.log("👤 User logged in:", state.userId);
 
-      // Conectar automaticamente se usuário logado
-      await connectToServer();
+      // Verificar se estava conectado recentemente (últimas 24h)
+      const wasConnected = stored.isConnected;
+      const lastConnected = stored.lastConnected || 0;
+      const hoursSinceLastConnection =
+        (Date.now() - lastConnected) / (1000 * 60 * 60);
+
+      if (wasConnected && hoursSinceLastConnection < 24) {
+        console.log("🔄 Restaurando conexão anterior...");
+        await connectToServer();
+      } else if (wasConnected) {
+        console.log("⏰ Conexão expirada (>24h), requerendo nova conexão");
+        await chrome.storage.local.set({ isConnected: false });
+      } else {
+        console.log("ℹ️ Extensão não estava conectada anteriormente");
+      }
     } else {
       console.log("⚠️ User not logged in");
     }
@@ -117,34 +132,45 @@ function generateDeviceId() {
 async function connectToServer() {
   if (state.isConnected) {
     console.log("ℹ️ Already connected");
-    return;
+    return { success: true, alreadyConnected: true };
   }
 
   if (!state.userId) {
     console.log("⚠️ Cannot connect: No userId");
-    return;
+    return { success: false, error: "No userId" };
   }
 
   try {
     console.log("🔌 Connecting to server...");
+    console.log("   📍 API URL:", CONFIG.apiUrl);
+    console.log("   🆔 Device ID:", state.deviceId);
+    console.log("   👤 User ID:", state.userId);
 
     // Registrar dispositivo
+    const requestBody = {
+      deviceId: state.deviceId,
+      userId: state.userId,
+      browser: getBrowserInfo(),
+      version: CONFIG.version,
+      timestamp: Date.now(),
+    };
+
+    console.log("   📤 Request body:", JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(`${CONFIG.apiUrl}/api/extension/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        deviceId: state.deviceId,
-        userId: state.userId,
-        browser: getBrowserInfo(),
-        version: CONFIG.version,
-        timestamp: Date.now(),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log("   📥 Response status:", response.status);
+
     if (!response.ok) {
-      throw new Error(`Registration failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error("   ❌ Error response:", errorText);
+      throw new Error(`Registration failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -152,6 +178,13 @@ async function connectToServer() {
 
     state.isConnected = true;
     state.stats.lastActivity = Date.now();
+
+    // Salvar estado persistente
+    await chrome.storage.local.set({
+      isConnected: true,
+      lastConnected: Date.now(),
+    });
+    console.log("💾 Estado salvo: isConnected = true");
 
     // Atualizar badge
     updateBadge();
@@ -166,14 +199,28 @@ async function connectToServer() {
         connected: true,
       })
       .catch(() => {});
+
+    return { success: true, data };
   } catch (error) {
     console.error("❌ Connection error:", error);
+    console.error("   📝 Message:", error.message);
+    console.error("   📚 Stack:", error.stack);
+
     state.isConnected = false;
+    await chrome.storage.local.set({ isConnected: false });
     updateBadge();
 
-    // Tentar reconectar
-    console.log(`🔄 Reconnecting in ${CONFIG.reconnectDelay / 1000}s...`);
-    setTimeout(connectToServer, CONFIG.reconnectDelay);
+    // Tentar reconectar apenas se não for erro 500
+    if (!error.message.includes("500")) {
+      console.log(`🔄 Reconnecting in ${CONFIG.reconnectDelay / 1000}s...`);
+      setTimeout(connectToServer, CONFIG.reconnectDelay);
+    } else {
+      console.error(
+        "🚫 Erro 500 detectado - verifique configuração do Supabase no Railway",
+      );
+    }
+
+    return { success: false, error: error.message };
   }
 }
 
@@ -590,6 +637,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === "AUTO_LOGIN_DETECTED") {
+    console.log(
+      "🔐 Login detectado automaticamente pelo content script:",
+      request.userId,
+    );
+
+    // Verificar se já está conectado para este usuário
+    if (state.userId === request.userId && state.isConnected) {
+      console.log("ℹ️ Já conectado para este usuário, ignorando");
+      sendResponse({ success: true, alreadyConnected: true });
+      return true;
+    }
+
+    state.userId = request.userId;
+    chrome.storage.local.set({
+      userId: request.userId,
+      userEmail: request.email,
+    });
+    connectToServer().then(() => {
+      console.log("✅ Extensão conectada após detecção de login");
+      // Notificar popup
+      chrome.runtime
+        .sendMessage({
+          action: "LOGIN_SUCCESS",
+          userId: request.userId,
+          email: request.email,
+        })
+        .catch(() => {});
+    });
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.type === "AUTO_LOGOUT_DETECTED") {
+    console.log("🚪 Logout detectado pelo content script");
+    state.userId = null;
+    state.deviceId = null;
+    state.isConnected = false;
+    chrome.storage.local.remove(["userId", "userEmail"]);
+    disconnect();
+    // Notificar popup
+    chrome.runtime
+      .sendMessage({
+        action: "LOGOUT",
+      })
+      .catch(() => {});
+    sendResponse({ success: true });
+    return true;
+  }
+
   return true;
 });
 
@@ -616,6 +713,17 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       url.hostname.includes(domain),
     );
 
+    // Auto-detectar login quando visitar o painel
+    if (isDomain) {
+      setTimeout(() => {
+        detectAutoLogin(tabId).then((detected) => {
+          if (detected) {
+            console.log("✅ Login auto-detectado ao visitar painel");
+          }
+        });
+      }, 2000); // Aguardar 2s para o localStorage ser populado
+    }
+
     if (isDomain && !state.userId) {
       // Tentar detectar login automaticamente
       setTimeout(() => {
@@ -630,28 +738,84 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // ============================================
 async function detectAutoLogin(tabId) {
   try {
-    console.log("🔍 Tentando detectar login automático...");
+    console.log("🔍 Tentando detectar login automático no tab:", tabId);
 
     // Executar script para verificar se há userId no localStorage
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
         try {
-          // Tentar pegar do localStorage
-          const authData = localStorage.getItem("supabase.auth.token");
-          if (authData) {
-            const parsed = JSON.parse(authData);
-            return {
-              userId: parsed?.currentSession?.user?.id,
-              email: parsed?.currentSession?.user?.email,
-              found: true,
-            };
+          console.log("📦 Verificando localStorage...");
+          // Verificar todas as chaves do localStorage
+          const keys = Object.keys(localStorage);
+          console.log("🔑 Chaves encontradas:", keys.length);
+
+          // 1. Buscar chave do Supabase auth (formato moderno: sb-*-auth-token)
+          const supabaseAuthKey = keys.find(
+            (key) => key.startsWith("sb-") && key.includes("-auth-token"),
+          );
+
+          if (supabaseAuthKey) {
+            const authData = localStorage.getItem(supabaseAuthKey);
+            if (authData) {
+              const parsed = JSON.parse(authData);
+              const user = parsed?.user || parsed?.currentUser;
+              if (user?.id) {
+                return {
+                  userId: user.id,
+                  email: user.email,
+                  found: true,
+                  source: "supabase-modern",
+                };
+              }
+            }
           }
 
-          // Tentar alternativas
-          const userId = localStorage.getItem("userId");
-          if (userId) {
-            return { userId, found: true };
+          // 2. Buscar formato legado: supabase.auth.token
+          const legacyAuth = localStorage.getItem("supabase.auth.token");
+          if (legacyAuth) {
+            const parsed = JSON.parse(legacyAuth);
+            const user = parsed?.currentSession?.user || parsed?.user;
+            if (user?.id) {
+              return {
+                userId: user.id,
+                email: user.email,
+                found: true,
+                source: "supabase-legacy",
+              };
+            }
+          }
+
+          // 3. Buscar em sessionStorage também
+          const sessionKeys = Object.keys(sessionStorage);
+          const sessionAuthKey = sessionKeys.find(
+            (key) => key.startsWith("sb-") && key.includes("-auth-token"),
+          );
+
+          if (sessionAuthKey) {
+            const authData = sessionStorage.getItem(sessionAuthKey);
+            if (authData) {
+              const parsed = JSON.parse(authData);
+              const user = parsed?.user || parsed?.currentUser;
+              if (user?.id) {
+                return {
+                  userId: user.id,
+                  email: user.email,
+                  found: true,
+                  source: "supabase-session",
+                };
+              }
+            }
+          }
+
+          // 4. Fallback: userId direto
+          const directUserId = localStorage.getItem("userId");
+          if (directUserId) {
+            return {
+              userId: directUserId,
+              found: true,
+              source: "direct",
+            };
           }
 
           return { found: false };
@@ -662,13 +826,21 @@ async function detectAutoLogin(tabId) {
     });
 
     const result = results[0]?.result;
+    console.log("📊 Resultado da detecção:", result);
 
     if (result?.found && result?.userId) {
-      console.log("✅ Login detectado automaticamente:", result.userId);
+      console.log("✅ Login detectado automaticamente:", {
+        userId: result.userId,
+        email: result.email,
+        source: result.source,
+      });
 
       // Salvar userId
       state.userId = result.userId;
-      await chrome.storage.local.set({ userId: result.userId });
+      await chrome.storage.local.set({
+        userId: result.userId,
+        userEmail: result.email,
+      });
 
       // Conectar ao servidor
       await connectToServer();
@@ -676,18 +848,22 @@ async function detectAutoLogin(tabId) {
       // Notificar popup
       chrome.runtime
         .sendMessage({
-          type: "LOGIN_SUCCESS",
+          action: "LOGIN_SUCCESS",
           userId: result.userId,
           email: result.email,
         })
         .catch(() => {});
 
       console.log("🎉 Extensão conectada automaticamente!");
+      return true;
     } else {
-      console.log("ℹ️ Usuário não está logado no painel");
+      console.log("ℹ️ Usuário não está logado no painel. Resultado:", result);
+      return false;
     }
   } catch (error) {
-    console.error("❌ Erro ao detectar login:", error);
+    console.error("❌ Erro ao detectar login:", error.message);
+    console.error("Stack:", error.stack);
+    return false;
   }
 }
 
