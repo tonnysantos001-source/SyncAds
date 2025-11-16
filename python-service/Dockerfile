@@ -1,8 +1,8 @@
 # ============================================
 # SYNCADS PYTHON MICROSERVICE - DOCKERFILE
-# MINIMAL + GRUPO 23 (Cohere + Gemini)
+# OMNIBRAIN ULTIMATE - GRUPOS 23-120
 # Python 3.11+
-# Build time: ~5-7 minutos
+# Build time: ~95-120 minutos
 # Data: 19/01/2025
 # ============================================
 
@@ -10,8 +10,8 @@ FROM python:3.11-slim
 
 # Metadados
 LABEL maintainer="SyncAds Team"
-LABEL description="SyncAds Python AI Microservice - Minimal + Grupos 23-71"
-LABEL version="1.0.71"
+LABEL description="SyncAds Python AI Microservice - OMNIBRAIN ULTIMATE (Grupos 23-120)"
+LABEL version="2.0.120"
 
 # Variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
@@ -47,7 +47,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Instalar dependências Python
-RUN echo "=== INSTALANDO MINIMAL + GRUPOS 23-71 ===" && \
+RUN echo "=== INSTALANDO OMNIBRAIN ULTIMATE - GRUPOS 23-120 ===" && \
     pip install --no-cache-dir -r requirements.txt && \
     echo "=== INSTALAÇÃO CONCLUÍDA ==="
 
@@ -222,60 +222,20 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
 # ============================================
-# NOTAS:
+# NOTAS - OMNIBRAIN ULTIMATE:
 # ============================================
-# ✅ Build simplificado e rápido
-# ✅ 158 bibliotecas no total
-# ✅ GRUPO 23: Cohere + Gemini (✅ funcionando)
-# ✅ GRUPO 24: Transformers (✅ funcionando)
-# ✅ GRUPO 25: Document Processing (✅ funcionando)
-# ✅ GRUPO 26: Data Science (✅ funcionando)
-# ✅ GRUPO 27: Plotting (✅ funcionando)
-# ✅ GRUPO 28: Utilities (✅ funcionando)
-# ✅ GRUPO 29: Excel (✅ funcionando)
-# ✅ GRUPO 30: Web Scraping (✅ funcionando)
-# ✅ GRUPO 31: LangChain (✅ funcionando)
-# ✅ GRUPO 32: Image Processing (✅ funcionando)
-# ✅ GRUPO 33: Async & HTTP (✅ funcionando)
-# ✅ GRUPO 34: Database (✅ funcionando)
-# ✅ GRUPO 35: Auth & Security (✅ funcionando)
-# ✅ GRUPO 36: CLI Tools (✅ funcionando)
-# ✅ GRUPO 37: JSON & Serialization (✅ funcionando)
-# ✅ GRUPO 38: Markdown & Text (✅ funcionando)
-# ✅ GRUPO 39: Caching & Storage (✅ funcionando)
-# ✅ GRUPO 40: String Processing (✅ funcionando)
-# ✅ GRUPO 41: File Utils (✅ funcionando)
-# ✅ GRUPO 42: Time & Scheduling (✅ funcionando)
-# ✅ GRUPO 43: Compression (✅ funcionando)
-# ✅ GRUPO 44: HTTP Advanced (✅ funcionando)
-# ✅ GRUPO 45: Logging (✅ funcionando)
-# ✅ GRUPO 46: Network & DNS (✅ funcionando)
-# ✅ GRUPO 47: Crypto & Hash (✅ funcionando)
-# ✅ GRUPO 48: URL & URI (✅ funcionando)
-# ✅ GRUPO 49: Config & Environment (✅ funcionando)
-# ✅ GRUPO 50: Template Engines (✅ funcionando)
-# ✅ GRUPO 51: Data Validation (✅ funcionando)
-# ✅ GRUPO 52: Regex & Patterns (✅ funcionando)
-# ✅ GRUPO 53: Timezone & i18n (✅ funcionando)
-# ✅ GRUPO 54: XML & YAML (✅ funcionando)
-# ✅ GRUPO 55: Retry & Backoff (✅ funcionando)
-# ✅ GRUPO 56: User Agents & Scraping (✅ funcionando)
-# ✅ GRUPO 57: Color & Terminal (✅ funcionando)
-# ✅ GRUPO 58: Geolocation & Maps (✅ funcionando)
-# ✅ GRUPO 59: Money & Finance (✅ funcionando)
-# ✅ GRUPO 60: UUID & Identifiers (✅ funcionando)
-# ✅ GRUPO 61: Hashing & Checksums (✅ funcionando)
-# ✅ GRUPO 62: HTTP Utilities (✅ funcionando)
-# ✅ GRUPO 63: Data Itertools (✅ funcionando)
-# ✅ GRUPO 64: Code Quality (✅ funcionando)
-# ✅ GRUPO 65: Humanize & Numbers (✅ funcionando)
-# ✅ GRUPO 66: Barcode & QR (✅ funcionando)
-# ✅ GRUPO 67: Diff & Comparison (✅ funcionando)
-# ✅ GRUPO 68: Sanitization & Cleaning (✅ funcionando)
-# ✅ GRUPO 69: Rate Limiting (✅ funcionando)
-# ✅ GRUPO 70: Data Structures & Attrs - attrs, cattrs, sortedcontainers (novo)
-# ✅ GRUPO 71: SSH & Remote - paramiko, fabric, scp (novo)
-# ✅ OpenAI, Claude, Groq, Gemini base
-# ✅ Tempo: ~58-62 minutos
-# ✅ Leve e estável
+# ✅ ~301 bibliotecas totais (grupos 23-120)
+# ✅ GRUPOS 23-99: AI, Data Science, Web, Database, etc
+# ✅ GRUPOS 100-120: Task Queues, Payments, SMS, ML, Vision, etc
+# ✅ Inclui: OpenAI, Claude, Groq, Gemini, Cohere
+# ✅ Inclui: XGBoost, LightGBM, CatBoost, Prophet
+# ✅ Inclui: Scrapy, Selenium, Playwright
+# ✅ Inclui: Stripe, Twilio, Telegram Bot
+# ✅ Inclui: Neo4j, Cassandra, Elasticsearch
+# ✅ Inclui: Prefect, Dagster (Workflow)
+# ✅ Inclui: Sphinx, Rich, Textual (Docs/CLI)
+# ✅ Tempo: ~95-120 minutos
+# ✅ Build otimizado e completo
+# ❌ Removido: TensorFlow, PyTorch, Airflow (muito pesados)
+# ✅ Sistema OMNIBRAIN pronto para produção!
 # ============================================
