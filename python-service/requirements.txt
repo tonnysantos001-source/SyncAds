@@ -674,7 +674,7 @@ pyzmq==25.1.2
 # GRUPO 115: SERIALIZATION (NOVO)
 # ==========================================
 protobuf==4.25.2
-avro-python3==1.11.3
+avro-python3==1.10.2
 thrift==0.20.0
 
 # ==========================================
@@ -682,12 +682,10 @@ thrift==0.20.0
 # ==========================================
 folium==0.15.1
 geopandas==0.14.2
-shapely==2.0.2
 
 # ==========================================
 # GRUPO 117: WORKFLOW ENGINES (NOVO)
 # ==========================================
-prefect==2.14.21
 airflow==2.8.1
 luigi==3.4.0
 
@@ -708,7 +706,6 @@ sphinx-autodoc-typehints==1.25.2
 # ==========================================
 # GRUPO 120: CLI FRAMEWORKS (NOVO)
 # ==========================================
-rich-cli==1.8.0
 textual==0.48.2
 prompt-toolkit==3.0.43
 
@@ -821,21 +818,17 @@ pyzmq==25.1.2
 # GRUPO 115: SERIALIZATION (NOVO)
 # ==========================================
 protobuf==4.25.2
-avro-python3==1.11.3
-thrift==0.20.0
 
 # ==========================================
 # GRUPO 116: GIS & MAPPING (NOVO)
 # ==========================================
-folium==0.15.1
 geopandas==0.14.2
 shapely==2.0.2
 
-# ==========================================
 # GRUPO 117: WORKFLOW ENGINES (NOVO)
 # ==========================================
-prefect==2.14.21
-dagster==1.6.0
+# prefect==2.14.21  # Removido - muito pesado
+# dagster==1.6.0  # Removido - muito pesado
 # metaflow==2.10.5  # Removido - conflitos de dependências
 
 # ==========================================
