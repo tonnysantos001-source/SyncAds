@@ -1,7 +1,7 @@
 """
 ============================================
 SYNCADS PYTHON MICROSERVICE - FULL
-IA + Supabase + Streaming
+IA + Supabase + Streaming + AI Tools
 ============================================
 """
 
@@ -20,6 +20,16 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 import jwt
 from jwt.exceptions import InvalidTokenError
+
+# Importar AI Tools
+from app.ai_tools import (
+    create_image_generator,
+    create_video_generator,
+    create_web_searcher,
+    create_file_creator,
+    create_python_executor,
+    detect_tool_intent,
+)
 </text>
 
 <old_text line=25>
@@ -72,7 +82,6 @@ class ChatRequest(BaseModel):
     message: str
     conversationId: str
     userId: Optional[str] = None
-    organizationId: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -110,26 +119,14 @@ async def validate_jwt(authorization: str) -> Dict:
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-async def get_active_ai(organization_id: Optional[str] = None) -> Optional[Dict]:
-    """Busca IA ativa da organização no Supabase"""
+async def get_active_ai() -> Optional[Dict]:
+    """Busca primeira IA global ativa no Supabase"""
     if not supabase:
         logger.warning("Supabase not configured, using fallback")
         return None
 
     try:
-        if organization_id:
-            # Buscar IA da organização
-            response = supabase.table("OrganizationAiConnection").select(
-                "*, GlobalAiConnection(*)"
-            ).eq("organizationId", organization_id).eq("isDefault", True).limit(1).execute()
-
-            if response.data and len(response.data) > 0:
-                ai_config = response.data[0].get("GlobalAiConnection")
-                if ai_config and ai_config.get("isActive"):
-                    logger.info(f"✅ Using org AI: {ai_config.get('name')}")
-                    return ai_config
-
-        # Fallback: buscar primeira IA global ativa
+        # Buscar primeira IA global ativa
         response = supabase.table("GlobalAiConnection").select("*").eq(
             "isActive", True
         ).order("createdAt", desc=False).limit(1).execute()
@@ -214,7 +211,7 @@ async def health_check():
 # ==========================================
 @app.post("/api/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None, alias="Authorization")):
-    """Chat com IA integrado ao Supabase"""
+    """Chat com IA integrado ao Supabase + AI Tools"""
     try:
         logger.info(f"📨 Chat request: conversationId={request.conversationId}")
 
@@ -222,11 +219,55 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         user_payload = await validate_jwt(authorization) if authorization else {"sub": "anonymous"}
         user_id = request.userId or user_payload.get("sub")
 
-        # 2. Salvar mensagem do usuário
+        # 2. Detectar se precisa usar ferramenta AI
+        tool_intent = detect_tool_intent(request.message)
+        tool_result = None
+
+        if tool_intent:
+            logger.info(f"🛠️ Detectado intent: {tool_intent}")
+
+            try:
+                if tool_intent == "image":
+                    # Gerar imagem com DALL-E
+                    prompt = request.message.replace("gere imagem", "").replace("crie imagem", "").strip()
+                    image_gen = create_image_generator()
+                    tool_result = await image_gen.generate(prompt)
+
+                elif tool_intent == "video":
+                    # Placeholder - precisa de URLs de imagens
+                    tool_result = {
+                        "success": False,
+                        "error": "Geração de vídeo requer URLs de imagens. Use: 'crie vídeo com [url1, url2, url3]'"
+                    }
+
+                elif tool_intent == "search":
+                    # Buscar na web
+                    query = request.message.replace("pesquise", "").replace("busque", "").replace("procure", "").strip()
+                    searcher = create_web_searcher()
+                    tool_result = await searcher.search(query, num_results=5)
+
+                elif tool_intent == "file":
+                    # Placeholder - precisa de nome e conteúdo
+                    tool_result = {
+                        "success": False,
+                        "error": "Criar arquivo requer nome e conteúdo. Use: 'crie arquivo dados.txt com conteúdo: [texto]'"
+                    }
+
+                elif tool_intent == "python":
+                    # Executar Python
+                    code = request.message.replace("execute python", "").replace("rode python", "").strip()
+                    executor = create_python_executor()
+                    tool_result = await executor.execute(code)
+
+            except Exception as e:
+                logger.error(f"❌ Erro na ferramenta {tool_intent}: {e}")
+                tool_result = {"success": False, "error": str(e)}
+
+        # 3. Salvar mensagem do usuário
         await save_message(request.conversationId, "user", request.message, user_id)
 
-        # 3. Buscar IA ativa da organização
-        ai_config = await get_active_ai(request.organizationId)
+        # 4. Buscar IA global ativa
+        ai_config = await get_active_ai()
 
         # 4. Fallback para variáveis de ambiente se não houver config
         if not ai_config:
@@ -243,12 +284,20 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         # 5. Buscar histórico
         history = await get_conversation_history(request.conversationId, limit=10)
 
-        # 6. Montar mensagens
+        # 6. Montar mensagens (incluir resultado da ferramenta se houver)
         messages = []
         for msg in history:
             messages.append({
                 "role": msg.get("role"),
                 "content": msg.get("content")
+            })
+
+        # Se usou ferramenta, adicionar resultado ao contexto
+        if tool_result:
+            tool_context = f"\n\n[TOOL_RESULT]\n{json.dumps(tool_result, indent=2, ensure_ascii=False)}\n[/TOOL_RESULT]\n\nResponda ao usuário sobre o resultado acima de forma amigável."
+            messages.append({
+                "role": "system",
+                "content": tool_context
             })
 
         # 7. Gerar resposta baseado no provider
@@ -379,13 +428,14 @@ async def global_exception_handler(request, exc):
 async def startup_event():
     """Startup event"""
     logger.info("=" * 50)
-    logger.info("🚀 SyncAds Python Microservice - FULL")
+    logger.info("🚀 SyncAds Python Microservice - FULL + AI TOOLS")
     logger.info("=" * 50)
     logger.info("✅ FastAPI iniciado")
     logger.info(f"✅ Docs: /docs")
     logger.info(f"✅ Health: /health")
-    logger.info(f"✅ Chat: /api/chat (streaming + Supabase)")
+    logger.info(f"✅ Chat: /api/chat (streaming + Supabase + AI Tools)")
     logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
+    logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
     logger.info("=" * 50)
 
 

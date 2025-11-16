@@ -567,6 +567,32 @@ textacy==0.13.0
 spacy-lookups-data==1.0.5
 
 # ==========================================
+# GRUPO 121: WEB SEARCH & SCRAPING (NOVO)
+# ==========================================
+google-search-results==2.4.2
+duckduckgo-search==4.1.1
+googlesearch-python==1.2.3
+
+# ==========================================
+# GRUPO 122: VIDEO GENERATION (NOVO)
+# ==========================================
+moviepy==1.0.3
+imageio==2.33.1
+
+# ==========================================
+# GRUPO 123: SAFE PYTHON EXECUTION (NOVO)
+# ==========================================
+RestrictedPython==6.2
+astunparse==1.6.3
+
+# ==========================================
+# GRUPO 124: FILE OPERATIONS (NOVO)
+# ==========================================
+pathvalidate==3.2.0
+send2trash==1.8.2
+</text>
+
+# ==========================================
 # GRUPO 100: TASK QUEUES & WORKERS (NOVO)
 # ==========================================
 huey==2.5.0
