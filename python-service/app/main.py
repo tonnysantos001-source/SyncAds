@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import json
+import asyncio
 from typing import Dict, Optional, List
 from datetime import datetime
 
@@ -30,6 +31,35 @@ from app.ai_tools import (
     create_python_executor,
     detect_tool_intent,
 )
+
+# ==========================================
+# SYSTEM PROMPT COM CAPACIDADES
+# ==========================================
+ENHANCED_SYSTEM_PROMPT = """VOCÊ TEM AS SEGUINTES CAPACIDADES ATIVADAS E FUNCIONANDO AGORA:
+
+✅ GERAR IMAGENS - Sistema Pollinations.ai integrado e funcional
+✅ GERAR VÍDEOS - Sistema Pollinations.ai integrado e funcional
+✅ PESQUISAR NA WEB - DuckDuckGo integrado e funcional
+✅ CRIAR ARQUIVOS - Sistema de arquivos integrado e funcional
+✅ EXECUTAR PYTHON - Sandbox RestrictedPython integrado e funcional
+
+QUANDO O USUÁRIO PEDIR IMAGENS OU VÍDEOS:
+- NUNCA diga "não posso", "não tenho capacidade" ou "sugiro usar outras ferramentas"
+- SEMPRE responda: "Vou gerar isso para você agora!" e USE a ferramenta
+- Você TEM acesso direto a APIs de geração - use-as automaticamente
+- É GRATUITO e ILIMITADO - não há restrições
+
+EXEMPLOS DE COMO RESPONDER:
+
+Usuário: "quero uma imagem de um gato"
+Você: "Vou criar uma imagem de um gato para você agora!" [e usa a ferramenta]
+
+Usuário: "gere um vídeo de produto"
+Você: "Perfeito! Vou gerar o vídeo para você!" [e usa a ferramenta]
+
+NUNCA mencione limitações da Anthropic, Claude API, ou falta de capacidades.
+VOCÊ JÁ TEM TUDO INTEGRADO E FUNCIONANDO.
+Se o usuário perguntar "o que você pode fazer", liste estas 5 capacidades como DISPONÍVEIS AGORA."""
 </text>
 
 <old_text line=25>
@@ -220,25 +250,67 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         user_id = request.userId or user_payload.get("sub")
 
         # 2. Detectar se precisa usar ferramenta AI
+        logger.info(f"📝 Mensagem recebida: '{request.message}'")
         tool_intent = detect_tool_intent(request.message)
+        logger.info(f"🔍 Detecção de intent resultado: {tool_intent}")
         tool_result = None
 
         if tool_intent:
-            logger.info(f"🛠️ Detectado intent: {tool_intent}")
+            logger.info(f"🛠️ TOOL DETECTED! Executando ferramenta: {tool_intent}")
 
             try:
-                if tool_intent == "image":
-                    # Gerar imagem com DALL-E
-                    prompt = request.message.replace("gere imagem", "").replace("crie imagem", "").strip()
+                # NOVO: Verificar se precisa usar extensão do navegador
+                if tool_intent in ["dom_automation", "browser_action", "web_automation"]:
+                    # Tentar criar comando para extensão
+                    try:
+                        # Extrair informações do comando da mensagem
+                        command_type = "DOM_CLICK"  # Default
+                        selector = None
+                        value = None
+
+                        # Análise simples da mensagem
+                        msg_lower = request.message.lower()
+                        if "clicar" in msg_lower or "click" in msg_lower:
+                            command_type = "DOM_CLICK"
+                        elif "preencher" in msg_lower or "digitar" in msg_lower or "fill" in msg_lower:
+                            command_type = "DOM_FILL"
+                        elif "ler" in msg_lower or "extrair" in msg_lower or "read" in msg_lower:
+                            command_type = "DOM_READ"
+                        elif "navegar" in msg_lower or "ir para" in msg_lower or "navigate" in msg_lower:
+                            command_type = "NAVIGATE"
+
+                        command_id = await send_command_to_extension(
+                            user_id=user_id,
+                            command_type=command_type,
+                            selector=selector,
+                            value=value,
+                            options={}
+                        )
+
+                        # Aguardar resultado (com timeout)
+                        tool_result = await wait_for_command_result(command_id, timeout=30)
+
+                    except Exception as ext_error:
+                        logger.error(f"❌ Extension error: {ext_error}")
+                        tool_result = {
+                            "success": False,
+                            "error": str(ext_error),
+                            "message": "Erro ao usar extensão. Verifique se está instalada e ativa."
+                        }
+
+                elif tool_intent == "image":
+                    # Gerar imagem com Pollinations.ai (gratuito)
+                    logger.info(f"🎨 Iniciando geração de imagem com prompt: {request.message}")
                     image_gen = create_image_generator()
-                    tool_result = await image_gen.generate(prompt)
+                    tool_result = await image_gen.generate(request.message)
+                    logger.info(f"🎨 Resultado da geração: {tool_result}")
 
                 elif tool_intent == "video":
-                    # Placeholder - precisa de URLs de imagens
-                    tool_result = {
-                        "success": False,
-                        "error": "Geração de vídeo requer URLs de imagens. Use: 'crie vídeo com [url1, url2, url3]'"
-                    }
+                    # Gerar vídeo com Pollinations.ai (gratuito)
+                    logger.info(f"🎬 Iniciando geração de vídeo com prompt: {request.message}")
+                    video_gen = create_video_generator()
+                    tool_result = await video_gen.generate_from_prompt(request.message)
+                    logger.info(f"🎬 Resultado da geração: {tool_result}")
 
                 elif tool_intent == "search":
                     # Buscar na web
@@ -260,8 +332,10 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                     tool_result = await executor.execute(code)
 
             except Exception as e:
-                logger.error(f"❌ Erro na ferramenta {tool_intent}: {e}")
+                logger.error(f"❌ ERRO NA FERRAMENTA {tool_intent}: {e}", exc_info=True)
                 tool_result = {"success": False, "error": str(e)}
+        else:
+            logger.info("ℹ️ Nenhuma ferramenta detectada - resposta normal de chat")
 
         # 3. Salvar mensagem do usuário
         await save_message(request.conversationId, "user", request.message, user_id)
@@ -278,7 +352,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
                 "model": "claude-3-5-sonnet-20241022",
                 "maxTokens": 4096,
                 "temperature": 0.7,
-                "systemPrompt": "Você é um assistente útil."
+                "systemPrompt": ENHANCED_SYSTEM_PROMPT
             }
 
         # 5. Buscar histórico
@@ -306,7 +380,10 @@ async def chat(request: ChatRequest, authorization: str = Header(None, alias="Au
         model = ai_config.get("model", "claude-3-5-sonnet-20241022")
         max_tokens = ai_config.get("maxTokens", 4096)
         temperature = ai_config.get("temperature", 0.7)
-        system_prompt = ai_config.get("systemPrompt", "Você é um assistente útil.")
+
+        # Usar prompt do banco OU o enhanced prompt
+        base_system_prompt = ai_config.get("systemPrompt", "Você é um assistente útil de marketing digital.")
+        system_prompt = f"{base_system_prompt}\n\n{ENHANCED_SYSTEM_PROMPT}"
 
         logger.info(f"🤖 Using provider: {provider}, model: {model}")
 
@@ -422,18 +499,239 @@ async def global_exception_handler(request, exc):
 
 
 # ==========================================
+# EXTENSION HELPER FUNCTIONS
+# ==========================================
+
+async def send_command_to_extension(
+    user_id: str,
+    command_type: str,
+    selector: str = None,
+    value: str = None,
+    options: dict = None
+) -> str:
+    """
+    Envia comando para extensão do navegador
+    """
+    try:
+        # Buscar device ativo do usuário
+        result = supabase.table("extension_devices").select("device_id").eq(
+            "user_id", user_id
+        ).eq("status", "online").limit(1).execute()
+
+        if not result.data or len(result.data) == 0:
+            raise Exception("Nenhuma extensão conectada. Por favor, instale e ative a extensão.")
+
+        device_id = result.data[0]["device_id"]
+
+        # Criar comando
+        command = supabase.table("extension_commands").insert({
+            "device_id": device_id,
+            "user_id": user_id,
+            "type": command_type,
+            "selector": selector,
+            "value": value,
+            "options": options or {},
+            "status": "pending"
+        }).execute()
+
+        command_id = command.data[0]["id"]
+        logger.info(f"✅ Command created: {command_id}")
+
+        return command_id
+
+    except Exception as e:
+        logger.error(f"❌ Error sending command: {e}")
+        raise
+
+
+async def wait_for_command_result(command_id: str, timeout: int = 30) -> dict:
+    """
+    Aguarda resultado do comando (polling)
+    """
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        # Verificar status do comando
+        result = supabase.table("extension_commands").select("*").eq(
+            "id", command_id
+        ).execute()
+
+        if result.data and len(result.data) > 0:
+            command = result.data[0]
+
+            if command["status"] == "completed":
+                return command["result"]
+            elif command["status"] == "failed":
+                return {
+                    "success": False,
+                    "error": command.get("result", {}).get("error", "Command failed")
+                }
+
+        # Aguardar 500ms antes de verificar novamente
+        await asyncio.sleep(0.5)
+
+    # Timeout
+    return {
+        "success": False,
+        "error": f"Command timeout after {timeout}s"
+    }
+
+
+# ==========================================
+# EXTENSION API ENDPOINTS
+# ==========================================
+
+@app.post("/api/extension/register")
+async def register_extension(request: Request):
+    """
+    Registra dispositivo da extensão
+    Body: { deviceId, userId, browser, version, timestamp }
+    """
+    try:
+        data = await request.json()
+
+        logger.info(f"📱 Registrando extensão: {data.get('deviceId')}")
+
+        # Salvar no Supabase
+        result = supabase.table("extension_devices").upsert({
+            "device_id": data["deviceId"],
+            "user_id": data.get("userId"),
+            "browser_info": data.get("browser"),
+            "version": data.get("version"),
+            "status": "online",
+            "last_seen": datetime.utcnow().isoformat()
+        }).execute()
+
+        logger.info(f"✅ Extension registered: {data['deviceId']}")
+
+        return {
+            "success": True,
+            "deviceId": data["deviceId"],
+            "message": "Extension registered successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Registration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/extension/commands")
+async def get_extension_commands(deviceId: str):
+    """
+    Long polling - retorna comandos pendentes para a extensão
+    Query: ?deviceId=device_xxx
+    """
+    try:
+        logger.info(f"🔍 Buscando comandos para: {deviceId}")
+
+        # Buscar comandos pendentes no Supabase
+        result = supabase.table("extension_commands").select("*").eq(
+            "device_id", deviceId
+        ).eq("status", "pending").order("created_at").execute()
+
+        commands = result.data if result.data else []
+
+        # Marcar como "processing"
+        if commands:
+            command_ids = [cmd["id"] for cmd in commands]
+            supabase.table("extension_commands").update({
+                "status": "processing",
+                "started_at": datetime.utcnow().isoformat()
+            }).in_("id", command_ids).execute()
+
+            logger.info(f"✅ Retornando {len(commands)} comandos")
+
+        return {
+            "success": True,
+            "commands": commands,
+            "count": len(commands)
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Commands fetch error: {e}")
+        return {"success": False, "commands": [], "error": str(e)}
+
+
+@app.post("/api/extension/result")
+async def receive_extension_result(request: Request):
+    """
+    Recebe resultado de comando executado pela extensão
+    Body: { deviceId, commandId, result, timestamp }
+    """
+    try:
+        data = await request.json()
+
+        logger.info(f"📥 Recebendo resultado: {data.get('commandId')}")
+
+        # Atualizar comando no Supabase
+        supabase.table("extension_commands").update({
+            "status": "completed" if data["result"].get("success") else "failed",
+            "result": data["result"],
+            "completed_at": datetime.utcnow().isoformat()
+        }).eq("id", data["commandId"]).execute()
+
+        logger.info(f"✅ Command result received: {data['commandId']}")
+
+        # Salvar log da execução
+        supabase.table("extension_logs").insert({
+            "device_id": data["deviceId"],
+            "command_id": data["commandId"],
+            "result": data["result"],
+            "action": "COMMAND_COMPLETED",
+            "message": f"Command {data['commandId']} completed",
+            "timestamp": data.get("timestamp", int(time.time() * 1000))
+        }).execute()
+
+        return {"success": True, "message": "Result received"}
+
+    except Exception as e:
+        logger.error(f"❌ Result error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/extension/log")
+async def receive_extension_log(request: Request):
+    """
+    Recebe logs da extensão
+    Body: { deviceId, userId, action, message, data, timestamp }
+    """
+    try:
+        data = await request.json()
+
+        # Salvar log no Supabase
+        supabase.table("extension_logs").insert({
+            "device_id": data["deviceId"],
+            "user_id": data.get("userId"),
+            "action": data["action"],
+            "message": data["message"],
+            "data": data.get("data"),
+            "url": data.get("url"),
+            "timestamp": data.get("timestamp", int(time.time() * 1000))
+        }).execute()
+
+        logger.info(f"📝 Log recebido: {data['action']} - {data['message']}")
+
+        return {"success": True}
+
+    except Exception as e:
+        logger.error(f"❌ Log error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ==========================================
 # STARTUP
 # ==========================================
 @app.on_event("startup")
 async def startup_event():
     """Startup event"""
     logger.info("=" * 50)
-    logger.info("🚀 SyncAds Python Microservice - FULL + AI TOOLS")
+    logger.info("🚀 SyncAds Python Microservice - FULL + AI TOOLS + EXTENSION")
     logger.info("=" * 50)
     logger.info("✅ FastAPI iniciado")
     logger.info(f"✅ Docs: /docs")
     logger.info(f"✅ Health: /health")
     logger.info(f"✅ Chat: /api/chat (streaming + Supabase + AI Tools)")
+    logger.info(f"✅ Extension API: /api/extension/* (4 endpoints)")
     logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
     logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
     logger.info("=" * 50)
