@@ -5,14 +5,15 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 pydantic==2.5.3
 starlette==0.35.1
-httpx==0.25.2
+httpx==0.26.0
 python-dotenv==1.0.0
 loguru==0.7.2
 
 # ==========================================
 # SUPABASE
 # ==========================================
-supabase==2.3.3
+supabase==2.9.0
+postgrest==0.17.0
 psycopg2-binary==2.9.9
 
 # ==========================================

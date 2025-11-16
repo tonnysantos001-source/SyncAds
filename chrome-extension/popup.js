@@ -1,148 +1,87 @@
 // ============================================
-// SYNCADS EXTENSION - POPUP SCRIPT
-// Interface simplificada do usuário
+// SYNCADS EXTENSION - POPUP (MINIMALISTA)
 // ============================================
 
-console.log("🎨 SyncAds Popup Loaded");
-
-// ==========================================
-// CONFIGURAÇÃO
-// ==========================================
 const CONFIG = {
-  API_URL: "https://syncads-python-microservice-production.up.railway.app",
-  FRONTEND_URL: "https://syncads.com.br",
-  EXTENSION_SETUP_URL: "https://syncads.com.br/extension-setup",
+  PANEL_URL: "https://syncads.com.br/app",
 };
 
-// ============================================
-// ELEMENTOS DO DOM
-// ============================================
-const elements = {
-  mainContent: document.getElementById("mainContent"),
-  loadingContent: document.getElementById("loadingContent"),
-  statusDot: document.getElementById("statusDot"),
-  statusTitle: document.getElementById("statusTitle"),
-  statusSubtitle: document.getElementById("statusSubtitle"),
-  loginBtn: document.getElementById("loginBtn"),
-  refreshBtn: document.getElementById("refreshBtn"),
-};
-
-// ============================================
-// ESTADO GLOBAL
-// ============================================
-let state = {
-  deviceId: null,
-  userId: null,
-  isConnected: false,
-  isLoggedIn: false,
-};
+// Elementos do DOM
+const statusIndicator = document.getElementById("statusIndicator");
+const statusTitle = document.getElementById("statusTitle");
+const statusSubtitle = document.getElementById("statusSubtitle");
+const openPanelBtn = document.getElementById("openPanelBtn");
+const mainContent = document.getElementById("mainContent");
+const loadingContent = document.getElementById("loadingContent");
 
 // ============================================
 // FUNÇÕES DE UI
 // ============================================
 function showLoading() {
-  elements.mainContent.style.display = "none";
-  elements.loadingContent.style.display = "block";
+  mainContent.style.display = "none";
+  loadingContent.classList.add("active");
 }
 
 function hideLoading() {
-  elements.mainContent.style.display = "block";
-  elements.loadingContent.style.display = "none";
+  loadingContent.classList.remove("active");
+  mainContent.style.display = "flex";
 }
 
-function updateStatus(connected, title, subtitle) {
-  if (connected) {
-    elements.statusDot.classList.add("connected");
-    elements.statusTitle.textContent = title || "Conectado";
-    elements.statusSubtitle.textContent =
-      subtitle || "Extensão ativa e funcionando";
+function setButtonState(state) {
+  const btnIcon = document.getElementById("btnIcon");
+  const btnText = document.getElementById("btnText");
+
+  if (state === "connecting") {
+    openPanelBtn.classList.add("connecting");
+    openPanelBtn.setAttribute("disabled", "true");
+    btnIcon.textContent = "⏳";
+    btnText.textContent = "Verificando...";
+  } else if (state === "connected") {
+    openPanelBtn.classList.remove("connecting");
+    openPanelBtn.removeAttribute("disabled");
+    btnIcon.textContent = "✅";
+    btnText.textContent = "Conectado";
   } else {
-    elements.statusDot.classList.remove("connected");
-    elements.statusTitle.textContent = title || "Desconectado";
-    elements.statusSubtitle.textContent = subtitle || "Faça login para ativar";
+    openPanelBtn.classList.remove("connecting");
+    openPanelBtn.removeAttribute("disabled");
+    btnIcon.textContent = "🔗";
+    btnText.textContent = "Conectar";
   }
 }
 
-function showLoggedInState() {
-  elements.loginBtn.style.display = "none";
-  elements.refreshBtn.style.display = "flex";
-  updateStatus(true, "Conectado", "Pronto para automatizar");
-  state.isLoggedIn = true;
-}
-
-function showLoggedOutState() {
-  elements.loginBtn.style.display = "flex";
-  elements.refreshBtn.style.display = "none";
-  updateStatus(false, "Desconectado", "Faça login para ativar");
-  state.isLoggedIn = false;
+function updateStatus(isConnected) {
+  if (isConnected) {
+    statusIndicator.classList.add("connected");
+    statusTitle.textContent = "Conectado";
+    statusSubtitle.textContent = "Extensão ativa • Automação habilitada";
+    openPanelBtn.style.display = "none";
+  } else {
+    statusIndicator.classList.remove("connected");
+    statusTitle.textContent = "Desconectado";
+    statusSubtitle.textContent = "Clique em Conectar";
+    openPanelBtn.style.display = "inline-flex";
+  }
 }
 
 // ============================================
-// FUNÇÕES DE COMUNICAÇÃO
+// VERIFICAR STATUS
 // ============================================
-function sendMessageToBackground(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
-async function checkLoginStatus() {
+async function checkConnectionStatus() {
   try {
-    // Verificar se tem deviceId e userId salvos
     const result = await chrome.storage.local.get([
       "deviceId",
       "userId",
       "isConnected",
     ]);
 
-    if (result.deviceId && result.userId) {
-      state.deviceId = result.deviceId;
-      state.userId = result.userId;
-      state.isConnected = result.isConnected || false;
+    const isConnected = result.deviceId && result.userId && result.isConnected;
 
-      showLoggedInState();
-      return true;
-    }
+    updateStatus(isConnected);
 
-    showLoggedOutState();
-    return false;
+    return isConnected;
   } catch (error) {
-    console.error("❌ Erro ao verificar login:", error);
-    showLoggedOutState();
-    return false;
-  }
-}
-
-async function registerDevice() {
-  try {
-    const response = await sendMessageToBackground({
-      action: "REGISTER_DEVICE",
-    });
-
-    if (response && response.success) {
-      console.log("✅ Dispositivo registrado:", response.deviceId);
-      state.deviceId = response.deviceId;
-      state.isConnected = true;
-
-      // Salvar no storage
-      await chrome.storage.local.set({
-        deviceId: response.deviceId,
-        isConnected: true,
-      });
-
-      showLoggedInState();
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("❌ Erro ao registrar dispositivo:", error);
+    console.error("❌ Erro ao verificar status:", error);
+    updateStatus(false);
     return false;
   }
 }
@@ -150,63 +89,78 @@ async function registerDevice() {
 // ============================================
 // EVENT LISTENERS
 // ============================================
-elements.loginBtn.addEventListener("click", () => {
-  console.log("🔐 Abrindo página de login...");
+openPanelBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
 
-  // Abrir página de setup/login
-  chrome.tabs.create({
-    url: CONFIG.EXTENSION_SETUP_URL,
-  });
-
-  // Fechar popup
-  window.close();
-});
-
-elements.refreshBtn.addEventListener("click", async () => {
-  console.log("🔄 Verificando conexão...");
-
-  showLoading();
+  setButtonState("connecting");
 
   try {
-    await checkLoginStatus();
+    // Verificar aba atual
+    const [currentTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
-    if (state.isLoggedIn) {
-      // Tentar registrar dispositivo novamente
-      await registerDevice();
+    // Verificar se já está no painel
+    const isOnPanel =
+      currentTab.url &&
+      (currentTab.url.includes("syncads.com.br") ||
+        currentTab.url.includes("localhost"));
+
+    if (!isOnPanel) {
+      // Se não está no painel, redirecionar na mesma aba
+      await chrome.tabs.update(currentTab.id, {
+        url: CONFIG.PANEL_URL,
+      });
+
+      // Aguardar carregamento
+      setTimeout(async () => {
+        const connected = await checkConnectionStatus();
+        setButtonState(connected ? "connected" : "default");
+      }, 3000);
+    } else {
+      // Já está no painel, apenas verificar conexão
+      const connected = await checkConnectionStatus();
+
+      // Enviar mensagem para detectar login
+      chrome.tabs
+        .sendMessage(currentTab.id, {
+          type: "CHECK_AUTH",
+        })
+        .catch(() => {
+          // Content script pode não estar carregado ainda
+        });
+
+      setTimeout(() => {
+        setButtonState(connected ? "connected" : "default");
+      }, 1500);
     }
   } catch (error) {
-    console.error("❌ Erro ao atualizar:", error);
-  } finally {
-    setTimeout(hideLoading, 500);
+    console.error("❌ Erro ao conectar:", error);
+    setButtonState("default");
   }
 });
 
-// ============================================
-// LISTENERS DE MENSAGENS
-// ============================================
+// Listener para mudanças no storage
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "local") {
+    if (changes.isConnected || changes.deviceId || changes.userId) {
+      checkConnectionStatus();
+    }
+  }
+});
+
+// Listener para mensagens do background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("📨 Mensagem recebida no popup:", message);
-
-  switch (message.action) {
-    case "STATUS_UPDATE":
-      updateStatus(message.connected, message.title, message.subtitle);
-      break;
-
-    case "LOGIN_SUCCESS":
-      state.userId = message.userId;
-      showLoggedInState();
-      registerDevice();
-      break;
-
-    case "LOGOUT":
-      state.userId = null;
-      state.deviceId = null;
-      state.isConnected = false;
-      showLoggedOutState();
-      break;
-
-    default:
-      console.log("⚠️ Ação desconhecida:", message.action);
+  if (message.action === "STATUS_UPDATE") {
+    updateStatus(message.connected);
+    setButtonState(message.connected ? "connected" : "default");
+  } else if (message.action === "LOGIN_SUCCESS") {
+    updateStatus(true);
+    setButtonState("connected");
+  } else if (message.action === "LOGOUT") {
+    updateStatus(false);
+    setButtonState("default");
   }
 
   sendResponse({ received: true });
@@ -217,37 +171,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // INICIALIZAÇÃO
 // ============================================
 async function initialize() {
-  console.log("🚀 Inicializando popup...");
-
   showLoading();
 
-  try {
-    // Verificar status de login
-    const isLoggedIn = await checkLoginStatus();
+  await checkConnectionStatus();
 
-    if (isLoggedIn) {
-      console.log("✅ Usuário logado");
-
-      // Tentar registrar dispositivo se não estiver conectado
-      if (!state.isConnected) {
-        await registerDevice();
-      }
-    } else {
-      console.log("ℹ️ Usuário não logado");
-    }
-  } catch (error) {
-    console.error("❌ Erro na inicialização:", error);
-    showLoggedOutState();
-  } finally {
-    setTimeout(hideLoading, 300);
-  }
+  setTimeout(hideLoading, 300);
 }
 
-// Iniciar quando o DOM estiver pronto
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initialize);
-} else {
-  initialize();
-}
-
-console.log("✅ Popup script carregado");
+// Iniciar
+initialize();

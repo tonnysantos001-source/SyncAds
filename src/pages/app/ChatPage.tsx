@@ -1,5 +1,5 @@
 import { ActiveAIIndicator } from "@/components/chat/ActiveAIIndicator";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -76,6 +76,8 @@ const MAX_CHARS = 500;
 const ChatPage: React.FC = () => {
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [charCount, setCharCount] = useState(0);
+  const [extensionConnected, setExtensionConnected] = useState(false);
   const [globalAiConfig, setGlobalAiConfig] = useState<{
     systemPrompt: string;
     initialGreetings: string[];
@@ -164,7 +166,49 @@ const ChatPage: React.FC = () => {
     };
 
     loadGlobalAiConfig();
-  }, [user?.id]);
+  }, [user]);
+
+  // Verificar status da extensão periodicamente
+  useEffect(() => {
+    const checkExtensionStatus = async () => {
+      if (!user) return;
+
+      try {
+        const RAILWAY_URL =
+          import.meta.env.VITE_PYTHON_SERVICE_URL ||
+          "https://syncads-python-microservice-production.up.railway.app";
+
+        const response = await fetch(
+          `${RAILWAY_URL}/api/extension/devices/${user.id}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const hasActiveDevices = data.devices && data.devices.length > 0;
+          setExtensionConnected(hasActiveDevices);
+        } else {
+          setExtensionConnected(false);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar extensão:", error);
+        setExtensionConnected(false);
+      }
+    };
+
+    // Verificar imediatamente
+    checkExtensionStatus();
+
+    // Verificar a cada 10 segundos
+    const interval = setInterval(checkExtensionStatus, 10000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (activeConversation && activeConversation.messages.length === 0) {
@@ -218,7 +262,7 @@ const ChatPage: React.FC = () => {
     });
   };
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (
       input.trim() === "" ||
       !activeConversationId ||
@@ -444,7 +488,7 @@ const ChatPage: React.FC = () => {
     } finally {
       setAssistantTyping(false);
     }
-  };
+  }, [activeConversationId, input, user, messages, currentAttachments, toast]);
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
@@ -803,16 +847,36 @@ const ChatPage: React.FC = () => {
                 <IconBrandOpenai className="w-6 h-6 text-white" />
               </motion.div>
               <div>
-              {/* Indicador IA Ativa */}
-              <ActiveAIIndicator
-                aiName={currentAiName}
-                provider={globalAiConfig?.provider}
-                model={globalAiConfig?.model}
-                tokensUsed={tokensUsed}
-                isOnline={true}
-              />
-                <h1 className="text-xl font-bold text-white">Chat com IA</h1>
-                <p className="text-sm text-gray-400">Assistente inteligente</p>
+                {/* Indicador IA Ativa */}
+                <ActiveAIIndicator
+                  aiName={currentAiName}
+                  provider={globalAiConfig?.provider}
+                  model={globalAiConfig?.model}
+                  tokensUsed={tokensUsed}
+                  isOnline={true}
+                />
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-white">Chat com IA</h1>
+                  {extensionConnected ? (
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5 animate-pulse" />
+                      Extensão Conectada
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 mr-1.5" />
+                      Sem Extensão
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-400">
+                  Assistente inteligente
+                  {!extensionConnected && (
+                    <span className="text-orange-400 ml-2">
+                      · Conecte a extensão para automação
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
             <motion.div
@@ -962,7 +1026,6 @@ const ChatPage: React.FC = () => {
 
               {isAssistantTyping && (
                 <>
-
                   {/* Preview de attachments sendo gerados */}
                   {currentAttachments.length > 0 && (
                     <motion.div
@@ -1005,7 +1068,13 @@ const ChatPage: React.FC = () => {
           <div className="relative">
             <Textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (newValue.length <= MAX_CHARS) {
+                  setInput(newValue);
+                  setCharCount(newValue.length);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -1016,8 +1085,10 @@ const ChatPage: React.FC = () => {
               className="w-full resize-none rounded-xl bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 text-white placeholder-gray-500 p-4 pr-32 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:bg-gray-800/70 transition-all shadow-inner"
               minRows={1}
               maxRows={5}
-              maxLength={MAX_CHARS}
             />
+            <div className="absolute bottom-2 left-4 text-xs text-gray-500">
+              {charCount}/{MAX_CHARS}
+            </div>
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
               <input
                 type="file"
