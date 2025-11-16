@@ -100,6 +100,7 @@ const AdsPage = lazy(() => import("./pages/app/reports/AdsPage"));
 
 // Standalone pages (not in Settings)
 const BillingPage = lazy(() => import("./pages/app/BillingPage"));
+const ExtensionPage = lazy(() => import("./pages/app/ExtensionPage"));
 
 // Orders pages
 const AllOrdersPage = lazy(() => import("./pages/app/orders/AllOrdersPage"));
@@ -410,6 +411,9 @@ function App() {
 
               {/* Billing (standalone page) */}
               <Route path="/billing" element={<BillingPage />} />
+
+              {/* Extension */}
+              <Route path="/app/extension" element={<ExtensionPage />} />
 
               {/* Orders */}
               <Route path="/orders/all" element={<AllOrdersPage />} />

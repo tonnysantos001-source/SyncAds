@@ -59,6 +59,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: "/chat", icon: HiChatBubbleBottomCenterText, label: "Chat IA" },
+  { to: "/app/extension", icon: HiPuzzlePiece, label: "Extensão do Navegador" },
   { to: "/onboarding", icon: HiHome, label: "Página inicial" },
   {
     icon: HiChartBar,
