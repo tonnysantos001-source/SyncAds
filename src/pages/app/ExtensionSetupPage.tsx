@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Download,
   CheckCircle,
@@ -10,12 +10,18 @@ import {
   ArrowRight,
   Copy,
   Check,
-  Loader2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ExtensionSetupPage() {
   const navigate = useNavigate();
@@ -25,20 +31,20 @@ export default function ExtensionSetupPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  const extensionId = 'syncads-ai-extension';
+  const extensionId = "syncads-ai-extension";
 
   const handleDownload = () => {
     // Trigger download of extension
-    const link = document.createElement('a');
-    link.href = '/chrome-extension.zip';
-    link.download = 'syncads-extension.zip';
+    const link = document.createElement("a");
+    link.href = "/chrome-extension.zip";
+    link.download = "syncads-extension.zip";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     toast({
-      title: '📦 Download iniciado!',
-      description: 'A extensão SyncAds AI está sendo baixada.',
+      title: "📦 Download iniciado!",
+      description: "A extensão SyncAds AI está sendo baixada.",
     });
 
     setCurrentStep(2);
@@ -48,8 +54,8 @@ export default function ExtensionSetupPage() {
     navigator.clipboard.writeText(extensionId);
     setCopied(true);
     toast({
-      title: '✅ ID copiado!',
-      description: 'Cole no Chrome para carregar a extensão.',
+      title: "✅ ID copiado!",
+      description: "Cole no Chrome para carregar a extensão.",
     });
     setTimeout(() => setCopied(false), 2000);
   };
@@ -65,15 +71,16 @@ export default function ExtensionSetupPage() {
 
       if (connected) {
         toast({
-          title: '🎉 Extensão conectada!',
-          description: 'A extensão SyncAds AI está funcionando perfeitamente.',
+          title: "🎉 Extensão conectada!",
+          description: "A extensão SyncAds AI está funcionando perfeitamente.",
         });
-        setTimeout(() => navigate('/app/dashboard'), 2000);
+        setTimeout(() => navigate("/app/dashboard"), 2000);
       } else {
         toast({
-          title: '⚠️ Extensão não detectada',
-          description: 'Certifique-se de que a extensão está instalada e ativa.',
-          variant: 'destructive',
+          title: "⚠️ Extensão não detectada",
+          description:
+            "Certifique-se de que a extensão está instalada e ativa.",
+          variant: "destructive",
         });
       }
     }, 2000);
@@ -82,31 +89,31 @@ export default function ExtensionSetupPage() {
   const steps = [
     {
       number: 1,
-      title: 'Baixar Extensão',
-      description: 'Faça o download do arquivo .zip da extensão',
+      title: "Baixar Extensão",
+      description: "Faça o download do arquivo .zip da extensão",
       icon: Download,
-      color: 'text-blue-500',
+      color: "text-blue-500",
     },
     {
       number: 2,
-      title: 'Instalar no Chrome',
-      description: 'Ative o modo desenvolvedor e carregue a extensão',
+      title: "Instalar no Chrome",
+      description: "Ative o modo desenvolvedor e carregue a extensão",
       icon: Chrome,
-      color: 'text-green-500',
+      color: "text-green-500",
     },
     {
       number: 3,
-      title: 'Conectar Conta',
-      description: 'Faça login na extensão com sua conta SyncAds',
+      title: "Conectar Conta",
+      description: "Faça login na extensão com sua conta SyncAds",
       icon: Shield,
-      color: 'text-purple-500',
+      color: "text-purple-500",
     },
     {
       number: 4,
-      title: 'Pronto!',
-      description: 'Comece a automatizar com IA',
+      title: "Pronto!",
+      description: "Comece a automatizar com IA",
       icon: Zap,
-      color: 'text-yellow-500',
+      color: "text-yellow-500",
     },
   ];
 
@@ -148,8 +155,8 @@ export default function ExtensionSetupPage() {
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                       currentStep >= step.number
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                        ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                        : "bg-slate-200 dark:bg-slate-700 text-slate-400"
                     }`}
                   >
                     {currentStep > step.number ? (
@@ -166,8 +173,8 @@ export default function ExtensionSetupPage() {
                   <div
                     className={`flex-1 h-1 mx-2 transition-all ${
                       currentStep > step.number
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-500'
-                        : 'bg-slate-200 dark:bg-slate-700'
+                        ? "bg-gradient-to-r from-purple-500 to-blue-500"
+                        : "bg-slate-200 dark:bg-slate-700"
                     }`}
                   />
                 )}
@@ -196,12 +203,15 @@ export default function ExtensionSetupPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">1</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">
+                        1
+                      </span>
                     </div>
                     <h3 className="text-xl font-semibold">Baixar a Extensão</h3>
                   </div>
                   <p className="text-slate-600 dark:text-slate-400 ml-11">
-                    Clique no botão abaixo para fazer o download do arquivo .zip da extensão SyncAds AI
+                    Clique no botão abaixo para fazer o download do arquivo .zip
+                    da extensão SyncAds AI
                   </p>
                   <div className="ml-11">
                     <Button
@@ -219,16 +229,32 @@ export default function ExtensionSetupPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <span className="text-green-600 dark:text-green-400 font-bold">2</span>
+                      <span className="text-green-600 dark:text-green-400 font-bold">
+                        2
+                      </span>
                     </div>
-                    <h3 className="text-xl font-semibold">Instalar no Chrome</h3>
+                    <h3 className="text-xl font-semibold">
+                      Instalar no Chrome
+                    </h3>
                   </div>
                   <div className="ml-11 space-y-3">
                     <ol className="list-decimal list-inside space-y-2 text-slate-600 dark:text-slate-400">
-                      <li>Abra o Chrome e digite <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded">chrome://extensions/</code></li>
-                      <li>Ative o <strong>Modo do desenvolvedor</strong> no canto superior direito</li>
-                      <li>Clique em <strong>"Carregar sem compactação"</strong></li>
-                      <li>Extraia o arquivo .zip e selecione a pasta extraída</li>
+                      <li>
+                        Abra o Chrome e digite{" "}
+                        <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded">
+                          chrome://extensions/
+                        </code>
+                      </li>
+                      <li>
+                        Ative o <strong>Modo do desenvolvedor</strong> no canto
+                        superior direito
+                      </li>
+                      <li>
+                        Clique em <strong>"Carregar sem compactação"</strong>
+                      </li>
+                      <li>
+                        Extraia o arquivo .zip e selecione a pasta extraída
+                      </li>
                       <li>A extensão SyncAds AI aparecerá na lista</li>
                     </ol>
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -239,7 +265,8 @@ export default function ExtensionSetupPage() {
                             Dica: Fixe a extensão na barra de ferramentas
                           </p>
                           <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                            Clique no ícone de puzzle 🧩 e fixe o SyncAds AI para fácil acesso
+                            Clique no ícone de puzzle 🧩 e fixe o SyncAds AI
+                            para fácil acesso
                           </p>
                         </div>
                       </div>
@@ -251,13 +278,18 @@ export default function ExtensionSetupPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                      <span className="text-purple-600 dark:text-purple-400 font-bold">3</span>
+                      <span className="text-purple-600 dark:text-purple-400 font-bold">
+                        3
+                      </span>
                     </div>
-                    <h3 className="text-xl font-semibold">Fazer Login na Extensão</h3>
+                    <h3 className="text-xl font-semibold">
+                      Fazer Login na Extensão
+                    </h3>
                   </div>
                   <div className="ml-11 space-y-3">
                     <p className="text-slate-600 dark:text-slate-400">
-                      Clique no ícone da extensão e faça login com sua conta SyncAds:
+                      Clique no ícone da extensão e faça login com sua conta
+                      SyncAds:
                     </p>
                     <div className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
                       <code className="flex-1 text-sm">{extensionId}</code>
@@ -280,19 +312,24 @@ export default function ExtensionSetupPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                      <span className="text-yellow-600 dark:text-yellow-400 font-bold">4</span>
+                      <span className="text-yellow-600 dark:text-yellow-400 font-bold">
+                        4
+                      </span>
                     </div>
                     <h3 className="text-xl font-semibold">Verificar Conexão</h3>
                   </div>
                   <div className="ml-11 space-y-3">
                     <p className="text-slate-600 dark:text-slate-400">
-                      Clique no botão abaixo para verificar se a extensão está conectada corretamente:
+                      Clique no botão abaixo para verificar se a extensão está
+                      conectada corretamente:
                     </p>
                     <Button
                       onClick={checkConnection}
-                      variant={isConnected ? 'default' : 'outline'}
+                      variant={isConnected ? "default" : "outline"}
                       disabled={isChecking}
-                      className={isConnected ? 'bg-green-500 hover:bg-green-600' : ''}
+                      className={
+                        isConnected ? "bg-green-500 hover:bg-green-600" : ""
+                      }
                     >
                       {isChecking ? (
                         <>
@@ -319,13 +356,13 @@ export default function ExtensionSetupPage() {
               <div className="mt-8 pt-8 border-t flex items-center justify-between">
                 <Button
                   variant="ghost"
-                  onClick={() => navigate('/app/dashboard')}
+                  onClick={() => navigate("/app/dashboard")}
                 >
                   Fazer depois
                 </Button>
                 {isConnected && (
                   <Button
-                    onClick={() => navigate('/app/dashboard')}
+                    onClick={() => navigate("/app/dashboard")}
                     className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                   >
                     Ir para Dashboard

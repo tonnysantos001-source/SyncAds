@@ -5,14 +5,13 @@
 
 console.log("🎨 SyncAds Popup Loaded");
 
-// ============================================
+// ==========================================
 // CONFIGURAÇÃO
-// ============================================
+// ==========================================
 const CONFIG = {
   API_URL: "https://syncads-python-microservice-production.up.railway.app",
-  FRONTEND_URL: "https://syncads-njplhgitt-fatima-drivias-projects.vercel.app",
-  EXTENSION_SETUP_URL:
-    "https://syncads-njplhgitt-fatima-drivias-projects.vercel.app/extension-setup",
+  FRONTEND_URL: "https://syncads.com.br",
+  EXTENSION_SETUP_URL: "https://syncads.com.br/extension-setup",
 };
 
 // ============================================
