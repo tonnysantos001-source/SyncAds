@@ -558,7 +558,6 @@ ffmpeg-python==0.2.0
 # ==========================================
 web3>=6.0.0,<7.0.0
 eth-account>=0.11.0
-ens>=0.9.0
 
 # ==========================================
 # GRUPO 99: NLP ADVANCED (NOVO)
@@ -646,7 +645,7 @@ spacy-lookups-data==1.0.5
 # ✅ Grupo 95 adicionado (3 libs - Automation & RPA: pyautogui, keyboard, mouse)
 # ✅ Grupo 96 adicionado (3 libs - OCR: pytesseract, easyocr, ocrmypdf)
 # ✅ Grupo 97 adicionado (3 libs - Video Processing: av, vidgear, ffmpeg-python)
-# ✅ Grupo 98 adicionado (3 libs - Web3 & Blockchain: web3, eth-account, ens) - ens version fixed to 0.6.1
+# ✅ Grupo 98 adicionado (2 libs - Web3 & Blockchain: web3, eth-account) - ens removido por conflito
 # ✅ Grupo 99 adicionado (3 libs - NLP Advanced: gensim, textacy, spacy-lookups-data)
 # ✅ Total: 242 bibliotecas
 # ✅ Build estimado: ~86-90 minutos
