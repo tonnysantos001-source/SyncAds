@@ -309,59 +309,74 @@ def detect_browser_automation_intent(message: str) -> Optional[Dict]:
     message_lower = message.lower()
 
     # Navegar para URL
-    if any(word in message_lower for word in ["abra", "abrir", "navegue", "vá para", "acesse"]):
+    if any(
+        word in message_lower
+        for word in ["abra", "abrir", "navegue", "vá para", "acesse"]
+    ):
         # Extrair URL se houver
         import re
-        url_pattern = r'https?://[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?'
+
+        url_pattern = (
+            r"https?://[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?"
+        )
         urls = re.findall(url_pattern, message)
         if urls:
-            return {
-                "type": "NAVIGATE",
-                "data": {"url": urls[0]}
-            }
+            return {"type": "NAVIGATE", "data": {"url": urls[0]}}
 
     # Clicar em elemento
-    if any(word in message_lower for word in ["clique", "clicar", "pressione", "aperte"]):
+    if any(
+        word in message_lower for word in ["clique", "clicar", "pressione", "aperte"]
+    ):
         # Extrair texto do botão/elemento
         button_patterns = [
             r'bot[ãa]o ["\']([^"\']+)["\']',
             r'em ["\']([^"\']+)["\']',
-            r'no bot[ãa]o ([^\s]+)',
+            r"no bot[ãa]o ([^\s]+)",
         ]
         for pattern in button_patterns:
             import re
+
             match = re.search(pattern, message_lower)
             if match:
                 return {
                     "type": "DOM_CLICK",
-                    "data": {"selector": f"button:contains('{match.group(1)}')", "text": match.group(1)}
+                    "data": {
+                        "selector": f"button:contains('{match.group(1)}')",
+                        "text": match.group(1),
+                    },
                 }
 
     # Preencher campo
-    if any(word in message_lower for word in ["preencha", "preencher", "digite", "escreva", "insira"]):
+    if any(
+        word in message_lower
+        for word in ["preencha", "preencher", "digite", "escreva", "insira"]
+    ):
         # Extrair campo e valor
         import re
+
         fill_pattern = r'campo ["\']?([^"\']+)["\']? (?:com|de) ["\']?([^"\']+)["\']?'
         match = re.search(fill_pattern, message_lower)
         if match:
             return {
                 "type": "DOM_FILL",
-                "data": {"selector": f"input[name*='{match.group(1)}']", "value": match.group(2)}
+                "data": {
+                    "selector": f"input[name*='{match.group(1)}']",
+                    "value": match.group(2),
+                },
             }
 
     # Tirar screenshot
-    if any(word in message_lower for word in ["print", "screenshot", "captura", "tire uma foto"]):
-        return {
-            "type": "SCREENSHOT",
-            "data": {}
-        }
+    if any(
+        word in message_lower
+        for word in ["print", "screenshot", "captura", "tire uma foto"]
+    ):
+        return {"type": "SCREENSHOT", "data": {}}
 
     # Ler dados da página
-    if any(word in message_lower for word in ["leia", "extraia", "pegue", "busque"]) and any(word in message_lower for word in ["página", "tela", "site"]):
-        return {
-            "type": "DOM_READ",
-            "data": {"selector": "body"}
-        }
+    if any(
+        word in message_lower for word in ["leia", "extraia", "pegue", "busque"]
+    ) and any(word in message_lower for word in ["página", "tela", "site"]):
+        return {"type": "DOM_READ", "data": {"selector": "body"}}
 
     return None
 
@@ -547,7 +562,9 @@ async def chat(
         # 2.5 Detectar automação de navegador
         browser_intent = detect_browser_automation_intent(request.message)
         if browser_intent and has_extension:
-            logger.info(f"🌐 Automação de navegador detectada: {browser_intent['type']}")
+            logger.info(
+                f"🌐 Automação de navegador detectada: {browser_intent['type']}"
+            )
 
             # Criar comando para extensão
             if user_devices:
@@ -682,7 +699,9 @@ async def chat(
                     tool_result = await executor.execute(code)
 
             except Exception as tool_error:
-                logger.error(f"❌ ERRO NA FERRAMENTA {tool_intent}: {tool_error}", exc_info=True)
+                logger.error(
+                    f"❌ ERRO NA FERRAMENTA {tool_intent}: {tool_error}", exc_info=True
+                )
                 tool_result = {"success": False, "error": str(tool_error)}
         else:
             logger.info("ℹ️ Nenhuma ferramenta detectada - resposta normal de chat")
