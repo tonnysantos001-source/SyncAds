@@ -11,7 +11,7 @@
  * ============================================
  */
 
-import { supabase } from "./supabase";
+import { supabase } from "../supabase";
 
 // ============================================
 // TYPES & INTERFACES
@@ -108,21 +108,11 @@ class ChatService {
         throw new Error("Usuário não encontrado");
       }
 
-      // Buscar organização do usuário
-      const { data: userData } = await supabase
-        .from("User")
-        .select("organizationId")
-        .eq("id", user.id)
-        .single();
-
-      const organizationId = userData?.organizationId;
-
       // Preparar payload
       const payload = {
         message,
         conversationId,
         userId: user.id,
-        organizationId,
       };
 
       console.log("📤 Sending to Railway:", CHAT_ENDPOINT, payload);
@@ -212,23 +202,11 @@ class ChatService {
   }
 
   /**
-   * Busca IA ativa da organização
+   * Busca IA global ativa (primeira ativa)
    */
-  async getActiveAI(organizationId: string): Promise<GlobalAiConnection | null> {
+  async getActiveAI(): Promise<GlobalAiConnection | null> {
     try {
-      // Buscar IA configurada para a organização
-      const { data: orgAi } = await supabase
-        .from("OrganizationAiConnection")
-        .select("*, GlobalAiConnection(*)")
-        .eq("organizationId", organizationId)
-        .eq("isDefault", true)
-        .single();
-
-      if (orgAi?.GlobalAiConnection?.isActive) {
-        return orgAi.GlobalAiConnection as GlobalAiConnection;
-      }
-
-      // Fallback: buscar primeira IA global ativa
+      // Buscar primeira IA global ativa
       const { data: globalAi } = await supabase
         .from("GlobalAiConnection")
         .select("*")
@@ -308,18 +286,10 @@ class ChatService {
 
       if (!user) throw new Error("User not authenticated");
 
-      // Buscar organização do usuário
-      const { data: userData } = await supabase
-        .from("User")
-        .select("organizationId")
-        .eq("id", user.id)
-        .single();
-
       const { data, error } = await supabase
         .from("ChatConversation")
         .insert({
           userId: user.id,
-          organizationId: userData?.organizationId,
           title: title || "Nova conversa",
           createdAt: new Date().toISOString(),
         })

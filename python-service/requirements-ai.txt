@@ -1,0 +1,75 @@
+# ============================================
+# SYNCADS - REQUIREMENTS AI/ML (FASE 3)
+# GRUPOS 18-23 - AI, ML & Advanced Processing
+# Python 3.11+
+# Tempo estimado: 15-20 minutos
+# ============================================
+
+# ==========================================
+# GRUPO 18: WEBSOCKET AVANÇADO
+# ==========================================
+python-socketio==5.11.0
+websocket-client==1.7.0
+wsproto==1.2.0
+
+# ==========================================
+# GRUPO 19: HTTP UTILS
+# ==========================================
+httpcore==1.0.2
+h11==0.14.0
+h2==4.1.0
+anyio==4.2.0
+sniffio==1.3.0
+
+# ==========================================
+# GRUPO 20: UTILITIES AVANÇADAS
+# ==========================================
+python-slugify==8.0.3
+unidecode==1.3.8
+chardet==5.2.0
+certifi==2023.11.17
+urllib3==2.1.0
+idna==3.6
+
+# ==========================================
+# GRUPO 21: CLI TOOLS
+# ==========================================
+click==8.1.7
+rich==13.7.0
+tqdm==4.66.1
+colorama==0.4.6
+
+# ==========================================
+# GRUPO 22: MAIS UTILITÁRIOS
+# ==========================================
+python-magic==0.4.27
+filelock==3.13.1
+packaging==23.2
+setuptools==69.0.3
+wheel==0.42.0
+
+# ==========================================
+# GRUPO 23: AI APIs (NOVO - ADICIONADO AGORA)
+# ==========================================
+openai==1.10.0
+anthropic==0.9.0
+groq==0.4.2
+cohere==4.47.0
+google-generativeai==0.3.2
+
+# ==========================================
+# NOTAS:
+# ==========================================
+# ✅ Grupos 18-22: Base anterior funcionando
+# 🆕 GRUPO 23: AI APIs (OpenAI, Claude, Groq, Cohere, Gemini)
+# ✅ WebSocket & HTTP utils avançados
+# ✅ CLI tools & utilities
+# ✅ Tempo de build: 15-20 minutos
+# ✅ Railway/Docker otimizado
+#
+# 🎯 CAPACIDADES GRUPO 23:
+# - OpenAI GPT-4, GPT-3.5, DALL-E 3
+# - Anthropic Claude 3 (Opus, Sonnet, Haiku)
+# - Groq (LLaMA 2, Mixtral ultra-rápido)
+# - Cohere (embeddings, classification, rerank)
+# - Google Gemini Pro & Pro Vision

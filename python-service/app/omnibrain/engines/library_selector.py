@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 # ✅ CORREÇÃO: Integrar profile loader
-from ..library_profiles import get_loader, get_profile
+from ..library_profiles import LibraryProfile, get_loader, get_profile
 
 # ✅ CORREÇÃO: Usar types compartilhados
 from ..types import (
@@ -732,7 +732,207 @@ class LibrarySelector:
         # Clamp to 0-10
         return max(0, min(10, score))
 
+    def _get_candidates_from_profiles(
+        self, task_type: TaskType, task_input: Any
+    ) -> List[LibraryCandidate]:
+        """
+        ✅ CORREÇÃO: Buscar candidatos dos Library Profiles reais
+
+        Usa o profile loader para encontrar bibliotecas baseado em:
+        - Task type match
+        - Use cases com confidence
+        - Keywords no comando
+        - Performance scores
+        """
+        try:
+            loader = get_loader()
+            all_profiles = loader.load_all_profiles()
+
+            if not all_profiles:
+                logger.warning("⚠️ No profiles loaded, using hardcoded database")
+                return self._get_candidates_from_database_fallback(task_type, task_input)
+
+            candidates = []
+            command_lower = task_input.command.lower() if hasattr(task_input, 'command') else ""
+
+            for lib_name, profile in all_profiles.items():
+                # Calcular confidence baseado em use_cases
+                confidence = 0.0
+                matching_use_cases = []
+
+                for use_case in profile.use_cases:
+                    # Match task type
+                    if task_type.value in use_case.task_types:
+                        confidence += use_case.confidence
+                        matching_use_cases.append(use_case)
+
+                    # Match keywords no comando
+                    for keyword in profile.keywords:
+                        if keyword.lower() in command_lower:
+                            confidence += 0.1
+
+                # Normalizar confidence
+                if matching_use_cases or confidence > 0:
+                    if matching_use_cases:
+                        confidence = confidence / len(matching_use_cases)
+                    confidence = min(confidence, 1.0)
+
+                    # Criar candidate
+                    candidate = LibraryCandidate(
+                        name=lib_name,
+                        confidence=confidence,
+                        reasoning=f"Profile match: {len(matching_use_cases)} use cases, {profile.category}",
+                        priority=profile.priority,
+                        estimated_time=profile.estimated_execution_time,
+                        requirements=profile.dependencies,
+                        alternatives=profile.alternatives,
+                        pros=profile.pros,
+                        cons=profile.cons,
+                        performance_score=profile.performance_score,
+                        accuracy_score=profile.quality_score,
+                        ease_score=profile.ease_score,
+                    )
+
+                    candidates.append(candidate)
+
+            # Ordenar por confidence
+            candidates.sort(key=lambda c: c.confidence, reverse=True)
+
+            logger.info(f"✅ Found {len(candidates)} candidates from {len(all_profiles)} profiles")
+
+            # Se nenhum profile match, usar fallback
+            if not candidates:
+                logger.warning("⚠️ No profile matched, using hardcoded database")
+                return self._get_candidates_from_database_fallback(task_type, task_input)
+
+            return candidates[:10]  # Top 10
+
+        except Exception as e:
+            logger.error(f"❌ Error loading profiles: {e}")
+            logger.warning("⚠️ Falling back to hardcoded database")
+            return self._get_candidates_from_database_fallback(task_type, task_input)
+
+    def _get_candidates_from_database_fallback(
+        self, task_type: TaskType, task_input: Any
+    ) -> List[LibraryCandidate]:
+        """
+        Fallback usando database hardcoded quando profiles não disponíveis
+        """
+        # Mapear task_type para categoria de biblioteca
+        task_to_category = {
+            TaskType.IMAGE_PROCESSING: "IMAGE_LIBRARIES",
+            TaskType.VIDEO_PROCESSING: "VIDEO_LIBRARIES",
+            TaskType.AUDIO_PROCESSING: "AUDIO_LIBRARIES",
+            TaskType.WEB_SCRAPING: "SCRAPING_LIBRARIES",
+            TaskType.PDF_GENERATION: "PDF_LIBRARIES",
+            TaskType.ECOMMERCE_OPERATION: "ECOMMERCE_LIBRARIES",
+            TaskType.DATA_ANALYSIS: "DATA_LIBRARIES",
+            TaskType.ML_INFERENCE: "ML_LIBRARIES",
+        }
+
+        category = task_to_category.get(task_type, "IMAGE_LIBRARIES")
+        libraries = getattr(self.database, category, {})
+
+        candidates = []
+        for lib_name, lib_data in libraries.items():
+            candidate = LibraryCandidate(
+                name=lib_name,
+                confidence=0.7,  # Default confidence
+                reasoning="Hardcoded database match",
+                priority=lib_data.get("priority", 5),
+                estimated_time=5.0,
+                requirements=[],
+                alternatives=[],
+                pros=lib_data.get("pros", []),
+                cons=lib_data.get("cons", []),
+                performance_score=lib_data.get("performance", 5),
+                accuracy_score=lib_data.get("reliability", 5),
+                ease_score=lib_data.get("ease_of_use", 5),
+            )
+            candidates.append(candidate)
+
+        return candidates[:5]
+
     async def create_plan(self, task_id: str, task_type: Any, task_input: Any):
+</text>
+
+<old_text line=735>
+        # Selecionar bibliotecas
+        scores = await self.select_library(
+            task_type.value, task_input, task_input.context
+        )
+
+        if not scores:
+</text>
+<new_text>
+        # ✅ CORREÇÃO: Usar profiles primeiro, fallback para select_library se necessário
+        candidates = self._get_candidates_from_profiles(task_type, task_input)
+
+        if not candidates:
+            # Fallback para método antigo
+            scores = await self.select_library(
+                task_type.value, task_input, task_input.context
+            )
+
+            # Converter scores para candidates se necessário
+            if scores:
+                candidates = [
+                    LibraryCandidate(
+                        name=score.name,
+                        confidence=score.total_score / 10.0,
+                        reasoning=" | ".join(score.reasoning),
+                        priority=1,
+                        estimated_time=5.0,
+                        requirements=[],
+                        alternatives=[],
+                        pros=[],
+                        cons=[],
+                    )
+                    for score in scores[:5]
+                ]
+
+        if not candidates:
+</text>
+
+<old_text line=758>
+        # Biblioteca primária
+        top_score = scores[0]
+        primary = LibraryCandidate(
+            name=top_score.name,
+            confidence=top_score.total_score / 10.0,
+            reasoning=" | ".join(top_score.reasoning),
+            priority=1,
+            estimated_time=5.0,
+            requirements=[],
+            alternatives=[s.name for s in scores[1:4]],
+            pros=[],
+            cons=[],
+        )
+
+        # Fallbacks
+        fallback_libs = []
+        for i, score in enumerate(scores[1:4], 2):
+            fallback = LibraryCandidate(
+                name=score.name,
+                confidence=score.total_score / 10.0,
+                reasoning=" | ".join(score.reasoning),
+                priority=i,
+                estimated_time=5.0,
+                requirements=[],
+                alternatives=[],
+                pros=[],
+                cons=[],
+            )
+            fallback_libs.append(fallback)
+</text>
+<new_text>
+        # Biblioteca primária (já é LibraryCandidate)
+        primary = candidates[0]
+
+        # Fallbacks (já são LibraryCandidate)
+        fallback_libs = candidates[1:4] if len(candidates) > 1 else []
+</text>
+
         """Cria ExecutionPlan completo"""
         from ..core.engine import ExecutionPlan, LibraryCandidate
 

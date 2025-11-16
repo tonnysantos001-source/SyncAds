@@ -44,70 +44,77 @@ ALLOWED_EXTENSIONS = {".txt", ".json", ".csv", ".md", ".html", ".css", ".js", ".
 
 
 class ImageGenerator:
-    """Gerador de imagens usando DALL-E 3"""
+    """Gerador de imagens usando Pollinations.ai (GRATUITO)"""
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            logger.warning("⚠️ OPENAI_API_KEY não configurada")
+        # Pollinations.ai não requer API key
+        logger.info("✅ ImageGenerator inicializado com Pollinations.ai (gratuito)")
 
     async def generate(
         self,
         prompt: str,
-        size: str = "1024x1024",
-        quality: str = "standard",
-        style: str = "vivid",
+        width: int = 1024,
+        height: int = 1024,
+        model: str = "flux",
+        seed: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        Gera imagem com DALL-E 3
+        Gera imagem com Pollinations.ai (GRATUITO, sem API key)
 
         Args:
             prompt: Descrição da imagem
-            size: Tamanho (1024x1024, 1792x1024, 1024x1792)
-            quality: Qualidade (standard, hd)
-            style: Estilo (vivid, natural)
+            width: Largura da imagem (padrão 1024)
+            height: Altura da imagem (padrão 1024)
+            model: Modelo a usar (flux, flux-realism, flux-anime, flux-3d, turbo, etc)
+            seed: Seed para reprodutibilidade (opcional)
 
         Returns:
             {
                 "success": bool,
                 "url": str,
                 "prompt": str,
-                "revised_prompt": str
+                "download_url": str
             }
         """
         try:
-            if not self.api_key:
-                return {"success": False, "error": "OpenAI API key não configurada"}
+            import urllib.parse
 
-            from openai import OpenAI
+            import httpx
 
-            client = OpenAI(api_key=self.api_key)
+            logger.info(f"🎨 Gerando imagem com Pollinations.ai: {prompt[:50]}...")
 
-            logger.info(f"🎨 Gerando imagem: {prompt[:50]}...")
+            # Encode o prompt para URL
+            encoded_prompt = urllib.parse.quote(prompt)
 
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                style=style,
-                n=1,
+            # Construir URL com parâmetros
+            params = (
+                f"width={width}&height={height}&model={model}&nologo=true&enhance=true"
+            )
+            if seed:
+                params += f"&seed={seed}"
+
+            image_url = (
+                f"https://image.pollinations.ai/prompt/{encoded_prompt}?{params}"
             )
 
-            image_data = response.data[0]
+            # Testar se a URL funciona
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.head(image_url)
+                response.raise_for_status()
 
             result = {
                 "success": True,
-                "url": image_data.url,
+                "url": image_url,
+                "download_url": image_url,
                 "prompt": prompt,
-                "revised_prompt": image_data.revised_prompt,
-                "size": size,
-                "quality": quality,
-                "style": style,
+                "width": width,
+                "height": height,
+                "model": model,
+                "provider": "pollinations.ai",
                 "created_at": datetime.now().isoformat(),
             }
 
-            logger.info(f"✅ Imagem gerada: {image_data.url}")
+            logger.info(f"✅ Imagem gerada com Pollinations.ai: {image_url[:100]}...")
             return result
 
         except Exception as e:
@@ -148,7 +155,71 @@ class ImageGenerator:
 
 
 class VideoGenerator:
-    """Gerador de vídeos simples usando MoviePy"""
+    """Gerador de vídeos usando Pollinations.ai e MoviePy"""
+
+    async def generate_from_prompt(
+        self,
+        prompt: str,
+        width: int = 1024,
+        height: int = 576,
+        model: str = "flux",
+        duration: int = 3,
+    ) -> Dict[str, Any]:
+        """
+        Gera vídeo a partir de prompt usando Pollinations.ai (GRATUITO)
+
+        Args:
+            prompt: Descrição do vídeo
+            width: Largura do vídeo (padrão 1024)
+            height: Altura do vídeo (padrão 576)
+            model: Modelo a usar (flux, turbo)
+            duration: Duração aproximada em segundos
+
+        Returns:
+            {
+                "success": bool,
+                "url": str,
+                "prompt": str,
+                "download_url": str
+            }
+        """
+        try:
+            import urllib.parse
+
+            import httpx
+
+            logger.info(f"🎬 Gerando vídeo com Pollinations.ai: {prompt[:50]}...")
+
+            # Encode o prompt para URL
+            encoded_prompt = urllib.parse.quote(prompt)
+
+            # URL da API de vídeo do Pollinations.ai
+            video_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model={model}&nologo=true&enhance=true&video=true"
+
+            # Testar se a URL funciona
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.head(video_url)
+                response.raise_for_status()
+
+            result = {
+                "success": True,
+                "url": video_url,
+                "download_url": video_url,
+                "prompt": prompt,
+                "width": width,
+                "height": height,
+                "model": model,
+                "duration": duration,
+                "provider": "pollinations.ai",
+                "created_at": datetime.now().isoformat(),
+            }
+
+            logger.info(f"✅ Vídeo gerado com Pollinations.ai: {video_url[:100]}...")
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao gerar vídeo: {e}")
+            return {"success": False, "error": str(e)}
 
     async def create_from_images(
         self,
@@ -700,7 +771,29 @@ def detect_tool_intent(message: str) -> Optional[str]:
     # Imagem
     if any(
         word in message_lower
-        for word in ["gere imagem", "crie imagem", "desenhe", "dall-e", "gerar imagem"]
+        for word in [
+            "gere imagem",
+            "crie imagem",
+            "desenhe",
+            "dall-e",
+            "gerar imagem",
+            "quero uma imagem",
+            "quero imagem",
+            "preciso de uma imagem",
+            "faça uma imagem",
+            "faça imagem",
+            "crie uma foto",
+            "gere uma foto",
+            "imagem de",
+            "foto de",
+            "desenho de",
+            "ilustração de",
+            "me gere uma imagem",
+            "me crie uma imagem",
+            "pode gerar uma imagem",
+            "pode criar uma imagem",
+            "gostaria de uma imagem",
+        ]
     ):
         return "image"
 

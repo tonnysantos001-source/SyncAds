@@ -1,428 +1,375 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SyncAds Extension</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SyncAds AI - Extensão</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-    body {
-      width: 380px;
-      min-height: 500px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      overflow: hidden;
-    }
+            body {
+                width: 380px;
+                min-height: 480px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                overflow-x: hidden;
+            }
 
-    .container {
-      padding: 24px;
-    }
+            .container {
+                background: white;
+                border-radius: 0;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
 
-    .header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 24px 20px;
+                text-align: center;
+                color: white;
+            }
 
-    .logo {
-      font-size: 56px;
-      margin-bottom: 8px;
-      animation: float 3s ease-in-out infinite;
-    }
+            .logo-container {
+                width: 60px;
+                height: 60px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                margin: 0 auto 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(10px);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+            }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
+            .logo {
+                font-size: 32px;
+            }
 
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+            .header h1 {
+                font-size: 20px;
+                font-weight: 700;
+                margin-bottom: 4px;
+                letter-spacing: -0.5px;
+            }
 
-    .version {
-      font-size: 12px;
-      opacity: 0.8;
-    }
+            .version {
+                font-size: 11px;
+                opacity: 0.9;
+                font-weight: 500;
+                background: rgba(255, 255, 255, 0.2);
+                padding: 4px 12px;
+                border-radius: 12px;
+                display: inline-block;
+                margin-top: 8px;
+            }
 
-    .status-card {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+            .content {
+                padding: 24px 20px;
+                flex: 1;
+            }
 
-    .status-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
+            .status-card {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 1px solid #dee2e6;
+            }
 
-    .status-label {
-      font-size: 14px;
-      font-weight: 600;
-      opacity: 0.9;
-    }
+            .status {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
 
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 600;
-    }
+            .status-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #dc3545;
+                animation: pulse 2s infinite;
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
 
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      position: relative;
-    }
+            .status-dot.connected {
+                background: #28a745;
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
 
-    .status-dot.online {
-      background: #10b981;
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      animation: pulse-ring 2s infinite;
-    }
+            @keyframes pulse {
+                0%,
+                100% {
+                    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+                }
+                50% {
+                    box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+                }
+            }
 
-    .status-dot.offline {
-      background: #ef4444;
-    }
+            .status-text {
+                flex: 1;
+            }
 
-    .status-dot.warning {
-      background: #f59e0b;
-    }
+            .status-title {
+                font-size: 14px;
+                font-weight: 600;
+                color: #212529;
+                margin-bottom: 2px;
+            }
 
-    @keyframes pulse-ring {
-      0% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      }
-      70% {
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-      }
-    }
+            .status-subtitle {
+                font-size: 12px;
+                color: #6c757d;
+            }
 
-    .status-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
+            .info-text {
+                font-size: 13px;
+                color: #495057;
+                line-height: 1.6;
+                text-align: center;
+                margin-bottom: 20px;
+            }
 
-    .status-row:last-child {
-      border-bottom: none;
-    }
+            .btn {
+                width: 100%;
+                padding: 14px 20px;
+                border: none;
+                border-radius: 10px;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                text-decoration: none;
+                color: white;
+            }
 
-    .status-row-label {
-      font-size: 13px;
-      opacity: 0.8;
-    }
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
 
-    .status-row-value {
-      font-size: 13px;
-      font-weight: 600;
-    }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
+            .btn-secondary {
+                background: white;
+                color: #667eea;
+                border: 2px solid #667eea;
+                margin-top: 10px;
+            }
 
-    .stat-item {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 12px;
-      text-align: center;
-    }
+            .btn-secondary:hover {
+                background: #f8f9fa;
+            }
 
-    .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+            .icon {
+                font-size: 18px;
+            }
 
-    .stat-label {
-      font-size: 11px;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+            .features {
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid #dee2e6;
+            }
 
-    .button {
-      width: 100%;
-      padding: 14px;
-      background: white;
-      color: #667eea;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+            .feature-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 12px;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 8px;
+            }
 
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
+            .feature-icon {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+            }
 
-    .button:active {
-      transform: translateY(0);
-    }
+            .feature-text {
+                flex: 1;
+            }
 
-    .button.secondary {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      backdrop-filter: blur(10px);
-    }
+            .feature-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: #212529;
+                margin-bottom: 2px;
+            }
 
-    .button.danger {
-      background: #ef4444;
-      color: white;
-    }
+            .feature-desc {
+                font-size: 11px;
+                color: #6c757d;
+            }
 
-    .button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none !important;
-    }
+            .footer {
+                padding: 16px 20px;
+                text-align: center;
+                background: #f8f9fa;
+                border-top: 1px solid #dee2e6;
+            }
 
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      margin-bottom: 16px;
-    }
+            .footer-text {
+                font-size: 11px;
+                color: #6c757d;
+            }
 
-    .user-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #10b981, #059669);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-    }
+            .footer-link {
+                color: #667eea;
+                text-decoration: none;
+                font-weight: 600;
+            }
 
-    .user-details {
-      flex: 1;
-    }
+            .loading {
+                display: none;
+                text-align: center;
+                padding: 40px 20px;
+            }
 
-    .user-name {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
+            .spinner {
+                width: 40px;
+                height: 40px;
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px;
+            }
 
-    .user-email {
-      font-size: 12px;
-      opacity: 0.7;
-    }
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-container">
+                    <div class="logo">🤖</div>
+                </div>
+                <h1>SyncAds AI</h1>
+                <span class="version">Extensão v1.0.0</span>
+            </div>
 
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 20px;
-    }
+            <!-- Content -->
+            <div class="content" id="mainContent">
+                <!-- Status Card -->
+                <div class="status-card">
+                    <div class="status">
+                        <div class="status-dot" id="statusDot"></div>
+                        <div class="status-text">
+                            <div class="status-title" id="statusTitle">
+                                Desconectado
+                            </div>
+                            <div class="status-subtitle" id="statusSubtitle">
+                                Faça login para ativar
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    .loading.active {
-      display: block;
-    }
+                <p class="info-text">
+                    Faça login no painel SyncAds para ativar a automação
+                    inteligente com IA
+                </p>
 
-    .spinner {
-      width: 40px;
-      height: 40px;
-      margin: 0 auto 16px;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
+                <!-- Login Button -->
+                <button class="btn btn-primary" id="loginBtn">
+                    <span class="icon">🔐</span>
+                    Fazer Login no SyncAds
+                </button>
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+                <button
+                    class="btn btn-secondary"
+                    id="refreshBtn"
+                    style="display: none"
+                >
+                    <span class="icon">🔄</span>
+                    Verificar Conexão
+                </button>
 
-    .footer {
-      text-align: center;
-      padding: 16px;
-      font-size: 11px;
-      opacity: 0.7;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
+                <!-- Features -->
+                <div class="features">
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-text">
+                            <div class="feature-title">
+                                Automação Inteligente
+                            </div>
+                            <div class="feature-desc">
+                                Execute tarefas via comandos IA
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔒</div>
+                        <div class="feature-text">
+                            <div class="feature-title">100% Seguro</div>
+                            <div class="feature-desc">
+                                Dados locais, zero coleta
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🚀</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Super Rápido</div>
+                            <div class="feature-desc">
+                                Respostas em tempo real
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    .footer a {
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-    }
+            <!-- Loading -->
+            <div class="loading" id="loadingContent">
+                <div class="spinner"></div>
+                <p style="color: #6c757d; font-size: 14px">Conectando...</p>
+            </div>
 
-    .footer a:hover {
-      text-decoration: underline;
-    }
-
-    #loginSection {
-      text-align: center;
-    }
-
-    #loginSection p {
-      margin-bottom: 20px;
-      opacity: 0.9;
-      font-size: 14px;
-    }
-
-    #mainSection {
-      display: none;
-    }
-
-    #mainSection.active {
-      display: block;
-    }
-
-    .success-message {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(16, 185, 129, 0.5);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      text-align: center;
-    }
-
-    .error-message {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      text-align: center;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <div class="logo">🤖</div>
-      <h1>SyncAds AI</h1>
-      <div class="version">Extensão v1.0.0</div>
-    </div>
-
-    <!-- Loading State -->
-    <div id="loadingSection" class="loading active">
-      <div class="spinner"></div>
-      <p>Carregando...</p>
-    </div>
-
-    <!-- Login Section -->
-    <div id="loginSection" class="hidden">
-      <p>Faça login no painel SyncAds para ativar a automação</p>
-      <button id="loginButton" class="button">
-        🔐 Fazer Login no SyncAds
-      </button>
-      <p style="font-size: 12px; margin-top: 16px; opacity: 0.8;">
-        Você será redirecionado para a página de login
-      </p>
-    </div>
-
-    <!-- Main Section (Logged In) -->
-    <div id="mainSection" class="hidden">
-      <!-- User Info -->
-      <div id="userInfo" class="user-info hidden">
-        <div class="user-avatar">
-          <span id="userInitial">U</span>
-        </div>
-        <div class="user-details">
-          <div class="user-name" id="userName">Usuário</div>
-          <div class="user-email" id="userEmail">usuario@email.com</div>
-        </div>
-      </div>
-
-      <!-- Status Card -->
-      <div class="status-card">
-        <div class="status-header">
-          <div class="status-label">Status da Conexão</div>
-          <div class="status-indicator">
-            <div id="statusDot" class="status-dot offline"></div>
-            <span id="statusText">Desconectado</span>
-          </div>
+            <!-- Footer -->
+            <div class="footer">
+                <p class="footer-text">
+                    Desenvolvido por
+                    <a
+                        href="https://syncads.com.br"
+                        class="footer-link"
+                        target="_blank"
+                        >SyncAds</a
+                    >
+                </p>
+            </div>
         </div>
 
-        <div class="status-row">
-          <span class="status-row-label">Device ID</span>
-          <span class="status-row-value" id="deviceId">-</span>
-        </div>
-
-        <div class="status-row">
-          <span class="status-row-label">Última Atividade</span>
-          <span class="status-row-value" id="lastActivity">Nunca</span>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-value" id="statsTotal">0</div>
-          <div class="stat-label">Total</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statsSuccess">0</div>
-          <div class="stat-label">Sucesso</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statsFailed">0</div>
-          <div class="stat-label">Falhas</div>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <button id="reconnectButton" class="button secondary hidden">
-        🔄 Reconectar
-      </button>
-
-      <button id="openDashboardButton" class="button">
-        📊 Abrir Painel SyncAds
-      </button>
-
-      <button id="logoutButton" class="button danger">
-        🚪 Sair
-      </button>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    Desenvolvido por <a href="https://syncads.com.br" target="_blank">SyncAds</a>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+        <script src="popup.js"></script>
+    </body>
 </html>

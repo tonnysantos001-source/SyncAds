@@ -800,13 +800,30 @@ print(result)
 
 def create_omnibrain_engine(config: Optional[Dict[str, Any]] = None) -> OmnibrainEngine:
     """
-    Factory para criar OmnibrainEngine totalmente configurado
+    Factory para criar OmnibrainEngine totalmente configurado com TODOS os componentes
 
-    ✅ CORREÇÃO COMPLETA: Injetar TODOS os componentes incluindo novos sistemas
+    Args:
+        config: Configuração opcional do engine
+
+    Returns:
+        OmnibrainEngine totalmente inicializado e pronto para uso
     """
     engine = OmnibrainEngine(config)
 
-    # Componentes principais
+    # ============================================
+    # 1. CARREGAR LIBRARY PROFILES
+    # ============================================
+    from ..library_profiles.loader import get_profile_loader
+
+    profile_loader = get_profile_loader()
+    profiles = profile_loader.load_all_profiles()
+    engine.profile_loader = profile_loader
+
+    logger.info(f"✅ Loaded {len(profiles)} library profiles")
+
+    # ============================================
+    # 2. COMPONENTES CORE
+    # ============================================
     from ..classifiers.task_classifier import TaskClassifier
     from ..engines.code_generator import CodeGenerator
     from ..engines.library_selector import LibrarySelector
@@ -815,39 +832,63 @@ def create_omnibrain_engine(config: Optional[Dict[str, Any]] = None) -> Omnibrai
     from ..validators.result_validator import ResultValidator
 
     engine.task_classifier = TaskClassifier()
-    engine.library_selector = LibrarySelector()
-    engine.code_generator = CodeGenerator()
+    engine.library_selector = LibrarySelector(config={"profiles": profiles})
+    engine.code_generator = CodeGenerator(config={"profiles": profiles})
     engine.executor = SafeExecutor()
     engine.validator = ResultValidator()
     engine.retry_engine = RetryEngine()
 
-    # ✅ NOVOS SISTEMAS
+    logger.info("✅ Core components initialized")
+
+    # ============================================
+    # 3. CONTEXT MANAGER
+    # ============================================
     if engine.enable_context:
-        engine.context_manager = create_context_manager()
-        logger.info("Context Manager initialized")
+        from ..context.context_manager import ContextManager
+        engine.context_manager = ContextManager()
+        logger.info("✅ Context Manager initialized")
 
+    # ============================================
+    # 4. TASK PLANNER
+    # ============================================
     if engine.enable_planning:
-        engine.task_planner = create_task_planner()
-        logger.info("Task Planner initialized")
+        from ..planning.task_planner import TaskPlanner
+        engine.task_planner = TaskPlanner()
+        logger.info("✅ Task Planner initialized")
 
-    # Library Profile Loader
-    engine.profile_loader = get_profile_loader()
-    engine.profile_loader.load_all()
-    logger.info(f"Loaded {len(engine.profile_loader.profiles_cache)} library profiles")
-
-    # ✅ Cache Manager
+    # ============================================
+    # 5. CACHE MANAGER
+    # ============================================
     if engine.enable_cache:
-        engine.cache_manager = get_cache_manager()
-        logger.info("Cache Manager initialized")
+        from ..cache.cache_manager import CacheManager
+        cache_backend = config.get("cache_backend", "memory") if config else "memory"
+        engine.cache_manager = CacheManager(backend=cache_backend)
+        logger.info(f"✅ Cache Manager initialized (backend: {cache_backend})")
 
-    # ✅ AI Executor
-    if engine.enable_ai and is_ai_available():
-        engine.ai_executor = get_ai_executor()
-        logger.info("AI Executor initialized")
-    elif engine.enable_ai:
-        logger.warning("AI enabled but no API key found")
+    # ============================================
+    # 6. AI EXECUTOR (para prompts inteligentes)
+    # ============================================
+    if engine.enable_ai:
+        from ..prompts.ai_executor import get_ai_executor, is_ai_available
 
-    logger.info("OmnibrainEngine fully configured with all systems")
+        if is_ai_available():
+            engine.ai_executor = get_ai_executor()
+            logger.info("✅ AI Executor initialized (OpenAI/Anthropic available)")
+        else:
+            logger.warning("⚠️  AI enabled but no API keys found (OPENAI_API_KEY or ANTHROPIC_API_KEY)")
+            logger.warning("⚠️  System will use fallback logic without AI-powered decisions")
+
+    # ============================================
+    # 7. OBSERVABILITY
+    # ============================================
+    from ..observability.metrics import initialize_metrics
+    initialize_metrics()
+    logger.info("✅ Observability metrics initialized")
+
+    logger.info("=" * 60)
+    logger.info("🚀 OmnibrainEngine FULLY CONFIGURED AND READY!")
+    logger.info("=" * 60)
+
     return engine
 
 

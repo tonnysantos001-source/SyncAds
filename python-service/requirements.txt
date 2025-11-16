@@ -1,12 +1,5 @@
-# ============================================
-# SYNCADS PYTHON MICROSERVICE - REQUIREMENTS
-# BASE MINIMAL + GRUPOS 23-97
-# Python 3.11+
-# Build time: ~84-88 minutos
-# ============================================
-
 # ==========================================
-# CORE FRAMEWORK (já funcionando)
+# CORE FRAMEWORK
 # ==========================================
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
@@ -17,997 +10,156 @@ python-dotenv==1.0.0
 loguru==0.7.2
 
 # ==========================================
-# DATABASE & STORAGE (já funcionando)
+# SUPABASE
 # ==========================================
 supabase==2.3.3
 psycopg2-binary==2.9.9
 
 # ==========================================
-# AI APIs (já funcionando)
+# AI PROVIDERS
 # ==========================================
 openai==1.10.0
 anthropic==0.9.0
 groq==0.4.2
 
 # ==========================================
-# GRUPO 23: AI APIs ADICIONAIS (✅ FUNCIONANDO)
-# ==========================================
-cohere==4.47.0
-google-generativeai==0.3.2
-
-# ==========================================
-# GRUPO 24: TRANSFORMERS BÁSICO (✅ FUNCIONANDO)
+# AI TOOLS & PROCESSING
 # ==========================================
 transformers==4.37.2
 tokenizers==0.15.1
 huggingface-hub==0.20.3
+tiktoken==0.5.2
 
 # ==========================================
-# GRUPO 25: DOCUMENT PROCESSING (✅ FUNCIONANDO)
+# DOCUMENT PROCESSING
 # ==========================================
 pypdf==3.17.4
 python-docx==1.1.0
 python-pptx==0.6.23
 
 # ==========================================
-# GRUPO 26: DATA SCIENCE BÁSICO (✅ FUNCIONANDO)
+# DATA PROCESSING
 # ==========================================
 pandas==2.1.4
 numpy==1.26.3
-scipy==1.11.4
+openpyxl==3.1.2
+xlsxwriter==3.1.9
 
 # ==========================================
-# GRUPO 27: PLOTTING & VISUALIZAÇÃO (✅ FUNCIONANDO)
-# ==========================================
-matplotlib==3.8.2
-plotly==5.18.0
-seaborn==0.13.1
-
-# ==========================================
-# GRUPO 28: UTILITIES & TOOLS (✅ FUNCIONANDO)
+# WEB & APIs
 # ==========================================
 requests==2.31.0
 validators==0.22.0
 python-dateutil==2.8.2
+aiohttp==3.9.3
+websockets==12.0
+httpx-sse==0.4.0
 
 # ==========================================
-# GRUPO 29: EXCEL & SPREADSHEETS (✅ FUNCIONANDO)
-# ==========================================
-openpyxl==3.1.2
-xlsxwriter==3.1.9
-xlrd==2.0.1
-
-# ==========================================
-# GRUPO 30: WEB SCRAPING BÁSICO (✅ FUNCIONANDO)
+# WEB SCRAPING
 # ==========================================
 beautifulsoup4==4.12.3
 lxml==5.1.0
 html5lib==1.1
 
 # ==========================================
-# GRUPO 31: LANGCHAIN & EMBEDDINGS (✅ FUNCIONANDO)
-# ==========================================
-langchain==0.1.6
-langchain-openai==0.0.5
-tiktoken==0.5.2
-
-# ==========================================
-# GRUPO 32: IMAGE PROCESSING BÁSICO (✅ FUNCIONANDO)
+# IMAGE PROCESSING
 # ==========================================
 Pillow==10.2.0
-pillow-heif==0.15.0
 imageio==2.33.1
 
 # ==========================================
-# GRUPO 33: ASYNC & HTTP AVANÇADO (✅ FUNCIONANDO)
-# ==========================================
-aiohttp==3.9.3
-websockets==12.0
-httpx-sse==0.4.0
-
-# ==========================================
-# GRUPO 34: DATABASE & ORM (✅ FUNCIONANDO)
+# DATABASE
 # ==========================================
 sqlalchemy==2.0.25
 alembic==1.13.1
 asyncpg==0.29.0
 
 # ==========================================
-# GRUPO 35: AUTH & SECURITY (✅ FUNCIONANDO)
+# LANGCHAIN
 # ==========================================
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.1.2
+langchain==0.1.6
+langchain-openai==0.0.5
+langchain-community==0.0.20
 
 # ==========================================
-# GRUPO 36: CLI TOOLS (✅ FUNCIONANDO)
+# RATE LIMITING & CACHING
 # ==========================================
-click==8.1.7
-typer==0.9.0
-tqdm==4.66.1
-
-# ==========================================
-# GRUPO 37: JSON & SERIALIZATION (✅ FUNCIONANDO)
-# ==========================================
-orjson==3.9.12
-python-multipart==0.0.6
-email-validator==2.1.0
-
-# ==========================================
-# GRUPO 38: MARKDOWN & TEXT (NOVO)
-# ==========================================
-markdown==3.5.2
-mistune==3.0.2
-pygments==2.17.2
-
-# ==========================================
-# GRUPO 39: CACHING & STORAGE (✅ FUNCIONANDO)
-# ==========================================
-redis==5.0.1
-diskcache==5.6.3
+slowapi==0.1.9
 cachetools==5.3.2
 
 # ==========================================
-# GRUPO 40: STRING & TEXT PROCESSING (✅ FUNCIONANDO)
+# SECURITY & AUTH
 # ==========================================
-python-slugify==8.0.3
-unidecode==1.3.8
-chardet==5.2.0
+pyjwt==2.8.0
+cryptography==42.0.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 
 # ==========================================
-# GRUPO 41: FILE & PATH UTILITIES (✅ FUNCIONANDO)
+# UTILITIES
 # ==========================================
-pathlib2==2.3.7
-watchdog==3.0.0
-filelock==3.13.1
-
-# ==========================================
-# GRUPO 42: TIME & SCHEDULING (✅ FUNCIONANDO)
-# ==========================================
-schedule==1.2.0
-croniter==2.0.1
-arrow==1.3.0
-
-# ==========================================
-# GRUPO 43: COMPRESSION & SERIALIZATION (✅ FUNCIONANDO)
-# ==========================================
-py7zr==0.21.0
-msgpack==1.0.7
-cloudpickle==3.0.0
-
-# ==========================================
-# GRUPO 44: HTTP CLIENT ADVANCED (✅ FUNCIONANDO)
-# ==========================================
-urllib3==2.1.0
-certifi==2023.11.17
-idna==3.6
-
-# ==========================================
-# GRUPO 45: LOGGING & MONITORING (✅ FUNCIONANDO)
-# ==========================================
-sentry-sdk==1.40.0
-python-json-logger==2.0.7
-structlog==24.1.0
-
-# ==========================================
-# GRUPO 46: NETWORK & DNS (NOVO)
-# ==========================================
-dnspython==2.5.0
-psutil==5.9.8
-ipaddress==1.0.23
-
-# ==========================================
-# GRUPO 47: CRYPTO & HASH (✅ FUNCIONANDO)
-# ==========================================
-cryptography==41.0.7
-pycryptodome==3.20.0
-pyotp==2.9.0
-
-# ==========================================
-# GRUPO 48: URL & URI PARSING (NOVO)
-# ==========================================
-furl==2.1.3
-yarl==1.9.4
-webargs==8.3.0
-
-# ==========================================
-# GRUPO 49: CONFIG & ENVIRONMENT (✅ FUNCIONANDO)
-# ==========================================
-python-decouple==3.8
-configparser==6.0.0
-environs==10.3.0
-
-# ==========================================
-# GRUPO 50: TEMPLATE ENGINES (✅ FUNCIONANDO)
-# ==========================================
-jinja2==3.1.3
-mako==1.3.0
-chevron==0.14.0
-
-# ==========================================
-# GRUPO 51: DATA VALIDATION (✅ FUNCIONANDO)
-# ==========================================
-marshmallow==3.20.2
-cerberus==1.3.5
-voluptuous==0.14.2
-
-# ==========================================
-# GRUPO 52: REGEX & PATTERNS (✅ FUNCIONANDO)
-# ==========================================
-regex==2023.12.25
-phonenumbers==8.13.27
-dateparser==1.2.0
-
-# ==========================================
-# GRUPO 53: TIMEZONE & i18n (✅ FUNCIONANDO)
-# ==========================================
-pytz==2024.1
-babel==2.14.0
-python-i18n==0.3.9
-
-# ==========================================
-# GRUPO 54: XML & YAML PROCESSING (NOVO)
-# ==========================================
-xmltodict==0.13.0
+pytz==2023.3.post1
+python-multipart==0.0.6
 pyyaml==6.0.1
-ruamel.yaml==0.18.5
+toml==0.10.2
+click==8.1.7
 
 # ==========================================
-# GRUPO 55: RETRY & BACKOFF (✅ FUNCIONANDO)
-# ==========================================
-tenacity==8.2.3
-backoff==2.2.1
-retrying==1.3.4
-
-# ==========================================
-# GRUPO 56: USER AGENTS & SCRAPING UTILS (NOVO)
-# ==========================================
-fake-useragent==1.4.0
-user-agents==2.2.0
-httpagentparser==1.9.5
-
-# ==========================================
-# GRUPO 57: COLOR & TERMINAL OUTPUT (✅ FUNCIONANDO)
-# ==========================================
-colorama==0.4.6
-termcolor==2.4.0
-colorlog==6.8.0
-
-# ==========================================
-# GRUPO 58: GEOLOCATION & MAPS (NOVO)
-# ==========================================
-geopy==2.4.1
-geocoder==1.38.1
-geoip2==4.7.0
-
-# ==========================================
-# GRUPO 59: MONEY & FINANCE (✅ FUNCIONANDO)
-# ==========================================
-forex-python==1.8
-money==1.3.0
-py-moneyed==3.0
-
-# ==========================================
-# GRUPO 60: UUID & IDENTIFIERS (NOVO)
-# ==========================================
-shortuuid==1.0.11
-ulid-py==1.1.0
-nanoid==2.0.0
-
-# ==========================================
-# GRUPO 61: HASHING & CHECKSUMS (✅ FUNCIONANDO)
-# ==========================================
-xxhash==3.4.1
-mmh3==4.1.0
-crc32c==2.3.post0
-
-# ==========================================
-# GRUPO 62: HTTP UTILITIES (NOVO)
-# ==========================================
-requests-toolbelt==1.0.0
-requests-cache==1.1.1
-respx==0.20.2
-
-# ==========================================
-# GRUPO 63: DATA ITERTOOLS (✅ FUNCIONANDO)
-# ==========================================
-more-itertools==10.2.0
-toolz==0.12.1
-cytoolz==0.12.3
-
-# ==========================================
-# GRUPO 64: CODE QUALITY & FORMATTING (NOVO)
-# ==========================================
-black==24.1.1
-autopep8==2.0.4
-isort==5.13.2
-
-# ==========================================
-# GRUPO 65: HUMANIZE & NUMBERS (✅ FUNCIONANDO)
-# ==========================================
-humanize==4.9.0
-inflect==7.0.0
-num2words==0.5.13
-
-# ==========================================
-# GRUPO 66: BARCODE & QR CODE (NOVO)
-# ==========================================
-qrcode==7.4.2
-python-barcode==0.15.1
-segno==1.6.1
-
-# ==========================================
-# GRUPO 67: DIFF & COMPARISON (✅ FUNCIONANDO)
-# ==========================================
-deepdiff==6.7.1
-jsondiff==2.0.0
-dictdiffer==0.9.0
-
-# ==========================================
-# GRUPO 68: SANITIZATION & CLEANING (NOVO)
-# ==========================================
-bleach==6.1.0
-html-sanitizer==2.3.0
-ftfy==6.1.3
-
-# ==========================================
-# GRUPO 69: RATE LIMITING & THROTTLING (✅ FUNCIONANDO)
-# ==========================================
-ratelimit==2.2.1
-limits==3.7.0
-slowapi==0.1.9
-
-# ==========================================
-# GRUPO 70: DATA STRUCTURES & ATTRS (NOVO)
-# ==========================================
-attrs==23.2.0
-cattrs==23.2.3
-sortedcontainers==2.4.0
-
-# ==========================================
-# GRUPO 71: SSH & REMOTE (NOVO)
-# ==========================================
-paramiko==3.4.0
-fabric==3.2.2
-scp==0.14.5
-
-# ==========================================
-# GRUPO 72: FILE TYPE DETECTION & MIME (NOVO)
-# ==========================================
-filetype==1.2.0
-puremagic==1.21
-python-magic==0.4.27
-
-# ==========================================
-# GRUPO 73: ADVANCED QUEUES & MESSAGING (NOVO)
-# ==========================================
-kombu==5.3.4
-pyzmq==25.1.2
-pika==1.3.2
-
-# ==========================================
-# GRUPO 74: TESTING & MOCKING (NOVO)
-# ==========================================
-pytest==7.4.4
-pytest-asyncio==0.23.3
-faker==22.2.0
-
-# ==========================================
-# GRUPO 75: PERFORMANCE & PROFILING (NOVO)
-# ==========================================
-memory-profiler==0.61.0
-py-spy==0.3.14
-line-profiler==4.1.1
-
-# ==========================================
-# GRUPO 76: WEB & API TESTING (NOVO)
-# ==========================================
-httpretty==1.1.4
-responses==0.24.1
-vcrpy==5.1.0
-
-# ==========================================
-# GRUPO 77: DATA PROCESSING ADVANCED (NOVO)
-# ==========================================
-polars==0.20.3
-pyarrow==14.0.2
-dask==2024.1.0
-
-# ==========================================
-# GRUPO 78: SERIALIZATION ULTRA-FAST (NOVO)
-# ==========================================
-msgspec==0.18.6
-ujson==5.9.0
-simplejson==3.19.2
-
-# ==========================================
-# GRUPO 79: ML & AI OPTIMIZATION (NOVO)
-# ==========================================
-optuna==3.5.0
-scikit-optimize==0.9.0
-hyperopt==0.2.7
-
-# ==========================================
-# GRUPO 80: DATABASE ADVANCED (NOVO)
-# ==========================================
-motor==3.3.2
-pymongo==4.6.1
-elasticsearch==8.11.0
-
-# ==========================================
-# GRUPO 81: WEB FRAMEWORKS UTILS (NOVO)
-# ==========================================
-fastapi-cache2==0.2.1
-fastapi-pagination==0.12.14
-starlette-context==0.3.6
-
-# ==========================================
-# GRUPO 82: ASYNC & CONCURRENCY ADVANCED (NOVO)
-# ==========================================
-aiomultiprocess==0.9.0
-aioitertools==0.11.0
-asyncer==0.0.2
-
-# ==========================================
-# GRUPO 83: WORKFLOW & TASK ORCHESTRATION (NOVO)
-# ==========================================
-celery==5.3.6
-dramatiq==1.15.0
-rq==1.15.1
-
-# ==========================================
-# GRUPO 84: MONITORING & OBSERVABILITY (NOVO)
+# MONITORING & OBSERVABILITY
 # ==========================================
 prometheus-client==0.19.0
-opentelemetry-api==1.22.0
-opentelemetry-sdk==1.22.0
 
 # ==========================================
-# GRUPO 85: API DOCUMENTATION (NOVO)
-# ==========================================
-mkdocs==1.5.3
-mkdocs-material==9.5.3
-pdoc3==0.10.0
-
-# ==========================================
-# GRUPO 86: MESSAGE BROKERS (NOVO)
-# ==========================================
-kafka-python==2.0.2
-aiokafka==0.10.0
-paho-mqtt==1.6.1
-
-# ==========================================
-# GRUPO 87: GRAPHQL (NOVO)
-# ==========================================
-strawberry-graphql==0.219.2
-graphene==3.3
-ariadne==0.22.0
-
-# ==========================================
-# GRUPO 88: EMAIL & COMMUNICATIONS (NOVO)
-# ==========================================
-sendgrid==6.11.0
-mailjet-rest==1.3.4
-yagmail==0.15.293
-
-# ==========================================
-# GRUPO 89: SCIENTIFIC COMPUTING (NOVO)
-# ==========================================
-sympy==1.12
-statsmodels==0.14.1
-networkx==3.2.1
-
-# ==========================================
-# GRUPO 90: IMAGE PROCESSING ADVANCED (NOVO)
-# ==========================================
-scikit-image==0.22.0
-imageio-ffmpeg==0.4.9
-opencv-contrib-python-headless==4.9.0.80
-
-# ==========================================
-# GRUPO 91: AUDIO PROCESSING (NOVO)
-# ==========================================
-librosa==0.10.1
-soundfile==0.12.1
-audioread==3.0.1
-
-# ==========================================
-# GRUPO 92: BUSINESS INTELLIGENCE (NOVO)
-# ==========================================
-dash==2.14.2
-bokeh==3.3.4
-altair==5.2.0
-
-# ==========================================
-# GRUPO 93: FINANCE & TRADING (NOVO)
-# ==========================================
-yfinance==0.2.36
-alpha-vantage==2.3.1
-pandas-datareader==0.10.0
-
-# ==========================================
-# GRUPO 94: CLOUD SERVICES ADVANCED (NOVO)
-# ==========================================
-google-cloud-storage==2.14.0
-azure-storage-blob==12.19.0
-linode-api4==5.12.0
-
-# ==========================================
-# GRUPO 95: AUTOMATION & RPA (NOVO)
-# ==========================================
-pyautogui==0.9.54
-keyboard==0.13.5
-mouse==0.7.1
-
-# ==========================================
-# GRUPO 96: OCR (OPTICAL CHARACTER RECOGNITION) (NOVO)
-# ==========================================
-pytesseract==0.3.10
-easyocr==1.7.1
-ocrmypdf==16.0.2
-
-# ==========================================
-# GRUPO 97: VIDEO PROCESSING (NOVO)
-# ==========================================
-av==13.0.0
-vidgear==0.3.2
-ffmpeg-python==0.2.0
-
-# ==========================================
-# GRUPO 98: WEB3 & BLOCKCHAIN (NOVO)
-# ==========================================
-web3>=6.0.0,<7.0.0
-eth-account>=0.11.0
-
-# ==========================================
-# GRUPO 99: NLP ADVANCED (NOVO)
-# ==========================================
-gensim==4.3.2
-textacy==0.13.0
-spacy-lookups-data==1.0.5
-
-# ==========================================
-# GRUPO 121: WEB SEARCH & SCRAPING (NOVO)
-# ==========================================
-google-search-results==2.4.2
-duckduckgo-search==4.1.1
-googlesearch-python==1.2.3
-
-# ==========================================
-# GRUPO 122: VIDEO GENERATION (NOVO)
+# VIDEO PROCESSING (LIGHTWEIGHT)
 # ==========================================
 moviepy==1.0.3
-imageio==2.33.1
 
 # ==========================================
-# GRUPO 123: SAFE PYTHON EXECUTION (NOVO)
+# WEB SEARCH
+# ==========================================
+duckduckgo-search==4.1.1
+google-search-results==2.4.2
+
+# ==========================================
+# SAFE PYTHON EXECUTION
 # ==========================================
 RestrictedPython==6.2
 astunparse==1.6.3
 
 # ==========================================
-# GRUPO 124: FILE OPERATIONS (NOVO)
+# FILE OPERATIONS
 # ==========================================
 pathvalidate==3.2.0
 send2trash==1.8.2
-</text>
 
 # ==========================================
-# GRUPO 100: TASK QUEUES & WORKERS (NOVO)
+# TASK SCHEDULING (LIGHTWEIGHT)
 # ==========================================
-huey==2.5.0
 apscheduler==3.10.4
 schedule==1.2.0
 
 # ==========================================
-# GRUPO 101: API CLIENTS (NOVO)
+# JSON & DATA VALIDATION
 # ==========================================
-tweepy==4.14.0
-praw==7.7.1
-slack-sdk==3.26.1
+jsonschema==4.21.1
+marshmallow==3.20.2
 
 # ==========================================
-# GRUPO 102: PAYMENT PROCESSING (NOVO)
+# HTTP & API CLIENTS
 # ==========================================
-stripe==8.2.0
-braintree==4.24.0
-paypalrestsdk==1.13.1
+urllib3==2.1.0
+certifi==2023.11.17
 
 # ==========================================
-# GRUPO 103: SMS & MESSAGING (NOVO)
+# STRING & TEXT PROCESSING
 # ==========================================
-twilio==8.12.0
-vonage==3.12.0
-python-telegram-bot==20.7
+unidecode==1.3.8
+python-slugify==8.0.1
+chardet==5.2.0
 
 # ==========================================
-# GRUPO 104: MACHINE LEARNING TOOLS (NOVO)
+# ENVIRONMENT & CONFIG
 # ==========================================
-xgboost==2.0.3
-lightgbm==4.2.0
-catboost==1.2.2
-
-# ==========================================
-# GRUPO 105: DEEP LEARNING FRAMEWORKS (REMOVIDO - MUITO PESADO)
-# ==========================================
-# torch==2.2.0  # Removido - 4GB+
-# tensorflow==2.15.0  # Removido - 3GB+
-# keras==3.0.5  # Removido - depende tensorflow
-
-# ==========================================
-# GRUPO 106: COMPUTER VISION (NOVO)
-# ==========================================
-opencv-python==4.9.0.80
-face-recognition==1.3.0
-mediapipe==0.10.9
-
-# ==========================================
-# GRUPO 107: TIME SERIES (NOVO)
-# ==========================================
-prophet==1.1.5
-statsforecast==1.6.0
-pmdarima==2.0.4
-
-# ==========================================
-# GRUPO 108: SEARCH & INDEXING (NOVO)
-# ==========================================
-whoosh==2.7.4
-lunr==0.6.2
-elasticsearch-dsl==8.11.0
-
-# ==========================================
-# GRUPO 109: PDF GENERATION (NOVO)
-# ==========================================
-reportlab==4.0.9
-weasyprint==60.2
-xhtml2pdf==0.2.13
-
-# ==========================================
-# GRUPO 110: EXCEL ADVANCED (NOVO)
-# ==========================================
-pandas-read-xml==0.3.1
-tablib==3.5.0
-pyexcel==0.7.0
-
-# ==========================================
-# GRUPO 111: WEB SCRAPING ADVANCED (NOVO)
-# ==========================================
-scrapy==2.11.0
-selenium==4.17.2
-playwright==1.41.2
-
-# ==========================================
-# GRUPO 112: API FRAMEWORKS (NOVO)
-# ==========================================
-djangorestframework==3.14.0
-fastapi-users==12.1.3
-
-# ==========================================
-# GRUPO 113: DATABASE CLIENTS (NOVO)
-# ==========================================
-neo4j==5.16.0
-cassandra-driver==3.28.0
-clickhouse-driver==0.2.6
-
-# ==========================================
-# GRUPO 114: MESSAGE QUEUES (NOVO)
-# ==========================================
-pika==1.3.2
-kombu==5.3.4
-pyzmq==25.1.2
-
-# ==========================================
-# GRUPO 115: SERIALIZATION (NOVO)
-# ==========================================
-protobuf==4.25.2
-avro-python3==1.10.2
-thrift==0.20.0
-
-# ==========================================
-# GRUPO 116: GIS & MAPPING (NOVO)
-# ==========================================
-folium==0.15.1
-geopandas==0.14.2
-
-# ==========================================
-# GRUPO 117: WORKFLOW ENGINES (NOVO)
-# ==========================================
-airflow==2.8.1
-luigi==3.4.0
-
-# ==========================================
-# GRUPO 118: TESTING FRAMEWORKS (NOVO)
-# ==========================================
-pytest-asyncio==0.23.3
-pytest-mock==3.12.0
-hypothesis==6.92.2
-
-# ==========================================
-# GRUPO 119: DOCUMENTATION GENERATORS (NOVO)
-# ==========================================
-sphinx==7.2.6
-sphinx-rtd-theme==2.0.0
-sphinx-autodoc-typehints==1.25.2
-
-# ==========================================
-# GRUPO 120: CLI FRAMEWORKS (NOVO)
-# ==========================================
-textual==0.48.2
-prompt-toolkit==3.0.43
-
-# ==========================================
-# NOTAS:
-# ==========================================
-# GRUPO 100: TASK QUEUES & WORKERS (NOVO)
-# ==========================================
-huey==2.5.0
-apscheduler==3.10.4
-schedule==1.2.0
-
-# ==========================================
-# GRUPO 101: API CLIENTS (NOVO)
-# ==========================================
-tweepy==4.14.0
-praw==7.7.1
-slack-sdk==3.26.1
-
-# ==========================================
-# GRUPO 102: PAYMENT PROCESSING (NOVO)
-# ==========================================
-stripe==8.2.0
-braintree==4.24.0
-paypalrestsdk==1.13.1
-
-# ==========================================
-# GRUPO 103: SMS & MESSAGING (NOVO)
-# ==========================================
-twilio==8.12.0
-vonage==3.12.0
-python-telegram-bot==20.7
-
-# ==========================================
-# GRUPO 104: MACHINE LEARNING TOOLS (NOVO)
-# ==========================================
-xgboost==2.0.3
-lightgbm==4.2.0
-catboost==1.2.2
-
-# ==========================================
-# GRUPO 105: DEEP LEARNING FRAMEWORKS (NOVO)
-# ==========================================
-torch==2.2.0
-tensorflow==2.15.0
-keras==3.0.5
-
-# ==========================================
-# GRUPO 106: COMPUTER VISION (NOVO)
-# ==========================================
-opencv-python==4.9.0.80
-face-recognition==1.3.0
-mediapipe==0.10.9
-
-# ==========================================
-# GRUPO 107: TIME SERIES (NOVO)
-# ==========================================
-prophet==1.1.5
-statsforecast==1.6.0
-pmdarima==2.0.4
-
-# ==========================================
-# GRUPO 108: SEARCH & INDEXING (NOVO)
-# ==========================================
-whoosh==2.7.4
-lunr==0.6.2
-elasticsearch-dsl==8.11.0
-
-# ==========================================
-# GRUPO 109: PDF GENERATION (NOVO)
-# ==========================================
-reportlab==4.0.9
-weasyprint==60.2
-xhtml2pdf==0.2.13
-
-# ==========================================
-# GRUPO 110: EXCEL ADVANCED (NOVO)
-# ==========================================
-pandas-read-xml==0.3.1
-tablib==3.5.0
-pyexcel==0.7.0
-
-# ==========================================
-# GRUPO 111: WEB SCRAPING ADVANCED (NOVO)
-# ==========================================
-scrapy==2.11.0
-selenium==4.17.2
-playwright==1.41.2
-
-# ==========================================
-# GRUPO 112: API FRAMEWORKS (NOVO)
-# ==========================================
-fastapi-users==12.1.3
-
-# ==========================================
-# GRUPO 113: DATABASE CLIENTS (NOVO)
-# ==========================================
-neo4j==5.16.0
-cassandra-driver==3.28.0
-clickhouse-driver==0.2.6
-
-# ==========================================
-# GRUPO 114: MESSAGE QUEUES (NOVO)
-# ==========================================
-pika==1.3.2
-kombu==5.3.4
-pyzmq==25.1.2
-
-# ==========================================
-# GRUPO 115: SERIALIZATION (NOVO)
-# ==========================================
-protobuf==4.25.2
-
-# ==========================================
-# GRUPO 116: GIS & MAPPING (NOVO)
-# ==========================================
-geopandas==0.14.2
-shapely==2.0.2
-
-# GRUPO 117: WORKFLOW ENGINES (NOVO)
-# ==========================================
-# prefect==2.14.21  # Removido - muito pesado
-# dagster==1.6.0  # Removido - muito pesado
-# metaflow==2.10.5  # Removido - conflitos de dependências
-
-# ==========================================
-# GRUPO 118: TESTING FRAMEWORKS (NOVO)
-# ==========================================
-pytest-asyncio==0.23.3
-pytest-mock==3.12.0
-hypothesis==6.92.2
-
-# ==========================================
-# GRUPO 119: DOCUMENTATION GENERATORS (NOVO)
-# ==========================================
-sphinx==7.2.6
-sphinx-rtd-theme==2.0.0
-sphinx-autodoc-typehints==1.25.2
-
-# ==========================================
-# GRUPO 120: CLI FRAMEWORKS (NOVO)
-# ==========================================
-rich-cli==1.8.0
-textual==0.48.2
-prompt-toolkit==3.0.43
-
-# ==========================================
-# NOTAS:
-
-# ✅ Grupo 98 adicionado (2 libs - Web3 & Blockchain: web3, eth-account) - ens removido por conflito
-# ✅ Grupo 99 adicionado (3 libs - NLP Advanced: gensim, textacy, spacy-lookups-data)
-# ✅ Grupo 100 adicionado (3 libs - Task Queues: huey, apscheduler, schedule)
-# ✅ Grupo 101 adicionado (3 libs - API Clients: tweepy, praw, slack-sdk)
-# ✅ Grupo 102 adicionado (3 libs - Payment: stripe, braintree, paypalrestsdk)
-# ✅ Grupo 103 adicionado (3 libs - SMS: twilio, vonage, python-telegram-bot)
-# ✅ Grupo 104 adicionado (3 libs - ML Tools: xgboost, lightgbm, catboost)
-# ✅ Grupo 105 removido (Deep Learning - muito pesado para Railway)
-# ✅ Grupo 106 adicionado (3 libs - Computer Vision: opencv-python, face-recognition, mediapipe)
-# ✅ Grupo 107 adicionado (3 libs - Time Series: prophet, statsforecast, pmdarima)
-# ✅ Grupo 108 adicionado (3 libs - Search: whoosh, lunr, elasticsearch-dsl)
-# ✅ Grupo 109 adicionado (3 libs - PDF Gen: reportlab, weasyprint, xhtml2pdf)
-# ✅ Grupo 110 adicionado (3 libs - Excel Advanced: pandas-read-xml, tablib, pyexcel)
-# ✅ Grupo 111 adicionado (3 libs - Scraping Advanced: scrapy, selenium, playwright)
-# ✅ Grupo 112 adicionado (3 libs - API Frameworks: flask-restful, django-rest-framework, fastapi-users)
-# ✅ Grupo 113 adicionado (3 libs - Database Clients: neo4j, cassandra-driver, clickhouse-driver)
-# ✅ Grupo 114 adicionado (3 libs - Message Queues: pika, kombu, pyzmq)
-# ✅ Grupo 115 adicionado (3 libs - Serialization: protobuf, avro-python3, thrift)
-# ✅ Grupo 116 adicionado (3 libs - GIS: folium, geopandas, shapely)
-# ✅ Grupo 117 adicionado (2 libs - Workflow: prefect, dagster)
-# ✅ Grupo 118 adicionado (3 libs - Testing: pytest-asyncio, pytest-mock, hypothesis)
-# ✅ Grupo 119 adicionado (3 libs - Docs: sphinx, sphinx-rtd-theme, sphinx-autodoc-typehints)
-# ✅ Grupo 120 adicionado (3 libs - CLI: rich-cli, textual, prompt-toolkit)
-# ✅ Total: ~301 bibliotecas (grupos 23-120)
-# ✅ Build estimado: ~95-120 minutos
-# ✅ OMNIBRAIN ULTIMATE - Sistema completo pronto!
-# ✅ Base minimal funcionando (12 libs)
-# ✅ Grupo 23 funcionando (2 libs - Cohere, Gemini)
-# ✅ Grupo 24 funcionando (3 libs - Transformers)
-# ✅ Grupo 25 funcionando (3 libs - PDF, Word, PowerPoint)
-# ✅ Grupo 26 funcionando (3 libs - Pandas, NumPy, SciPy)
-# ✅ Grupo 27 funcionando (3 libs - Matplotlib, Plotly, Seaborn)
-# ✅ Grupo 28 funcionando (3 libs - Requests, Validators, DateUtil)
-# ✅ Grupo 29 funcionando (3 libs - Excel: openpyxl, xlsxwriter, xlrd)
-# ✅ Grupo 30 funcionando (3 libs - Scraping: BeautifulSoup, lxml, html5lib)
-# ✅ Grupo 31 funcionando (3 libs - LangChain, OpenAI integration, tiktoken)
-# ✅ Grupo 32 funcionando (3 libs - Pillow, HEIF, imageio)
-# ✅ Grupo 33 funcionando (3 libs - Async: aiohttp, websockets, httpx-sse)
-# ✅ Grupo 34 funcionando (3 libs - Database: SQLAlchemy, Alembic, asyncpg)
-# ✅ Grupo 35 funcionando (3 libs - Auth: python-jose, passlib, bcrypt)
-# ✅ Grupo 36 funcionando (3 libs - CLI: click, typer, tqdm)
-# ✅ Grupo 37 funcionando (3 libs - JSON: orjson, python-multipart, email-validator)
-# ✅ Grupo 38 funcionando (3 libs - Markdown: markdown, mistune, pygments)
-# ✅ Grupo 39 funcionando (3 libs - Caching: redis, diskcache, cachetools)
-# ✅ Grupo 40 funcionando (3 libs - String: python-slugify, unidecode, chardet)
-# ✅ Grupo 41 funcionando (3 libs - File Utils: pathlib2, watchdog, filelock)
-# ✅ Grupo 42 funcionando (3 libs - Time & Scheduling: schedule, croniter, arrow)
-# ✅ Grupo 43 funcionando (3 libs - Compression: py7zr, msgpack, cloudpickle)
-# ✅ Grupo 44 funcionando (3 libs - HTTP Advanced: urllib3, certifi, idna)
-# ✅ Grupo 45 funcionando (3 libs - Logging: sentry-sdk, json-logger, structlog)
-# ✅ Grupo 46 funcionando (3 libs - Network & DNS: dnspython, psutil, ipaddress)
-# ✅ Grupo 47 funcionando (3 libs - Crypto & Hash: cryptography, pycryptodome, pyotp)
-# ✅ Grupo 48 funcionando (3 libs - URL & URI: furl, yarl, webargs)
-# ✅ Grupo 49 funcionando (3 libs - Config: python-decouple, configparser, environs)
-# ✅ Grupo 50 funcionando (3 libs - Templates: jinja2, mako, chevron)
-# ✅ Grupo 51 funcionando (3 libs - Data Validation: marshmallow, cerberus, voluptuous)
-# ✅ Grupo 52 funcionando (3 libs - Regex & Patterns: regex, phonenumbers, dateparser)
-# ✅ Grupo 53 funcionando (3 libs - Timezone & i18n: pytz, babel, python-i18n)
-# ✅ Grupo 54 funcionando (3 libs - XML & YAML: xmltodict, pyyaml, ruamel.yaml)
-# ✅ Grupo 55 funcionando (3 libs - Retry & Backoff: tenacity, backoff, retrying)
-# ✅ Grupo 56 funcionando (3 libs - User Agents: fake-useragent, user-agents, httpagentparser)
-# ✅ Grupo 57 funcionando (3 libs - Color & Terminal: colorama, termcolor, colorlog)
-# ✅ Grupo 58 funcionando (3 libs - Geolocation: geopy, geocoder, geoip2)
-# ✅ Grupo 59 funcionando (3 libs - Money & Finance: forex-python, money, py-moneyed)
-# ✅ Grupo 60 funcionando (3 libs - UUID & Identifiers: shortuuid, ulid-py, nanoid)
-# ✅ Grupo 61 funcionando (3 libs - Hashing: xxhash, mmh3, crc32c)
-# ✅ Grupo 62 funcionando (3 libs - HTTP Utilities: requests-toolbelt, requests-cache, respx)
-# ✅ Grupo 63 funcionando (3 libs - Data Itertools: more-itertools, toolz, cytoolz)
-# ✅ Grupo 64 funcionando (3 libs - Code Quality: black, autopep8, isort)
-# ✅ Grupo 65 funcionando (3 libs - Humanize: humanize, inflect, num2words)
-# ✅ Grupo 66 funcionando (3 libs - Barcode & QR: qrcode, python-barcode, segno)
-# ✅ Grupo 67 funcionando (3 libs - Diff & Comparison: deepdiff, jsondiff, dictdiffer)
-# ✅ Grupo 68 funcionando (3 libs - Sanitization: bleach, html-sanitizer, ftfy)
-# ✅ Grupo 69 funcionando (3 libs - Rate Limiting: ratelimit, limits, slowapi)
-# ✅ Grupo 70 adicionado (3 libs - Data Structures: attrs, cattrs, sortedcontainers)
-# ✅ Grupo 71 adicionado (3 libs - SSH & Remote: paramiko, fabric, scp)
-# ✅ Grupo 72 adicionado (3 libs - File Type Detection: filetype, puremagic, python-magic)
-# ✅ Grupo 73 adicionado (3 libs - Queues & Messaging: kombu, pyzmq, pika)
-# ✅ Grupo 74 adicionado (3 libs - Testing & Mocking: pytest, pytest-asyncio, faker)
-# ✅ Grupo 75 adicionado (3 libs - Performance & Profiling: memory-profiler, py-spy, line-profiler)
-# ✅ Grupo 76 adicionado (3 libs - Web & API Testing: httpretty, responses, vcrpy)
-# ✅ Grupo 77 adicionado (3 libs - Data Processing Advanced: polars, pyarrow, dask)
-# ✅ Grupo 78 adicionado (3 libs - Serialization Ultra-Fast: msgspec, ujson, simplejson)
-# ✅ Grupo 79 adicionado (3 libs - ML & AI Optimization: optuna, scikit-optimize, hyperopt)
-# ✅ Grupo 80 adicionado (3 libs - Database Advanced: motor, pymongo, elasticsearch)
-# ✅ Grupo 81 adicionado (3 libs - Web Frameworks Utils: fastapi-cache2, fastapi-pagination, starlette-context)
-# ✅ Grupo 82 adicionado (3 libs - Async Advanced: aiomultiprocess, aioitertools, asyncer)
-# ✅ Grupo 83 adicionado (3 libs - Workflow & Task: celery, dramatiq, rq)
-# ✅ Grupo 84 adicionado (3 libs - Monitoring & Observability: prometheus-client, opentelemetry-api, opentelemetry-sdk)
-# ✅ Grupo 85 adicionado (3 libs - API Documentation: mkdocs, mkdocs-material, pdoc3)
-# ✅ Grupo 86 adicionado (3 libs - Message Brokers: kafka-python, aiokafka, paho-mqtt)
-# ✅ Grupo 87 adicionado (3 libs - GraphQL: strawberry-graphql, graphene, ariadne)
-# ✅ Grupo 88 adicionado (3 libs - Email & Communications: sendgrid, mailjet-rest, yagmail)
-# ✅ Grupo 89 adicionado (3 libs - Scientific Computing: sympy, statsmodels, networkx)
-# ✅ Grupo 90 adicionado (3 libs - Image Processing Advanced: scikit-image, imageio-ffmpeg, opencv-contrib-python-headless)
-# ✅ Grupo 91 adicionado (3 libs - Audio Processing: librosa, soundfile, audioread)
-# ✅ Grupo 92 adicionado (3 libs - Business Intelligence: dash, bokeh, altair)
-# ✅ Grupo 93 adicionado (3 libs - Finance & Trading: yfinance, alpha-vantage, pandas-datareader)
-# ✅ Grupo 94 adicionado (3 libs - Cloud Services Advanced: google-cloud-storage, azure-storage-blob, linode-api4)
-# ✅ Grupo 95 adicionado (3 libs - Automation & RPA: pyautogui, keyboard, mouse)
-# ✅ Grupo 96 adicionado (3 libs - OCR: pytesseract, easyocr, ocrmypdf)
-# ✅ Grupo 97 adicionado (3 libs - Video Processing: av, vidgear, ffmpeg-python)
-# ✅ Grupo 98 adicionado (2 libs - Web3 & Blockchain: web3, eth-account) - ens removido por conflito
-# ✅ Grupo 99 adicionado (3 libs - NLP Advanced: gensim, textacy, spacy-lookups-data)
-# ✅ Total: 242 bibliotecas
-# ✅ Build estimado: ~86-90 minutos
-# ✅ Próximo: Grupo 100+ (Meta de 250 alcançada em breve!)
-# ✅ Grupo 100 adicionado (3 libs - Task Queues: huey, apscheduler, schedule)
-# ✅ Grupo 101 adicionado (3 libs - API Clients: tweepy, praw, slack-sdk)
-# ✅ Grupo 102 adicionado (3 libs - Payment: stripe, braintree, paypalrestsdk)
-# ✅ Grupo 103 adicionado (3 libs - SMS: twilio, vonage, python-telegram-bot)
-# ✅ Grupo 104 adicionado (3 libs - ML Tools: xgboost, lightgbm, catboost)
-# ✅ Grupo 105 removido (Deep Learning - muito pesado)
-# ✅ Grupo 106 adicionado (3 libs - Computer Vision: opencv-python, face-recognition, mediapipe)
-# ✅ Grupo 107 adicionado (3 libs - Time Series: prophet, statsforecast, pmdarima)
-# ✅ Grupo 108 adicionado (3 libs - Search: whoosh, lunr, elasticsearch-dsl)
-# ✅ Grupo 109 adicionado (3 libs - PDF Gen: reportlab, weasyprint, xhtml2pdf)
-# ✅ Grupo 110 adicionado (3 libs - Excel Advanced: pandas-read-xml, tablib, pyexcel)
-# ✅ Grupo 111 adicionado (3 libs - Scraping Advanced: scrapy, selenium, playwright)
-# ✅ Grupo 112 adicionado (3 libs - API Frameworks: flask-restful, django-rest-framework, fastapi-users)
-# ✅ Grupo 113 adicionado (3 libs - Database Clients: neo4j, cassandra-driver, clickhouse-driver)
-# ✅ Grupo 114 adicionado (3 libs - Message Queues: pika, kombu, pyzmq)
-# ✅ Grupo 115 adicionado (3 libs - Serialization: protobuf, avro-python3, thrift)
-# ✅ Grupo 116 adicionado (3 libs - GIS: folium, geopandas, shapely)
-# ✅ Grupo 117 adicionado (2 libs - Workflow: prefect, dagster)
-# ✅ Grupo 118 adicionado (3 libs - Testing: pytest-asyncio, pytest-mock, hypothesis)
-# ✅ Grupo 119 adicionado (3 libs - Docs: sphinx, sphinx-rtd-theme, sphinx-autodoc-typehints)
-# ✅ Grupo 120 adicionado (3 libs - CLI: rich-cli, textual, prompt-toolkit)
-# ✅ TOTAL FINAL: ~363 BIBLIOTECAS (grupos 23-120)
-# ✅ OMNIBRAIN ULTIMATE COMPLETO!
+environs==11.0.0
+python-decouple==3.8

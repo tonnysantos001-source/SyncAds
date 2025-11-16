@@ -1,0 +1,22 @@
+# ============================================
+# SYNCADS - GRUPO 23 APENAS
+# AI APIs Adicionais (Cohere + Gemini)
+# Python 3.11+
+# ============================================
+
+# NOTA: OpenAI, Anthropic e Groq já estão no requirements-minimal.txt
+# Adicionando apenas o que falta:
+
+# ==========================================
+# GRUPO 23: AI APIs (RESTANTE)
+# ==========================================
+cohere==4.47.0              # Embeddings, Classification, Rerank
+google-generativeai==0.3.2  # Gemini Pro & Pro Vision
+
+# ==========================================
+# NOTAS:
+# ==========================================
+# ✅ Adiciona apenas 2 bibliotecas novas
+# ✅ OpenAI, Anthropic, Groq já estavam instalados
+# ✅ Tempo de build: ~2-3 minutos
+# ✅ Leve e rápido
