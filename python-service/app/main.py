@@ -1,179 +1,200 @@
 """
 ============================================
-SYNCADS PYTHON MICROSERVICE - MAIN
-============================================
-FastAPI Server com todas as capacidades
-Python 3.10+
+SYNCADS PYTHON MICROSERVICE - FULL
+IA + Supabase + Streaming
 ============================================
 """
 
 import os
 import sys
 import time
-from contextlib import asynccontextmanager
-from typing import Any, Dict
+import json
+from typing import Dict, Optional, List
+from datetime import datetime
 
-import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, StreamingResponse
 from loguru import logger
+from pydantic import BaseModel
+from supabase import create_client, Client
+import jwt
+from jwt.exceptions import InvalidTokenError
+</text>
+
+<old_text line=25>
+# ==========================================
+# CRIAR APP FASTAPI
+# ==========================================
+app = FastAPI(
+    title="SyncAds Python Microservice",
+    description="IA Service - Claude, OpenAI, Groq",
+    version="1.0.0-minimal",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 # Configurar logging
 logger.remove()
 logger.add(
     sys.stdout,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan> - <level>{message}</level>",
     level="INFO",
 )
 
-# Importar routers
-from app.routers import (
-    automation,
-    data_analysis,
-    images,
-    ml,
-    nlp,
-    pdf,
-    python_executor,
-    scraping,
-    shopify,
-)
-
 # ==========================================
-# LIFESPAN EVENTS
+# CRIAR APP FASTAPI
 # ==========================================
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Gerenciar ciclo de vida da aplicação"""
-    logger.info("🚀 Iniciando SyncAds Python Microservice...")
-
-    # Startup
-    logger.info("✅ Carregando modelos de IA...")
-    # Aqui você pode pré-carregar modelos ML/NLP
-
-    logger.info("✅ Conectando ao banco de dados...")
-    # Inicializar conexões de banco se necessário
-
-    logger.info("✅ Microservice pronto!")
-
-    yield
-
-    # Shutdown
-    logger.info("🛑 Encerrando microservice...")
-    logger.info("✅ Limpeza concluída!")
-
-
-# ==========================================
-# FASTAPI APP
-# ==========================================
-
 app = FastAPI(
     title="SyncAds Python Microservice",
-    description="Microserviço Python para scraping, IA, ML, processamento de imagens e mais",
-    version="1.0.0",
+    description="IA Service - Claude, OpenAI, Groq",
+    version="1.0.0-minimal",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
 )
 
 # ==========================================
-# CORS MIDDLEWARE
+# CORS
 # ==========================================
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://syncads.com.br",
-        "https://www.syncads.com.br",
-        "https://*.vercel.app",
-        "*",  # Em produção, especifique os domínios exatos
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 # ==========================================
-# MIDDLEWARE DE LOGGING
+# MODELS
 # ==========================================
+class ChatRequest(BaseModel):
+    message: str
+    conversationId: str
+    userId: Optional[str] = None
+    organizationId: Optional[str] = None
 
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Log todas as requisições"""
-    start_time = time.time()
-
-    # Log da requisição
-    logger.info(f"📥 {request.method} {request.url.path}")
-
-    # Processar requisição
-    response = await call_next(request)
-
-    # Calcular tempo de processamento
-    process_time = time.time() - start_time
-
-    # Log da resposta
-    logger.info(
-        f"📤 {request.method} {request.url.path} - "
-        f"Status: {response.status_code} - "
-        f"Tempo: {process_time:.2f}s"
-    )
-
-    # Adicionar header de tempo de processamento
-    response.headers["X-Process-Time"] = str(process_time)
-
-    return response
+class ChatResponse(BaseModel):
+    response: str
+    model: str
+    provider: str
+    tokens_used: Optional[int] = None
 
 
 # ==========================================
-# ERROR HANDLERS
+# HELPER FUNCTIONS
 # ==========================================
+async def validate_jwt(authorization: str) -> Dict:
+    """Valida JWT do Supabase e retorna payload"""
+    try:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Token não fornecido")
+
+        token = authorization.replace("Bearer ", "")
+
+        if not SUPABASE_JWT_SECRET:
+            logger.warning("JWT validation skipped - no secret configured")
+            return {"sub": "anonymous"}
+
+        payload = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated"
+        )
+
+        return payload
+    except InvalidTokenError as e:
+        logger.error(f"Invalid JWT: {e}")
+        raise HTTPException(status_code=401, detail="Token inválido")
 
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handler para HTTPException"""
-    logger.error(f"❌ HTTPException: {exc.status_code} - {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"success": False, "error": exc.detail, "status_code": exc.status_code},
-    )
+async def get_active_ai(organization_id: Optional[str] = None) -> Optional[Dict]:
+    """Busca IA ativa da organização no Supabase"""
+    if not supabase:
+        logger.warning("Supabase not configured, using fallback")
+        return None
+
+    try:
+        if organization_id:
+            # Buscar IA da organização
+            response = supabase.table("OrganizationAiConnection").select(
+                "*, GlobalAiConnection(*)"
+            ).eq("organizationId", organization_id).eq("isDefault", True).limit(1).execute()
+
+            if response.data and len(response.data) > 0:
+                ai_config = response.data[0].get("GlobalAiConnection")
+                if ai_config and ai_config.get("isActive"):
+                    logger.info(f"✅ Using org AI: {ai_config.get('name')}")
+                    return ai_config
+
+        # Fallback: buscar primeira IA global ativa
+        response = supabase.table("GlobalAiConnection").select("*").eq(
+            "isActive", True
+        ).order("createdAt", desc=False).limit(1).execute()
+
+        if response.data and len(response.data) > 0:
+            logger.info(f"✅ Using global AI: {response.data[0].get('name')}")
+            return response.data[0]
+
+        logger.warning("⚠️ No active AI found")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error fetching AI config: {e}")
+        return None
 
 
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    """Handler para exceções gerais"""
-    logger.error(f"💥 Exception: {str(exc)}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "success": False,
-            "error": "Internal server error",
-            "detail": str(exc),
-        },
-    )
+async def get_conversation_history(conversation_id: str, limit: int = 10) -> List[Dict]:
+    """Busca histórico da conversa no Supabase"""
+    if not supabase:
+        return []
+
+    try:
+        response = supabase.table("ChatMessage").select("*").eq(
+            "conversationId", conversation_id
+        ).order("createdAt", desc=False).limit(limit).execute()
+
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Error fetching history: {e}")
+        return []
+
+
+async def save_message(conversation_id: str, role: str, content: str, user_id: Optional[str] = None):
+    """Salva mensagem no Supabase"""
+    if not supabase:
+        return
+
+    try:
+        data = {
+            "conversationId": conversation_id,
+            "role": role,
+            "content": content,
+            "createdAt": datetime.utcnow().isoformat()
+        }
+
+        if user_id:
+            data["userId"] = user_id
+
+        supabase.table("ChatMessage").insert(data).execute()
+        logger.info(f"✅ Message saved: {role}")
+    except Exception as e:
+        logger.error(f"Error saving message: {e}")
 
 
 # ==========================================
 # HEALTH CHECK
 # ==========================================
-
-
 @app.get("/")
 async def root():
-    """Endpoint raiz"""
+    """Root endpoint"""
     return {
-        "service": "SyncAds Python Microservice",
-        "version": "1.0.0",
-        "status": "online",
-        "docs": "/docs",
-        "health": "/health",
+        "service": "syncads-python-microservice",
+        "status": "running",
+        "version": "1.0.0-minimal",
+        "timestamp": time.time(),
     }
 
 
@@ -183,78 +204,192 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "syncads-python-microservice",
-        "version": "1.0.0",
+        "version": "1.0.0-minimal",
         "timestamp": time.time(),
     }
 
 
-@app.get("/ping")
-async def ping():
-    """Ping endpoint"""
-    return {"message": "pong"}
+# ==========================================
+# IA CHAT ENDPOINT - FULL VERSION
+# ==========================================
+@app.post("/api/chat")
+async def chat(request: ChatRequest, authorization: str = Header(None, alias="Authorization")):
+    """Chat com IA integrado ao Supabase"""
+    try:
+        logger.info(f"📨 Chat request: conversationId={request.conversationId}")
+
+        # 1. Validar JWT
+        user_payload = await validate_jwt(authorization) if authorization else {"sub": "anonymous"}
+        user_id = request.userId or user_payload.get("sub")
+
+        # 2. Salvar mensagem do usuário
+        await save_message(request.conversationId, "user", request.message, user_id)
+
+        # 3. Buscar IA ativa da organização
+        ai_config = await get_active_ai(request.organizationId)
+
+        # 4. Fallback para variáveis de ambiente se não houver config
+        if not ai_config:
+            logger.warning("⚠️ No AI config found, using env vars")
+            ai_config = {
+                "provider": "ANTHROPIC",
+                "apiKey": os.getenv("ANTHROPIC_API_KEY"),
+                "model": "claude-3-5-sonnet-20241022",
+                "maxTokens": 4096,
+                "temperature": 0.7,
+                "systemPrompt": "Você é um assistente útil."
+            }
+
+        # 5. Buscar histórico
+        history = await get_conversation_history(request.conversationId, limit=10)
+
+        # 6. Montar mensagens
+        messages = []
+        for msg in history:
+            messages.append({
+                "role": msg.get("role"),
+                "content": msg.get("content")
+            })
+
+        # 7. Gerar resposta baseado no provider
+        provider = ai_config.get("provider", "ANTHROPIC").upper()
+        api_key = ai_config.get("apiKey")
+        model = ai_config.get("model", "claude-3-5-sonnet-20241022")
+        max_tokens = ai_config.get("maxTokens", 4096)
+        temperature = ai_config.get("temperature", 0.7)
+        system_prompt = ai_config.get("systemPrompt", "Você é um assistente útil.")
+
+        logger.info(f"🤖 Using provider: {provider}, model: {model}")
+
+        # 8. Gerar resposta com streaming
+        if provider == "ANTHROPIC":
+            if not api_key:
+                api_key = os.getenv("ANTHROPIC_API_KEY")
+
+            from anthropic import Anthropic
+            client = Anthropic(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                with client.messages.stream(
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    system=system_prompt,
+                    messages=messages
+                ) as stream:
+                    for text in stream.text_stream:
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                # Salvar resposta completa
+                await save_message(request.conversationId, "assistant", full_response, user_id)
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
+        elif provider == "OPENAI":
+            if not api_key:
+                api_key = os.getenv("OPENAI_API_KEY")
+
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                stream = client.chat.completions.create(
+                    model=model or "gpt-4-turbo-preview",
+                    messages=[{"role": "system", "content": system_prompt}] + messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                await save_message(request.conversationId, "assistant", full_response, user_id)
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
+        elif provider == "GROQ":
+            if not api_key:
+                api_key = os.getenv("GROQ_API_KEY")
+
+            from groq import Groq
+            client = Groq(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                stream = client.chat.completions.create(
+                    model=model or "mixtral-8x7b-32768",
+                    messages=[{"role": "system", "content": system_prompt}] + messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                await save_message(request.conversationId, "assistant", full_response, user_id)
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Provider '{provider}' não suportado"
+            )
+
+    except Exception as e:
+        logger.error(f"❌ Chat error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==========================================
-# INCLUDE ROUTERS
+# EXCEPTION HANDLER
 # ==========================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Handle all exceptions"""
+    logger.error(f"Global exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": str(exc),
+            "timestamp": time.time(),
+        },
+    )
 
-# Scraping
-app.include_router(scraping.router, prefix="/api/scraping", tags=["Scraping"])
-
-# Shopify
-app.include_router(shopify.router, prefix="/api/shopify", tags=["Shopify"])
-
-# Imagens
-app.include_router(images.router, prefix="/api/images", tags=["Images"])
-
-# PDF
-app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF"])
-
-# Machine Learning
-app.include_router(ml.router, prefix="/api/ml", tags=["Machine Learning"])
-
-# NLP
-app.include_router(nlp.router, prefix="/api/nlp", tags=["NLP"])
-
-# Data Analysis
-app.include_router(data_analysis.router, prefix="/api/data", tags=["Data Analysis"])
-
-# Python Executor
-app.include_router(
-    python_executor.router, prefix="/api/python", tags=["Python Executor"]
-)
-
-# Automation
-app.include_router(automation.router, prefix="/api/automation", tags=["Automation"])
 
 # ==========================================
-# STARTUP MESSAGE
+# STARTUP
 # ==========================================
-
-
 @app.on_event("startup")
 async def startup_event():
-    """Mensagem de startup"""
-    logger.info("=" * 60)
-    logger.info("🚀 SyncAds Python Microservice ONLINE")
-    logger.info("=" * 60)
-    logger.info("📚 Documentação: http://localhost:8000/docs")
-    logger.info("🏥 Health Check: http://localhost:8000/health")
-    logger.info("=" * 60)
+    """Startup event"""
+    logger.info("=" * 50)
+    logger.info("🚀 SyncAds Python Microservice - FULL")
+    logger.info("=" * 50)
+    logger.info("✅ FastAPI iniciado")
+    logger.info(f"✅ Docs: /docs")
+    logger.info(f"✅ Health: /health")
+    logger.info(f"✅ Chat: /api/chat (streaming + Supabase)")
+    logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
+    logger.info("=" * 50)
 
 
-# ==========================================
-# RUN SERVER
-# ==========================================
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True,  # Apenas em desenvolvimento
-        log_level="info",
-        access_log=True,
-    )
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Shutdown event"""
+    logger.info("🛑 SyncAds Python Microservice - Encerrando...")
