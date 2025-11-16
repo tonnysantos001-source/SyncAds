@@ -1,3 +1,4 @@
+import { ActiveAIIndicator } from "@/components/chat/ActiveAIIndicator";
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +42,7 @@ import {
   getRandomGreeting,
 } from "@/lib/ai/sarcasticPersonality";
 import { IntegrationConnectionCard } from "@/components/chat/IntegrationConnectionCard";
-import AiThinkingIndicator from "@/components/ai/AiThinkingIndicator";
+
 import {
   adminSystemPrompt,
   cleanAdminBlocksFromResponse,
@@ -78,14 +79,12 @@ const ChatPage: React.FC = () => {
   const [globalAiConfig, setGlobalAiConfig] = useState<{
     systemPrompt: string;
     initialGreetings: string[];
+    name?: string;
+    provider?: string;
+    model?: string;
   } | null>(null);
-
-  const [currentTool, setCurrentTool] = useState<
-    "web_search" | "web_scraping" | "python_exec" | null
-  >(null);
-  const [aiReasoning, setAiReasoning] = useState<string>("");
-  const [aiSources, setAiSources] = useState<string[]>([]);
-  const [aiProgress, setAiProgress] = useState<number>(0);
+  const [tokensUsed, setTokensUsed] = useState<number>(0);
+  const [currentAiName, setCurrentAiName] = useState<string>("IA");
   const [currentAttachments, setCurrentAttachments] = useState<
     ChatAttachment[]
   >([]);
@@ -144,7 +143,7 @@ const ChatPage: React.FC = () => {
       try {
         const { data: globalAi } = await supabase
           .from("GlobalAiConnection")
-          .select("id, systemPrompt, initialGreetings")
+          .select("id, name, provider, model, systemPrompt, initialGreetings")
           .eq("isActive", true)
           .limit(1)
           .single();
@@ -153,7 +152,11 @@ const ChatPage: React.FC = () => {
           setGlobalAiConfig({
             systemPrompt: globalAi.systemPrompt || aiSystemPrompt,
             initialGreetings: globalAi.initialGreetings || aiInitialGreetings,
+            name: globalAi.name,
+            provider: globalAi.provider,
+            model: globalAi.model,
           });
+          setCurrentAiName(globalAi.name || "IA");
         }
       } catch (error) {
         console.error("Erro ao carregar IA Global:", error);
@@ -242,38 +245,6 @@ const ChatPage: React.FC = () => {
     // Detectar se requer processamento avançado
     const needsAdvanced = requiresAdvancedProcessing(userMessage);
 
-    // Configurar tool e reasoning baseado na mensagem
-    const lowerMessage = userMessage.toLowerCase();
-    if (lowerMessage.includes("gere") && lowerMessage.includes("imagem")) {
-      setCurrentTool("generate_image" as any);
-      setAiReasoning("Gerando imagem com DALL-E 3...");
-    } else if (
-      lowerMessage.includes("gere") &&
-      lowerMessage.includes("vídeo")
-    ) {
-      setCurrentTool("generate_video" as any);
-      setAiReasoning("Preparando geração de vídeo...");
-    } else if (
-      lowerMessage.includes("pesquis") ||
-      lowerMessage.includes("busca") ||
-      lowerMessage.includes("google")
-    ) {
-      setCurrentTool("web_search");
-      setAiReasoning(`Pesquisando: "${userMessage}"`);
-      setAiSources(["Google Search", "Serper API"]);
-    } else if (
-      lowerMessage.includes("crie") &&
-      lowerMessage.includes("arquivo")
-    ) {
-      setCurrentTool("create_file" as any);
-      setAiReasoning("Criando arquivo...");
-    } else {
-      setCurrentTool(null);
-      setAiReasoning("Processando...");
-      setAiSources([]);
-    }
-    setAiProgress(0);
-
     if (user) {
       addMessage(user.id, activeConversationId, {
         id: `msg-${Date.now()}`,
@@ -296,8 +267,7 @@ const ChatPage: React.FC = () => {
             conversationHistory: [],
           },
           (status, progress) => {
-            setAiReasoning(status);
-            if (progress) setAiProgress(progress);
+            // Status callback - pode ser usado para loading futuro
           },
         );
 
@@ -318,10 +288,6 @@ const ChatPage: React.FC = () => {
 
           await incrementAiMessageUsage(user.id);
           setAssistantTyping(false);
-          setCurrentTool(null);
-          setAiReasoning("");
-          setAiSources([]);
-          setAiProgress(0);
           setCurrentAttachments([]);
           return;
         }
@@ -353,27 +319,75 @@ const ChatPage: React.FC = () => {
 
       // Usar novo chatService com streaming
       let fullResponse = "";
+      let estimatedTokens = 0;
 
-      const result = await chatService.sendMessage(
-        userMessage,
-        activeConversationId,
-        {
-          onChunk: (chunk) => {
-            fullResponse += chunk;
-            // Atualizar mensagem em tempo real
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === tempMessageId
-                  ? { ...msg, content: fullResponse }
-                  : msg,
-              ),
-            );
+      try {
+        const result = await chatService.sendMessage(
+          userMessage,
+          activeConversationId,
+          {
+            onChunk: (chunk) => {
+              fullResponse += chunk;
+              // Atualizar mensagem em tempo real
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === tempMessageId
+                    ? { ...msg, content: fullResponse }
+                    : msg,
+                ),
+              );
+            },
+            onComplete: (response) => {
+              fullResponse = response;
+              // Estimar tokens (aproximado: 4 chars = 1 token)
+              estimatedTokens = Math.ceil(
+                (userMessage.length + response.length) / 4,
+              );
+              setTokensUsed((prev) => prev + estimatedTokens);
+            },
           },
-          onComplete: (response) => {
-            fullResponse = response;
-          },
-        },
-      );
+        );
+      } catch (error: any) {
+        console.error("❌ Erro no chatService:", error);
+
+        // FALLBACK: Tentar IA padrão se falhar
+        toast({
+          title: "Tentando IA alternativa...",
+          description: "A IA principal falhou, usando fallback.",
+        });
+
+        // Buscar outra IA ativa
+        const { data: fallbackAi } = await supabase
+          .from("GlobalAiConnection")
+          .select("*")
+          .eq("isActive", true)
+          .neq("id", globalAiConfig?.name)
+          .limit(1)
+          .single();
+
+        if (fallbackAi) {
+          setCurrentAiName(fallbackAi.name || "IA Fallback");
+          // Retry com fallback
+          const fallbackResult = await chatService.sendMessage(
+            userMessage,
+            activeConversationId,
+            {
+              onChunk: (chunk) => {
+                fullResponse += chunk;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempMessageId
+                      ? { ...msg, content: fullResponse }
+                      : msg,
+                  ),
+                );
+              },
+            },
+          );
+        } else {
+          throw error;
+        }
+      }
 
       const response = fullResponse;
 
@@ -429,9 +443,6 @@ const ChatPage: React.FC = () => {
       });
     } finally {
       setAssistantTyping(false);
-      setCurrentTool(null);
-      setAiReasoning("");
-      setAiSources([]);
     }
   };
 
@@ -792,6 +803,14 @@ const ChatPage: React.FC = () => {
                 <IconBrandOpenai className="w-6 h-6 text-white" />
               </motion.div>
               <div>
+              {/* Indicador IA Ativa */}
+              <ActiveAIIndicator
+                aiName={currentAiName}
+                provider={globalAiConfig?.provider}
+                model={globalAiConfig?.model}
+                tokensUsed={tokensUsed}
+                isOnline={true}
+              />
                 <h1 className="text-xl font-bold text-white">Chat com IA</h1>
                 <p className="text-sm text-gray-400">Assistente inteligente</p>
               </div>
@@ -943,15 +962,6 @@ const ChatPage: React.FC = () => {
 
               {isAssistantTyping && (
                 <>
-                  <AiThinkingIndicator
-                    isThinking={isAssistantTyping}
-                    currentTool={currentTool}
-                    reasoning={aiReasoning}
-                    sources={aiSources}
-                    status="thinking"
-                    progress={aiProgress}
-                    modernStyle={true}
-                  />
 
                   {/* Preview de attachments sendo gerados */}
                   {currentAttachments.length > 0 && (
