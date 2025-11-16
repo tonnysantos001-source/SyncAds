@@ -682,9 +682,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     state.userId = request.userId;
+    state.accessToken = request.accessToken;
     chrome.storage.local.set({
       userId: request.userId,
       userEmail: request.email,
+      accessToken: request.accessToken,
     });
     connectToServer().then(() => {
       console.log("✅ Extensão conectada após detecção de login");
@@ -739,27 +741,22 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   // Detectar login automático quando o painel é carregado
   if (changeInfo.status === "complete" && tab.url) {
-    const url = new URL(tab.url);
-    const isDomain = CONFIG.allowedDomains.some((domain) =>
-      url.hostname.includes(domain),
-    );
+    try {
+      const url = new URL(tab.url);
+      const isDomain = CONFIG.allowedDomains.some((domain) =>
+        url.hostname.includes(domain),
+      );
 
-    // Auto-detectar login quando visitar o painel
-    if (isDomain) {
-      setTimeout(() => {
-        detectAutoLogin(tabId).then((detected) => {
-          if (detected) {
-            console.log("✅ Login auto-detectado ao visitar painel");
-          }
-        });
-      }, 2000); // Aguardar 2s para o localStorage ser populado
-    }
-
-    if (isDomain && !state.userId) {
-      // Tentar detectar login automaticamente
-      setTimeout(() => {
-        detectAutoLogin(tabId);
-      }, 1000);
+      // Auto-detectar login quando visitar o painel
+      if (isDomain && !state.userId) {
+        setTimeout(() => {
+          detectAutoLogin(tabId).catch((error) => {
+            console.log("⚠️ Erro na detecção automática:", error.message);
+          });
+        }, 2000); // Aguardar 2s para o localStorage ser populado
+      }
+    } catch (error) {
+      console.log("⚠️ Erro ao processar URL:", error.message);
     }
   }
 });
@@ -770,6 +767,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 async function detectAutoLogin(tabId) {
   try {
     console.log("🔍 Tentando detectar login automático no tab:", tabId);
+
+    // Verificar se a tab ainda existe
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (!tab) {
+        console.log("⚠️ Tab não existe mais, abortando detecção");
+        return false;
+      }
+    } catch (error) {
+      console.log("⚠️ Tab não existe mais:", error.message);
+      return false;
+    }
 
     // Executar script para verificar se há userId no localStorage
     const results = await chrome.scripting.executeScript({
