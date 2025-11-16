@@ -586,10 +586,9 @@ async def chat(
                 logger.info(f"✅ Comando criado: {command_id}")
 
                 # Adicionar ao contexto da resposta
-                tool_result = f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
-</parameter>
-
-</invoke>
+                tool_result = (
+                    f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
+                )
 
         if tool_intent:
             logger.info(f"🛠️ TOOL DETECTED! Executando ferramenta: {tool_intent}")
