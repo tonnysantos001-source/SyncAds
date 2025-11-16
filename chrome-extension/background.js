@@ -11,6 +11,8 @@ console.log("🚀 SyncAds Extension - Background Script Loaded v1.0.0");
 const CONFIG = {
   serverUrl: "https://syncads.com.br",
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
+  supabaseAnonKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.YMx-wL6hUtVPtGmN_5MKHIvfzqSmz5Jx6y0P3XJiWm4",
   functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   pollInterval: 3000, // 3 segundos
   reconnectDelay: 5000, // 5 segundos
@@ -24,6 +26,7 @@ const CONFIG = {
 let state = {
   deviceId: null,
   userId: null,
+  accessToken: null,
   isConnected: false,
   isPolling: false,
   lastPollTime: null,
@@ -72,6 +75,7 @@ async function initialize() {
     const stored = await chrome.storage.local.get([
       "deviceId",
       "userId",
+      "accessToken",
       "config",
       "isConnected",
       "lastConnected",
@@ -87,9 +91,10 @@ async function initialize() {
       console.log("🆔 Loaded deviceId:", state.deviceId);
     }
 
-    // Recuperar userId se existir
+    // Recuperar userId e accessToken se existir
     if (stored.userId) {
       state.userId = stored.userId;
+      state.accessToken = stored.accessToken;
       console.log("👤 User logged in:", state.userId);
 
       // Verificar se estava conectado recentemente (últimas 24h)
@@ -143,25 +148,30 @@ async function connectToServer() {
 
   try {
     console.log("🔌 Connecting to server...");
-    console.log("   📍 API URL:", CONFIG.apiUrl);
+    console.log("   📍 Functions URL:", CONFIG.functionsUrl);
     console.log("   🆔 Device ID:", state.deviceId);
     console.log("   👤 User ID:", state.userId);
 
+    // Verificar se tem accessToken
+    if (!state.accessToken) {
+      throw new Error("No access token available");
+    }
+
     // Registrar dispositivo
     const requestBody = {
-      deviceId: state.deviceId,
-      userId: state.userId,
-      browser: getBrowserInfo(),
+      device_id: state.deviceId,
+      browser_info: getBrowserInfo(),
       version: CONFIG.version,
-      timestamp: Date.now(),
     };
 
     console.log("   📤 Request body:", JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(`${CONFIG.apiUrl}/api/extension/register`, {
+    const response = await fetch(`${CONFIG.functionsUrl}/extension-register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
       },
       body: JSON.stringify(requestBody),
     });
@@ -270,8 +280,15 @@ async function pollCommands() {
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(
-      `${CONFIG.apiUrl}/api/extension/commands?deviceId=${state.deviceId}`,
-      { signal: controller.signal },
+      `${CONFIG.functionsUrl}/extension-commands/${state.deviceId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+        },
+        signal: controller.signal,
+      },
     );
 
     clearTimeout(timeoutId);
@@ -519,16 +536,22 @@ async function extractData(command) {
 // ============================================
 async function sendResult(commandId, result) {
   try {
-    await fetch(`${CONFIG.apiUrl}/api/extension/result`, {
+    if (!state.accessToken) {
+      console.warn("⚠️ No access token, skipping result");
+      return;
+    }
+
+    await fetch(`${CONFIG.functionsUrl}/extension-commands/${state.deviceId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
       },
       body: JSON.stringify({
-        deviceId: state.deviceId,
-        commandId,
+        command_id: commandId,
+        status: result.success ? "completed" : "failed",
         result,
-        timestamp: Date.now(),
       }),
     });
 
@@ -543,16 +566,23 @@ async function sendResult(commandId, result) {
 // ============================================
 async function sendLog(log) {
   try {
-    await fetch(`${CONFIG.apiUrl}/api/extension/log`, {
+    if (!state.accessToken) {
+      // Sem token, não enviar log
+      return;
+    }
+
+    await fetch(`${CONFIG.functionsUrl}/extension-log`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
       },
       body: JSON.stringify({
-        deviceId: state.deviceId,
-        userId: state.userId,
-        ...log,
-        timestamp: Date.now(),
+        device_id: state.deviceId,
+        level: log.level || "info",
+        message: log.message || log.action,
+        data: log.data || log,
       }),
     });
   } catch (error) {
@@ -761,10 +791,12 @@ async function detectAutoLogin(tabId) {
             if (authData) {
               const parsed = JSON.parse(authData);
               const user = parsed?.user || parsed?.currentUser;
-              if (user?.id) {
+              const accessToken = parsed?.access_token;
+              if (user?.id && accessToken) {
                 return {
                   userId: user.id,
                   email: user.email,
+                  accessToken: accessToken,
                   found: true,
                   source: "supabase-modern",
                 };
@@ -777,10 +809,13 @@ async function detectAutoLogin(tabId) {
           if (legacyAuth) {
             const parsed = JSON.parse(legacyAuth);
             const user = parsed?.currentSession?.user || parsed?.user;
-            if (user?.id) {
+            const accessToken =
+              parsed?.currentSession?.access_token || parsed?.access_token;
+            if (user?.id && accessToken) {
               return {
                 userId: user.id,
                 email: user.email,
+                accessToken: accessToken,
                 found: true,
                 source: "supabase-legacy",
               };
@@ -798,10 +833,12 @@ async function detectAutoLogin(tabId) {
             if (authData) {
               const parsed = JSON.parse(authData);
               const user = parsed?.user || parsed?.currentUser;
-              if (user?.id) {
+              const accessToken = parsed?.access_token;
+              if (user?.id && accessToken) {
                 return {
                   userId: user.id,
                   email: user.email,
+                  accessToken: accessToken,
                   found: true,
                   source: "supabase-session",
                 };
@@ -836,11 +873,13 @@ async function detectAutoLogin(tabId) {
         source: result.source,
       });
 
-      // Salvar userId
+      // Salvar userId e accessToken
       state.userId = result.userId;
+      state.accessToken = result.accessToken;
       await chrome.storage.local.set({
         userId: result.userId,
         userEmail: result.email,
+        accessToken: result.accessToken,
       });
 
       // Conectar ao servidor
