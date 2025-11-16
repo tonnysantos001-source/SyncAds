@@ -49,11 +49,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === "install") {
     console.log("🎉 First time installation");
     await initialize();
-
-    // Abrir página de boas-vindas
-    chrome.tabs.create({
-      url: `${CONFIG.serverUrl}/app`,
-    });
   } else if (details.reason === "update") {
     console.log("🔄 Extension updated");
     await initialize();
