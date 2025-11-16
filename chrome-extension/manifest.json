@@ -12,18 +12,15 @@
     "webNavigation",
     "cookies"
   ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ],
+  "host_permissions": ["https://*/*", "http://*/*"],
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "background-simple.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "js": ["content-script-simple.js"],
       "run_at": "document_idle",
       "all_frames": false
     }
