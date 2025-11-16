@@ -112,7 +112,13 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
 supabase: Optional[Client] = None
 if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        logger.info("✅ Supabase client initialized successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Supabase initialization failed: {e}")
+        logger.warning("⚠️ Running without Supabase connection")
+        supabase = None
 
 
 # ==========================================
