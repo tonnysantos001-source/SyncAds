@@ -10,7 +10,8 @@ console.log("🚀 SyncAds Extension - Background Script Loaded v1.0.0");
 // ============================================
 const CONFIG = {
   serverUrl: "https://syncads.com.br",
-  apiUrl: "https://syncads-python-microservice-production.up.railway.app",
+  supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
+  functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   pollInterval: 3000, // 3 segundos
   reconnectDelay: 5000, // 5 segundos
   version: "1.0.0",
