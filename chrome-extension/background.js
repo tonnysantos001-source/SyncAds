@@ -147,6 +147,13 @@ async function sendHeartbeat() {
         lastActivity: state.lastActivity,
         isConnected: true,
       });
+
+      // Notificar popup sobre status
+      notifyPopup({
+        action: "STATUS_UPDATE",
+        connected: true,
+        lastActivity: state.lastActivity,
+      });
     } else {
       Logger.warn("Heartbeat failed", { status: response.status });
     }
@@ -662,6 +669,15 @@ async function handleAuthToken(data) {
       tokenExpiresAt: expiresAt,
       isConnected: true,
       lastConnected: Date.now(),
+      lastActivity: state.lastActivity,
+      deviceId: state.deviceId,
+    });
+
+    Logger.info("Storage updated with connection data", {
+      userId,
+      deviceId: state.deviceId,
+      isConnected: true,
+      lastActivity: state.lastActivity,
     });
 
     state.isConnected = true;
@@ -861,6 +877,14 @@ async function initialize() {
       Logger.info("Device ID loaded", { deviceId: state.deviceId });
     }
 
+    Logger.info("Stored data loaded", {
+      hasDeviceId: !!stored.deviceId,
+      hasUserId: !!stored.userId,
+      hasToken: !!stored.accessToken,
+      isConnected: stored.isConnected,
+      lastActivity: stored.lastActivity,
+    });
+
     // Restore session if exists
     if (stored.userId && stored.accessToken) {
       state.userId = stored.userId;
@@ -872,6 +896,16 @@ async function initialize() {
       // Validate token
       if (isTokenValid(state.accessToken, state.tokenExpiresAt)) {
         state.isConnected = true;
+        state.lastActivity = Date.now();
+
+        // Update storage with current activity
+        await chrome.storage.local.set({
+          isConnected: true,
+          lastActivity: state.lastActivity,
+        });
+
+        // Start heartbeat
+        startHeartbeat();
 
         // Start token refresh scheduler
         if (state.refreshToken) {
@@ -881,6 +915,7 @@ async function initialize() {
         Logger.success("Session restored", {
           userId: state.userId,
           email: state.userEmail,
+          deviceId: state.deviceId,
         });
       } else {
         Logger.warn("Stored token invalid, attempting refresh...");

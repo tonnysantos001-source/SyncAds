@@ -50,7 +50,7 @@ function setButtonState(state) {
 }
 
 function updateStatus(isConnected) {
-  console.log("🎨 Updating UI status:", isConnected);
+  console.log("🎨 [POPUP] Updating UI status:", isConnected);
 
   if (isConnected) {
     statusIndicator.classList.add("connected");
@@ -78,28 +78,36 @@ async function checkConnectionStatus() {
       "lastActivity",
     ]);
 
+    console.log("📊 [POPUP] Storage data:", {
+      hasDeviceId: !!result.deviceId,
+      hasUserId: !!result.userId,
+      hasToken: !!result.accessToken,
+      isConnected: result.isConnected,
+      lastActivity: result.lastActivity,
+    });
+
     // Verificar se tem dados básicos
     const hasBasicData = result.deviceId && result.userId && result.accessToken;
 
     // Verificar se a última atividade foi recente (últimos 2 minutos)
     const lastActivity = result.lastActivity || 0;
-    const isRecent = (Date.now() - lastActivity) < 120000; // 2 minutos
+    const isRecent = Date.now() - lastActivity < 120000;
 
-    // Considerar conectado se tem dados e atividade recente
-    const isConnected = hasBasicData && (result.isConnected || isRecent);
+    // SIMPLIFICAR: considerar conectado se tem dados básicos
+    const isConnected = hasBasicData;
 
-    console.log("📊 Status Check:", {
+    console.log("📊 [POPUP] Status Check:", {
       hasBasicData,
       isRecent,
       isConnected,
-      lastActivity: new Date(lastActivity).toISOString()
+      lastActivity: new Date(lastActivity).toISOString(),
     });
 
     updateStatus(isConnected);
 
     return isConnected;
   } catch (error) {
-    console.error("❌ Erro ao verificar status:", error);
+    console.error("❌ [POPUP] Erro ao verificar status:", error);
     updateStatus(false);
     return false;
   }
@@ -122,8 +130,7 @@ openPanelBtn.addEventListener("click", async (e) => {
       currentWindow: true,
     });
 
-    console.log("📍 [POPUP] Current tab:", currentTab.url);</parameter>
-    console.log("📍 Aba atual:", currentTab.url);
+    console.log("📍 [POPUP] Current tab:", currentTab.url);
 
     // Verificar se já está no painel
     const isOnPanel =
@@ -151,7 +158,9 @@ openPanelBtn.addEventListener("click", async (e) => {
         setButtonState(connected ? "connected" : "default");
       }, 7000);
     } else {
-      console.log("✅ [POPUP] Already on SyncAds panel! Checking connection...");</parameter>
+      console.log(
+        "✅ [POPUP] Already on SyncAds panel! Checking connection...",
+      );
 
       // Já está no painel, forçar detecção
       try {
@@ -161,9 +170,11 @@ openPanelBtn.addEventListener("click", async (e) => {
         });
         console.log("✅ [POPUP] Content-script response:", response);
       } catch (err) {
-        console.log("⚠️ [POPUP] Content script not loaded, reloading tab...", err.message);
+        console.log(
+          "⚠️ [POPUP] Content script not loaded, reloading tab...",
+          err.message,
+        );
         await chrome.tabs.reload(currentTab.id);
-      }</parameter>
       }
 
       // Verificar status múltiplas vezes
@@ -176,7 +187,9 @@ openPanelBtn.addEventListener("click", async (e) => {
         setButtonState(connected ? "connected" : "default");
 
         if (!connected) {
-          console.log("🔴 [POPUP] Still not connected. Please login on the panel.");
+          console.log(
+            "🔴 [POPUP] Still not connected. Please login on the panel.",
+          );
         } else {
           console.log("🎉 [POPUP] Connection successful!");
         }
@@ -186,7 +199,6 @@ openPanelBtn.addEventListener("click", async (e) => {
     console.error("❌ [POPUP] Error connecting:", error);
     setButtonState("default");
   }
-});</parameter>
 });
 
 // Listener para mudanças no storage
@@ -194,20 +206,36 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local") {
     console.log("💾 [POPUP] Storage changed:", Object.keys(changes));
 
-    if (changes.isConnected || changes.deviceId || changes.userId || changes.lastActivity) {
-      console.log("🔄 [POPUP] Important storage change detected, rechecking status...");
+    if (
+      changes.isConnected ||
+      changes.deviceId ||
+      changes.userId ||
+      changes.lastActivity
+    ) {
+      console.log(
+        "🔄 [POPUP] Important storage change detected, rechecking status...",
+      );
 
       if (changes.isConnected) {
-        console.log("  isConnected:", changes.isConnected.oldValue, "→", changes.isConnected.newValue);
+        console.log(
+          "  isConnected:",
+          changes.isConnected.oldValue,
+          "→",
+          changes.isConnected.newValue,
+        );
       }
       if (changes.userId) {
-        console.log("  userId:", !!changes.userId.oldValue, "→", !!changes.userId.newValue);
+        console.log(
+          "  userId:",
+          !!changes.userId.oldValue,
+          "→",
+          !!changes.userId.newValue,
+        );
       }
 
       checkConnectionStatus();
     }
   }
-});</parameter>
 });
 
 // Listener para mensagens do background
@@ -230,7 +258,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   sendResponse({ received: true });
   return true;
-});</parameter>
 });
 
 // ============================================
@@ -256,5 +283,4 @@ setInterval(() => {
   checkConnectionStatus();
 }, 10000);
 
-console.log("🎯 [POPUP] Popup script loaded and ready");</parameter>
-}, 10000);
+console.log("🎯 [POPUP] Popup script loaded and ready");
