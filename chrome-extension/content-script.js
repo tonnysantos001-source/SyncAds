@@ -3,7 +3,32 @@
 // Robust Token Detection & Background Communication
 // ============================================
 
-console.log("🚀 SyncAds Content Script v4.0 - Initializing...");
+// ============================================
+// 🛡️ PROTEÇÃO: NÃO EXECUTAR NO PRÓPRIO SYNCADS
+// ============================================
+const SYNCADS_DOMAINS = [
+  "syncads.com.br",
+  "www.syncads.com.br",
+  "vercel.app",
+  "localhost",
+  "127.0.0.1",
+];
+
+const currentDomain = window.location.hostname;
+const isSyncAdsSite = SYNCADS_DOMAINS.some(
+  (domain) =>
+    currentDomain.includes(domain) ||
+    currentDomain.includes("syncads") ||
+    window.location.href.includes("syncads"),
+);
+
+if (isSyncAdsSite) {
+  console.log("🛡️ SyncAds Extension: Skipping own domain -", currentDomain);
+  // NÃO EXECUTA NADA - sai do script
+  throw new Error("SyncAds domain detected - extension disabled on own site");
+}
+
+console.log("🚀 SyncAds Content Script v4.0 - Initializing on:", currentDomain);
 
 // ============================================
 // CONFIGURATION

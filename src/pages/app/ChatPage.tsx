@@ -21,6 +21,12 @@ interface Conversation {
   messages: Message[];
 }
 
+interface ExtensionStatus {
+  connected: boolean;
+  deviceId: string | null;
+  lastCheck: number;
+}
+
 // ============================================
 // CHAT PAGE - VERSÃO SIMPLES E FUNCIONAL
 // ============================================
@@ -32,11 +38,18 @@ export default function ChatPageNovo() {
 
   // Estados básicos
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
+    connected: false,
+    deviceId: null,
+    lastCheck: 0,
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -92,7 +105,7 @@ export default function ChatPageNovo() {
                 createdAt: m.createdAt,
               })),
             };
-          })
+          }),
         );
 
         setConversations(conversationsWithMessages);
@@ -112,6 +125,50 @@ export default function ChatPageNovo() {
     };
 
     loadConversations();
+  }, [user]);
+
+  // ============================================
+  // VERIFICAR EXTENSÃO
+  // ============================================
+  useEffect(() => {
+    if (!user) return;
+
+    const checkExtension = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("ExtensionDevice")
+          .select("id, deviceId, isOnline, lastSeen")
+          .eq("userId", user.id)
+          .eq("isOnline", true)
+          .order("lastSeen", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Erro ao verificar extensão:", error);
+          return;
+        }
+
+        const isConnected =
+          !!data && new Date(data.lastSeen).getTime() > Date.now() - 60000;
+
+        setExtensionStatus({
+          connected: isConnected,
+          deviceId: data?.deviceId || null,
+          lastCheck: Date.now(),
+        });
+      } catch (error) {
+        console.error("Erro ao verificar extensão:", error);
+      }
+    };
+
+    // Verificar imediatamente
+    checkExtension();
+
+    // Verificar a cada 10 segundos
+    const interval = setInterval(checkExtension, 10000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   // ============================================
@@ -164,6 +221,34 @@ export default function ChatPageNovo() {
   // ============================================
   // ENVIAR MENSAGEM
   // ============================================
+  // ============================================
+  // ENVIAR COMANDO PARA EXTENSÃO
+  // ============================================
+  const sendBrowserCommand = async (command: string, params: any) => {
+    if (!extensionStatus.connected || !extensionStatus.deviceId) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.from("ExtensionCommand").insert({
+        id: crypto.randomUUID(),
+        deviceId: extensionStatus.deviceId,
+        command,
+        params,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+      });
+
+      return !error;
+    } catch (error) {
+      console.error("Erro ao enviar comando:", error);
+      return false;
+    }
+  };
+
+  // ============================================
+  // ENVIAR MENSAGEM
+  // ============================================
   const sendMessage = async () => {
     if (!input.trim() || !activeConversationId || !user || isSending) return;
 
@@ -204,8 +289,8 @@ export default function ChatPageNovo() {
                   },
                 ],
               }
-            : conv
-        )
+            : conv,
+        ),
       );
 
       // 2. Chamar Edge Function para resposta da IA
@@ -226,8 +311,9 @@ export default function ChatPageNovo() {
           body: JSON.stringify({
             message: userMessage,
             conversationId: activeConversationId,
+            extensionConnected: extensionStatus.connected,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -272,8 +358,8 @@ export default function ChatPageNovo() {
                   },
                 ],
               }
-            : conv
-        )
+            : conv,
+        ),
       );
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
@@ -320,7 +406,7 @@ export default function ChatPageNovo() {
   // CONVERSA ATIVA
   // ============================================
   const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId
+    (c) => c.id === activeConversationId,
   );
 
   // ============================================
@@ -400,7 +486,28 @@ export default function ChatPageNovo() {
           <h1 className="text-lg font-semibold">
             {activeConversation?.title || "Chat"}
           </h1>
-          <div className="w-10" />
+
+          {/* Status da Extensão */}
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                extensionStatus.connected
+                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                  : "bg-gray-800 text-gray-400 border border-gray-700"
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                }`}
+              />
+              <span>
+                {extensionStatus.connected
+                  ? "Extensão Ativa"
+                  : "Extensão Offline"}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Messages */}
@@ -410,6 +517,19 @@ export default function ChatPageNovo() {
               <div className="text-center">
                 <p className="text-xl mb-2">Nenhuma conversa selecionada</p>
                 <p className="text-sm">Crie uma nova conversa para começar</p>
+
+                {/* Aviso sobre extensão */}
+                {!extensionStatus.connected && (
+                  <div className="mt-8 p-4 bg-yellow-600/10 border border-yellow-600/30 rounded-lg max-w-md mx-auto">
+                    <p className="text-yellow-400 text-sm mb-2 font-medium">
+                      ⚠️ Extensão do navegador offline
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      Para usar automação de navegador, instale e ative a
+                      extensão SyncAds AI
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ) : activeConversation.messages.length === 0 ? (
@@ -417,6 +537,19 @@ export default function ChatPageNovo() {
               <div className="text-center">
                 <p className="text-xl mb-2">Nova conversa</p>
                 <p className="text-sm">Envie uma mensagem para começar</p>
+
+                {/* Dica sobre extensão */}
+                {extensionStatus.connected && (
+                  <div className="mt-8 p-4 bg-green-600/10 border border-green-600/30 rounded-lg max-w-md mx-auto">
+                    <p className="text-green-400 text-sm mb-2 font-medium">
+                      ✨ Extensão conectada!
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      Agora posso controlar seu navegador. Experimente: "Abra o
+                      Facebook Ads"
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -428,9 +561,7 @@ export default function ChatPageNovo() {
                 >
                   <div
                     className={`max-w-[70%] rounded-lg p-4 ${
-                      message.role === "user"
-                        ? "bg-blue-600"
-                        : "bg-gray-800"
+                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
@@ -451,7 +582,9 @@ export default function ChatPageNovo() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+              onKeyPress={(e) =>
+                e.key === "Enter" && !e.shiftKey && sendMessage()
+              }
               placeholder="Digite sua mensagem..."
               disabled={isSending || !activeConversationId}
               className="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 disabled:opacity-50"
