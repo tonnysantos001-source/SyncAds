@@ -483,7 +483,7 @@ const ChatPage: React.FC = () => {
     activeConversationId,
     input,
     user,
-    activeConversation?.messages,
+    activeConversation,
     currentAttachments,
     toast,
   ]);
