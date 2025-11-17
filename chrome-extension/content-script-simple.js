@@ -1,12 +1,19 @@
 // ============================================
-// SYNCADS EXTENSION - CONTENT SCRIPT SIMPLIFICADO v2.0
-// Detecta token e envia para background
+// SYNCADS EXTENSION - TOKEN DETECTOR v3.0
+// Detecta CRIAÇÃO de token novo (não token antigo)
 // ============================================
 
-console.log("🚀 SyncAds Content Script v2.0 Started");
+console.log("🚀 SyncAds Token Detector v3.0 - Monitoring token creation");
 
 // ============================================
-// AVISO VISUAL
+// ESTADO
+// ============================================
+let lastTokenSent = null;
+let knownKeys = new Set();
+let checkCount = 0;
+
+// ============================================
+// NOTIFICAÇÃO VISUAL
 // ============================================
 function showNotification(message, type = "info") {
   const notification = document.createElement("div");
@@ -25,30 +32,24 @@ function showNotification(message, type = "info") {
     max-width: 350px;
     animation: slideIn 0.3s ease;
   `;
-  notification.innerHTML = `
-    <strong>🔌 SyncAds Extension</strong><br>
-    ${message}
-  `;
-
+  notification.innerHTML = `<strong>🔌 SyncAds</strong><br>${message}`;
   document.body.appendChild(notification);
 
   setTimeout(() => {
-    notification.style.animation = "slideOut 0.3s ease";
+    notification.style.transition = "opacity 0.3s";
+    notification.style.opacity = "0";
     setTimeout(() => notification.remove(), 300);
   }, 5000);
 }
 
 // ============================================
-// BOTÃO FLUTUANTE PARA RECONEXÃO MANUAL
+// BOTÃO DE CONEXÃO MANUAL
 // ============================================
-function createReconnectButton() {
-  // Verificar se já existe
-  if (document.getElementById("syncads-reconnect-btn")) {
-    return;
-  }
+function createConnectButton() {
+  if (document.getElementById("syncads-connect-btn")) return;
 
   const button = document.createElement("div");
-  button.id = "syncads-reconnect-btn";
+  button.id = "syncads-connect-btn";
   button.style.cssText = `
     position: fixed;
     bottom: 20px;
@@ -68,228 +69,205 @@ function createReconnectButton() {
   `;
   button.innerHTML = `🔌 Conectar SyncAds`;
 
-  // Hover effect
-  button.addEventListener("mouseenter", () => {
+  button.onmouseenter = () => {
     button.style.transform = "scale(1.05)";
-    button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
-  });
+  };
 
-  button.addEventListener("mouseleave", () => {
+  button.onmouseleave = () => {
     button.style.transform = "scale(1)";
-    button.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
-  });
+  };
 
-  // Click handler
-  button.addEventListener("click", () => {
-    button.innerHTML = `⏳ Conectando...`;
-    button.style.opacity = "0.7";
-    tokenSent = false; // Reset flag
-
+  button.onclick = () => {
+    button.innerHTML = `⏳ Buscando token...`;
+    lastTokenSent = null;
+    detectAndSendToken();
     setTimeout(() => {
-      detectAndSendToken();
-      button.style.opacity = "1";
       button.innerHTML = `🔌 Conectar SyncAds`;
-    }, 500);
-  });
+    }, 2000);
+  };
 
   document.body.appendChild(button);
-  console.log("✅ Botão de reconexão criado");
-
-  // Auto-remover após 30 segundos
-  setTimeout(() => {
-    if (button.parentElement) {
-      button.style.animation = "slideOut 0.3s ease";
-      setTimeout(() => button.remove(), 300);
-    }
-  }, 30000);
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL - DETECTAR E ENVIAR TOKEN
+// DETECTAR TOKEN NOVO
 // ============================================
 function detectAndSendToken() {
-  // Evitar enviar token múltiplas vezes
-  if (tokenSent) {
-    console.log("⚠️ Token já foi enviado, ignorando...");
-    return false;
-  }
-
   try {
-    console.log("🔍 Buscando token do Supabase...");
-
+    checkCount++;
     const keys = Object.keys(localStorage);
-    console.log(`   📦 ${keys.length} chaves no localStorage`);
 
-    // 1. Buscar chave moderna do Supabase: sb-*-auth-token
+    // Procurar chave do Supabase
     const supabaseKey = keys.find(
-      (key) => key.startsWith("sb-") && key.includes("-auth-token"),
+      (k) => k.startsWith("sb-") && k.includes("-auth-token"),
     );
 
-    if (supabaseKey) {
-      const authData = localStorage.getItem(supabaseKey);
-      if (authData) {
-        try {
-          const parsed = JSON.parse(authData);
-          const user = parsed?.user;
-          const accessToken = parsed?.access_token;
+    if (!supabaseKey) {
+      if (checkCount % 50 === 0) {
+        console.log("⏳ Aguardando token do Supabase...", {
+          totalKeys: keys.length,
+          checks: checkCount,
+        });
+      }
+      return;
+    }
 
-          if (user?.id && accessToken) {
-            console.log("✅ Token encontrado!");
-            console.log("   👤 User ID:", user.id);
-            console.log("   📧 Email:", user.email);
-            console.log("   🔑 Token:", accessToken.substring(0, 30) + "...");
+    // Ler dados
+    const authDataRaw = localStorage.getItem(supabaseKey);
+    if (!authDataRaw) return;
 
-            // Enviar para background
-            chrome.runtime
-              .sendMessage({
-                type: "AUTH_TOKEN_DETECTED",
-                data: {
-                  userId: user.id,
-                  email: user.email || "",
-                  accessToken: accessToken,
-                },
-              })
-              .then((response) => {
-                console.log("✅ Resposta do background:", response);
-                if (response?.success) {
-                  console.log("🎉 Extensão conectada com sucesso!");
-                  showNotification("Conectado com sucesso! ✓", "success");
-                } else {
-                  console.error("❌ Erro:", response?.error);
-                  if (
-                    response?.error?.includes("Token") ||
-                    response?.error?.includes("expirado")
-                  ) {
-                    showNotification(
-                      "Token expirado! Por favor, faça logout e login novamente.",
-                      "error",
-                    );
-                  } else {
-                    showNotification(
-                      "Erro ao conectar: " + response?.error,
-                      "error",
-                    );
-                  }
-                }
-              })
-              .catch((error) => {
-                console.error("❌ Erro ao enviar mensagem:", error);
-              });
+    const authData = JSON.parse(authDataRaw);
+    const user = authData?.user;
+    const accessToken = authData?.access_token;
+    const expiresAt = authData?.expires_at;
 
-            tokenSent = true; // Marcar como enviado
-            return true;
+    if (!user?.id || !accessToken) {
+      console.log("⚠️ Dados incompletos no token");
+      return;
+    }
+
+    // Verificar se é token NOVO (expira no futuro)
+    if (expiresAt) {
+      const expiresDate = new Date(expiresAt * 1000);
+      const now = new Date();
+
+      if (expiresDate <= now) {
+        console.log("❌ Token EXPIRADO detectado:", {
+          expiresAt: expiresDate.toLocaleString(),
+          now: now.toLocaleString(),
+          expired: true,
+        });
+        showNotification(
+          "Token expirado! Faça LOGOUT e LOGIN novamente.",
+          "error",
+        );
+        return;
+      }
+
+      console.log("✅ Token VÁLIDO encontrado:", {
+        userId: user.id,
+        email: user.email,
+        expiresAt: expiresDate.toLocaleString(),
+        validFor: Math.floor((expiresDate - now) / 1000 / 60) + " minutos",
+      });
+    }
+
+    // Evitar enviar mesmo token múltiplas vezes
+    const tokenHash = accessToken.substring(0, 50);
+    if (tokenHash === lastTokenSent) {
+      if (checkCount % 50 === 0) {
+        console.log("ℹ️ Token já enviado, aguardando novo...");
+      }
+      return;
+    }
+
+    // ENVIAR TOKEN PARA BACKGROUND
+    console.log("📤 Enviando token para background...");
+    console.log("   User ID:", user.id);
+    console.log("   Email:", user.email);
+    console.log("   Token:", accessToken.substring(0, 30) + "...");
+
+    chrome.runtime
+      .sendMessage({
+        type: "AUTH_TOKEN_DETECTED",
+        data: {
+          userId: user.id,
+          email: user.email || "",
+          accessToken: accessToken,
+        },
+      })
+      .then((response) => {
+        console.log("✅ Resposta do background:", response);
+
+        if (response?.success) {
+          lastTokenSent = tokenHash;
+          showNotification("Conectado com sucesso! ✓", "success");
+          console.log("🎉 EXTENSÃO CONECTADA!");
+
+          // Esconder botão
+          const btn = document.getElementById("syncads-connect-btn");
+          if (btn) {
+            btn.style.opacity = "0";
+            setTimeout(() => btn.remove(), 500);
           }
-        } catch (e) {
-          console.error("❌ Erro ao parsear token:", e);
+        } else {
+          console.error("❌ Erro:", response?.error);
+          showNotification(
+            "Erro: " + (response?.error || "Desconhecido"),
+            "error",
+          );
         }
-      }
-    }
-
-    // 2. Fallback: buscar formato legado
-    const legacyAuth = localStorage.getItem("supabase.auth.token");
-    if (legacyAuth) {
-      try {
-        const parsed = JSON.parse(legacyAuth);
-        const user = parsed?.currentSession?.user || parsed?.user;
-        const accessToken =
-          parsed?.currentSession?.access_token || parsed?.access_token;
-
-        if (user?.id && accessToken) {
-          console.log("✅ Token encontrado (legacy)!");
-
-          chrome.runtime
-            .sendMessage({
-              type: "AUTH_TOKEN_DETECTED",
-              data: {
-                userId: user.id,
-                email: user.email || "",
-                accessToken: accessToken,
-              },
-            })
-            .then((response) => {
-              console.log("✅ Token enviado (legacy):", response);
-              if (response?.success) {
-                showNotification("Conectado com sucesso! ✓", "success");
-              } else if (response?.error) {
-                showNotification(
-                  "Erro ao conectar. Tente fazer login novamente.",
-                  "error",
-                );
-              }
-            })
-            .catch((error) => {
-              console.error("❌ Erro:", error);
-            });
-
-          tokenSent = true; // Marcar como enviado
-          return true;
-        }
-      } catch (e) {
-        console.error("❌ Erro ao parsear legacy:", e);
-      }
-    }
-
-    console.log("⚠️ Token não encontrado");
-    return false;
+      })
+      .catch((error) => {
+        console.error("❌ Erro ao enviar token:", error);
+        showNotification("Erro ao conectar. Tente novamente.", "error");
+      });
   } catch (error) {
-    console.error("❌ Erro geral:", error);
-    return false;
+    console.error("❌ Erro ao detectar token:", error);
   }
 }
 
 // ============================================
-// DETECTAR MUDANÇAS DE URL (LOGIN/NAVEGAÇÃO)
+// MONITORAR MUDANÇAS NO LOCALSTORAGE
 // ============================================
-let lastUrl = location.href;
-let tokenSent = false;
+function monitorLocalStorage() {
+  const currentKeys = Object.keys(localStorage);
+  const currentKeysSet = new Set(currentKeys);
 
-function checkUrlChange() {
-  const currentUrl = location.href;
-  if (currentUrl !== lastUrl) {
-    console.log("🔄 URL mudou:", currentUrl);
-    lastUrl = currentUrl;
-    tokenSent = false; // Reset flag quando URL muda
+  // Detectar novas chaves
+  const newKeys = [...currentKeysSet].filter((k) => !knownKeys.has(k));
 
-    // Aguardar mais tempo para dar tempo do Supabase criar token novo
-    setTimeout(() => {
-      console.log("🔍 Verificando token após mudança de URL...");
-      detectAndSendToken();
-    }, 3000);
+  if (newKeys.length > 0) {
+    console.log("🆕 Novas chaves detectadas:", newKeys);
+    knownKeys = currentKeysSet;
+
+    // Se for chave do Supabase, verificar imediatamente
+    const hasSupabaseKey = newKeys.some(
+      (k) => k.startsWith("sb-") || k.includes("supabase"),
+    );
+    if (hasSupabaseKey) {
+      console.log("🔑 Nova chave Supabase! Verificando token...");
+      setTimeout(detectAndSendToken, 500);
+    }
+  } else {
+    knownKeys = currentKeysSet;
   }
 }
 
-// Monitorar mudanças de URL
-setInterval(checkUrlChange, 500);
-
 // ============================================
-// EXECUTAR DETECÇÃO
+// INICIALIZAÇÃO
 // ============================================
+console.log("⚙️ Inicializando detector...");
 
-// 1. Criar botão de reconexão
+// Salvar chaves iniciais
+knownKeys = new Set(Object.keys(localStorage));
+console.log("📦 Chaves iniciais:", knownKeys.size);
+
+// Criar botão
 setTimeout(() => {
-  createReconnectButton();
+  if (document.body) {
+    createConnectButton();
+  }
 }, 2000);
 
-// 2. Executar primeira verificação
-console.log("🚀 Primeira verificação...");
+// Primeira verificação (após 2s)
 setTimeout(() => {
+  console.log("🔍 Primeira verificação de token...");
   detectAndSendToken();
-}, 3000);
+}, 2000);
 
-// 3. Monitorar mudanças no localStorage
+// Monitorar localStorage a cada 200ms
+setInterval(monitorLocalStorage, 200);
+
+// Verificar token a cada 1 segundo
+setInterval(detectAndSendToken, 1000);
+
+// Listener de storage event (adicional)
 window.addEventListener("storage", (e) => {
   if (e.key && (e.key.includes("sb-") || e.key.includes("supabase"))) {
-    console.log("🔄 Mudança detectada no localStorage");
-    tokenSent = false; // Reset flag
-    setTimeout(detectAndSendToken, 1000);
+    console.log("📢 Storage event:", e.key);
+    setTimeout(detectAndSendToken, 100);
   }
 });
 
-// 4. Verificar periodicamente (a cada 10 segundos) - apenas se ainda não enviou
-setInterval(() => {
-  if (!tokenSent) {
-    detectAndSendToken();
-  }
-}, 10000);
-
-console.log("✅ Content script ready - Monitorando auth...");
+console.log("✅ Detector ativo - Aguardando token válido...");
