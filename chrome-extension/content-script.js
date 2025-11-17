@@ -4,7 +4,7 @@
 // ============================================
 
 // ============================================
-// 🛡️ PROTEÇÃO: NÃO EXECUTAR NO PRÓPRIO SYNCADS
+// ✅ EXECUTAR APENAS NO SYNCADS PARA DETECTAR LOGIN
 // ============================================
 const SYNCADS_DOMAINS = [
   "syncads.com.br",
@@ -22,11 +22,14 @@ const isSyncAdsSite = SYNCADS_DOMAINS.some(
     window.location.href.includes("syncads"),
 );
 
-if (isSyncAdsSite) {
-  console.log("🛡️ SyncAds Extension: Skipping own domain -", currentDomain);
-  // NÃO EXECUTA NADA - sai do script
-  throw new Error("SyncAds domain detected - extension disabled on own site");
-}
+// Content script deve executar no SyncAds para capturar token após login
+console.log("🚀 SyncAds Extension v4.0 - Content Script Active", {
+  domain: currentDomain,
+  isSyncAdsSite: isSyncAdsSite,
+  url: window.location.href
+});
+</text>
+
 
 console.log("🚀 SyncAds Content Script v4.0 - Initializing on:", currentDomain);
 
@@ -337,6 +340,10 @@ async function detectAndSendToken() {
   }
 
   state.isProcessingToken = true;
+  Logger.debug("🔍 Detectando token...", {
+    url: window.location.href,
+    isSyncAds: isSyncAdsSite
+  });
 
   try {
     state.checkCount++;
@@ -538,6 +545,7 @@ async function initialize() {
   Logger.info("Initializing content script...", {
     url: window.location.href,
     version: CONFIG.version,
+    isSyncAdsSite: isSyncAdsSite,
   });
 
   // Save initial storage keys
@@ -561,23 +569,57 @@ async function initialize() {
     Logger.warn("Background not ready yet", error);
   }
 
-  // Initial token check (after delay)
-  setTimeout(() => {
-    Logger.info("Running initial token check...");
+  // CRITICAL: Se estamos no SyncAds, detectar token IMEDIATAMENTE
+  if (isSyncAdsSite) {
+    Logger.info("🎯 No SyncAds! Iniciando detecção agressiva de token...");
+
+    // Verificar imediatamente (sem delay)
     detectAndSendToken();
-  }, CONFIG.detection.initialDelay);
+
+    // Verificar novamente após 500ms
+    setTimeout(() => detectAndSendToken(), 500);
+
+    // E mais uma vez após 2 segundos
+    setTimeout(() => detectAndSendToken(), 2000);
+
+    // Adicionar listener para mudanças no localStorage/sessionStorage
+    window.addEventListener('storage', (e) => {
+      Logger.debug("Storage changed", { key: e.key, newValue: !!e.newValue });
+      if (e.key && (e.key.includes('auth') || e.key.includes('supabase'))) {
+        Logger.info("Auth storage changed! Detectando token...");
+        setTimeout(() => detectAndSendToken(), 100);
+      }
+    });
+
+    // Observar mudanças diretas no localStorage
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      originalSetItem.apply(this, arguments);
+      if (key.includes('auth') || key.includes('supabase')) {
+        Logger.info("LocalStorage auth modified!", { key });
+        setTimeout(() => detectAndSendToken(), 100);
+      }
+    };
+  } else {
+    // Para outros sites, delay normal
+    setTimeout(() => {
+      Logger.info("Running initial token check...");
+      detectAndSendToken();
+    }, CONFIG.detection.initialDelay);
+  }
 
   // Create connect button (after delay)
   setTimeout(() => {
-    if (document.body) {
+    if (document.body && !isSyncAdsSite) {
       createConnectButton();
     }
   }, CONFIG.detection.initialDelay + 500);
 
-  // Start periodic checks
+  // Start periodic checks (mais frequente no SyncAds)
+  const checkInterval = isSyncAdsSite ? 5000 : CONFIG.detection.checkInterval;
   setInterval(() => {
     detectAndSendToken();
-  }, CONFIG.detection.checkInterval);
+  }, checkInterval);
 
   // Start storage monitoring
   setInterval(() => {
@@ -587,8 +629,9 @@ async function initialize() {
   state.isInitialized = true;
 
   Logger.success("Content script initialized and monitoring", {
-    checkInterval: CONFIG.detection.checkInterval + "ms",
+    checkInterval: checkInterval + "ms",
     storageMonitorInterval: CONFIG.detection.storageMonitorInterval + "ms",
+    isSyncAdsSite: isSyncAdsSite,
   });
 }
 

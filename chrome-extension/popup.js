@@ -121,6 +121,8 @@ openPanelBtn.addEventListener("click", async (e) => {
       currentWindow: true,
     });
 
+    console.log("📍 Aba atual:", currentTab.url);
+
     // Verificar se já está no painel
     const isOnPanel =
       currentTab.url &&
@@ -128,32 +130,51 @@ openPanelBtn.addEventListener("click", async (e) => {
         currentTab.url.includes("localhost"));
 
     if (!isOnPanel) {
-      // Se não está no painel, redirecionar na mesma aba
+      console.log("🔄 Redirecionando para painel SyncAds...");
+
+      // Se não está no painel, redirecionar
       await chrome.tabs.update(currentTab.id, {
         url: CONFIG.PANEL_URL,
       });
 
-      // Aguardar carregamento
+      // Aguardar carregamento e verificar status múltiplas vezes
+      console.log("⏳ Aguardando login...");
+
+      setTimeout(() => checkConnectionStatus(), 2000);
+      setTimeout(() => checkConnectionStatus(), 4000);
+      setTimeout(() => checkConnectionStatus(), 6000);
+
       setTimeout(async () => {
         const connected = await checkConnectionStatus();
         setButtonState(connected ? "connected" : "default");
-      }, 3000);
+      }, 7000);
     } else {
-      // Já está no painel, apenas verificar conexão
-      const connected = await checkConnectionStatus();
+      console.log("✅ Já está no painel! Verificando conexão...");
 
-      // Enviar mensagem para detectar login
-      chrome.tabs
-        .sendMessage(currentTab.id, {
+      // Já está no painel, forçar detecção
+      try {
+        await chrome.tabs.sendMessage(currentTab.id, {
           type: "CHECK_AUTH",
-        })
-        .catch(() => {
-          // Content script pode não estar carregado ainda
         });
+        console.log("📤 Mensagem enviada para content-script");
+      } catch (err) {
+        console.log("⚠️ Content script ainda não carregado, recarregando...");
+        await chrome.tabs.reload(currentTab.id);
+      }
 
-      setTimeout(() => {
+      // Verificar status múltiplas vezes
+      setTimeout(() => checkConnectionStatus(), 500);
+      setTimeout(() => checkConnectionStatus(), 1500);
+      setTimeout(() => checkConnectionStatus(), 3000);
+
+      setTimeout(async () => {
+        const connected = await checkConnectionStatus();
         setButtonState(connected ? "connected" : "default");
-      }, 1500);
+
+        if (!connected) {
+          console.log("🔴 Ainda não conectado. Por favor, faça login no painel.");
+        }
+      }, 4000);
     }
   } catch (error) {
     console.error("❌ Erro ao conectar:", error);
