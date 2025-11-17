@@ -3,17 +3,23 @@
  * Componente para testes manuais e debug do AI System
  */
 
-import React, { useState, useEffect } from 'react';
-import { useAISystem } from '@/hooks/useAISystem';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useState, useEffect } from "react";
+import { useAISystem } from "@/hooks/useAISystem";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   IconAlertCircle,
   IconCheck,
@@ -26,9 +32,9 @@ import {
   IconSparkles,
   IconTerminal,
   IconWorld,
-} from '@tabler/icons-react';
-import { useAuthStore } from '@/store/authStore';
-import { cn } from '@/lib/utils';
+} from "@tabler/icons-react";
+import { useAuthStore } from "@/store/authStore";
+import { cn } from "@/lib/utils";
 
 export function AISystemDebugger() {
   const user = useAuthStore((state) => state.user);
@@ -48,13 +54,17 @@ export function AISystemDebugger() {
     reloadModules,
   } = useAISystem({ autoInit: false, debugMode: true });
 
-  const [testInput, setTestInput] = useState('');
+  const [testInput, setTestInput] = useState("");
   const [testResult, setTestResult] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
-  const [moduleSearch, setModuleSearch] = useState('');
-  const [browserUrl, setBrowserUrl] = useState('');
-  const [browserSelectors, setBrowserSelectors] = useState('{\n  "title": "h1",\n  "description": "p"\n}');
-  const [logs, setLogs] = useState<Array<{ time: string; type: string; message: string }>>([]);
+  const [moduleSearch, setModuleSearch] = useState("");
+  const [browserUrl, setBrowserUrl] = useState("");
+  const [browserSelectors, setBrowserSelectors] = useState(
+    '{\n  "title": "h1",\n  "description": "p"\n}',
+  );
+  const [logs, setLogs] = useState<
+    Array<{ time: string; type: string; message: string }>
+  >([]);
 
   const addLog = (type: string, message: string) => {
     const time = new Date().toLocaleTimeString();
@@ -63,18 +73,18 @@ export function AISystemDebugger() {
 
   useEffect(() => {
     if (initialized) {
-      addLog('success', 'AI System inicializado com sucesso');
+      addLog("success", "AI System inicializado com sucesso");
     }
   }, [initialized]);
 
   useEffect(() => {
     if (error) {
-      addLog('error', error);
+      addLog("error", error);
     }
   }, [error]);
 
   const handleInitialize = async () => {
-    addLog('info', 'Inicializando AI System...');
+    addLog("info", "Inicializando AI System...");
     await initialize();
   };
 
@@ -83,22 +93,22 @@ export function AISystemDebugger() {
 
     setTestLoading(true);
     setTestResult(null);
-    addLog('info', `Processando: "${testInput}"`);
+    addLog("info", `Processando: "${testInput}"`);
 
     try {
       const result = await processRequest(user.id, testInput, {
-        source: 'debugger',
+        source: "debugger",
         timestamp: Date.now(),
       });
 
       setTestResult(result);
-      addLog('success', `Resultado: ${result?.status}`);
+      addLog("success", `Resultado: ${result?.status}`);
 
       if (result?.results) {
-        addLog('info', `${result.results.length} passos executados`);
+        addLog("info", `${result.results.length} passos executados`);
       }
     } catch (err: any) {
-      addLog('error', err.message);
+      addLog("error", err.message);
     } finally {
       setTestLoading(false);
     }
@@ -108,32 +118,33 @@ export function AISystemDebugger() {
     if (!browserUrl.trim()) return;
 
     setTestLoading(true);
-    addLog('info', `Navegando para: ${browserUrl}`);
+    addLog("info", `Navegando para: ${browserUrl}`);
 
     try {
       const selectors = JSON.parse(browserSelectors);
       const data = await navigateAndExtract(browserUrl, selectors);
 
-      setTestResult({ type: 'browser', data });
-      addLog('success', 'Dados extraídos com sucesso');
+      setTestResult({ type: "browser", data });
+      addLog("success", "Dados extraídos com sucesso");
     } catch (err: any) {
-      addLog('error', err.message);
+      addLog("error", err.message);
     } finally {
       setTestLoading(false);
     }
   };
 
   const filteredModules = moduleSearch
-    ? availableModules.filter((m) =>
-        m.name.toLowerCase().includes(moduleSearch.toLowerCase()) ||
-        m.packageName.toLowerCase().includes(moduleSearch.toLowerCase())
+    ? availableModules.filter(
+        (m) =>
+          m.name.toLowerCase().includes(moduleSearch.toLowerCase()) ||
+          m.packageName.toLowerCase().includes(moduleSearch.toLowerCase()),
       )
     : availableModules;
 
   const getStatusColor = () => {
-    if (error) return 'text-red-500';
-    if (initialized) return 'text-green-500';
-    return 'text-yellow-500';
+    if (error) return "text-red-500";
+    if (initialized) return "text-green-500";
+    return "text-yellow-500";
   };
 
   const getStatusIcon = () => {
@@ -159,9 +170,9 @@ export function AISystemDebugger() {
         </div>
 
         <div className="flex items-center gap-2">
-          <StatusIcon className={cn('w-5 h-5', getStatusColor())} />
-          <span className={cn('font-medium', getStatusColor())}>
-            {error ? 'Erro' : initialized ? 'Online' : 'Offline'}
+          <StatusIcon className={cn("w-5 h-5", getStatusColor())} />
+          <span className={cn("font-medium", getStatusColor())}>
+            {error ? "Erro" : initialized ? "Online" : "Offline"}
           </span>
         </div>
       </div>
@@ -175,7 +186,9 @@ export function AISystemDebugger() {
           <CardContent>
             <div className="text-2xl font-bold">
               {initialized ? (
-                <Badge variant="default" className="bg-green-500">Ativo</Badge>
+                <Badge variant="default" className="bg-green-500">
+                  Ativo
+                </Badge>
               ) : (
                 <Badge variant="secondary">Inativo</Badge>
               )}
@@ -189,7 +202,9 @@ export function AISystemDebugger() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{availableModules.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">bibliotecas disponíveis</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              bibliotecas disponíveis
+            </p>
           </CardContent>
         </Card>
 
@@ -200,7 +215,9 @@ export function AISystemDebugger() {
           <CardContent>
             <div className="text-2xl font-bold">
               {isBrowserConnected() ? (
-                <Badge variant="default" className="bg-blue-500">Conectado</Badge>
+                <Badge variant="default" className="bg-blue-500">
+                  Conectado
+                </Badge>
               ) : (
                 <Badge variant="secondary">Offline</Badge>
               )}
@@ -210,13 +227,15 @@ export function AISystemDebugger() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Taxa de Sucesso
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {stats?.core?.successRate
                 ? `${(stats.core.successRate * 100).toFixed(0)}%`
-                : 'N/A'}
+                : "N/A"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {stats?.core?.totalExecutions || 0} execuções
@@ -245,11 +264,7 @@ export function AISystemDebugger() {
           Recarregar Módulos
         </Button>
 
-        <Button
-          onClick={updateStats}
-          disabled={!initialized}
-          variant="outline"
-        >
+        <Button onClick={updateStats} disabled={!initialized} variant="outline">
           <IconCpu className="w-4 h-4 mr-2" />
           Atualizar Stats
         </Button>
@@ -324,7 +339,7 @@ export function AISystemDebugger() {
                 )}
               </Button>
 
-              {testResult && testResult.type !== 'browser' && (
+              {testResult && testResult.type !== "browser" && (
                 <div className="mt-4">
                   <Separator className="my-4" />
                   <h3 className="font-semibold mb-2">Resultado:</h3>
@@ -387,7 +402,7 @@ export function AISystemDebugger() {
                 )}
               </Button>
 
-              {testResult && testResult.type === 'browser' && (
+              {testResult && testResult.type === "browser" && (
                 <div className="mt-4">
                   <Separator className="my-4" />
                   <h3 className="font-semibold mb-2">Dados Extraídos:</h3>
@@ -418,7 +433,7 @@ export function AISystemDebugger() {
                   className="w-full"
                 />
 
-                <ScrollArea className="h-[500px] pr-4">
+                <div className="h-[400px] w-full overflow-y-auto">
                   <div className="space-y-3">
                     {filteredModules.map((module) => (
                       <Card key={module.id} className="p-4">
@@ -429,10 +444,15 @@ export function AISystemDebugger() {
                               {module.description}
                             </p>
                             <div className="flex gap-2 mt-2">
-                              <Badge variant="outline">{module.packageName}</Badge>
-                              <Badge variant="secondary">{module.category}</Badge>
+                              <Badge variant="outline">
+                                {module.packageName}
+                              </Badge>
+                              <Badge variant="secondary">
+                                {module.category}
+                              </Badge>
                               <Badge variant="outline" className="text-xs">
-                                {(module.reliability * 100).toFixed(0)}% confiável
+                                {(module.reliability * 100).toFixed(0)}%
+                                confiável
                               </Badge>
                             </div>
                           </div>
@@ -440,18 +460,22 @@ export function AISystemDebugger() {
 
                         {module.useCases.length > 0 && (
                           <div className="mt-3">
-                            <p className="text-xs font-medium mb-1">Casos de uso:</p>
+                            <p className="text-xs font-medium mb-1">
+                              Casos de uso:
+                            </p>
                             <ul className="text-xs text-muted-foreground space-y-1">
-                              {module.useCases.slice(0, 3).map((useCase, idx) => (
-                                <li key={idx}>• {useCase}</li>
-                              ))}
+                              {module.useCases
+                                .slice(0, 3)
+                                .map((useCase, idx) => (
+                                  <li key={idx}>• {useCase}</li>
+                                ))}
                             </ul>
                           </div>
                         )}
                       </Card>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -467,25 +491,32 @@ export function AISystemDebugger() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px]">
+              <div className="h-[400px] w-full overflow-y-auto">
                 <div className="space-y-2 font-mono text-xs">
                   {logs.map((log, idx) => (
                     <div
                       key={idx}
                       className={cn(
-                        'p-2 rounded',
-                        log.type === 'error' && 'bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200',
-                        log.type === 'success' && 'bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-200',
-                        log.type === 'info' && 'bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-200'
+                        "p-2 rounded",
+                        log.type === "error" &&
+                          "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200",
+                        log.type === "success" &&
+                          "bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-200",
+                        log.type === "info" &&
+                          "bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-200",
                       )}
                     >
-                      <span className="text-muted-foreground">[{log.time}]</span>{' '}
-                      <span className="font-semibold uppercase">{log.type}</span>:{' '}
-                      {log.message}
+                      <span className="text-muted-foreground">
+                        [{log.time}]
+                      </span>{" "}
+                      <span className="font-semibold uppercase">
+                        {log.type}
+                      </span>
+                      : {log.message}
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

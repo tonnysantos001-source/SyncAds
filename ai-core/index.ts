@@ -5,7 +5,7 @@
  * Este módulo unifica todos os componentes do sistema de IA do SyncAds
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 import CoreAI, {
   TaskType,
   ExecutionStatus,
@@ -14,8 +14,8 @@ import CoreAI, {
   ExecutionPlan,
   ExecutionResult,
   CoreConfig,
-  createCoreAI
-} from './core-brain';
+  createCoreAI,
+} from "./core-brain";
 
 import PromptLibraryRegistry, {
   ModuleCategory,
@@ -24,8 +24,8 @@ import PromptLibraryRegistry, {
   PromptModule,
   SearchCriteria,
   getRegistry,
-  createRegistry
-} from './prompt-library/registry';
+  createRegistry,
+} from "./prompt-library/registry";
 
 import BrowserAutomationController, {
   BrowserActionType,
@@ -37,8 +37,21 @@ import BrowserAutomationController, {
   AutomationResult,
   ScrapingConfig,
   FormData,
-  createBrowserController
-} from './browser-automation/controller';
+  createBrowserController,
+} from "./browser-automation/controller";
+
+// ==================== PROMPT MODULES ====================
+import { PandasModule } from "./prompt-library/modules/pandas-module";
+import { NumPyModule } from "./prompt-library/modules/numpy-module";
+import { PillowModule } from "./prompt-library/modules/pillow-module";
+import { OpenCVModule } from "./prompt-library/modules/opencv-module";
+import { RequestsModule } from "./prompt-library/modules/requests-module";
+import { BeautifulSoupModule } from "./prompt-library/modules/beautifulsoup-module";
+import { SeleniumModule } from "./prompt-library/modules/selenium-module";
+import { SQLAlchemyModule } from "./prompt-library/modules/sqlalchemy-module";
+import { FastAPIModule } from "./prompt-library/modules/fastapi-module";
+import { ScikitLearnModule } from "./prompt-library/modules/scikit-learn-module";
+import { TransformersModule } from "./prompt-library/modules/transformers-module";
 
 // ==================== RE-EXPORTS ====================
 
@@ -52,7 +65,7 @@ export {
   ExecutionPlan,
   ExecutionResult,
   CoreConfig,
-  createCoreAI
+  createCoreAI,
 };
 
 // Prompt Library
@@ -64,7 +77,7 @@ export {
   PromptModule,
   SearchCriteria,
   getRegistry,
-  createRegistry
+  createRegistry,
 };
 
 // Browser Automation
@@ -79,7 +92,7 @@ export {
   AutomationResult,
   ScrapingConfig,
   FormData,
-  createBrowserController
+  createBrowserController,
 };
 
 // ==================== SISTEMA INTEGRADO ====================
@@ -111,7 +124,7 @@ export interface TaskRequest {
   input: string;
   context?: Record<string, any>;
   priority?: number;
-  executionMode?: 'auto' | 'manual' | 'hybrid';
+  executionMode?: "auto" | "manual" | "hybrid";
 }
 
 export interface TaskResponse {
@@ -143,22 +156,23 @@ export class AISystem extends EventEmitter {
     this.config = {
       autoLoadModules: config.autoLoadModules ?? true,
       debugMode: config.debugMode ?? false,
-      ...config
+      ...config,
     };
 
     // Inicializar componentes
     this.core = createCoreAI(config.core);
     this.promptRegistry = getRegistry();
     this.browserController = createBrowserController(config.browser);
-    this.pythonServiceUrl = config.pythonService?.baseUrl || 'http://localhost:8000';
+    this.pythonServiceUrl =
+      config.pythonService?.baseUrl || "http://localhost:8000";
 
     // Conectar eventos
     this.setupEventListeners();
 
     // Auto-inicializar se configurado
     if (this.config.autoLoadModules) {
-      this.initialize().catch(err => {
-        this.log(`Erro na inicialização automática: ${err.message}`, 'error');
+      this.initialize().catch((err) => {
+        this.log(`Erro na inicialização automática: ${err.message}`, "error");
       });
     }
   }
@@ -167,12 +181,12 @@ export class AISystem extends EventEmitter {
 
   public async initialize(): Promise<void> {
     if (this.isInitialized) {
-      this.log('Sistema já inicializado');
+      this.log("Sistema já inicializado");
       return;
     }
 
-    this.log('Inicializando AI System...');
-    this.emit('system:initializing');
+    this.log("Inicializando AI System...");
+    this.emit("system:initializing");
 
     try {
       // Carregar módulos da biblioteca de prompts
@@ -190,36 +204,59 @@ export class AISystem extends EventEmitter {
       await this.connectPythonService();
 
       this.isInitialized = true;
-      this.emit('system:initialized');
-      this.log('AI System inicializado com sucesso');
+      this.emit("system:initialized");
+      this.log("AI System inicializado com sucesso");
     } catch (error: any) {
-      this.emit('system:initialization-error', error);
+      this.emit("system:initialization-error", error);
       throw error;
     }
   }
 
   private async loadPromptModules(): Promise<void> {
-    this.log('Carregando módulos de prompt...');
+    this.log("Carregando módulos de prompt...");
 
-    // Carregar módulos básicos
-    try {
-      const { default: PandasModule } = await import('./prompt-library/modules/pandas-module');
-      this.promptRegistry.register(PandasModule);
-      this.log(`Módulo carregado: ${PandasModule.name}`);
-    } catch (error: any) {
-      this.log(`Erro ao carregar módulos: ${error.message}`, 'warn');
+    // Carregar todos os módulos disponíveis
+    const modules = [
+      PandasModule,
+      NumPyModule,
+      PillowModule,
+      OpenCVModule,
+      RequestsModule,
+      BeautifulSoupModule,
+      SeleniumModule,
+      SQLAlchemyModule,
+      FastAPIModule,
+      ScikitLearnModule,
+      TransformersModule,
+    ];
+
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    for (const module of modules) {
+      try {
+        this.promptRegistry.register(module);
+        this.log(`✓ Módulo carregado: ${module.name} (${module.packageName})`);
+        loadedCount++;
+      } catch (error: any) {
+        this.log(`✗ Erro ao carregar ${module.name}: ${error.message}`, "warn");
+        failedCount++;
+      }
     }
 
     const stats = this.promptRegistry.getStats();
-    this.log(`Total de módulos carregados: ${stats.totalModules}`);
+    this.log(
+      `Módulos carregados: ${loadedCount}/${modules.length} (${failedCount} falhas)`,
+    );
+    this.log(`Total no registro: ${stats.total} módulos ativos`);
   }
 
   private registerModulesInCore(): void {
-    this.log('Registrando módulos no Core IA...');
+    this.log("Registrando módulos no Core IA...");
 
     const modules = this.promptRegistry.export();
 
-    modules.forEach(module => {
+    modules.forEach((module) => {
       this.core.registerModule({
         name: module.id,
         type: this.mapModuleCategoryToTaskType(module.category),
@@ -228,7 +265,7 @@ export class AISystem extends EventEmitter {
         reliability: module.reliability,
         avgExecutionTime: module.avgExecutionTime,
         successRate: module.successRate,
-        promptSystem: JSON.stringify(module.promptSystem)
+        promptSystem: JSON.stringify(module.promptSystem),
       });
     });
 
@@ -237,7 +274,7 @@ export class AISystem extends EventEmitter {
 
   private async connectBrowser(): Promise<void> {
     if (!this.browserController.isConnected()) {
-      this.log('Aguardando conexão com extensão do navegador...');
+      this.log("Aguardando conexão com extensão do navegador...");
       // O controller já tentará conectar automaticamente
     }
   }
@@ -246,10 +283,10 @@ export class AISystem extends EventEmitter {
     try {
       const response = await fetch(`${this.pythonServiceUrl}/health`);
       if (response.ok) {
-        this.log('Serviço Python conectado');
+        this.log("Serviço Python conectado");
       }
     } catch (error) {
-      this.log('Serviço Python não disponível (modo offline)', 'warn');
+      this.log("Serviço Python não disponível (modo offline)", "warn");
     }
   }
 
@@ -267,7 +304,7 @@ export class AISystem extends EventEmitter {
     const requestId = request.id || this.generateRequestId();
 
     this.log(`Processando requisição: ${request.input}`);
-    this.emit('request:processing', { requestId, request });
+    this.emit("request:processing", { requestId, request });
 
     try {
       // Criar UserRequest para o Core
@@ -277,12 +314,14 @@ export class AISystem extends EventEmitter {
         input: request.input,
         context: request.context,
         priority: request.priority,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Analisar e decidir estratégia
       const decision = await this.core.analyzeRequest(userRequest);
-      this.log(`Decisão: ${decision.taskType} (confiança: ${decision.confidence})`);
+      this.log(
+        `Decisão: ${decision.taskType} (confiança: ${decision.confidence})`,
+      );
 
       // Criar plano de execução
       const plan = this.core.createExecutionPlan(userRequest, decision);
@@ -322,14 +361,13 @@ export class AISystem extends EventEmitter {
         plan,
         results,
         executionTime: Date.now() - startTime,
-        recommendations
+        recommendations,
       };
 
-      this.emit('request:completed', response);
+      this.emit("request:completed", response);
       return response;
-
     } catch (error: any) {
-      this.log(`Erro ao processar requisição: ${error.message}`, 'error');
+      this.log(`Erro ao processar requisição: ${error.message}`, "error");
 
       const errorResponse: TaskResponse = {
         requestId,
@@ -338,10 +376,10 @@ export class AISystem extends EventEmitter {
         plan: {} as ExecutionPlan,
         results: [],
         executionTime: Date.now() - startTime,
-        error: error.message
+        error: error.message,
       };
 
-      this.emit('request:error', errorResponse);
+      this.emit("request:error", errorResponse);
       return errorResponse;
     }
   }
@@ -350,9 +388,9 @@ export class AISystem extends EventEmitter {
 
   private async executeBrowserAutomation(
     request: UserRequest,
-    plan: ExecutionPlan
+    plan: ExecutionPlan,
   ): Promise<ExecutionResult[]> {
-    this.log('Executando automação de navegador...');
+    this.log("Executando automação de navegador...");
 
     const results: ExecutionResult[] = [];
 
@@ -362,7 +400,8 @@ export class AISystem extends EventEmitter {
         const command = this.stepToBrowserCommand(step, request);
 
         // Executar via controller
-        const browserResult = await this.browserController['executeCommand'](command);
+        const browserResult =
+          await this.browserController["executeCommand"](command);
 
         // Converter resultado
         results.push({
@@ -371,16 +410,15 @@ export class AISystem extends EventEmitter {
           output: browserResult.output,
           error: browserResult.error,
           executionTime: browserResult.executionTime,
-          retriesUsed: browserResult.retriesUsed
+          retriesUsed: browserResult.retriesUsed,
         });
-
       } catch (error: any) {
         results.push({
           stepId: step.id,
           status: ExecutionStatus.FAILED,
           error: error.message,
           executionTime: 0,
-          retriesUsed: 0
+          retriesUsed: 0,
         });
       }
     }
@@ -390,9 +428,9 @@ export class AISystem extends EventEmitter {
 
   private async executePythonTask(
     request: UserRequest,
-    plan: ExecutionPlan
+    plan: ExecutionPlan,
   ): Promise<ExecutionResult[]> {
-    this.log('Executando tarefa Python...');
+    this.log("Executando tarefa Python...");
 
     const results: ExecutionResult[] = [];
 
@@ -409,14 +447,14 @@ export class AISystem extends EventEmitter {
           module: module.packageName,
           function: step.action,
           parameters: step.parameters,
-          promptSystem: module.promptSystem
+          promptSystem: module.promptSystem,
         };
 
         // Chamar serviço Python
         const response = await fetch(`${this.pythonServiceUrl}/execute`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -427,20 +465,21 @@ export class AISystem extends EventEmitter {
 
         results.push({
           stepId: step.id,
-          status: data.success ? ExecutionStatus.SUCCESS : ExecutionStatus.FAILED,
+          status: data.success
+            ? ExecutionStatus.SUCCESS
+            : ExecutionStatus.FAILED,
           output: data.result,
           error: data.error,
           executionTime: data.executionTime || 0,
-          retriesUsed: 0
+          retriesUsed: 0,
         });
-
       } catch (error: any) {
         results.push({
           stepId: step.id,
           status: ExecutionStatus.FAILED,
           error: error.message,
           executionTime: 0,
-          retriesUsed: 0
+          retriesUsed: 0,
         });
       }
     }
@@ -450,9 +489,9 @@ export class AISystem extends EventEmitter {
 
   private async executeInternalTools(
     request: UserRequest,
-    plan: ExecutionPlan
+    plan: ExecutionPlan,
   ): Promise<ExecutionResult[]> {
-    this.log('Executando ferramentas internas...');
+    this.log("Executando ferramentas internas...");
 
     // Delegar ao Core IA
     return await this.core.execute(request);
@@ -460,9 +499,9 @@ export class AISystem extends EventEmitter {
 
   private async executeHybridTask(
     request: UserRequest,
-    plan: ExecutionPlan
+    plan: ExecutionPlan,
   ): Promise<ExecutionResult[]> {
-    this.log('Executando tarefa híbrida...');
+    this.log("Executando tarefa híbrida...");
 
     const results: ExecutionResult[] = [];
 
@@ -471,24 +510,36 @@ export class AISystem extends EventEmitter {
 
       switch (step.taskType) {
         case TaskType.BROWSER_AUTOMATION:
-          const browserResults = await this.executeBrowserAutomation(request, { ...plan, steps: [step] });
+          const browserResults = await this.executeBrowserAutomation(request, {
+            ...plan,
+            steps: [step],
+          });
           result = browserResults[0];
           break;
 
         case TaskType.PYTHON_EXECUTION:
-          const pythonResults = await this.executePythonTask(request, { ...plan, steps: [step] });
+          const pythonResults = await this.executePythonTask(request, {
+            ...plan,
+            steps: [step],
+          });
           result = pythonResults[0];
           break;
 
         default:
-          const internalResults = await this.executeInternalTools(request, { ...plan, steps: [step] });
+          const internalResults = await this.executeInternalTools(request, {
+            ...plan,
+            steps: [step],
+          });
           result = internalResults[0];
       }
 
       results.push(result);
 
       // Parar se falhou e não há fallback
-      if (result.status === ExecutionStatus.FAILED && plan.fallbackStrategies.length === 0) {
+      if (
+        result.status === ExecutionStatus.FAILED &&
+        plan.fallbackStrategies.length === 0
+      ) {
         break;
       }
     }
@@ -498,17 +549,22 @@ export class AISystem extends EventEmitter {
 
   // ==================== HELPERS DE CONVERSÃO ====================
 
-  private stepToBrowserCommand(step: any, request: UserRequest): BrowserCommand {
+  private stepToBrowserCommand(
+    step: any,
+    request: UserRequest,
+  ): BrowserCommand {
     // Converter step genérico em comando específico do navegador
     return {
       id: step.id,
       action: BrowserActionType.EXECUTE_SCRIPT, // Placeholder
       value: step.parameters,
-      timeout: step.timeout
+      timeout: step.timeout,
     } as BrowserCommand;
   }
 
-  private mapBrowserStatusToExecutionStatus(status: AutomationStatus): ExecutionStatus {
+  private mapBrowserStatusToExecutionStatus(
+    status: AutomationStatus,
+  ): ExecutionStatus {
     switch (status) {
       case AutomationStatus.SUCCESS:
         return ExecutionStatus.SUCCESS;
@@ -544,7 +600,7 @@ export class AISystem extends EventEmitter {
 
     if (module.reliability > 0.95) priority += 2;
     if (module.successRate > 0.95) priority += 2;
-    if (module.status === 'active') priority += 1;
+    if (module.status === "active") priority += 1;
     if (module.complexity === ModuleComplexity.BASIC) priority += 1;
 
     return Math.min(priority, 10);
@@ -555,33 +611,45 @@ export class AISystem extends EventEmitter {
   private determineOverallStatus(results: ExecutionResult[]): ExecutionStatus {
     if (results.length === 0) return ExecutionStatus.PENDING;
 
-    const allSuccess = results.every(r => r.status === ExecutionStatus.SUCCESS);
+    const allSuccess = results.every(
+      (r) => r.status === ExecutionStatus.SUCCESS,
+    );
     if (allSuccess) return ExecutionStatus.SUCCESS;
 
-    const anySuccess = results.some(r => r.status === ExecutionStatus.SUCCESS);
+    const anySuccess = results.some(
+      (r) => r.status === ExecutionStatus.SUCCESS,
+    );
     if (anySuccess) return ExecutionStatus.SUCCESS; // Sucesso parcial
 
     return ExecutionStatus.FAILED;
   }
 
-  private generateRecommendations(decision: TaskDecision, results: ExecutionResult[]): string[] {
+  private generateRecommendations(
+    decision: TaskDecision,
+    results: ExecutionResult[],
+  ): string[] {
     const recommendations: string[] = [];
 
     // Recomendações baseadas em falhas
-    const failures = results.filter(r => r.status === ExecutionStatus.FAILED);
+    const failures = results.filter((r) => r.status === ExecutionStatus.FAILED);
     if (failures.length > 0) {
-      recommendations.push(`${failures.length} passos falharam. Considere usar fallback.`);
+      recommendations.push(
+        `${failures.length} passos falharam. Considere usar fallback.`,
+      );
     }
 
     // Recomendações baseadas em performance
-    const avgTime = results.reduce((sum, r) => sum + r.executionTime, 0) / results.length;
+    const avgTime =
+      results.reduce((sum, r) => sum + r.executionTime, 0) / results.length;
     if (avgTime > 10000) {
-      recommendations.push('Execução lenta detectada. Considere otimização.');
+      recommendations.push("Execução lenta detectada. Considere otimização.");
     }
 
     // Recomendações baseadas em confiança
     if (decision.confidence < 0.7) {
-      recommendations.push('Baixa confiança na decisão. Considere refinamento da requisição.');
+      recommendations.push(
+        "Baixa confiança na decisão. Considere refinamento da requisição.",
+      );
     }
 
     return recommendations;
@@ -589,14 +657,17 @@ export class AISystem extends EventEmitter {
 
   // ==================== API CONVENIENTE ====================
 
-  public async navigateAndExtract(url: string, selectors: Record<string, string>): Promise<any> {
+  public async navigateAndExtract(
+    url: string,
+    selectors: Record<string, string>,
+  ): Promise<any> {
     const data: any = {};
 
     await this.browserController.navigate(url);
 
     for (const [key, selector] of Object.entries(selectors)) {
       const result = await this.browserController.extract(
-        this.browserController.buildSelector(SelectorType.CSS, selector)
+        this.browserController.buildSelector(SelectorType.CSS, selector),
       );
       if (result.status === AutomationStatus.SUCCESS) {
         data[key] = result.output;
@@ -606,7 +677,9 @@ export class AISystem extends EventEmitter {
     return data;
   }
 
-  public async fillFormAndSubmit(formData: FormData): Promise<AutomationResult[]> {
+  public async fillFormAndSubmit(
+    formData: FormData,
+  ): Promise<AutomationResult[]> {
     return await this.browserController.fillForm(formData);
   }
 
@@ -630,41 +703,56 @@ export class AISystem extends EventEmitter {
       promptLibrary: this.promptRegistry.getStats(),
       browser: {
         connected: this.browserController.isConnected(),
-        connection: this.browserController.getConnection()
+        connection: this.browserController.getConnection(),
       },
       system: {
         initialized: this.isInitialized,
-        uptime: process.uptime ? process.uptime() : 0
-      }
+        uptime: process.uptime ? process.uptime() : 0,
+      },
     };
   }
 
   public reset(): void {
     this.core.reset();
-    this.log('Sistema resetado');
+    this.log("Sistema resetado");
   }
 
   private setupEventListeners(): void {
     // Core events
-    this.core.on('execution:started', (data) => this.emit('core:execution-started', data));
-    this.core.on('execution:completed', (data) => this.emit('core:execution-completed', data));
-    this.core.on('execution:error', (data) => this.emit('core:execution-error', data));
+    this.core.on("execution:started", (data) =>
+      this.emit("core:execution-started", data),
+    );
+    this.core.on("execution:completed", (data) =>
+      this.emit("core:execution-completed", data),
+    );
+    this.core.on("execution:error", (data) =>
+      this.emit("core:execution-error", data),
+    );
 
     // Browser events
-    this.browserController.on('extension:connected', () => this.emit('browser:connected'));
-    this.browserController.on('command:success', (data) => this.emit('browser:command-success', data));
-    this.browserController.on('command:failed', (data) => this.emit('browser:command-failed', data));
+    this.browserController.on("extension:connected", () =>
+      this.emit("browser:connected"),
+    );
+    this.browserController.on("command:success", (data) =>
+      this.emit("browser:command-success", data),
+    );
+    this.browserController.on("command:failed", (data) =>
+      this.emit("browser:command-failed", data),
+    );
   }
 
   private generateRequestId(): string {
     return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
+  private log(
+    message: string,
+    level: "info" | "warn" | "error" = "info",
+  ): void {
     if (this.config.debugMode) {
       console[level](`[AISystem] ${message}`);
     }
-    this.emit('log', { level, message, timestamp: Date.now() });
+    this.emit("log", { level, message, timestamp: Date.now() });
   }
 }
 
