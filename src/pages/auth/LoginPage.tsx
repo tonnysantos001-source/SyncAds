@@ -185,6 +185,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="nome@exemplo.com"
+                  autoComplete="email"
                   {...register("email")}
                   disabled={isSubmitting}
                   className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
@@ -208,6 +209,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   {...register("password")}
                   disabled={isSubmitting}
                   className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
