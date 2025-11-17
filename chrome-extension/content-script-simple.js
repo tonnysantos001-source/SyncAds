@@ -39,9 +39,81 @@ function showNotification(message, type = "info") {
 }
 
 // ============================================
+// BOTÃO FLUTUANTE PARA RECONEXÃO MANUAL
+// ============================================
+function createReconnectButton() {
+  // Verificar se já existe
+  if (document.getElementById("syncads-reconnect-btn")) {
+    return;
+  }
+
+  const button = document.createElement("div");
+  button.id = "syncads-reconnect-btn";
+  button.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 999998;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+  `;
+  button.innerHTML = `🔌 Conectar SyncAds`;
+
+  // Hover effect
+  button.addEventListener("mouseenter", () => {
+    button.style.transform = "scale(1.05)";
+    button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+  });
+
+  button.addEventListener("mouseleave", () => {
+    button.style.transform = "scale(1)";
+    button.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+  });
+
+  // Click handler
+  button.addEventListener("click", () => {
+    button.innerHTML = `⏳ Conectando...`;
+    button.style.opacity = "0.7";
+    tokenSent = false; // Reset flag
+
+    setTimeout(() => {
+      detectAndSendToken();
+      button.style.opacity = "1";
+      button.innerHTML = `🔌 Conectar SyncAds`;
+    }, 500);
+  });
+
+  document.body.appendChild(button);
+  console.log("✅ Botão de reconexão criado");
+
+  // Auto-remover após 30 segundos
+  setTimeout(() => {
+    if (button.parentElement) {
+      button.style.animation = "slideOut 0.3s ease";
+      setTimeout(() => button.remove(), 300);
+    }
+  }, 30000);
+}
+
+// ============================================
 // FUNÇÃO PRINCIPAL - DETECTAR E ENVIAR TOKEN
 // ============================================
 function detectAndSendToken() {
+  // Evitar enviar token múltiplas vezes
+  if (tokenSent) {
+    console.log("⚠️ Token já foi enviado, ignorando...");
+    return false;
+  }
+
   try {
     console.log("🔍 Buscando token do Supabase...");
 
@@ -104,6 +176,7 @@ function detectAndSendToken() {
                 console.error("❌ Erro ao enviar mensagem:", error);
               });
 
+            tokenSent = true; // Marcar como enviado
             return true;
           }
         } catch (e) {
@@ -148,6 +221,7 @@ function detectAndSendToken() {
               console.error("❌ Erro:", error);
             });
 
+          tokenSent = true; // Marcar como enviado
           return true;
         }
       } catch (e) {
@@ -164,26 +238,58 @@ function detectAndSendToken() {
 }
 
 // ============================================
+// DETECTAR MUDANÇAS DE URL (LOGIN/NAVEGAÇÃO)
+// ============================================
+let lastUrl = location.href;
+let tokenSent = false;
+
+function checkUrlChange() {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    console.log("🔄 URL mudou:", currentUrl);
+    lastUrl = currentUrl;
+    tokenSent = false; // Reset flag quando URL muda
+
+    // Aguardar mais tempo para dar tempo do Supabase criar token novo
+    setTimeout(() => {
+      console.log("🔍 Verificando token após mudança de URL...");
+      detectAndSendToken();
+    }, 3000);
+  }
+}
+
+// Monitorar mudanças de URL
+setInterval(checkUrlChange, 500);
+
+// ============================================
 // EXECUTAR DETECÇÃO
 // ============================================
 
-// 1. Executar imediatamente
+// 1. Criar botão de reconexão
+setTimeout(() => {
+  createReconnectButton();
+}, 2000);
+
+// 2. Executar primeira verificação
 console.log("🚀 Primeira verificação...");
 setTimeout(() => {
   detectAndSendToken();
-}, 1000);
+}, 3000);
 
-// 2. Monitorar mudanças no localStorage
+// 3. Monitorar mudanças no localStorage
 window.addEventListener("storage", (e) => {
   if (e.key && (e.key.includes("sb-") || e.key.includes("supabase"))) {
     console.log("🔄 Mudança detectada no localStorage");
-    setTimeout(detectAndSendToken, 500);
+    tokenSent = false; // Reset flag
+    setTimeout(detectAndSendToken, 1000);
   }
 });
 
-// 3. Verificar periodicamente (a cada 5 segundos)
+// 4. Verificar periodicamente (a cada 10 segundos) - apenas se ainda não enviou
 setInterval(() => {
-  detectAndSendToken();
-}, 5000);
+  if (!tokenSent) {
+    detectAndSendToken();
+  }
+}, 10000);
 
 console.log("✅ Content script ready - Monitorando auth...");
