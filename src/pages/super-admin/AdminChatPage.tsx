@@ -1,794 +1,601 @@
-import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAISystem } from "@/hooks/useAISystem";
 import {
-  HiArrowPath,
-  HiPaperAirplane,
-  HiShieldCheck,
-  HiSparkles,
-  HiPlusCircle,
-  HiTrash,
-  HiBars3,
-  HiXMark,
-  HiChatBubbleBottomCenterText,
-} from "react-icons/hi2";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
-import { supabase } from "@/lib/supabase";
+  IconSend,
+  IconPlus,
+  IconMenu2,
+  IconX,
+  IconMessages,
+  IconBrandOpenai,
+  IconUserCircle,
+  IconTrash,
+  IconShieldCheck,
+} from "@tabler/icons-react";
+import Textarea from "react-textarea-autosize";
+import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import AiThinkingIndicator from "@/components/ai/AiThinkingIndicator";
+import chatService from "@/lib/api/chatService";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 
-interface Message {
-  id: string;
-  role: "USER" | "ASSISTANT" | "SYSTEM";
-  content: string;
-  timestamp: Date;
-  metadata?: {
-    stats?: any;
-    query?: string;
-    oauthAction?: {
-      platform: string;
-      action: "connect";
-    };
-  };
-}
+const MAX_CHARS = 2000; // Admin tem limite maior
 
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const ADMIN_SYSTEM_PROMPT = `Você é um assistente de IA especializado para administradores do sistema SyncAds.
 
-const ADMIN_SYSTEM_PROMPT = `Você é um assistente de IA para administradores. Responda de forma clara e objetiva.`;
+Você tem acesso a informações privilegiadas e pode ajudar com:
+- Análise de métricas do sistema
+- Gerenciamento de usuários
+- Configurações avançadas
+- Troubleshooting de problemas
+- Análise de logs e performance
+- Estatísticas gerais da plataforma
 
-// Função para detectar comandos OAuth na resposta da IA
-function detectOAuthCommand(response: string): string | null {
-  const lowerResponse = response.toLowerCase();
-
-  if (
-    lowerResponse.includes("conecte facebook") ||
-    lowerResponse.includes("conecte o facebook") ||
-    lowerResponse.includes("facebook ads")
-  ) {
-    return "facebook";
-  } else if (
-    lowerResponse.includes("conecte google") ||
-    lowerResponse.includes("google ads")
-  ) {
-    return "google";
-  } else if (lowerResponse.includes("conecte linkedin")) {
-    return "linkedin";
-  } else if (lowerResponse.includes("conecte tiktok")) {
-    return "tiktok";
-  }
-
-  return null;
-}
+Responda de forma clara, técnica e objetiva. Use dados e estatísticas quando relevante.`;
 
 export default function AdminChatPage() {
-  const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+
+  // AI System Hook
+  const {
+    initialized: aiSystemInitialized,
+    loading: aiSystemLoading,
+    error: aiSystemError,
+    processRequest: processAIRequest,
+    availableModules,
+    stats: aiStats,
+    isBrowserConnected,
+  } = useAISystem({
+    autoInit: true,
+    debugMode: true,
+  });
+
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const navigate = useNavigate();
+
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId,
+  );
+  const setActiveConversationId = useChatStore(
+    (state) => state.setActiveConversationId,
+  );
+  const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
+  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
+  const addMessage = useChatStore((state) => state.addMessage);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  // Estados para indicador de pensamento da IA
-  const [currentTool, setCurrentTool] = useState<
-    "web_search" | "web_scraping" | "python_exec" | null
-  >(null);
-  const [aiReasoning, setAiReasoning] = useState<string>("");
-  const [aiSources, setAiSources] = useState<string[]>([]);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
 
-  // Carregar lista de conversas antigas
-  const loadConversations = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("ChatConversation")
-        .select("id, title, createdAt, updatedAt")
-        .eq("userId", user.id)
-        .order("updatedAt", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      setConversations(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar conversas:", error);
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      navigate("/login-v2", { replace: true });
     }
+  }, [isAuthenticated, user, navigate]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Carregar mensagens de uma conversa específica (SOB DEMANDA)
-  const loadConversationMessages = async (convId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("ChatMessage")
-        .select("id, role, content, createdAt")
-        .eq("conversationId", convId)
-        .order("createdAt", { ascending: true });
+  useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
 
-      if (error) throw error;
-
-      // Converter para formato Message
-      const loadedMessages: Message[] = (data || []).map((msg: any) => ({
-        id: msg.id,
-        role: msg.role as "USER" | "ASSISTANT" | "SYSTEM",
-        content: msg.content,
-        timestamp: new Date(msg.createdAt),
-      }));
-
-      setMessages(loadedMessages);
-      setConversationId(convId);
-
-      console.log(
-        `✅ ${loadedMessages.length} mensagens carregadas da conversa ${convId}`,
-      );
-    } catch (error) {
-      console.error("Erro ao carregar mensagens:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar mensagens.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Deletar uma conversa específica
-  const deleteConversation = async (convId: string) => {
-    try {
-      // Deletar mensagens primeiro
-      await supabase.from("ChatMessage").delete().eq("conversationId", convId);
-
-      // Deletar conversa
-      await supabase.from("ChatConversation").delete().eq("id", convId);
-
-      // Se for a conversa atual, limpar
-      if (conversationId === convId) {
-        setMessages([]);
-        setConversationId(null);
+  useEffect(() => {
+    const initChat = async () => {
+      if (!user) {
+        console.log("⏳ [AdminChat] Aguardando usuário...");
+        return;
       }
 
-      // Recarregar lista
-      await loadConversations();
-
-      toast({
-        title: "✅ Conversa deletada!",
-        description: "Conversa removida com sucesso.",
-      });
-    } catch (error: any) {
-      console.error("Erro ao deletar conversa:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível deletar conversa.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Inicializar: apenas carregar conversas existentes (NÃO criar nova!)
-  useEffect(() => {
-    const initConversation = async () => {
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        console.log("🚀 [AdminChat] Iniciando chat para admin:", user.id);
+        setIsLoadingConversations(true);
 
-        if (authError || !user) {
-          console.error("Usuário não autenticado:", authError);
-          toast({
-            title: "Erro de autenticação",
-            description: "Você precisa fazer login novamente.",
-            variant: "destructive",
-          });
-          window.location.href = "/login-v2";
-          return;
-        }
+        console.log("📥 [AdminChat] Carregando conversações...");
+        await useChatStore.getState().loadConversations(user.id);
 
-        // APENAS carregar conversas existentes (NÃO criar nova!)
-        await loadConversations();
+        const { data: existingConversations, error: queryError } =
+          await supabase
+            .from("ChatConversation")
+            .select("id")
+            .eq("userId", user.id)
+            .limit(1);
 
-        // Se houver conversas, carregar a primeira automaticamente
-        const { data, error } = await supabase
-          .from("ChatConversation")
-          .select("id, title, createdAt, updatedAt")
-          .eq("userId", user.id)
-          .order("updatedAt", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (data) {
-          console.log("✅ Carregando conversa existente:", data.id);
-          setConversationId(data.id);
-          await loadConversationMessages(data.id);
-        } else {
-          console.log(
-            '📋 Nenhuma conversa existente. Use "Nova Conversa" para começar.',
+        if (queryError) {
+          console.error(
+            "❌ [AdminChat] Erro ao buscar conversações:",
+            queryError,
           );
+          throw queryError;
         }
+
+        console.log(
+          "✅ [AdminChat] Conversações encontradas:",
+          existingConversations?.length || 0,
+        );
+
+        // Se não houver conversas, criar uma
+        if (!existingConversations || existingConversations.length === 0) {
+          console.log("➕ [AdminChat] Criando primeira conversação admin...");
+          await useChatStore
+            .getState()
+            .createNewConversation(user.id, "Chat Admin");
+          console.log("✅ [AdminChat] Primeira conversação criada");
+        }
+
+        console.log("✅ [AdminChat] Chat inicializado com sucesso");
       } catch (error) {
-        console.error("Erro ao inicializar conversa:", error);
+        console.error("❌ [AdminChat] Erro ao inicializar chat:", error);
+        toast({
+          title: "Erro ao carregar chat",
+          description:
+            "Não foi possível carregar as conversas. Tente recarregar a página.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingConversations(false);
       }
     };
 
-    initConversation();
-  }, []);
+    initChat();
+  }, [user, toast]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const executeAdminQuery = async (
-    userMessage: string,
-    convId: string,
-  ): Promise<string> => {
-    try {
-      // Detectar qual ferramenta está sendo usada
-      const lowerMessage = userMessage.toLowerCase();
-      let detectedTool: "web_search" | "web_scraping" | "python_exec" | null =
-        null;
-      let detectedReasoning = "";
-      let detectedSources: string[] = [];
-
-      if (
-        lowerMessage.includes("pesquis") ||
-        lowerMessage.includes("busca") ||
-        lowerMessage.includes("google") ||
-        lowerMessage.includes("internet")
-      ) {
-        detectedTool = "web_search";
-        // Extrair query
-        let query = userMessage;
-        if (lowerMessage.includes("pesquis")) {
-          const match = userMessage.match(/pesquis[ae]\s+(.+)/i);
-          query = match ? match[1] : userMessage;
-        }
-        detectedReasoning = `Pesquisando na web sobre: "${query}"`;
-        setCurrentTool("web_search");
-        setAiReasoning(detectedReasoning);
-        setAiSources(["Google Search", "Exa AI", "Tavily"]);
-      } else if (
-        lowerMessage.includes("baix") ||
-        lowerMessage.includes("rasp") ||
-        lowerMessage.includes("scrape")
-      ) {
-        detectedTool = "web_scraping";
-        const urlMatch = userMessage.match(/https?:\/\/[^\s]+/i);
-        const url = urlMatch ? urlMatch[0] : "URL não especificada";
-        detectedReasoning = `Raspando dados de: ${url}`;
-        setCurrentTool("web_scraping");
-        setAiReasoning(detectedReasoning);
-        setAiSources([url]);
-      } else if (
-        lowerMessage.includes("python") ||
-        lowerMessage.includes("calcule") ||
-        lowerMessage.includes("execute código")
-      ) {
-        detectedTool = "python_exec";
-        detectedReasoning = "Executando código Python para processar dados...";
-        setCurrentTool("python_exec");
-        setAiReasoning(detectedReasoning);
-      } else {
-        setCurrentTool(null);
-        setAiReasoning("Processando sua solicitação...");
-        setAiSources([]);
-      }
-
-      // Chamar Edge Function de chat-stream (nova com memória)
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error("Não autenticado");
-
-      // URL hardcoded para evitar problema de env vars (usando função chat-enhanced com persistência e personalidade)
-      const chatUrl =
-        "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced";
-
-      // Converter mensagens para formato conversationHistory
-      const history = messages.map((msg) => ({
-        role: msg.role.toLowerCase(), // USER, ASSISTANT, SYSTEM → user, assistant, system
-        content: msg.content,
-      }));
-
-      console.log("🌐 Calling chat-stream (Admin):", chatUrl);
-      console.log("📜 History length:", history.length);
-
-      const response = await fetch(chatUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey:
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          conversationId: convId,
-          conversationHistory: history, // ✅ ENVIA HISTÓRICO COMPLETO
-          systemPrompt: undefined, // Usa o padrão da função
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erro ao processar mensagem");
-      }
-
-      const data = await response.json();
-      console.log("📦 Response data:", data);
-
-      // Verificar se houve erro na resposta
-      if (data.error) {
-        console.error("❌ Erro na resposta:", data.error);
-        return `⚠️ ${data.response || data.error}`;
-      }
-
-      // Retornar resposta ou mensagem de fallback
-      if (!data.response || data.response === "Sem resposta da IA") {
-        console.error("❌ IA não retornou resposta válida");
-        return "⚠️ IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.";
-      }
-
-      // Limpar estados de pensamento
-      setCurrentTool(null);
-      setAiReasoning("");
-      setAiSources([]);
-
-      return data.response;
-    } catch (error: any) {
-      console.error("Admin chat error:", error);
-
-      // Limpar estados de pensamento mesmo em erro
-      setCurrentTool(null);
-      setAiReasoning("");
-      setAiSources([]);
-
-      return `❌ Erro: ${error.message}`;
-    }
-  };
-
-  // Função para limpar mensagens
-  const handleClearMessages = async () => {
-    if (!conversationId) return;
-
-    try {
-      // Deletar todas mensagens da conversa atual
-      await supabase
-        .from("ChatMessage")
-        .delete()
-        .eq("conversationId", conversationId);
-
-      // Limpar mensagens na tela
-      setMessages([]);
-
-      toast({
-        title: "✅ Mensagens limpas!",
-        description: "Chat limpo com sucesso.",
-      });
-    } catch (error: any) {
-      console.error("Erro ao limpar mensagens:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível limpar mensagens.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Função para conectar OAuth
-  const handleOAuthConnect = async (platform: string) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Usuário não autenticado");
-      }
-
-      // Chamar função oauth-init
-      const oauthUrl =
-        "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/oauth-init";
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) throw new Error("Não autenticado");
-
-      const response = await fetch(oauthUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey:
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
-        },
-        body: JSON.stringify({
-          platform,
-          redirectUrl: `${window.location.origin}/integrations/callback`,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao iniciar OAuth");
-      }
-
-      const { authUrl } = await response.json();
-
-      // Abrir em nova aba
-      window.open(authUrl, "_blank");
-
-      toast({
-        title: "🔗 Autorização Necessária",
-        description: `Abra a nova aba para autorizar ${platform}`,
-      });
-    } catch (error: any) {
-      console.error("Erro OAuth:", error);
-      toast({
-        title: "Erro ao conectar",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Função para criar nova conversa
-  const handleNewConversation = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Criar nova conversa
-      const newId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const { error } = await supabase.from("ChatConversation").insert({
-        id: newId,
-        userId: user.id,
-        title: "🆕 Nova Conversa",
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      if (error) throw error;
-
-      // Limpar mensagens e atualizar ID
-      setMessages([]);
-      setConversationId(newId);
-
-      // Recarregar lista de conversas
-      await loadConversations();
-
-      toast({
-        title: "✅ Nova conversa criada!",
-        description: "Comece um novo chat do zero.",
-      });
-    } catch (error: any) {
-      console.error("Erro ao criar nova conversa:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar nova conversa.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading || !conversationId) {
-      console.log("Botão desabilitado:", {
-        inputTrim: !input.trim(),
-        isLoading,
-        conversationId: !!conversationId,
+  const handleSend = useCallback(async () => {
+    if (
+      input.trim() === "" ||
+      !activeConversationId ||
+      input.length > MAX_CHARS
+    ) {
+      console.log("⚠️ [AdminChat] Validação falhou:", {
+        inputEmpty: input.trim() === "",
+        noConversation: !activeConversationId,
+        tooLong: input.length > MAX_CHARS,
       });
       return;
     }
 
-    console.log("Enviando mensagem:", input.trim());
-    const userContent = input.trim();
+    console.log("📤 [AdminChat] Enviando mensagem:", {
+      conversationId: activeConversationId,
+      length: input.length,
+    });
+
+    const userMessage = input;
+
+    if (user) {
+      addMessage(user.id, activeConversationId, {
+        id: `msg-${Date.now()}`,
+        role: "user",
+        content: userMessage,
+      });
+    }
+
     setInput("");
-    setIsLoading(true);
+    setAssistantTyping(true);
 
     try {
-      // Verificar se tem conversationId
-      if (!conversationId) {
-        throw new Error("Conversa não inicializada");
+      let fullResponse = "";
+
+      const response = await chatService.sendMessage(
+        userMessage,
+        activeConversationId,
+      );
+      fullResponse = response;
+
+      // Stream response
+      if (user) {
+        const messageId = `msg-${Date.now() + 1}`;
+
+        // Adicionar mensagem inicial vazia
+        addMessage(user.id, activeConversationId, {
+          id: messageId,
+          role: "assistant",
+          content: "",
+        });
+
+        // Simular streaming
+        const words = fullResponse.split(" ");
+        let displayedContent = "";
+
+        for (let i = 0; i < words.length; i += 2) {
+          const chunk = words.slice(i, i + 2).join(" ");
+          displayedContent += (i > 0 ? " " : "") + chunk;
+
+          addMessage(user.id, activeConversationId, {
+            id: messageId,
+            role: "assistant",
+            content: displayedContent,
+          });
+
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+
+        // Mensagem final completa
+        addMessage(user.id, activeConversationId, {
+          id: messageId,
+          role: "assistant",
+          content: fullResponse,
+        });
       }
-
-      const activeConvId = conversationId;
-      console.log("Active conversation ID:", activeConvId);
-
-      // Adicionar mensagem do usuário ao estado local (UI imediata)
-      const tempUserMessage: Message = {
-        id: `temp-${Date.now()}`,
-        role: "USER",
-        content: userContent,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, tempUserMessage]);
-
-      // Detectar OAuth NA MENSAGEM DO USUÁRIO (antes de chamar IA)
-      const oauthPlatform = detectOAuthCommand(userContent);
-
-      // Executar query administrativa (Edge Function cuida de tudo)
-      const response = await executeAdminQuery(userContent, activeConvId);
-
-      // Adicionar resposta ao estado local
-      const assistantMessage: Message = {
-        id: `temp-${Date.now() + 1}`,
-        role: "ASSISTANT",
-        content: response,
-        timestamp: new Date(),
-        metadata: oauthPlatform
-          ? {
-              oauthAction: {
-                platform: oauthPlatform,
-                action: "connect",
-              },
-            }
-          : undefined,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error("ERRO COMPLETO:", error);
-
-      // Mostrar erro visual no chat
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: "ASSISTANT",
-        content: `❌ ERRO DETALHADO:\n\n${error.message}\n\n${error.stack || "Sem stack trace"}\n\n${JSON.stringify(error, null, 2)}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-
+      console.error("❌ [AdminChat] Erro ao enviar:", error);
       toast({
-        title: "Erro ao processar",
-        description: error.message,
+        title: "Erro ao enviar",
+        description: error.message || "Não foi possível enviar a mensagem.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setAssistantTyping(false);
+    }
+  }, [
+    activeConversationId,
+    input,
+    user,
+    activeConversation?.messages,
+    toast,
+    addMessage,
+    setAssistantTyping,
+  ]);
+
+  const handleNewConversation = async () => {
+    try {
+      if (!user) return;
+
+      await useChatStore
+        .getState()
+        .createNewConversation(user.id, "Nova Conversa Admin");
+      await useChatStore.getState().loadConversations(user.id);
+
+      toast({
+        title: "Nova conversa criada",
+        description: "Uma nova conversa foi iniciada.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Erro ao criar conversa:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar nova conversa.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    try {
+      await useChatStore.getState().deleteConversation(id);
+
+      if (activeConversationId === id && user) {
+        await useChatStore.getState().loadConversations(user.id);
+      }
+
+      toast({
+        title: "Conversa deletada",
+        description: "A conversa foi removida com sucesso.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Erro ao deletar conversa:", error);
     }
   };
 
   return (
     <SuperAdminLayout>
-      <div className="h-[calc(100vh-80px)] flex">
-        {/* SIDEBAR - Conversas Antigas */}
-        <div
-          className={`${isSidebarOpen ? "w-72" : "w-0"} transition-all duration-300 bg-gray-900/50 border-r border-gray-700/50 flex flex-col overflow-hidden`}
-        >
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-300">Conversas</h2>
-              <Button
-                onClick={() => setIsSidebarOpen(false)}
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-              >
-                <HiXMark className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button
-              onClick={handleNewConversation}
-              className="w-full gap-2"
-              size="sm"
+      <div className="h-[calc(100vh-4rem)] flex bg-[#0A0A0F] overflow-hidden">
+        {/* SIDEBAR */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ x: -320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -320, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed md:relative w-80 h-full bg-[#12121A]/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col z-50 shadow-2xl"
             >
-              <HiPlusCircle className="h-4 w-4" />
-              Nova Conversa
-            </Button>
-          </div>
-
-          {/* Lista de Conversas */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`group relative flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors ${
-                  conversationId === conv.id
-                    ? "bg-blue-50 border border-blue-200"
-                    : "bg-white"
-                }`}
-                onClick={() => loadConversationMessages(conv.id)}
-              >
-                <HiChatBubbleBottomCenterText className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {conv.title}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(conv.updatedAt).toLocaleDateString("pt-BR")}
-                  </p>
+              {/* Header */}
+              <div className="p-4 border-b border-gray-700/50 bg-gradient-to-b from-gray-800/50 to-transparent">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <IconShieldCheck className="w-6 h-6 text-blue-400" />
+                    Admin Chat
+                  </h2>
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 rounded-lg hover:bg-gray-800/50 text-gray-400 hover:text-white transition-all"
+                  >
+                    <IconX className="w-5 h-5" />
+                  </motion.button>
                 </div>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
+                <motion.button
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: "0 0 25px rgba(59, 130, 246, 0.5)",
                   }}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleNewConversation}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 font-medium transition-all shadow-lg shadow-blue-500/30"
                 >
-                  <HiTrash className="h-3.5 w-3.5 text-red-500" />
-                </Button>
+                  <IconPlus className="w-5 h-5" />
+                  Nova Conversa
+                </motion.button>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* ÁREA PRINCIPAL DO CHAT */}
+              {/* Conversations List */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                {conversations.map((conv) => (
+                  <motion.div
+                    key={conv.id}
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    onClick={() => setActiveConversationId(conv.id)}
+                    className={cn(
+                      "p-3 rounded-xl cursor-pointer transition-all group relative",
+                      activeConversationId === conv.id
+                        ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/50 shadow-lg shadow-blue-500/20"
+                        : "bg-gray-800/30 hover:bg-gray-800/50 border border-transparent",
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm truncate">
+                          {conv.title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {conv.messages && conv.messages.length > 0
+                            ? conv.messages[
+                                conv.messages.length - 1
+                              ].content.substring(0, 35) + "..."
+                            : "Nova conversa"}
+                        </p>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conv.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                      >
+                        <IconTrash className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* MAIN CHAT AREA */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {!isSidebarOpen && (
-                  <Button
-                    onClick={() => setIsSidebarOpen(true)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 w-9 p-0"
-                  >
-                    <HiBars3 className="h-5 w-5" />
-                  </Button>
-                )}
-                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
-                  <HiShieldCheck className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">
-                    Chat Administrativo
-                  </h1>
-                  <p className="text-sm text-gray-400">Chat com IA</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleClearMessages}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 hover:bg-red-50 hover:border-red-300"
+          <div className="bg-gradient-to-r from-[#12121A] to-[#1A1A2E] border-b border-gray-700/50 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {!sidebarOpen && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setSidebarOpen(true)}
+                  className="p-2 rounded-lg hover:bg-gray-800/50 text-gray-400 hover:text-white transition-all"
                 >
-                  <HiTrash className="h-4 w-4 text-red-500" />
-                  Limpar Chat
-                </Button>
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
-                  <HiSparkles className="h-3 w-3 mr-1" />
-                  Online
-                </Badge>
+                  <IconMenu2 className="w-6 h-6" />
+                </motion.button>
+              )}
+              <div>
+                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                  <IconShieldCheck className="w-6 h-6 text-blue-400" />
+                  Admin AI Assistant
+                </h1>
+                <p className="text-sm text-gray-400">
+                  Sistema especializado para administradores
+                </p>
               </div>
             </div>
+
+            {/* AI Status Badge */}
+            {aiSystemInitialized && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs text-green-400 font-medium">
+                  AI System Online
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === "USER" ? "justify-end" : "justify-start"}`}
-              >
-                <Card
-                  className={`max-w-[80%] ${
-                    message.role === "USER"
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                      : message.role === "SYSTEM"
-                        ? "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200"
-                        : "bg-white"
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-2">
-                      {message.role === "ASSISTANT" && (
-                        <HiShieldCheck className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
+            {isLoadingConversations ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
+                  />
+                  <p className="text-gray-400 text-lg font-medium">
+                    Carregando conversas...
+                  </p>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Aguarde enquanto configuramos seu chat
+                  </p>
+                </div>
+              </div>
+            ) : activeConversation && activeConversation.messages ? (
+              <>
+                {activeConversation.messages.map((message: any) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "flex",
+                      message.role === "user" ? "justify-end" : "justify-start",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-2xl p-4 backdrop-blur-sm",
+                        message.role === "user"
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20 border border-blue-400/30"
+                          : "bg-gray-800/50 text-gray-200 border border-gray-700/30",
                       )}
-                      {message.role === "SYSTEM" && (
-                        <HiSparkles className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
-                      )}
-                      <div className="flex-1">
-                        <div
-                          className={`whitespace-pre-wrap break-words text-sm ${
-                            message.role === "USER"
-                              ? "text-white"
-                              : "text-gray-900"
-                          }`}
-                        >
+                    >
+                      <div className="flex items-start gap-3">
+                        {message.role === "assistant" && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            whileHover={{ rotate: 10, scale: 1.1 }}
+                            className="flex-shrink-0"
+                          >
+                            <IconBrandOpenai className="w-6 h-6 text-blue-400" />
+                          </motion.div>
+                        )}
+                        {message.role === "user" && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            whileHover={{ scale: 1.1 }}
+                            className="flex-shrink-0"
+                          >
+                            <IconUserCircle className="w-6 h-6 text-white" />
+                          </motion.div>
+                        )}
+                        <div className="flex-1 whitespace-pre-wrap break-words">
                           {message.content}
                         </div>
-
-                        {/* Botão OAuth se necessário */}
-                        {message.metadata?.oauthAction && (
-                          <Button
-                            onClick={() =>
-                              handleOAuthConnect(
-                                message.metadata!.oauthAction!.platform,
-                              )
-                            }
-                            className="mt-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                            size="sm"
-                          >
-                            Conectar {message.metadata.oauthAction.platform}
-                          </Button>
+                      </div>
+                      <div
+                        className={cn(
+                          "text-xs mt-2 ml-9",
+                          message.role === "user"
+                            ? "text-white/60"
+                            : "text-gray-500",
                         )}
+                      >
+                        {message.timestamp
+                          ? new Date(message.timestamp).toLocaleTimeString(
+                              "pt-BR",
+                            )
+                          : ""}
                       </div>
                     </div>
-                    <div
-                      className={`text-xs mt-2 ${
-                        message.role === "USER"
-                          ? "text-white/70"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {message.timestamp.toLocaleTimeString("pt-BR")}
+                  </motion.div>
+                ))}
+
+                {isAssistantTyping && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-start"
+                  >
+                    <div className="max-w-[80%] bg-gray-800/50 rounded-2xl p-4 border border-gray-700/30">
+                      <div className="flex items-center gap-3">
+                        <IconBrandOpenai className="w-6 h-6 text-blue-400 animate-pulse" />
+                        <div className="flex gap-1">
+                          <motion.div
+                            animate={{ y: [0, -8, 0] }}
+                            transition={{
+                              duration: 0.6,
+                              repeat: Infinity,
+                              delay: 0,
+                            }}
+                            className="w-2 h-2 bg-blue-400 rounded-full"
+                          />
+                          <motion.div
+                            animate={{ y: [0, -8, 0] }}
+                            transition={{
+                              duration: 0.6,
+                              repeat: Infinity,
+                              delay: 0.2,
+                            }}
+                            className="w-2 h-2 bg-blue-400 rounded-full"
+                          />
+                          <motion.div
+                            animate={{ y: [0, -8, 0] }}
+                            transition={{
+                              duration: 0.6,
+                              repeat: Infinity,
+                              delay: 0.4,
+                            }}
+                            className="w-2 h-2 bg-blue-400 rounded-full"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-            {/* Indicador de pensamento da IA */}
-            {isLoading && (
-              <AiThinkingIndicator
-                isThinking={isLoading}
-                currentTool={currentTool}
-                reasoning={aiReasoning}
-                sources={aiSources}
-              />
-            )}
-            {isLoading && (
-              <div className="flex justify-start">
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <HiArrowPath className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-gray-400">
-                        Processando...
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </motion.div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <IconMessages className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500">Nenhuma conversa selecionada</p>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Crie uma nova conversa para começar
+                  </p>
+                </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="border-t border-gray-700/50 p-4 bg-gray-900/50 backdrop-blur-xl">
-            <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
+          {/* Input Area */}
+          <div className="border-t border-gray-700/50 bg-[#12121A]/50 backdrop-blur-xl p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="relative">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Digite sua mensagem admin..."
+                  maxRows={6}
+                  className="w-full bg-gray-800/50 border-2 border-gray-700/50 focus:border-blue-500/50 rounded-2xl px-6 py-4 pr-14 text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleSend}
+                  disabled={
+                    input.trim() === "" ||
+                    isAssistantTyping ||
+                    input.length > MAX_CHARS
                   }
-                }}
-                placeholder="Digite seu comando... (Ex: '/help', 'quantos usuários temos?', '/stats')"
-                className="min-h-[60px] resize-none"
-                disabled={isLoading}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!input.trim() || isLoading || !conversationId}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                size="lg"
-              >
-                {isLoading ? (
-                  <HiArrowPath className="h-5 w-5 animate-spin" />
-                ) : (
-                  <HiPaperAirplane className="h-5 w-5" />
-                )}
-              </Button>
+                  className="absolute right-3 bottom-3 p-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30"
+                >
+                  <IconSend className="w-5 h-5" />
+                </motion.button>
+              </div>
+              <div className="flex items-center justify-between mt-2 px-2">
+                <p className="text-xs text-gray-500">
+                  {input.length}/{MAX_CHARS} caracteres
+                </p>
+                <p className="text-xs text-gray-500">
+                  Shift + Enter para nova linha
+                </p>
+              </div>
             </div>
           </div>
         </div>
