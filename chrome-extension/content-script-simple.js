@@ -6,6 +6,39 @@
 console.log("🚀 SyncAds Content Script v2.0 Started");
 
 // ============================================
+// AVISO VISUAL
+// ============================================
+function showNotification(message, type = "info") {
+  const notification = document.createElement("div");
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === "error" ? "#ef4444" : "#10b981"};
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 999999;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    max-width: 350px;
+    animation: slideIn 0.3s ease;
+  `;
+  notification.innerHTML = `
+    <strong>🔌 SyncAds Extension</strong><br>
+    ${message}
+  `;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
+}
+
+// ============================================
 // FUNÇÃO PRINCIPAL - DETECTAR E ENVIAR TOKEN
 // ============================================
 function detectAndSendToken() {
@@ -17,7 +50,7 @@ function detectAndSendToken() {
 
     // 1. Buscar chave moderna do Supabase: sb-*-auth-token
     const supabaseKey = keys.find(
-      (key) => key.startsWith("sb-") && key.includes("-auth-token")
+      (key) => key.startsWith("sb-") && key.includes("-auth-token"),
     );
 
     if (supabaseKey) {
@@ -48,8 +81,23 @@ function detectAndSendToken() {
                 console.log("✅ Resposta do background:", response);
                 if (response?.success) {
                   console.log("🎉 Extensão conectada com sucesso!");
+                  showNotification("Conectado com sucesso! ✓", "success");
                 } else {
                   console.error("❌ Erro:", response?.error);
+                  if (
+                    response?.error?.includes("Token") ||
+                    response?.error?.includes("expirado")
+                  ) {
+                    showNotification(
+                      "Token expirado! Por favor, faça logout e login novamente.",
+                      "error",
+                    );
+                  } else {
+                    showNotification(
+                      "Erro ao conectar: " + response?.error,
+                      "error",
+                    );
+                  }
                 }
               })
               .catch((error) => {
@@ -87,6 +135,14 @@ function detectAndSendToken() {
             })
             .then((response) => {
               console.log("✅ Token enviado (legacy):", response);
+              if (response?.success) {
+                showNotification("Conectado com sucesso! ✓", "success");
+              } else if (response?.error) {
+                showNotification(
+                  "Erro ao conectar. Tente fazer login novamente.",
+                  "error",
+                );
+              }
             })
             .catch((error) => {
               console.error("❌ Erro:", error);

@@ -10,7 +10,8 @@ console.log("🚀 SyncAds Extension v2.0 - Background Started");
 // ============================================
 const CONFIG = {
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
-  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.YMx-wL6hUtVPtGmN_5MKHIvfzqSmz5Jx6y0P3XJiWm4",
+  supabaseAnonKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.YMx-wL6hUtVPtGmN_5MKHIvfzqSmz5Jx6y0P3XJiWm4",
   functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   version: "2.0.0",
 };
@@ -96,29 +97,21 @@ async function handleAuthToken(data) {
   state.userId = userId;
   state.accessToken = accessToken;
 
-  // PASSO 1: Validar se o token funciona
-  console.log("⚡ Validando token no Supabase...");
-  const isValid = await validateToken(accessToken);
-
-  if (!isValid) {
-    console.error("❌ Token inválido ou expirado!");
-    state.accessToken = null;
-    state.userId = null;
-    updateBadge();
-    throw new Error("Token inválido ou expirado");
-  }
-
-  console.log("✅ Token válido!");
-
-  // PASSO 2: Registrar dispositivo
+  // PASSO 1: Registrar dispositivo (deixar Edge Function validar token)
   console.log("📝 Registrando dispositivo...");
   const registered = await registerDevice();
 
   if (!registered) {
-    throw new Error("Falha ao registrar dispositivo");
+    console.error("❌ Falha ao registrar - Token pode estar expirado");
+    state.accessToken = null;
+    state.userId = null;
+    updateBadge();
+    throw new Error("Falha ao registrar dispositivo - Faça login novamente");
   }
 
-  // PASSO 3: Salvar no storage
+  console.log("✅ Dispositivo registrado com sucesso!");
+
+  // PASSO 2: Salvar no storage
   await chrome.storage.local.set({
     userId,
     accessToken,
@@ -131,32 +124,6 @@ async function handleAuthToken(data) {
   console.log("🎉 Extensão conectada com sucesso!");
 
   return { success: true, message: "Conectado!" };
-}
-
-// ============================================
-// VALIDAR TOKEN NO SUPABASE
-// ============================================
-async function validateToken(accessToken) {
-  try {
-    const response = await fetch(`${CONFIG.supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: CONFIG.supabaseAnonKey,
-      },
-    });
-
-    if (response.ok) {
-      const user = await response.json();
-      console.log("✅ Token válido para user:", user.id);
-      return true;
-    } else {
-      console.error("❌ Token inválido, status:", response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Erro ao validar token:", error);
-    return false;
-  }
 }
 
 // ============================================
