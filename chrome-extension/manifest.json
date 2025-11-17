@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SyncAds AI Automation",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "description": "Automação inteligente com IA para marketing digital - Execute ações automatizadas em qualquer site",
   "permissions": [
     "activeTab",
@@ -14,13 +14,13 @@
   ],
   "host_permissions": ["https://*/*", "http://*/*"],
   "background": {
-    "service_worker": "background-simple.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script-simple.js"],
+      "js": ["content-script.js"],
       "run_at": "document_idle",
       "all_frames": false
     }
