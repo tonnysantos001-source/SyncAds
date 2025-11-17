@@ -79,6 +79,7 @@ const ChatPage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [charCount, setCharCount] = useState(0);
   const [extensionConnected, setExtensionConnected] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [globalAiConfig, setGlobalAiConfig] = useState<{
     systemPrompt: string;
     initialGreetings: string[];
@@ -226,7 +227,11 @@ const ChatPage: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (activeConversation && activeConversation.messages.length === 0) {
+    if (
+      activeConversation &&
+      activeConversation.messages &&
+      activeConversation.messages.length === 0
+    ) {
       const greeting = getRandomGreeting();
       setTimeout(() => {
         if (user) {
@@ -238,7 +243,7 @@ const ChatPage: React.FC = () => {
         }
       }, 500);
     }
-  }, [activeConversationId, activeConversation?.messages.length]);
+  }, [activeConversationId, activeConversation?.messages?.length]);
 
   const streamAssistantResponse = async (
     userId: string,
@@ -608,16 +613,24 @@ const ChatPage: React.FC = () => {
     const initChat = async () => {
       if (!user) return;
 
-      await useChatStore.getState().loadConversations(user.id);
+      try {
+        setIsLoadingConversations(true);
+        await useChatStore.getState().loadConversations(user.id);
 
-      const { data: existingConversations } = await supabase
-        .from("ChatConversation")
-        .select("id")
-        .eq("userId", user.id)
-        .limit(1);
+        const { data: existingConversations } = await supabase
+          .from("ChatConversation")
+          .select("id")
+          .eq("userId", user.id)
+          .limit(1);
 
-      if (!existingConversations || existingConversations.length === 0) {
-        await handleNewConversation();
+        // Se não houver conversas, criar uma
+        if (!existingConversations || existingConversations.length === 0) {
+          await useChatStore.getState().createNewConversation(user.id);
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar chat:", error);
+      } finally {
+        setIsLoadingConversations(false);
       }
     };
 
@@ -900,7 +913,7 @@ const ChatPage: React.FC = () => {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
-          {activeConversation ? (
+          {activeConversation && activeConversation.messages ? (
             <>
               {activeConversation.messages.map((message: any) => {
                 const integrationMatch = message.content?.match(
@@ -1037,8 +1050,14 @@ const ChatPage: React.FC = () => {
               <div ref={messagesEndRef} />
             </>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p>Selecione ou crie uma conversa para começar.</p>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <IconMessages className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500">Nenhuma conversa selecionada</p>
+                <p className="text-gray-600 text-sm mt-2">
+                  Crie uma nova conversa para começar
+                </p>
+              </div>
             </div>
           )}
         </div>
