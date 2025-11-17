@@ -50,7 +50,7 @@ Base URL: https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1
    - Badge deve ficar "OFF" (cinza)
 
 3. **Fazer login:**
-   - Abra https://syncads.com.br/app
+   - Abra https://syncads.com.br/login-v2
    - Faça login
    - Badge deve ficar "ON" (verde)
 
@@ -82,7 +82,7 @@ console.log('Estado:', state);
 ### 2. Testar endpoints manualmente:
 
 ```javascript
-// No console do site (syncads.com.br/app)
+// No console do site (syncads.com.br/login-v2)
 const token = localStorage.getItem('sb-ovskepqggmxlfckxqgbr-auth-token');
 const auth = JSON.parse(token);
 
