@@ -1,13 +1,12 @@
 /**
  * ============================================
- * SYNCADS CHAT SERVICE
+ * SYNCADS CHAT SERVICE - SIMPLIFIED
  * ============================================
- * Serviço de comunicação com Railway Python Service
- * Suporta streaming SSE, múltiplos providers de IA,
- * e integração completa com Supabase
+ * Serviço de comunicação com Supabase Edge Function
+ * Usa APENAS chat-enhanced (sem Railway)
  *
- * Autor: SyncAds AI Team
- * Data: 16/01/2025
+ * Autor: SyncAds Team
+ * Data: 2025-01-17
  * ============================================
  */
 
@@ -18,33 +17,12 @@ import { supabase } from "../supabase";
 // ============================================
 
 export interface ChatMessage {
-  id?: string;
+  id: string;
   conversationId: string;
   role: "user" | "assistant" | "system";
   content: string;
   createdAt?: string;
   userId?: string;
-}
-
-export interface ChatStreamChunk {
-  text?: string;
-  done?: boolean;
-  error?: string;
-}
-
-export interface GlobalAiConnection {
-  id: string;
-  name: string;
-  provider: string;
-  apiKey: string;
-  baseUrl?: string;
-  model?: string;
-  maxTokens: number;
-  temperature: number;
-  isActive: boolean;
-  systemPrompt?: string;
-  initialGreetings?: string[];
-  createdAt: string;
 }
 
 export interface ChatServiceOptions {
@@ -54,17 +32,18 @@ export interface ChatServiceOptions {
   signal?: AbortSignal;
 }
 
+export interface SendMessageResponse {
+  response: string;
+  error?: string;
+  conversationId?: string;
+}
+
 // ============================================
 // CONFIGURATION
 // ============================================
 
-const RAILWAY_URL =
-  import.meta.env.VITE_PYTHON_SERVICE_URL ||
-  (import.meta.env.PROD
-    ? "https://syncads-python-microservice-production.up.railway.app"
-    : "http://localhost:8000");
-
-const CHAT_ENDPOINT = `${RAILWAY_URL}/api/chat`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const CHAT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/chat-enhanced`;
 
 // ============================================
 // MAIN SERVICE CLASS
@@ -74,7 +53,7 @@ class ChatService {
   private abortController: AbortController | null = null;
 
   /**
-   * Envia mensagem e recebe resposta com streaming
+   * Envia mensagem para a Edge Function chat-enhanced
    */
   async sendMessage(
     message: string,
@@ -82,8 +61,14 @@ class ChatService {
     options: ChatServiceOptions = {},
   ): Promise<string> {
     try {
+      console.log("📤 [ChatService] Enviando mensagem:", {
+        conversationId,
+        messageLength: message.length,
+      });
+
       // Cancelar request anterior se existir
       if (this.abortController) {
+        console.log("🛑 [ChatService] Cancelando request anterior");
         this.abortController.abort();
       }
 
@@ -93,98 +78,159 @@ class ChatService {
       // Pegar sessão do Supabase
       const {
         data: { session },
+        error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (!session) {
+      if (sessionError || !session) {
+        console.error("❌ [ChatService] Erro de autenticação:", sessionError);
         throw new Error("Usuário não autenticado");
       }
 
       // Pegar informações do usuário
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (userError || !user) {
+        console.error("❌ [ChatService] Erro ao buscar usuário:", userError);
         throw new Error("Usuário não encontrado");
       }
 
-      // Preparar payload
+      console.log("👤 [ChatService] Usuário autenticado:", user.id);
+
+      // Buscar histórico da conversa (últimas 20 mensagens)
+      const { data: conversationMessages, error: messagesError } =
+        await supabase
+          .from("ChatMessage")
+          .select("role, content")
+          .eq("conversationId", conversationId)
+          .order("createdAt", { ascending: true })
+          .limit(20);
+
+      if (messagesError) {
+        console.warn(
+          "⚠️ [ChatService] Erro ao buscar histórico:",
+          messagesError,
+        );
+      }
+
+      const conversationHistory =
+        conversationMessages?.map((msg) => ({
+          role: msg.role.toLowerCase(),
+          content: msg.content,
+        })) || [];
+
+      console.log(
+        "📜 [ChatService] Histórico carregado:",
+        conversationHistory.length,
+        "mensagens",
+      );
+
+      // Preparar payload para Edge Function
       const payload = {
         message,
         conversationId,
-        userId: user.id,
+        conversationHistory,
+        systemPrompt: undefined, // Usa o padrão da função
       };
 
-      console.log("📤 Sending to Railway:", CHAT_ENDPOINT, payload);
+      console.log(
+        "🚀 [ChatService] Chamando Edge Function:",
+        CHAT_FUNCTION_URL,
+      );
 
-      // Fazer request
-      const response = await fetch(CHAT_ENDPOINT, {
+      // Fazer request para Edge Function
+      const response = await fetch(CHAT_FUNCTION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
         body: JSON.stringify(payload),
         signal,
       });
 
+      console.log("📥 [ChatService] Response status:", response.status);
+
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
+        const errorText = await response.text();
+        console.error("❌ [ChatService] Erro HTTP:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorMessage;
+        } catch (e) {
+          // Não é JSON, usar errorText
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Processar resposta
+      const data: SendMessageResponse = await response.json();
+
+      console.log("✅ [ChatService] Resposta recebida:", {
+        hasResponse: !!data.response,
+        hasError: !!data.error,
+        responseLength: data.response?.length || 0,
+      });
+
+      if (data.error) {
+        console.error("❌ [ChatService] Erro da IA:", data.error);
+        throw new Error(data.error);
+      }
+
+      if (!data.response || data.response === "Sem resposta da IA") {
+        console.error("❌ [ChatService] IA não retornou resposta válida");
         throw new Error(
-          error.detail || `HTTP ${response.status}: ${response.statusText}`,
+          "IA não configurada ou sem resposta. Configure uma IA em Configurações > IA Global.",
         );
       }
 
-      // Processar streaming
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("Stream not available");
-      }
+      const fullResponse = data.response;
 
-      const decoder = new TextDecoder();
-      let fullResponse = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        // Decodificar chunk
-        const chunk = decoder.decode(value, { stream: true });
-
-        // Processar linhas SSE
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data: ChatStreamChunk = JSON.parse(line.substring(6));
-
-              if (data.text) {
-                fullResponse += data.text;
-                options.onChunk?.(data.text);
-              }
-
-              if (data.done) {
-                console.log("✅ Stream completed");
-                options.onComplete?.(fullResponse);
-                return fullResponse;
-              }
-
-              if (data.error) {
-                throw new Error(data.error);
-              }
-            } catch (e) {
-              console.warn("Failed to parse SSE data:", line, e);
-            }
-          }
+      // Callback de chunk (simulado para compatibilidade)
+      if (options.onChunk) {
+        const words = fullResponse.split(" ");
+        for (let i = 0; i < words.length; i += 2) {
+          const chunk = words.slice(i, i + 2).join(" ");
+          options.onChunk(chunk + " ");
+          // Pequeno delay para simular streaming
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
       }
 
+      // Callback de complete
+      if (options.onComplete) {
+        options.onComplete(fullResponse);
+      }
+
+      console.log("✅ [ChatService] Mensagem enviada com sucesso");
       return fullResponse;
     } catch (error: any) {
-      console.error("❌ Chat error:", error);
-      options.onError?.(error);
+      console.error("❌ [ChatService] Erro ao enviar mensagem:", error);
+
+      // Callback de erro
+      if (options.onError) {
+        options.onError(error);
+      }
+
+      // Se foi cancelado, não lançar erro
+      if (error.name === "AbortError") {
+        console.log("🛑 [ChatService] Request cancelado pelo usuário");
+        throw new Error("Request cancelado");
+      }
+
       throw error;
     } finally {
       this.abortController = null;
@@ -192,205 +238,115 @@ class ChatService {
   }
 
   /**
-   * Cancela request em andamento
+   * Cancela o request atual
    */
-  cancel(): void {
+  abort(): void {
     if (this.abortController) {
+      console.log("🛑 [ChatService] Abortando request...");
       this.abortController.abort();
       this.abortController = null;
     }
   }
 
   /**
-   * Busca IA global ativa (primeira ativa)
-   */
-  async getActiveAI(): Promise<GlobalAiConnection | null> {
-    try {
-      // Buscar primeira IA global ativa
-      const { data: globalAi } = await supabase
-        .from("GlobalAiConnection")
-        .select("*")
-        .eq("isActive", true)
-        .order("createdAt", { ascending: true })
-        .limit(1)
-        .single();
-
-      return globalAi || null;
-    } catch (error) {
-      console.error("Error fetching active AI:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Salva mensagem no Supabase
+   * Salva mensagem no banco (caso precise salvar manualmente)
    */
   async saveMessage(
     conversationId: string,
-    role: "user" | "assistant",
+    role: "user" | "assistant" | "system",
     content: string,
-  ): Promise<void> {
+  ): Promise<ChatMessage | null> {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      const { error } = await supabase.from("ChatMessage").insert({
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      const messageData = {
+        id: crypto.randomUUID(),
         conversationId,
-        role,
+        role: role.toUpperCase(),
         content,
-        userId: user?.id,
+        userId: user.id,
         createdAt: new Date().toISOString(),
-      });
+      };
+
+      const { data, error } = await supabase
+        .from("ChatMessage")
+        .insert(messageData)
+        .select()
+        .single();
 
       if (error) {
-        console.error("Error saving message:", error);
+        console.error("❌ [ChatService] Erro ao salvar mensagem:", error);
+        return null;
       }
+
+      console.log("✅ [ChatService] Mensagem salva:", data.id);
+      return data as ChatMessage;
     } catch (error) {
-      console.error("Error saving message:", error);
+      console.error("❌ [ChatService] Erro ao salvar mensagem:", error);
+      return null;
     }
   }
 
   /**
-   * Busca histórico da conversa
+   * Busca mensagens de uma conversa
    */
-  async getConversationHistory(
+  async getConversationMessages(
     conversationId: string,
-    limit: number = 50,
   ): Promise<ChatMessage[]> {
     try {
       const { data, error } = await supabase
         .from("ChatMessage")
         .select("*")
         .eq("conversationId", conversationId)
-        .order("createdAt", { ascending: true })
-        .limit(limit);
+        .order("createdAt", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ [ChatService] Erro ao buscar mensagens:", error);
+        return [];
+      }
 
       return (data || []) as ChatMessage[];
     } catch (error) {
-      console.error("Error fetching history:", error);
+      console.error("❌ [ChatService] Erro ao buscar mensagens:", error);
       return [];
     }
   }
 
   /**
-   * Cria nova conversa
+   * Verifica se a IA está configurada
    */
-  async createConversation(title?: string): Promise<string> {
+  async isAIConfigured(): Promise<boolean> {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("User not authenticated");
-
       const { data, error } = await supabase
-        .from("ChatConversation")
-        .insert({
-          userId: user.id,
-          title: title || "Nova conversa",
-          createdAt: new Date().toISOString(),
-        })
-        .select()
-        .single();
+        .from("GlobalAiConnection")
+        .select("id, isActive")
+        .eq("isActive", true)
+        .limit(1)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ [ChatService] Erro ao verificar IA:", error);
+        return false;
+      }
 
-      return data.id;
+      const isConfigured = !!data;
+      console.log("🤖 [ChatService] IA configurada:", isConfigured);
+      return isConfigured;
     } catch (error) {
-      console.error("Error creating conversation:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Lista conversas do usuário
-   */
-  async listConversations(limit: number = 20): Promise<any[]> {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from("ChatConversation")
-        .select("*")
-        .eq("userId", user.id)
-        .order("updatedAt", { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-
-      return data || [];
-    } catch (error) {
-      console.error("Error listing conversations:", error);
-      return [];
-    }
-  }
-
-  /**
-   * Deleta conversa
-   */
-  async deleteConversation(conversationId: string): Promise<void> {
-    try {
-      // Deletar mensagens primeiro
-      await supabase
-        .from("ChatMessage")
-        .delete()
-        .eq("conversationId", conversationId);
-
-      // Deletar conversa
-      const { error } = await supabase
-        .from("ChatConversation")
-        .delete()
-        .eq("id", conversationId);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error deleting conversation:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Verifica se Railway está online
-   */
-  async checkHealth(): Promise<boolean> {
-    try {
-      const response = await fetch(`${RAILWAY_URL}/health`, {
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      return data.status === "healthy";
-    } catch (error) {
-      console.error("Health check failed:", error);
+      console.error("❌ [ChatService] Erro ao verificar IA:", error);
       return false;
-    }
-  }
-
-  /**
-   * Pega informações do Railway
-   */
-  async getServiceInfo(): Promise<any> {
-    try {
-      const response = await fetch(`${RAILWAY_URL}/health`);
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to get service info:", error);
-      return null;
     }
   }
 }
 
 // ============================================
-// SINGLETON INSTANCE
+// EXPORT SINGLETON
 // ============================================
 
 const chatService = new ChatService();
@@ -399,69 +355,3 @@ export default chatService;
 
 // Export da classe para instâncias customizadas
 export { ChatService };
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-/**
- * Envia mensagem rápida (atalho)
- */
-export async function sendChatMessage(
-  message: string,
-  conversationId: string,
-  onChunk?: (chunk: string) => void,
-): Promise<string> {
-  return chatService.sendMessage(message, conversationId, { onChunk });
-}
-
-/**
- * Verifica se Railway está disponível
- */
-export async function isRailwayAvailable(): Promise<boolean> {
-  return chatService.checkHealth();
-}
-
-/**
- * Formata mensagem para exibição
- */
-export function formatChatMessage(message: ChatMessage): string {
-  const time = message.createdAt
-    ? new Date(message.createdAt).toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-
-  const prefix = message.role === "user" ? "Você" : "IA";
-
-  return `[${time}] ${prefix}: ${message.content}`;
-}
-
-/**
- * Detecta provider da IA
- */
-export function getProviderIcon(provider: string): string {
-  const icons: Record<string, string> = {
-    OPENAI: "🤖",
-    ANTHROPIC: "🧠",
-    GOOGLE: "🔍",
-    GROQ: "⚡",
-    COHERE: "🎯",
-    MISTRAL: "🌪️",
-    OPENROUTER: "🔀",
-    PERPLEXITY: "🔮",
-    TOGETHER: "🤝",
-    FIREWORKS: "🎆",
-  };
-
-  return icons[provider.toUpperCase()] || "💬";
-}
-
-/**
- * Calcula tokens aproximados (estimativa)
- */
-export function estimateTokens(text: string): number {
-  // Estimativa simples: ~4 caracteres por token
-  return Math.ceil(text.length / 4);
-}

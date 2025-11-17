@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAISystem } from "@/hooks/useAISystem";
+
 import {
   IconSend,
   IconPlus,
@@ -40,20 +40,6 @@ export default function AdminChatPage() {
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
-
-  // AI System Hook
-  const {
-    initialized: aiSystemInitialized,
-    loading: aiSystemLoading,
-    error: aiSystemError,
-    processRequest: processAIRequest,
-    availableModules,
-    stats: aiStats,
-    isBrowserConnected,
-  } = useAISystem({
-    autoInit: true,
-    debugMode: true,
-  });
 
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -401,16 +387,6 @@ export default function AdminChatPage() {
                 </p>
               </div>
             </div>
-
-            {/* AI Status Badge */}
-            {aiSystemInitialized && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs text-green-400 font-medium">
-                  AI System Online
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Messages */}
