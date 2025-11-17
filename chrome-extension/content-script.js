@@ -1,681 +1,586 @@
 // ============================================
-// SYNCADS EXTENSION - CONTENT SCRIPT
-// Manipulação do DOM e automação de ações
+// SYNCADS EXTENSION - CONTENT SCRIPT v4.0
+// Robust Token Detection & Background Communication
 // ============================================
 
-console.log("🎯 SyncAds Content Script Loaded");
-console.log("🌐 URL atual:", window.location.href);
-console.log("📍 Hostname:", window.location.hostname);
+console.log("🚀 SyncAds Content Script v4.0 - Initializing...");
 
 // ============================================
-// ESTADO DO CONTENT SCRIPT
+// CONFIGURATION
 // ============================================
-let scriptState = {
-  isActive: false,
-  commandsProcessed: 0,
-  lastActivity: null,
+const CONFIG = {
+  version: "4.0.0",
+
+  detection: {
+    initialDelay: 2000, // Wait 2s before first check
+    checkInterval: 1000, // Check every 1s
+    storageMonitorInterval: 200, // Monitor storage changes every 200ms
+    maxSendAttempts: 3, // Max attempts to send token to background
+    retryDelay: 1000, // Delay between send retries
+  },
+
+  notification: {
+    duration: 5000,
+    position: { top: "20px", right: "20px" },
+  },
+
+  button: {
+    position: { bottom: "20px", right: "20px" },
+  },
 };
 
 // ============================================
-// LISTENER DE MENSAGENS DO BACKGROUND
+// STATE MANAGEMENT
 // ============================================
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("📨 Content script received:", request.type);
+let state = {
+  isInitialized: false,
+  lastTokenSent: null,
+  knownStorageKeys: new Set(),
+  checkCount: 0,
+  isProcessingToken: false,
+  hasShownButton: false,
 
-  scriptState.isActive = true;
-  scriptState.lastActivity = Date.now();
-
-  // Processar comando baseado no tipo
-  switch (request.type) {
-    case "CHECK_AUTH":
-      // Verificar auth e responder
-      checkAuthState();
-      sendResponse({ success: true, message: "Verificação iniciada" });
-      break;
-
-    case "DOM_READ":
-      handleDOMRead(request, sendResponse);
-      break;
-
-    case "DOM_CLICK":
-      handleDOMClick(request, sendResponse);
-      break;
-
-    case "DOM_FILL":
-      handleDOMFill(request, sendResponse);
-      break;
-
-    case "DOM_WAIT":
-      handleDOMWait(request, sendResponse);
-      break;
-
-    case "DOM_EXTRACT":
-      handleDOMExtract(request, sendResponse);
-      break;
-
-    case "DOM_SCROLL":
-      handleDOMScroll(request, sendResponse);
-      break;
-
-    default:
-      sendResponse({
-        success: false,
-        error: `Unknown command type: ${request.type}`,
-      });
-  }
-
-  return true;
-});
+  // Track what we've already processed
+  processedTokens: new Set(),
+  lastDetectionTime: null,
+};
 
 // ============================================
-// LER ELEMENTO DO DOM
+// LOGGING
 // ============================================
-function handleDOMRead(request, sendResponse) {
-  try {
-    const { selector, all = false, attribute = null } = request;
+const Logger = {
+  info: (message, data = {}) => {
+    console.log(`ℹ️ [ContentScript] ${message}`, data);
+  },
 
-    if (all) {
-      // Selecionar múltiplos elementos
-      const elements = document.querySelectorAll(selector);
+  success: (message, data = {}) => {
+    console.log(`✅ [ContentScript] ${message}`, data);
+  },
 
-      if (!elements || elements.length === 0) {
-        sendResponse({
-          success: false,
-          error: `No elements found: ${selector}`,
-        });
-        return;
-      }
+  warn: (message, data = {}) => {
+    console.warn(`⚠️ [ContentScript] ${message}`, data);
+  },
 
-      const data = Array.from(elements).map((el) =>
-        extractElementData(el, attribute),
-      );
+  error: (message, error = null, data = {}) => {
+    console.error(`❌ [ContentScript] ${message}`, error, data);
+  },
 
-      sendResponse({
-        success: true,
-        data,
-        count: elements.length,
-      });
-    } else {
-      // Selecionar um elemento
-      const element = document.querySelector(selector);
-
-      if (!element) {
-        sendResponse({
-          success: false,
-          error: `Element not found: ${selector}`,
-        });
-        return;
-      }
-
-      const data = extractElementData(element, attribute);
-
-      sendResponse({
-        success: true,
-        data,
-      });
-    }
-
-    sendLog("DOM_READ", `Read element(s): ${selector}`);
-  } catch (error) {
-    sendResponse({
-      success: false,
-      error: error.message,
-    });
-  }
-}
+  debug: (message, data = {}) => {
+    console.log(`🔍 [ContentScript] ${message}`, data);
+  },
+};
 
 // ============================================
-// EXTRAIR DADOS DO ELEMENTO
+// UI COMPONENTS
 // ============================================
-function extractElementData(element, requestedAttribute = null) {
-  const data = {
-    text: element.textContent?.trim() || "",
-    innerText: element.innerText?.trim() || "",
-    html: element.innerHTML,
-    outerHTML: element.outerHTML,
-    tagName: element.tagName.toLowerCase(),
-    id: element.id,
-    className: element.className,
-    value: element.value || null,
-    href: element.href || null,
-    src: element.src || null,
-    classes: Array.from(element.classList),
-    bounds: element.getBoundingClientRect(),
-    visible: isElementVisible(element),
-    enabled: !element.disabled,
-  };
+function showNotification(message, type = "info") {
+  const existing = document.getElementById("syncads-notification");
+  if (existing) existing.remove();
 
-  // Capturar todos os atributos
-  Array.from(element.attributes).forEach((attr) => {
-    data.attributes[attr.name] = attr.value;
-  });
-
-  if (requestedAttribute) {
-    return element.getAttribute(requestedAttribute);
-  }
-
-  return data;
-}
-
-// ============================================
-// CLICAR EM ELEMENTO
-// ============================================
-function handleDOMClick(request, sendResponse) {
-  try {
-    const { selector, smooth = true, waitAfter = 500 } = request;
-    const element = document.querySelector(selector);
-
-    if (!element) {
-      sendResponse({
-        success: false,
-        error: `Element not found: ${selector}`,
-      });
-      return;
-    }
-
-    // Scroll suave até elemento
-    element.scrollIntoView({
-      behavior: smooth ? "smooth" : "instant",
-      block: "center",
-      inline: "center",
-    });
-
-    // Aguardar scroll completar
-    setTimeout(() => {
-      // Destacar elemento temporariamente
-      const originalBorder = element.style.border;
-      const originalBackground = element.style.backgroundColor;
-
-      element.style.border = "3px solid #667eea";
-      element.style.backgroundColor = "rgba(102, 126, 234, 0.1)";
-
-      setTimeout(() => {
-        // Simular hover
-        const hoverEvent = new MouseEvent("mouseover", {
-          view: window,
-          bubbles: true,
-          cancelable: true,
-        });
-        element.dispatchEvent(hoverEvent);
-
-        setTimeout(() => {
-          // Simular clique completo
-          const mousedownEvent = new MouseEvent("mousedown", {
-            view: window,
-            bubbles: true,
-            cancelable: true,
-          });
-          element.dispatchEvent(mousedownEvent);
-
-          setTimeout(() => {
-            const clickEvent = new MouseEvent("click", {
-              view: window,
-              bubbles: true,
-              cancelable: true,
-            });
-            element.dispatchEvent(clickEvent);
-            element.click(); // Click nativo também
-
-            const mouseupEvent = new MouseEvent("mouseup", {
-              view: window,
-              bubbles: true,
-              cancelable: true,
-            });
-            element.dispatchEvent(mouseupEvent);
-
-            // Restaurar estilo
-            setTimeout(() => {
-              element.style.border = originalBorder;
-              element.style.backgroundColor = originalBackground;
-
-              sendResponse({
-                success: true,
-                message: `Clicked element: ${selector}`,
-                elementText: element.textContent?.trim(),
-              });
-
-              sendLog("DOM_CLICK", `Clicked: ${selector}`);
-            }, waitAfter);
-          }, 50);
-        }, 100);
-      }, 200);
-    }, 300);
-  } catch (error) {
-    sendResponse({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-// ============================================
-// PREENCHER CAMPO
-// ============================================
-function handleDOMFill(request, sendResponse) {
-  try {
-    const { selector, value, clear = true, typeSpeed = "normal" } = request;
-    const element = document.querySelector(selector);
-
-    if (!element) {
-      sendResponse({
-        success: false,
-        error: `Element not found: ${selector}`,
-      });
-      return;
-    }
-
-    // Scroll até elemento
-    element.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-
-    setTimeout(() => {
-      // Focar elemento
-      element.focus();
-
-      // Destacar elemento
-      const originalBorder = element.style.border;
-      element.style.border = "2px solid #10b981";
-
-      setTimeout(() => {
-        // Limpar se necessário
-        if (clear) {
-          element.value = "";
-          element.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-
-        // Simular digitação humana
-        const currentValue = element.value;
-        const chars = value.split("");
-
-        // Velocidades de digitação
-        const speeds = {
-          fast: { min: 30, max: 60 },
-          normal: { min: 50, max: 150 },
-          slow: { min: 100, max: 250 },
-        };
-
-        const speed = speeds[typeSpeed] || speeds.normal;
-        let typedValue = currentValue;
-
-        const typeChar = () => {
-          if (chars.length === 0) {
-            // Finalizar digitação
-            element.dispatchEvent(new Event("input", { bubbles: true }));
-            element.dispatchEvent(new Event("change", { bubbles: true }));
-            element.blur();
-
-            // Restaurar borda
-            element.style.border = originalBorder;
-
-            sendResponse({
-              success: true,
-              message: `Filled element: ${selector}`,
-              value: typedValue,
-            });
-
-            sendLog("DOM_FILL", `Filled: ${selector} with "${value}"`);
-            return;
-          }
-
-          const char = chars.shift();
-          typedValue += char;
-          element.value = typedValue;
-
-          // Disparar eventos
-          element.dispatchEvent(
-            new InputEvent("input", {
-              bubbles: true,
-              cancelable: true,
-              data: char,
-              inputType: "insertText",
-            }),
-          );
-
-          // Delay aleatório entre caracteres
-          const delay = Math.random() * (speed.max - speed.min) + speed.min;
-          setTimeout(typeChar, delay);
-        };
-
-        // Iniciar digitação após delay inicial
-        setTimeout(typeChar, 200);
-      }, 300);
-    }, 300);
-  } catch (error) {
-    sendResponse({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-// ============================================
-// AGUARDAR ELEMENTO
-// ============================================
-function handleDOMWait(request, sendResponse) {
-  const { selector, timeout = 10000 } = request;
-  const startTime = Date.now();
-
-  const checkElement = setInterval(() => {
-    const element = document.querySelector(selector);
-
-    if (element) {
-      clearInterval(checkElement);
-      sendResponse({
-        success: true,
-        message: `Element found: ${selector}`,
-        waitTime: Date.now() - startTime,
-      });
-      return;
-    }
-
-    const elapsed = Date.now() - startTime;
-    if (elapsed >= timeout) {
-      clearInterval(checkElement);
-      sendResponse({
-        success: false,
-        error: `Element not found after ${timeout}ms: ${selector}`,
-        waitTime: elapsed,
-      });
-      return;
-    }
-  }, 100);
-}
-
-// ============================================
-// EXTRAIR DADOS ESTRUTURADOS
-// ============================================
-function handleDOMExtract(request, sendResponse) {
-  try {
-    const { selectors } = request;
-    const data = {};
-
-    for (const [key, selector] of Object.entries(selectors)) {
-      const element = document.querySelector(selector);
-      if (element) {
-        data[key] = {
-          text: element.textContent?.trim(),
-          value: element.value || null,
-          html: element.innerHTML,
-        };
-      } else {
-        data[key] = null;
-      }
-    }
-
-    sendResponse({
-      success: true,
-      data,
-    });
-
-    sendLog("DOM_EXTRACT", "Extracted structured data");
-  } catch (error) {
-    sendResponse({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-// ============================================
-// SCROLL DA PÁGINA
-// ============================================
-function handleDOMScroll(request, sendResponse) {
-  try {
-    const { direction = "down", amount = 500, smooth = true } = request;
-
-    let scrollOptions = {
-      behavior: smooth ? "smooth" : "instant",
-    };
-
-    if (direction === "down") {
-      window.scrollBy({ top: amount, ...scrollOptions });
-    } else if (direction === "up") {
-      window.scrollBy({ top: -amount, ...scrollOptions });
-    } else if (direction === "top") {
-      window.scrollTo({ top: 0, ...scrollOptions });
-    } else if (direction === "bottom") {
-      window.scrollTo({ top: document.body.scrollHeight, ...scrollOptions });
-    }
-
-    setTimeout(
-      () => {
-        sendResponse({
-          success: true,
-          message: `Scrolled ${direction}`,
-          scrollPosition: window.scrollY,
-        });
-      },
-      smooth ? 500 : 0,
-    );
-  } catch (error) {
-    sendResponse({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-// ============================================
-// VERIFICAR SE ELEMENTO ESTÁ VISÍVEL
-// ============================================
-function isElementVisible(element) {
-  const style = window.getComputedStyle(element);
-  const rect = element.getBoundingClientRect();
-
-  return (
-    style.display !== "none" &&
-    style.visibility !== "hidden" &&
-    style.opacity !== "0" &&
-    rect.width > 0 &&
-    rect.height > 0 &&
-    rect.top < window.innerHeight &&
-    rect.bottom > 0
-  );
-}
-
-// ============================================
-// ENVIAR LOG PARA BACKGROUND
-// ============================================
-function sendLog(action, message, data = null) {
-  chrome.runtime
-    .sendMessage({
-      type: "SEND_LOG",
-      log: {
-        action,
-        message,
-        data,
-        url: window.location.href,
-        title: document.title,
-        timestamp: Date.now(),
-      },
-    })
-    .catch(() => {
-      // Background pode não estar pronto
-    });
-}
-
-// ============================================
-// CRIAR INDICADOR VISUAL
-// ============================================
-function createIndicator() {
-  // Verificar se já existe
-  if (document.getElementById("syncads-extension-indicator")) {
-    return;
-  }
-
-  const indicator = document.createElement("div");
-  indicator.id = "syncads-extension-indicator";
-  indicator.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></div>
-      <span style="font-size: 13px; font-weight: 600;">SyncAds AI</span>
-    </div>
-  `;
-  indicator.style.cssText = `
+  const notification = document.createElement("div");
+  notification.id = "syncads-notification";
+  notification.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
+    top: ${CONFIG.notification.position.top};
+    right: ${CONFIG.notification.position.right};
+    background: ${type === "error" ? "#ef4444" : type === "success" ? "#10b981" : "#3b82f6"};
     color: white;
-    padding: 12px 16px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     z-index: 999999;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s ease;
-    border: 1px solid rgba(102, 126, 234, 0.3);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    max-width: 350px;
+    animation: slideIn 0.3s ease;
   `;
 
-  // Adicionar animação de pulso
   const style = document.createElement("style");
   style.textContent = `
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
   `;
   document.head.appendChild(style);
 
-  document.body.appendChild(indicator);
-  return indicator;
-}
+  notification.innerHTML = `<strong>🔌 SyncAds</strong><br>${message}`;
+  document.body.appendChild(notification);
 
-// ============================================
-// MOSTRAR/OCULTAR INDICADOR
-// ============================================
-function showIndicator(duration = 3000) {
-  let indicator = document.getElementById("syncads-extension-indicator");
-
-  if (!indicator) {
-    indicator = createIndicator();
-  }
-
-  // Mostrar com animação
   setTimeout(() => {
-    indicator.style.opacity = "1";
-    indicator.style.transform = "translateY(0)";
-  }, 10);
+    notification.style.transition = "opacity 0.3s, transform 0.3s";
+    notification.style.opacity = "0";
+    notification.style.transform = "translateX(400px)";
+    setTimeout(() => notification.remove(), 300);
+  }, CONFIG.notification.duration);
+}
 
-  // Ocultar após duração
-  if (duration > 0) {
-    setTimeout(() => {
-      indicator.style.opacity = "0";
-      indicator.style.transform = "translateY(20px)";
-    }, duration);
+function createConnectButton() {
+  if (state.hasShownButton || document.getElementById("syncads-connect-btn")) {
+    return;
+  }
+
+  const button = document.createElement("div");
+  button.id = "syncads-connect-btn";
+  button.style.cssText = `
+    position: fixed;
+    bottom: ${CONFIG.button.position.bottom};
+    right: ${CONFIG.button.position.right};
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 999998;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+  `;
+  button.innerHTML = `🔌 Conectar SyncAds`;
+
+  button.addEventListener("mouseenter", () => {
+    button.style.transform = "scale(1.05)";
+    button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+  });
+
+  button.addEventListener("mouseleave", () => {
+    button.style.transform = "scale(1)";
+    button.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+  });
+
+  button.addEventListener("click", async () => {
+    button.innerHTML = `⏳ Buscando token...`;
+    state.lastTokenSent = null;
+    state.processedTokens.clear();
+
+    const result = await detectAndSendToken();
+
+    if (!result) {
+      button.innerHTML = `🔌 Conectar SyncAds`;
+      setTimeout(() => {
+        button.innerHTML = `🔌 Tentar novamente`;
+      }, 2000);
+    }
+  });
+
+  document.body.appendChild(button);
+  state.hasShownButton = true;
+
+  Logger.debug("Connect button created");
+}
+
+function removeConnectButton() {
+  const button = document.getElementById("syncads-connect-btn");
+  if (button) {
+    button.style.transition = "opacity 0.5s, transform 0.5s";
+    button.style.opacity = "0";
+    button.style.transform = "scale(0.8)";
+    setTimeout(() => button.remove(), 500);
+    Logger.debug("Connect button removed");
   }
 }
 
 // ============================================
-// MOSTRAR INDICADOR QUANDO COMANDO É RECEBIDO
+// SAFE MESSAGE SENDER
 // ============================================
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.type && request.type.startsWith("DOM_")) {
-    showIndicator(2000);
+async function sendMessageToBackground(
+  message,
+  maxAttempts = CONFIG.detection.maxSendAttempts,
+) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      Logger.debug(
+        `Sending message to background (attempt ${attempt}/${maxAttempts})`,
+        { type: message.type },
+      );
+
+      const response = await chrome.runtime.sendMessage(message);
+
+      Logger.success("Message sent successfully", { response });
+      return { success: true, data: response };
+    } catch (error) {
+      const errorMsg = error?.message || "Unknown error";
+
+      Logger.warn(`Send attempt ${attempt}/${maxAttempts} failed: ${errorMsg}`);
+
+      // Check if it's a fatal error (no retry needed)
+      if (
+        errorMsg.includes("Extension context invalidated") ||
+        errorMsg.includes("message port closed")
+      ) {
+        Logger.error("Fatal error - extension context lost", error);
+        return { success: false, error: errorMsg, fatal: true };
+      }
+
+      // Retry with delay
+      if (attempt < maxAttempts) {
+        await sleep(CONFIG.detection.retryDelay);
+      }
+    }
+  }
+
+  Logger.error("Failed to send message after all attempts");
+  return { success: false, error: "Max retry attempts exceeded" };
+}
+
+// ============================================
+// TOKEN VALIDATION
+// ============================================
+function validateToken(authData) {
+  if (!authData) {
+    Logger.debug("No auth data");
+    return null;
+  }
+
+  const user = authData.user;
+  const accessToken = authData.access_token;
+  const refreshToken = authData.refresh_token;
+  const expiresAt = authData.expires_at;
+
+  if (!user?.id || !accessToken) {
+    Logger.debug("Incomplete auth data", {
+      hasUser: !!user?.id,
+      hasToken: !!accessToken,
+    });
+    return null;
+  }
+
+  // Check token expiration
+  if (expiresAt) {
+    const expiryDate = new Date(expiresAt * 1000);
+    const now = new Date();
+
+    if (expiryDate <= now) {
+      Logger.warn("Token is EXPIRED", {
+        expiresAt: expiryDate.toLocaleString(),
+        now: now.toLocaleString(),
+      });
+      return null;
+    }
+
+    const minutesUntilExpiry = Math.floor((expiryDate - now) / 1000 / 60);
+    Logger.debug("Token is valid", {
+      expiresAt: expiryDate.toLocaleString(),
+      validFor: minutesUntilExpiry + " minutes",
+    });
+  }
+
+  return {
+    userId: user.id,
+    email: user.email || "",
+    accessToken,
+    refreshToken: refreshToken || null,
+    expiresAt: expiresAt || null,
+  };
+}
+
+// ============================================
+// TOKEN DETECTION
+// ============================================
+function findSupabaseAuthKey() {
+  const localKeys = Object.keys(localStorage);
+  const sessionKeys = Object.keys(sessionStorage);
+  const allKeys = [...localKeys, ...sessionKeys];
+
+  // Priority 1: Modern format (sb-*-auth-token)
+  let authKey = allKeys.find(
+    (k) => k.startsWith("sb-") && k.includes("-auth-token"),
+  );
+  if (authKey) {
+    const storage = localKeys.includes(authKey) ? localStorage : sessionStorage;
+    return { key: authKey, storage, format: "modern" };
+  }
+
+  // Priority 2: Legacy format
+  authKey = allKeys.find((k) => k === "supabase.auth.token");
+  if (authKey) {
+    const storage = localKeys.includes(authKey) ? localStorage : sessionStorage;
+    return { key: authKey, storage, format: "legacy" };
+  }
+
+  return null;
+}
+
+async function detectAndSendToken() {
+  // Prevent concurrent processing
+  if (state.isProcessingToken) {
+    Logger.debug("Already processing token, skipping...");
+    return false;
+  }
+
+  state.isProcessingToken = true;
+
+  try {
+    state.checkCount++;
+
+    // Find auth key
+    const authInfo = findSupabaseAuthKey();
+
+    if (!authInfo) {
+      if (state.checkCount % 50 === 0) {
+        Logger.debug("No Supabase auth key found", {
+          checks: state.checkCount,
+          localKeys: Object.keys(localStorage).length,
+          sessionKeys: Object.keys(sessionStorage).length,
+        });
+      }
+      return false;
+    }
+
+    // Read auth data
+    const authDataRaw = authInfo.storage.getItem(authInfo.key);
+    if (!authDataRaw) {
+      Logger.debug("Auth key found but no data");
+      return false;
+    }
+
+    let authData;
+    try {
+      authData = JSON.parse(authDataRaw);
+    } catch (error) {
+      Logger.error("Failed to parse auth data", error);
+      return false;
+    }
+
+    // Validate token
+    const validatedToken = validateToken(authData);
+    if (!validatedToken) {
+      if (state.checkCount % 50 === 0) {
+        Logger.debug("Token found but invalid or expired");
+      }
+      return false;
+    }
+
+    // Create token fingerprint
+    const tokenFingerprint = `${validatedToken.userId}_${validatedToken.accessToken.substring(0, 50)}`;
+
+    // Check if already sent
+    if (state.processedTokens.has(tokenFingerprint)) {
+      if (state.checkCount % 100 === 0) {
+        Logger.debug("Token already processed, waiting for new token...");
+      }
+      return false;
+    }
+
+    // Send to background
+    Logger.info("Valid token detected! Sending to background...", {
+      userId: validatedToken.userId,
+      email: validatedToken.email,
+      format: authInfo.format,
+      hasRefreshToken: !!validatedToken.refreshToken,
+    });
+
+    const result = await sendMessageToBackground({
+      type: "AUTH_TOKEN_DETECTED",
+      data: validatedToken,
+    });
+
+    if (result.success && result.data?.success) {
+      // Mark as processed
+      state.processedTokens.add(tokenFingerprint);
+      state.lastTokenSent = tokenFingerprint;
+      state.lastDetectionTime = Date.now();
+
+      // Show success notification
+      showNotification("✅ Conectado com sucesso!", "success");
+
+      // Remove connect button
+      removeConnectButton();
+
+      Logger.success("Extension connected successfully!", {
+        userId: validatedToken.userId,
+        email: validatedToken.email,
+      });
+
+      return true;
+    } else {
+      const errorMsg = result.data?.error || result.error || "Unknown error";
+      Logger.error("Background rejected token", null, { error: errorMsg });
+
+      showNotification("❌ Erro ao conectar: " + errorMsg, "error");
+
+      return false;
+    }
+  } catch (error) {
+    Logger.error("Token detection exception", error);
+    return false;
+  } finally {
+    state.isProcessingToken = false;
+  }
+}
+
+// ============================================
+// STORAGE MONITORING
+// ============================================
+function monitorStorageChanges() {
+  const currentLocalKeys = new Set(Object.keys(localStorage));
+  const currentSessionKeys = new Set(Object.keys(sessionStorage));
+  const currentKeys = new Set([...currentLocalKeys, ...currentSessionKeys]);
+
+  // Detect new keys
+  const newKeys = [...currentKeys].filter(
+    (k) => !state.knownStorageKeys.has(k),
+  );
+
+  if (newKeys.length > 0) {
+    Logger.debug("New storage keys detected", { newKeys });
+
+    // Check if any new key is a Supabase auth key
+    const hasSupabaseKey = newKeys.some(
+      (k) => k.startsWith("sb-") || k.includes("supabase"),
+    );
+
+    if (hasSupabaseKey) {
+      Logger.info("New Supabase auth key detected, checking token...");
+      setTimeout(() => detectAndSendToken(), 500);
+    }
+  }
+
+  // Update known keys
+  state.knownStorageKeys = currentKeys;
+}
+
+// ============================================
+// MESSAGE LISTENER
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  Logger.debug("Message received from background", { type: message.type });
+
+  switch (message.type) {
+    case "CHECK_AUTH":
+      detectAndSendToken()
+        .then((result) => sendResponse({ success: result }))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true; // Async response
+
+    case "PING":
+      sendResponse({ success: true, message: "pong", timestamp: Date.now() });
+      return true;
+
+    case "GET_TOKEN":
+      const authInfo = findSupabaseAuthKey();
+      if (authInfo) {
+        const authDataRaw = authInfo.storage.getItem(authInfo.key);
+        if (authDataRaw) {
+          try {
+            const authData = JSON.parse(authDataRaw);
+            const validated = validateToken(authData);
+            sendResponse({ success: true, data: validated });
+          } catch (error) {
+            sendResponse({ success: false, error: "Failed to parse token" });
+          }
+        } else {
+          sendResponse({ success: false, error: "No auth data" });
+        }
+      } else {
+        sendResponse({ success: false, error: "No auth key found" });
+      }
+      return true;
+
+    default:
+      sendResponse({ success: false, error: "Unknown message type" });
+      return true;
   }
 });
 
 // ============================================
-// MONITORAR LOGIN EM TEMPO REAL
+// STORAGE EVENT LISTENER
 // ============================================
-let lastAuthState = null;
+window.addEventListener("storage", (event) => {
+  if (
+    event.key &&
+    (event.key.startsWith("sb-") || event.key.includes("supabase"))
+  ) {
+    Logger.debug("Storage event detected", { key: event.key });
+    setTimeout(() => detectAndSendToken(), 100);
+  }
+});
 
-// Verificar auth periodicamente
-function checkAuthState() {
+// ============================================
+// INITIALIZATION
+// ============================================
+async function initialize() {
+  if (state.isInitialized) {
+    Logger.warn("Already initialized, skipping...");
+    return;
+  }
+
+  Logger.info("Initializing content script...", {
+    url: window.location.href,
+    version: CONFIG.version,
+  });
+
+  // Save initial storage keys
+  state.knownStorageKeys = new Set([
+    ...Object.keys(localStorage),
+    ...Object.keys(sessionStorage),
+  ]);
+
+  Logger.debug("Initial storage state", {
+    localKeys: Object.keys(localStorage).length,
+    sessionKeys: Object.keys(sessionStorage).length,
+  });
+
+  // Check if background is ready
   try {
-    const keys = Object.keys(localStorage);
-
-    // Buscar qualquer chave que possa conter auth
-    for (const key of keys) {
-      try {
-        const value = localStorage.getItem(key);
-        if (!value) continue;
-
-        // Tentar parsear como JSON
-        const parsed = JSON.parse(value);
-        const user = parsed?.user || parsed?.currentUser;
-
-        if (user && user.id) {
-          const currentState = JSON.stringify(user.id);
-
-          // Apenas notificar se mudou
-          if (currentState !== lastAuthState) {
-            console.log("🔐 Login detectado:", user.id);
-
-            chrome.runtime
-              .sendMessage({
-                type: "AUTO_LOGIN_DETECTED",
-                userId: user.id,
-                email: user.email || "",
-                source: "localStorage-monitor",
-              })
-              .catch(() => {});
-
-            lastAuthState = currentState;
-            break;
-          }
-        }
-      } catch (e) {
-        // Não é JSON ou erro ao parsear, continuar
-        continue;
-      }
+    const response = await sendMessageToBackground({ type: "PING" });
+    if (response.success) {
+      Logger.success("Background service worker is ready");
     }
   } catch (error) {
-    console.error("❌ Erro ao verificar auth:", error);
+    Logger.warn("Background not ready yet", error);
   }
-}
 
-// Verificar a cada 2 segundos
-console.log("⏱️ Iniciando monitoramento de auth (intervalo: 2s)");
-console.log("📦 localStorage disponível?", typeof localStorage !== "undefined");
-console.log(
-  "🔢 Total de chaves no localStorage:",
-  Object.keys(localStorage).length,
-);
+  // Initial token check (after delay)
+  setTimeout(() => {
+    Logger.info("Running initial token check...");
+    detectAndSendToken();
+  }, CONFIG.detection.initialDelay);
 
-// Mostrar todas as chaves IMEDIATAMENTE
-try {
-  const allKeys = Object.keys(localStorage);
-  console.log("🗝️ TODAS AS CHAVES DO LOCALSTORAGE:", allKeys);
-  allKeys.forEach((key) => {
-    const val = localStorage.getItem(key);
-    if (val && val.length < 100) {
-      console.log(`  - ${key}: ${val}`);
-    } else if (val) {
-      console.log(`  - ${key}: [${val.length} chars]`);
+  // Create connect button (after delay)
+  setTimeout(() => {
+    if (document.body) {
+      createConnectButton();
     }
+  }, CONFIG.detection.initialDelay + 500);
+
+  // Start periodic checks
+  setInterval(() => {
+    detectAndSendToken();
+  }, CONFIG.detection.checkInterval);
+
+  // Start storage monitoring
+  setInterval(() => {
+    monitorStorageChanges();
+  }, CONFIG.detection.storageMonitorInterval);
+
+  state.isInitialized = true;
+
+  Logger.success("Content script initialized and monitoring", {
+    checkInterval: CONFIG.detection.checkInterval + "ms",
+    storageMonitorInterval: CONFIG.detection.storageMonitorInterval + "ms",
   });
-} catch (e) {
-  console.error("❌ Erro ao ler localStorage:", e);
 }
 
-setInterval(checkAuthState, 2000);
-
-// Verificar imediatamente também
-console.log("🚀 Verificação inicial de auth...");
-checkAuthState();
-
 // ============================================
-// NOTIFICAR BACKGROUND QUE CONTENT SCRIPT ESTÁ PRONTO
+// UTILITY FUNCTIONS
 // ============================================
-setTimeout(() => {
-  chrome.runtime
-    .sendMessage({
-      type: "CONTENT_SCRIPT_READY",
-      url: window.location.href,
-    })
-    .catch(() => {});
-}, 100);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ============================================
-// LOG DE INICIALIZAÇÃO
+// START
 // ============================================
-console.log("✅ SyncAds Content Script Ready");
-sendLog(
-  "CONTENT_SCRIPT_LOADED",
-  `Content script loaded on ${window.location.hostname}`,
-);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initialize);
+} else {
+  initialize();
+}
+
+Logger.info("✅ Content script loaded");

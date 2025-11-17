@@ -334,7 +334,7 @@ export default function RegisterPage() {
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
-                    type="email"
+                    type="email" autoComplete="email"
                     {...form1.register("email")}
                     placeholder="seu@email.com"
                     className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
@@ -351,7 +351,7 @@ export default function RegisterPage() {
                   <Label htmlFor="password">Senha</Label>
                   <Input
                     id="password"
-                    type="password"
+                    type="password" autoComplete="new-password"
                     {...form1.register("password")}
                     placeholder="Mínimo 6 caracteres"
                     className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"

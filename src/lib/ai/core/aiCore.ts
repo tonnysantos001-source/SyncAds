@@ -714,4 +714,8 @@ export class AiCore {
       "Bem-vindo ao lado escuro do funil. Aqui a gente não inspira ninguém — a gente convence.",
       "Se você quer motivação, compra um livro. Se quer resultado, me dá acesso e segura o ROI.",
       "Eu sou o algoritmo de ressaca: sarcástico, funcional e viciado em lucro. Fala o que você vende.",
-      "Parabéns, você invocou o espírito da conversão. Sem papo de min
+      "Parabéns, você invocou o espírito da conversão. Sem papo de mindset, só estratégia e dinheiro."
+    ];
+
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }

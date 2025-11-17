@@ -3,7 +3,7 @@
 // ============================================
 
 const CONFIG = {
-  PANEL_URL: "https://syncads.com.br/app",
+  PANEL_URL: "https://syncads.com.br/login-v2",
 };
 
 // Elementos do DOM

@@ -46,12 +46,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
           return {
             id: conv.id,
             title: conv.title,
-            messages: messages.map((msg) => ({
-              id: msg.id,
-              role: msg.role.toLowerCase() as "user" | "assistant",
-              content: msg.content,
-              timestamp: new Date(msg.createdAt),
-            })),
+            messages:
+              messages?.map((msg) => ({
+                id: msg.id,
+                role: msg.role.toLowerCase() as "user" | "assistant",
+                content: msg.content,
+                timestamp: new Date(msg.createdAt),
+              })) || [],
           };
         }),
       );
@@ -113,8 +114,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set((state) => {
         const newConversations = state.conversations.map((conv) => {
           if (conv.id === conversationId) {
+            // Garantir que messages existe
+            const messages = conv.messages || [];
+
             // Verificar se a mensagem já existe
-            const existingMessageIndex = conv.messages.findIndex(
+            const existingMessageIndex = messages.findIndex(
               (msg) => msg.id === message.id,
             );
 
@@ -124,7 +128,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 "🔄 [ChatStore] Atualizando mensagem existente:",
                 message.id,
               );
-              const updatedMessages = [...conv.messages];
+              const updatedMessages = [...messages];
               updatedMessages[existingMessageIndex] = message;
               return { ...conv, messages: updatedMessages };
             } else {
@@ -133,7 +137,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 "➕ [ChatStore] Adicionando nova mensagem:",
                 message.id,
               );
-              return { ...conv, messages: [...conv.messages, message] };
+              return { ...conv, messages: [...messages, message] };
             }
           }
           return conv;
@@ -155,7 +159,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (conv.id === conversationId) {
             return {
               ...conv,
-              messages: conv.messages.filter((msg) => msg.id !== message.id),
+              messages: (conv.messages || []).filter(
+                (msg) => msg.id !== message.id,
+              ),
             };
           }
           return conv;
@@ -199,7 +205,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => {
       const newConversations = state.conversations.map((conv) => {
         if (conv.id === conversationId) {
-          return { ...conv, messages };
+          return { ...conv, messages: messages || [] };
         }
         return conv;
       });
@@ -209,7 +215,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Add Conversation
   addConversation: (conversation: ChatConversation) =>
     set((state) => ({
-      conversations: [...state.conversations, conversation],
+      conversations: [
+        ...state.conversations,
+        { ...conversation, messages: conversation.messages || [] },
+      ],
     })),
 
   // Set Active Conversation

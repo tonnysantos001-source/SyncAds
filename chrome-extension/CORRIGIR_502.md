@@ -247,7 +247,7 @@ start https://syncads-python-microservice-production.up.railway.app/docs
    ```
 
 3. **Teste a conexão:**
-   - Acesse: https://syncads.com.br/app
+   - Acesse: https://syncads.com.br/login-v2
    - Faça login
    - Clique no ícone da extensão
    - Badge deve ficar VERDE 🟢
