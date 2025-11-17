@@ -112,6 +112,8 @@ async function checkConnectionStatus() {
 openPanelBtn.addEventListener("click", async (e) => {
   e.preventDefault();
 
+  console.log("🔘 [POPUP] Connect button clicked!");
+
   setButtonState("connecting");
 
   try {
@@ -121,6 +123,7 @@ openPanelBtn.addEventListener("click", async (e) => {
       currentWindow: true,
     });
 
+    console.log("📍 [POPUP] Current tab:", currentTab.url);</parameter>
     console.log("📍 Aba atual:", currentTab.url);
 
     // Verificar se já está no painel
@@ -130,7 +133,7 @@ openPanelBtn.addEventListener("click", async (e) => {
         currentTab.url.includes("localhost"));
 
     if (!isOnPanel) {
-      console.log("🔄 Redirecionando para painel SyncAds...");
+      console.log("🔄 [POPUP] Not on SyncAds panel, redirecting...");
 
       // Se não está no painel, redirecionar
       await chrome.tabs.update(currentTab.id, {
@@ -138,7 +141,7 @@ openPanelBtn.addEventListener("click", async (e) => {
       });
 
       // Aguardar carregamento e verificar status múltiplas vezes
-      console.log("⏳ Aguardando login...");
+      console.log("⏳ [POPUP] Waiting for login...");
 
       setTimeout(() => checkConnectionStatus(), 2000);
       setTimeout(() => checkConnectionStatus(), 4000);
@@ -149,17 +152,19 @@ openPanelBtn.addEventListener("click", async (e) => {
         setButtonState(connected ? "connected" : "default");
       }, 7000);
     } else {
-      console.log("✅ Já está no painel! Verificando conexão...");
+      console.log("✅ [POPUP] Already on SyncAds panel! Checking connection...");</parameter>
 
       // Já está no painel, forçar detecção
       try {
-        await chrome.tabs.sendMessage(currentTab.id, {
+        console.log("📤 [POPUP] Sending CHECK_AUTH to content-script...");
+        const response = await chrome.tabs.sendMessage(currentTab.id, {
           type: "CHECK_AUTH",
         });
-        console.log("📤 Mensagem enviada para content-script");
+        console.log("✅ [POPUP] Content-script response:", response);
       } catch (err) {
-        console.log("⚠️ Content script ainda não carregado, recarregando...");
+        console.log("⚠️ [POPUP] Content script not loaded, reloading tab...", err.message);
         await chrome.tabs.reload(currentTab.id);
+      }</parameter>
       }
 
       // Verificar status múltiplas vezes
@@ -172,52 +177,75 @@ openPanelBtn.addEventListener("click", async (e) => {
         setButtonState(connected ? "connected" : "default");
 
         if (!connected) {
-          console.log("🔴 Ainda não conectado. Por favor, faça login no painel.");
+          console.log("🔴 [POPUP] Still not connected. Please login on the panel.");
+        } else {
+          console.log("🎉 [POPUP] Connection successful!");
         }
       }, 4000);
     }
   } catch (error) {
-    console.error("❌ Erro ao conectar:", error);
+    console.error("❌ [POPUP] Error connecting:", error);
     setButtonState("default");
   }
+});</parameter>
 });
 
 // Listener para mudanças no storage
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local") {
+    console.log("💾 [POPUP] Storage changed:", Object.keys(changes));
+
     if (changes.isConnected || changes.deviceId || changes.userId || changes.lastActivity) {
-      console.log("🔄 Storage changed, rechecking status...");
+      console.log("🔄 [POPUP] Important storage change detected, rechecking status...");
+
+      if (changes.isConnected) {
+        console.log("  isConnected:", changes.isConnected.oldValue, "→", changes.isConnected.newValue);
+      }
+      if (changes.userId) {
+        console.log("  userId:", !!changes.userId.oldValue, "→", !!changes.userId.newValue);
+      }
+
       checkConnectionStatus();
     }
   }
+});</parameter>
 });
 
 // Listener para mensagens do background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("📨 [POPUP] Message received from background:", message);
+
   if (message.action === "STATUS_UPDATE") {
+    console.log("🔄 [POPUP] Status update received:", message.connected);
     updateStatus(message.connected);
     setButtonState(message.connected ? "connected" : "default");
   } else if (message.action === "LOGIN_SUCCESS") {
+    console.log("🎉 [POPUP] Login success received!", message);
     updateStatus(true);
     setButtonState("connected");
   } else if (message.action === "LOGOUT") {
+    console.log("👋 [POPUP] Logout received");
     updateStatus(false);
     setButtonState("default");
   }
 
   sendResponse({ received: true });
   return true;
+});</parameter>
 });
 
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
 async function initialize() {
+  console.log("🚀 [POPUP] Initializing popup...");
   showLoading();
 
   await checkConnectionStatus();
 
   setTimeout(hideLoading, 300);
+
+  console.log("✅ [POPUP] Popup initialized");
 }
 
 // Iniciar e verificar periodicamente
@@ -225,5 +253,9 @@ initialize();
 
 // Verificar status a cada 10 segundos
 setInterval(() => {
+  console.log("⏰ [POPUP] Periodic status check...");
   checkConnectionStatus();
+}, 10000);
+
+console.log("🎯 [POPUP] Popup script loaded and ready");</parameter>
 }, 10000);
