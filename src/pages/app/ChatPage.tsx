@@ -287,8 +287,19 @@ const ChatPage: React.FC = () => {
       input.trim() === "" ||
       !activeConversationId ||
       input.length > MAX_CHARS
-    )
+    ) {
+      console.log("⚠️ [ChatPage] Validação falhou:", {
+        inputEmpty: input.trim() === "",
+        noConversation: !activeConversationId,
+        tooLong: input.length > MAX_CHARS,
+      });
       return;
+    }
+
+    console.log("📤 [ChatPage] Enviando mensagem:", {
+      conversationId: activeConversationId,
+      length: input.length,
+    });
 
     // Verificar limite de mensagens IA
     if (user) {
@@ -611,31 +622,61 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     const initChat = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log("⏳ [ChatPage] Aguardando usuário...");
+        return;
+      }
 
       try {
+        console.log("🚀 [ChatPage] Iniciando chat para usuário:", user.id);
         setIsLoadingConversations(true);
+
+        console.log("📥 [ChatPage] Carregando conversações...");
         await useChatStore.getState().loadConversations(user.id);
 
-        const { data: existingConversations } = await supabase
-          .from("ChatConversation")
-          .select("id")
-          .eq("userId", user.id)
-          .limit(1);
+        const { data: existingConversations, error: queryError } =
+          await supabase
+            .from("ChatConversation")
+            .select("id")
+            .eq("userId", user.id)
+            .limit(1);
+
+        if (queryError) {
+          console.error(
+            "❌ [ChatPage] Erro ao buscar conversações:",
+            queryError,
+          );
+          throw queryError;
+        }
+
+        console.log(
+          "✅ [ChatPage] Conversações encontradas:",
+          existingConversations?.length || 0,
+        );
 
         // Se não houver conversas, criar uma
         if (!existingConversations || existingConversations.length === 0) {
+          console.log("➕ [ChatPage] Criando primeira conversação...");
           await useChatStore.getState().createNewConversation(user.id);
+          console.log("✅ [ChatPage] Primeira conversação criada");
         }
+
+        console.log("✅ [ChatPage] Chat inicializado com sucesso");
       } catch (error) {
-        console.error("Erro ao inicializar chat:", error);
+        console.error("❌ [ChatPage] Erro ao inicializar chat:", error);
+        toast({
+          title: "Erro ao carregar chat",
+          description:
+            "Não foi possível carregar as conversas. Tente recarregar a página.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoadingConversations(false);
       }
     };
 
     initChat();
-  }, [user]);
+  }, [user, toast]);
 
   const handleNewConversation = async () => {
     try {
@@ -913,7 +954,23 @@ const ChatPage: React.FC = () => {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F] custom-scrollbar">
-          {activeConversation && activeConversation.messages ? (
+          {isLoadingConversations ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
+                />
+                <p className="text-gray-400 text-lg font-medium">
+                  Carregando conversas...
+                </p>
+                <p className="text-gray-600 text-sm mt-2">
+                  Aguarde enquanto configuramos seu chat
+                </p>
+              </div>
+            </div>
+          ) : activeConversation && activeConversation.messages ? (
             <>
               {activeConversation.messages.map((message: any) => {
                 const integrationMatch = message.content?.match(
