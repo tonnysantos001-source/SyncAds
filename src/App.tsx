@@ -43,6 +43,7 @@ const CampaignDetailsPage = lazy(
   () => import("./pages/app/campaigns/CampaignDetailsPage"),
 );
 const ChatPage = lazy(() => import("./pages/app/ChatPage"));
+const AISystemDebugger = lazy(() => import("./components/ai/AISystemDebugger"));
 const IntegrationsPage = lazy(() => import("./pages/app/IntegrationsPage"));
 const IntegrationDetailPage = lazy(
   () => import("./pages/app/IntegrationDetailPage"),
@@ -399,6 +400,7 @@ function App() {
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/ai-debugger" element={<AISystemDebugger />} />
               <Route path="/campaigns/:id" element={<CampaignDetailsPage />} />
 
               {/* Reports */}
