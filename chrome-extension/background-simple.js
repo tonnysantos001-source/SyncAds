@@ -11,7 +11,7 @@ console.log("🚀 SyncAds Extension v2.0 - Background Started");
 const CONFIG = {
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
   supabaseAnonKey:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.YMx-wL6hUtVPtGmN_5MKHIvfzqSmz5Jx6y0P3XJiWm4",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
   functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   version: "2.0.0",
 };
