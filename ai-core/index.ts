@@ -9,11 +9,11 @@ import { EventEmitter } from "events";
 import CoreAI, {
   TaskType,
   ExecutionStatus,
-  UserRequest,
-  TaskDecision,
-  ExecutionPlan,
-  ExecutionResult,
-  CoreConfig,
+  type UserRequest,
+  type TaskDecision,
+  type ExecutionPlan,
+  type ExecutionResult,
+  type CoreConfig,
   createCoreAI,
 } from "./core-brain";
 
@@ -21,8 +21,8 @@ import PromptLibraryRegistry, {
   ModuleCategory,
   ModuleComplexity,
   ExecutionEnvironment,
-  PromptModule,
-  SearchCriteria,
+  type PromptModule,
+  type SearchCriteria,
   getRegistry,
   createRegistry,
 } from "./prompt-library/registry";
@@ -31,12 +31,12 @@ import BrowserAutomationController, {
   BrowserActionType,
   SelectorType,
   AutomationStatus,
-  BrowserCommand,
-  ElementSelector,
-  AutomationPlan,
-  AutomationResult,
-  ScrapingConfig,
-  FormData,
+  type BrowserCommand,
+  type ElementSelector,
+  type AutomationPlan,
+  type AutomationResult,
+  type ScrapingConfig,
+  type FormData,
   createBrowserController,
 } from "./browser-automation/controller";
 

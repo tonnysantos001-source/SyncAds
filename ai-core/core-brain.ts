@@ -4,25 +4,25 @@
  * Responsável por todas as decisões, fluxos e execuções
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 // ==================== TIPOS E INTERFACES ====================
 
 export enum TaskType {
-  BROWSER_AUTOMATION = 'BROWSER_AUTOMATION',
-  PYTHON_EXECUTION = 'PYTHON_EXECUTION',
-  INTERNAL_TOOLS = 'INTERNAL_TOOLS',
-  MULTIMODAL_PIPELINE = 'MULTIMODAL_PIPELINE',
-  HYBRID = 'HYBRID'
+  BROWSER_AUTOMATION = "BROWSER_AUTOMATION",
+  PYTHON_EXECUTION = "PYTHON_EXECUTION",
+  INTERNAL_TOOLS = "INTERNAL_TOOLS",
+  MULTIMODAL_PIPELINE = "MULTIMODAL_PIPELINE",
+  HYBRID = "HYBRID",
 }
 
 export enum ExecutionStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
-  RETRYING = 'RETRYING',
-  FALLBACK = 'FALLBACK'
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  SUCCESS = "SUCCESS",
+  FAILED = "FAILED",
+  RETRYING = "RETRYING",
+  FALLBACK = "FALLBACK",
 }
 
 export interface UserRequest {
@@ -124,7 +124,7 @@ export class CoreAI extends EventEmitter {
       learningEnabled: config?.learningEnabled ?? true,
       parallelExecution: config?.parallelExecution ?? false,
       timeout: config?.timeout || 300000, // 5 min default
-      debugMode: config?.debugMode ?? false
+      debugMode: config?.debugMode ?? false,
     };
 
     this.memoryContext = this.initializeMemory();
@@ -139,43 +139,53 @@ export class CoreAI extends EventEmitter {
       history: [],
       decisions: [],
       learnings: {},
-      errorPatterns: []
+      errorPatterns: [],
     };
   }
 
   private initializeCoreModules(): void {
     // Registrar módulos base
     this.registerModule({
-      name: 'browser-controller',
+      name: "browser-controller",
       type: TaskType.BROWSER_AUTOMATION,
-      capabilities: ['web-scraping', 'form-filling', 'dom-manipulation', 'visual-testing'],
+      capabilities: [
+        "web-scraping",
+        "form-filling",
+        "dom-manipulation",
+        "visual-testing",
+      ],
       priority: 10,
       reliability: 0.95,
       avgExecutionTime: 5000,
-      successRate: 0.95
+      successRate: 0.95,
     });
 
     this.registerModule({
-      name: 'python-executor',
+      name: "python-executor",
       type: TaskType.PYTHON_EXECUTION,
-      capabilities: ['data-processing', 'ml-inference', 'api-calls', 'file-processing'],
+      capabilities: [
+        "data-processing",
+        "ml-inference",
+        "api-calls",
+        "file-processing",
+      ],
       priority: 9,
       reliability: 0.98,
       avgExecutionTime: 3000,
-      successRate: 0.98
+      successRate: 0.98,
     });
 
     this.registerModule({
-      name: 'internal-tools',
+      name: "internal-tools",
       type: TaskType.INTERNAL_TOOLS,
-      capabilities: ['database-ops', 'cache-ops', 'queue-ops', 'auth-ops'],
+      capabilities: ["database-ops", "cache-ops", "queue-ops", "auth-ops"],
       priority: 10,
       reliability: 0.99,
       avgExecutionTime: 1000,
-      successRate: 0.99
+      successRate: 0.99,
     });
 
-    this.emit('core:initialized', { modules: this.moduleRegistry.size });
+    this.emit("core:initialized", { modules: this.moduleRegistry.size });
   }
 
   // ==================== REGISTRO DE MÓDULOS ====================
@@ -191,7 +201,7 @@ export class CoreAI extends EventEmitter {
 
   public listModules(type?: TaskType): ModuleRegistry[] {
     const modules = Array.from(this.moduleRegistry.values());
-    return type ? modules.filter(m => m.type === type) : modules;
+    return type ? modules.filter((m) => m.type === type) : modules;
   }
 
   // ==================== ANÁLISE DE REQUISIÇÃO ====================
@@ -203,7 +213,7 @@ export class CoreAI extends EventEmitter {
     const decision = this.makeDecision(analysis);
 
     this.memoryContext.decisions.push(decision);
-    this.emit('decision:made', decision);
+    this.emit("decision:made", decision);
 
     return decision;
   }
@@ -219,7 +229,7 @@ export class CoreAI extends EventEmitter {
       intent,
       complexity,
       capabilities,
-      context: request.context
+      context: request.context,
     };
   }
 
@@ -227,40 +237,48 @@ export class CoreAI extends EventEmitter {
     const keywords: string[] = [];
 
     // Browser automation keywords
-    if (/abrir|navegar|clicar|preencher|scrape|extrair|elemento|página|dom/i.test(input)) {
-      keywords.push('browser-automation');
+    if (
+      /abrir|navegar|clicar|preencher|scrape|extrair|elemento|página|dom/i.test(
+        input,
+      )
+    ) {
+      keywords.push("browser-automation");
     }
 
     // Python execution keywords
-    if (/processar|calcular|analisar|machine learning|ml|ia|dados|csv|json|api externa/i.test(input)) {
-      keywords.push('python-execution');
+    if (
+      /processar|calcular|analisar|machine learning|ml|ia|dados|csv|json|api externa/i.test(
+        input,
+      )
+    ) {
+      keywords.push("python-execution");
     }
 
     // Database keywords
     if (/salvar|buscar|banco|database|tabela|query|sql|supabase/i.test(input)) {
-      keywords.push('database');
+      keywords.push("database");
     }
 
     // Image processing keywords
     if (/imagem|foto|gerar|editar|filtro|resize|upload/i.test(input)) {
-      keywords.push('image-processing');
+      keywords.push("image-processing");
     }
 
     // File processing keywords
     if (/arquivo|file|pdf|excel|documento|importar|exportar/i.test(input)) {
-      keywords.push('file-processing');
+      keywords.push("file-processing");
     }
 
     return keywords;
   }
 
   private detectIntent(input: string): string {
-    if (/criar|gerar|novo/i.test(input)) return 'CREATE';
-    if (/buscar|listar|encontrar|pesquisar/i.test(input)) return 'READ';
-    if (/atualizar|editar|modificar/i.test(input)) return 'UPDATE';
-    if (/deletar|remover|excluir/i.test(input)) return 'DELETE';
-    if (/automatizar|executar|rodar/i.test(input)) return 'AUTOMATE';
-    return 'UNKNOWN';
+    if (/criar|gerar|novo/i.test(input)) return "CREATE";
+    if (/buscar|listar|encontrar|pesquisar/i.test(input)) return "READ";
+    if (/atualizar|editar|modificar/i.test(input)) return "UPDATE";
+    if (/deletar|remover|excluir/i.test(input)) return "DELETE";
+    if (/automatizar|executar|rodar/i.test(input)) return "AUTOMATE";
+    return "UNKNOWN";
   }
 
   private estimateComplexity(input: string): number {
@@ -279,7 +297,11 @@ export class CoreAI extends EventEmitter {
 
     for (const [name, module] of this.moduleRegistry) {
       for (const keyword of keywords) {
-        if (module.capabilities.some(cap => cap.includes(keyword) || keyword.includes(cap))) {
+        if (
+          module.capabilities.some(
+            (cap) => cap.includes(keyword) || keyword.includes(cap),
+          )
+        ) {
           matches.push(name);
           break;
         }
@@ -295,30 +317,36 @@ export class CoreAI extends EventEmitter {
     // Lógica de decisão inteligente
     let taskType = TaskType.INTERNAL_TOOLS;
     let confidence = 0.5;
-    let reasoning = '';
+    let reasoning = "";
     let fallbackOptions: TaskType[] = [];
     let requiredModules: string[] = capabilities;
 
     // Browser automation
-    if (keywords.includes('browser-automation')) {
+    if (keywords.includes("browser-automation")) {
       taskType = TaskType.BROWSER_AUTOMATION;
       confidence = 0.9;
-      reasoning = 'Requisição envolve automação de navegador';
+      reasoning = "Requisição envolve automação de navegador";
       fallbackOptions = [TaskType.PYTHON_EXECUTION, TaskType.INTERNAL_TOOLS];
     }
     // Python execution
-    else if (keywords.includes('python-execution') || keywords.includes('image-processing')) {
+    else if (
+      keywords.includes("python-execution") ||
+      keywords.includes("image-processing")
+    ) {
       taskType = TaskType.PYTHON_EXECUTION;
       confidence = 0.85;
-      reasoning = 'Requisição requer processamento Python';
+      reasoning = "Requisição requer processamento Python";
       fallbackOptions = [TaskType.INTERNAL_TOOLS];
     }
     // Hybrid (multiple keywords)
     else if (keywords.length > 2) {
       taskType = TaskType.HYBRID;
       confidence = 0.8;
-      reasoning = 'Requisição requer múltiplas ferramentas';
-      fallbackOptions = [TaskType.PYTHON_EXECUTION, TaskType.BROWSER_AUTOMATION];
+      reasoning = "Requisição requer múltiplas ferramentas";
+      fallbackOptions = [
+        TaskType.PYTHON_EXECUTION,
+        TaskType.BROWSER_AUTOMATION,
+      ];
     }
 
     return {
@@ -327,13 +355,16 @@ export class CoreAI extends EventEmitter {
       reasoning,
       fallbackOptions,
       estimatedTime: complexity * 3000,
-      requiredModules
+      requiredModules,
     };
   }
 
   // ==================== CRIAÇÃO DE PLANO DE EXECUÇÃO ====================
 
-  public createExecutionPlan(request: UserRequest, decision: TaskDecision): ExecutionPlan {
+  public createExecutionPlan(
+    request: UserRequest,
+    decision: TaskDecision,
+  ): ExecutionPlan {
     const steps: ExecutionStep[] = [];
     let stepCounter = 0;
 
@@ -344,7 +375,7 @@ export class CoreAI extends EventEmitter {
       }
     } else {
       // Criar step único
-      const primaryModule = decision.requiredModules[0] || 'internal-tools';
+      const primaryModule = decision.requiredModules[0] || "internal-tools";
       steps.push(this.createStep(++stepCounter, primaryModule, request));
     }
 
@@ -354,31 +385,36 @@ export class CoreAI extends EventEmitter {
       steps,
       totalSteps: steps.length,
       estimatedDuration: decision.estimatedTime,
-      fallbackStrategies
+      fallbackStrategies,
     };
   }
 
-  private createStep(order: number, module: string, request: UserRequest): ExecutionStep {
+  private createStep(
+    order: number,
+    module: string,
+    request: UserRequest,
+  ): ExecutionStep {
     return {
       id: `step-${order}-${Date.now()}`,
       order,
       action: `execute-${module}`,
-      taskType: this.moduleRegistry.get(module)?.type || TaskType.INTERNAL_TOOLS,
+      taskType:
+        this.moduleRegistry.get(module)?.type || TaskType.INTERNAL_TOOLS,
       module,
       parameters: { input: request.input, context: request.context },
       expectedOutput: null,
       timeout: this.config.timeout,
       retryCount: 0,
-      maxRetries: this.config.maxRetries
+      maxRetries: this.config.maxRetries,
     };
   }
 
   private createFallbackStrategies(decision: TaskDecision): FallbackStrategy[] {
     return decision.fallbackOptions.map((taskType, index) => ({
-      triggerCondition: 'execution_failed',
+      triggerCondition: "execution_failed",
       alternativeTaskType: taskType,
       alternativeModule: this.findModuleByType(taskType),
-      priority: index + 1
+      priority: index + 1,
     }));
   }
 
@@ -386,14 +422,14 @@ export class CoreAI extends EventEmitter {
     for (const [name, module] of this.moduleRegistry) {
       if (module.type === taskType) return name;
     }
-    return 'internal-tools';
+    return "internal-tools";
   }
 
   // ==================== EXECUÇÃO DE TAREFAS ====================
 
   public async execute(request: UserRequest): Promise<ExecutionResult[]> {
     this.memoryContext.currentTask = request;
-    this.emit('execution:started', request);
+    this.emit("execution:started", request);
 
     try {
       const decision = await this.analyzeRequest(request);
@@ -404,25 +440,28 @@ export class CoreAI extends EventEmitter {
         const result = await this.executeStep(step, plan.fallbackStrategies);
         results.push(result);
 
-        if (result.status === ExecutionStatus.FAILED && !this.config.fallbackEnabled) {
+        if (
+          result.status === ExecutionStatus.FAILED &&
+          !this.config.fallbackEnabled
+        ) {
           break;
         }
       }
 
       this.memoryContext.history.push(...results);
-      this.emit('execution:completed', results);
+      this.emit("execution:completed", results);
 
       return results;
     } catch (error) {
-      this.log(`Erro na execução: ${error}`, 'error');
-      this.emit('execution:error', error);
+      this.log(`Erro na execução: ${error}`, "error");
+      this.emit("execution:error", error);
       throw error;
     }
   }
 
   private async executeStep(
     step: ExecutionStep,
-    fallbackStrategies: FallbackStrategy[]
+    fallbackStrategies: FallbackStrategy[],
   ): Promise<ExecutionResult> {
     const startTime = Date.now();
     let currentStep = step;
@@ -430,7 +469,7 @@ export class CoreAI extends EventEmitter {
 
     while (currentStep.retryCount <= currentStep.maxRetries) {
       try {
-        this.emit('step:executing', currentStep);
+        this.emit("step:executing", currentStep);
 
         const output = await this.executeModule(currentStep);
 
@@ -440,14 +479,17 @@ export class CoreAI extends EventEmitter {
           output,
           executionTime: Date.now() - startTime,
           retriesUsed: currentStep.retryCount,
-          fallbackUsed
+          fallbackUsed,
         };
       } catch (error: any) {
         currentStep.retryCount++;
-        this.log(`Erro no step ${currentStep.id}: ${error.message}`, 'warn');
+        this.log(`Erro no step ${currentStep.id}: ${error.message}`, "warn");
 
         if (currentStep.retryCount <= currentStep.maxRetries) {
-          this.emit('step:retrying', { step: currentStep, attempt: currentStep.retryCount });
+          this.emit("step:retrying", {
+            step: currentStep,
+            attempt: currentStep.retryCount,
+          });
           await this.sleep(1000 * currentStep.retryCount);
           continue;
         }
@@ -460,7 +502,7 @@ export class CoreAI extends EventEmitter {
             currentStep = this.createStep(
               currentStep.order,
               fallback.alternativeModule,
-              { input: currentStep.parameters.input } as any
+              { input: currentStep.parameters.input } as any,
             );
             fallbackUsed = true;
             continue;
@@ -475,12 +517,12 @@ export class CoreAI extends EventEmitter {
           error: error.message,
           executionTime: Date.now() - startTime,
           retriesUsed: currentStep.retryCount,
-          fallbackUsed
+          fallbackUsed,
         };
       }
     }
 
-    throw new Error('Máximo de tentativas excedido');
+    throw new Error("Máximo de tentativas excedido");
   }
 
   private async executeModule(step: ExecutionStep): Promise<any> {
@@ -493,10 +535,10 @@ export class CoreAI extends EventEmitter {
     // Emitir evento para executores externos
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Timeout na execução do módulo'));
+        reject(new Error("Timeout na execução do módulo"));
       }, step.timeout);
 
-      this.emit('module:execute', {
+      this.emit("module:execute", {
         module: step.module,
         type: step.taskType,
         parameters: step.parameters,
@@ -507,7 +549,7 @@ export class CoreAI extends EventEmitter {
         onError: (error: Error) => {
           clearTimeout(timeout);
           reject(error);
-        }
+        },
       });
     });
   }
@@ -515,7 +557,9 @@ export class CoreAI extends EventEmitter {
   // ==================== GESTÃO DE ERROS ====================
 
   private recordError(error: string): void {
-    const existing = this.memoryContext.errorPatterns.find(p => p.error === error);
+    const existing = this.memoryContext.errorPatterns.find(
+      (p) => p.error === error,
+    );
 
     if (existing) {
       existing.frequency++;
@@ -524,7 +568,7 @@ export class CoreAI extends EventEmitter {
       this.memoryContext.errorPatterns.push({
         error,
         frequency: 1,
-        lastOccurrence: Date.now()
+        lastOccurrence: Date.now(),
       });
     }
 
@@ -542,7 +586,7 @@ export class CoreAI extends EventEmitter {
 
   public enqueue(request: UserRequest): void {
     this.queue.push(request);
-    this.emit('queue:added', request);
+    this.emit("queue:added", request);
     this.processQueue();
   }
 
@@ -566,14 +610,17 @@ export class CoreAI extends EventEmitter {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
+  private log(
+    message: string,
+    level: "info" | "warn" | "error" = "info",
+  ): void {
     if (this.config.debugMode) {
       console[level](`[CoreAI] ${message}`);
     }
-    this.emit('log', { level, message, timestamp: Date.now() });
+    this.emit("log", { level, message, timestamp: Date.now() });
   }
 
   // ==================== GETTERS ====================
@@ -584,15 +631,23 @@ export class CoreAI extends EventEmitter {
 
   public getStats(): any {
     const history = this.memoryContext.history;
-    const successCount = history.filter(h => h.status === ExecutionStatus.SUCCESS).length;
-    const failCount = history.filter(h => h.status === ExecutionStatus.FAILED).length;
+    const successCount = history.filter(
+      (h) => h.status === ExecutionStatus.SUCCESS,
+    ).length;
+    const failCount = history.filter(
+      (h) => h.status === ExecutionStatus.FAILED,
+    ).length;
 
     return {
       totalExecutions: history.length,
       successRate: history.length > 0 ? successCount / history.length : 0,
       failureRate: history.length > 0 ? failCount / history.length : 0,
-      avgExecutionTime: history.reduce((sum, h) => sum + h.executionTime, 0) / history.length || 0,
-      topErrors: this.memoryContext.errorPatterns.sort((a, b) => b.frequency - a.frequency).slice(0, 5)
+      avgExecutionTime:
+        history.reduce((sum, h) => sum + h.executionTime, 0) / history.length ||
+        0,
+      topErrors: this.memoryContext.errorPatterns
+        .sort((a, b) => b.frequency - a.frequency)
+        .slice(0, 5),
     };
   }
 
@@ -600,7 +655,7 @@ export class CoreAI extends EventEmitter {
     this.memoryContext = this.initializeMemory();
     this.queue = [];
     this.isProcessing = false;
-    this.emit('core:reset');
+    this.emit("core:reset");
   }
 }
 
@@ -624,3 +679,17 @@ export function createCoreAI(config?: Partial<CoreConfig>): CoreAI {
 // ==================== EXPORTS ====================
 
 export default CoreAI;
+
+// Re-exports de tipos para compatibilidade com Rollup
+export type {
+  UserRequest,
+  TaskDecision,
+  ExecutionPlan,
+  ExecutionResult,
+  CoreConfig,
+  ExecutionStep,
+  FallbackStrategy,
+  MemoryContext,
+  ErrorPattern,
+  ModuleRegistry,
+};

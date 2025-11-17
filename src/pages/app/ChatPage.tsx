@@ -376,40 +376,25 @@ const ChatPage: React.FC = () => {
           content: msg.content,
         }));
 
-      // Usar novo chatService com streaming
+      // Usar chatService para obter resposta
       let fullResponse = "";
-      let estimatedTokens = 0;
 
       try {
-        const result = await chatService.sendMessage(
+        const response = await chatService.sendMessage(
           userMessage,
           activeConversationId,
-          {
-            onChunk: (chunk) => {
-              fullResponse += chunk;
-              // Atualizar mensagem em tempo real
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === tempMessageId
-                    ? { ...msg, content: fullResponse }
-                    : msg,
-                ),
-              );
-            },
-            onComplete: (response) => {
-              fullResponse = response;
-              // Estimar tokens (aproximado: 4 chars = 1 token)
-              estimatedTokens = Math.ceil(
-                (userMessage.length + response.length) / 4,
-              );
-              setTokensUsed((prev) => prev + estimatedTokens);
-            },
-          },
         );
+        fullResponse = response;
+
+        // Estimar tokens (aproximado: 4 chars = 1 token)
+        const estimatedTokens = Math.ceil(
+          (userMessage.length + response.length) / 4,
+        );
+        setTokensUsed((prev) => prev + estimatedTokens);
       } catch (error: any) {
         console.error("❌ Erro no chatService:", error);
 
-        // FALLBACK: Tentar IA padrão se falhar
+        // FALLBACK: Tentar IA alternativa se falhar
         toast({
           title: "Tentando IA alternativa...",
           description: "A IA principal falhou, usando fallback.",
@@ -427,22 +412,11 @@ const ChatPage: React.FC = () => {
         if (fallbackAi) {
           setCurrentAiName(fallbackAi.name || "IA Fallback");
           // Retry com fallback
-          const fallbackResult = await chatService.sendMessage(
+          const fallbackResponse = await chatService.sendMessage(
             userMessage,
             activeConversationId,
-            {
-              onChunk: (chunk) => {
-                fullResponse += chunk;
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === tempMessageId
-                      ? { ...msg, content: fullResponse }
-                      : msg,
-                  ),
-                );
-              },
-            },
           );
+          fullResponse = fallbackResponse;
         } else {
           throw error;
         }
@@ -503,7 +477,14 @@ const ChatPage: React.FC = () => {
     } finally {
       setAssistantTyping(false);
     }
-  }, [activeConversationId, input, user, messages, currentAttachments, toast]);
+  }, [
+    activeConversationId,
+    input,
+    user,
+    activeConversation?.messages,
+    currentAttachments,
+    toast,
+  ]);
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
