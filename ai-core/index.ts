@@ -52,6 +52,16 @@ import { SQLAlchemyModule } from "./prompt-library/modules/sqlalchemy-module";
 import { FastAPIModule } from "./prompt-library/modules/fastapi-module";
 import { ScikitLearnModule } from "./prompt-library/modules/scikit-learn-module";
 import { TransformersModule } from "./prompt-library/modules/transformers-module";
+import { PlaywrightModule } from "./prompt-library/modules/playwright-module";
+import { PyTorchModule } from "./prompt-library/modules/pytorch-module";
+import { HTTPXModule } from "./prompt-library/modules/httpx-module";
+import { ScrapyModule } from "./prompt-library/modules/scrapy-module";
+import { MoviePyModule } from "./prompt-library/modules/moviepy-module";
+import { PydubModule } from "./prompt-library/modules/pydub-module";
+import { ReportLabModule } from "./prompt-library/modules/reportlab-module";
+import { MatplotlibModule } from "./prompt-library/modules/matplotlib-module";
+import { SeabornModule } from "./prompt-library/modules/seaborn-module";
+import { RedisModule } from "./prompt-library/modules/redis-module";
 
 // ==================== RE-EXPORTS ====================
 
@@ -228,6 +238,16 @@ export class AISystem extends EventEmitter {
       FastAPIModule,
       ScikitLearnModule,
       TransformersModule,
+      PlaywrightModule,
+      PyTorchModule,
+      HTTPXModule,
+      ScrapyModule,
+      MoviePyModule,
+      PydubModule,
+      ReportLabModule,
+      MatplotlibModule,
+      SeabornModule,
+      RedisModule,
     ];
 
     let loadedCount = 0;
