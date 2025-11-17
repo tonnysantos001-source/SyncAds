@@ -2,6 +2,7 @@ import { ActiveAIIndicator } from "@/components/chat/ActiveAIIndicator";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useAISystem } from "@/hooks/useAISystem";
 import {
   IconSend,
   IconPaperclip,
@@ -95,6 +96,20 @@ const ChatPage: React.FC = () => {
   const [, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // AI System Hook
+  const {
+    initialized: aiSystemInitialized,
+    loading: aiSystemLoading,
+    error: aiSystemError,
+    processRequest: processAIRequest,
+    availableModules,
+    stats: aiStats,
+    isBrowserConnected,
+  } = useAISystem({
+    autoInit: true,
+    debugMode: true,
+  });
 
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
