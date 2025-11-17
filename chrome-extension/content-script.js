@@ -26,10 +26,8 @@ const isSyncAdsSite = SYNCADS_DOMAINS.some(
 console.log("🚀 SyncAds Extension v4.0 - Content Script Active", {
   domain: currentDomain,
   isSyncAdsSite: isSyncAdsSite,
-  url: window.location.href
+  url: window.location.href,
 });
-</text>
-
 
 console.log("🚀 SyncAds Content Script v4.0 - Initializing on:", currentDomain);
 
@@ -342,7 +340,7 @@ async function detectAndSendToken() {
   state.isProcessingToken = true;
   Logger.debug("🔍 Detectando token...", {
     url: window.location.href,
-    isSyncAds: isSyncAdsSite
+    isSyncAds: isSyncAdsSite,
   });
 
   try {
@@ -583,9 +581,9 @@ async function initialize() {
     setTimeout(() => detectAndSendToken(), 2000);
 
     // Adicionar listener para mudanças no localStorage/sessionStorage
-    window.addEventListener('storage', (e) => {
+    window.addEventListener("storage", (e) => {
       Logger.debug("Storage changed", { key: e.key, newValue: !!e.newValue });
-      if (e.key && (e.key.includes('auth') || e.key.includes('supabase'))) {
+      if (e.key && (e.key.includes("auth") || e.key.includes("supabase"))) {
         Logger.info("Auth storage changed! Detectando token...");
         setTimeout(() => detectAndSendToken(), 100);
       }
@@ -593,9 +591,9 @@ async function initialize() {
 
     // Observar mudanças diretas no localStorage
     const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
+    localStorage.setItem = function (key, value) {
       originalSetItem.apply(this, arguments);
-      if (key.includes('auth') || key.includes('supabase')) {
+      if (key.includes("auth") || key.includes("supabase")) {
         Logger.info("LocalStorage auth modified!", { key });
         setTimeout(() => detectAndSendToken(), 100);
       }
