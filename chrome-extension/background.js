@@ -111,6 +111,78 @@ function startKeepAlive() {
 }
 
 // ============================================
+// HEARTBEAT PARA MANTER STATUS ONLINE
+// ============================================
+async function sendHeartbeat() {
+  if (!state.userId || !state.deviceId || !state.accessToken) {
+    Logger.debug("Skipping heartbeat: not authenticated");
+    return;
+  }
+
+  try {
+    // Atualizar lastSeen e isOnline no banco
+    const response = await fetch(
+      `${CONFIG.restUrl}/ExtensionDevice?deviceId=eq.${state.deviceId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          isOnline: true,
+          lastSeen: new Date().toISOString(),
+        }),
+      },
+    );
+
+    if (response.ok) {
+      Logger.debug("Heartbeat sent successfully");
+      state.lastActivity = Date.now();
+
+      // Atualizar storage para sincronizar com popup
+      await chrome.storage.local.set({
+        lastActivity: state.lastActivity,
+        isConnected: true,
+      });
+    } else {
+      Logger.warn("Heartbeat failed", { status: response.status });
+    }
+  } catch (error) {
+    Logger.error("Heartbeat error", error);
+  }
+}
+
+// Iniciar heartbeat a cada 30 segundos
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+  }
+
+  // Enviar imediatamente
+  sendHeartbeat();
+
+  // Depois a cada 30 segundos
+  heartbeatInterval = setInterval(() => {
+    sendHeartbeat();
+  }, 30000); // 30 segundos
+
+  Logger.info("Heartbeat started");
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    Logger.info("Heartbeat stopped");
+  }
+}
+
+// ============================================
 // WAIT FOR SERVICE WORKER
 // ============================================
 async function waitForServiceWorker(maxAttempts = 5, delayMs = 200) {
@@ -594,6 +666,9 @@ async function handleAuthToken(data) {
 
     state.isConnected = true;
 
+    // Start heartbeat
+    startHeartbeat();
+
     // Start token refresh scheduler
     if (state.refreshToken) {
       startTokenRefreshScheduler();
@@ -640,6 +715,7 @@ async function disconnect() {
 
   // Stop schedulers
   stopTokenRefreshScheduler();
+  stopHeartbeat();
 
   // Clear state
   state.userId = null;
