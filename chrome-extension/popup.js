@@ -50,18 +50,21 @@ function setButtonState(state) {
 }
 
 function updateStatus(isConnected) {
+  console.log("🎨 Updating UI status:", isConnected);
+
   if (isConnected) {
     statusIndicator.classList.add("connected");
-    statusTitle.textContent = "Conectado";
+    statusTitle.textContent = "✅ Conectado";
     statusSubtitle.textContent = "Extensão ativa • Automação habilitada";
     openPanelBtn.style.display = "none";
   } else {
     statusIndicator.classList.remove("connected");
-    statusTitle.textContent = "Desconectado";
-    statusSubtitle.textContent = "Clique em Conectar";
+    statusTitle.textContent = "⚠️ Desconectado";
+    statusSubtitle.textContent = "Clique em Conectar para ativar";
     openPanelBtn.style.display = "inline-flex";
   }
-}
+}</text>
+
 
 // ============================================
 // VERIFICAR STATUS
@@ -72,9 +75,26 @@ async function checkConnectionStatus() {
       "deviceId",
       "userId",
       "isConnected",
+      "accessToken",
+      "lastActivity",
     ]);
 
-    const isConnected = result.deviceId && result.userId && result.isConnected;
+    // Verificar se tem dados básicos
+    const hasBasicData = result.deviceId && result.userId && result.accessToken;
+
+    // Verificar se a última atividade foi recente (últimos 2 minutos)
+    const lastActivity = result.lastActivity || 0;
+    const isRecent = (Date.now() - lastActivity) < 120000; // 2 minutos
+
+    // Considerar conectado se tem dados e atividade recente
+    const isConnected = hasBasicData && (result.isConnected || isRecent);
+
+    console.log("📊 Status Check:", {
+      hasBasicData,
+      isRecent,
+      isConnected,
+      lastActivity: new Date(lastActivity).toISOString()
+    });
 
     updateStatus(isConnected);
 
@@ -144,7 +164,8 @@ openPanelBtn.addEventListener("click", async (e) => {
 // Listener para mudanças no storage
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local") {
-    if (changes.isConnected || changes.deviceId || changes.userId) {
+    if (changes.isConnected || changes.deviceId || changes.userId || changes.lastActivity) {
+      console.log("🔄 Storage changed, rechecking status...");
       checkConnectionStatus();
     }
   }
@@ -178,5 +199,10 @@ async function initialize() {
   setTimeout(hideLoading, 300);
 }
 
-// Iniciar
+// Iniciar e verificar periodicamente
 initialize();
+
+// Verificar status a cada 10 segundos
+setInterval(() => {
+  checkConnectionStatus();
+}, 10000);
