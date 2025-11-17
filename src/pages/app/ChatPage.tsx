@@ -156,11 +156,11 @@ export default function ChatPageNovo() {
     const checkExtension = async () => {
       try {
         const { data, error } = await supabase
-          .from("ExtensionDevice")
-          .select("id, deviceId, isOnline, lastSeen")
-          .eq("userId", user.id)
-          .eq("isOnline", true)
-          .order("lastSeen", { ascending: false })
+          .from("extension_devices")
+          .select("id, device_id, status, last_seen")
+          .eq("user_id", user.id)
+          .eq("status", "online")
+          .order("last_seen", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -170,11 +170,11 @@ export default function ChatPageNovo() {
         }
 
         const isConnected =
-          !!data && new Date(data.lastSeen).getTime() > Date.now() - 60000;
+          !!data && new Date(data.last_seen).getTime() > Date.now() - 60000;
 
         setExtensionStatus({
           connected: isConnected,
-          deviceId: data?.deviceId || null,
+          deviceId: data?.device_id || null,
           lastCheck: Date.now(),
         });
       } catch (error) {
@@ -250,13 +250,13 @@ export default function ChatPageNovo() {
     }
 
     try {
-      const { error } = await supabase.from("ExtensionCommand").insert({
+      const { error } = await supabase.from("extension_commands").insert({
         id: crypto.randomUUID(),
-        deviceId: extensionStatus.deviceId,
-        command,
-        params,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
+        device_id: extensionStatus.deviceId,
+        type: command,
+        options: params,
+        status: "pending",
+        created_at: new Date().toISOString(),
       });
 
       return !error;
