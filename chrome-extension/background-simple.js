@@ -127,7 +127,7 @@ async function handleAuthToken(data) {
 }
 
 // ============================================
-// REGISTRAR DISPOSITIVO NO SUPABASE
+// REGISTRAR DISPOSITIVO NO SUPABASE VIA EDGE FUNCTION
 // ============================================
 async function registerDevice() {
   try {
@@ -151,15 +151,113 @@ async function registerDevice() {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("❌ Erro ao registrar:", error);
-      return false;
+      console.error("❌ Erro na Edge Function:", error);
+      console.log("🔄 Tentando registro direto via REST API...");
+      return await registerDeviceDirectly();
     }
 
     const data = await response.json();
-    console.log("✅ Dispositivo registrado:", data);
+    console.log("✅ Dispositivo registrado via Edge Function:", data);
     return true;
   } catch (error) {
-    console.error("❌ Erro ao registrar dispositivo:", error);
+    console.error("❌ Erro na Edge Function:", error);
+    console.log("🔄 Tentando registro direto via REST API...");
+    return await registerDeviceDirectly();
+  }
+}
+
+// ============================================
+// REGISTRAR DISPOSITIVO DIRETO VIA REST API (FALLBACK)
+// ============================================
+async function registerDeviceDirectly() {
+  try {
+    console.log("📝 Registrando via REST API do Supabase...");
+
+    // 1. Verificar se dispositivo já existe
+    const checkResponse = await fetch(
+      `${CONFIG.supabaseUrl}/rest/v1/extension_devices?device_id=eq.${state.deviceId}&select=*`,
+      {
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const existing = await checkResponse.json();
+
+    if (existing && existing.length > 0) {
+      // Atualizar dispositivo existente
+      console.log("📝 Atualizando dispositivo existente...");
+      const updateResponse = await fetch(
+        `${CONFIG.supabaseUrl}/rest/v1/extension_devices?device_id=eq.${state.deviceId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${state.accessToken}`,
+            apikey: CONFIG.supabaseAnonKey,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({
+            status: "online",
+            last_seen: new Date().toISOString(),
+            version: CONFIG.version,
+            browser_info: {
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              language: navigator.language,
+            },
+          }),
+        },
+      );
+
+      if (updateResponse.ok) {
+        console.log("✅ Dispositivo atualizado via REST API!");
+        return true;
+      }
+    } else {
+      // Criar novo dispositivo
+      console.log("📝 Criando novo dispositivo...");
+      const createResponse = await fetch(
+        `${CONFIG.supabaseUrl}/rest/v1/extension_devices`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${state.accessToken}`,
+            apikey: CONFIG.supabaseAnonKey,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({
+            device_id: state.deviceId,
+            user_id: state.userId,
+            status: "online",
+            last_seen: new Date().toISOString(),
+            version: CONFIG.version,
+            browser_info: {
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              language: navigator.language,
+            },
+          }),
+        },
+      );
+
+      if (createResponse.ok) {
+        console.log("✅ Dispositivo criado via REST API!");
+        return true;
+      } else {
+        const errorText = await createResponse.text();
+        console.error("❌ Erro ao criar dispositivo:", errorText);
+        return false;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error("❌ Erro no registro direto:", error);
     return false;
   }
 }
