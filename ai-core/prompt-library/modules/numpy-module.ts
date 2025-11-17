@@ -102,4 +102,5 @@ Ao trabalhar com NumPy, você SEMPRE deve:
       'IndexError: Validar índices com array.shape',
       'TypeError: Garantir tipos compatíveis com operação',
       'RuntimeWarning (divide by zero): Usar np.errstate() ou np.seterr()',
-      'LinAlgError: Verificar se matriz é
+      'LinAlgError: Verificar se matriz é singular ou mal-condicionada'
+    ]
