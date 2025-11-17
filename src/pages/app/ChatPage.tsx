@@ -81,8 +81,28 @@ export default function ChatPageNovo() {
         if (convsError) throw convsError;
 
         if (!convs || convs.length === 0) {
-          // Criar primeira conversa
-          await createNewConversation();
+          // Criar primeira conversa automaticamente
+          const firstConv = {
+            id: crypto.randomUUID(),
+            userId: user.id,
+            title: `Conversa ${new Date().toLocaleDateString()}`,
+            createdAt: new Date().toISOString(),
+          };
+
+          const { error: insertError } = await supabase
+            .from("ChatConversation")
+            .insert(firstConv);
+
+          if (!insertError) {
+            setConversations([
+              {
+                id: firstConv.id,
+                title: firstConv.title,
+                messages: [],
+              },
+            ]);
+            setActiveConversationId(firstConv.id);
+          }
           return;
         }
 
@@ -312,6 +332,9 @@ export default function ChatPageNovo() {
             message: userMessage,
             conversationId: activeConversationId,
             extensionConnected: extensionStatus.connected,
+            systemPrompt: extensionStatus.connected
+              ? "Você é o assistente de IA do SyncAds. IMPORTANTE: A extensão do navegador está CONECTADA e ATIVA. Você TEM ACESSO ao navegador do usuário e pode executar comandos como NAVEGAR, CLICAR, PREENCHER, etc. Quando o usuário pedir para fazer algo no navegador (como abrir Facebook Ads, criar campanha, etc), você DEVE informar que vai fazer isso e então executar o comando. Nunca diga que não pode acessar o navegador - você PODE através da extensão que está ativa."
+              : "Você é o assistente de IA do SyncAds. IMPORTANTE: A extensão do navegador está OFFLINE no momento. Você NÃO tem acesso ao navegador do usuário. Se o usuário pedir para fazer algo no navegador, instrua-o a instalar e ativar a extensão SyncAds AI primeiro. Você pode ajudar com: análise de dados, código Python, estratégias de marketing, configurações, e responder perguntas.",
           }),
         },
       );
