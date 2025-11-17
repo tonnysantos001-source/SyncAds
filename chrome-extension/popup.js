@@ -63,8 +63,7 @@ function updateStatus(isConnected) {
     statusSubtitle.textContent = "Clique em Conectar para ativar";
     openPanelBtn.style.display = "inline-flex";
   }
-}</text>
-
+}
 
 // ============================================
 // VERIFICAR STATUS
