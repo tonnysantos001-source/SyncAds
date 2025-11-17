@@ -42,7 +42,7 @@ import BrowserAutomationController, {
 
 // ==================== PROMPT MODULES ====================
 import { PandasModule } from "./prompt-library/modules/pandas-module";
-// import { NumPyModule } from "./prompt-library/modules/numpy-module"; // Temporariamente desabilitado - arquivo incompleto
+import { NumPyModule } from "./prompt-library/modules/numpy-module";
 import { PillowModule } from "./prompt-library/modules/pillow-module";
 import { OpenCVModule } from "./prompt-library/modules/opencv-module";
 import { RequestsModule } from "./prompt-library/modules/requests-module";
@@ -218,7 +218,7 @@ export class AISystem extends EventEmitter {
     // Carregar todos os módulos disponíveis
     const modules = [
       PandasModule,
-      // NumPyModule, // Temporariamente desabilitado - arquivo incompleto
+      NumPyModule,
       PillowModule,
       OpenCVModule,
       RequestsModule,
