@@ -97,16 +97,22 @@ function detectAndSendToken() {
     checkCount++;
     const keys = Object.keys(localStorage);
 
-    // Procurar chave do Supabase
-    const supabaseKey = keys.find(
+    // Procurar chave do Supabase (formato novo ou legado)
+    let supabaseKey = keys.find(
       (k) => k.startsWith("sb-") && k.includes("-auth-token"),
     );
+
+    // Se não encontrou formato novo, tentar legado
+    if (!supabaseKey) {
+      supabaseKey = keys.find((k) => k === "supabase.auth.token");
+    }
 
     if (!supabaseKey) {
       if (checkCount % 50 === 0) {
         console.log("⏳ Aguardando token do Supabase...", {
           totalKeys: keys.length,
           checks: checkCount,
+          keysFound: keys,
         });
       }
       return;
@@ -117,6 +123,7 @@ function detectAndSendToken() {
     if (!authDataRaw) return;
 
     const authData = JSON.parse(authDataRaw);
+    console.log("🔑 Chave detectada:", supabaseKey);
     const user = authData?.user;
     const accessToken = authData?.access_token;
     const expiresAt = authData?.expires_at;
