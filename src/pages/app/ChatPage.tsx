@@ -4,6 +4,7 @@ import { IconSend, IconPlus, IconMenu2, IconX } from "@tabler/icons-react";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 
 // ============================================
 // TYPES
@@ -44,6 +45,7 @@ export default function ChatPageNovo() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [aiStatus, setAiStatus] = useState<"thinking" | "searching" | "navigating" | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     connected: false,
@@ -170,7 +172,7 @@ export default function ChatPageNovo() {
         }
 
         const isConnected =
-          !!data && new Date(data.last_seen).getTime() > Date.now() - 60000;
+          !!data && new Date(data.last_seen).getTime() > Date.now() - 30000; // 30s timeout (2x heartbeat)
 
         setExtensionStatus({
           connected: isConnected,
@@ -185,8 +187,8 @@ export default function ChatPageNovo() {
     // Verificar imediatamente
     checkExtension();
 
-    // Verificar a cada 10 segundos
-    const interval = setInterval(checkExtension, 10000);
+    // Verificar a cada 5 segundos (mais responsivo)
+    const interval = setInterval(checkExtension, 5000);
 
     return () => clearInterval(interval);
   }, [user]);
@@ -273,47 +275,44 @@ export default function ChatPageNovo() {
     if (!input.trim() || !activeConversationId || !user || isSending) return;
 
     const userMessage = input.trim();
+    const tempUserMsgId = `temp-user-${Date.now()}`;
+    const tempAiMsgId = `temp-ai-${Date.now()}`;
+
     setInput("");
     setIsSending(true);
 
+    // Determinar status da IA baseado na mensagem
+    const msgLower = userMessage.toLowerCase();
+    if (msgLower.includes("pesquis") || msgLower.includes("busca") || msgLower.includes("procur")) {
+      setAiStatus("searching");
+    } else if (msgLower.includes("abr") || msgLower.includes("naveg") || msgLower.includes("acess")) {
+      setAiStatus("navigating");
+    } else {
+      setAiStatus("thinking");
+    }
+
     try {
-      // 1. Salvar mensagem do usuário
-      const userMsg = {
-        id: crypto.randomUUID(),
-        conversationId: activeConversationId,
-        userId: user.id,
-        role: "USER",
-        content: userMessage,
-        createdAt: new Date().toISOString(),
-      };
-
-      const { error: userMsgError } = await supabase
-        .from("ChatMessage")
-        .insert(userMsg);
-
-      if (userMsgError) throw userMsgError;
-
-      // Atualizar UI com mensagem do usuário
+      // 1. Adicionar mensagem do usuário na UI imediatamente (otimistic update)
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  ...conv.messages,
-                  {
-                    id: userMsg.id,
-                    role: "user",
-                    content: userMsg.content,
-                    createdAt: userMsg.createdAt,
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                ...conv.messages,
+                {
+                  id: tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
 
-      // 2. Chamar Edge Function para resposta da IA
+      // 2. Chamar Edge Function (ela vai salvar AMBAS mensagens)
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -333,8 +332,8 @@ export default function ChatPageNovo() {
             conversationId: activeConversationId,
             extensionConnected: extensionStatus.connected,
             systemPrompt: extensionStatus.connected
-              ? "Você é o assistente de IA do SyncAds. IMPORTANTE: A extensão do navegador está CONECTADA e ATIVA. Você TEM ACESSO ao navegador do usuário e pode executar comandos como NAVEGAR, CLICAR, PREENCHER, etc. Quando o usuário pedir para fazer algo no navegador (como abrir Facebook Ads, criar campanha, etc), você DEVE informar que vai fazer isso e então executar o comando. Nunca diga que não pode acessar o navegador - você PODE através da extensão que está ativa."
-              : "Você é o assistente de IA do SyncAds. IMPORTANTE: A extensão do navegador está OFFLINE no momento. Você NÃO tem acesso ao navegador do usuário. Se o usuário pedir para fazer algo no navegador, instrua-o a instalar e ativar a extensão SyncAds AI primeiro. Você pode ajudar com: análise de dados, código Python, estratégias de marketing, configurações, e responder perguntas.",
+              ? "Você é o assistente de IA do SyncAds com ACESSO REAL ao navegador através da extensão conectada. Você pode REALMENTE executar comandos no navegador."
+              : "Você é o assistente de IA do SyncAds. A extensão está OFFLINE - você NÃO tem acesso ao navegador no momento.",
           }),
         },
       );
@@ -349,43 +348,47 @@ export default function ChatPageNovo() {
         throw new Error(data.error);
       }
 
-      // 3. Salvar resposta da IA
-      const aiMsg = {
-        id: crypto.randomUUID(),
-        conversationId: activeConversationId,
-        userId: user.id,
-        role: "ASSISTANT",
-        content: data.response || "Desculpe, não consegui gerar uma resposta.",
-        createdAt: new Date().toISOString(),
-      };
-
-      const { error: aiMsgError } = await supabase
-        .from("ChatMessage")
-        .insert(aiMsg);
-
-      if (aiMsgError) throw aiMsgError;
-
-      // Atualizar UI com resposta da IA
+      // 3. Atualizar UI com IDs reais do banco (substituir temporários)
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  ...conv.messages,
-                  {
-                    id: aiMsg.id,
-                    role: "assistant",
-                    content: aiMsg.content,
-                    createdAt: aiMsg.createdAt,
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                // Remover temporários e adicionar as mensagens reais do banco
+                ...conv.messages.filter(m => !m.id.startsWith('temp-')),
+                {
+                  id: data.userMessageId || tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+                {
+                  id: data.aiMessageId || tempAiMsgId,
+                  role: "assistant",
+                  content: data.response || "Desculpe, não consegui gerar uma resposta.",
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
+
+      // Remover mensagem temporária em caso de erro
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === activeConversationId
+            ? {
+              ...conv,
+              messages: conv.messages.filter(m => !m.id.startsWith('temp-')),
+            }
+            : conv,
+        ),
+      );
+
       toast({
         title: "Erro ao enviar mensagem",
         description: error.message || "Tente novamente",
@@ -393,6 +396,7 @@ export default function ChatPageNovo() {
       });
     } finally {
       setIsSending(false);
+      setAiStatus(null);
     }
   };
 
@@ -439,9 +443,8 @@ export default function ChatPageNovo() {
     <div className="flex h-screen bg-gray-950 text-white">
       {/* SIDEBAR */}
       <div
-        className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } transition-all duration-300 border-r border-gray-800 flex flex-col`}
+        className={`${sidebarOpen ? "w-80" : "w-0"
+          } transition-all duration-300 border-r border-gray-800 flex flex-col`}
       >
         {sidebarOpen && (
           <>
@@ -467,11 +470,10 @@ export default function ChatPageNovo() {
                   <div
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
-                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
-                      activeConversationId === conv.id
-                        ? "bg-gray-800 border border-blue-600"
-                        : "bg-gray-900 hover:bg-gray-800"
-                    }`}
+                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
+                      ? "bg-gray-800 border border-blue-600"
+                      : "bg-gray-900 hover:bg-gray-800"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm truncate">{conv.title}</span>
@@ -513,16 +515,14 @@ export default function ChatPageNovo() {
           {/* Status da Extensão */}
           <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                extensionStatus.connected
-                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                  : "bg-gray-800 text-gray-400 border border-gray-700"
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
+                ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                : "bg-gray-800 text-gray-400 border border-gray-700"
+                }`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${
-                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                }`}
+                className={`w-2 h-2 rounded-full ${extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                  }`}
               />
               <span>
                 {extensionStatus.connected
@@ -583,9 +583,8 @@ export default function ChatPageNovo() {
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${
-                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                    }`}
+                    className={`max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-blue-600" : "bg-gray-800"
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
@@ -593,6 +592,8 @@ export default function ChatPageNovo() {
                   </div>
                 </div>
               ))}
+              {/* Typing indicator quando IA está processando */}
+              {aiStatus && <TypingIndicator status={aiStatus} />}
               <div ref={messagesEndRef} />
             </>
           )}

