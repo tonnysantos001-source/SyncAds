@@ -28,6 +28,12 @@ serve(async (req) => {
       extensionConnected,
     });
 
+    console.log("⚠️ CRITICAL DEBUG - Extension Status:", {
+      extensionConnectedValue: extensionConnected,
+      extensionConnectedType: typeof extensionConnected,
+      isTruthy: extensionConnected ? "YES" : "NO",
+    });
+
     // Get user from auth header
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -588,6 +594,7 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
 
     console.log("📝 System Prompt Final Length:", finalSystemPrompt.length);
     console.log("🌐 Browser Extension Status:", extensionConnected ? "CONNECTED ✅" : "OFFLINE ❌");
+    console.log("📄 FINAL SYSTEM PROMPT (first 500 chars):", finalSystemPrompt.substring(0, 500));
 
     // Salvar mensagem do usuário no banco
     const userMsgId = crypto.randomUUID();
