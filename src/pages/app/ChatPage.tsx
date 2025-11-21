@@ -360,6 +360,14 @@ export default function ChatPageNovo() {
 
       if (!session) throw new Error("Sem sessão");
 
+      // LOG DE DEBUG CRÍTICO
+      console.log("🚀 Enviando mensagem para IA:", {
+        message: userMessage,
+        extensionConnected: extensionStatus.connected,
+        deviceId: extensionStatus.deviceId,
+        systemPromptLength: extensionStatus.connected ? "LONG (Connected)" : "SHORT (Offline)"
+      });
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-enhanced`,
         {
