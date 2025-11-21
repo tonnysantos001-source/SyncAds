@@ -239,11 +239,13 @@ export default function ChatPageNovo() {
     }
 
     try {
+      const now = new Date().toISOString();
       const newConv = {
         id: crypto.randomUUID(),
         userId: user.id,
         title: `Conversa ${new Date().toLocaleDateString()}`,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now, // CORREÇÃO: campo obrigatório
       };
 
       console.log("🆕 Criando nova conversa:", newConv);

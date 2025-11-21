@@ -841,6 +841,153 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             },
           };
 
+        // ============================================
+        // COMANDOS DOM GERAIS - AUTOMAÇÃO WEB
+        // ============================================
+
+        case "CLICK_ELEMENT":
+          // Clicar em elemento usando seletor CSS
+          const clickTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!clickTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          await chrome.scripting.executeScript({
+            target: { tabId: clickTab[0].id },
+            func: (selector) => {
+              const element = document.querySelector(selector);
+              if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+              element.click();
+              return { success: true, clicked: selector };
+            },
+            args: [request.data.selector],
+          });
+
+          return { success: true, action: "clicked", selector: request.data.selector };
+
+        case "TYPE_TEXT":
+          // Digitar texto em campo usando seletor CSS
+          const typeTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!typeTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          await chrome.scripting.executeScript({
+            target: { tabId: typeTab[0].id },
+            func: (selector, text) => {
+              const element = document.querySelector(selector);
+              if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+
+              if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                element.value = text;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+              } else {
+                element.textContent = text;
+              }
+
+              return { success: true, typed: text };
+            },
+            args: [request.data.selector, request.data.text],
+          });
+
+          return { success: true, action: "typed", selector: request.data.selector };
+
+        case "READ_TEXT":
+          // Ler texto de elemento ou página inteira
+          const readTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!readTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          const [readResult] = await chrome.scripting.executeScript({
+            target: { tabId: readTab[0].id },
+            func: (selector) => {
+              if (selector) {
+                const element = document.querySelector(selector);
+                if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+                return { success: true, text: element.innerText || element.textContent };
+              } else {
+                // Ler página inteira
+                return { success: true, text: document.body.innerText };
+              }
+            },
+            args: [request.data.selector],
+          });
+
+          return readResult.result;
+
+        case "EXECUTE_JS":
+          // Executar JavaScript personalizado na página
+          const execTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!execTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          const [execResult] = await chrome.scripting.executeScript({
+            target: { tabId: execTab[0].id },
+            func: (code) => {
+              try {
+                const result = eval(code);
+                return { success: true, result };
+              } catch (error) {
+                return { success: false, error: error.message };
+              }
+            },
+            args: [request.data.code],
+          });
+
+          return execResult.result;
+
+        case "SCROLL_TO":
+          // Scroll para elemento ou posição
+          const scrollTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!scrollTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          await chrome.scripting.executeScript({
+            target: { tabId: scrollTab[0].id },
+            func: (selector, position) => {
+              if (selector) {
+                const element = document.querySelector(selector);
+                if (element) element.scrollIntoView({ behavior: 'smooth' });
+              } else if (position) {
+                window.scrollTo({ top: position, behavior: 'smooth' });
+              }
+            },
+            args: [request.data.selector, request.data.position],
+          });
+
+          return { success: true, action: "scrolled" };
+
+        case "WAIT":
+          // Aguardar tempo em ms
+          await new Promise(resolve => setTimeout(resolve, request.data.ms || 1000));
+          return { success: true, waited: request.data.ms };
+
+        case "GET_PAGE_INFO":
+          // Obter informações completas da página
+          const infoTab = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!infoTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+          const [infoResult] = await chrome.scripting.executeScript({
+            target: { tabId: infoTab[0].id },
+            func: () => {
+              return {
+                title: document.title,
+                url: window.location.href,
+                html: document.documentElement.outerHTML.substring(0, 5000), // Primeiros 5000 chars
+                forms: Array.from(document.forms).map(f => ({
+                  action: f.action,
+                  method: f.method,
+                  fields: Array.from(f.elements).map(e => ({
+                    name: e.name,
+                    type: e.type,
+                    value: e.value,
+                  })),
+                })),
+                links: Array.from(document.links).slice(0, 50).map(l => ({
+                  text: l.textContent,
+                  href: l.href,
+                })),
+              };
+            },
+          });
+
+          return { success: true, data: infoResult.result };
+
+
         case "DISCONNECT":
           await disconnect();
           return { success: true, message: "Disconnected" };
