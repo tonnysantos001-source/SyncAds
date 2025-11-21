@@ -629,7 +629,6 @@ async function initialize() {
   state.isInitialized = true;
 
   Logger.success("Content script initialized and monitoring", {
-    checkInterval: checkInterval + "ms",
     storageMonitorInterval: CONFIG.detection.storageMonitorInterval + "ms",
     isSyncAdsSite: isSyncAdsSite,
   });

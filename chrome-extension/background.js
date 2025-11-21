@@ -804,7 +804,73 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
       switch (request.type) {
         case "AUTH_TOKEN_DETECTED":
-          return await handleAuthToken(request.data);
+          // Content script detectou token de autenticação
+          Logger.info("Auth token detected from content script", {
+            userId: request.data?.userId,
+            email: request.data?.email,
+          });
+
+          try {
+            // Salvar no state
+            state.userId = request.data.userId;
+            state.userEmail = request.data.email;
+            state.accessToken = request.data.accessToken;
+            state.refreshToken = request.data.refreshToken;
+            state.tokenExpiresAt = request.data.expiresAt;
+            state.isConnected = true;
+
+            // Salvar no storage
+            await chrome.storage.local.set({
+              userId: state.userId,
+              userEmail: state.userEmail,
+              accessToken: state.accessToken,
+              refreshToken: state.refreshToken,
+              tokenExpiresAt: state.tokenExpiresAt,
+              isConnected: true,
+              lastActivity: Date.now(),
+            });
+
+            // Registrar device no Supabase
+            const deviceData = {
+              device_id: state.deviceId,
+              user_id: state.userId,
+              status: "online",
+              last_seen: new Date().toISOString(),
+              browser: navigator.userAgent,
+              version: CONFIG.version,
+            };
+
+            Logger.info("Registering device in Supabase...", {
+              deviceId: state.deviceId.substring(0, 12) + "...",
+              userId: state.userId,
+            });
+
+            const { error: deviceError } = await window.supabaseClient
+              .from("extension_devices")
+              .upsert(deviceData, {
+                onConflict: "device_id",
+              });
+
+            if (deviceError) {
+              Logger.error("Device registration error", deviceError);
+              return { success: false, error: deviceError.message };
+            }
+
+            Logger.success("Device registered successfully!");
+
+            // Iniciar heartbeat
+            startHeartbeat();
+
+            return {
+              success: true,
+              message: "Authentication successful",
+              userId: state.userId,
+              deviceId: state.deviceId,
+            };
+          } catch (error) {
+            Logger.error("Auth token processing error", error);
+            return { success: false, error: error.message };
+          }
 
         case "GET_STATUS":
           return {
