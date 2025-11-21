@@ -204,7 +204,14 @@ export default function ChatPageNovo() {
   // CRIAR NOVA CONVERSA
   // ============================================
   const createNewConversation = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const newConv = {
@@ -214,9 +221,16 @@ export default function ChatPageNovo() {
         createdAt: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from("ChatConversation").insert(newConv);
+      console.log("🆕 Criando nova conversa:", newConv);
 
-      if (error) throw error;
+      const { data, error } = await supabase.from("ChatConversation").insert(newConv).select().single();
+
+      if (error) {
+        console.error("❌ Erro Supabase:", error);
+        throw error;
+      }
+
+      console.log("✅ Conversa criada:", data);
 
       const newConversation: Conversation = {
         id: newConv.id,
@@ -231,10 +245,10 @@ export default function ChatPageNovo() {
         title: "Nova conversa criada!",
       });
     } catch (error: any) {
-      console.error("Erro ao criar conversa:", error);
+      console.error("❌ Erro ao criar conversa:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível criar nova conversa",
+        description: error?.message || "Não foi possível criar nova conversa",
         variant: "destructive",
       });
     }
