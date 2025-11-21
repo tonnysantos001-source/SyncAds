@@ -836,7 +836,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               user_id: state.userId,
               status: "online",
               last_seen: new Date().toISOString(),
-              browser: navigator.userAgent,
+              // browser: navigator.userAgent, // Coluna não existe no banco
               version: CONFIG.version,
             };
 
