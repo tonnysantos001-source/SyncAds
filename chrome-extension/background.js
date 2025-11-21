@@ -93,59 +93,82 @@ const Logger = {
 // COMMAND POLLING (NEW)
 // ============================================
 async function checkPendingCommands() {
-  if (!state.isConnected || !state.deviceId || !state.accessToken) return;
+  if (!state.accessToken) {
+    return;
+  }
 
   try {
     const response = await fetch(
-      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&select=*`,
+      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=5`,
       {
-        method: "GET",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${state.accessToken}`,
           apikey: CONFIG.supabaseAnonKey,
         },
       }
     );
 
-    if (!response.ok) return;
-
     const commands = await response.json();
-    if (!commands || commands.length === 0) return;
 
-    Logger.info(`Found ${commands.length} pending commands`, commands);
+    if (commands && commands.length > 0) {
+      Logger.info("📦 Comandos pendentes encontrados", {
+        count: commands.length,
+        commands: commands.map(c => ({ id: c.id, command: c.command }))
+      });
 
-    for (const cmd of commands) {
-      // Marcar como processando
-      await updateCommandStatus(cmd.id, "processing");
+      for (const cmd of commands) {
+        try {
+          Logger.info("🚀 Executando comando", {
+            id: cmd.id,
+            command: cmd.command,
+            params: cmd.params
+          });
 
-      // Executar comando
-      const result = await executeCommand(cmd);
+          await updateCommandStatus(cmd.id, "processing");
 
-      // Atualizar status final
-      await updateCommandStatus(cmd.id, result.success ? "completed" : "failed", result);
+          const result = await executeCommand(cmd);
+
+          Logger.success("✅ Comando completado", { id: cmd.id, result });
+          await updateCommandStatus(cmd.id, "completed", result);
+        } catch (error) {
+          Logger.error("❌ Erro ao executar comando", { id: cmd.id, error });
+          await updateCommandStatus(cmd.id, "failed", null, error.message);
+        }
+      }
     }
   } catch (error) {
-    // Silently fail to avoid log spam
+    Logger.error("Erro ao verificar comandos pendentes", error);
   }
 }
 
-async function updateCommandStatus(commandId, status, result = null) {
+async function updateCommandStatus(commandId, status, result = null, error = null) {
+  if (!state.accessToken) return;
+
   try {
+    const payload = {
+      status: status.toUpperCase(),
+    };
+
+    if (status === "completed" && result) {
+      payload.result = result;
+      payload.completedAt = new Date().toISOString();
+    }
+
+    if (status === "failed" && error) {
+      payload.error = error;
+    }
+
     await fetch(
-      `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
+      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
       {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${state.accessToken}`,
           apikey: CONFIG.supabaseAnonKey,
+          Prefer: "return=minimal",
         },
-        body: JSON.stringify({
-          status,
-          result,
-          executed_at: new Date().toISOString()
-        }),
+        body: JSON.stringify(payload),
       }
     );
   } catch (e) {
@@ -154,10 +177,12 @@ async function updateCommandStatus(commandId, status, result = null) {
 }
 
 async function executeCommand(cmd) {
-  const request = { type: cmd.type, data: cmd.options || {} };
+  const request = {
+    type: cmd.command,      // ← Agora lê 'command' do banco
+    data: cmd.params || {}  // ← Agora lê 'params' do banco
+  };
 
-  // Reutilizar lógica do handleAsync
-  // Simular estrutura do onMessage
+  // Reutilizar lógica do handleAsyncInternal
   return await handleAsyncInternal(request);
 }
 
