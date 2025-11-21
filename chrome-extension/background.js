@@ -122,7 +122,7 @@ async function sendHeartbeat() {
   try {
     // Atualizar lastSeen e isOnline no banco
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionDevice?deviceId=eq.${state.deviceId}`,
+      `${CONFIG.restUrl}/extension_devices?device_id=eq.${state.deviceId}`,
       {
         method: "PATCH",
         headers: {
@@ -132,8 +132,8 @@ async function sendHeartbeat() {
           Prefer: "return=minimal",
         },
         body: JSON.stringify({
-          isOnline: true,
-          lastSeen: new Date().toISOString(),
+          status: "online",
+          last_seen: new Date().toISOString(),
         }),
       },
     );

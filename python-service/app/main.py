@@ -27,22 +27,6 @@ from app.ai_tools import (
     create_file_creator,
     create_image_generator,
     create_python_executor,
-    create_video_generator,
-    create_web_searcher,
-    detect_tool_intent,
-)
-from supabase import Client, create_client
-
-# ==========================================
-# SYSTEM PROMPT COM CAPACIDADES
-# ==========================================
-ENHANCED_SYSTEM_PROMPT = """VOCÊ TEM AS SEGUINTES CAPACIDADES ATIVADAS E FUNCIONANDO AGORA:
-
-✅ GERAR IMAGENS - Sistema Pollinations.ai integrado e funcional
-✅ GERAR VÍDEOS - Sistema Pollinations.ai integrado e funcional
-✅ PESQUISAR NA WEB - DuckDuckGo integrado e funcional
-✅ CRIAR ARQUIVOS - Sistema de arquivos integrado e funcional
-✅ EXECUTAR PYTHON - Sandbox RestrictedPython integrado e funcional
 ✅ AUTOMAÇÃO DE NAVEGADOR - Extensão Chrome integrada e funcional
 
 🌐 CAPACIDADES DA EXTENSÃO DO NAVEGADOR (NOVO!):
@@ -539,11 +523,20 @@ async def chat(
         user_id = request.userId or user_payload.get("sub")
 
         # 1.5 Verificar se usuário tem extensão conectada
-        user_devices = [
-            device
-            for device_id, device in extension_devices.items()
-            if device.get("user_id") == user_id and device.get("status") == "online"
-        ]
+        user_devices = []
+        if supabase:
+            try:
+                response = (
+                    supabase.table("extension_devices")
+                    .select("*")
+                    .eq("user_id", user_id)
+                    .eq("status", "online")
+                    .execute()
+                )
+                user_devices = response.data if response.data else []
+            except Exception as e:
+                logger.error(f"❌ Error fetching devices: {e}")
+
         has_extension = len(user_devices) > 0
 
         if has_extension:
@@ -569,26 +562,32 @@ async def chat(
             # Criar comando para extensão
             if user_devices:
                 device_id = user_devices[0]["device_id"]
-                command_id = f"cmd_{int(time.time() * 1000)}"
-
+                
                 command_data = {
-                    "id": command_id,
                     "user_id": user_id,
                     "device_id": device_id,
-                    "type": browser_intent["type"],
-                    "data": browser_intent["data"],
-                    "status": "pending",
+                    "command": browser_intent["type"], # Adjusted to match schema
+                    "params": browser_intent["data"],  # Adjusted to match schema
+                    "status": "PENDING",               # Adjusted to match schema
                     "created_at": datetime.utcnow().isoformat(),
                 }
 
-                # Salvar comando
-                extension_commands[command_id] = command_data
-                logger.info(f"✅ Comando criado: {command_id}")
+                try:
+                    # Salvar comando no Supabase
+                    cmd_response = supabase.table("extension_commands").insert(command_data).execute()
+                    
+                    if cmd_response.data:
+                        command_id = cmd_response.data[0]['id']
+                        logger.info(f"✅ Comando criado no DB: {command_id}")
 
-                # Adicionar ao contexto da resposta
-                tool_result = (
-                    f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
-                )
+                        # Adicionar ao contexto da resposta
+                        tool_result = (
+                            f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
+                        )
+                    else:
+                        logger.error("❌ Falha ao criar comando: sem dados retornados")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao salvar comando no Supabase: {e}")
 
         if tool_intent:
             logger.info(f"🛠️ TOOL DETECTED! Executando ferramenta: {tool_intent}")
@@ -965,33 +964,6 @@ async def send_command_to_extension(
 
         return command_id
 
-    except Exception as e:
-        logger.error(f"❌ Error sending command: {e}")
-        raise
-
-
-async def wait_for_command_result(command_id: str, timeout: int = 30) -> dict:
-    """
-    Aguarda resultado do comando (polling)
-    """
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        # Verificar status do comando
-        result = (
-            supabase.table("extension_commands")
-            .select("*")
-            .eq("id", command_id)
-            .execute()
-        )
-
-        if result.data and len(result.data) > 0:
-            command = result.data[0]
-
-            if command["status"] == "completed":
-                return command["result"]
-            elif command["status"] == "failed":
-                return {
                     "success": False,
                     "error": command.get("result", {}).get("error", "Command failed"),
                 }
@@ -1163,20 +1135,9 @@ async def get_user_devices(user_id: str):
     Lista dispositivos conectados de um usuário
     """
     try:
-        # Buscar em memória primeiro
-        user_devices = [
-            {
-                "device_id": device_id,
-                "browser_info": device.get("browser_info"),
-                "version": device.get("version"),
-                "status": device.get("status"),
-                "last_seen": device.get("last_seen"),
-            }
-            for device_id, device in extension_devices.items()
-            if device.get("user_id") == user_id
-        ]
-
-        # Se tiver Supabase, buscar lá também
+        user_devices = []
+        
+        # Buscar no Supabase
         if supabase:
             try:
                 result = (
@@ -1186,19 +1147,16 @@ async def get_user_devices(user_id: str):
                     .execute()
                 )
                 if result.data:
-                    # Adicionar devices do Supabase que não estão em memória
-                    memory_device_ids = {d["device_id"] for d in user_devices}
                     for db_device in result.data:
-                        if db_device["device_id"] not in memory_device_ids:
-                            user_devices.append(
-                                {
-                                    "device_id": db_device["device_id"],
-                                    "browser_info": db_device.get("browser_info"),
-                                    "version": db_device.get("version"),
-                                    "status": db_device.get("status"),
-                                    "last_seen": db_device.get("last_seen"),
-                                }
-                            )
+                        user_devices.append(
+                            {
+                                "device_id": db_device["device_id"],
+                                "browser_info": db_device.get("browser_info"),
+                                "version": db_device.get("version"),
+                                "status": db_device.get("status"),
+                                "last_seen": db_device.get("last_seen"),
+                            }
+                        )
             except Exception as e:
                 logger.warning(f"⚠️ Erro ao buscar devices no Supabase: {e}")
 
