@@ -66,45 +66,64 @@ function updateStatus(isConnected) {
 }
 
 // ============================================
-// VERIFICAR STATUS
+// VERIFICAR STATUS REAL (HEARTBEAT NO BANCO)
 // ============================================
 async function checkConnectionStatus() {
   try {
     const result = await chrome.storage.local.get([
       "deviceId",
       "userId",
-      "isConnected",
       "accessToken",
-      "lastActivity",
     ]);
 
     console.log("📊 [POPUP] Storage data:", {
       hasDeviceId: !!result.deviceId,
       hasUserId: !!result.userId,
       hasToken: !!result.accessToken,
-      isConnected: result.isConnected,
-      lastActivity: result.lastActivity,
     });
 
-    // Verificar se tem dados básicos
-    const hasBasicData = result.deviceId && result.userId && result.accessToken;
+    // Se não tem dados básicos, está offline
+    if (!result.deviceId || !result.userId || !result.accessToken) {
+      console.log("❌ [POPUP] Sem dados básicos - OFFLINE");
+      updateStatus(false);
+      return false;
+    }
 
-    // Verificar se a última atividade foi recente (últimos 2 minutos)
-    const lastActivity = result.lastActivity || 0;
-    const isRecent = Date.now() - lastActivity < 120000;
+    // VERIFICAR HEARTBEAT REAL NO BANCO
+    console.log("🔍 [POPUP] Verificando heartbeat no banco...");
 
-    // SIMPLIFICAR: considerar conectado se tem dados básicos
-    const isConnected = hasBasicData;
+    const response = await fetch(
+      `https://ovskepqggmxlfckxqgbr.supabase.co/rest/v1/extension_devices?device_id=eq.${result.deviceId}&select=last_seen,status`,
+      {
+        headers: {
+          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
+          Authorization: `Bearer ${result.accessToken}`,
+        },
+      }
+    );
 
-    console.log("📊 [POPUP] Status Check:", {
-      hasBasicData,
-      isRecent,
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      console.log("❌ [POPUP] Device não encontrado no banco");
+      updateStatus(false);
+      return false;
+    }
+
+    const device = data[0];
+    const lastSeen = new Date(device.last_seen).getTime();
+    const now = Date.now();
+    const diff = Math.round((now - lastSeen) / 1000);
+    const isConnected = diff < 30; // 30s timeout
+
+    console.log("✅ [POPUP] Heartbeat check:", {
+      lastSeen: device.last_seen,
+      diffSeconds: diff,
       isConnected,
-      lastActivity: new Date(lastActivity).toISOString(),
+      status: device.status,
     });
 
     updateStatus(isConnected);
-
     return isConnected;
   } catch (error) {
     console.error("❌ [POPUP] Erro ao verificar status:", error);

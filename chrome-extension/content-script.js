@@ -613,11 +613,13 @@ async function initialize() {
     }
   }, CONFIG.detection.initialDelay + 500);
 
-  // Start periodic checks (mais frequente no SyncAds)
-  const checkInterval = isSyncAdsSite ? 5000 : CONFIG.detection.checkInterval;
+  // Start periodic checks (APENAS SE NÃO TEMOS TOKEN AINDA)
   setInterval(() => {
-    detectAndSendToken();
-  }, checkInterval);
+    // Só verificar se ainda não processamos nenhum token
+    if (state.processedTokens.size === 0) {
+      detectAndSendToken();
+    }
+  }, 30000); // A cada 30s, não 5s
 
   // Start storage monitoring
   setInterval(() => {
