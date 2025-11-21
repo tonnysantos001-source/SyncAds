@@ -845,15 +845,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               userId: state.userId,
             });
 
-            const { error: deviceError } = await window.supabaseClient
-              .from("extension_devices")
-              .upsert(deviceData, {
-                onConflict: "device_id",
-              });
+            // Usar fetch direto (Service Workers não têm window.supabaseClient)
+            const registerResponse = await fetch(
+              `${CONFIG.restUrl}/extension_devices`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${state.accessToken}`,
+                  apikey: CONFIG.supabaseAnonKey,
+                  Prefer: "resolution=merge-duplicates,return=minimal",
+                },
+                body: JSON.stringify(deviceData),
+              }
+            );
 
-            if (deviceError) {
-              Logger.error("Device registration error", deviceError);
-              return { success: false, error: deviceError.message };
+            if (!registerResponse.ok) {
+              const errorText = await registerResponse.text();
+              Logger.error("Device registration failed", {
+                status: registerResponse.status,
+                error: errorText
+              });
+              return { success: false, error: `Registration failed: ${errorText}` };
             }
 
             Logger.success("Device registered successfully!");
