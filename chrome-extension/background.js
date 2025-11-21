@@ -189,6 +189,11 @@ function stopHeartbeat() {
   }
 }
 
+// Heartbeat a cada 15 segundos (2x mais rápido que timeout de 30s no frontend)
+if (heartbeatInterval) clearInterval(heartbeatInterval);
+heartbeatInterval = setInterval(sendHeartbeat, 15000);
+sendHeartbeat(); // Enviar imediatamente ao iniciar
+
 // ============================================
 // WAIT FOR SERVICE WORKER
 // ============================================

@@ -150,10 +150,13 @@ export default function ChatPageNovo() {
   }, [user]);
 
   // ============================================
-  // VERIFICAR EXTENSÃO
+  // VERIFICAR EXTENSÃO - SISTEMA ROBUSTO
   // ============================================
   useEffect(() => {
     if (!user) return;
+
+    let consecutiveFailures = 0;
+    const MAX_FAILURES = 3;
 
     const checkExtension = async () => {
       try {
@@ -167,27 +170,49 @@ export default function ChatPageNovo() {
           .maybeSingle();
 
         if (error) {
-          console.error("Erro ao verificar extensão:", error);
+          console.error("❌ Erro ao verificar extensão:", error);
+          consecutiveFailures++;
+          if (consecutiveFailures >= MAX_FAILURES) {
+            console.warn(`⚠️ ${MAX_FAILURES} falhas consecutivas, marcando como offline`);
+            setExtensionStatus({
+              connected: false,
+              deviceId: null,
+              lastCheck: Date.now(),
+            });
+          }
           return;
         }
 
-        const isConnected =
-          !!data && new Date(data.last_seen).getTime() > Date.now() - 30000; // 30s timeout (2x heartbeat)
+        const now = Date.now();
+        const lastSeen = data ? new Date(data.last_seen).getTime() : 0;
+        const timeDiff = now - lastSeen;
+        const isConnected = !!data && timeDiff < 30000; // 30s timeout (2x heartbeat de 15s)
+
+        console.log(`🔍 Extensão check:`, {
+          hasData: !!data,
+          timeDiff: `${Math.round(timeDiff / 1000)}s`,
+          isConnected,
+          deviceId: data?.device_id?.substring(0, 8) + "...",
+        });
 
         setExtensionStatus({
           connected: isConnected,
           deviceId: data?.device_id || null,
-          lastCheck: Date.now(),
+          lastCheck: now,
         });
+
+        // Reset contador se sucesso
+        if (!error) consecutiveFailures = 0;
       } catch (error) {
-        console.error("Erro ao verificar extensão:", error);
+        console.error("❌ Exception ao verificar extensão:", error);
+        consecutiveFailures++;
       }
     };
 
     // Verificar imediatamente
     checkExtension();
 
-    // Verificar a cada 5 segundos (mais responsivo)
+    // Verificar a cada 5 segundos (polling agressivo para responsividade)
     const interval = setInterval(checkExtension, 5000);
 
     return () => clearInterval(interval);
