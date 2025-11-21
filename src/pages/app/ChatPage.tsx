@@ -397,6 +397,35 @@ export default function ChatPageNovo() {
         throw new Error(data.error);
       }
 
+      // =================================================
+      // 🕵️ DETECTOR DE COMANDOS DA IA
+      // =================================================
+      const aiResponse = data.response || "";
+
+      // Regex para encontrar blocos JSON: ```json { ... } ```
+      const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+      const match = aiResponse.match(jsonBlockRegex);
+
+      if (match && match[1]) {
+        try {
+          const command = JSON.parse(match[1]);
+          if (command.type) {
+            console.log("🤖 IA solicitou comando:", command);
+
+            toast({
+              title: "🤖 Executando ação...",
+              description: `Comando: ${command.type}`,
+            });
+
+            // Executar comando
+            await sendBrowserCommand(command.type, command.data || {});
+          }
+        } catch (e) {
+          console.error("Erro ao parsear comando da IA:", e);
+        }
+      }
+      // =================================================
+
       // 3. Atualizar UI com IDs reais do banco (substituir temporários)
       setConversations((prev) =>
         prev.map((conv) =>
