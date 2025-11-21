@@ -90,6 +90,78 @@ const Logger = {
 };
 
 // ============================================
+// COMMAND POLLING (NEW)
+// ============================================
+async function checkPendingCommands() {
+  if (!state.isConnected || !state.deviceId || !state.accessToken) return;
+
+  try {
+    const response = await fetch(
+      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&select=*`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+        },
+      }
+    );
+
+    if (!response.ok) return;
+
+    const commands = await response.json();
+    if (!commands || commands.length === 0) return;
+
+    Logger.info(`Found ${commands.length} pending commands`, commands);
+
+    for (const cmd of commands) {
+      // Marcar como processando
+      await updateCommandStatus(cmd.id, "processing");
+
+      // Executar comando
+      const result = await executeCommand(cmd);
+
+      // Atualizar status final
+      await updateCommandStatus(cmd.id, result.success ? "completed" : "failed", result);
+    }
+  } catch (error) {
+    // Silently fail to avoid log spam
+  }
+}
+
+async function updateCommandStatus(commandId, status, result = null) {
+  try {
+    await fetch(
+      `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          status,
+          result,
+          executed_at: new Date().toISOString()
+        }),
+      }
+    );
+  } catch (e) {
+    console.error("Error updating command status", e);
+  }
+}
+
+async function executeCommand(cmd) {
+  const request = { type: cmd.type, data: cmd.options || {} };
+
+  // Reutilizar lógica do handleAsync
+  // Simular estrutura do onMessage
+  return await handleAsyncInternal(request);
+}
+
+// ============================================
 // SERVICE WORKER KEEP-ALIVE
 // ============================================
 function startKeepAlive() {
@@ -97,17 +169,19 @@ function startKeepAlive() {
     clearInterval(state.keepAliveTimer);
   }
 
+  // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
-    // Ping self to keep SW alive
-    chrome.runtime
-      .getPlatformInfo()
-      .then(() => {
-        Logger.debug("Keep-alive ping");
-      })
-      .catch(() => { });
+    chrome.runtime.getPlatformInfo().catch(() => { });
   }, CONFIG.keepAlive.interval);
 
-  Logger.debug("Keep-alive started");
+  // Command polling interval (check for new commands)
+  if (state.commandTimer) clearInterval(state.commandTimer);
+  state.commandTimer = setInterval(checkPendingCommands, 3000);
+
+  Logger.debug("Keep-alive started", {
+    interval: CONFIG.keepAlive.interval,
+    polling: 3000
+  });
 }
 
 // ============================================
@@ -799,53 +873,69 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sender: sender.tab?.id,
   });
 
-  // Handle async operations
-  const handleAsync = async () => {
-    try {
-      switch (request.type) {
-        case "AUTH_TOKEN_DETECTED":
-          // Content script detectou token de autenticação
-          Logger.info("Auth token detected from content script", {
-            userId: request.data?.userId,
-            email: request.data?.email,
+  handleAsyncInternal(request)
+    .then(sendResponse)
+    .catch((error) => {
+      Logger.error("Async handler error", error);
+      sendResponse({ success: false, error: error.message });
+    });
+
+  return true; // Keep channel open for async response
+});
+
+// ============================================
+// ASYNC HANDLER (GLOBAL SCOPE)
+// ============================================
+async function handleAsyncInternal(request) {
+  try {
+    switch (request.type) {
+      case "AUTH_TOKEN_DETECTED":
+        // Content script detectou token de autenticação
+        Logger.info("Auth token detected from content script", {
+          userId: request.data?.userId,
+          email: request.data?.email,
+        });
+
+        try {
+          // Salvar no state
+          state.userId = request.data.userId;
+          state.userEmail = request.data.email;
+          state.accessToken = request.data.accessToken;
+          state.refreshToken = request.data.refreshToken;
+          state.tokenExpiresAt = request.data.expiresAt;
+          state.isConnected = true;
+
+          // Salvar no storage
+          await chrome.storage.local.set({
+            userId: state.userId,
+            userEmail: state.userEmail,
+            accessToken: state.accessToken,
+            refreshToken: state.refreshToken,
+            tokenExpiresAt: state.tokenExpiresAt,
+            isConnected: true,
+            lastActivity: Date.now(),
           });
 
+          // Registrar device no Supabase
+          const deviceData = {
+            device_id: state.deviceId,
+            user_id: state.userId,
+            status: "online",
+            last_seen: new Date().toISOString(),
+            // browser: navigator.userAgent, // Coluna não existe no banco
+            version: CONFIG.version,
+          };
+
+          Logger.info("Registering device in Supabase...", {
+            deviceId: state.deviceId.substring(0, 12) + "...",
+            userId: state.userId,
+          });
+
+          // Usar fetch direto com timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
           try {
-            // Salvar no state
-            state.userId = request.data.userId;
-            state.userEmail = request.data.email;
-            state.accessToken = request.data.accessToken;
-            state.refreshToken = request.data.refreshToken;
-            state.tokenExpiresAt = request.data.expiresAt;
-            state.isConnected = true;
-
-            // Salvar no storage
-            await chrome.storage.local.set({
-              userId: state.userId,
-              userEmail: state.userEmail,
-              accessToken: state.accessToken,
-              refreshToken: state.refreshToken,
-              tokenExpiresAt: state.tokenExpiresAt,
-              isConnected: true,
-              lastActivity: Date.now(),
-            });
-
-            // Registrar device no Supabase
-            const deviceData = {
-              device_id: state.deviceId,
-              user_id: state.userId,
-              status: "online",
-              last_seen: new Date().toISOString(),
-              // browser: navigator.userAgent, // Coluna não existe no banco
-              version: CONFIG.version,
-            };
-
-            Logger.info("Registering device in Supabase...", {
-              deviceId: state.deviceId.substring(0, 12) + "...",
-              userId: state.userId,
-            });
-
-            // Usar fetch direto (Service Workers não têm window.supabaseClient)
             const registerResponse = await fetch(
               `${CONFIG.restUrl}/extension_devices?on_conflict=device_id`,
               {
@@ -857,8 +947,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   Prefer: "resolution=merge-duplicates,return=minimal",
                 },
                 body: JSON.stringify(deviceData),
+                signal: controller.signal,
               }
             );
+            clearTimeout(timeoutId);
 
             if (!registerResponse.ok) {
               const errorText = await registerResponse.text();
@@ -868,237 +960,231 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               });
               return { success: false, error: `Registration failed: ${errorText}` };
             }
-
-            Logger.success("Device registered successfully!");
-
-            // Iniciar heartbeat
-            startHeartbeat();
-
-            return {
-              success: true,
-              message: "Authentication successful",
-              userId: state.userId,
-              deviceId: state.deviceId,
-            };
-          } catch (error) {
-            Logger.error("Auth token processing error", error);
-            return { success: false, error: error.message };
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            throw fetchError;
           }
 
-        case "GET_STATUS":
-          return {
-            success: true,
-            data: {
-              isConnected: state.isConnected,
-              userId: state.userId,
-              userEmail: state.userEmail,
-              deviceId: state.deviceId,
-              version: CONFIG.version,
-            },
-          };
+          Logger.success("Device registered successfully!");
 
-        case "LIST_TABS":
-          // Listar todas as abas abertas no navegador
-          const tabs = await chrome.tabs.query({});
-          const tabsList = tabs.map(tab => ({
-            id: tab.id,
-            title: tab.title,
-            url: tab.url,
-            active: tab.active,
-            windowId: tab.windowId,
-            favIconUrl: tab.favIconUrl,
-          }));
-
-          Logger.info("Listing open tabs", { count: tabsList.length });
+          // Iniciar heartbeat
+          startHeartbeat();
 
           return {
             success: true,
-            data: {
-              tabs: tabsList,
-              count: tabsList.length,
-              timestamp: Date.now(),
-            },
+            message: "Authentication successful",
+            userId: state.userId,
+            deviceId: state.deviceId,
           };
+        } catch (error) {
+          Logger.error("Auth token processing error", error);
+          return { success: false, error: error.message };
+        }
 
-        // ============================================
-        // COMANDOS DOM GERAIS - AUTOMAÇÃO WEB
-        // ============================================
+      case "GET_STATUS":
+        return {
+          success: true,
+          data: {
+            isConnected: state.isConnected,
+            userId: state.userId,
+            userEmail: state.userEmail,
+            deviceId: state.deviceId,
+            version: CONFIG.version,
+          },
+        };
 
-        case "CLICK_ELEMENT":
-          // Clicar em elemento usando seletor CSS
-          const clickTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!clickTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+      case "LIST_TABS":
+        // Listar todas as abas abertas no navegador
+        const tabs = await chrome.tabs.query({});
+        const tabsList = tabs.map(tab => ({
+          id: tab.id,
+          title: tab.title,
+          url: tab.url,
+          active: tab.active,
+          windowId: tab.windowId,
+          favIconUrl: tab.favIconUrl,
+        }));
 
-          await chrome.scripting.executeScript({
-            target: { tabId: clickTab[0].id },
-            func: (selector) => {
+        Logger.info("Listing open tabs", { count: tabsList.length });
+
+        return {
+          success: true,
+          data: {
+            tabs: tabsList,
+            count: tabsList.length,
+            timestamp: Date.now(),
+          },
+        };
+
+      // ============================================
+      // COMANDOS DOM GERAIS - AUTOMAÇÃO WEB
+      // ============================================
+
+      case "CLICK_ELEMENT":
+        // Clicar em elemento usando seletor CSS
+        const clickTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!clickTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+        await chrome.scripting.executeScript({
+          target: { tabId: clickTab[0].id },
+          func: (selector) => {
+            const element = document.querySelector(selector);
+            if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+            element.click();
+            return { success: true, clicked: selector };
+          },
+          args: [request.data.selector],
+        });
+
+        return { success: true, action: "clicked", selector: request.data.selector };
+
+      case "TYPE_TEXT":
+        // Digitar texto em campo usando seletor CSS
+        const typeTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!typeTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+        await chrome.scripting.executeScript({
+          target: { tabId: typeTab[0].id },
+          func: (selector, text) => {
+            const element = document.querySelector(selector);
+            if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+              element.value = text;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+              element.textContent = text;
+            }
+
+            return { success: true, typed: text };
+          },
+          args: [request.data.selector, request.data.text],
+        });
+
+        return { success: true, action: "typed", selector: request.data.selector };
+
+      case "READ_TEXT":
+        // Ler texto de elemento ou página inteira
+        const readTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!readTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+        const [readResult] = await chrome.scripting.executeScript({
+          target: { tabId: readTab[0].id },
+          func: (selector) => {
+            if (selector) {
               const element = document.querySelector(selector);
               if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
-              element.click();
-              return { success: true, clicked: selector };
-            },
-            args: [request.data.selector],
-          });
+              return { success: true, text: element.innerText || element.textContent };
+            } else {
+              // Ler página inteira
+              return { success: true, text: document.body.innerText };
+            }
+          },
+          args: [request.data.selector],
+        });
 
-          return { success: true, action: "clicked", selector: request.data.selector };
+        return readResult.result;
 
-        case "TYPE_TEXT":
-          // Digitar texto em campo usando seletor CSS
-          const typeTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!typeTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+      case "EXECUTE_JS":
+        // Executar JavaScript personalizado na página
+        const execTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!execTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
-          await chrome.scripting.executeScript({
-            target: { tabId: typeTab[0].id },
-            func: (selector, text) => {
+        const [execResult] = await chrome.scripting.executeScript({
+          target: { tabId: execTab[0].id },
+          func: (code) => {
+            try {
+              const result = eval(code);
+              return { success: true, result };
+            } catch (error) {
+              return { success: false, error: error.message };
+            }
+          },
+          args: [request.data.code],
+        });
+
+        return execResult.result;
+
+      case "SCROLL_TO":
+        // Scroll para elemento ou posição
+        const scrollTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!scrollTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+
+        await chrome.scripting.executeScript({
+          target: { tabId: scrollTab[0].id },
+          func: (selector, position) => {
+            if (selector) {
               const element = document.querySelector(selector);
-              if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+              if (element) element.scrollIntoView({ behavior: 'smooth' });
+            } else if (position) {
+              window.scrollTo({ top: position, behavior: 'smooth' });
+            }
+          },
+          args: [request.data.selector, request.data.position],
+        });
 
-              if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                element.value = text;
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-                element.dispatchEvent(new Event('change', { bubbles: true }));
-              } else {
-                element.textContent = text;
-              }
+        return { success: true, action: "scrolled" };
 
-              return { success: true, typed: text };
-            },
-            args: [request.data.selector, request.data.text],
-          });
+      case "WAIT":
+        // Aguardar tempo em ms
+        await new Promise(resolve => setTimeout(resolve, request.data.ms || 1000));
+        return { success: true, waited: request.data.ms };
 
-          return { success: true, action: "typed", selector: request.data.selector };
+      case "GET_PAGE_INFO":
+        // Obter informações completas da página
+        const infoTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!infoTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
-        case "READ_TEXT":
-          // Ler texto de elemento ou página inteira
-          const readTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!readTab[0]) return { success: false, error: "Nenhuma aba ativa" };
-
-          const [readResult] = await chrome.scripting.executeScript({
-            target: { tabId: readTab[0].id },
-            func: (selector) => {
-              if (selector) {
-                const element = document.querySelector(selector);
-                if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
-                return { success: true, text: element.innerText || element.textContent };
-              } else {
-                // Ler página inteira
-                return { success: true, text: document.body.innerText };
-              }
-            },
-            args: [request.data.selector],
-          });
-
-          return readResult.result;
-
-        case "EXECUTE_JS":
-          // Executar JavaScript personalizado na página
-          const execTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!execTab[0]) return { success: false, error: "Nenhuma aba ativa" };
-
-          const [execResult] = await chrome.scripting.executeScript({
-            target: { tabId: execTab[0].id },
-            func: (code) => {
-              try {
-                const result = eval(code);
-                return { success: true, result };
-              } catch (error) {
-                return { success: false, error: error.message };
-              }
-            },
-            args: [request.data.code],
-          });
-
-          return execResult.result;
-
-        case "SCROLL_TO":
-          // Scroll para elemento ou posição
-          const scrollTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!scrollTab[0]) return { success: false, error: "Nenhuma aba ativa" };
-
-          await chrome.scripting.executeScript({
-            target: { tabId: scrollTab[0].id },
-            func: (selector, position) => {
-              if (selector) {
-                const element = document.querySelector(selector);
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-              } else if (position) {
-                window.scrollTo({ top: position, behavior: 'smooth' });
-              }
-            },
-            args: [request.data.selector, request.data.position],
-          });
-
-          return { success: true, action: "scrolled" };
-
-        case "WAIT":
-          // Aguardar tempo em ms
-          await new Promise(resolve => setTimeout(resolve, request.data.ms || 1000));
-          return { success: true, waited: request.data.ms };
-
-        case "GET_PAGE_INFO":
-          // Obter informações completas da página
-          const infoTab = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!infoTab[0]) return { success: false, error: "Nenhuma aba ativa" };
-
-          const [infoResult] = await chrome.scripting.executeScript({
-            target: { tabId: infoTab[0].id },
-            func: () => {
-              return {
-                title: document.title,
-                url: window.location.href,
-                html: document.documentElement.outerHTML.substring(0, 5000), // Primeiros 5000 chars
-                forms: Array.from(document.forms).map(f => ({
-                  action: f.action,
-                  method: f.method,
-                  fields: Array.from(f.elements).map(e => ({
-                    name: e.name,
-                    type: e.type,
-                    value: e.value,
-                  })),
+        const [infoResult] = await chrome.scripting.executeScript({
+          target: { tabId: infoTab[0].id },
+          func: () => {
+            return {
+              title: document.title,
+              url: window.location.href,
+              html: document.documentElement.outerHTML.substring(0, 5000), // Primeiros 5000 chars
+              forms: Array.from(document.forms).map(f => ({
+                action: f.action,
+                method: f.method,
+                fields: Array.from(f.elements).map(e => ({
+                  name: e.name,
+                  type: e.type,
+                  value: e.value,
                 })),
-                links: Array.from(document.links).slice(0, 50).map(l => ({
-                  text: l.textContent,
-                  href: l.href,
-                })),
-              };
-            },
-          });
+              })),
+              links: Array.from(document.links).slice(0, 50).map(l => ({
+                text: l.textContent,
+                href: l.href,
+              })),
+            };
+          },
+        });
 
-          return { success: true, data: infoResult.result };
+        return { success: true, data: infoResult.result };
 
 
-        case "DISCONNECT":
-          await disconnect();
-          return { success: true, message: "Disconnected" };
+      case "DISCONNECT":
+        await disconnect();
+        return { success: true, message: "Disconnected" };
 
-        case "REFRESH_TOKEN":
-          const refreshed = await refreshAccessToken();
-          return {
-            success: refreshed,
-            message: refreshed ? "Token refreshed" : "Refresh failed",
-          };
+      case "REFRESH_TOKEN":
+        const refreshed = await refreshAccessToken();
+        return {
+          success: refreshed,
+          message: refreshed ? "Token refreshed" : "Refresh failed",
+        };
 
-        case "PING":
-          return { success: true, message: "pong", timestamp: Date.now() };
+      case "PING":
+        return { success: true, message: "pong", timestamp: Date.now() };
 
-        default:
-          return { success: false, error: "Unknown message type" };
-      }
-    } catch (error) {
-      Logger.error("Message handler error", error, { type: request.type });
-      return { success: false, error: error.message };
+      default:
+        return { success: false, error: "Unknown message type" };
     }
-  };
-
-  handleAsync()
-    .then(sendResponse)
-    .catch((error) => {
-      Logger.error("Async handler error", error);
-      sendResponse({ success: false, error: error.message });
-    });
-
-  return true; // Keep channel open for async response
-});
+  } catch (error) {
+    Logger.error("Async operation error", error);
+    return { success: false, error: error.message };
+  }
+}
 
 // ============================================
 // INITIALIZATION

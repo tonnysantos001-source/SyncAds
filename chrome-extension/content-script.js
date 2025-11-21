@@ -223,7 +223,12 @@ async function sendMessageToBackground(
         { type: message.type },
       );
 
-      const response = await chrome.runtime.sendMessage(message);
+      const response = await Promise.race([
+        chrome.runtime.sendMessage(message),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout waiting for background response")), 15000)
+        ),
+      ]);
 
       Logger.success("Message sent successfully", { response });
       return { success: true, data: response };

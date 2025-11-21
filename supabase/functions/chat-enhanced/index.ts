@@ -17,21 +17,17 @@ serve(async (req) => {
       conversationId,
       conversationHistory = [],
       systemPrompt,
-      extensionConnected = false,
+      extensionConnected: rawExtensionConnected,
     } = await req.json();
+
+    // Garantir booleano
+    const extensionConnected = rawExtensionConnected === true || rawExtensionConnected === "true";
 
     console.log("🔍 DEBUG - Request recebido:", {
       hasMessage: !!message,
-      messagePreview: message?.substring(0, 50),
       conversationId,
-      systemPromptProvided: !!systemPrompt,
-      extensionConnected,
-    });
-
-    console.log("⚠️ CRITICAL DEBUG - Extension Status:", {
-      extensionConnectedValue: extensionConnected,
-      extensionConnectedType: typeof extensionConnected,
-      isTruthy: extensionConnected ? "YES" : "NO",
+      rawExtensionConnected,
+      extensionConnectedFinal: extensionConnected,
     });
 
     // Get user from auth header
