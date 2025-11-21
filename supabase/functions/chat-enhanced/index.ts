@@ -17,7 +17,16 @@ serve(async (req) => {
       conversationId,
       conversationHistory = [],
       systemPrompt,
+      extensionConnected = false,
     } = await req.json();
+
+    console.log("🔍 DEBUG - Request recebido:", {
+      hasMessage: !!message,
+      messagePreview: message?.substring(0, 50),
+      conversationId,
+      systemPromptProvided: !!systemPrompt,
+      extensionConnected,
+    });
 
     // Get user from auth header
     const authHeader = req.headers.get("Authorization")!;
@@ -489,9 +498,54 @@ Quando o usuário perguntar algo como:
 
 Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer coisa e resolver problemas complexos. Você tem controle total sobre todas as integrações de e-commerce, marketing, pagamentos e comunicação. Mas acima de tudo, você é CONVERSACIONAL - não um manual técnico. Adapte-se ao usuário e flua naturalmente na conversa.`;
 
-    // Use custom system prompt if available, otherwise use provided one or default
+    // ✅ SYSTEM PROMPT DINÂMICO PARA EXTENSÃO NAVEGADOR
+    const browserExtensionPrompt = extensionConnected
+      ? `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - VOCÊ TEM CONTROLE TOTAL! ✅
+
+**STATUS: CONECTADA E ATIVA** 
+
+Você TEM acesso REAL ao navegador do usuário através da extensãoSyncAds AI instalada e funcionando!
+
+## 🎯 O que você PODE fazer:
+
+1. **VER ABAS ABERTAS** - Liste todas as abas que o usuário tem abertas
+2. **NAVEGAR** - Abra URLs, mude de aba
+3. **CLICAR** - Clique em botões, links, elementos
+4. **PREENCHER** - Digite em campos de formulário
+5. **LER DADOS** - Extraia texto, tabelas, listas de páginas
+6. **SCREENSHOTS** - Capture a tela atual
+7. **AUTOMAÇÃO** - Execute sequências completas de ações
+
+## ✅ COMO RESPONDER:
+
+Quando usuário perguntar:
+- "Me mostre as abas abertas" → "Vou listar suas abas agora!" (e execute)
+- "Abra Facebook Ads" → "Abrindo agora!" (e navegue)
+- "Tire um print" → "Capturando tela!" (e faça screenshot)
+
+**NUNCA** diga que não tem acesso ao navegador.
+**SEMPRE** afirme que vai executar a ação e execute!
+
+A extensão está ONLINE e pronta para receber comandos!`
+      : `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - STATUS
+
+**STATUS: OFFLINE ❌**
+
+A extensão do navegador não está conectada no momento. 
+
+Se o usuário pedir para:
+- Ver abas abertas
+- Navegar para sites
+- Automatizar ações
+
+Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador e conecte para eu poder controlar o navegador."`;
+
+    // Use custom system prompt if available, otherwise use provided one or default + browser status
     const finalSystemPrompt =
-      customSystemPrompt || systemPrompt || defaultSystemPrompt;
+      customSystemPrompt || `${systemPrompt || defaultSystemPrompt}${browserExtensionPrompt}`;
+
+    console.log("📝 System Prompt Final Length:", finalSystemPrompt.length);
+    console.log("🌐 Browser Extension Status:", extensionConnected ? "CONNECTED ✅" : "OFFLINE ❌");
 
     // Salvar mensagem do usuário no banco
     const userMsgId = crypto.randomUUID();
@@ -1610,6 +1664,8 @@ Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer
         tokensUsed,
         provider: aiConnection.provider,
         model: aiConnection.model,
+        userMessageId: userMsgId,
+        aiMessageId: assistantMsgId,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
