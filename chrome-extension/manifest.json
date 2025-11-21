@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SyncAds AI Automation",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "description": "Automação inteligente com IA para marketing digital - Execute ações automatizadas em qualquer site",
   "permissions": [
     "activeTab",

@@ -847,7 +847,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             // Usar fetch direto (Service Workers não têm window.supabaseClient)
             const registerResponse = await fetch(
-              `${CONFIG.restUrl}/extension_devices`,
+              `${CONFIG.restUrl}/extension_devices?on_conflict=device_id`,
               {
                 method: "POST",
                 headers: {
