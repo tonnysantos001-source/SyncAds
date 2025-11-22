@@ -27,33 +27,33 @@ interface AiConnectionModalProps {
 
 // Presets de provedores populares com padrões de chave
 const AI_PROVIDERS = [
-  { 
-    name: 'OpenAI', 
-    baseUrl: 'https://api.openai.com/v1', 
+  {
+    name: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
     models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'],
     keyPattern: /^sk-[a-zA-Z0-9]{20,}$/
   },
-  { 
-    name: 'OpenRouter', 
-    baseUrl: 'https://openrouter.ai/api/v1', 
+  {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
     models: ['openai/gpt-4', 'openai/gpt-3.5-turbo', 'anthropic/claude-3-opus', 'meta-llama/llama-3-70b-instruct', 'deepseek/deepseek-chat'],
     keyPattern: /^sk-or-v1-[a-zA-Z0-9]+$/
   },
-  { 
-    name: 'Groq', 
-    baseUrl: 'https://api.groq.com/openai/v1', 
+  {
+    name: 'Groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
     models: ['llama3-70b-8192', 'mixtral-8x7b-32768', 'gemma-7b-it'],
     keyPattern: /^gsk_[a-zA-Z0-9]+$/
   },
-  { 
-    name: 'Together AI', 
-    baseUrl: 'https://api.together.xyz/v1', 
+  {
+    name: 'Together AI',
+    baseUrl: 'https://api.together.xyz/v1',
     models: ['meta-llama/Llama-3-70b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
     keyPattern: /^[a-f0-9]{64}$/
   },
-  { 
-    name: 'Anthropic', 
-    baseUrl: 'https://api.anthropic.com/v1', 
+  {
+    name: 'Anthropic',
+    baseUrl: 'https://api.anthropic.com/v1',
     models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229'],
     keyPattern: /^sk-ant-[a-zA-Z0-9\-]+$/
   },
@@ -119,10 +119,10 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
     const key = e.target.value;
     setApiKeyValue(key);
     setValue('apiKey', key);
-    
+
     const provider = detectProvider(key);
     setDetectedProvider(provider);
-    
+
     if (provider) {
       // Auto-preencher campos baseado no provedor detectado
       setValue('baseUrl', provider.baseUrl);
@@ -165,7 +165,7 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                Cole sua chave de API abaixo. O provedor será detectado automaticamente! 
+                Cole sua chave de API abaixo. O provedor será detectado automaticamente!
                 {detectedProvider && (
                   <span className="block mt-1 font-semibold text-primary">
                     ✨ {detectedProvider.name} detectado!
@@ -173,23 +173,33 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
                 )}
               </AlertDescription>
             </Alert>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="apiKey">Chave de API</Label>
-              <Input 
-                id="apiKey" 
-                type="text" 
+              <Input
+                id="apiKey"
+                type="text"
                 autoComplete="off"
-                placeholder="Cole sua chave de API aqui..." 
+                placeholder="Cole sua chave de API aqui..."
                 value={apiKeyValue}
                 onChange={handleApiKeyChange}
+                onPaste={(e) => {
+                  // FORÇA paste a funcionar
+                  e.stopPropagation();
+                  const pastedText = e.clipboardData.getData('text');
+                  if (pastedText) {
+                    handleApiKeyChange({ target: { value: pastedText } } as any);
+                  }
+                }}
+                onCopy={(e) => e.stopPropagation()}
+                onCut={(e) => e.stopPropagation()}
               />
               {errors.apiKey && <p className="text-sm text-destructive">{errors.apiKey.message}</p>}
               <p className="text-xs text-muted-foreground">
                 Suporta: OpenAI, OpenRouter, Groq, Anthropic, Together AI
               </p>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="name">Nome da Conexão</Label>
               <Input id="name" placeholder="Ex: OpenRouter GPT-4" {...register('name')} />
