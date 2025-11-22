@@ -1,5 +1,5 @@
 // Garantir que paste funcione em todos os inputs e textareas
-//Este arquivo previne qualquer bloqueio global de paste que possa existir
+// Este arquivo previne qualquer bloqueio global de paste que possa existir
 
 (function () {
     console.log('🔧 [PASTE FIX] Habilitando suporte global para paste...');
@@ -22,7 +22,19 @@
                 // Garantir que o evento propague normalmente
                 return true;
             }
-        }, { capture: false, passive: true });
+        }, { capture: true, passive: false }); // capture: true para pegar o evento antes de outros handlers
+
+        // GARANTIR paste via context menu (botão direito)
+        document.addEventListener('contextmenu', (e) => {
+            const target = e.target as HTMLElement;
+            if (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable
+            ) {
+                console.log('✅ [PASTE FIX] Context menu permitido em:', target.tagName);
+            }
+        });
 
         console.log('✅ [PASTE FIX] Listener de paste configurado com sucesso');
     };

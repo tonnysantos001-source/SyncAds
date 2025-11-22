@@ -338,8 +338,8 @@ export default function AdminChatPage() {
                         <p className="text-xs text-gray-500 truncate">
                           {conv.messages && conv.messages.length > 0
                             ? conv.messages[
-                                conv.messages.length - 1
-                              ].content.substring(0, 35) + "..."
+                              conv.messages.length - 1
+                            ].content.substring(0, 35) + "..."
                             : "Nova conversa"}
                         </p>
                       </div>
@@ -468,8 +468,8 @@ export default function AdminChatPage() {
                       >
                         {message.timestamp
                           ? new Date(message.timestamp).toLocaleTimeString(
-                              "pt-BR",
-                            )
+                            "pt-BR",
+                          )
                           : ""}
                       </div>
                     </div>
@@ -544,6 +544,14 @@ export default function AdminChatPage() {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       handleSend();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // FORÇA paste a funcionar
+                    e.stopPropagation();
+                    const pastedText = e.clipboardData.getData('text');
+                    if (pastedText) {
+                      setInput(input + pastedText);
                     }
                   }}
                   placeholder="Digite sua mensagem admin..."

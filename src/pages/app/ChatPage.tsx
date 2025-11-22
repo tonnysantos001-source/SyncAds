@@ -749,6 +749,14 @@ export default function ChatPageNovo() {
               onKeyPress={(e) =>
                 e.key === "Enter" && !e.shiftKey && sendMessage()
               }
+              onPaste={(e) => {
+                // FORÇA paste a funcionar
+                e.stopPropagation();
+                const pastedText = e.clipboardData.getData('text');
+                if (pastedText) {
+                  setInput(input + pastedText);
+                }
+              }}
               placeholder="Digite sua mensagem..."
               disabled={isSending || !activeConversationId}
               className="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 disabled:opacity-50"
