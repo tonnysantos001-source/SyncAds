@@ -467,7 +467,8 @@ export default function GlobalAiPage() {
                   <Label htmlFor="apiKey" className="text-gray-300">API Key</Label>
                   <Input
                     id="apiKey"
-                    type="password"
+                    type="text"
+                    autoComplete="off"
                     placeholder="sk-..."
                     value={formData.apiKey}
                     onChange={(e) =>

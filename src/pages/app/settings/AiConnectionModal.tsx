@@ -178,7 +178,8 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
               <Label htmlFor="apiKey">Chave de API</Label>
               <Input 
                 id="apiKey" 
-                type="password" 
+                type="text" 
+                autoComplete="off"
                 placeholder="Cole sua chave de API aqui..." 
                 value={apiKeyValue}
                 onChange={handleApiKeyChange}
