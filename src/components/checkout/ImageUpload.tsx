@@ -191,14 +191,15 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     [handleFile],
   );
 
-  // Paste do clipboard
+  // Paste do clipboard - APENAS dentro da área do componente
   const handlePaste = useCallback(
-    async (e: ClipboardEvent) => {
+    async (e: React.ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
 
       for (const item of Array.from(items)) {
         if (item.type.startsWith("image/")) {
+          e.preventDefault();
           const file = item.getAsFile();
           if (file) {
             await handleFile(file);
@@ -209,14 +210,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     },
     [handleFile],
   );
-
-  // Registrar event listener para paste
-  React.useEffect(() => {
-    document.addEventListener("paste", handlePaste as any);
-    return () => {
-      document.removeEventListener("paste", handlePaste as any);
-    };
-  }, [handlePaste]);
 
   // Selecionar arquivo
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,9 +293,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
+              onPaste={handlePaste}
               onClick={() => fileInputRef.current?.click()}
+              tabIndex={0}
               className={cn(
-                "border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-all",
+                "border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
                 isDragging
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-300 hover:border-gray-400 hover:bg-gray-50",
