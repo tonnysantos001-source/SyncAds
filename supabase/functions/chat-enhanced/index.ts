@@ -1684,6 +1684,77 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
     // 🧹 Limpar mensagens técnicas da resposta final
     response = cleanTechnicalMessages(response);
 
+    // ============================================
+    // 🤖 DETECTAR E EXECUTAR COMANDOS DA EXTENSÃO
+    // ============================================
+    let cleanResponse = response;
+
+    // Detectar blocos JSON de comando (```json { "type": "..." } ```)
+    const jsonCommandRegex = /```json\s*(\{[\s\S]*?\})\s*```/g;
+    const jsonMatches = [...response.matchAll(jsonCommandRegex)];
+
+    if (jsonMatches.length > 0 && extensionConnected) {
+      console.log(`🎯 Detectados ${jsonMatches.length} comandos JSON na resposta`);
+
+      for (const match of jsonMatches) {
+        try {
+          const jsonStr = match[1];
+          const command = JSON.parse(jsonStr);
+
+          // Verificar se é um comando válido
+          if (command.type) {
+            console.log('✅ Comando válido detectado:', command);
+
+            // Buscar device_id do usuário
+            const { data: devices } = await supabase
+              .from('extension_devices')
+              .select('device_id')
+              .eq('user_id', user.id)
+              .eq('status', 'online')
+              .order('last_seen', { ascending: false })
+              .limit(1);
+
+            if (devices && devices.length > 0) {
+              const deviceId = devices[0].device_id;
+
+              // Salvar comando no banco para a extensão executar
+              const { data: savedCommand, error: cmdError } = await supabase
+                .from('ExtensionCommand')
+                .insert({
+                  deviceId,
+                  userId: user.id,
+                  command: command.type,
+                  params: command.data || {},
+                  status: 'PENDING',
+                  conversationId,
+                })
+                .select()
+                .single();
+
+              if (!cmdError && savedCommand) {
+                console.log('✅ Comando salvo no banco:', savedCommand.id);
+
+                // Remover o bloco JSON da resposta para não mostrar ao usuário
+                cleanResponse = cleanResponse.replace(match[0], '');
+
+                // Adicionar mensagem de feedback
+                cleanResponse = cleanResponse.trim() + `\n\n_✨ Executando ação..._`;
+              } else {
+                console.error('❌ Erro ao salvar comando:', cmdError);
+              }
+            } else {
+              console.warn('⚠️ Nenhum dispositivo online encontrado para o usuário');
+              cleanResponse = cleanResponse.replace(match[0], '\n\n_⚠️ Extensão offline. Por favor, conecte a extensão do navegador._');
+            }
+          }
+        } catch (parseError) {
+          console.error('❌ Erro ao processar comando JSON:', parseError);
+        }
+      }
+
+      response = cleanResponse.trim();
+    }
+
     // Salvar resposta da IA no banco
     const assistantMsgId = crypto.randomUUID();
     const { error: saveAssistantError } = await supabase
