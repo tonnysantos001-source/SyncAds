@@ -582,17 +582,6 @@ USE ESSES COMANDOS SEMPRE QUE O USUÁRIO PEDIR UMA AÇÃO NO NAVEGADOR!`
 ## 💡 SELETORES CSS:
 - IDs: \`#myButton\`
 - Classes: \`.btn-submit\`
-- Atributos: \`[name='email']\`, \`[type='submit']\`
-- Combinados: \`form input[type='text']\`
-- nth-child: \`li:nth-child(2)\`
-
-**A extensão está ONLINE e aguardando seus comandos!**`
-      : `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - STATUS
-
-**STATUS: OFFLINE ❌**
-
-A extensão do navegador não está conectada no momento. 
-
 Se o usuário pedir para:
 - Ver abas abertas
 - Navegar para sites
