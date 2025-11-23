@@ -149,6 +149,18 @@ serve(async (req) => {
       );
     }
 
+    // Garantir valores padrão para campos obrigatórios
+    if (!aiConnection.maxTokens) {
+      console.warn("⚠️ maxTokens não definido, usando padrão 4096");
+      aiConnection.maxTokens = 4096;
+    }
+
+    if (aiConnection.temperature === null || aiConnection.temperature === undefined) {
+      console.warn("⚠️ temperature não definido, usando padrão 0.7");
+      aiConnection.temperature = 0.7;
+    }
+
+
     console.log("✅ AI Connection válida, prosseguindo com chat...");
 
     console.log("✅ Usando GlobalAiConnection:", aiConnection.name);
