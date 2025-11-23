@@ -231,8 +231,8 @@ async function sendHeartbeat() {
           Prefer: "return=minimal",
         },
         body: JSON.stringify({
-          status: "online",
-          last_seen: new Date().toISOString(),
+          isOnline: true,
+          lastSeen: new Date().toISOString(),
         }),
       },
     );
@@ -613,10 +613,10 @@ async function registerDeviceDirectly() {
     const existing = await checkResponse.json();
 
     const devicePayload = {
-      status: "online",
-      last_seen: new Date().toISOString(),
+      isOnline: true,
+      lastSeen: new Date().toISOString(),
       version: CONFIG.version,
-      browser_info: {
+      browserInfo: {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         language: navigator.language,
@@ -664,8 +664,8 @@ async function registerDeviceDirectly() {
             Prefer: "return=representation",
           },
           body: JSON.stringify({
-            device_id: state.deviceId,
-            user_id: state.userId,
+            deviceId: state.deviceId,
+            userId: state.userId,
             ...devicePayload,
           }),
         },
