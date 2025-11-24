@@ -1416,14 +1416,13 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
     }
 
     // ==================== TOOL CALLING PARA GROQ ====================
-    // ✅ ÚNICA FERRAMENTA PERMITIDA: web_scraping
     const groqTools = [
       {
         type: "function",
         function: {
           name: "web_scraping",
           description:
-            "Extrai dados de produtos de um site. Use APENAS esta ferramenta para raspar/baixar/importar dados de URLs. NUNCA tente executar código Python diretamente.",
+            "Extrai dados de produtos de um site. Use para raspar/baixar/importar dados de URLs.",
           parameters: {
             type: "object",
             properties: {
@@ -1439,7 +1438,89 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
               },
             },
             required: ["url"],
-            additionalProperties: false, // ✅ CRÍTICO: GROQ exige isso!
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_csv",
+          description:
+            "Cria um arquivo CSV a partir de dados estruturados e retorna link de download temporário (expira em 24h).",
+          parameters: {
+            type: "object",
+            properties: {
+              data: {
+                type: "array",
+                description: "Array de objetos para converter em CSV",
+                items: { type: "object" },
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: produtos.csv)",
+              },
+            },
+            required: ["data", "filename"],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_excel",
+          description:
+            "Cria um arquivo Excel (.xlsx) com uma ou múltiplas planilhas e retorna link de download.",
+          parameters: {
+            type: "object",
+            properties: {
+              sheets: {
+                type: "array",
+                description: "Array de planilhas, cada uma com nome e dados",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    data: { type: "array", items: { type: "object" } },
+                  },
+                },
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: relatorio.xlsx)",
+              },
+            },
+            required: ["sheets", "filename"],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_pdf",
+          description:
+            "Cria um documento PDF a partir de conteúdo HTML ou Markdown e retorna link de download.",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "Conteúdo em HTML ou Markdown",
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: relatorio.pdf)",
+              },
+              format: {
+                type: "string",
+                enum: ["html", "markdown"],
+                description: "Formato do conteúdo de entrada",
+              },
+            },
+            required: ["content", "filename"],
+            additionalProperties: false,
           },
         },
       },
@@ -1540,19 +1621,9 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
             JSON.stringify(functionArgs, null, 2),
           );
 
-          // ✅ PROTEÇÃO: Apenas web_scraping é permitida
-          if (functionName !== "web_scraping") {
-            console.error(
-              `❌ [TOOL] FERRAMENTA INVÁLIDA: "${functionName}" não é permitida!`,
-            );
-            console.error(
-              `⚠️  [TOOL] Ferramentas permitidas: ["web_scraping"]`,
-            );
-            toolResult = `❌ Erro: A ferramenta "${functionName}" não está disponível. Use apenas "web_scraping" para extrair dados de sites.`;
-            continue; // Pula esta ferramenta inválida
-          }
+          let toolResult = "";
 
-          // ✅ Executar web_scraping
+          // ✅ Executar ferramentas
           if (functionName === "web_scraping") {
             const url = functionArgs.url;
             const format = functionArgs.format || "csv";
@@ -1614,6 +1685,126 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
               );
               console.error("❌ [WEB_SCRAPING] Stack:", error.stack);
               toolResult = `Erro ao executar scraping: ${error.message}`;
+            }
+          } else if (functionName === "create_csv") {
+            // ✅ Criar CSV
+            const { data, filename } = functionArgs;
+
+            console.log(`📄 [CREATE_CSV] Criando CSV: ${filename}`);
+            console.log(`📊 [CREATE_CSV] Linhas: ${data?.length || 0}`);
+
+            try {
+              const csvResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-csv`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ data, filename }),
+                },
+              );
+
+              if (!csvResponse.ok) {
+                const error = await csvResponse.text();
+                console.error(`❌ [CREATE_CSV] Erro:`, error);
+                toolResult = `Erro ao criar CSV: ${error}`;
+              } else {
+                const result = await csvResponse.json();
+                console.log(
+                  `✅ [CREATE_CSV] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_CSV] Exceção:`, error.message);
+              toolResult = `Erro ao criar CSV: ${error.message}`;
+            }
+          } else if (functionName === "create_excel") {
+            // ✅ Criar Excel
+            const { sheets, filename } = functionArgs;
+
+            console.log(`📊 [CREATE_EXCEL] Criando Excel: ${filename}`);
+            console.log(`📑 [CREATE_EXCEL] Planilhas: ${sheets?.length || 0}`);
+
+            try {
+              const excelResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-excel`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ sheets, filename }),
+                },
+              );
+
+              if (!excelResponse.ok) {
+                const error = await excelResponse.text();
+                console.error(`❌ [CREATE_EXCEL] Erro:`, error);
+                toolResult = `Erro ao criar Excel: ${error}`;
+              } else {
+                const result = await excelResponse.json();
+                console.log(
+                  `✅ [CREATE_EXCEL] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_EXCEL] Exceção:`, error.message);
+              toolResult = `Erro ao criar Excel: ${error.message}`;
+            }
+          } else if (functionName === "create_pdf") {
+            // ✅ Criar PDF
+            const { content, filename, format } = functionArgs;
+
+            console.log(`📄 [CREATE_PDF] Criando PDF: ${filename}`);
+            console.log(`📝 [CREATE_PDF] Formato: ${format || "html"}`);
+
+            try {
+              const pdfResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-pdf`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ content, filename, format }),
+                },
+              );
+
+              if (!pdfResponse.ok) {
+                const error = await pdfResponse.text();
+                console.error(`❌ [CREATE_PDF] Erro:`, error);
+                toolResult = `Erro ao criar PDF: ${error}`;
+              } else {
+                const result = await pdfResponse.json();
+                console.log(
+                  `✅ [CREATE_PDF] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_PDF] Exceção:`, error.message);
+              toolResult = `Erro ao criar PDF: ${error.message}`;
             }
           }
         }
