@@ -253,110 +253,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true; // Keep channel open for async response
   }
-});
 
-// ============================================
-// CONTINUAR COM CÓDIGO EXISTENTE
-// ============================================
-async function continueCheckPendingCommands() {
-  try {
-    const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=5`,
-      {
-        headers: {
-          Authorization: `Bearer ${state.accessToken}`,
-          apikey: CONFIG.supabaseAnonKey,
-        },
-      },
-    );
+  if (message.type === "LIST_TABS") {
+    (async () => {
+      try {
+        const tabs = await chrome.tabs.query({});
+        const tabsList = tabs.map((tab) => ({
+          id: tab.id,
+          title: tab.title,
+          url: tab.url,
+          active: tab.active,
+          windowId: tab.windowId,
+        }));
 
-    const commands = await response.json();
-
-    if (commands && commands.length > 0) {
-      Logger.info("📦 Comandos pendentes encontrados", {
-        count: commands.length,
-        commands: commands.map((c) => ({ id: c.id, command: c.command })),
-      });
-
-      for (const cmd of commands) {
-        try {
-          Logger.info("🚀 Executando comando", {
-            id: cmd.id,
-            command: cmd.command,
-            params: cmd.params,
-          });
-
-          await updateCommandStatus(cmd.id, "processing");
-
-          const result = await executeCommand(cmd);
-
-          Logger.success("✅ Comando completado", { id: cmd.id, result });
-          await updateCommandStatus(cmd.id, "completed", result);
-        } catch (error) {
-          Logger.error("❌ Erro ao executar comando", { id: cmd.id, error });
-          await updateCommandStatus(cmd.id, "failed", null, error.message);
-        }
+        sendResponse({ success: true, tabs: tabsList, count: tabsList.length });
+      } catch (error) {
+        Logger.error("List tabs failed", error);
+        sendResponse({ success: false, error: error.message });
       }
-    }
-  } catch (error) {
-    Logger.error("Erro ao verificar comandos pendentes", error);
+    })();
+
+    return true; // Keep channel open for async response
   }
-}
 
-async function updateCommandStatus(
-  commandId,
-  status,
-  result = null,
-  error = null,
-) {
-  if (!state.accessToken) return;
+  if (message.type === "OPEN_NEW_TAB") {
+    (async () => {
+      try {
+        const newTab = await chrome.tabs.create({
+          url: message.url,
+          active: true,
+        });
 
-  try {
-    const payload = {
-      status: status.toUpperCase(),
-    };
+        sendResponse({ success: true, tabId: newTab.id, url: message.url });
+      } catch (error) {
+        Logger.error("Open new tab failed", error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
 
-    if (status === "completed" && result) {
-      payload.result = result;
-      payload.completedAt = new Date().toISOString();
-    }
-
-    if (status === "failed" && error) {
-      payload.error = error;
-    }
-
-    await fetch(`${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${state.accessToken}`,
-        apikey: CONFIG.supabaseAnonKey,
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch (e) {
-    console.error("Error updating command status", e);
+    return true; // Keep channel open for async response
   }
-}
-
-async function executeCommand(cmd) {
-  const request = {
-    type: cmd.command, // ← Agora lê 'command' do banco
-    data: cmd.params || {}, // ← Agora lê 'params' do banco
-  };
-
-  // Reutilizar lógica do handleAsyncInternal
-  return await handleAsyncInternal(request);
-}
+});
 
 // ============================================
 // SERVICE WORKER KEEP-ALIVE
 // ============================================
 function startKeepAlive() {
-  if (state.keepAliveTimer) {
-    clearInterval(state.keepAliveTimer);
-  }
+  Logger.debug("Starting keep-alive and command polling...");
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
@@ -365,11 +308,11 @@ function startKeepAlive() {
 
   // Command polling interval (check for new commands)
   if (state.commandTimer) clearInterval(state.commandTimer);
-  state.commandTimer = setInterval(checkPendingCommands, 3000);
+  state.commandTimer = setInterval(checkPendingCommands, 5000); // 5 segundos (menos agressivo)
 
   Logger.debug("Keep-alive started", {
     interval: CONFIG.keepAlive.interval,
-    polling: 3000,
+    polling: 5000,
   });
 }
 
@@ -383,7 +326,7 @@ async function sendHeartbeat() {
   }
 
   try {
-    // Atualizar lastSeen e isOnline no banco
+    // Atualizar last_seen e status no banco
     const response = await fetch(
       `${CONFIG.restUrl}/extension_devices?device_id=eq.${state.deviceId}`,
       {
@@ -395,14 +338,14 @@ async function sendHeartbeat() {
           Prefer: "return=minimal",
         },
         body: JSON.stringify({
-          isOnline: true,
-          lastSeen: new Date().toISOString(),
+          status: "online",
+          last_seen: new Date().toISOString(),
         }),
       },
     );
 
     if (response.ok) {
-      Logger.debug("Heartbeat sent successfully");
+      Logger.debug("💓 Heartbeat OK");
       state.lastActivity = Date.now();
 
       // Atualizar storage para sincronizar com popup
@@ -425,7 +368,7 @@ async function sendHeartbeat() {
   }
 }
 
-// Iniciar heartbeat a cada 15 segundos (reduzido para melhor detecção)
+// Iniciar heartbeat a cada 30 segundos (menos agressivo)
 let heartbeatInterval = null;
 
 function startHeartbeat() {
@@ -436,12 +379,12 @@ function startHeartbeat() {
   // Enviar imediatamente
   sendHeartbeat();
 
-  // Depois a cada 15 segundos
+  // Depois a cada 30 segundos
   heartbeatInterval = setInterval(() => {
     sendHeartbeat();
-  }, 15000); // 15 segundos - mais responsivo
+  }, 30000); // 30 segundos - mais estável
 
-  Logger.info("Heartbeat started (15s interval)");
+  Logger.info("Heartbeat started (30s interval)");
 }
 
 function stopHeartbeat() {
@@ -452,9 +395,9 @@ function stopHeartbeat() {
   }
 }
 
-// Heartbeat a cada 15 segundos (2x mais rápido que timeout de 30s no frontend)
+// Heartbeat a cada 30 segundos
 if (heartbeatInterval) clearInterval(heartbeatInterval);
-heartbeatInterval = setInterval(sendHeartbeat, 15000);
+heartbeatInterval = setInterval(sendHeartbeat, 30000);
 sendHeartbeat(); // Enviar imediatamente ao iniciar
 
 // ============================================

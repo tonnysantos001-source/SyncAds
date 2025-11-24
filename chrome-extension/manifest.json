@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SyncAds AI Automation",
-  "version": "4.1.0",
+  "version": "4.1.3",
   "description": "Automação inteligente com IA para marketing digital - Controle total do navegador via comandos de voz",
   "permissions": [
     "activeTab",
@@ -20,8 +20,7 @@
     "newtab": "newtab.html"
   },
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {

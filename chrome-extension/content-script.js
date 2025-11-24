@@ -678,7 +678,7 @@ async function executeDomCommand(command) {
         break;
 
       case "NAVIGATE":
-        result = await executeNavigation(data.url);
+        result = await executeNavigation(data.url, data.newTab !== false);
         break;
 
       case "SCROLL":
@@ -699,6 +699,22 @@ async function executeDomCommand(command) {
 
       case "FORM_SUBMIT":
         result = await executeFormSubmit(data.selector);
+        break;
+
+      case "GET_PAGE_INFO":
+        result = await executeGetPageInfo();
+        break;
+
+      case "LIST_TABS":
+        result = await executeListTabs();
+        break;
+
+      case "READ_TEXT":
+        result = await executeReadText(data.selector);
+        break;
+
+      case "EXECUTE_JS":
+        result = await executeJS(data.code);
         break;
 
       default:
@@ -845,17 +861,26 @@ async function executeScreenshot() {
   return response;
 }
 
-async function executeNavigation(url) {
-  Logger.debug("Executing NAVIGATE", { url });
+async function executeNavigation(url, newTab = true) {
+  Logger.debug("Executing NAVIGATE", { url, newTab });
 
   // Validar URL
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     url = "https://" + url;
   }
 
-  window.location.href = url;
-
-  return { navigated: url };
+  if (newTab) {
+    // Abrir em nova aba via background
+    const response = await chrome.runtime.sendMessage({
+      type: "OPEN_NEW_TAB",
+      url: url,
+    });
+    return { navigated: url, newTab: true };
+  } else {
+    // Navegar na mesma aba (apenas se explicitamente solicitado)
+    window.location.href = url;
+    return { navigated: url, newTab: false };
+  }
 }
 
 async function executeScroll(data) {
@@ -985,6 +1010,77 @@ async function executeFormSubmit(selector) {
   };
 }
 
+async function executeGetPageInfo() {
+  Logger.debug("Executing GET_PAGE_INFO");
+
+  return {
+    title: document.title,
+    url: window.location.href,
+    domain: window.location.hostname,
+    html: document.documentElement.outerHTML.substring(0, 5000),
+    bodyText: document.body.innerText.substring(0, 2000),
+    links: Array.from(document.links)
+      .slice(0, 20)
+      .map((l) => ({
+        text: l.textContent?.trim().substring(0, 50) || "",
+        href: l.href,
+      })),
+    forms: Array.from(document.forms).map((f) => ({
+      action: f.action,
+      method: f.method,
+      fields: Array.from(f.elements)
+        .slice(0, 10)
+        .map((e) => ({
+          name: e.name,
+          type: e.type,
+          value: e.value?.substring(0, 50) || "",
+        })),
+    })),
+  };
+}
+
+async function executeListTabs() {
+  Logger.debug("Executing LIST_TABS");
+
+  // Enviar mensagem para background para listar tabs
+  const response = await chrome.runtime.sendMessage({
+    type: "LIST_TABS",
+  });
+
+  return response;
+}
+
+async function executeReadText(selector) {
+  Logger.debug("Executing READ_TEXT", { selector });
+
+  if (selector) {
+    const element = document.querySelector(selector);
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    return {
+      text: element.innerText || element.textContent,
+      selector: selector,
+    };
+  } else {
+    return {
+      text: document.body.innerText,
+      selector: "body",
+    };
+  }
+}
+
+async function executeJS(code) {
+  Logger.debug("Executing EXECUTE_JS", { code });
+
+  try {
+    const result = eval(code);
+    return { result, success: true };
+  } catch (error) {
+    throw new Error(`JavaScript execution failed: ${error.message}`);
+  }
+}
+
 // ============================================
 // MESSAGE LISTENER - RECEBER COMANDOS
 // ============================================
@@ -1022,10 +1118,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "GET_PAGE_INFO") {
-    sendResponse({
-      url: window.location.href,
-      title: document.title,
-      domain: window.location.hostname,
+    (async () => {
+      try {
+        const result = await executeGetPageInfo();
+        sendResponse({ success: true, result });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "LIST_TABS") {
+    // Repassar para background que tem acesso às tabs
+    chrome.runtime.sendMessage({ type: "LIST_TABS" }, (response) => {
+      sendResponse(response);
     });
     return true;
   }
@@ -1153,6 +1260,10 @@ function formatCommandName(command) {
     DOM_HOVER: "Hover",
     DOM_SELECT: "Seleção",
     FORM_SUBMIT: "Envio de formulário",
+    GET_PAGE_INFO: "Leitura de página",
+    LIST_TABS: "Listar abas",
+    READ_TEXT: "Leitura de texto",
+    EXECUTE_JS: "Execução de JavaScript",
   };
 
   return names[command] || command;

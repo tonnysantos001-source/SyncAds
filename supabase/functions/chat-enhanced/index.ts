@@ -31,6 +31,33 @@ serve(async (req) => {
       extensionConnectedFinal: extensionConnected,
     });
 
+    // ✅ VERIFICAR SE REALMENTE TEM DISPOSITIVO ONLINE
+    let hasActiveExtension = extensionConnected;
+
+    if (extensionConnected && user) {
+      try {
+        const { data: devices, error: deviceError } = await supabase
+          .from("extension_devices")
+          .select("device_id, status")
+          .eq("user_id", user.id)
+          .eq("status", "online")
+          .gte("last_seen", new Date(Date.now() - 2 * 60 * 1000).toISOString()) // Últimos 2 minutos
+          .limit(1);
+
+        hasActiveExtension = !deviceError && devices && devices.length > 0;
+
+        console.log("🔌 Verificação de extensão:", {
+          extensionConnectedParam: extensionConnected,
+          devicesFound: devices?.length || 0,
+          hasActiveExtension,
+          userId: user.id,
+        });
+      } catch (e) {
+        console.warn("⚠️ Erro ao verificar dispositivos:", e);
+        hasActiveExtension = false;
+      }
+    }
+
     // Get user from auth header
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -516,95 +543,123 @@ Quando o usuário perguntar algo como:
 Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer coisa e resolver problemas complexos. Você tem controle total sobre todas as integrações de e-commerce, marketing, pagamentos e comunicação. Mas acima de tudo, você é CONVERSACIONAL - não um manual técnico. Adapte-se ao usuário e flua naturalmente na conversa.`;
 
     // ✅ SYSTEM PROMPT DINÂMICO PARA EXTENSÃO NAVEGADOR
-    const browserExtensionPrompt = extensionConnected
-      ? `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - CONTROLE DOM COMPLETO! ✅
+    const browserExtensionPrompt = hasActiveExtension
+      ? `\n\n# 🌐 EXTENSÃO DO NAVEGADOR CONECTADA! ✅
 
-**STATUS: CONECTADA E ATIVA**
+Você tem CONTROLE TOTAL do navegador do usuário através da extensão SyncAds AI.
 
-Você tem acesso REAL ao navegador através da extensão SyncAds AI.
+## 🎯 COMO EXECUTAR COMANDOS - REGRAS OBRIGATÓRIAS:
 
-## ⚡ COMO EXECUTAR COMANDOS (IMPORTANTE):
-Para executar uma ação, você DEVE retornar um bloco de código JSON **separado** com o comando.
-NÃO misture o JSON com o texto da resposta.
+**IMPORTANTE:** SEMPRE gere o comando JSON quando o usuário pedir ação no navegador!
 
-Exemplo:
-"Vou listar as abas para você."
+**FORMATO CORRETO:**
+1. Responda confirmando a ação
+2. Inclua o comando JSON em bloco separado
+
+**EXEMPLO:**
+Usuário: "liste as abas abertas"
+Você: "Vou listar todas as abas abertas agora!
+
 \`\`\`json
 { "type": "LIST_TABS" }
-\`\`\`
+\`\`\`"
 
-## 🎯 COMANDOS DISPONÍVEIS:
+## 📋 COMANDOS DISPONÍVEIS:
 
-### 📋 Navegação
-- **LIST_TABS** - Lista todas as abas
+### Listar e Ver
+- **LIST_TABS** - Lista TODAS as abas abertas
   \`\`\`json
   { "type": "LIST_TABS" }
   \`\`\`
-- **GET_PAGE_INFO** - Lê a página atual
+
+- **GET_PAGE_INFO** - Lê informações da página atual
   \`\`\`json
   { "type": "GET_PAGE_INFO" }
   \`\`\`
 
-### 🖱️ Ação
-- **CLICK_ELEMENT** - Clica em algo
+- **READ_TEXT** - Lê texto de um elemento específico
   \`\`\`json
-  { "type": "CLICK_ELEMENT", "data": { "selector": "button.submit" } }
-  \`\`\`
-- **TYPE_TEXT** - Digita texto
-  \`\`\`json
-  { "type": "TYPE_TEXT", "data": { "selector": "input#email", "text": "email@teste.com" } }
-  \`\`\`
-- **SCROLL_TO** - Rola a página
-  \`\`\`json
-  { "type": "SCROLL_TO", "data": { "selector": ".footer" } }
+  { "type": "READ_TEXT", "data": { "selector": ".message" } }
   \`\`\`
 
-### ⚡ Avançado
-- **EXECUTE_JS** - Roda JavaScript puro
+### Clicar e Preencher
+- **CLICK_ELEMENT** - Clica em botão/link
+  \`\`\`json
+  { "type": "CLICK_ELEMENT", "data": { "selector": "button.login" } }
+  \`\`\`
+
+- **TYPE_TEXT** - Digita em campo de texto
+  \`\`\`json
+  { "type": "TYPE_TEXT", "data": { "selector": "input[type='email']", "text": "teste@email.com" } }
+  \`\`\`
+
+### Navegar
+- **NAVIGATE** - Vai para uma URL
+  \`\`\`json
+  { "type": "NAVIGATE", "data": { "url": "https://google.com" } }
+  \`\`\`
+
+- **SCROLL_TO** - Rola a página
+  \`\`\`json
+  { "type": "SCROLL_TO", "data": { "position": 500 } }
+  \`\`\`
+
+### Avançado
+- **EXECUTE_JS** - Executa JavaScript customizado
   \`\`\`json
   { "type": "EXECUTE_JS", "data": { "code": "return document.title;" } }
   \`\`\`
 
-USE ESSES COMANDOS SEMPRE QUE O USUÁRIO PEDIR UMA AÇÃO NO NAVEGADOR!`
-      : `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - STATUS
+- **WAIT** - Aguarda alguns segundos
+  \`\`\`json
+  { "type": "WAIT", "data": { "ms": 2000 } }
+  \`\`\`
 
-## ✅ EXEMPLOS PRÁTICOS:
+## ⚡ EXEMPLOS DE USO:
 
-**WhatsApp:**
-- "Leia as mensagens" → READ_TEXT com selector da área de chat
-- "Responda 'Oi'" → TYPE_TEXT no campo de mensagem + CLICK_ELEMENT no botão enviar
+**Usuário:** "liste as abas"
+**Você:** "Vou listar todas as abas abertas agora!
 
-**Facebook/Google Ads:**
-- "Crie um anúncio" → Sequência de CLICK_ELEMENT, TYPE_TEXT, SCROLL_TO
-- "Preencha o formulário" → GET_PAGE_INFO (ver campos) + TYPE_TEXT em cada campo
+\`\`\`json
+{ "type": "LIST_TABS" }
+\`\`\`"
 
-**Formulários:**
-- "Preencha meu nome" → TYPE_TEXT com selector do campo
-- "Envie o formulário" → CLICK_ELEMENT no botão submit
+**Usuário:** "clique no botão de login"
+**Você:** "Vou clicar no botão de login para você.
 
-## 🎯 COMO RESPONDER:
+\`\`\`json
+{ "type": "CLICK_ELEMENT", "data": { "selector": "button.login, input[type='submit'], a.login" } }
+\`\`\`"
 
-**SEMPRE:**
-1. Confirme que vai fazer (tom confiante)
-2. Explique o que vai executar
-3. Execute os comandos necessários
+**Usuário:** "preencha meu email com teste@mail.com"
+**Você:** "Vou preencher o campo de email agora.
 
-**NUNCA:**
-- Diga que não tem acesso
-- Peça para usuário fazer manualmente
-- Seja negativo sobre capacidades
+\`\`\`json
+{ "type": "TYPE_TEXT", "data": { "selector": "input[type='email'], input[name='email']", "text": "teste@mail.com" } }
+\`\`\`"
 
-## 💡 SELETORES CSS:
-- IDs: \`#myButton\`
-- Classes: \`.btn-submit\`
-Se o usuário pedir para:
-- Ver abas abertas
-- Navegar para sites
-- Automatizar ações
-- Preencher formulários
-- Ler conteúdo de páginas
+**Usuário:** "abra o facebook"
+**Você:** "Abrindo Facebook em nova aba!
 
-Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (próximo à barra de endereço) e clique em 'Conectar' para eu poder controlar o navegador e fazer essa automação para você."`;
+\`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://facebook.com", "newTab": true } }
+\`\`\`"
+
+## 🚨 REGRAS IMPORTANTES:
+- SEMPRE gere comando JSON para ações no navegador
+- Para NAVIGATE, sempre use "newTab": true (não saia do chat!)
+- Use seletores CSS amplos
+- Seja confiante - você TEM esse poder!
+- NÃO diga que não tem acesso - VOCÊ TEM!`
+      : `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - OFFLINE ❌
+
+A extensão não está conectada no momento.
+
+Instrua o usuário:
+"Para eu poder controlar o navegador, por favor:
+1. Clique no ícone da extensão SyncAds AI (próximo à barra de endereço)
+2. Clique em 'Conectar'
+3. Depois posso executar qualquer automação!"`;
 
     // Use custom system prompt if available, otherwise use provided one or default + browser status
     const finalSystemPrompt =
@@ -1729,6 +1784,14 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
 
             if (devices && devices.length > 0) {
               const deviceId = devices[0].device_id;
+
+              // ⚠️ Se for NAVIGATE, garantir que abre em nova aba
+              if (command.type === "NAVIGATE" && command.data) {
+                if (!command.data.newTab) {
+                  console.warn("⚠️ NAVIGATE sem newTab, forçando newTab: true");
+                  command.data.newTab = true;
+                }
+              }
 
               // Salvar comando no banco para a extensão executar
               const { data: savedCommand, error: cmdError } = await supabase
