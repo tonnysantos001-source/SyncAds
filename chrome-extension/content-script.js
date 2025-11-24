@@ -1185,65 +1185,184 @@ async function extractAllData(data) {
  * Preenche formulário completo
  */
 async function fillForm(data) {
-  Logger.debug("Filling FORM", { data });
+  Logger.debug("Filling FORM - ENHANCED", { data });
 
-  const { formSelector = "form", fields = {} } = data;
+  const {
+    formSelector = "form",
+    fields = {},
+    scrollToFields = true,
+    highlightFields = true,
+    waitBetweenFields = 200,
+    validateAfter = true,
+    clearBefore = false,
+  } = data;
 
   const form = document.querySelector(formSelector);
   if (!form) {
     throw new Error(`Formulário não encontrado: ${formSelector}`);
   }
 
+  // Scroll para o formulário
+  if (scrollToFields) {
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    await sleep(300);
+  }
+
   const results = [];
 
-  for (const [fieldName, value] of Object.entries(fields)) {
+  for (const [fieldName, fieldConfig] of Object.entries(fields)) {
     try {
+      // Suportar config simples (string) ou objeto
+      const config =
+        typeof fieldConfig === "string" ? { value: fieldConfig } : fieldConfig;
+
+      const {
+        value,
+        type: fieldType,
+        validate = true,
+        selector: customSelector,
+      } = config;
+
       // Tentar múltiplos seletores
-      const selectors = [
-        `[name="${fieldName}"]`,
-        `#${fieldName}`,
-        `[id*="${fieldName}"]`,
-        `[placeholder*="${fieldName}"]`,
-      ];
+      const selectors = customSelector
+        ? [customSelector]
+        : [
+            `[name="${fieldName}"]`,
+            `#${fieldName}`,
+            `[id*="${fieldName}"]`,
+            `[placeholder*="${fieldName}"]`,
+            `[aria-label*="${fieldName}"]`,
+          ];
 
       let field = null;
+      let usedSelector = null;
+
       for (const selector of selectors) {
-        field = form.querySelector(selector);
-        if (field) break;
+        try {
+          field = form.querySelector(selector);
+          if (field) {
+            usedSelector = selector;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
       }
 
       if (!field) {
         results.push({
           field: fieldName,
           success: false,
-          error: "Não encontrado",
+          error: "Campo não encontrado",
+          triedSelectors: selectors,
         });
         continue;
       }
 
-      // Preencher baseado no tipo
-      const tagName = field.tagName.toLowerCase();
-      const type = field.type?.toLowerCase();
-
-      if (tagName === "input") {
-        if (type === "checkbox" || type === "radio") {
-          field.checked = Boolean(value);
-        } else {
-          field.value = value;
-        }
-      } else if (tagName === "select") {
-        field.value = value;
-      } else if (tagName === "textarea") {
-        field.value = value;
+      // Scroll para campo
+      if (scrollToFields) {
+        field.scrollIntoView({ behavior: "smooth", block: "center" });
+        await sleep(150);
       }
 
-      // Disparar eventos
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
+      // Highlight visual
+      if (highlightFields) {
+        const originalOutline = field.style.outline;
+        const originalBoxShadow = field.style.boxShadow;
+        field.style.outline = "2px solid #3b82f6";
+        field.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.5)";
 
-      results.push({ field: fieldName, success: true, value });
+        setTimeout(() => {
+          field.style.outline = originalOutline;
+          field.style.boxShadow = originalBoxShadow;
+        }, 1000);
+      }
+
+      // Limpar antes se solicitado
+      if (clearBefore && field.value) {
+        field.value = "";
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        await sleep(50);
+      }
+
+      // Detectar tipo de campo
+      const tagName = field.tagName.toLowerCase();
+      const inputType = field.type?.toLowerCase();
+      const detectedType = fieldType || inputType || tagName;
+
+      // Preencher baseado no tipo
+      let filled = false;
+
+      if (detectedType === "checkbox" || detectedType === "radio") {
+        field.checked = Boolean(value);
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+        filled = true;
+      } else if (detectedType === "select" || tagName === "select") {
+        // Tentar por value ou por texto
+        const option = Array.from(field.options).find(
+          (opt) => opt.value === value || opt.text === value,
+        );
+        if (option) {
+          field.value = option.value;
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+          filled = true;
+        }
+      } else if (tagName === "input" || tagName === "textarea") {
+        // Simular digitação para campos React/Vue
+        field.focus();
+        await sleep(50);
+
+        // Limpar e digitar
+        field.value = value;
+
+        // Disparar eventos para frameworks JS
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+        field.dispatchEvent(new Event("blur", { bubbles: true }));
+
+        // Para React especificamente
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(field, value);
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        filled = true;
+      }
+
+      // Validar se preencheu corretamente
+      let isValid = true;
+      if (validate && validateAfter) {
+        if (detectedType === "checkbox" || detectedType === "radio") {
+          isValid = field.checked === Boolean(value);
+        } else {
+          isValid = field.value === value || field.value.includes(value);
+        }
+      }
+
+      results.push({
+        field: fieldName,
+        success: filled && isValid,
+        value: field.value || field.checked,
+        selector: usedSelector,
+        type: detectedType,
+        validated: isValid,
+      });
+
+      // Aguardar entre campos
+      if (waitBetweenFields) {
+        await sleep(waitBetweenFields);
+      }
     } catch (error) {
-      results.push({ field: fieldName, success: false, error: error.message });
+      Logger.error(`Erro preenchendo campo ${fieldName}`, error);
+      results.push({
+        field: fieldName,
+        success: false,
+        error: error.message,
+      });
     }
   }
 
@@ -1252,6 +1371,7 @@ async function fillForm(data) {
     results,
     filledCount: results.filter((r) => r.success).length,
     totalFields: results.length,
+    validatedCount: results.filter((r) => r.validated).length,
   };
 }
 

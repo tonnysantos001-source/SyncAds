@@ -425,7 +425,7 @@ async def chat(
             # Criar comando para extensão
             if user_devices:
                 device_id = user_devices[0]["device_id"]
-                
+
                 command_data = {
                     "user_id": user_id,
                     "device_id": device_id,
@@ -438,7 +438,7 @@ async def chat(
                 try:
                     # Salvar comando no Supabase
                     cmd_response = supabase.table("extension_commands").insert(command_data).execute()
-                    
+
                     if cmd_response.data:
                         command_id = cmd_response.data[0]['id']
                         logger.info(f"✅ Comando criado no DB: {command_id}")
@@ -999,7 +999,7 @@ async def get_user_devices(user_id: str):
     """
     try:
         user_devices = []
-        
+
         # Buscar no Supabase
         if supabase:
             try:
@@ -1049,6 +1049,126 @@ async def startup_event():
     logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
     logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
     logger.info("=" * 50)
+
+
+# ==========================================
+# SCRAPING SERVICE
+# ==========================================
+from app.services.scraping_service import scrape_url, scrape_multiple, scrape_cached
+from pydantic import BaseModel
+
+
+class ScrapeRequest(BaseModel):
+    url: str
+    selector: str
+    wait_selector: Optional[str] = None
+    min_results: Optional[int] = 1
+    required_fields: Optional[List[str]] = None
+    timeout: Optional[int] = 30
+    use_cache: Optional[bool] = False
+
+
+class ScrapeMultipleRequest(BaseModel):
+    urls: List[str]
+    selector: str
+    wait_selector: Optional[str] = None
+    min_results: Optional[int] = 1
+    required_fields: Optional[List[str]] = None
+    timeout: Optional[int] = 30
+
+
+@app.post("/api/scrape")
+async def scrape_endpoint(request: ScrapeRequest):
+    """
+    Endpoint de scraping inteligente com fallback automático
+
+    Tenta múltiplas estratégias: Playwright, Selenium, aiohttp, requests
+    """
+    try:
+        if request.use_cache:
+            result = await scrape_cached(
+                url=request.url,
+                selector=request.selector,
+                wait_selector=request.wait_selector,
+                min_results=request.min_results,
+                required_fields=request.required_fields,
+                timeout=request.timeout,
+            )
+        else:
+            result = await scrape_url(
+                url=request.url,
+                selector=request.selector,
+                wait_selector=request.wait_selector,
+                min_results=request.min_results,
+                required_fields=request.required_fields,
+                timeout=request.timeout,
+            )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Erro no scraping: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "url": request.url,
+        }
+
+
+@app.post("/api/scrape/multiple")
+async def scrape_multiple_endpoint(request: ScrapeMultipleRequest):
+    """
+    Scraping de múltiplas URLs em paralelo
+    """
+    try:
+        results = await scrape_multiple(
+            urls=request.urls,
+            selector=request.selector,
+            wait_selector=request.wait_selector,
+            min_results=request.min_results,
+            required_fields=request.required_fields,
+            timeout=request.timeout,
+        )
+
+        return {
+            "success": True,
+            "results": results,
+            "total": len(results),
+            "successful": sum(1 for r in results if isinstance(r, dict) and r.get("success")),
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Erro no scraping múltiplo: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+
+@app.get("/api/scrape/health")
+async def scrape_health():
+    """Verifica quais estratégias de scraping estão disponíveis"""
+    from app.services.scraping_service import (
+        PLAYWRIGHT_AVAILABLE,
+        SELENIUM_AVAILABLE,
+        REQUESTS_AVAILABLE,
+        AIOHTTP_AVAILABLE,
+    )
+
+    return {
+        "strategies": {
+            "playwright": PLAYWRIGHT_AVAILABLE,
+            "selenium": SELENIUM_AVAILABLE,
+            "aiohttp": AIOHTTP_AVAILABLE,
+            "requests": REQUESTS_AVAILABLE,
+        },
+        "total_available": sum([
+            PLAYWRIGHT_AVAILABLE,
+            SELENIUM_AVAILABLE,
+            REQUESTS_AVAILABLE,
+            AIOHTTP_AVAILABLE,
+        ]),
+    }
 
 
 @app.on_event("shutdown")
