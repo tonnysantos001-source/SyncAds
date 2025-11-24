@@ -21,7 +21,8 @@ serve(async (req) => {
     } = await req.json();
 
     // Garantir booleano
-    const extensionConnected = rawExtensionConnected === true || rawExtensionConnected === "true";
+    const extensionConnected =
+      rawExtensionConnected === true || rawExtensionConnected === "true";
 
     console.log("🔍 DEBUG - Request recebido:", {
       hasMessage: !!message,
@@ -155,11 +156,13 @@ serve(async (req) => {
       aiConnection.maxTokens = 4096;
     }
 
-    if (aiConnection.temperature === null || aiConnection.temperature === undefined) {
+    if (
+      aiConnection.temperature === null ||
+      aiConnection.temperature === undefined
+    ) {
       console.warn("⚠️ temperature não definido, usando padrão 0.7");
       aiConnection.temperature = 0.7;
     }
-
 
     console.log("✅ AI Connection válida, prosseguindo com chat...");
 
@@ -516,7 +519,7 @@ Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer
     const browserExtensionPrompt = extensionConnected
       ? `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - CONTROLE DOM COMPLETO! ✅
 
-**STATUS: CONECTADA E ATIVA** 
+**STATUS: CONECTADA E ATIVA**
 
 Você tem acesso REAL ao navegador através da extensão SyncAds AI.
 
@@ -605,11 +608,18 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
 
     // Use custom system prompt if available, otherwise use provided one or default + browser status
     const finalSystemPrompt =
-      customSystemPrompt || `${systemPrompt || defaultSystemPrompt}${browserExtensionPrompt}`;
+      customSystemPrompt ||
+      `${systemPrompt || defaultSystemPrompt}${browserExtensionPrompt}`;
 
     console.log("📝 System Prompt Final Length:", finalSystemPrompt.length);
-    console.log("🌐 Browser Extension Status:", extensionConnected ? "CONNECTED ✅" : "OFFLINE ❌");
-    console.log("📄 FINAL SYSTEM PROMPT (first 500 chars):", finalSystemPrompt.substring(0, 500));
+    console.log(
+      "🌐 Browser Extension Status:",
+      extensionConnected ? "CONNECTED ✅" : "OFFLINE ❌",
+    );
+    console.log(
+      "📄 FINAL SYSTEM PROMPT (first 500 chars):",
+      finalSystemPrompt.substring(0, 500),
+    );
 
     // Salvar mensagem do usuário no banco
     const userMsgId = crypto.randomUUID();
@@ -1594,7 +1604,7 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: aiConnection.model || "claude-3-opus-20240229",
+            model: aiConnection.model || "claude-3-5-sonnet-20241022",
             max_tokens: aiConnection.maxTokens || 4096,
             temperature: aiConnection.temperature || 0.7,
             messages: messages.filter((m) => m.role !== "system"),
@@ -1695,7 +1705,9 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
     const jsonMatches = [...response.matchAll(jsonCommandRegex)];
 
     if (jsonMatches.length > 0 && extensionConnected) {
-      console.log(`🎯 Detectados ${jsonMatches.length} comandos JSON na resposta`);
+      console.log(
+        `🎯 Detectados ${jsonMatches.length} comandos JSON na resposta`,
+      );
 
       for (const match of jsonMatches) {
         try {
@@ -1704,15 +1716,15 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
 
           // Verificar se é um comando válido
           if (command.type) {
-            console.log('✅ Comando válido detectado:', command);
+            console.log("✅ Comando válido detectado:", command);
 
             // Buscar device_id do usuário
             const { data: devices } = await supabase
-              .from('extension_devices')
-              .select('device_id')
-              .eq('user_id', user.id)
-              .eq('status', 'online')
-              .order('last_seen', { ascending: false })
+              .from("extension_devices")
+              .select("device_id")
+              .eq("user_id", user.id)
+              .eq("status", "online")
+              .order("last_seen", { ascending: false })
               .limit(1);
 
             if (devices && devices.length > 0) {
@@ -1720,36 +1732,42 @@ Instrua: "Por favor, clique no ícone da extensão SyncAds AI no navegador (pró
 
               // Salvar comando no banco para a extensão executar
               const { data: savedCommand, error: cmdError } = await supabase
-                .from('ExtensionCommand')
+                .from("ExtensionCommand")
                 .insert({
                   deviceId,
                   userId: user.id,
                   command: command.type,
                   params: command.data || {},
-                  status: 'PENDING',
+                  status: "PENDING",
                   conversationId,
                 })
                 .select()
                 .single();
 
               if (!cmdError && savedCommand) {
-                console.log('✅ Comando salvo no banco:', savedCommand.id);
+                console.log("✅ Comando salvo no banco:", savedCommand.id);
 
                 // Remover o bloco JSON da resposta para não mostrar ao usuário
-                cleanResponse = cleanResponse.replace(match[0], '');
+                cleanResponse = cleanResponse.replace(match[0], "");
 
                 // Adicionar mensagem de feedback
-                cleanResponse = cleanResponse.trim() + `\n\n_✨ Executando ação..._`;
+                cleanResponse =
+                  cleanResponse.trim() + `\n\n_✨ Executando ação..._`;
               } else {
-                console.error('❌ Erro ao salvar comando:', cmdError);
+                console.error("❌ Erro ao salvar comando:", cmdError);
               }
             } else {
-              console.warn('⚠️ Nenhum dispositivo online encontrado para o usuário');
-              cleanResponse = cleanResponse.replace(match[0], '\n\n_⚠️ Extensão offline. Por favor, conecte a extensão do navegador._');
+              console.warn(
+                "⚠️ Nenhum dispositivo online encontrado para o usuário",
+              );
+              cleanResponse = cleanResponse.replace(
+                match[0],
+                "\n\n_⚠️ Extensão offline. Por favor, conecte a extensão do navegador._",
+              );
             }
           }
         } catch (parseError) {
-          console.error('❌ Erro ao processar comando JSON:', parseError);
+          console.error("❌ Erro ao processar comando JSON:", parseError);
         }
       }
 
