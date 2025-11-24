@@ -63,17 +63,17 @@ let state = {
 const Logger = {
   info: (message, data = {}) => {
     console.log(`ℹ️ [INFO] ${message}`, data);
-    sendLogToSupabase("info", message, data).catch(() => { });
+    sendLogToSupabase("info", message, data).catch(() => {});
   },
 
   success: (message, data = {}) => {
     console.log(`✅ [SUCCESS] ${message}`, data);
-    sendLogToSupabase("success", message, data).catch(() => { });
+    sendLogToSupabase("success", message, data).catch(() => {});
   },
 
   warn: (message, data = {}) => {
     console.warn(`⚠️ [WARN] ${message}`, data);
-    sendLogToSupabase("warning", message, data).catch(() => { });
+    sendLogToSupabase("warning", message, data).catch(() => {});
   },
 
   error: (message, error = null, data = {}) => {
@@ -81,7 +81,7 @@ const Logger = {
     sendLogToSupabase("error", message, {
       ...data,
       error: error?.message,
-    }).catch(() => { });
+    }).catch(() => {});
   },
 
   debug: (message, data = {}) => {
@@ -93,10 +93,172 @@ const Logger = {
 // COMMAND POLLING (NEW)
 // ============================================
 async function checkPendingCommands() {
-  if (!state.accessToken) {
+  if (!state.accessToken || !state.deviceId) {
+    Logger.debug("Skipping command check: not authenticated");
     return;
   }
 
+  try {
+    // Buscar comandos PENDING para este dispositivo
+    const response = await fetch(
+      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=10`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      Logger.warn("Failed to fetch commands", { status: response.status });
+      return;
+    }
+
+    const commands = await response.json();
+
+    if (commands.length === 0) {
+      Logger.debug("No pending commands");
+      return;
+    }
+
+    Logger.info(`📦 Found ${commands.length} pending commands`);
+
+    // Processar cada comando
+    for (const cmd of commands) {
+      await processCommand(cmd);
+    }
+  } catch (error) {
+    Logger.error("Error checking commands", error);
+  }
+}
+
+async function processCommand(cmd) {
+  Logger.info("Processing command", { id: cmd.id, command: cmd.command });
+
+  try {
+    // Marcar como EXECUTING
+    await updateCommandStatus(cmd.id, "EXECUTING", {
+      executedAt: new Date().toISOString(),
+    });
+
+    // Obter tab ativa
+    const [activeTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (!activeTab) {
+      throw new Error("No active tab found");
+    }
+
+    // Verificar se a tab está pronta
+    if (!activeTab.id || activeTab.discarded) {
+      throw new Error("Tab is not ready");
+    }
+
+    // Enviar comando para content-script
+    const response = await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(
+        activeTab.id,
+        {
+          type: "EXECUTE_COMMAND",
+          command: cmd.command,
+          params: cmd.params,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        },
+      );
+    });
+
+    // Marcar como COMPLETED
+    await updateCommandStatus(cmd.id, "COMPLETED", {
+      result: response,
+      completedAt: new Date().toISOString(),
+    });
+
+    Logger.success("✅ Command executed successfully", { id: cmd.id });
+  } catch (error) {
+    Logger.error("❌ Command execution failed", error, { id: cmd.id });
+
+    // Marcar como FAILED
+    await updateCommandStatus(cmd.id, "FAILED", {
+      error: error.message,
+      completedAt: new Date().toISOString(),
+    });
+  }
+}
+
+async function updateCommandStatus(commandId, status, extraData = {}) {
+  try {
+    const response = await fetch(
+      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          apikey: CONFIG.supabaseAnonKey,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          status,
+          ...extraData,
+        }),
+      },
+    );
+
+    if (response.ok) {
+      Logger.debug("Command status updated", { commandId, status });
+    } else {
+      Logger.warn("Failed to update command status", {
+        commandId,
+        status: response.status,
+      });
+    }
+  } catch (error) {
+    Logger.error("Failed to update command status", error);
+  }
+}
+
+// ============================================
+// SCREENSHOT HANDLER
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "CAPTURE_SCREENSHOT") {
+    (async () => {
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+          format: "png",
+          quality: 90,
+        });
+
+        sendResponse({ success: true, screenshot: dataUrl });
+      } catch (error) {
+        Logger.error("Screenshot capture failed", error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+
+    return true; // Keep channel open for async response
+  }
+});
+
+// ============================================
+// CONTINUAR COM CÓDIGO EXISTENTE
+// ============================================
+async function continueCheckPendingCommands() {
   try {
     const response = await fetch(
       `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=5`,
@@ -105,7 +267,7 @@ async function checkPendingCommands() {
           Authorization: `Bearer ${state.accessToken}`,
           apikey: CONFIG.supabaseAnonKey,
         },
-      }
+      },
     );
 
     const commands = await response.json();
@@ -113,7 +275,7 @@ async function checkPendingCommands() {
     if (commands && commands.length > 0) {
       Logger.info("📦 Comandos pendentes encontrados", {
         count: commands.length,
-        commands: commands.map(c => ({ id: c.id, command: c.command }))
+        commands: commands.map((c) => ({ id: c.id, command: c.command })),
       });
 
       for (const cmd of commands) {
@@ -121,7 +283,7 @@ async function checkPendingCommands() {
           Logger.info("🚀 Executando comando", {
             id: cmd.id,
             command: cmd.command,
-            params: cmd.params
+            params: cmd.params,
           });
 
           await updateCommandStatus(cmd.id, "processing");
@@ -141,7 +303,12 @@ async function checkPendingCommands() {
   }
 }
 
-async function updateCommandStatus(commandId, status, result = null, error = null) {
+async function updateCommandStatus(
+  commandId,
+  status,
+  result = null,
+  error = null,
+) {
   if (!state.accessToken) return;
 
   try {
@@ -158,19 +325,16 @@ async function updateCommandStatus(commandId, status, result = null, error = nul
       payload.error = error;
     }
 
-    await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${state.accessToken}`,
-          apikey: CONFIG.supabaseAnonKey,
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    await fetch(`${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+    });
   } catch (e) {
     console.error("Error updating command status", e);
   }
@@ -178,8 +342,8 @@ async function updateCommandStatus(commandId, status, result = null, error = nul
 
 async function executeCommand(cmd) {
   const request = {
-    type: cmd.command,      // ← Agora lê 'command' do banco
-    data: cmd.params || {}  // ← Agora lê 'params' do banco
+    type: cmd.command, // ← Agora lê 'command' do banco
+    data: cmd.params || {}, // ← Agora lê 'params' do banco
   };
 
   // Reutilizar lógica do handleAsyncInternal
@@ -196,7 +360,7 @@ function startKeepAlive() {
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
-    chrome.runtime.getPlatformInfo().catch(() => { });
+    chrome.runtime.getPlatformInfo().catch(() => {});
   }, CONFIG.keepAlive.interval);
 
   // Command polling interval (check for new commands)
@@ -205,7 +369,7 @@ function startKeepAlive() {
 
   Logger.debug("Keep-alive started", {
     interval: CONFIG.keepAlive.interval,
-    polling: 3000
+    polling: 3000,
   });
 }
 
@@ -973,7 +1137,7 @@ async function handleAsyncInternal(request) {
                 },
                 body: JSON.stringify(deviceData),
                 signal: controller.signal,
-              }
+              },
             );
             clearTimeout(timeoutId);
 
@@ -981,9 +1145,12 @@ async function handleAsyncInternal(request) {
               const errorText = await registerResponse.text();
               Logger.error("Device registration failed", {
                 status: registerResponse.status,
-                error: errorText
+                error: errorText,
               });
-              return { success: false, error: `Registration failed: ${errorText}` };
+              return {
+                success: false,
+                error: `Registration failed: ${errorText}`,
+              };
             }
           } catch (fetchError) {
             clearTimeout(timeoutId);
@@ -1021,7 +1188,7 @@ async function handleAsyncInternal(request) {
       case "LIST_TABS":
         // Listar todas as abas abertas no navegador
         const tabs = await chrome.tabs.query({});
-        const tabsList = tabs.map(tab => ({
+        const tabsList = tabs.map((tab) => ({
           id: tab.id,
           title: tab.title,
           url: tab.url,
@@ -1047,37 +1214,55 @@ async function handleAsyncInternal(request) {
 
       case "CLICK_ELEMENT":
         // Clicar em elemento usando seletor CSS
-        const clickTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        const clickTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
         if (!clickTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
         await chrome.scripting.executeScript({
           target: { tabId: clickTab[0].id },
           func: (selector) => {
             const element = document.querySelector(selector);
-            if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+            if (!element)
+              return {
+                success: false,
+                error: `Elemento não encontrado: ${selector}`,
+              };
             element.click();
             return { success: true, clicked: selector };
           },
           args: [request.data.selector],
         });
 
-        return { success: true, action: "clicked", selector: request.data.selector };
+        return {
+          success: true,
+          action: "clicked",
+          selector: request.data.selector,
+        };
 
       case "TYPE_TEXT":
         // Digitar texto em campo usando seletor CSS
-        const typeTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        const typeTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
         if (!typeTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
         await chrome.scripting.executeScript({
           target: { tabId: typeTab[0].id },
           func: (selector, text) => {
             const element = document.querySelector(selector);
-            if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
+            if (!element)
+              return {
+                success: false,
+                error: `Elemento não encontrado: ${selector}`,
+              };
 
-            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
               element.value = text;
-              element.dispatchEvent(new Event('input', { bubbles: true }));
-              element.dispatchEvent(new Event('change', { bubbles: true }));
+              element.dispatchEvent(new Event("input", { bubbles: true }));
+              element.dispatchEvent(new Event("change", { bubbles: true }));
             } else {
               element.textContent = text;
             }
@@ -1087,11 +1272,18 @@ async function handleAsyncInternal(request) {
           args: [request.data.selector, request.data.text],
         });
 
-        return { success: true, action: "typed", selector: request.data.selector };
+        return {
+          success: true,
+          action: "typed",
+          selector: request.data.selector,
+        };
 
       case "READ_TEXT":
         // Ler texto de elemento ou página inteira
-        const readTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        const readTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
         if (!readTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
         const [readResult] = await chrome.scripting.executeScript({
@@ -1099,8 +1291,15 @@ async function handleAsyncInternal(request) {
           func: (selector) => {
             if (selector) {
               const element = document.querySelector(selector);
-              if (!element) return { success: false, error: `Elemento não encontrado: ${selector}` };
-              return { success: true, text: element.innerText || element.textContent };
+              if (!element)
+                return {
+                  success: false,
+                  error: `Elemento não encontrado: ${selector}`,
+                };
+              return {
+                success: true,
+                text: element.innerText || element.textContent,
+              };
             } else {
               // Ler página inteira
               return { success: true, text: document.body.innerText };
@@ -1113,7 +1312,10 @@ async function handleAsyncInternal(request) {
 
       case "EXECUTE_JS":
         // Executar JavaScript personalizado na página
-        const execTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        const execTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
         if (!execTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
         const [execResult] = await chrome.scripting.executeScript({
@@ -1133,17 +1335,21 @@ async function handleAsyncInternal(request) {
 
       case "SCROLL_TO":
         // Scroll para elemento ou posição
-        const scrollTab = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!scrollTab[0]) return { success: false, error: "Nenhuma aba ativa" };
+        const scrollTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!scrollTab[0])
+          return { success: false, error: "Nenhuma aba ativa" };
 
         await chrome.scripting.executeScript({
           target: { tabId: scrollTab[0].id },
           func: (selector, position) => {
             if (selector) {
               const element = document.querySelector(selector);
-              if (element) element.scrollIntoView({ behavior: 'smooth' });
+              if (element) element.scrollIntoView({ behavior: "smooth" });
             } else if (position) {
-              window.scrollTo({ top: position, behavior: 'smooth' });
+              window.scrollTo({ top: position, behavior: "smooth" });
             }
           },
           args: [request.data.selector, request.data.position],
@@ -1153,12 +1359,17 @@ async function handleAsyncInternal(request) {
 
       case "WAIT":
         // Aguardar tempo em ms
-        await new Promise(resolve => setTimeout(resolve, request.data.ms || 1000));
+        await new Promise((resolve) =>
+          setTimeout(resolve, request.data.ms || 1000),
+        );
         return { success: true, waited: request.data.ms };
 
       case "GET_PAGE_INFO":
         // Obter informações completas da página
-        const infoTab = await chrome.tabs.query({ active: true, currentWindow: true });
+        const infoTab = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
         if (!infoTab[0]) return { success: false, error: "Nenhuma aba ativa" };
 
         const [infoResult] = await chrome.scripting.executeScript({
@@ -1168,25 +1379,26 @@ async function handleAsyncInternal(request) {
               title: document.title,
               url: window.location.href,
               html: document.documentElement.outerHTML.substring(0, 5000), // Primeiros 5000 chars
-              forms: Array.from(document.forms).map(f => ({
+              forms: Array.from(document.forms).map((f) => ({
                 action: f.action,
                 method: f.method,
-                fields: Array.from(f.elements).map(e => ({
+                fields: Array.from(f.elements).map((e) => ({
                   name: e.name,
                   type: e.type,
                   value: e.value,
                 })),
               })),
-              links: Array.from(document.links).slice(0, 50).map(l => ({
-                text: l.textContent,
-                href: l.href,
-              })),
+              links: Array.from(document.links)
+                .slice(0, 50)
+                .map((l) => ({
+                  text: l.textContent,
+                  href: l.href,
+                })),
             };
           },
         });
 
         return { success: true, data: infoResult.result };
-
 
       case "DISCONNECT":
         await disconnect();

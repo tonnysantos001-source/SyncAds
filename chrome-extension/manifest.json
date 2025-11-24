@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SyncAds AI Automation",
-  "version": "4.0.11",
-  "description": "Automação inteligente com IA para marketing digital - Execute ações automatizadas em qualquer site",
+  "version": "4.1.0",
+  "description": "Automação inteligente com IA para marketing digital - Controle total do navegador via comandos de voz",
   "permissions": [
     "activeTab",
     "storage",
@@ -15,11 +15,7 @@
     "history",
     "bookmarks"
   ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*",
-    "<all_urls>"
-  ],
+  "host_permissions": ["https://*/*", "http://*/*", "<all_urls>"],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
@@ -29,12 +25,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content-script.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
       "run_at": "document_idle",
       "all_frames": false
     }
@@ -55,12 +47,8 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "injected.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["injected.js"],
+      "matches": ["<all_urls>"]
     }
   ],
   "content_security_policy": {

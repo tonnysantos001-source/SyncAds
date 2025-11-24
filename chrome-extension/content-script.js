@@ -226,7 +226,10 @@ async function sendMessageToBackground(
       const response = await Promise.race([
         chrome.runtime.sendMessage(message),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout waiting for background response")), 15000)
+          setTimeout(
+            () => reject(new Error("Timeout waiting for background response")),
+            15000,
+          ),
         ),
       ]);
 
@@ -647,6 +650,544 @@ function sleep(ms) {
 }
 
 // ============================================
+// DOM COMMAND EXECUTOR
+// ============================================
+async function executeDomCommand(command) {
+  const { type, data } = command;
+
+  Logger.info("🎯 Executing DOM command", { type, data });
+
+  try {
+    let result = null;
+
+    switch (type) {
+      case "DOM_CLICK":
+        result = await executeClick(data.selector);
+        break;
+
+      case "DOM_FILL":
+        result = await executeFill(data.selector, data.value);
+        break;
+
+      case "DOM_READ":
+        result = await executeRead(data.selector);
+        break;
+
+      case "SCREENSHOT":
+        result = await executeScreenshot();
+        break;
+
+      case "NAVIGATE":
+        result = await executeNavigation(data.url);
+        break;
+
+      case "SCROLL":
+        result = await executeScroll(data);
+        break;
+
+      case "WAIT":
+        result = await executeWait(data.ms || 1000);
+        break;
+
+      case "DOM_HOVER":
+        result = await executeHover(data.selector);
+        break;
+
+      case "DOM_SELECT":
+        result = await executeSelect(data.selector, data.value);
+        break;
+
+      case "FORM_SUBMIT":
+        result = await executeFormSubmit(data.selector);
+        break;
+
+      default:
+        throw new Error(`Unknown command type: ${type}`);
+    }
+
+    Logger.success("✅ Command executed successfully", { type, result });
+    return { success: true, result };
+  } catch (error) {
+    Logger.error("❌ Command execution failed", error, { type, data });
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// COMMAND IMPLEMENTATIONS
+// ============================================
+
+async function executeClick(selector) {
+  Logger.debug("Executing CLICK", { selector });
+
+  // Tentar encontrar elemento com retry
+  let element = null;
+  for (let i = 0; i < 3; i++) {
+    element = document.querySelector(selector);
+    if (element) break;
+    await sleep(500);
+  }
+
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Destacar elemento temporariamente
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #10b981";
+
+  // Clicar
+  element.click();
+
+  // Remover destaque
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    clicked: selector,
+    text: element.textContent?.trim().substring(0, 50) || "",
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeFill(selector, value) {
+  Logger.debug("Executing FILL", { selector, value });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Focar no elemento
+  element.focus();
+
+  // Limpar valor anterior
+  element.value = "";
+
+  // Destacar elemento
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #3b82f6";
+
+  // Preencher com delay (simular digitação)
+  for (let i = 0; i < value.length; i++) {
+    element.value += value[i];
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    await sleep(50);
+  }
+
+  // Disparar eventos
+  element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new Event("blur", { bubbles: true }));
+
+  // Remover destaque
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    filled: selector,
+    value: value,
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeRead(selector) {
+  Logger.debug("Executing READ", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Destacar elemento
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #f59e0b";
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    text: element.textContent?.trim() || "",
+    html: element.innerHTML,
+    value: element.value || null,
+    tagName: element.tagName.toLowerCase(),
+    attributes: Array.from(element.attributes).reduce((acc, attr) => {
+      acc[attr.name] = attr.value;
+      return acc;
+    }, {}),
+    classList: Array.from(element.classList),
+    href: element.href || null,
+    src: element.src || null,
+  };
+}
+
+async function executeScreenshot() {
+  Logger.debug("Executing SCREENSHOT");
+
+  // Enviar mensagem para background para capturar screenshot
+  const response = await chrome.runtime.sendMessage({
+    type: "CAPTURE_SCREENSHOT",
+  });
+
+  return response;
+}
+
+async function executeNavigation(url) {
+  Logger.debug("Executing NAVIGATE", { url });
+
+  // Validar URL
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
+  }
+
+  window.location.href = url;
+
+  return { navigated: url };
+}
+
+async function executeScroll(data) {
+  Logger.debug("Executing SCROLL", { data });
+
+  const { x = 0, y = 0, behavior = "smooth", selector = null } = data;
+
+  if (selector) {
+    // Scroll para elemento específico
+    const element = document.querySelector(selector);
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    element.scrollIntoView({ behavior, block: "center" });
+  } else {
+    // Scroll da página
+    window.scrollTo({ top: y, left: x, behavior });
+  }
+
+  await sleep(500);
+
+  return {
+    scrolled: { x, y },
+    currentScroll: {
+      x: window.scrollX,
+      y: window.scrollY,
+    },
+  };
+}
+
+async function executeWait(ms) {
+  Logger.debug("Executing WAIT", { ms });
+
+  await sleep(ms);
+
+  return { waited: ms };
+}
+
+async function executeHover(selector) {
+  Logger.debug("Executing HOVER", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Criar e disparar evento de hover
+  const mouseOverEvent = new MouseEvent("mouseover", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  const mouseEnterEvent = new MouseEvent("mouseenter", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  element.dispatchEvent(mouseOverEvent);
+  element.dispatchEvent(mouseEnterEvent);
+
+  return {
+    hovered: selector,
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeSelect(selector, value) {
+  Logger.debug("Executing SELECT", { selector, value });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  if (element.tagName.toLowerCase() !== "select") {
+    throw new Error("Element is not a SELECT element");
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Selecionar opção
+  element.value = value;
+
+  // Disparar eventos
+  element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new Event("input", { bubbles: true }));
+
+  return {
+    selected: selector,
+    value: value,
+    selectedText: element.options[element.selectedIndex]?.text || "",
+  };
+}
+
+async function executeFormSubmit(selector) {
+  Logger.debug("Executing FORM_SUBMIT", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  let form = element;
+  if (element.tagName.toLowerCase() !== "form") {
+    // Buscar form pai
+    form = element.closest("form");
+    if (!form) {
+      throw new Error("No form found");
+    }
+  }
+
+  // Submit
+  form.submit();
+
+  return {
+    submitted: selector,
+    action: form.action || "",
+    method: form.method || "GET",
+  };
+}
+
+// ============================================
+// MESSAGE LISTENER - RECEBER COMANDOS
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  Logger.debug("📩 Message received in content-script", { type: message.type });
+
+  if (message.type === "EXECUTE_COMMAND") {
+    // Executar comando de forma assíncrona
+    (async () => {
+      try {
+        const result = await executeDomCommand({
+          type: message.command,
+          data: message.params,
+        });
+
+        sendResponse({ success: true, result });
+
+        // Mostrar feedback visual
+        if (result.success) {
+          showCommandFeedback(message.command, result.result);
+        }
+      } catch (error) {
+        Logger.error("Command execution error", error);
+        sendResponse({ success: false, error: error.message });
+        showCommandError(message.command, error.message);
+      }
+    })();
+
+    return true; // Keep channel open for async response
+  }
+
+  if (message.type === "PING") {
+    sendResponse({ pong: true, timestamp: Date.now() });
+    return true;
+  }
+
+  if (message.type === "GET_PAGE_INFO") {
+    sendResponse({
+      url: window.location.href,
+      title: document.title,
+      domain: window.location.hostname,
+    });
+    return true;
+  }
+});
+
+// ============================================
+// FEEDBACK VISUAL
+// ============================================
+function showCommandFeedback(command, result) {
+  const toast = document.createElement("div");
+  toast.id = "syncads-command-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3), 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 2147483647;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+  `;
+
+  const icon = document.createElement("span");
+  icon.style.cssText = `
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  `;
+  icon.textContent = "✓";
+
+  const text = document.createElement("span");
+  text.textContent = `${formatCommandName(command)} executado com sucesso`;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+
+  // Remover toast anterior se existir
+  const existingToast = document.getElementById("syncads-command-toast");
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation =
+      "slideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+function showCommandError(command, errorMsg) {
+  const toast = document.createElement("div");
+  toast.id = "syncads-command-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 2147483647;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+  `;
+
+  const icon = document.createElement("span");
+  icon.style.cssText = `
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  `;
+  icon.textContent = "✕";
+
+  const text = document.createElement("div");
+  text.innerHTML = `
+    <div style="font-weight: 600; margin-bottom: 4px;">${formatCommandName(command)} falhou</div>
+    <div style="font-size: 12px; opacity: 0.9;">${errorMsg}</div>
+  `;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+
+  // Remover toast anterior se existir
+  const existingToast = document.getElementById("syncads-command-toast");
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation =
+      "slideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+function formatCommandName(command) {
+  const names = {
+    DOM_CLICK: "Clique",
+    DOM_FILL: "Preenchimento",
+    DOM_READ: "Leitura",
+    SCREENSHOT: "Captura de tela",
+    NAVIGATE: "Navegação",
+    SCROLL: "Rolagem",
+    WAIT: "Espera",
+    DOM_HOVER: "Hover",
+    DOM_SELECT: "Seleção",
+    FORM_SUBMIT: "Envio de formulário",
+  };
+
+  return names[command] || command;
+}
+
+// Adicionar animações CSS
+if (!document.getElementById("syncads-animations")) {
+  const style = document.createElement("style");
+  style.id = "syncads-animations";
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px) scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px) scale(0.9);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ============================================
 // START
 // ============================================
 if (document.readyState === "loading") {
@@ -655,4 +1196,4 @@ if (document.readyState === "loading") {
   initialize();
 }
 
-Logger.info("✅ Content script loaded");
+Logger.info("✅ Content script loaded with DOM executor");
