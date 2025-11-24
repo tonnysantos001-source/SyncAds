@@ -28,6 +28,13 @@ interface ExtensionStatus {
   lastCheck: number;
 }
 
+interface PendingCommand {
+  id: string;
+  command: string;
+  messageId: string;
+  timestamp: number;
+}
+
 // ============================================
 // CHAT PAGE - VERSÃO SIMPLES E FUNCIONAL
 // ============================================
@@ -45,15 +52,19 @@ export default function ChatPageNovo() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [aiStatus, setAiStatus] = useState<"thinking" | "searching" | "navigating" | null>(null);
+  const [aiStatus, setAiStatus] = useState<
+    "thinking" | "searching" | "navigating" | null
+  >(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     connected: false,
     deviceId: null,
     lastCheck: 0,
   });
+  const [pendingCommands, setPendingCommands] = useState<PendingCommand[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const resultPollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   // ============================================
   // AUTH CHECK
@@ -173,7 +184,9 @@ export default function ChatPageNovo() {
           console.error("❌ Erro ao verificar extensão:", error);
           consecutiveFailures++;
           if (consecutiveFailures >= MAX_FAILURES) {
-            console.warn(`⚠️ ${MAX_FAILURES} falhas consecutivas, marcando como offline`);
+            console.warn(
+              `⚠️ ${MAX_FAILURES} falhas consecutivas, marcando como offline`,
+            );
             setExtensionStatus({
               connected: false,
               deviceId: null,
@@ -219,11 +232,50 @@ export default function ChatPageNovo() {
   }, [user]);
 
   // ============================================
-  // AUTO SCROLL
+  // SCROLL TO BOTTOM
   // ============================================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations, activeConversationId]);
+
+  // ============================================
+  // POLLING DE RESULTADOS DE COMANDOS
+  // ============================================
+  useEffect(() => {
+    // Iniciar polling se houver comandos pendentes
+    if (pendingCommands.length > 0) {
+      console.log(
+        `🔄 Iniciando polling de ${pendingCommands.length} comandos pendentes`,
+      );
+
+      // Verificar imediatamente
+      checkCommandResults();
+
+      // Depois verificar a cada 3 segundos
+      if (!resultPollingInterval.current) {
+        resultPollingInterval.current = setInterval(() => {
+          checkCommandResults();
+        }, 3000);
+      }
+    } else {
+      // Parar polling se não houver comandos pendentes
+      if (resultPollingInterval.current) {
+        console.log(
+          "⏸️ Parando polling de resultados (sem comandos pendentes)",
+        );
+        clearInterval(resultPollingInterval.current);
+        resultPollingInterval.current = null;
+      }
+    }
+
+    // Cleanup ao desmontar
+    return () => {
+      if (resultPollingInterval.current) {
+        clearInterval(resultPollingInterval.current);
+        resultPollingInterval.current = null;
+      }
+    };
+  }, [pendingCommands.length, activeConversationId, user]);
 
   // ============================================
   // CRIAR NOVA CONVERSA
@@ -250,7 +302,11 @@ export default function ChatPageNovo() {
 
       console.log("🆕 Criando nova conversa:", newConv);
 
-      const { data, error } = await supabase.from("ChatConversation").insert(newConv).select().single();
+      const { data, error } = await supabase
+        .from("ChatConversation")
+        .insert(newConv)
+        .select()
+        .single();
 
       if (error) {
         console.error("❌ Erro Supabase:", error);
@@ -287,10 +343,14 @@ export default function ChatPageNovo() {
   // ============================================
   // ENVIAR COMANDO PARA EXTENSÃO
   // ============================================
-  const sendBrowserCommand = async (commandType: string, params: any) => {
+  const sendBrowserCommand = async (
+    commandType: string,
+    params: any,
+    messageId: string,
+  ) => {
     if (!extensionStatus.connected || !extensionStatus.deviceId) {
       console.warn("⚠️ Extensão não conectada, comando não enviado");
-      return false;
+      return null;
     }
 
     try {
@@ -300,7 +360,7 @@ export default function ChatPageNovo() {
         id: commandId,
         command: commandType,
         params,
-        deviceId: extensionStatus.deviceId
+        deviceId: extensionStatus.deviceId,
       });
 
       const { error } = await supabase.from("ExtensionCommand").insert({
@@ -315,20 +375,176 @@ export default function ChatPageNovo() {
 
       if (error) {
         console.error("❌ Erro ao inserir comando:", error);
-        return false;
+        return null;
       }
 
       console.log("✅ Comando inserido com sucesso:", commandId);
 
-      toast({
-        title: "🤖 Comando enviado",
-        description: `Aguardando execução: ${commandType}`,
-      });
+      // Adicionar comando à lista de pendentes
+      setPendingCommands((prev) => [
+        ...prev,
+        {
+          id: commandId,
+          command: commandType,
+          messageId: messageId,
+          timestamp: Date.now(),
+        },
+      ]);
 
-      return true;
+      return commandId;
     } catch (error) {
       console.error("❌ Erro ao enviar comando:", error);
-      return false;
+      return null;
+    }
+  };
+
+  // ============================================
+  // POLLING DE RESULTADOS
+  // ============================================
+  const checkCommandResults = async () => {
+    if (pendingCommands.length === 0) return;
+
+    try {
+      const commandIds = pendingCommands.map((c) => c.id);
+
+      const { data: completedCommands, error } = await supabase
+        .from("ExtensionCommand")
+        .select("*")
+        .in("id", commandIds)
+        .in("status", ["COMPLETED", "FAILED"]);
+
+      if (error) {
+        console.error("❌ Erro ao buscar resultados:", error);
+        return;
+      }
+
+      if (completedCommands && completedCommands.length > 0) {
+        for (const cmd of completedCommands) {
+          const pending = pendingCommands.find((p) => p.id === cmd.id);
+          if (!pending) continue;
+
+          console.log("✅ Comando completado:", {
+            id: cmd.id,
+            command: cmd.command,
+            status: cmd.status,
+            result: cmd.result,
+          });
+
+          // Processar resultado com IA
+          await processCommandResult(cmd, pending.messageId);
+
+          // Remover da lista de pendentes
+          setPendingCommands((prev) => prev.filter((p) => p.id !== cmd.id));
+        }
+      }
+
+      // Limpar comandos muito antigos (> 2 minutos)
+      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+      setPendingCommands((prev) =>
+        prev.filter((p) => p.timestamp > twoMinutesAgo),
+      );
+    } catch (error) {
+      console.error("❌ Erro no polling de resultados:", error);
+    }
+  };
+
+  // ============================================
+  // PROCESSAR RESULTADO COM IA
+  // ============================================
+  const processCommandResult = async (command: any, messageId: string) => {
+    if (!user || !activeConversationId) return;
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) return;
+
+      // Criar prompt para IA processar resultado
+      let resultPrompt = "";
+
+      if (command.status === "COMPLETED" && command.result) {
+        const result = command.result.result || command.result;
+
+        switch (command.command) {
+          case "LIST_TABS":
+            const tabs = result.tabs || [];
+            resultPrompt = `RESULTADO: Encontrei ${tabs.length} abas abertas:\n\n${tabs.map((t: any, i: number) => `${i + 1}. ${t.title}\n   URL: ${t.url}`).join("\n\n")}\n\nPor favor, apresente esta lista de forma organizada e amigável para o usuário.`;
+            break;
+
+          case "GET_PAGE_INFO":
+            resultPrompt = `RESULTADO: Informações da página:\n- Título: ${result.title}\n- URL: ${result.url}\n- Domínio: ${result.domain}\n\nResumo do conteúdo:\n${result.bodyText?.substring(0, 500) || "Sem conteúdo"}\n\nPor favor, apresente essas informações de forma clara para o usuário.`;
+            break;
+
+          case "NAVIGATE":
+            resultPrompt = `RESULTADO: Nova aba aberta com sucesso em: ${result.navigated}\n\nConfirme ao usuário que a ação foi concluída.`;
+            break;
+
+          case "CLICK_ELEMENT":
+            resultPrompt = `RESULTADO: Clique executado com sucesso no elemento: ${result.clicked}\n\nConfirme ao usuário que a ação foi concluída.`;
+            break;
+
+          case "TYPE_TEXT":
+            resultPrompt = `RESULTADO: Texto digitado com sucesso: "${result.value}"\n\nConfirme ao usuário que a ação foi concluída.`;
+            break;
+
+          case "READ_TEXT":
+            resultPrompt = `RESULTADO: Texto lido do elemento:\n\n${result.text}\n\nPor favor, apresente este conteúdo de forma clara para o usuário.`;
+            break;
+
+          default:
+            resultPrompt = `RESULTADO da ação ${command.command}:\n\n${JSON.stringify(result, null, 2)}\n\nPor favor, apresente este resultado de forma clara para o usuário.`;
+        }
+      } else if (command.status === "FAILED") {
+        resultPrompt = `ERRO: A ação ${command.command} falhou com o seguinte erro: ${command.error}\n\nPor favor, explique o problema ao usuário de forma amigável e sugira uma solução.`;
+      }
+
+      // Enviar para IA processar
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-enhanced`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            message: resultPrompt,
+            conversationId: activeConversationId,
+            extensionConnected: extensionStatus.connected,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const aiResponse = await response.json();
+
+      // Adicionar resposta da IA no chat
+      const newMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content: aiResponse.response,
+        createdAt: new Date().toISOString(),
+      };
+
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === activeConversationId
+            ? {
+                ...conv,
+                messages: [...conv.messages, newMessage],
+              }
+            : conv,
+        ),
+      );
+
+      console.log("✅ Resultado processado pela IA e adicionado ao chat");
+    } catch (error) {
+      console.error("❌ Erro ao processar resultado:", error);
     }
   };
 
@@ -347,9 +563,17 @@ export default function ChatPageNovo() {
 
     // Determinar status da IA baseado na mensagem
     const msgLower = userMessage.toLowerCase();
-    if (msgLower.includes("pesquis") || msgLower.includes("busca") || msgLower.includes("procur")) {
+    if (
+      msgLower.includes("pesquis") ||
+      msgLower.includes("busca") ||
+      msgLower.includes("procur")
+    ) {
       setAiStatus("searching");
-    } else if (msgLower.includes("abr") || msgLower.includes("naveg") || msgLower.includes("acess")) {
+    } else if (
+      msgLower.includes("abr") ||
+      msgLower.includes("naveg") ||
+      msgLower.includes("acess")
+    ) {
       setAiStatus("navigating");
     } else {
       setAiStatus("thinking");
@@ -361,17 +585,17 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: [
-                ...conv.messages,
-                {
-                  id: tempUserMsgId,
-                  role: "user",
-                  content: userMessage,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  {
+                    id: tempUserMsgId,
+                    role: "user",
+                    content: userMessage,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
             : conv,
         ),
       );
@@ -388,7 +612,9 @@ export default function ChatPageNovo() {
         message: userMessage,
         extensionConnected: extensionStatus.connected,
         deviceId: extensionStatus.deviceId,
-        systemPromptLength: extensionStatus.connected ? "LONG (Connected)" : "SHORT (Offline)"
+        systemPromptLength: extensionStatus.connected
+          ? "LONG (Connected)"
+          : "SHORT (Offline)",
       });
 
       const response = await fetch(
@@ -444,7 +670,7 @@ export default function ChatPageNovo() {
                 : "Extensão do navegador OFFLINE. NÃO há acesso ao navegador neste momento. Responda normalmente sem comandos JSON.",
             }),
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -491,28 +717,28 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: [
-                // Remover temporários e adicionar as mensagens reais do banco
-                ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
-                {
-                  id: data.userMessageId || tempUserMsgId,
-                  role: "user",
-                  content: userMessage,
-                  createdAt: new Date().toISOString(),
-                },
-                {
-                  id: data.aiMessageId || tempAiMsgId,
-                  role: "assistant",
-                  content:
-                    data.response ||
-                    "Desculpe, não consegui gerar uma resposta.",
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-            : conv
-        )
+                ...conv,
+                messages: [
+                  // Remover temporários e adicionar as mensagens reais do banco
+                  ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
+                  {
+                    id: data.userMessageId || tempUserMsgId,
+                    role: "user",
+                    content: userMessage,
+                    createdAt: new Date().toISOString(),
+                  },
+                  {
+                    id: data.aiMessageId || tempAiMsgId,
+                    role: "assistant",
+                    content:
+                      data.response ||
+                      "Desculpe, não consegui gerar uma resposta.",
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
+            : conv,
+        ),
       );
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
@@ -522,9 +748,11 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: conv.messages.filter(m => !m.id.startsWith('temp-')),
-            }
+                ...conv,
+                messages: conv.messages.filter(
+                  (m) => !m.id.startsWith("temp-"),
+                ),
+              }
             : conv,
         ),
       );
@@ -583,8 +811,9 @@ export default function ChatPageNovo() {
     <div className="flex h-screen bg-gray-950 text-white">
       {/* SIDEBAR */}
       <div
-        className={`${sidebarOpen ? "w-80" : "w-0"
-          } transition-all duration-300 border-r border-gray-800 flex flex-col`}
+        className={`${
+          sidebarOpen ? "w-80" : "w-0"
+        } transition-all duration-300 border-r border-gray-800 flex flex-col`}
       >
         {sidebarOpen && (
           <>
@@ -610,10 +839,11 @@ export default function ChatPageNovo() {
                   <div
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
-                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
-                      ? "bg-gray-800 border border-blue-600"
-                      : "bg-gray-900 hover:bg-gray-800"
-                      }`}
+                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
+                      activeConversationId === conv.id
+                        ? "bg-gray-800 border border-blue-600"
+                        : "bg-gray-900 hover:bg-gray-800"
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm truncate">{conv.title}</span>
@@ -655,14 +885,16 @@ export default function ChatPageNovo() {
           {/* Status da Extensão */}
           <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
-                ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                : "bg-gray-800 text-gray-400 border border-gray-700"
-                }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                extensionStatus.connected
+                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                  : "bg-gray-800 text-gray-400 border border-gray-700"
+              }`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                  }`}
+                className={`w-2 h-2 rounded-full ${
+                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                }`}
               />
               <span>
                 {extensionStatus.connected
@@ -723,8 +955,9 @@ export default function ChatPageNovo() {
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                      }`}
+                    className={`max-w-[70%] rounded-lg p-4 ${
+                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
+                    }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
@@ -752,7 +985,7 @@ export default function ChatPageNovo() {
               onPaste={(e) => {
                 // FORÇA paste a funcionar
                 e.stopPropagation();
-                const pastedText = e.clipboardData.getData('text');
+                const pastedText = e.clipboardData.getData("text");
                 if (pastedText) {
                   setInput(input + pastedText);
                 }

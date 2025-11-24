@@ -678,7 +678,8 @@ async function executeDomCommand(command) {
         break;
 
       case "NAVIGATE":
-        result = await executeNavigation(data.url, data.newTab !== false);
+        // SEMPRE abrir em nova aba (nunca sair do chat)
+        result = await executeNavigation(data.url, true);
         break;
 
       case "SCROLL":
@@ -869,18 +870,14 @@ async function executeNavigation(url, newTab = true) {
     url = "https://" + url;
   }
 
-  if (newTab) {
-    // Abrir em nova aba via background
-    const response = await chrome.runtime.sendMessage({
-      type: "OPEN_NEW_TAB",
-      url: url,
-    });
-    return { navigated: url, newTab: true };
-  } else {
-    // Navegar na mesma aba (apenas se explicitamente solicitado)
-    window.location.href = url;
-    return { navigated: url, newTab: false };
-  }
+  // SEMPRE abrir em nova aba para não sair do chat
+  // Ignorar parâmetro newTab - sempre forçar true
+  const response = await chrome.runtime.sendMessage({
+    type: "OPEN_NEW_TAB",
+    url: url,
+  });
+
+  return { navigated: url, newTab: true, message: "Aberto em nova aba" };
 }
 
 async function executeScroll(data) {

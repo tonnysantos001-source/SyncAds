@@ -31,33 +31,6 @@ serve(async (req) => {
       extensionConnectedFinal: extensionConnected,
     });
 
-    // ✅ VERIFICAR SE REALMENTE TEM DISPOSITIVO ONLINE
-    let hasActiveExtension = extensionConnected;
-
-    if (extensionConnected && user) {
-      try {
-        const { data: devices, error: deviceError } = await supabase
-          .from("extension_devices")
-          .select("device_id, status")
-          .eq("user_id", user.id)
-          .eq("status", "online")
-          .gte("last_seen", new Date(Date.now() - 2 * 60 * 1000).toISOString()) // Últimos 2 minutos
-          .limit(1);
-
-        hasActiveExtension = !deviceError && devices && devices.length > 0;
-
-        console.log("🔌 Verificação de extensão:", {
-          extensionConnectedParam: extensionConnected,
-          devicesFound: devices?.length || 0,
-          hasActiveExtension,
-          userId: user.id,
-        });
-      } catch (e) {
-        console.warn("⚠️ Erro ao verificar dispositivos:", e);
-        hasActiveExtension = false;
-      }
-    }
-
     // Get user from auth header
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -543,7 +516,7 @@ Quando o usuário perguntar algo como:
 Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer coisa e resolver problemas complexos. Você tem controle total sobre todas as integrações de e-commerce, marketing, pagamentos e comunicação. Mas acima de tudo, você é CONVERSACIONAL - não um manual técnico. Adapte-se ao usuário e flua naturalmente na conversa.`;
 
     // ✅ SYSTEM PROMPT DINÂMICO PARA EXTENSÃO NAVEGADOR
-    const browserExtensionPrompt = hasActiveExtension
+    const browserExtensionPrompt = extensionConnected
       ? `\n\n# 🌐 EXTENSÃO DO NAVEGADOR CONECTADA! ✅
 
 Você tem CONTROLE TOTAL do navegador do usuário através da extensão SyncAds AI.
@@ -566,91 +539,79 @@ Você: "Vou listar todas as abas abertas agora!
 
 ## 📋 COMANDOS DISPONÍVEIS:
 
-### Listar e Ver
-- **LIST_TABS** - Lista TODAS as abas abertas
-  \`\`\`json
-  { "type": "LIST_TABS" }
-  \`\`\`
+**IMPORTANTE:** O usuário NÃO deve ver o JSON. Apenas responda naturalmente e inclua o comando.
 
-- **GET_PAGE_INFO** - Lê informações da página atual
-  \`\`\`json
-  { "type": "GET_PAGE_INFO" }
-  \`\`\`
+### Comandos:
+- **LIST_TABS** - Lista abas: \`\`\`json
+{ "type": "LIST_TABS" }
+\`\`\`
 
-- **READ_TEXT** - Lê texto de um elemento específico
-  \`\`\`json
-  { "type": "READ_TEXT", "data": { "selector": ".message" } }
-  \`\`\`
+- **GET_PAGE_INFO** - Lê página: \`\`\`json
+{ "type": "GET_PAGE_INFO" }
+\`\`\`
 
-### Clicar e Preencher
-- **CLICK_ELEMENT** - Clica em botão/link
-  \`\`\`json
-  { "type": "CLICK_ELEMENT", "data": { "selector": "button.login" } }
-  \`\`\`
+- **READ_TEXT** - Lê texto: \`\`\`json
+{ "type": "READ_TEXT", "data": { "selector": ".elemento" } }
+\`\`\`
 
-- **TYPE_TEXT** - Digita em campo de texto
-  \`\`\`json
-  { "type": "TYPE_TEXT", "data": { "selector": "input[type='email']", "text": "teste@email.com" } }
-  \`\`\`
+- **CLICK_ELEMENT** - Clica: \`\`\`json
+{ "type": "CLICK_ELEMENT", "data": { "selector": "button" } }
+\`\`\`
 
-### Navegar
-- **NAVIGATE** - Vai para uma URL
-  \`\`\`json
-  { "type": "NAVIGATE", "data": { "url": "https://google.com" } }
-  \`\`\`
+- **TYPE_TEXT** - Digita: \`\`\`json
+{ "type": "TYPE_TEXT", "data": { "selector": "input", "text": "texto" } }
+\`\`\`
 
-- **SCROLL_TO** - Rola a página
-  \`\`\`json
-  { "type": "SCROLL_TO", "data": { "position": 500 } }
-  \`\`\`
+- **NAVIGATE** - Abre URL (sempre em nova aba): \`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://site.com" } }
+\`\`\`
 
-### Avançado
-- **EXECUTE_JS** - Executa JavaScript customizado
-  \`\`\`json
-  { "type": "EXECUTE_JS", "data": { "code": "return document.title;" } }
-  \`\`\`
+- **SCROLL_TO** - Rola: \`\`\`json
+{ "type": "SCROLL_TO", "data": { "position": 500 } }
+\`\`\`
 
-- **WAIT** - Aguarda alguns segundos
-  \`\`\`json
-  { "type": "WAIT", "data": { "ms": 2000 } }
-  \`\`\`
+- **EXECUTE_JS** - Executa JS: \`\`\`json
+{ "type": "EXECUTE_JS", "data": { "code": "código" } }
+\`\`\`
+
+- **WAIT** - Aguarda: \`\`\`json
+{ "type": "WAIT", "data": { "ms": 2000 } }
+\`\`\`
 
 ## ⚡ EXEMPLOS DE USO:
 
-**Usuário:** "liste as abas"
-**Você:** "Vou listar todas as abas abertas agora!
+**REGRA CRÍTICA:** Responda de forma natural + comando JSON separado.
+
+Usuário: "liste as abas"
+Você: "Vou listar as abas abertas agora!
 
 \`\`\`json
 { "type": "LIST_TABS" }
 \`\`\`"
 
-**Usuário:** "clique no botão de login"
-**Você:** "Vou clicar no botão de login para você.
+Usuário: "clique no botão de login"
+Você: "Clicando no botão de login.
 
 \`\`\`json
-{ "type": "CLICK_ELEMENT", "data": { "selector": "button.login, input[type='submit'], a.login" } }
+{ "type": "CLICK_ELEMENT", "data": { "selector": "button.login, input[type='submit']" } }
 \`\`\`"
 
-**Usuário:** "preencha meu email com teste@mail.com"
-**Você:** "Vou preencher o campo de email agora.
+Usuário: "abra o facebook"
+Você: "Abrindo Facebook em nova aba!
 
 \`\`\`json
-{ "type": "TYPE_TEXT", "data": { "selector": "input[type='email'], input[name='email']", "text": "teste@mail.com" } }
+{ "type": "NAVIGATE", "data": { "url": "https://facebook.com" } }
 \`\`\`"
 
-**Usuário:** "abra o facebook"
-**Você:** "Abrindo Facebook em nova aba!
+**NOTA:** O sistema automaticamente abre em nova aba. NÃO saia do chat!
 
-\`\`\`json
-{ "type": "NAVIGATE", "data": { "url": "https://facebook.com", "newTab": true } }
-\`\`\`"
-
-## 🚨 REGRAS IMPORTANTES:
-- SEMPRE gere comando JSON para ações no navegador
-- Para NAVIGATE, sempre use "newTab": true (não saia do chat!)
-- Use seletores CSS amplos
-- Seja confiante - você TEM esse poder!
-- NÃO diga que não tem acesso - VOCÊ TEM!`
+## 🚨 REGRAS CRÍTICAS:
+1. SEMPRE gere JSON para ações no navegador
+2. Para NAVIGATE: sistema abre automaticamente em nova aba
+3. Use seletores CSS amplos (múltiplas opções)
+4. Seja confiante - você TEM controle total!
+5. NÃO diga que não tem acesso
+6. Responda de forma natural, não mostre código ao usuário visualmente`
       : `\n\n# 🌐 EXTENSÃO DO NAVEGADOR - OFFLINE ❌
 
 A extensão não está conectada no momento.
@@ -1785,12 +1746,14 @@ Instrua o usuário:
             if (devices && devices.length > 0) {
               const deviceId = devices[0].device_id;
 
-              // ⚠️ Se for NAVIGATE, garantir que abre em nova aba
-              if (command.type === "NAVIGATE" && command.data) {
-                if (!command.data.newTab) {
-                  console.warn("⚠️ NAVIGATE sem newTab, forçando newTab: true");
-                  command.data.newTab = true;
+              // ⚠️ Se for NAVIGATE, SEMPRE garantir que abre em nova aba
+              if (command.type === "NAVIGATE") {
+                if (!command.data) {
+                  command.data = {};
                 }
+                // SEMPRE forçar newTab = true para não sair do chat
+                command.data.newTab = true;
+                console.log("✅ NAVIGATE configurado com newTab: true");
               }
 
               // Salvar comando no banco para a extensão executar
@@ -1813,9 +1776,36 @@ Instrua o usuário:
                 // Remover o bloco JSON da resposta para não mostrar ao usuário
                 cleanResponse = cleanResponse.replace(match[0], "");
 
-                // Adicionar mensagem de feedback
-                cleanResponse =
-                  cleanResponse.trim() + `\n\n_✨ Executando ação..._`;
+                // Adicionar mensagem de feedback baseada no tipo de comando
+                let actionMessage = "✨ Executando...";
+                switch (command.type) {
+                  case "LIST_TABS":
+                    actionMessage = "📋 Listando abas abertas...";
+                    break;
+                  case "GET_PAGE_INFO":
+                    actionMessage = "📄 Lendo página...";
+                    break;
+                  case "NAVIGATE":
+                    actionMessage = "🌐 Abrindo em nova aba...";
+                    break;
+                  case "CLICK_ELEMENT":
+                    actionMessage = "🖱️ Clicando no elemento...";
+                    break;
+                  case "TYPE_TEXT":
+                    actionMessage = "⌨️ Digitando texto...";
+                    break;
+                  case "READ_TEXT":
+                    actionMessage = "📖 Lendo texto...";
+                    break;
+                  case "SCROLL_TO":
+                    actionMessage = "📜 Rolando página...";
+                    break;
+                  case "EXECUTE_JS":
+                    actionMessage = "⚙️ Executando código...";
+                    break;
+                }
+
+                cleanResponse = cleanResponse.trim() + `\n\n_${actionMessage}_`;
               } else {
                 console.error("❌ Erro ao salvar comando:", cmdError);
               }
