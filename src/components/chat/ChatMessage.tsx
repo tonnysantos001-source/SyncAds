@@ -30,79 +30,92 @@ interface ChatMessageProps {
   onActionComplete?: () => void;
 }
 
-export const ChatMessage = React.memo(function ChatMessage({
-  message,
-  onActionComplete,
-}: ChatMessageProps) {
-  const isUser = message.role === "user";
+export const ChatMessage = React.memo(
+  function ChatMessage({ message, onActionComplete }: ChatMessageProps) {
+    const isUser = message.role === "user";
 
-  return (
-    <div
-      className={cn("flex gap-3 p-4", isUser ? "justify-end" : "justify-start")}
-    >
-      {/* Avatar (só para assistant) */}
-      {!isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="bg-blue-600 text-white">
-            <Bot className="h-5 w-5" />
-          </AvatarFallback>
-        </Avatar>
-      )}
-
-      {/* Conteúdo */}
+    return (
       <div
-        className={cn("flex flex-col gap-2 max-w-[80%]", isUser && "items-end")}
+        className={cn(
+          "flex gap-3 p-4",
+          isUser ? "justify-end" : "justify-start",
+        )}
       >
-        {/* Mensagem de texto */}
+        {/* Avatar (só para assistant) */}
+        {!isUser && (
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarFallback className="bg-blue-600 text-white">
+              <Bot className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+        )}
+
+        {/* Conteúdo */}
         <div
           className={cn(
-            "rounded-lg px-4 py-2",
-            isUser
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+            "flex flex-col gap-2 max-w-[80%]",
+            isUser && "items-end",
           )}
         >
-          {isUser ? (
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-          ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </div>
+          {/* Mensagem de texto */}
+          <div
+            className={cn(
+              "rounded-lg px-4 py-2",
+              isUser
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+            )}
+          >
+            {isUser ? (
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+
+          {/* Componente de ação interativa (se houver) */}
+          {!isUser && message.action?.type === "integration_connect" && (
+            <IntegrationActionButtons
+              platform={message.action.platform}
+              userId={message.action.userId}
+              onSkip={onActionComplete}
+              onSuccess={onActionComplete}
+              onError={(error) => {
+                console.error("Erro na ação:", error);
+              }}
+            />
+          )}
+
+          {/* Timestamp */}
+          {message.timestamp && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {new Date(message.timestamp).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           )}
         </div>
 
-        {/* Componente de ação interativa (se houver) */}
-        {!isUser && message.action?.type === "integration_connect" && (
-          <IntegrationActionButtons
-            platform={message.action.platform}
-            userId={message.action.userId}
-            onSkip={onActionComplete}
-            onSuccess={onActionComplete}
-            onError={(error) => {
-              console.error("Erro na ação:", error);
-            }}
-          />
-        )}
-
-        {/* Timestamp */}
-        {message.timestamp && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {new Date(message.timestamp).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+        {/* Avatar (só para user) */}
+        {isUser && (
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarFallback className="bg-gray-600 text-white">
+              <User className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
         )}
       </div>
-
-      {/* Avatar (só para user) */}
-      {isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="bg-gray-600 text-white">
-            <User className="h-5 w-5" />
-          </AvatarFallback>
-        </Avatar>
-      )}
-    </div>
-  );
-});
+    );
+  },
+  (prevProps, nextProps) => {
+    // Otimização: só re-renderizar se a mensagem mudou
+    return (
+      prevProps.message.id === nextProps.message.id &&
+      prevProps.message.content === nextProps.message.content &&
+      prevProps.message.role === nextProps.message.role
+    );
+  },
+);
