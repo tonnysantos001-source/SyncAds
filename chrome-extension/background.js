@@ -1,11 +1,45 @@
 // ============================================
-// SYNCADS EXTENSION - BACKGROUND SCRIPT v4.0
-// Arquitetura Robusta com Retry Logic e Token Management
+// SYNCADS EXTENSION - BACKGROUND SCRIPT v5.0
+// Side Panel Architecture + Token Management
 // ============================================
 
 console.log(
-  "🚀 SyncAds Extension v4.0 - Background Service Worker Initializing...",
+  "🚀 SyncAds Extension v5.0 - Background Service Worker Initializing...",
 );
+
+// ============================================
+// SIDE PANEL HANDLER
+// ============================================
+
+// Abrir side panel ao clicar no ícone da extensão
+chrome.action.onClicked.addListener((tab) => {
+  console.log("🎯 [SIDE PANEL] Extension icon clicked, opening side panel...");
+
+  chrome.sidePanel
+    .open({ windowId: tab.windowId })
+    .then(() => {
+      console.log("✅ [SIDE PANEL] Side panel opened successfully");
+    })
+    .catch((error) => {
+      console.error("❌ [SIDE PANEL] Error opening side panel:", error);
+    });
+});
+
+// Garantir que o side panel esteja disponível
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("📦 [SIDE PANEL] Extension installed/updated");
+
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .then(() => {
+      console.log("✅ [SIDE PANEL] Panel behavior set");
+    })
+    .catch((error) => {
+      console.warn("⚠️ [SIDE PANEL] Could not set panel behavior:", error);
+    });
+});
+
+console.log("✅ [SIDE PANEL] Handlers registered");
 
 // ============================================
 // CONFIGURATION

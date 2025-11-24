@@ -634,40 +634,34 @@ export default function ChatPageNovo() {
               content: extensionStatus.connected
                 ? `🚀 EXTENSÃO DO NAVEGADOR ATIVA - MODO DE AUTOMAÇÃO WEB
 
-**REGRAS DE OURO (SIGA ESTRITAMENTE):**
+**REGRAS CRÍTICAS:**
 
-1. **Quando o usuário pedir ação no navegador, responda APENAS com o bloco JSON:**
-   - ❌ ERRADO: "Vou listar as abas para você. \`\`\`json {...} \`\`\`"
-   - ✅ CORRETO: Apenas "\`\`\`json\n{\"type\": \"LIST_TABS\", \"data\": {}}\n\`\`\`" (sem texto antes/depois)
+1. **NUNCA mostre blocos JSON ao usuário**
+ - ❌ ERRADO: "Vou abrir para você \`\`\`json {...} \`\`\`"
+ - ✅ CORRETO: Responda naturalmente: "Abrindo Facebook Ads em nova aba..."
+ - O JSON será detectado e executado automaticamente nos bastidores
 
-2. **NUNCA diga:**
-   - "Aguardando resposta da extensão"
-   - "Vou executar o comando"
-   - "Não consigo acessar o navegador"
-   - "Preciso verificar se a extensão está conectada"
+2. **Comandos disponíveis (use internamente, não mostre):**
+ - NAVIGATE: {"type": "NAVIGATE", "data": {"url": "https://..."}}
+ - LIST_TABS: {"type": "LIST_TABS", "data": {}}
+ - CLICK_ELEMENT: {"type": "CLICK_ELEMENT", "data": {"selector": "button"}}
+ - TYPE_TEXT: {"type": "TYPE_TEXT", "data": {"selector": "input", "text": "..."}}
+ - READ_TEXT: {"type": "READ_TEXT", "data": {"selector": ".class"}}
+ - GET_PAGE_INFO: {"type": "GET_PAGE_INFO", "data": {}}
+ - EXECUTE_JS: {"type": "EXECUTE_JS", "data": {"code": "..."}}
 
-3. **O sistema executa automaticamente**. Você GERA o comando, o sistema EXECUTA.
+3. **Fluxo correto:**
+ - Usuário: "abra o facebook"
+ - Você: "Abrindo Facebook em nova aba... \`\`\`json\\n{\"type\": \"NAVIGATE\", \"data\": {\"url\": \"https://facebook.com\"}}\\n\`\`\`"
+ - Sistema detecta o JSON, executa silenciosamente e remove da tela
+ - Usuário vê apenas: "Abrindo Facebook em nova aba..."
 
-4. **Comandos disponíveis:**
-
-\`\`\`json
-{\"type\": \"LIST_TABS\", \"data\": {}}
-{\"type\": \"CLICK_ELEMENT\", \"data\": {\"selector\": \"button.login\"}}
-{\"type\": \"TYPE_TEXT\", \"data\": {\"selector\": \"input#email\", \"text\": \"teste@email.com\"}}
-{\"type\": \"READ_TEXT\", \"data\": {\"selector\": \".content\"}}
-{\"type\": \"SCROLL_TO\", \"data\": {\"selector\": \".footer\"}}
-{\"type\": \"EXECUTE_JS\", \"data\": {\"code\": \"document.title\"}}
-{\"type\": \"GET_PAGE_INFO\", \"data\": {}}
-\`\`\`
-
-5. **Exemplo de conversa correta:**
-   - Usuário: "Liste as abas abertas"
-   - Você: "\`\`\`json\n{\"type\": \"LIST_TABS\", \"data\": {}}\n\`\`\`"
-   - (Sistema executa automaticamente e retorna o resultado)
-
-**SE A EXTENSÃO ESTIVESSE OFFLINE, ESTE PROMPT NÃO APARECERIA.**
-**PORTANTO, PARE DE DUVIDAR E APENAS EXECUTE.**`
-                : "Extensão do navegador OFFLINE. NÃO há acesso ao navegador neste momento. Responda normalmente sem comandos JSON.",
+4. **IMPORTANTE:**
+ - Todas as navegações SEMPRE abrem em NOVA ABA
+ - NUNCA sai da página do SaaS/chat
+ - Seja natural e conversacional com o usuário
+ - O JSON é apenas para o sistema, não para o usuário ver`
+                : "Extensão do navegador OFFLINE. Não há acesso ao navegador. Responda normalmente.",
             }),
           }),
         },
@@ -683,34 +677,22 @@ export default function ChatPageNovo() {
         throw new Error(data.error);
       }
 
-      // =================================================
-      // 🕵️ DETECTOR DE COMANDOS DA IA
-      // =================================================
-      const aiResponse = data.response || "";
+      // ✅ Limpar qualquer JSON residual da resposta antes de exibir
+      let cleanResponse = data.response || "";
 
-      // Regex para encontrar blocos JSON: ```json { ... } ```
-      const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
-      const match = aiResponse.match(jsonBlockRegex);
+      // Remover blocos JSON completos (```json ... ```)
+      cleanResponse = cleanResponse.replace(/```json\s*[\s\S]*?\s*```/g, "");
 
-      if (match && match[1]) {
-        try {
-          const command = JSON.parse(match[1]);
-          if (command.type) {
-            console.log("🤖 IA solicitou comando:", command);
+      // Remover JSON soltos que possam ter sobrado
+      cleanResponse = cleanResponse.replace(/\{[\s\S]*?"type"[\s\S]*?\}/g, "");
 
-            toast({
-              title: "🤖 Executando ação...",
-              description: `Comando: ${command.type}`,
-            });
+      // Remover múltiplos espaços/quebras de linha
+      cleanResponse = cleanResponse.replace(/\n{3,}/g, "\n\n").trim();
 
-            // Executar comando
-            await sendBrowserCommand(command.type, command.data || {});
-          }
-        } catch (e) {
-          console.error("Erro ao parsear comando da IA:", e);
-        }
+      // Se a resposta ficou vazia após limpeza, usar mensagem padrão
+      if (!cleanResponse) {
+        cleanResponse = "Executando ação...";
       }
-      // =================================================
 
       // 3. Atualizar UI com IDs reais do banco (substituir temporários)
       setConversations((prev) =>
@@ -730,9 +712,7 @@ export default function ChatPageNovo() {
                   {
                     id: data.aiMessageId || tempAiMsgId,
                     role: "assistant",
-                    content:
-                      data.response ||
-                      "Desculpe, não consegui gerar uma resposta.",
+                    content: cleanResponse,
                     createdAt: new Date().toISOString(),
                   },
                 ],

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SyncAds AI Automation",
-  "version": "4.1.4",
-  "description": "Automação inteligente com IA para marketing digital - Controle total do navegador via comandos de voz",
+  "version": "5.0.0",
+  "description": "Assistente IA completo para automação web - Controle total do navegador com Side Panel",
   "permissions": [
     "activeTab",
     "storage",
@@ -13,12 +13,10 @@
     "cookies",
     "debugger",
     "history",
-    "bookmarks"
+    "bookmarks",
+    "sidePanel"
   ],
   "host_permissions": ["https://*/*", "http://*/*", "<all_urls>"],
-  "chrome_url_overrides": {
-    "newtab": "newtab.html"
-  },
   "background": {
     "service_worker": "background.js"
   },
@@ -31,13 +29,10 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    },
-    "default_title": "SyncAds AI Automation"
+    "default_title": "Abrir SyncAds AI Assistant"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "icons": {
     "16": "icons/icon16.png",

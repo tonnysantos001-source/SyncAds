@@ -718,6 +718,41 @@ async function executeDomCommand(command) {
         result = await executeJS(data.code);
         break;
 
+      // Comandos avançados de Screenshot
+      case "SCREENSHOT":
+        result = await executeScreenshot(data);
+        break;
+
+      // Comandos avançados de Web Scraping
+      case "EXTRACT_TABLE":
+        result = await extractTable(data);
+        break;
+
+      case "EXTRACT_IMAGES":
+        result = await extractImages(data);
+        break;
+
+      case "EXTRACT_LINKS":
+        result = await extractLinks(data);
+        break;
+
+      case "EXTRACT_EMAILS":
+        result = await extractEmails();
+        break;
+
+      case "EXTRACT_ALL":
+        result = await extractAllData(data);
+        break;
+
+      // Comandos avançados de Formulários
+      case "FILL_FORM":
+        result = await fillForm(data);
+        break;
+
+      case "WAIT_ELEMENT":
+        result = await waitForElement(data);
+        break;
+
       default:
         throw new Error(`Unknown command type: ${type}`);
     }
@@ -878,6 +913,390 @@ async function executeNavigation(url, newTab = true) {
   });
 
   return { navigated: url, newTab: true, message: "Aberto em nova aba" };
+}
+
+// ============================================
+// 📸 COMANDOS AVANÇADOS - SCREENSHOT
+// ============================================
+
+/**
+ * Captura screenshot da página ou elemento específico
+ */
+async function executeScreenshot(data) {
+  Logger.debug("Executing SCREENSHOT", { data });
+
+  const { selector = null, fullPage = false } = data;
+
+  try {
+    if (selector) {
+      // Screenshot de elemento específico
+      const element = document.querySelector(selector);
+      if (!element) {
+        throw new Error(`Elemento não encontrado: ${selector}`);
+      }
+
+      // Scroll para o elemento
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Obter posição e dimensões do elemento
+      const rect = element.getBoundingClientRect();
+
+      // Capturar via background
+      const response = await chrome.runtime.sendMessage({
+        type: "CAPTURE_SCREENSHOT",
+        data: {
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        type: "element",
+        selector,
+        dataUrl: response.dataUrl,
+      };
+    } else {
+      // Screenshot da viewport ou página inteira
+      const response = await chrome.runtime.sendMessage({
+        type: "CAPTURE_SCREENSHOT",
+        data: { fullPage },
+      });
+
+      return {
+        success: true,
+        type: fullPage ? "fullPage" : "viewport",
+        dataUrl: response.dataUrl,
+      };
+    }
+  } catch (error) {
+    Logger.error("Screenshot failed", error);
+    throw error;
+  }
+}
+
+// ============================================
+// 🕷️ COMANDOS AVANÇADOS - WEB SCRAPING
+// ============================================
+
+/**
+ * Extrai dados estruturados de tabelas
+ */
+async function extractTable(data) {
+  Logger.debug("Extracting TABLE", { data });
+
+  const { selector = "table", headers = true } = data;
+
+  const tables = Array.from(document.querySelectorAll(selector));
+
+  if (tables.length === 0) {
+    throw new Error("Nenhuma tabela encontrada");
+  }
+
+  const results = tables.map((table) => {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const data = [];
+
+    rows.forEach((row, index) => {
+      const cells = Array.from(
+        row.querySelectorAll(index === 0 && headers ? "th" : "td"),
+      );
+      const rowData = cells.map((cell) => cell.textContent.trim());
+
+      if (rowData.length > 0) {
+        data.push(rowData);
+      }
+    });
+
+    return data;
+  });
+
+  return {
+    success: true,
+    tables: results,
+    count: results.length,
+  };
+}
+
+/**
+ * Extrai todas as imagens da página
+ */
+async function extractImages(data) {
+  Logger.debug("Extracting IMAGES", { data });
+
+  const { selector = "img", includeBackgrounds = false } = data;
+
+  const images = Array.from(document.querySelectorAll(selector)).map((img) => ({
+    src: img.src,
+    alt: img.alt || "",
+    width: img.width,
+    height: img.height,
+  }));
+
+  let backgroundImages = [];
+  if (includeBackgrounds) {
+    const elements = Array.from(document.querySelectorAll("*"));
+    backgroundImages = elements
+      .map((el) => {
+        const bg = window.getComputedStyle(el).backgroundImage;
+        if (bg && bg !== "none") {
+          const match = bg.match(/url\(["']?(.+?)["']?\)/);
+          return match ? match[1] : null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  return {
+    success: true,
+    images,
+    backgroundImages,
+    totalCount: images.length + backgroundImages.length,
+  };
+}
+
+/**
+ * Extrai todos os links da página
+ */
+async function extractLinks(data) {
+  Logger.debug("Extracting LINKS", { data });
+
+  const { selector = "a", external = false, internal = false } = data;
+
+  const currentDomain = window.location.hostname;
+
+  const links = Array.from(document.querySelectorAll(selector))
+    .map((link) => {
+      const href = link.href;
+      const text = link.textContent.trim();
+      const isExternal = !href.includes(currentDomain);
+
+      return {
+        href,
+        text,
+        isExternal,
+        title: link.title || "",
+      };
+    })
+    .filter((link) => {
+      if (external && !link.isExternal) return false;
+      if (internal && link.isExternal) return false;
+      return true;
+    });
+
+  return {
+    success: true,
+    links,
+    count: links.length,
+  };
+}
+
+/**
+ * Extrai emails da página
+ */
+async function extractEmails() {
+  Logger.debug("Extracting EMAILS");
+
+  const text = document.body.innerText;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const emails = [...new Set(text.match(emailRegex) || [])];
+
+  return {
+    success: true,
+    emails,
+    count: emails.length,
+  };
+}
+
+/**
+ * Extrai todos os dados de uma página (scraping completo)
+ */
+async function extractAllData(data) {
+  Logger.debug("Extracting ALL DATA", { data });
+
+  const { includeMetadata = true, includeStructured = true } = data;
+
+  const result = {
+    success: true,
+    url: window.location.href,
+    title: document.title,
+  };
+
+  // Metadata
+  if (includeMetadata) {
+    const metaTags = Array.from(document.querySelectorAll("meta")).map(
+      (meta) => ({
+        name: meta.name || meta.property,
+        content: meta.content,
+      }),
+    );
+
+    result.metadata = {
+      description:
+        document.querySelector('meta[name="description"]')?.content || "",
+      keywords: document.querySelector('meta[name="keywords"]')?.content || "",
+      author: document.querySelector('meta[name="author"]')?.content || "",
+      metaTags,
+    };
+  }
+
+  // Structured data
+  if (includeStructured) {
+    const headings = {
+      h1: Array.from(document.querySelectorAll("h1")).map((h) =>
+        h.textContent.trim(),
+      ),
+      h2: Array.from(document.querySelectorAll("h2")).map((h) =>
+        h.textContent.trim(),
+      ),
+      h3: Array.from(document.querySelectorAll("h3")).map((h) =>
+        h.textContent.trim(),
+      ),
+    };
+
+    const paragraphs = Array.from(document.querySelectorAll("p"))
+      .map((p) => p.textContent.trim())
+      .filter((text) => text.length > 20)
+      .slice(0, 10); // Limitar a 10 parágrafos
+
+    result.structure = {
+      headings,
+      paragraphs,
+      linkCount: document.querySelectorAll("a").length,
+      imageCount: document.querySelectorAll("img").length,
+      formCount: document.querySelectorAll("form").length,
+    };
+  }
+
+  return result;
+}
+
+// ============================================
+// 📝 COMANDOS AVANÇADOS - FORMULÁRIOS
+// ============================================
+
+/**
+ * Preenche formulário completo
+ */
+async function fillForm(data) {
+  Logger.debug("Filling FORM", { data });
+
+  const { formSelector = "form", fields = {} } = data;
+
+  const form = document.querySelector(formSelector);
+  if (!form) {
+    throw new Error(`Formulário não encontrado: ${formSelector}`);
+  }
+
+  const results = [];
+
+  for (const [fieldName, value] of Object.entries(fields)) {
+    try {
+      // Tentar múltiplos seletores
+      const selectors = [
+        `[name="${fieldName}"]`,
+        `#${fieldName}`,
+        `[id*="${fieldName}"]`,
+        `[placeholder*="${fieldName}"]`,
+      ];
+
+      let field = null;
+      for (const selector of selectors) {
+        field = form.querySelector(selector);
+        if (field) break;
+      }
+
+      if (!field) {
+        results.push({
+          field: fieldName,
+          success: false,
+          error: "Não encontrado",
+        });
+        continue;
+      }
+
+      // Preencher baseado no tipo
+      const tagName = field.tagName.toLowerCase();
+      const type = field.type?.toLowerCase();
+
+      if (tagName === "input") {
+        if (type === "checkbox" || type === "radio") {
+          field.checked = Boolean(value);
+        } else {
+          field.value = value;
+        }
+      } else if (tagName === "select") {
+        field.value = value;
+      } else if (tagName === "textarea") {
+        field.value = value;
+      }
+
+      // Disparar eventos
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+
+      results.push({ field: fieldName, success: true, value });
+    } catch (error) {
+      results.push({ field: fieldName, success: false, error: error.message });
+    }
+  }
+
+  return {
+    success: true,
+    results,
+    filledCount: results.filter((r) => r.success).length,
+    totalFields: results.length,
+  };
+}
+
+/**
+ * Aguarda elemento aparecer
+ */
+async function waitForElement(data) {
+  Logger.debug("Waiting for ELEMENT", { data });
+
+  const { selector, timeout = 10000 } = data;
+
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+
+    // Verificar se já existe
+    const existing = document.querySelector(selector);
+    if (existing) {
+      resolve({ success: true, found: true, waitTime: 0 });
+      return;
+    }
+
+    // Observer para mudanças no DOM
+    const observer = new MutationObserver((mutations) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve({
+          success: true,
+          found: true,
+          waitTime: Date.now() - startTime,
+        });
+      }
+
+      // Timeout
+      if (Date.now() - startTime > timeout) {
+        observer.disconnect();
+        reject(new Error(`Timeout: elemento não encontrado após ${timeout}ms`));
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  });
 }
 
 async function executeScroll(data) {
@@ -1305,3 +1724,9 @@ if (document.readyState === "loading") {
 }
 
 Logger.info("✅ Content script loaded with DOM executor");
+
+// ============================================
+// 🎯 SIDE PANEL MODE - No injection needed
+// ============================================
+console.log("✅ [SIDE PANEL] Extension using native Chrome Side Panel");
+console.log("💡 [SIDE PANEL] Click extension icon to open Side Panel");
