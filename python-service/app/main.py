@@ -429,24 +429,26 @@ async def chat(
                 command_data = {
                     "user_id": user_id,
                     "device_id": device_id,
-                    "command": browser_intent["type"], # Adjusted to match schema
+                    "command": browser_intent["type"],  # Adjusted to match schema
                     "params": browser_intent["data"],  # Adjusted to match schema
-                    "status": "PENDING",               # Adjusted to match schema
+                    "status": "PENDING",  # Adjusted to match schema
                     "created_at": datetime.utcnow().isoformat(),
                 }
 
                 try:
                     # Salvar comando no Supabase
-                    cmd_response = supabase.table("extension_commands").insert(command_data).execute()
+                    cmd_response = (
+                        supabase.table("extension_commands")
+                        .insert(command_data)
+                        .execute()
+                    )
 
                     if cmd_response.data:
-                        command_id = cmd_response.data[0]['id']
+                        command_id = cmd_response.data[0]["id"]
                         logger.info(f"✅ Comando criado no DB: {command_id}")
 
                         # Adicionar ao contexto da resposta
-                        tool_result = (
-                            f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
-                        )
+                        tool_result = f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
                     else:
                         logger.error("❌ Falha ao criar comando: sem dados retornados")
                 except Exception as e:
@@ -826,16 +828,50 @@ async def send_command_to_extension(
         logger.info(f"✅ Command created: {command_id}")
 
         return command_id
+    except Exception as e:
+        logger.error(f"❌ Erro criando comando: {e}")
+        return None
 
-                    "success": False,
-                    "error": command.get("result", {}).get("error", "Command failed"),
-                }
 
-        # Aguardar 500ms antes de verificar novamente
-        await asyncio.sleep(0.5)
+async def check_command_status(command_id: str, timeout: int = 30):
+    """Verifica status de comando da extensão"""
+    try:
+        start_time = time.time()
 
-    # Timeout
-    return {"success": False, "error": f"Command timeout after {timeout}s"}
+        while time.time() - start_time < timeout:
+            # Buscar comando no Supabase
+            result = (
+                supabase.table("extension_commands")
+                .select("*")
+                .eq("id", command_id)
+                .execute()
+            )
+
+            if result.data and len(result.data) > 0:
+                command = result.data[0]
+                status = command.get("status")
+
+                if status == "completed":
+                    return {
+                        "success": True,
+                        "result": command.get("result"),
+                    }
+                elif status == "failed":
+                    return {
+                        "success": False,
+                        "error": command.get("result", {}).get(
+                            "error", "Command failed"
+                        ),
+                    }
+
+            # Aguardar 500ms antes de verificar novamente
+            await asyncio.sleep(0.5)
+
+        # Timeout
+        return {"success": False, "error": f"Command timeout after {timeout}s"}
+    except Exception as e:
+        logger.error(f"❌ Erro verificando status: {e}")
+        return {"success": False, "error": str(e)}
 
 
 # ==========================================
@@ -1054,8 +1090,9 @@ async def startup_event():
 # ==========================================
 # SCRAPING SERVICE
 # ==========================================
-from app.services.scraping_service import scrape_url, scrape_multiple, scrape_cached
 from pydantic import BaseModel
+
+from app.services.scraping_service import scrape_cached, scrape_multiple, scrape_url
 
 
 class ScrapeRequest(BaseModel):
@@ -1134,7 +1171,9 @@ async def scrape_multiple_endpoint(request: ScrapeMultipleRequest):
             "success": True,
             "results": results,
             "total": len(results),
-            "successful": sum(1 for r in results if isinstance(r, dict) and r.get("success")),
+            "successful": sum(
+                1 for r in results if isinstance(r, dict) and r.get("success")
+            ),
         }
 
     except Exception as e:
@@ -1149,10 +1188,10 @@ async def scrape_multiple_endpoint(request: ScrapeMultipleRequest):
 async def scrape_health():
     """Verifica quais estratégias de scraping estão disponíveis"""
     from app.services.scraping_service import (
-        PLAYWRIGHT_AVAILABLE,
-        SELENIUM_AVAILABLE,
-        REQUESTS_AVAILABLE,
         AIOHTTP_AVAILABLE,
+        PLAYWRIGHT_AVAILABLE,
+        REQUESTS_AVAILABLE,
+        SELENIUM_AVAILABLE,
     )
 
     return {
@@ -1162,12 +1201,14 @@ async def scrape_health():
             "aiohttp": AIOHTTP_AVAILABLE,
             "requests": REQUESTS_AVAILABLE,
         },
-        "total_available": sum([
-            PLAYWRIGHT_AVAILABLE,
-            SELENIUM_AVAILABLE,
-            REQUESTS_AVAILABLE,
-            AIOHTTP_AVAILABLE,
-        ]),
+        "total_available": sum(
+            [
+                PLAYWRIGHT_AVAILABLE,
+                SELENIUM_AVAILABLE,
+                REQUESTS_AVAILABLE,
+                AIOHTTP_AVAILABLE,
+            ]
+        ),
     }
 
 
