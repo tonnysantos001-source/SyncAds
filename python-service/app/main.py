@@ -1069,19 +1069,36 @@ async def get_user_devices(user_id: str):
 
 
 # ==========================================
+# ROUTERS
+# ==========================================
+try:
+    from app.routers.browser_automation import router as browser_automation_router
+
+    app.include_router(browser_automation_router)
+    logger.info("✅ Browser Automation router registered")
+except ImportError as e:
+    logger.warning(f"⚠️ Browser Automation router not available: {e}")
+
+
+# ==========================================
 # STARTUP
 # ==========================================
 @app.on_event("startup")
 async def startup_event():
     """Startup event"""
     logger.info("=" * 50)
-    logger.info("🚀 SyncAds Python Microservice - FULL + AI TOOLS + EXTENSION")
+    logger.info(
+        "🚀 SyncAds Python Microservice - FULL + AI TOOLS + EXTENSION + BROWSER AI"
+    )
     logger.info("=" * 50)
     logger.info("✅ FastAPI iniciado")
     logger.info(f"✅ Docs: /docs")
     logger.info(f"✅ Health: /health")
     logger.info(f"✅ Chat: /api/chat (streaming + Supabase + AI Tools)")
     logger.info(f"✅ Extension API: /api/extension/* (4 endpoints)")
+    logger.info(
+        f"✅ Browser Automation: /browser-automation/* (Browser-Use + Vision AI)"
+    )
     logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
     logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
     logger.info("=" * 50)
