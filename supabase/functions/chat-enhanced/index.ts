@@ -11,6 +11,16 @@ import {
   checkUserRateLimit,
   logAudit,
 } from "../_utils/ai-cache-helper.ts";
+import {
+  detectDomCommands,
+  generateCommandResponse,
+  isUrlSafe,
+  normalizeUrl,
+} from "../_utils/dom-command-detector.ts";
+import {
+  createExtensionCommand,
+  getUserActiveDevice,
+} from "../_utils/extension-command-helper.ts";
 
 serve(async (req) => {
   // Handle CORS
@@ -212,6 +222,120 @@ serve(async (req) => {
     console.log("✅ AI Connection válida, prosseguindo com chat...");
 
     console.log("✅ Usando GlobalAiConnection:", aiConnection.name);
+
+    // ============================================================================
+    // 🎯 DETECÇÃO PRÉVIA DE COMANDOS DOM (ANTES DA IA)
+    // ============================================================================
+    // Detectar comandos simples como "abra o Facebook" e executar imediatamente
+    // ============================================================================
+
+    let domCommandExecuted = false;
+    let domCommandResponse = "";
+
+    if (extensionConnected) {
+      console.log("🔍 Detectando comandos DOM na mensagem do usuário...");
+
+      const detection = detectDomCommands(message);
+
+      if (detection.hasCommand && detection.commands.length > 0) {
+        console.log(
+          `✅ ${detection.commands.length} comando(s) DOM detectado(s):`,
+          detection.commands,
+        );
+
+        // Buscar device ativo do usuário
+        const deviceId = await getUserActiveDevice(supabase, user.id);
+
+        if (deviceId) {
+          console.log("✅ Device ativo encontrado:", deviceId);
+
+          // Processar cada comando
+          for (const command of detection.commands) {
+            // Validar URL se for comando de navegação
+            if (command.type === "NAVIGATE") {
+              const url = normalizeUrl(command.params.url);
+              if (!isUrlSafe(url)) {
+                console.warn("⚠️ URL não segura detectada:", url);
+                domCommandResponse += `⚠️ A URL "${url}" não parece segura. Por favor, verifique e tente novamente.\n\n`;
+                continue;
+              }
+              command.params.url = url;
+            }
+
+            // Criar comando na extensão
+            const result = await createExtensionCommand(
+              supabase,
+              user.id,
+              deviceId,
+              command,
+            );
+
+            if (result.success) {
+              console.log("✅ Comando criado com sucesso:", result.commandId);
+              domCommandExecuted = true;
+              domCommandResponse += generateCommandResponse(command) + "\n\n";
+            } else {
+              console.error("❌ Erro ao criar comando:", result.error);
+              domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+            }
+          }
+
+          // Se comandos foram executados com sucesso, retornar resposta imediata
+          if (domCommandExecuted) {
+            console.log(
+              "✅ Comandos DOM executados, retornando resposta imediata",
+            );
+
+            // Salvar mensagem do usuário
+            const userMsgId = crypto.randomUUID();
+            await supabase.from("ChatMessage").insert({
+              id: userMsgId,
+              conversationId,
+              role: "USER",
+              content: message,
+              userId: user.id,
+            });
+
+            // Salvar resposta da IA
+            const aiMsgId = crypto.randomUUID();
+            await supabase.from("ChatMessage").insert({
+              id: aiMsgId,
+              conversationId,
+              role: "ASSISTANT",
+              content: domCommandResponse.trim(),
+              userId: user.id,
+            });
+
+            return new Response(
+              JSON.stringify({
+                response: domCommandResponse.trim(),
+                cached: false,
+                domCommand: true,
+                commandsExecuted: detection.commands.length,
+              }),
+              {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  "Content-Type": "application/json",
+                  "X-DOM-Command": "executed",
+                },
+              },
+            );
+          }
+        } else {
+          console.warn(
+            "⚠️ Nenhum device ativo encontrado, prosseguindo com IA normal",
+          );
+          domCommandResponse =
+            "⚠️ A extensão está offline. Por favor, certifique-se de que a extensão está conectada e tente novamente.\n\n";
+        }
+      } else {
+        console.log(
+          "ℹ️ Nenhum comando DOM detectado, prosseguindo normalmente com IA",
+        );
+      }
+    }
 
     // ✅ CACHE DE IA - Verificar se já temos resposta em cache
     const cacheKey = generateCacheKey(message, {
@@ -2140,7 +2264,7 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
                 .single();
 
               if (!cmdError && savedCommand) {
-                console.log("✅ Comando salvo no banco:", savedCommand.id);
+                console.log("✅ Comando JSON salvo no banco:", savedCommand.id);
 
                 // ✅ REMOVER COMPLETAMENTE O BLOCO JSON DA RESPOSTA
                 cleanResponse = cleanResponse.replace(match[0], "").trim();
@@ -2195,6 +2319,18 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       }
 
       response = cleanResponse.trim();
+    } else if (extensionConnected && jsonMatches.length > 0) {
+      console.warn("⚠️ Comandos JSON detectados mas extensão offline");
+      // Ainda assim remover os blocos JSON da resposta
+      for (const match of jsonMatches) {
+        cleanResponse = cleanResponse.replace(match[0], "").trim();
+      }
+      response = cleanResponse.trim();
+    }
+
+    // Adicionar resposta de comando DOM pré-executado (se houver)
+    if (domCommandResponse && !domCommandExecuted) {
+      response = domCommandResponse + response;
     }
 
     // Salvar resposta da IA no banco

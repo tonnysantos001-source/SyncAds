@@ -135,7 +135,7 @@ async function checkPendingCommands() {
   try {
     // Buscar comandos PENDING para este dispositivo
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=10`,
+      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`,
       {
         method: "GET",
         headers: {
@@ -173,9 +173,9 @@ async function processCommand(cmd) {
   Logger.info("Processing command", { id: cmd.id, command: cmd.command });
 
   try {
-    // Marcar como EXECUTING
-    await updateCommandStatus(cmd.id, "EXECUTING", {
-      executedAt: new Date().toISOString(),
+    // Marcar como PROCESSING
+    await updateCommandStatus(cmd.id, "processing", {
+      executed_at: new Date().toISOString(),
     });
 
     // Obter tab ativa
@@ -199,7 +199,7 @@ async function processCommand(cmd) {
         activeTab.id,
         {
           type: "EXECUTE_COMMAND",
-          command: cmd.command,
+          command: cmd.command_type,
           params: cmd.params,
         },
         (response) => {
@@ -213,9 +213,9 @@ async function processCommand(cmd) {
     });
 
     // Marcar como COMPLETED
-    await updateCommandStatus(cmd.id, "COMPLETED", {
+    await updateCommandStatus(cmd.id, "completed", {
       result: response,
-      completedAt: new Date().toISOString(),
+      executed_at: new Date().toISOString(),
     });
 
     Logger.success("✅ Command executed successfully", { id: cmd.id });
@@ -223,9 +223,9 @@ async function processCommand(cmd) {
     Logger.error("❌ Command execution failed", error, { id: cmd.id });
 
     // Marcar como FAILED
-    await updateCommandStatus(cmd.id, "FAILED", {
+    await updateCommandStatus(cmd.id, "failed", {
       error: error.message,
-      completedAt: new Date().toISOString(),
+      executed_at: new Date().toISOString(),
     });
   }
 }
@@ -233,7 +233,7 @@ async function processCommand(cmd) {
 async function updateCommandStatus(commandId, status, extraData = {}) {
   try {
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
+      `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
       {
         method: "PATCH",
         headers: {

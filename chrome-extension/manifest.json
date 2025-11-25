@@ -23,7 +23,11 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "js": [
+        "visual-feedback.js",
+        "content-script.js",
+        "content-script-enhanced.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }
