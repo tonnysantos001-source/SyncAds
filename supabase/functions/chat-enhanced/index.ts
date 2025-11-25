@@ -21,6 +21,10 @@ import {
   createExtensionCommand,
   getUserActiveDevice,
 } from "../_utils/extension-command-helper.ts";
+import {
+  createRouter,
+  explainExecutorCapabilities,
+} from "../_utils/command-router.ts";
 
 serve(async (req) => {
   // Handle CORS
@@ -243,13 +247,16 @@ serve(async (req) => {
           detection.commands,
         );
 
+        // 🧭 USAR COMMAND ROUTER PARA DECIDIR EXECUTOR
+        const router = createRouter(supabase);
+
         // Buscar device ativo do usuário
         const deviceId = await getUserActiveDevice(supabase, user.id);
 
         if (deviceId) {
           console.log("✅ Device ativo encontrado:", deviceId);
 
-          // Processar cada comando
+          // Processar cada comando com roteamento inteligente
           for (const command of detection.commands) {
             // Validar URL se for comando de navegação
             if (command.type === "NAVIGATE") {
@@ -262,21 +269,72 @@ serve(async (req) => {
               command.params.url = url;
             }
 
-            // Criar comando na extensão
-            const result = await createExtensionCommand(
-              supabase,
-              user.id,
-              deviceId,
-              command,
+            // 🎯 ROTEAMENTO INTELIGENTE
+            const routingContext = {
+              hasActiveExtension: true,
+              extensionCapabilities: ["dom_access", "visual_feedback"],
+              userLocation: "extension" as const,
+              currentUrl: undefined,
+              deviceInfo: { device_id: deviceId },
+            };
+
+            const routingDecision = await router.route(
+              {
+                type: command.type,
+                data: command.params,
+                user_message: message,
+              },
+              routingContext,
             );
 
-            if (result.success) {
-              console.log("✅ Comando criado com sucesso:", result.commandId);
-              domCommandExecuted = true;
-              domCommandResponse += generateCommandResponse(command) + "\n\n";
-            } else {
-              console.error("❌ Erro ao criar comando:", result.error);
-              domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+            console.log("🧭 [ROUTING] Decision:", {
+              executor: routingDecision.executor,
+              confidence: routingDecision.confidence,
+              reason: routingDecision.reason,
+            });
+
+            // Adicionar explicação do roteamento à resposta
+            if (routingDecision.explanation_user) {
+              domCommandResponse += routingDecision.explanation_user + "\n\n";
+            }
+
+            // Executar comando baseado no executor escolhido
+            if (routingDecision.executor === "EXTENSION") {
+              // Criar comando na extensão
+              const result = await createExtensionCommand(
+                supabase,
+                user.id,
+                deviceId,
+                command,
+              );
+
+              if (result.success) {
+                console.log("✅ Comando criado com sucesso:", result.commandId);
+                domCommandExecuted = true;
+                domCommandResponse += generateCommandResponse(command) + "\n\n";
+              } else {
+                console.error("❌ Erro ao criar comando:", result.error);
+                domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+              }
+            } else if (routingDecision.executor === "PYTHON_AI") {
+              // TODO: Chamar Python AI Service quando disponível
+              console.log(
+                "⏳ [ROUTING] Python AI selecionado, mas ainda não implementado",
+              );
+              domCommandResponse += `🤖 **Python AI recomendado para esta tarefa**\n\nEsta funcionalidade será ativada em breve. Por enquanto, vou tentar executar via extensão.\n\n`;
+
+              // Fallback para extensão
+              const result = await createExtensionCommand(
+                supabase,
+                user.id,
+                deviceId,
+                command,
+              );
+
+              if (result.success) {
+                domCommandExecuted = true;
+                domCommandResponse += generateCommandResponse(command) + "\n\n";
+              }
             }
           }
 
@@ -488,6 +546,72 @@ Você tem acesso a ferramentas que podem ser ativadas automaticamente quando nec
    - "Crie uma imagem de um pôr do sol na praia"
    - Você: *usa generate_image automaticamente*
    - Depois mostra o resultado
+
+# 🌐 CONTEXTOS DE EXECUÇÃO (IMPORTANTE)
+
+Você está integrada em DOIS ambientes diferentes:
+
+## 1️⃣ **EXTENSÃO CHROME** (Navegador do usuário)
+**Quando usar:** Ações rápidas na página atual
+**Capacidades:**
+- ✅ Cliques, preenchimento de formulários, leitura de elementos
+- ✅ Feedback visual em tempo real (usuário vê o que você faz)
+- ✅ Screenshots, scroll, hover
+- ✅ Resposta < 1 segundo
+**Limitações:**
+- ❌ Apenas página atual (sem múltiplas abas)
+- ❌ Não suporta workflows complexos
+- ❌ Sem Vision AI ou seletores semânticos
+
+## 2️⃣ **PAINEL WEB** (Python AI - em breve)
+**Quando usar:** Tarefas complexas e automação avançada
+**Capacidades:**
+- ✅ Automação com linguagem natural (Browser-Use)
+- ✅ Vision AI para identificar elementos visualmente
+- ✅ Seletores semânticos (AgentQL) que não quebram
+- ✅ Múltiplas abas e sites
+- ✅ Workflows complexos multi-passo
+- ✅ Criação de campanhas publicitárias completas
+- ✅ Execução em background (usuário pode continuar trabalhando)
+**Limitações:**
+- ❌ Mais lento (3-10 segundos)
+- ❌ Usuário não vê feedback visual direto
+
+## 🧭 **COMO ORIENTAR O USUÁRIO**
+
+Quando o usuário pedir algo, **explique onde é melhor executar:**
+
+**Exemplo 1 - Ação simples:**
+Usuário: "Clique no botão de login"
+Você: "✅ Vou fazer isso agora pela extensão! É rápido e você verá o que estou fazendo."
+
+**Exemplo 2 - Tarefa complexa:**
+Usuário: "Crie uma campanha no Facebook Ads"
+Você: "🤖 Para criar uma campanha completa, é melhor usar o **Painel Web** onde tenho acesso a automação avançada.
+
+**Por quê?**
+- Múltiplos passos e formulários
+- Demora 3-5 minutos
+- Você pode continuar trabalhando enquanto eu faço
+
+Quer que eu abra o painel web para você? Ou prefere que eu tente aqui (vai ser mais manual)?"
+
+**Exemplo 3 - Usuário no lugar errado:**
+Usuário na extensão: "Faça uma pesquisa no Google e compare preços em 5 sites"
+Você: "📱 Essa tarefa é melhor no **Painel Web**!
+
+Na extensão eu só consigo trabalhar na página atual, mas no painel web eu posso:
+- Abrir múltiplas abas
+- Navegar entre sites
+- Fazer comparações automáticas
+
+[Abrir Painel Web] ou quer que eu te ensine a fazer manualmente?"
+
+## ⚡ **REGRA DE OURO**
+- **Extensão** = rápido, visual, página atual
+- **Painel Web** = complexo, multi-site, automação pesada
+
+Sempre explique **ONDE** e **POR QUÊ** antes de executar tarefas complexas.
 
 # 🎭 TOM E ESTILO
 
