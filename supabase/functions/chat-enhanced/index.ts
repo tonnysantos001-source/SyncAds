@@ -4,6 +4,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
 import { rateLimitByUser } from "../_utils/rate-limiter.ts";
+import {
+  generateCacheKey,
+  getCachedResponse,
+  setCachedResponse,
+  checkUserRateLimit,
+  logAudit,
+} from "../_utils/ai-cache-helper.ts";
 
 serve(async (req) => {
   // Handle CORS
@@ -60,12 +67,50 @@ serve(async (req) => {
     const isAdmin =
       userData?.role === "ADMIN" || userData?.role === "SUPER_ADMIN";
 
-    // ✅ Rate limiting - 10 mensagens por minuto por usuário (não aplica para admins)
+    // ✅ Rate limiting robusto (multi-nível)
     if (!isAdmin) {
-      const rateLimitResponse = await rateLimitByUser(user.id, "AI_CHAT");
-      if (rateLimitResponse) {
-        return rateLimitResponse;
+      const rateLimitResult = await checkUserRateLimit(
+        supabase,
+        user.id,
+        "AI_CHAT",
+        {
+          requestsPerMinute: 10,
+          requestsPerHour: 100,
+          requestsPerDay: 500,
+        },
+      );
+
+      if (!rateLimitResult.allowed) {
+        console.warn("⚠️ Rate limit excedido:", {
+          userId: user.id,
+          remaining: rateLimitResult.remaining,
+          current: rateLimitResult.current,
+        });
+
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded",
+            message: `Você atingiu o limite de requisições. Tente novamente em alguns segundos.`,
+            remaining: rateLimitResult.remaining,
+            retryAfter: rateLimitResult.retryAfter,
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+              "Retry-After": String(rateLimitResult.retryAfter || 60),
+            },
+          },
+        );
       }
+
+      console.log("✅ Rate limit OK:", {
+        userId: user.id,
+        remaining: rateLimitResult.remaining,
+        current: rateLimitResult.current,
+      });
     } else {
       console.log("🔓 Admin bypass - rate limit disabled for user:", user.id);
     }
@@ -167,6 +212,53 @@ serve(async (req) => {
     console.log("✅ AI Connection válida, prosseguindo com chat...");
 
     console.log("✅ Usando GlobalAiConnection:", aiConnection.name);
+
+    // ✅ CACHE DE IA - Verificar se já temos resposta em cache
+    const cacheKey = generateCacheKey(message, {
+      conversationId,
+      model: aiConnection.model,
+      provider: aiConnection.provider,
+    });
+
+    console.log("🔍 Verificando cache:", cacheKey);
+
+    const cachedResponse = await getCachedResponse(supabase, cacheKey);
+
+    if (cachedResponse.hit && cachedResponse.response) {
+      console.log("✅ Cache HIT! Retornando resposta em cache");
+
+      // Registrar uso de cache no audit log
+      await logAudit(
+        supabase,
+        "ai_cache",
+        cacheKey,
+        "UPDATE",
+        null,
+        { hits: cachedResponse.hits, cached: true },
+        user.id,
+      );
+
+      return new Response(
+        JSON.stringify({
+          response: cachedResponse.response,
+          cached: true,
+          cacheKey,
+          hits: cachedResponse.hits,
+          metadata: cachedResponse.metadata,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "X-Cache": "HIT",
+            "X-Cache-Hits": String(cachedResponse.hits),
+          },
+        },
+      );
+    }
+
+    console.log("❌ Cache MISS - Chamando IA");
 
     // System prompt customizado (se existir no GlobalAiConnection)
     const customSystemPrompt = aiConnection.systemPrompt || null;
