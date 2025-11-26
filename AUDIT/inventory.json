@@ -1,0 +1,39 @@
+{
+  "audit_date": "2025-11-26",
+  "environment": "production",
+  "services": {
+    "railway": {
+      "project_id": "5f47519b-0823-45aa-ab00-bc9bcaaa1c94",
+      "service_name": "syncads-python-microservice",
+      "url": "https://syncads-python-microservice-production.up.railway.app",
+      "status": "degraded",
+      "uptime_seconds": 170,
+      "version": "2.0.0",
+      "health_endpoint": "/health",
+      "docs_endpoint": "/docs"
+    },
+    "supabase": {
+      "project_ref": "ovskepqggmxlfckxqgbr",
+      "edge_functions_count": 86,
+      "most_deployed": {
+        "name": "chat-enhanced",
+        "version": 57
+      },
+      "critical_functions": [
+        "process-payment",
+        "chat-enhanced",
+        "payment-webhook",
+        "public-process-payment",
+        "shopify-create-order"
+      ]
+    },
+    "vercel": {
+      "domain": "syncads.vercel.app",
+      "status": "unknown"
+    }
+  },
+  "critical_issues": 3,
+  "high_issues": 8,
+  "medium_issues": 15,
+  "health_score": 45
+}
