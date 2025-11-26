@@ -293,6 +293,26 @@ serve(async (req) => {
               reason: routingDecision.reason,
             });
 
+            // ==========================================
+            // SALVAR ANALYTICS DE ROTEAMENTO
+            // ==========================================
+            try {
+              await supabase.from("routing_analytics").insert({
+                command_type: command.type,
+                command_message: message,
+                executor_chosen: routingDecision.executor,
+                confidence: routingDecision.confidence,
+                complexity_score: routingDecision.complexity_score || 5,
+                complexity_factors: routingDecision.complexity_factors || [],
+                capabilities_needed: routingDecision.capabilities_needed || [],
+                estimated_time: routingDecision.estimated_time_seconds,
+              });
+              console.log("✅ Analytics salvas com sucesso");
+            } catch (analyticsError) {
+              console.error("⚠️ Erro ao salvar analytics:", analyticsError);
+              // Não bloquear execução se analytics falhar
+            }
+
             // Adicionar explicação do roteamento à resposta
             if (routingDecision.explanation_user) {
               domCommandResponse += routingDecision.explanation_user + "\n\n";
@@ -317,23 +337,75 @@ serve(async (req) => {
                 domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
               }
             } else if (routingDecision.executor === "PYTHON_AI") {
-              // TODO: Chamar Python AI Service quando disponível
               console.log(
-                "⏳ [ROUTING] Python AI selecionado, mas ainda não implementado",
-              );
-              domCommandResponse += `🤖 **Python AI recomendado para esta tarefa**\n\nEsta funcionalidade será ativada em breve. Por enquanto, vou tentar executar via extensão.\n\n`;
-
-              // Fallback para extensão
-              const result = await createExtensionCommand(
-                supabase,
-                user.id,
-                deviceId,
-                command,
+                "🤖 [ROUTING] Python AI selecionado, chamando Python Service...",
               );
 
-              if (result.success) {
-                domCommandExecuted = true;
-                domCommandResponse += generateCommandResponse(command) + "\n\n";
+              try {
+                const PYTHON_SERVICE_URL =
+                  Deno.env.get("PYTHON_SERVICE_URL") ||
+                  "https://syncads-python-microservice-production.up.railway.app";
+
+                console.log("📡 Chamando Python Service:", PYTHON_SERVICE_URL);
+
+                const pythonResponse = await fetch(
+                  `${PYTHON_SERVICE_URL}/browser-automation/execute`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      task: message,
+                      context: {
+                        user_id: user.id,
+                        conversation_id: conversationId,
+                        command_type: command.type,
+                        command_data: command.params,
+                      },
+                    }),
+                  },
+                );
+
+                if (pythonResponse.ok) {
+                  const pythonResult = await pythonResponse.json();
+                  console.log(
+                    "✅ Python AI executado com sucesso:",
+                    pythonResult,
+                  );
+
+                  domCommandExecuted = true;
+                  domCommandResponse += `✅ **Tarefa executada via IA Avançada**\n\n${routingDecision.explanation_user}\n\n`;
+
+                  if (pythonResult.result) {
+                    domCommandResponse += `📊 **Resultado:**\n${JSON.stringify(pythonResult.result, null, 2)}\n\n`;
+                  }
+                } else {
+                  throw new Error(
+                    `Python Service error: ${pythonResponse.status}`,
+                  );
+                }
+              } catch (pythonError) {
+                console.error("❌ Erro ao chamar Python Service:", pythonError);
+                console.log("🔄 Fallback para extensão...");
+
+                domCommandResponse += `⚠️ **Python AI indisponível, usando extensão**\n\n`;
+
+                // Fallback para extensão
+                const result = await createExtensionCommand(
+                  supabase,
+                  user.id,
+                  deviceId,
+                  command,
+                );
+
+                if (result.success) {
+                  domCommandExecuted = true;
+                  domCommandResponse +=
+                    generateCommandResponse(command) + "\n\n";
+                } else {
+                  domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+                }
               }
             }
           }
