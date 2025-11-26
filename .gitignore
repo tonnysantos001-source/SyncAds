@@ -7,3 +7,11 @@ node_modules/
 
 .vercel
 sync-ads-ai/
+
+# Backups (never commit sensitive data)
+BACKUPS/*.sql
+BACKUPS/*.sql.gz
+BACKUPS/*.sql.zip
+BACKUPS/*.zip
+backup_*.sql
+backup_*.sql.gz
