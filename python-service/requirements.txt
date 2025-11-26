@@ -67,8 +67,8 @@ html5lib==1.1
 # AI-POWERED BROWSER AUTOMATION
 # ==========================================
 playwright==1.48.0
-browser-use==0.1.16
-agentql==0.2.0
+browser-use>=0.1.16
+agentql==1.17.0
 selenium==4.27.1
 webdriver-manager==4.0.2
 
