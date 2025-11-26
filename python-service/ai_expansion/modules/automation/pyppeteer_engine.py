@@ -19,6 +19,9 @@ try:
     PYPPETEER_AVAILABLE = True
 except ImportError:
     PYPPETEER_AVAILABLE = False
+    Browser = None
+    Page = None
+    launch = None
     logger.warning("Pyppeteer not available - install with: pip install pyppeteer")
 
 

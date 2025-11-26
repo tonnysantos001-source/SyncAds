@@ -52,18 +52,25 @@ RUN echo "=== INSTALANDO DEPENDENCIAS ===" && \
 # Copiar AI Expansion
 COPY ./ai_expansion ./ai_expansion
 
-# Instalar dependências AI Expansion (minimal)
+# Instalar dependências AI Expansion (completo)
 RUN echo "=== INSTALANDO AI EXPANSION ===" && \
     pip install --no-cache-dir \
     playwright>=1.48.0 \
     selenium>=4.27.0 \
     webdriver-manager>=4.0.0 \
+    pyppeteer>=1.0.2 \
     selectolax>=0.3.21 \
+    lxml>=5.1.0 \
+    beautifulsoup4>=4.12.0 \
     langchain>=0.1.0 \
     langchain-openai>=0.0.5 \
     langchain-anthropic>=0.1.0 \
     opencv-python-headless>=4.10.0 \
     pytesseract>=0.3.10 \
+    easyocr>=1.7.0 \
+    rembg>=2.0.0 \
+    browser-use>=0.1.0 \
+    rpaframework>=28.0.0 \
     orjson>=3.9.0 \
     tenacity>=8.2.0 \
     backoff>=2.2.0 && \
