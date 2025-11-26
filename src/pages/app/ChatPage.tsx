@@ -607,14 +607,11 @@ export default function ChatPageNovo() {
 
       if (!session) throw new Error("Sem sessão");
 
-      // LOG DE DEBUG CRÍTICO
+      // LOG DE DEBUG
       console.log("🚀 Enviando mensagem para IA:", {
         message: userMessage,
         extensionConnected: extensionStatus.connected,
         deviceId: extensionStatus.deviceId,
-        systemPromptLength: extensionStatus.connected
-          ? "LONG (Connected)"
-          : "SHORT (Offline)",
       });
 
       const response = await fetch(
@@ -629,40 +626,6 @@ export default function ChatPageNovo() {
             message: userMessage,
             conversationId: activeConversationId,
             extensionConnected: extensionStatus.connected,
-            systemPrompt: JSON.stringify({
-              role: "system",
-              content: extensionStatus.connected
-                ? `🚀 EXTENSÃO DO NAVEGADOR ATIVA - MODO DE AUTOMAÇÃO WEB
-
-**REGRAS CRÍTICAS:**
-
-1. **NUNCA mostre blocos JSON ao usuário**
- - ❌ ERRADO: "Vou abrir para você \`\`\`json {...} \`\`\`"
- - ✅ CORRETO: Responda naturalmente: "Abrindo Facebook Ads em nova aba..."
- - O JSON será detectado e executado automaticamente nos bastidores
-
-2. **Comandos disponíveis (use internamente, não mostre):**
- - NAVIGATE: {"type": "NAVIGATE", "data": {"url": "https://..."}}
- - LIST_TABS: {"type": "LIST_TABS", "data": {}}
- - CLICK_ELEMENT: {"type": "CLICK_ELEMENT", "data": {"selector": "button"}}
- - TYPE_TEXT: {"type": "TYPE_TEXT", "data": {"selector": "input", "text": "..."}}
- - READ_TEXT: {"type": "READ_TEXT", "data": {"selector": ".class"}}
- - GET_PAGE_INFO: {"type": "GET_PAGE_INFO", "data": {}}
- - EXECUTE_JS: {"type": "EXECUTE_JS", "data": {"code": "..."}}
-
-3. **Fluxo correto:**
- - Usuário: "abra o facebook"
- - Você: "Abrindo Facebook em nova aba... \`\`\`json\\n{\"type\": \"NAVIGATE\", \"data\": {\"url\": \"https://facebook.com\"}}\\n\`\`\`"
- - Sistema detecta o JSON, executa silenciosamente e remove da tela
- - Usuário vê apenas: "Abrindo Facebook em nova aba..."
-
-4. **IMPORTANTE:**
- - Todas as navegações SEMPRE abrem em NOVA ABA
- - NUNCA sai da página do SaaS/chat
- - Seja natural e conversacional com o usuário
- - O JSON é apenas para o sistema, não para o usuário ver`
-                : "Extensão do navegador OFFLINE. Não há acesso ao navegador. Responda normalmente.",
-            }),
           }),
         },
       );
