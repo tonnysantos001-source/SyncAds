@@ -318,6 +318,18 @@ export default function ChatPageNovo() {
       setConversations([newConversation, ...conversations]);
       setActiveConversationId(newConv.id);
 
+      // IMPORTANTE: Limpar mensagens do estado atual
+      setMessages([]);
+      setIsLoadingMessages(false);
+
+      // Scroll para o topo
+      setTimeout(() => {
+        const chatContainer = document.querySelector(".overflow-y-auto");
+        if (chatContainer) {
+          chatContainer.scrollTop = 0;
+        }
+      }, 100);
+
       toast({
         title: "Nova conversa criada!",
       });
