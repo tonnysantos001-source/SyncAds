@@ -82,9 +82,27 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # ==========================================
 # CORS
 # ==========================================
+ALLOWED_ORIGINS = [
+    "https://syncads.vercel.app",
+    "https://www.syncads.com",
+    "https://syncads.com",
+    "https://ovskepqggmxlfckxqgbr.supabase.co",
+]
+
+# Add development origins if in development mode
+if os.getenv("ENVIRONMENT") == "development":
+    ALLOWED_ORIGINS.extend(
+        [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ]
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
