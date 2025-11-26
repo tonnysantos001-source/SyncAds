@@ -70,7 +70,7 @@ interface SystemHealthResponse {
 async function checkService(
   name: string,
   url: string,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<HealthCheckResult> {
   const startTime = Date.now();
 
@@ -116,12 +116,12 @@ async function checkAllServices(): Promise<SystemHealthResponse> {
 
   // Check Edge Functions
   const edgeFunctionChecks = await Promise.all(
-    CRITICAL_FUNCTIONS.map(({ name, url }) => checkService(name, url))
+    CRITICAL_FUNCTIONS.map(({ name, url }) => checkService(name, url)),
   );
 
   // Check External Services
   const externalServiceChecks = await Promise.all(
-    EXTERNAL_SERVICES.map(({ name, url }) => checkService(name, url))
+    EXTERNAL_SERVICES.map(({ name, url }) => checkService(name, url)),
   );
 
   // Combine all checks
@@ -163,6 +163,17 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Allow GET requests without authentication for health checks
+  if (req.method !== "GET") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    });
+  }
+
   try {
     const url = new URL(req.url);
 
@@ -180,18 +191,19 @@ serve(async (req) => {
             ...corsHeaders,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
     }
 
     // Full health check
     const healthReport = await checkAllServices();
 
-    const statusCode = healthReport.status === "healthy"
-      ? 200
-      : healthReport.status === "degraded"
-      ? 200
-      : 503;
+    const statusCode =
+      healthReport.status === "healthy"
+        ? 200
+        : healthReport.status === "degraded"
+          ? 200
+          : 503;
 
     return new Response(JSON.stringify(healthReport, null, 2), {
       status: statusCode,
@@ -223,7 +235,7 @@ serve(async (req) => {
           ...corsHeaders,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
   }
 });
