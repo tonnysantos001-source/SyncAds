@@ -171,13 +171,29 @@ async function checkPendingCommands() {
 }
 
 async function processCommand(cmd) {
-  Logger.info("Processing command", { id: cmd.id, command: cmd.command });
+  // Delegar para função com retry
+  return await processCommandWithRetry(cmd, 0);
+}
+
+async function processCommandWithRetry(cmd, retryCount = 0) {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s (backoff exponencial)
+
+  Logger.info("Processing command", {
+    id: cmd.id,
+    command: cmd.command,
+    attempt: retryCount + 1,
+    maxAttempts: MAX_RETRIES + 1,
+  });
 
   try {
-    // Marcar como PROCESSING
-    await updateCommandStatus(cmd.id, "processing", {
-      executed_at: new Date().toISOString(),
-    });
+    // Marcar como PROCESSING (apenas na primeira tentativa)
+    if (retryCount === 0) {
+      await updateCommandStatus(cmd.id, "processing", {
+        executed_at: new Date().toISOString(),
+        retry_count: 0,
+      });
+    }
 
     // Obter tab ativa
     const [activeTab] = await chrome.tabs.query({
@@ -213,21 +229,68 @@ async function processCommand(cmd) {
       );
     });
 
-    // Marcar como COMPLETED
+    // ✅ SUCESSO - Marcar como COMPLETED
     await updateCommandStatus(cmd.id, "completed", {
       result: response,
       executed_at: new Date().toISOString(),
+      retry_count: retryCount,
     });
 
-    Logger.success("✅ Command executed successfully", { id: cmd.id });
+    Logger.success("✅ Command executed successfully", {
+      id: cmd.id,
+      attempts: retryCount + 1,
+    });
+
+    return { success: true, result: response, attempts: retryCount + 1 };
   } catch (error) {
-    Logger.error("❌ Command execution failed", error, { id: cmd.id });
-
-    // Marcar como FAILED
-    await updateCommandStatus(cmd.id, "failed", {
-      error: error.message,
-      executed_at: new Date().toISOString(),
+    Logger.error("❌ Command execution failed", error, {
+      id: cmd.id,
+      attempt: retryCount + 1,
+      maxAttempts: MAX_RETRIES + 1,
     });
+
+    // Verificar se deve fazer retry
+    if (retryCount < MAX_RETRIES) {
+      const delay = RETRY_DELAYS[retryCount];
+
+      Logger.warn(`🔄 Retrying command in ${delay}ms...`, {
+        id: cmd.id,
+        nextAttempt: retryCount + 2,
+      });
+
+      // Atualizar status com informação de retry
+      await updateCommandStatus(cmd.id, "processing", {
+        retry_count: retryCount + 1,
+        last_error: error.message,
+        next_retry_in: delay,
+      });
+
+      // Aguardar delay com backoff exponencial
+      await sleep(delay);
+
+      // Tentar novamente (recursivo)
+      return await processCommandWithRetry(cmd, retryCount + 1);
+    } else {
+      // ❌ FALHOU APÓS TODAS AS TENTATIVAS
+      Logger.error("❌ Command failed after all retries", {
+        id: cmd.id,
+        totalAttempts: retryCount + 1,
+        finalError: error.message,
+      });
+
+      await updateCommandStatus(cmd.id, "failed", {
+        error: error.message,
+        executed_at: new Date().toISOString(),
+        retry_count: retryCount,
+        total_attempts: retryCount + 1,
+      });
+
+      return {
+        success: false,
+        error: error.message,
+        attempts: retryCount + 1,
+      };
+    }
   }
 }
 
