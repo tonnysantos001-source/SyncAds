@@ -455,10 +455,7 @@ async def health_check(request: Request):
         if supabase:
             # Tentar fazer uma query simples
             test_query = (
-                await supabase.table("GlobalAiConnection")
-                .select("id")
-                .limit(1)
-                .execute()
+                supabase.table("GlobalAiConnection").select("id").limit(1).execute()
             )
             health_status["services"]["supabase"] = {
                 "status": "connected",
