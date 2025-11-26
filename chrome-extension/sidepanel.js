@@ -1,8 +1,11 @@
 // ============================================
-// SYNCADS AI SIDE PANEL - COMPLETE LOGIC
+// SYNCADS AI SIDE PANEL - MODERN VERSION
+// ============================================
+// Complete implementation with Supabase integration,
+// chat functionality, command execution, and realtime updates
 // ============================================
 
-console.log("🚀 [SIDE PANEL] Script loading...");
+console.log("🚀 [SIDE PANEL MODERN] Initializing...");
 
 // ============================================
 // CONFIGURATION
@@ -13,564 +16,903 @@ const CONFIG = {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
   CHAT_API_URL:
     "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/chat-enhanced",
-  MAX_MESSAGE_LENGTH: 2000,
+  MAX_MESSAGE_LENGTH: 4000,
+  STORAGE_KEYS: {
+    USER_ID: "syncads_user_id",
+    ACCESS_TOKEN: "syncads_access_token",
+    DEVICE_ID: "syncads_device_id",
+    CURRENT_CONVERSATION: "syncads_current_conversation",
+  },
+  REALTIME_CHANNEL: "extension_commands",
 };
 
 // ============================================
 // STATE MANAGEMENT
 // ============================================
 const state = {
+  // Auth
   userId: null,
   accessToken: null,
   deviceId: null,
-  conversationId: null,
-  messages: [],
-  conversations: [],
-  isTyping: false,
   isAuthenticated: false,
-  currentView: "welcome", // welcome, chat, tabs
-  commandHistory: [],
-  commandHistoryIndex: -1,
-  suggestions: [],
-};
 
-// ============================================
-// COMMAND SUGGESTIONS & AUTOCOMPLETE
-// ============================================
-const COMMAND_SUGGESTIONS = [
-  { text: "Liste minhas abas abertas", description: "Ver todas as abas" },
-  { text: "Qual o título desta página?", description: "Info da página" },
-  { text: "Feche esta aba", description: "Fechar aba atual" },
-  { text: "Abra https://", description: "Abrir URL em nova aba" },
-  { text: "Clique no botão de login", description: "Clicar em elemento" },
-  { text: "Preencha o formulário", description: "Preencher campos" },
-  { text: "Extraia os emails desta página", description: "Web scraping" },
-  { text: "Extraia a tabela", description: "Capturar tabela" },
-  { text: "Tire uma screenshot", description: "Capturar tela" },
-  { text: "Role até o final", description: "Scroll página" },
-  { text: "Aguarde 2 segundos", description: "Pausar execução" },
-  { text: "Execute: document.title", description: "Executar JS" },
-];
+  // Conversation
+  conversationId: null,
+  conversations: [],
+  messages: [],
+
+  // UI State
+  isTyping: false,
+  isSending: false,
+  showEmptyState: true,
+  sidebarOpen: false,
+
+  // Realtime
+  realtimeChannel: null,
+  commandsSubscription: null,
+
+  // Commands
+  pendingCommands: new Map(),
+};
 
 // ============================================
 // DOM ELEMENTS
 // ============================================
 const elements = {
   // Containers
-  welcomeScreen: document.getElementById("welcomeScreen"),
-  chatContainer: document.getElementById("chatContainer"),
-  messagesArea: document.getElementById("messagesArea"),
+  messagesContainer: document.getElementById("messagesContainer"),
+  emptyState: document.getElementById("emptyState"),
 
   // Input
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
+  sendIcon: document.getElementById("sendIcon"),
+  sendLoader: document.getElementById("sendLoader"),
+  attachBtn: document.getElementById("attachBtn"),
 
-  // Menus
-  menuBtn: document.getElementById("menuBtn"),
-  sidebarMenu: document.getElementById("sidebarMenu"),
+  // Sidebar
+  sidebar: document.getElementById("sidebar"),
+  historyBtn: document.getElementById("historyBtn"),
   closeSidebar: document.getElementById("closeSidebar"),
+  newChatBtn: document.getElementById("newChatBtn"),
+  conversationsList: document.getElementById("conversationsList"),
+
+  // Overlay
   overlay: document.getElementById("overlay"),
 
-  // History
-  historyBtn: document.getElementById("historyBtn"),
-  chatHistory: document.getElementById("chatHistory"),
-  closeHistory: document.getElementById("closeHistory"),
-  historyList: document.getElementById("historyList"),
-  newChatBtn: document.getElementById("newChatFromHistory"),
-  searchChats: document.getElementById("searchChats"),
-
-  // Tools
-  addTabBtn: document.getElementById("addTabBtn"),
-  attachBtn: document.getElementById("attachBtn"),
-  recordBtn: document.getElementById("recordBtn"),
-  toolsBtn: document.getElementById("toolsBtn"),
-
-  // Settings
-  settingsBtn: document.getElementById("settingsBtn"),
+  // Suggestions
+  suggestions: document.getElementById("suggestions"),
 };
 
 // ============================================
-// TABS MANAGEMENT
+// SUPABASE CLIENT INITIALIZATION
 // ============================================
+let supabase = null;
 
-/**
- * Get all open tabs
- */
-async function getAllTabs() {
+function initSupabase() {
   try {
-    const tabs = await chrome.tabs.query({});
-    return tabs;
-  } catch (error) {
-    console.error("❌ [TABS] Error getting tabs:", error);
-    return [];
-  }
-}
-
-/**
- * Show tabs list in chat
- */
-async function showTabsList() {
-  try {
-    console.log("🗂️ [TABS] Loading tabs list...");
-
-    const tabs = await getAllTabs();
-
-    if (tabs.length === 0) {
-      addMessage("assistant", "Não há abas abertas no momento.");
-      return;
+    if (typeof supabase === "undefined" || !window.supabase) {
+      console.error("❌ Supabase library not loaded");
+      return false;
     }
 
-    // Group tabs by window
-    const windows = {};
-    tabs.forEach((tab) => {
-      if (!windows[tab.windowId]) {
-        windows[tab.windowId] = [];
-      }
-      windows[tab.windowId].push(tab);
-    });
+    supabase = window.supabase.createClient(
+      CONFIG.SUPABASE_URL,
+      CONFIG.SUPABASE_ANON_KEY,
+    );
 
-    let message = `📋 **Abas Abertas** (${tabs.length} total)\n\n`;
-
-    Object.keys(windows).forEach((windowId, index) => {
-      const windowTabs = windows[windowId];
-      message += `**Janela ${index + 1}** (${windowTabs.length} abas):\n`;
-
-      windowTabs.forEach((tab, tabIndex) => {
-        const active = tab.active ? "✓ " : "";
-        message += `${tabIndex + 1}. ${active}${tab.title}\n`;
-        message += `   ${tab.url}\n\n`;
-      });
-    });
-
-    addMessage("assistant", message);
+    console.log("✅ Supabase client initialized");
+    return true;
   } catch (error) {
-    console.error("❌ [TABS] Error showing tabs:", error);
-    addMessage("assistant", "❌ Erro ao listar abas. Tente novamente.");
-  }
-}
-
-/**
- * Execute command on active tab
- */
-async function executeCommandOnTab(command) {
-  try {
-    console.log("⚡ [COMMAND] Executing on active tab:", command);
-
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    if (!tab) {
-      throw new Error("Nenhuma aba ativa encontrada");
-    }
-
-    // Send command to content script
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      type: "EXECUTE_COMMAND",
-      command: command,
-    });
-
-    console.log("✅ [COMMAND] Response:", response);
-    return response;
-  } catch (error) {
-    console.error("❌ [COMMAND] Error:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// AUTHENTICATION
-// ============================================
-
-/**
- * Load authentication data from storage
- */
-async function loadAuthData() {
-  try {
-    console.log("🔐 [AUTH] Loading authentication data...");
-
-    const data = await chrome.storage.local.get([
-      "userId",
-      "accessToken",
-      "deviceId",
-      "conversationId",
-    ]);
-
-    console.log("📦 [AUTH] Storage data:", {
-      hasUserId: !!data.userId,
-      hasToken: !!data.accessToken,
-      hasDeviceId: !!data.deviceId,
-    });
-
-    state.userId = data.userId;
-    state.accessToken = data.accessToken;
-    state.deviceId = data.deviceId;
-    state.conversationId = data.conversationId;
-    state.isAuthenticated = !!(data.userId && data.accessToken);
-
-    if (state.isAuthenticated) {
-      console.log("✅ [AUTH] User authenticated");
-      await loadConversations();
-    } else {
-      console.log("⚠️ [AUTH] User not authenticated");
-      showAuthRequired();
-    }
-
-    return state.isAuthenticated;
-  } catch (error) {
-    console.error("❌ [AUTH] Error loading auth data:", error);
+    console.error("❌ Failed to initialize Supabase:", error);
     return false;
   }
 }
 
-/**
- * Show authentication required message
- */
-function showAuthRequired() {
-  addMessage(
-    "assistant",
-    "👋 Olá! Para usar o assistente, você precisa fazer login no painel SyncAds.\n\n" +
-      "Clique no ícone da extensão e faça login para começar.",
-  );
-  elements.messageInput.disabled = true;
-  elements.sendBtn.disabled = true;
-}
+// ============================================
+// STORAGE UTILITIES
+// ============================================
+const Storage = {
+  async get(key) {
+    try {
+      const result = await chrome.storage.local.get(key);
+      return result[key] || null;
+    } catch (error) {
+      console.error(`❌ Storage.get error for ${key}:`, error);
+      return null;
+    }
+  },
+
+  async set(key, value) {
+    try {
+      await chrome.storage.local.set({ [key]: value });
+      console.log(`✅ Storage.set: ${key}`);
+    } catch (error) {
+      console.error(`❌ Storage.set error for ${key}:`, error);
+    }
+  },
+
+  async remove(key) {
+    try {
+      await chrome.storage.local.remove(key);
+      console.log(`✅ Storage.remove: ${key}`);
+    } catch (error) {
+      console.error(`❌ Storage.remove error for ${key}:`, error);
+    }
+  },
+
+  async clear() {
+    try {
+      await chrome.storage.local.clear();
+      console.log("✅ Storage cleared");
+    } catch (error) {
+      console.error("❌ Storage.clear error:", error);
+    }
+  },
+};
 
 // ============================================
-// CONVERSATIONS MANAGEMENT
+// AUTHENTICATION
 // ============================================
+const Auth = {
+  async loadSession() {
+    try {
+      console.log("🔐 Loading session...");
 
-/**
- * Load conversations from database
- */
-async function loadConversations() {
-  try {
-    console.log("💬 [CONVERSATIONS] Loading conversations...");
+      // Load from storage
+      const userId = await Storage.get(CONFIG.STORAGE_KEYS.USER_ID);
+      const accessToken = await Storage.get(CONFIG.STORAGE_KEYS.ACCESS_TOKEN);
+      const deviceId = await Storage.get(CONFIG.STORAGE_KEYS.DEVICE_ID);
 
-    const response = await fetch(
-      `${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation?userId=eq.${state.userId}&order=createdAt.desc&limit=50`,
-      {
-        headers: {
-          apikey: CONFIG.SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${state.accessToken}`,
-        },
-      },
-    );
+      if (!userId || !accessToken) {
+        console.log("⚠️ No stored session found");
+        return false;
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      // Update state
+      state.userId = userId;
+      state.accessToken = accessToken;
+      state.deviceId = deviceId || (await this.generateDeviceId());
+      state.isAuthenticated = true;
+
+      // Verify session with Supabase
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error || !session) {
+        console.log("⚠️ Session invalid, trying to restore...");
+
+        // Try to set session
+        const { error: setError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: accessToken, // May need proper refresh token
+        });
+
+        if (setError) {
+          console.error("❌ Failed to restore session:", setError);
+          await this.logout();
+          return false;
+        }
+      }
+
+      console.log("✅ Session loaded successfully");
+      console.log("👤 User ID:", userId);
+      console.log("📱 Device ID:", state.deviceId);
+
+      // Register device
+      await this.registerDevice();
+
+      return true;
+    } catch (error) {
+      console.error("❌ Load session error:", error);
+      return false;
     }
+  },
 
-    const data = await response.json();
-    state.conversations = data;
+  async generateDeviceId() {
+    const deviceId = `ext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await Storage.set(CONFIG.STORAGE_KEYS.DEVICE_ID, deviceId);
+    return deviceId;
+  },
 
-    console.log(`✅ [CONVERSATIONS] Loaded ${data.length} conversations`);
-    renderConversationsList();
+  async registerDevice() {
+    try {
+      if (!state.deviceId || !state.userId) {
+        console.warn("⚠️ Cannot register device: missing deviceId or userId");
+        return;
+      }
 
-    // Load or create conversation
-    if (state.conversationId) {
-      await loadConversation(state.conversationId);
-    } else if (data.length > 0) {
-      await loadConversation(data[0].id);
-    } else {
-      await createNewConversation();
-    }
-  } catch (error) {
-    console.error("❌ [CONVERSATIONS] Error loading:", error);
-  }
-}
-
-/**
- * Create new conversation
- */
-async function createNewConversation() {
-  try {
-    console.log("🆕 [CONVERSATIONS] Creating new conversation...");
-
-    const response = await fetch(
-      `${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: CONFIG.SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${state.accessToken}`,
-          Prefer: "return=representation",
+      const { error } = await supabase.from("extension_devices").upsert(
+        {
+          device_id: state.deviceId,
+          user_id: state.userId,
+          status: "online",
+          last_seen: new Date().toISOString(),
+          browser: "Chrome",
+          os: navigator.platform,
         },
-        body: JSON.stringify({
+        {
+          onConflict: "device_id",
+        },
+      );
+
+      if (error) {
+        console.error("❌ Device registration error:", error);
+      } else {
+        console.log("✅ Device registered:", state.deviceId);
+      }
+    } catch (error) {
+      console.error("❌ Register device error:", error);
+    }
+  },
+
+  async logout() {
+    try {
+      console.log("👋 Logging out...");
+
+      // Clear state
+      state.userId = null;
+      state.accessToken = null;
+      state.deviceId = null;
+      state.isAuthenticated = false;
+      state.conversationId = null;
+      state.conversations = [];
+      state.messages = [];
+
+      // Clear storage
+      await Storage.clear();
+
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+
+      // Reset UI
+      UI.showEmptyState();
+      UI.clearMessages();
+
+      console.log("✅ Logged out successfully");
+    } catch (error) {
+      console.error("❌ Logout error:", error);
+    }
+  },
+
+  // Listen for auth changes from background script
+  onAuthChange(callback) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local" && changes[CONFIG.STORAGE_KEYS.ACCESS_TOKEN]) {
+        callback();
+      }
+    });
+  },
+};
+
+// ============================================
+// CONVERSATION MANAGEMENT
+// ============================================
+const Conversation = {
+  async loadConversations() {
+    try {
+      if (!state.userId) {
+        console.warn("⚠️ Cannot load conversations: not authenticated");
+        return [];
+      }
+
+      console.log("📂 Loading conversations...");
+
+      const { data, error } = await supabase
+        .from("ChatConversation")
+        .select("id, title, createdAt, updatedAt")
+        .eq("userId", state.userId)
+        .order("updatedAt", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error("❌ Load conversations error:", error);
+        return [];
+      }
+
+      state.conversations = data || [];
+      console.log(`✅ Loaded ${state.conversations.length} conversations`);
+
+      // Update UI
+      UI.renderConversations();
+
+      return state.conversations;
+    } catch (error) {
+      console.error("❌ Load conversations error:", error);
+      return [];
+    }
+  },
+
+  async createConversation() {
+    try {
+      if (!state.userId) {
+        console.error("❌ Cannot create conversation: not authenticated");
+        UI.showNotification("❌ Você precisa estar logado", "error");
+        return null;
+      }
+
+      console.log("➕ Creating new conversation...");
+
+      const now = new Date().toISOString();
+      const conversationId = crypto.randomUUID();
+
+      const { data, error } = await supabase
+        .from("ChatConversation")
+        .insert({
+          id: conversationId,
           userId: state.userId,
           title: `Chat ${new Date().toLocaleDateString("pt-BR")}`,
-          createdAt: new Date().toISOString(),
-        }),
-      },
-    );
+          createdAt: now,
+        })
+        .select()
+        .single();
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      if (error) {
+        console.error("❌ Create conversation error:", error);
+        UI.showNotification("❌ Erro ao criar conversa", "error");
+        return null;
+      }
+
+      console.log("✅ Conversation created:", data.id);
+
+      // Update state
+      state.conversationId = data.id;
+      state.conversations.unshift(data);
+      state.messages = [];
+
+      // Save to storage
+      await Storage.set(CONFIG.STORAGE_KEYS.CURRENT_CONVERSATION, data.id);
+
+      // Update UI
+      UI.clearMessages();
+      UI.hideEmptyState();
+      UI.renderConversations();
+      UI.showNotification("✨ Nova conversa criada!", "success");
+
+      // Focus input
+      elements.messageInput.focus();
+
+      return data;
+    } catch (error) {
+      console.error("❌ Create conversation error:", error);
+      UI.showNotification("❌ Erro ao criar conversa", "error");
+      return null;
     }
+  },
 
-    const data = await response.json();
-    const conversation = data[0];
+  async switchConversation(conversationId) {
+    try {
+      console.log("🔄 Switching to conversation:", conversationId);
 
-    state.conversationId = conversation.id;
-    state.messages = [];
+      state.conversationId = conversationId;
+      await Storage.set(
+        CONFIG.STORAGE_KEYS.CURRENT_CONVERSATION,
+        conversationId,
+      );
 
-    await chrome.storage.local.set({ conversationId: conversation.id });
+      // Load messages
+      await this.loadMessages(conversationId);
 
-    console.log("✅ [CONVERSATIONS] Created:", conversation.id);
+      // Update UI
+      UI.renderConversations();
+      UI.hideEmptyState();
 
-    // Refresh conversations list
-    await loadConversations();
-  } catch (error) {
-    console.error("❌ [CONVERSATIONS] Error creating:", error);
-  }
-}
+      console.log("✅ Switched to conversation:", conversationId);
+    } catch (error) {
+      console.error("❌ Switch conversation error:", error);
+    }
+  },
 
-/**
- * Load specific conversation
- */
-async function loadConversation(conversationId) {
+  async loadMessages(conversationId) {
+    try {
+      console.log("💬 Loading messages for conversation:", conversationId);
+
+      const { data, error } = await supabase
+        .from("ChatMessage")
+        .select("id, role, content, createdAt")
+        .eq("conversationId", conversationId)
+        .order("createdAt", { ascending: true });
+
+      if (error) {
+        console.error("❌ Load messages error:", error);
+        return [];
+      }
+
+      state.messages = data || [];
+      console.log(`✅ Loaded ${state.messages.length} messages`);
+
+      // Render messages
+      UI.renderMessages();
+
+      return state.messages;
+    } catch (error) {
+      console.error("❌ Load messages error:", error);
+      return [];
+    }
+  },
+
+  async deleteConversation(conversationId) {
+    try {
+      console.log("🗑️ Deleting conversation:", conversationId);
+
+      const { error } = await supabase
+        .from("ChatConversation")
+        .delete()
+        .eq("id", conversationId);
+
+      if (error) {
+        console.error("❌ Delete conversation error:", error);
+        return false;
+      }
+
+      // Update state
+      state.conversations = state.conversations.filter(
+        (c) => c.id !== conversationId,
+      );
+
+      if (state.conversationId === conversationId) {
+        state.conversationId = null;
+        state.messages = [];
+        UI.showEmptyState();
+      }
+
+      // Update UI
+      UI.renderConversations();
+
+      console.log("✅ Conversation deleted");
+      return true;
+    } catch (error) {
+      console.error("❌ Delete conversation error:", error);
+      return false;
+    }
+  },
+};
+
+// ============================================
+// INITIALIZATION
+// ============================================
+async function init() {
   try {
-    console.log("📖 [CONVERSATIONS] Loading conversation:", conversationId);
+    console.log("🎬 Initializing Side Panel...");
 
-    const response = await fetch(
-      `${CONFIG.SUPABASE_URL}/rest/v1/ChatMessage?conversationId=eq.${conversationId}&order=createdAt.asc`,
-      {
-        headers: {
-          apikey: CONFIG.SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${state.accessToken}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    // Initialize Supabase
+    if (!initSupabase()) {
+      console.error("❌ Failed to initialize Supabase");
+      UI.showNotification("❌ Erro ao conectar com o servidor", "error");
+      return;
     }
 
-    const messages = await response.json();
+    // Setup event listeners
+    setupEventListeners();
 
-    state.conversationId = conversationId;
-    state.messages = messages.map((msg) => ({
-      id: msg.id,
-      role: msg.role.toLowerCase(),
-      content: msg.content,
-      createdAt: msg.createdAt,
-    }));
+    // Load session
+    const authenticated = await Auth.loadSession();
 
-    await chrome.storage.local.set({ conversationId });
+    if (authenticated) {
+      // Load conversations
+      await Conversation.loadConversations();
 
-    console.log(`✅ [CONVERSATIONS] Loaded ${messages.length} messages`);
+      // Load last conversation
+      const lastConversationId = await Storage.get(
+        CONFIG.STORAGE_KEYS.CURRENT_CONVERSATION,
+      );
 
-    // Render messages
-    renderMessages();
-    switchToChat();
+      if (lastConversationId) {
+        await Conversation.switchConversation(lastConversationId);
+      } else if (state.conversations.length > 0) {
+        await Conversation.switchConversation(state.conversations[0].id);
+      } else {
+        // Create first conversation
+        await Conversation.createConversation();
+      }
+
+      // Setup realtime
+      setupRealtime();
+    } else {
+      console.log("⚠️ Not authenticated");
+      UI.showEmptyState();
+      UI.showNotification(
+        "⚠️ Faça login na extensão para continuar",
+        "warning",
+      );
+    }
+
+    console.log("✅ Side Panel initialized");
   } catch (error) {
-    console.error("❌ [CONVERSATIONS] Error loading:", error);
+    console.error("❌ Initialization error:", error);
+    UI.showNotification("❌ Erro ao inicializar", "error");
   }
 }
 
-/**
- * Render conversations list
- */
-function renderConversationsList() {
-  const list = elements.historyList;
-  list.innerHTML = "";
+// ============================================
+// EVENT LISTENERS
+// ============================================
+function setupEventListeners() {
+  // Send message
+  elements.sendBtn?.addEventListener("click", handleSendMessage);
 
-  if (state.conversations.length === 0) {
-    list.innerHTML = `
-      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-        <p>Nenhuma conversa ainda</p>
-        <p style="font-size: 12px; margin-top: 8px;">Inicie uma nova conversa!</p>
-      </div>
-    `;
-    return;
-  }
+  // Input events
+  elements.messageInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  });
 
-  state.conversations.forEach((conv) => {
-    const item = document.createElement("div");
-    item.className = "history-item";
-    if (conv.id === state.conversationId) {
-      item.classList.add("active");
+  elements.messageInput?.addEventListener("input", handleInputChange);
+
+  // Sidebar
+  elements.historyBtn?.addEventListener("click", () => UI.toggleSidebar());
+  elements.closeSidebar?.addEventListener("click", () => UI.toggleSidebar());
+  elements.overlay?.addEventListener("click", () => UI.toggleSidebar());
+
+  // New chat
+  elements.newChatBtn?.addEventListener("click", async () => {
+    await Conversation.createConversation();
+    UI.toggleSidebar();
+  });
+
+  // Quick actions
+  document.querySelectorAll(".quick-action").forEach((action) => {
+    action.addEventListener("click", handleQuickAction);
+  });
+
+  // Auth change listener
+  Auth.onAuthChange(async () => {
+    console.log("🔄 Auth changed, reloading...");
+    await init();
+  });
+
+  console.log("✅ Event listeners setup complete");
+}
+
+// ============================================
+// START APPLICATION
+// ============================================
+document.addEventListener("DOMContentLoaded", init);
+
+console.log("✅ [SIDE PANEL MODERN] Script loaded");
+
+// ============================================
+// UI UTILITIES
+// ============================================
+const UI = {
+  showEmptyState() {
+    state.showEmptyState = true;
+    elements.emptyState?.classList.remove("hidden");
+
+    // Clear all message elements except empty state
+    const messageElements = elements.messagesContainer?.querySelectorAll(
+      ".message, .typing-indicator",
+    );
+    messageElements?.forEach((el) => el.remove());
+  },
+
+  hideEmptyState() {
+    state.showEmptyState = false;
+    elements.emptyState?.classList.add("hidden");
+  },
+
+  clearMessages() {
+    state.messages = [];
+    const messageElements = elements.messagesContainer?.querySelectorAll(
+      ".message, .typing-indicator",
+    );
+    messageElements?.forEach((el) => el.remove());
+    this.showEmptyState();
+  },
+
+  renderMessages() {
+    if (!elements.messagesContainer) return;
+
+    // Clear existing messages
+    const messageElements = elements.messagesContainer.querySelectorAll(
+      ".message, .typing-indicator",
+    );
+    messageElements.forEach((el) => el.remove());
+
+    if (state.messages.length === 0) {
+      this.showEmptyState();
+      return;
     }
 
-    const date = new Date(conv.createdAt).toLocaleDateString("pt-BR");
+    this.hideEmptyState();
 
-    item.innerHTML = `
-      <div class="history-item-title">${conv.title || "Nova Conversa"}</div>
-      <div class="history-item-date">${date}</div>
-    `;
-
-    item.addEventListener("click", () => {
-      loadConversation(conv.id);
-      closeHistoryPanel();
+    // Render each message
+    state.messages.forEach((message) => {
+      this.appendMessage(message, false);
     });
 
-    list.appendChild(item);
-  });
-}
+    // Scroll to bottom
+    this.scrollToBottom();
+  },
 
-// ============================================
-// MESSAGES & CHAT
-// ============================================
+  appendMessage(message, animate = true) {
+    if (!elements.messagesContainer) return;
 
-/**
- * Render all messages
- */
-function renderMessages() {
-  elements.messagesArea.innerHTML = "";
+    this.hideEmptyState();
 
-  state.messages.forEach((msg) => {
-    appendMessageToDOM(msg);
-  });
+    const messageEl = document.createElement("div");
+    messageEl.className = `message ${message.role}`;
+    if (!animate) messageEl.style.animation = "none";
 
-  scrollToBottom();
-}
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = message.role === "user" ? "👤" : "🤖";
 
-/**
- * Add message to state and DOM
- */
-function addMessage(role, content) {
-  console.log(`💬 [CHAT] Adding ${role} message`);
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
 
-  const message = {
-    id: `temp-${Date.now()}`,
-    role,
-    content,
-    createdAt: new Date().toISOString(),
-  };
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+    bubble.textContent = message.content;
 
-  state.messages.push(message);
-  appendMessageToDOM(message);
-  scrollToBottom();
-}
+    const time = document.createElement("div");
+    time.className = "message-time";
+    time.textContent = this.formatTime(message.createdAt);
 
-/**
- * Append message to DOM
- */
-function appendMessageToDOM(message) {
-  const messageDiv = document.createElement("div");
-  messageDiv.className = `message ${message.role}`;
-  messageDiv.dataset.id = message.id;
+    contentDiv.appendChild(bubble);
+    contentDiv.appendChild(time);
 
-  const avatar = document.createElement("div");
-  avatar.className = "message-avatar";
-  avatar.textContent = message.role === "user" ? "👤" : "🤖";
+    messageEl.appendChild(avatar);
+    messageEl.appendChild(contentDiv);
 
-  const content = document.createElement("div");
-  content.className = "message-content";
+    elements.messagesContainer.appendChild(messageEl);
 
-  const bubble = document.createElement("div");
-  bubble.className = "message-bubble";
-  bubble.textContent = message.content;
+    if (animate) {
+      this.scrollToBottom();
+    }
+  },
 
-  const time = document.createElement("div");
-  time.className = "message-time";
-  const date = new Date(message.createdAt);
-  time.textContent = date.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  showTypingIndicator() {
+    if (!elements.messagesContainer) return;
 
-  content.appendChild(bubble);
-  content.appendChild(time);
+    const typingEl = document.createElement("div");
+    typingEl.className = "message assistant";
+    typingEl.id = "typingIndicator";
 
-  messageDiv.appendChild(avatar);
-  messageDiv.appendChild(content);
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = "🤖";
 
-  elements.messagesArea.appendChild(messageDiv);
-}
+    const indicator = document.createElement("div");
+    indicator.className = "typing-indicator";
+    indicator.innerHTML =
+      '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
 
-/**
- * Show typing indicator
- */
-function showTypingIndicator() {
-  if (state.isTyping) return;
+    typingEl.appendChild(avatar);
+    typingEl.appendChild(indicator);
 
-  state.isTyping = true;
+    elements.messagesContainer.appendChild(typingEl);
+    this.scrollToBottom();
+  },
 
-  const typingDiv = document.createElement("div");
-  typingDiv.className = "message assistant";
-  typingDiv.id = "typingIndicator";
+  hideTypingIndicator() {
+    const typingEl = document.getElementById("typingIndicator");
+    typingEl?.remove();
+  },
 
-  const avatar = document.createElement("div");
-  avatar.className = "message-avatar";
-  avatar.textContent = "🤖";
+  scrollToBottom() {
+    if (elements.messagesContainer) {
+      elements.messagesContainer.scrollTop =
+        elements.messagesContainer.scrollHeight;
+    }
+  },
 
-  const content = document.createElement("div");
-  content.className = "message-content";
+  formatTime(timestamp) {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  },
 
-  const indicator = document.createElement("div");
-  indicator.className = "typing-indicator";
-  indicator.innerHTML = `
-    <div class="typing-dot"></div>
-    <div class="typing-dot"></div>
-    <div class="typing-dot"></div>
-  `;
+  toggleSidebar() {
+    state.sidebarOpen = !state.sidebarOpen;
+    elements.sidebar?.classList.toggle("open");
+    elements.overlay?.classList.toggle("active");
+  },
 
-  content.appendChild(indicator);
-  typingDiv.appendChild(avatar);
-  typingDiv.appendChild(content);
+  renderConversations() {
+    if (!elements.conversationsList) return;
 
-  elements.messagesArea.appendChild(typingDiv);
-  scrollToBottom();
-}
+    elements.conversationsList.innerHTML = "";
 
-/**
- * Hide typing indicator
- */
-function hideTypingIndicator() {
-  state.isTyping = false;
-  const indicator = document.getElementById("typingIndicator");
-  if (indicator) {
-    indicator.remove();
-  }
-}
-
-/**
- * Send message to AI
- */
-async function sendMessage() {
-  const message = elements.messageInput.value.trim();
-
-  if (!message) return;
-
-  if (!state.isAuthenticated) {
-    alert("Por favor, faça login no painel SyncAds primeiro.");
-    return;
-  }
-
-  console.log("📤 [CHAT] Sending message:", message);
-
-  // Add to command history
-  state.commandHistory.unshift(message);
-  if (state.commandHistory.length > 50) {
-    state.commandHistory = state.commandHistory.slice(0, 50); // Manter últimos 50
-  }
-  state.commandHistoryIndex = -1;
-
-  // Add user message
-  addMessage("user", message);
-  clearInput();
-  hideSuggestions();
-
-  // Switch to chat view
-  switchToChat();
-
-  // Disable input
-  elements.messageInput.disabled = true;
-  elements.sendBtn.disabled = true;
-
-  // Show typing
-  showTypingIndicator();
-
-  try {
-    // Ensure conversation exists
-    if (!state.conversationId) {
-      await createNewConversation();
+    if (state.conversations.length === 0) {
+      elements.conversationsList.innerHTML =
+        '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Nenhuma conversa ainda</div>';
+      return;
     }
 
-    // Call AI API
+    state.conversations.forEach((conv) => {
+      const item = document.createElement("div");
+      item.className = "conversation-item";
+      if (conv.id === state.conversationId) {
+        item.classList.add("active");
+      }
+
+      const title = document.createElement("div");
+      title.className = "conversation-title";
+      title.textContent = conv.title || "Sem título";
+
+      const date = document.createElement("div");
+      date.className = "conversation-date";
+      date.textContent = this.formatDate(conv.createdAt);
+
+      item.appendChild(title);
+      item.appendChild(date);
+
+      item.addEventListener("click", async () => {
+        await Conversation.switchConversation(conv.id);
+        this.toggleSidebar();
+      });
+
+      elements.conversationsList.appendChild(item);
+    });
+  },
+
+  formatDate(timestamp) {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    if (diff < 86400000) {
+      // Less than 1 day
+      return date.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else {
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+    }
+  },
+
+  showNotification(message, type = "info") {
+    console.log(`🔔 [${type.toUpperCase()}] ${message}`);
+
+    // Create notification element
+    const notification = document.createElement("div");
+    notification.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === "error" ? "var(--error)" : type === "success" ? "var(--success)" : "var(--accent-blue)"};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+            text-align: center;
+            font-size: 14px;
+        `;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      notification.style.transform = "translateX(-50%) translateY(-10px)";
+      notification.style.transition = "all 0.3s ease-out";
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  },
+
+  setInputLoading(loading) {
+    state.isSending = loading;
+
+    if (loading) {
+      elements.sendBtn?.setAttribute("disabled", "true");
+      elements.sendIcon?.classList.add("hidden");
+      elements.sendLoader?.classList.remove("hidden");
+      elements.messageInput?.setAttribute("disabled", "true");
+    } else {
+      elements.sendBtn?.removeAttribute("disabled");
+      elements.sendIcon?.classList.remove("hidden");
+      elements.sendLoader?.classList.add("hidden");
+      elements.messageInput?.removeAttribute("disabled");
+    }
+  },
+};
+
+// ============================================
+// MESSAGE HANDLING
+// ============================================
+async function handleSendMessage() {
+  try {
+    const message = elements.messageInput?.value?.trim();
+
+    if (!message) {
+      return;
+    }
+
+    if (message.length > CONFIG.MAX_MESSAGE_LENGTH) {
+      UI.showNotification(
+        `❌ Mensagem muito longa (máx: ${CONFIG.MAX_MESSAGE_LENGTH})`,
+        "error",
+      );
+      return;
+    }
+
+    if (!state.userId || !state.isAuthenticated) {
+      UI.showNotification("❌ Você precisa estar logado", "error");
+      return;
+    }
+
+    // Create conversation if needed
+    if (!state.conversationId) {
+      const conv = await Conversation.createConversation();
+      if (!conv) {
+        UI.showNotification("❌ Erro ao criar conversa", "error");
+        return;
+      }
+    }
+
+    console.log("📤 Sending message:", message);
+
+    // Clear input
+    elements.messageInput.value = "";
+    UI.setInputLoading(true);
+
+    // Add user message to UI
+    const userMessage = {
+      id: `temp_user_${Date.now()}`,
+      role: "user",
+      content: message,
+      createdAt: new Date().toISOString(),
+    };
+
+    state.messages.push(userMessage);
+    UI.appendMessage(userMessage);
+
+    // Show typing indicator
+    UI.showTypingIndicator();
+
+    // Send to API
+    const response = await sendMessageToAPI(message);
+
+    // Hide typing indicator
+    UI.hideTypingIndicator();
+
+    if (response && response.response) {
+      // Add assistant message to UI
+      const assistantMessage = {
+        id: `temp_ai_${Date.now()}`,
+        role: "assistant",
+        content: response.response,
+        createdAt: new Date().toISOString(),
+      };
+
+      state.messages.push(assistantMessage);
+      UI.appendMessage(assistantMessage);
+
+      console.log("✅ Message sent successfully");
+    } else {
+      UI.showNotification("❌ Erro ao enviar mensagem", "error");
+      // Remove user message on error
+      state.messages.pop();
+      UI.renderMessages();
+    }
+  } catch (error) {
+    console.error("❌ Send message error:", error);
+    UI.showNotification("❌ Erro ao enviar mensagem", "error");
+    UI.hideTypingIndicator();
+  } finally {
+    UI.setInputLoading(false);
+  }
+}
+
+async function sendMessageToAPI(message) {
+  try {
     const response = await fetch(CONFIG.CHAT_API_URL, {
       method: "POST",
       headers: {
@@ -578,857 +920,123 @@ async function sendMessage() {
         Authorization: `Bearer ${state.accessToken}`,
       },
       body: JSON.stringify({
-        message,
+        message: message,
         conversationId: state.conversationId,
         extensionConnected: true,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+      console.error("❌ API error:", response.status, response.statusText);
+      return null;
     }
 
     const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    // Hide typing
-    hideTypingIndicator();
-
-    // Clean response (remove JSON blocks)
-    let cleanResponse =
-      data.response || "Desculpe, não consegui gerar uma resposta.";
-    cleanResponse = cleanResponse
-      .replace(/```json[\s\S]*?```/g, "")
-      .replace(/\{[\s\S]*?"type"[\s\S]*?\}/g, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    if (cleanResponse) {
-      addMessage("assistant", cleanResponse);
-    }
-
-    // Try to detect and execute local commands
-    await detectAndExecuteCommands(message);
+    return data;
   } catch (error) {
-    console.error("❌ [CHAT] Error sending message:", error);
-    hideTypingIndicator();
-    addMessage(
-      "assistant",
-      `❌ Erro: ${error.message}\n\nTente novamente ou verifique sua conexão.`,
-    );
-  } finally {
-    // Re-enable input
-    elements.messageInput.disabled = false;
-    elements.sendBtn.disabled = false;
-    elements.messageInput.focus();
+    console.error("❌ API request error:", error);
+    return null;
   }
 }
 
-/**
- * Clear input
- */
-function clearInput() {
-  elements.messageInput.value = "";
-  adjustTextareaHeight();
-  hideSuggestions();
-  state.commandHistoryIndex = -1;
-}
-
-/**
- * Adjust textarea height
- */
-function adjustTextareaHeight() {
-  elements.messageInput.style.height = "auto";
-  const newHeight = Math.min(elements.messageInput.scrollHeight, 120);
-  elements.messageInput.style.height = newHeight + "px";
-}
-
-/**
- * Scroll to bottom
- */
-function scrollToBottom() {
-  setTimeout(() => {
-    elements.messagesArea.scrollTop = elements.messagesArea.scrollHeight;
-  }, 100);
-}
-
-// ============================================
-// VIEW SWITCHING
-// ============================================
-
-/**
- * Switch to welcome view
- */
-function switchToWelcome() {
-  state.currentView = "welcome";
-  elements.welcomeScreen.classList.remove("hidden");
-  elements.chatContainer.classList.add("hidden");
-}
-
-/**
- * Switch to chat view
- */
-function switchToChat() {
-  state.currentView = "chat";
-  elements.welcomeScreen.classList.add("hidden");
-  elements.chatContainer.classList.remove("hidden");
-}
-
-// ============================================
-// MENU & NAVIGATION
-// ============================================
-
-/**
- * Toggle sidebar menu
- */
-function toggleSidebar() {
-  const wasOpen = elements.sidebarMenu.classList.contains("open");
-
-  // Fechar histórico se estiver aberto
-  if (elements.chatHistory.classList.contains("open")) {
-    closeHistoryPanel();
-  }
-
-  const isOpen = elements.sidebarMenu.classList.toggle("open");
-
-  if (isOpen) {
-    elements.overlay.classList.add("active");
-    console.log("📂 [MENU] Opened");
-  } else {
-    elements.overlay.classList.remove("active");
-    console.log("📁 [MENU] Closed");
-  }
-}
-
-/**
- * Close sidebar menu
- */
-function closeSidebarMenu() {
-  elements.sidebarMenu.classList.remove("open");
-
-  // Só remover overlay se histórico também estiver fechado
-  if (!elements.chatHistory.classList.contains("open")) {
-    elements.overlay.classList.remove("active");
-  }
-}
-
-/**
- * Toggle history panel
- */
-function toggleHistory() {
-  const wasOpen = elements.chatHistory.classList.contains("open");
-
-  // Fechar menu se estiver aberto
-  if (elements.sidebarMenu.classList.contains("open")) {
-    closeSidebarMenu();
-  }
-
-  const isOpen = elements.chatHistory.classList.toggle("open");
-
-  if (isOpen) {
-    elements.overlay.classList.add("active");
-    console.log("📂 [HISTORY] Opened");
-  } else {
-    elements.overlay.classList.remove("active");
-    console.log("📁 [HISTORY] Closed");
-  }
-}
-
-/**
- * Close history panel
- */
-function closeHistoryPanel() {
-  elements.chatHistory.classList.remove("open");
-
-  // Só remover overlay se menu também estiver fechado
-  if (!elements.sidebarMenu.classList.contains("open")) {
-    elements.overlay.classList.remove("active");
+function handleInputChange() {
+  // Auto-resize textarea
+  if (elements.messageInput) {
+    elements.messageInput.style.height = "auto";
+    elements.messageInput.style.height =
+      elements.messageInput.scrollHeight + "px";
   }
 }
 
 // ============================================
 // QUICK ACTIONS
 // ============================================
+async function handleQuickAction(event) {
+  const action = event.currentTarget.dataset.action;
 
-/**
- * Handle quick action click
- */
-function handleQuickAction(action) {
-  console.log("⚡ [ACTION] Quick action:", action);
+  console.log("🎯 Quick action:", action);
 
-  const messages = {
-    automate: "Como posso automatizar tarefas nesta página?",
-    extract: "Extraia os dados principais desta página",
-    crawl: "Liste todas as páginas/links disponíveis aqui",
-    docs: "Crie um documento com as informações desta página",
-    apis: "Quais APIs posso usar para integração?",
-    sheets: "Como exportar dados para Google Sheets?",
+  const actions = {
+    "list-tabs": "Liste todas as minhas abas abertas",
+    "page-info": "Me dê informações sobre a página atual",
+    screenshot: "Tire uma screenshot da página atual",
+    extract: "Extraia todos os dados desta página",
   };
 
-  const message = messages[action];
-  if (message) {
-    elements.messageInput.value = message;
-    sendMessage();
-  }
-}
+  const message = actions[action];
 
-/**
- * Detect commands in message
- */
-async function detectAndExecuteCommands(message) {
-  const lowerMessage = message.toLowerCase();
-
-  // List tabs
-  if (
-    lowerMessage.includes("lista") &&
-    (lowerMessage.includes("aba") || lowerMessage.includes("tab"))
-  ) {
-    await showTabsList();
-    return true;
-  }
-
-  // Get page info
-  if (
-    lowerMessage.includes("título") ||
-    lowerMessage.includes("página atual")
-  ) {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      addMessage(
-        "assistant",
-        `📄 **Página Atual**\n\n**Título:** ${tab.title}\n**URL:** ${tab.url}`,
-      );
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error getting page info:", error);
-    }
-  }
-
-  // Close tab
-  if (lowerMessage.includes("fechar") && lowerMessage.includes("aba")) {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      await chrome.tabs.remove(tab.id);
-      addMessage("assistant", "✅ Aba fechada com sucesso!");
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error closing tab:", error);
-    }
-  }
-
-  // Open URL
-  const urlMatch = message.match(/abr(?:a|ir)?.*?(https?:\/\/[^\s]+)/i);
-  if (urlMatch) {
-    try {
-      const url = urlMatch[1];
-      await chrome.tabs.create({ url });
-      addMessage("assistant", `✅ Abrindo: ${url}`);
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error opening URL:", error);
-    }
-  }
-
-  return false;
-}
-
-/**
- * Handle tool button click
- */
-function handleToolButton(tool) {
-  console.log("🛠️ [TOOL] Tool clicked:", tool);
-
-  const commands = {
-    addTab: "Liste minhas abas abertas",
-    attach: "Como posso anexar arquivos?",
-    record: "Iniciar gravação de tela",
-    tools: "Quais ferramentas estão disponíveis?",
-  };
-
-  const message = commands[tool];
-  if (message) {
+  if (message && elements.messageInput) {
     elements.messageInput.value = message;
     elements.messageInput.focus();
+    await handleSendMessage();
   }
 }
 
 // ============================================
-// EVENT LISTENERS
+// REALTIME SUBSCRIPTIONS
 // ============================================
-
-/**
- * Setup all event listeners
- */
-function setupEventListeners() {
-  // Send button
-  elements.sendBtn.addEventListener("click", sendMessage);
-
-  // Enter to send (Shift+Enter for new line)
-  elements.messageInput.addEventListener("keydown", (e) => {
-    // Ctrl/Cmd + K - Foco no input (atalho rápido)
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-      e.preventDefault();
-      elements.messageInput.focus();
-      elements.messageInput.select();
+function setupRealtime() {
+  try {
+    if (!state.deviceId) {
+      console.warn("⚠️ Cannot setup realtime: no device ID");
       return;
     }
 
-    // Seta para cima - Navegar histórico de comandos
-    if (e.key === "ArrowUp" && elements.messageInput.value === "") {
-      e.preventDefault();
-      navigateCommandHistory("up");
-      return;
-    }
+    console.log("🔴 Setting up realtime subscriptions...");
 
-    // Seta para baixo - Navegar histórico de comandos
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      navigateCommandHistory("down");
-      return;
-    }
+    // Subscribe to command updates
+    const channel = supabase
+      .channel("extension_commands")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "extension_commands",
+          filter: `device_id=eq.${state.deviceId}`,
+        },
+        handleCommandUpdate,
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Realtime subscribed");
+        } else {
+          console.log("⚠️ Realtime status:", status);
+        }
+      });
 
-    // Tab - Aceitar sugestão (se houver)
-    if (e.key === "Tab" && state.suggestions.length > 0) {
-      e.preventDefault();
-      acceptSuggestion();
-      return;
-    }
-
-    // Escape - Limpar input
-    if (e.key === "Escape") {
-      e.preventDefault();
-      clearInput();
-      hideSuggestions();
-      return;
-    }
-
-    // Enter - Enviar mensagem
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-
-  // Auto-resize textarea e mostrar sugestões
-  elements.messageInput.addEventListener("input", () => {
-    adjustTextareaHeight();
-    showSuggestions();
-  });
-
-  // Blur - esconder sugestões
-  elements.messageInput.addEventListener("blur", () => {
-    // Delay para permitir clique na sugestão
-    setTimeout(hideSuggestions, 200);
-  });
-
-  // Menu buttons
-  elements.menuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [MENU] Menu button clicked");
-    toggleSidebar();
-  });
-
-  elements.closeSidebar.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [MENU] Close sidebar clicked");
-    closeSidebarMenu();
-  });
-
-  elements.overlay.addEventListener("click", () => {
-    console.log("🖱️ [OVERLAY] Overlay clicked, closing all");
-    closeSidebarMenu();
-    closeHistoryPanel();
-  });
-
-  // History buttons
-  elements.historyBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [HISTORY] History button clicked");
-    toggleHistory();
-  });
-
-  elements.closeHistory.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [HISTORY] Close history clicked");
-    closeHistoryPanel();
-  });
-
-  elements.newChatBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [HISTORY] New chat button clicked");
-    await createNewConversation();
-    closeHistoryPanel();
-    switchToChat();
-  });
-
-  // Menu items
-  document.querySelectorAll(".menu-item").forEach((item) => {
-    item.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const action = item.dataset.action;
-      console.log("📋 [MENU] Item clicked:", action);
-
-      closeSidebarMenu();
-
-      // Pequeno delay para animação
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      switch (action) {
-        case "new-chat":
-          console.log("🆕 [MENU] Creating new chat");
-          await createNewConversation();
-          switchToChat();
-          addMessage(
-            "assistant",
-            "💬 Nova conversa iniciada! Como posso ajudar?",
-          );
-          break;
-
-        case "history":
-          console.log("📋 [MENU] Opening history");
-          toggleHistory();
-          break;
-
-        case "tabs":
-          console.log("🗂️ [MENU] Listing tabs");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          await showTabsList();
-          break;
-
-        case "settings":
-          console.log("⚙️ [MENU] Opening settings");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          addMessage(
-            "assistant",
-            "⚙️ **Configurações**\n\nEm breve você poderá configurar:\n• Temas (Light/Dark)\n• Atalhos de teclado\n• Preferências de IA\n• Notificações",
-          );
-          break;
-
-        case "help":
-          console.log("❓ [MENU] Opening help");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          addMessage(
-            "assistant",
-            `❓ **Ajuda - SyncAds AI Assistant**
-
-**Comandos Básicos:**
-• "Liste minhas abas" - Mostra todas as abas abertas
-• "Qual o título desta página?" - Info da página atual
-• "Abra [URL]" - Abre site em nova aba
-• "Feche esta aba" - Fecha aba ativa
-
-**Quick Actions:**
-Clique nos 6 botões principais para ações rápidas!
-
-**Ferramentas:**
-• +Aba - Lista abas
-• 📎 Anexar - Anexos (em breve)
-• 🎙️ Gravar - Gravação (em breve)
-• 🛠️ Tools - Ver todas as ferramentas
-
-**Dica:** Seja específico nos comandos! Exemplo:
-"Clique no botão de login" ✅
-"Faça algo" ❌
-
-Precisa de ajuda específica? É só perguntar! 😊`,
-          );
-          break;
-      }
-    });
-  });
-
-  // Quick actions
-  document.querySelectorAll(".action-card").forEach((card) => {
-    card.addEventListener("click", (e) => {
-      e.preventDefault();
-      const action = card.dataset.action;
-      console.log("⚡ [QUICK ACTION] Card clicked:", action);
-      handleQuickAction(action);
-    });
-  });
-
-  // Tool buttons
-  elements.addTabBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] +Aba clicked");
-
-    // Switch to chat view if in welcome
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-
-    await showTabsList();
-  });
-
-  elements.attachBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Anexar clicked");
-
-    addMessage(
-      "assistant",
-      "📎 **Anexos** - Em desenvolvimento\n\nEm breve você poderá:\n• Anexar imagens\n• Enviar arquivos\n• Compartilhar screenshots",
-    );
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-  });
-
-  elements.recordBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Gravar clicked");
-
-    addMessage(
-      "assistant",
-      "🎙️ **Gravação de Tela** - Em desenvolvimento\n\nEm breve você poderá:\n• Gravar sua tela\n• Narrar com áudio\n• Compartilhar tutoriais",
-    );
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-  });
-
-  elements.toolsBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Ferramentas clicked");
-
-    const toolsList = `🛠️ **Ferramentas Disponíveis:**
-
-**Controle de Abas:**
-• Lista todas as abas abertas
-• Fecha abas específicas
-• Navega entre abas
-
-**Automação:**
-• Clica em elementos
-• Preenche formulários
-• Lê conteúdo de páginas
-• Executa JavaScript
-
-**Extração de Dados:**
-• Captura texto de elementos
-• Extrai tabelas
-• Coleta emails/links
-• Exporta informações
-
-**Quick Actions:**
-Clique nos botões acima para atalhos rápidos!
-
-Digite um comando ou pergunte o que posso fazer! 😊`;
-
-    addMessage("assistant", toolsList);
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-  });
-
-  // Settings button
-  if (elements.settingsBtn) {
-    elements.settingsBtn.addEventListener("click", () => {
-      addMessage("assistant", "⚙️ Configurações em desenvolvimento!");
-    });
+    state.realtimeChannel = channel;
+  } catch (error) {
+    console.error("❌ Realtime setup error:", error);
   }
+}
 
-  // Search chats
-  elements.searchChats.addEventListener("input", (e) => {
-    const query = e.target.value.toLowerCase();
-    document.querySelectorAll(".history-item").forEach((item) => {
-      const title = item
-        .querySelector(".history-item-title")
-        .textContent.toLowerCase();
-      item.style.display = title.includes(query) ? "block" : "none";
-    });
-  });
+function handleCommandUpdate(payload) {
+  try {
+    console.log("🔄 Command update:", payload);
 
-  console.log("✅ [EVENTS] All event listeners registered");
+    const command = payload.new;
 
-  // Atalhos globais
-  setupGlobalShortcuts();
+    if (command.status === "completed") {
+      console.log("✅ Command completed:", command.id);
+      // Handle completed command if needed
+    } else if (command.status === "failed") {
+      console.error("❌ Command failed:", command.id, command.error);
+      UI.showNotification("❌ Comando falhou", "error");
+    }
+  } catch (error) {
+    console.error("❌ Command update handler error:", error);
+  }
 }
 
 // ============================================
-// KEYBOARD SHORTCUTS & COMMAND HISTORY
+// CLEANUP
 // ============================================
-
-/**
- * Setup global keyboard shortcuts
- */
-function setupGlobalShortcuts() {
-  document.addEventListener("keydown", (e) => {
-    // Ctrl/Cmd + / - Abrir menu de atalhos
-    if ((e.ctrlKey || e.metaKey) && e.key === "/") {
-      e.preventDefault();
-      showKeyboardShortcuts();
-    }
-
-    // Ctrl/Cmd + H - Toggle histórico
-    if ((e.ctrlKey || e.metaKey) && e.key === "h") {
-      e.preventDefault();
-      toggleHistory();
-    }
-
-    // Ctrl/Cmd + N - Nova conversa
-    if ((e.ctrlKey || e.metaKey) && e.key === "n") {
-      e.preventDefault();
-      createNewConversation();
-    }
-  });
-
-  console.log("⌨️ [SHORTCUTS] Global shortcuts registered");
-}
-
-/**
- * Navigate command history
- */
-function navigateCommandHistory(direction) {
-  if (state.commandHistory.length === 0) return;
-
-  if (direction === "up") {
-    if (state.commandHistoryIndex < state.commandHistory.length - 1) {
-      state.commandHistoryIndex++;
-      elements.messageInput.value =
-        state.commandHistory[state.commandHistoryIndex];
-    }
-  } else if (direction === "down") {
-    if (state.commandHistoryIndex > 0) {
-      state.commandHistoryIndex--;
-      elements.messageInput.value =
-        state.commandHistory[state.commandHistoryIndex];
-    } else {
-      state.commandHistoryIndex = -1;
-      elements.messageInput.value = "";
-    }
-  }
-
-  adjustTextareaHeight();
-}
-
-/**
- * Show command suggestions
- */
-function showSuggestions() {
-  const input = elements.messageInput.value.toLowerCase();
-
-  // Esconder se vazio
-  if (input.length < 2) {
-    hideSuggestions();
-    return;
-  }
-
-  // Filtrar sugestões
-  const matches = COMMAND_SUGGESTIONS.filter(
-    (cmd) =>
-      cmd.text.toLowerCase().includes(input) ||
-      cmd.description.toLowerCase().includes(input),
-  ).slice(0, 5); // Máximo 5 sugestões
-
-  if (matches.length === 0) {
-    hideSuggestions();
-    return;
-  }
-
-  state.suggestions = matches;
-
-  // Criar/atualizar container de sugestões
-  let container = document.getElementById("suggestions-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "suggestions-container";
-    container.style.cssText = `
-      position: absolute;
-      bottom: 100%;
-      left: 0;
-      right: 0;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-bottom: 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1000;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-    `;
-    elements.messageInput.parentElement.style.position = "relative";
-    elements.messageInput.parentElement.appendChild(container);
-  }
-
-  // Renderizar sugestões
-  container.innerHTML = matches
-    .map(
-      (cmd, index) => `
-    <div class="suggestion-item" data-index="${index}" style="
-      padding: 10px 12px;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border-color);
-      transition: background 0.2s;
-    ">
-      <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 2px;">
-        ${highlightMatch(cmd.text, input)}
-      </div>
-      <div style="font-size: 11px; color: var(--text-muted);">
-        ${cmd.description}
-      </div>
-    </div>
-  `,
-    )
-    .join("");
-
-  // Add hover effects
-  container.querySelectorAll(".suggestion-item").forEach((item) => {
-    item.addEventListener("mouseenter", function () {
-      this.style.background = "var(--bg-hover)";
-    });
-    item.addEventListener("mouseleave", function () {
-      this.style.background = "transparent";
-    });
-    item.addEventListener("click", function () {
-      const index = parseInt(this.dataset.index);
-      elements.messageInput.value = matches[index].text;
-      hideSuggestions();
-      elements.messageInput.focus();
-    });
-  });
-}
-
-/**
- * Hide suggestions
- */
-function hideSuggestions() {
-  const container = document.getElementById("suggestions-container");
-  if (container) {
-    container.remove();
-  }
-  state.suggestions = [];
-}
-
-/**
- * Accept first suggestion
- */
-function acceptSuggestion() {
-  if (state.suggestions.length > 0) {
-    elements.messageInput.value = state.suggestions[0].text;
-    hideSuggestions();
-  }
-}
-
-/**
- * Highlight matching text
- */
-function highlightMatch(text, query) {
-  const regex = new RegExp(`(${query})`, "gi");
-  return text.replace(
-    regex,
-    '<span style="background: rgba(59, 130, 246, 0.3); color: var(--accent-primary);">$1</span>',
-  );
-}
-
-/**
- * Show keyboard shortcuts help
- */
-function showKeyboardShortcuts() {
-  if (state.currentView === "welcome") {
-    switchToChat();
-  }
-
-  addMessage(
-    "assistant",
-    `⌨️ **Atalhos de Teclado**
-
-**Navegação:**
-• \`Ctrl/Cmd + K\` - Foco no input
-• \`Ctrl/Cmd + N\` - Nova conversa
-• \`Ctrl/Cmd + H\` - Abrir histórico
-• \`Ctrl/Cmd + /\` - Este menu de atalhos
-
-**No Input:**
-• \`Enter\` - Enviar mensagem
-• \`Shift + Enter\` - Nova linha
-• \`Tab\` - Aceitar sugestão
-• \`Esc\` - Limpar input
-• \`↑\` - Comando anterior
-• \`↓\` - Próximo comando
-
-**Dicas:**
-• Digite pelo menos 2 caracteres para ver sugestões
-• Use Tab para autocompletar rapidamente
-• Use ↑/↓ para navegar no histórico de comandos
-
-Experimente agora! Digite algo e veja as sugestões aparecerem. 😊`,
-  );
-}
-
-// ============================================
-// STORAGE LISTENERS
-// ============================================
-
-/**
- * Listen for storage changes
- */
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === "local") {
-    console.log("💾 [STORAGE] Changes detected:", Object.keys(changes));
-
-    if (changes.userId || changes.accessToken) {
-      console.log("🔄 [STORAGE] Auth changed, reloading...");
-      loadAuthData();
-    }
+window.addEventListener("beforeunload", () => {
+  // Cleanup realtime subscriptions
+  if (state.realtimeChannel) {
+    state.realtimeChannel.unsubscribe();
   }
 });
 
-// ============================================
-// INITIALIZATION
-// ============================================
-
-/**
- * Initialize side panel
- */
-async function initialize() {
-  console.log("🚀 [SIDE PANEL] Initializing...");
-
-  try {
-    // Setup event listeners
-    setupEventListeners();
-
-    // Load authentication
-    const isAuthenticated = await loadAuthData();
-
-    if (isAuthenticated) {
-      console.log("✅ [SIDE PANEL] Initialized with authentication");
-    } else {
-      console.log("⚠️ [SIDE PANEL] Initialized without authentication");
-    }
-
-    // Focus input
-    elements.messageInput.focus();
-
-    console.log("✅ [SIDE PANEL] Initialization complete");
-  } catch (error) {
-    console.error("❌ [SIDE PANEL] Initialization error:", error);
-  }
-}
-
-// Wait for DOM to be ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initialize);
-} else {
-  initialize();
-}
-
-console.log("✅ [SIDE PANEL] Script loaded successfully");
+console.log("✅ [SIDE PANEL MODERN] Full script loaded");
