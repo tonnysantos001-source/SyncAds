@@ -25,6 +25,7 @@ import {
   createRouter,
   explainExecutorCapabilities,
 } from "../_utils/command-router.ts";
+import { getSystemPrompt, getContextualPrompt } from "./system-prompts.ts";
 
 serve(async (req) => {
   // Handle CORS
@@ -37,7 +38,6 @@ serve(async (req) => {
       message,
       conversationId,
       conversationHistory = [],
-      systemPrompt,
       extensionConnected: rawExtensionConnected,
     } = await req.json();
 
@@ -45,9 +45,13 @@ serve(async (req) => {
     const extensionConnected =
       rawExtensionConnected === true || rawExtensionConnected === "true";
 
+    // ✅ Obter system prompt do módulo (não vem mais do cliente)
+    const systemPrompt = getSystemPrompt(extensionConnected);
+
     console.log("🔍 DEBUG - Request recebido:", {
       hasMessage: !!message,
       conversationId,
+      extensionConnected,
       rawExtensionConnected,
       extensionConnectedFinal: extensionConnected,
     });

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { useRealtimeCommands } from "@/hooks/useRealtimeCommands";
 
 // ============================================
 // TYPES
@@ -64,7 +65,39 @@ export default function ChatPageNovo() {
   const [pendingCommands, setPendingCommands] = useState<PendingCommand[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const resultPollingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // ============================================
+  // REALTIME - Substituir polling por event-driven
+  // ============================================
+  const { isConnected: realtimeConnected } = useRealtimeCommands({
+    userId: user?.id,
+    enabled: !!user?.id,
+    onCommandCompleted: async (command) => {
+      console.log("✅ Realtime - Comando completado:", command);
+
+      // Encontrar comando pendente
+      const pending = pendingCommands.find((p) => p.id === command.id);
+      if (!pending) return;
+
+      // Processar resultado com IA
+      await processCommandResult(command, pending.messageId);
+
+      // Remover da lista de pendentes
+      setPendingCommands((prev) => prev.filter((p) => p.id !== command.id));
+    },
+    onCommandFailed: async (command) => {
+      console.error("❌ Realtime - Comando falhou:", command);
+
+      // Remover da lista de pendentes
+      setPendingCommands((prev) => prev.filter((p) => p.id !== command.id));
+
+      toast({
+        title: "Comando falhou",
+        description: command.error || "Erro ao executar comando na extensão",
+        variant: "destructive",
+      });
+    },
+  });
 
   // ============================================
   // AUTH CHECK
@@ -395,56 +428,6 @@ export default function ChatPageNovo() {
     } catch (error) {
       console.error("❌ Erro ao enviar comando:", error);
       return null;
-    }
-  };
-
-  // ============================================
-  // POLLING DE RESULTADOS
-  // ============================================
-  const checkCommandResults = async () => {
-    if (pendingCommands.length === 0) return;
-
-    try {
-      const commandIds = pendingCommands.map((c) => c.id);
-
-      const { data: completedCommands, error } = await supabase
-        .from("ExtensionCommand")
-        .select("*")
-        .in("id", commandIds)
-        .in("status", ["COMPLETED", "FAILED"]);
-
-      if (error) {
-        console.error("❌ Erro ao buscar resultados:", error);
-        return;
-      }
-
-      if (completedCommands && completedCommands.length > 0) {
-        for (const cmd of completedCommands) {
-          const pending = pendingCommands.find((p) => p.id === cmd.id);
-          if (!pending) continue;
-
-          console.log("✅ Comando completado:", {
-            id: cmd.id,
-            command: cmd.command,
-            status: cmd.status,
-            result: cmd.result,
-          });
-
-          // Processar resultado com IA
-          await processCommandResult(cmd, pending.messageId);
-
-          // Remover da lista de pendentes
-          setPendingCommands((prev) => prev.filter((p) => p.id !== cmd.id));
-        }
-      }
-
-      // Limpar comandos muito antigos (> 2 minutos)
-      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-      setPendingCommands((prev) =>
-        prev.filter((p) => p.timestamp > twoMinutesAgo),
-      );
-    } catch (error) {
-      console.error("❌ Erro no polling de resultados:", error);
     }
   };
 
