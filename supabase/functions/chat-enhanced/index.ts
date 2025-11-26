@@ -2447,14 +2447,13 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
 
               // Salvar comando no banco para a extensão executar
               const { data: savedCommand, error: cmdError } = await supabase
-                .from("ExtensionCommand")
+                .from("extension_commands")
                 .insert({
-                  deviceId,
-                  userId: user.id,
-                  command: command.type,
-                  params: command.data || {},
-                  status: "PENDING",
-                  conversationId,
+                  device_id: deviceId,
+                  user_id: user.id,
+                  type: command.type,
+                  data: command.data || {},
+                  status: "pending",
                 })
                 .select()
                 .single();
