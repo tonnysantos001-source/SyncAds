@@ -101,6 +101,15 @@ class AnalyzePageRequest(BaseModel):
     session_id: str
 
 
+class ExecuteTaskRequest(BaseModel):
+    task: str = Field(..., description="Tarefa em linguagem natural a ser executada")
+    context: Optional[Dict[str, Any]] = Field(
+        None, description="Contexto adicional da tarefa"
+    )
+    use_vision: bool = Field(True, description="Usar Vision AI se necessário")
+    timeout: int = Field(60, description="Timeout em segundos")
+
+
 class SessionResponse(BaseModel):
     success: bool
     session_id: str
@@ -454,11 +463,80 @@ async def cleanup_all_sessions():
 
 
 # ============================================
-# ADVANCED ENDPOINTS
+# BROWSER AUTOMATION ENDPOINTS
 # ============================================
 
 
-@router.post("/batch/natural-language")
+@router.post("/execute")
+async def execute_task(request: ExecuteTaskRequest):
+    """
+    Endpoint genérico para executar tarefas de automação
+
+    Usado pelo Edge Function quando Router decide usar PYTHON_AI
+
+    Exemplos:
+    - "Clique no botão de login"
+    - "Preencha o formulário com os dados"
+    - "Extraia os preços dos produtos"
+    """
+    try:
+        logger.info(f"🤖 Executando tarefa: {request.task}")
+
+        # Criar sessão temporária
+        session_id = str(uuid.uuid4())
+
+        if BrowserAIManager is None:
+            logger.error("BrowserAIManager não disponível")
+            raise HTTPException(
+                status_code=503,
+                detail="Browser automation modules not available. Install dependencies: playwright, browser-use, agentql",
+            )
+
+        # Criar manager
+        manager = BrowserAIManager(llm_provider="anthropic", headless=True)
+
+        active_managers[session_id] = manager
+
+        try:
+            # Inicializar browser
+            await manager.initialize()
+            logger.info(f"✅ Browser inicializado para sessão {session_id}")
+
+            # Executar tarefa usando Browser-Use
+            result = await manager.execute_natural_language_task(
+                task=request.task, context=request.context or {}
+            )
+
+            logger.info(f"✅ Tarefa executada com sucesso: {result}")
+
+            return {
+                "success": True,
+                "result": result,
+                "session_id": session_id,
+                "task": request.task,
+                "executor": "PYTHON_AI",
+            }
+
+        finally:
+            # Limpar sessão
+            try:
+                await manager.close()
+                if session_id in active_managers:
+                    del active_managers[session_id]
+                logger.info(f"✅ Sessão {session_id} encerrada")
+            except Exception as cleanup_error:
+                logger.warning(f"⚠️ Erro ao limpar sessão: {cleanup_error}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao executar tarefa: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao executar automação: {str(e)}"
+        )
+
+
+@router.post("/execute/natural-language")
 async def batch_execute_tasks(
     tasks: List[NaturalLanguageTaskRequest], background_tasks: BackgroundTasks
 ):
