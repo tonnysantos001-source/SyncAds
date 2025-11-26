@@ -291,7 +291,6 @@ export default function ChatPageNovo() {
         userId: user.id,
         title: `Conversa ${new Date().toLocaleDateString()}`,
         createdAt: now,
-        updatedAt: now, // CORREÇÃO: campo obrigatório
       };
 
       console.log("🆕 Criando nova conversa:", newConv);
