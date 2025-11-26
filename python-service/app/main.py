@@ -305,30 +305,57 @@ async def validate_jwt(authorization: Optional[str] = Header(None)) -> Dict[str,
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-async def get_active_ai(supabase_client) -> Optional[Dict]:
-    """Busca configuração da IA ativa global"""
-    if not supabase_client:
-        logger.warning("Supabase not configured, using fallback")
-        return None
+async def get_active_ai(supabase_client=None) -> Optional[Dict]:
+    """Busca configuração da IA ativa global DO SUPABASE"""
+    # Use global supabase se não passar client específico
+    client = supabase_client or supabase
+
+    if not client:
+        logger.warning("Supabase not configured, using env fallback")
+        # Fallback para env vars apenas se Supabase não disponível
+        return {
+            "provider": "ANTHROPIC",
+            "apiKey": os.getenv("ANTHROPIC_API_KEY", "placeholder"),
+            "model": "claude-3-haiku-20240307",
+            "maxTokens": 4096,
+            "temperature": 0.7,
+            "systemPrompt": ENHANCED_SYSTEM_PROMPT,
+        }
 
     try:
+        logger.info("🔍 Buscando IA Global ativa no Supabase...")
+
         response = (
-            supabase_client.table("ai_configurations")
+            client.table("GlobalAiConnection")
             .select("*")
-            .eq("is_active", True)
-            .eq("scope", "GLOBAL")
+            .eq("isActive", True)
+            .order("createdAt", desc=False)
             .limit(1)
             .execute()
         )
 
         if response.data and len(response.data) > 0:
-            logger.info(f"✅ Using global AI: {response.data[0].get('name')}")
-            return response.data[0]
+            ai_config = response.data[0]
+            logger.info(
+                f"✅ IA Global encontrada: {ai_config['name']} "
+                f"({ai_config['provider']} - {ai_config.get('model', 'default')})"
+            )
 
-        logger.warning("⚠️ No active AI found")
+            return {
+                "provider": ai_config["provider"],
+                "apiKey": ai_config["apiKey"],
+                "model": ai_config.get("model", "claude-3-haiku-20240307"),
+                "maxTokens": ai_config.get("maxTokens", 4096),
+                "temperature": float(ai_config.get("temperature", 0.7)),
+                "systemPrompt": ai_config.get("systemPrompt") or ENHANCED_SYSTEM_PROMPT,
+                "name": ai_config.get("name", "Global AI"),
+            }
+
+        logger.warning("⚠️ Nenhuma IA Global ativa encontrada no Supabase")
         return None
+
     except Exception as e:
-        logger.error(f"Error fetching AI config: {e}")
+        logger.error(f"❌ Erro ao buscar IA config do Supabase: {e}")
         return None
 
 
@@ -404,35 +431,155 @@ async def health_check():
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     """
-    Chat endpoint with AI streaming support
+    Chat endpoint with AI streaming support usando GlobalAI do Supabase
     """
     try:
         logger.info(f"📨 Chat request: conversationId={request.conversationId}")
 
-        # Save user message
+        # 1. Buscar IA Global ativa do Supabase
+        ai_config = await get_active_ai()
+
+        if not ai_config:
+            raise HTTPException(
+                status_code=503,
+                detail="No AI configured. Please configure Global AI in admin panel.",
+            )
+
+        # Extrair configurações
+        provider = ai_config["provider"].upper()
+        api_key = ai_config["apiKey"]
+        model = ai_config["model"]
+        max_tokens = ai_config["maxTokens"]
+        temperature = ai_config["temperature"]
+        system_prompt = ai_config["systemPrompt"]
+
+        logger.info(f"🤖 Using: {ai_config['name']} - {provider} / {model}")
+
+        # 2. Save user message
         await save_message(
             request.conversationId, "user", request.message, request.userId
         )
 
-        # Detect browser automation intent
+        # 3. Detect browser automation intent
         browser_intent = detect_browser_automation_intent(request.message)
 
         if browser_intent:
             logger.info(f"🌐 Browser automation detected: {browser_intent['type']}")
-            response_content = f"Detectei uma solicitação de automação: {browser_intent['type']}. Por favor, instale a extensão Chrome do SyncAds para executar esta ação."
+            response_content = (
+                f"Detectei uma solicitação de automação: {browser_intent['type']}. "
+                "Executando via extensão Chrome..."
+            )
+
+            # Save response
+            await save_message(
+                request.conversationId, "assistant", response_content, request.userId
+            )
+
+            return ChatResponse(role="assistant", content=response_content)
+
+        # 4. Buscar histórico da conversa
+        history = await get_conversation_history(request.conversationId, limit=10)
+
+        # 5. Montar mensagens
+        messages = []
+        for msg in history:
+            messages.append({"role": msg.get("role"), "content": msg.get("content")})
+
+        messages.append({"role": "user", "content": request.message})
+
+        # 6. Gerar resposta baseado no provider
+        if provider == "ANTHROPIC":
+            from anthropic import Anthropic
+
+            client = Anthropic(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                with client.messages.stream(
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    system=system_prompt,
+                    messages=messages,
+                ) as stream:
+                    for text in stream.text_stream:
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                # Salvar resposta
+                await save_message(
+                    request.conversationId, "assistant", full_response, request.userId
+                )
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
+        elif provider == "OPENAI":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                stream = client.chat.completions.create(
+                    model=model or "gpt-4-turbo-preview",
+                    messages=[{"role": "system", "content": system_prompt}] + messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True,
+                )
+
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                await save_message(
+                    request.conversationId, "assistant", full_response, request.userId
+                )
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
+        elif provider == "GROQ":
+            from groq import Groq
+
+            client = Groq(api_key=api_key)
+
+            async def generate():
+                full_response = ""
+                stream = client.chat.completions.create(
+                    model=model or "mixtral-8x7b-32768",
+                    messages=[{"role": "system", "content": system_prompt}] + messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True,
+                )
+
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                await save_message(
+                    request.conversationId, "assistant", full_response, request.userId
+                )
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(generate(), media_type="text/event-stream")
+
         else:
-            # Default AI response
-            response_content = f"Recebi sua mensagem: {request.message}. Sistema de IA em desenvolvimento."
+            raise HTTPException(
+                status_code=400,
+                detail=f"Provider '{provider}' não suportado. Use ANTHROPIC, OPENAI ou GROQ.",
+            )
 
-        # Save assistant response
-        await save_message(
-            request.conversationId, "assistant", response_content, request.userId
-        )
-
-        return ChatResponse(role="assistant", content=response_content)
-
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Chat error: {e}")
+        logger.error(f"❌ Chat error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
