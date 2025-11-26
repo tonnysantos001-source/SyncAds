@@ -272,45 +272,6 @@ export default function ChatPageNovo() {
   }, [conversations, activeConversationId]);
 
   // ============================================
-  // POLLING DE RESULTADOS DE COMANDOS
-  // ============================================
-  useEffect(() => {
-    // Iniciar polling se houver comandos pendentes
-    if (pendingCommands.length > 0) {
-      console.log(
-        `🔄 Iniciando polling de ${pendingCommands.length} comandos pendentes`,
-      );
-
-      // Verificar imediatamente
-      checkCommandResults();
-
-      // Depois verificar a cada 3 segundos
-      if (!resultPollingInterval.current) {
-        resultPollingInterval.current = setInterval(() => {
-          checkCommandResults();
-        }, 3000);
-      }
-    } else {
-      // Parar polling se não houver comandos pendentes
-      if (resultPollingInterval.current) {
-        console.log(
-          "⏸️ Parando polling de resultados (sem comandos pendentes)",
-        );
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
-      }
-    }
-
-    // Cleanup ao desmontar
-    return () => {
-      if (resultPollingInterval.current) {
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
-      }
-    };
-  }, [pendingCommands.length, activeConversationId, user]);
-
-  // ============================================
   // CRIAR NOVA CONVERSA
   // ============================================
   const createNewConversation = async () => {

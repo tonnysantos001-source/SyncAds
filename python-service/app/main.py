@@ -26,6 +26,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from jwt.exceptions import InvalidTokenError
 from loguru import logger
 from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 # ==========================================
 # IMPORTS - SUPABASE
@@ -62,6 +65,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# ==========================================
+# RATE LIMITING
+# ==========================================
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ==========================================
 # CORS
@@ -418,7 +428,8 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     """Health check endpoint"""
     return {
         "status": "healthy",
@@ -429,7 +440,8 @@ async def health_check():
 
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
+@limiter.limit("20/minute")
+async def chat_endpoint(request: ChatRequest, req: Request = None):
     """
     Chat endpoint with AI streaming support usando GlobalAI do Supabase
     """
@@ -594,11 +606,14 @@ class BrowserTaskRequest(BaseModel):
 
 
 @app.post("/browser-automation/execute")
-async def browser_automation_execute(request: BrowserTaskRequest):
+@limiter.limit("10/minute")
+async def browser_automation_execute(request: BrowserTaskRequest, req: Request = None):
     """
     Endpoint de automação de navegador (fallback direto no main.py)
 
     Usado quando Router decide PYTHON_AI
+
+    Rate limit: 10 requests por minuto por IP
     """
     try:
         logger.info(f"🤖 [BROWSER-AUTO] Recebendo tarefa: {request.task}")
