@@ -89,6 +89,7 @@ let state = {
   isProcessingToken: false,
   refreshTimer: null,
   keepAliveTimer: null,
+  commandTimer: null,
 };
 
 // ============================================
