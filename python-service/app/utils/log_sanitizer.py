@@ -304,7 +304,7 @@ def test_sanitizer():
     """Testa o sanitizador com dados de exemplo"""
 
     # Teste 1: API Keys
-    text1 = "Using api_key='sk_live_123456789abcdefghijklmnop' for Stripe"
+    text1 = "Using api_key='sk_test_FAKE_KEY_FOR_TESTING_ONLY' for Stripe"
     print(f"Original: {text1}")
     print(f"Sanitized: {sanitize_string(text1)}\n")
 
