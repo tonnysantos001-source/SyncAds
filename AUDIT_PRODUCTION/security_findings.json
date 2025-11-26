@@ -1,0 +1,64 @@
+{
+  "timestamp": "2025-01-26T17:00:00Z",
+  "total_findings": 3,
+  "critical": 0,
+  "high": 1,
+  "medium": 2,
+  "low": 1,
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "HIGH",
+      "title": "AI API Keys Ausentes",
+      "description": "Modules de IA (Anthropic, OpenAI, Groq) não estão carregados devido a falta de API keys",
+      "impact": "Sistema de IA não funciona em 100% da capacidade. Sem fallback entre providers.",
+      "affected_service": "Railway Python Microservice",
+      "remediation": "Adicionar variáveis de ambiente: ANTHROPIC_API_KEY, OPENAI_API_KEY, GROQ_API_KEY no Railway Dashboard",
+      "effort": "LOW",
+      "patch": "Railway Dashboard → Variables → Add keys",
+      "status": "OPEN"
+    },
+    {
+      "id": "SEC-002",
+      "severity": "MEDIUM",
+      "title": "Logs Não Sanitizados",
+      "description": "Logs podem conter secrets, API keys ou informações sensíveis",
+      "impact": "Risco de vazamento de credenciais em logs de produção",
+      "affected_service": "Railway Python Microservice",
+      "remediation": "Aplicar log_sanitizer.py já implementado no logger",
+      "effort": "LOW",
+      "patch": "Integrar python-service/app/utils/log_sanitizer.py",
+      "status": "OPEN"
+    },
+    {
+      "id": "SEC-003",
+      "severity": "MEDIUM",
+      "title": "Circuit Breaker Não Integrado",
+      "description": "Sem proteção contra falhas em cascata de APIs externas",
+      "impact": "Falha em um provider pode derrubar todo o sistema",
+      "affected_service": "Railway Python Microservice - /api/chat",
+      "remediation": "Integrar circuit_breaker.py no endpoint de chat",
+      "effort": "MEDIUM",
+      "patch": "Aplicar decorator @circuit_breaker nos endpoints de IA",
+      "status": "OPEN"
+    },
+    {
+      "id": "SEC-004",
+      "severity": "LOW",
+      "title": "PITR Desabilitado",
+      "description": "Point-in-Time Recovery não está habilitado (requer plano Pro)",
+      "impact": "Backup limitado a snapshots manuais",
+      "affected_service": "Supabase Database",
+      "remediation": "Habilitar PITR (requer upgrade para Pro) ou manter backups manuais regulares",
+      "effort": "LOW",
+      "patch": "Dashboard Supabase → Database → Backups → Enable PITR",
+      "status": "OPEN"
+    }
+  ],
+  "recommendations": [
+    "Adicionar AI keys imediatamente",
+    "Integrar circuit breaker antes de carga alta",
+    "Aplicar sanitizador de logs",
+    "Considerar upgrade para Supabase Pro para PITR"
+  ]
+}

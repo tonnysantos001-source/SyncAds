@@ -1,0 +1,186 @@
+{
+  "audit_metadata": {
+    "timestamp": "2025-01-26T16:58:23Z",
+    "auditor": "Claude Sonnet 4.5",
+    "scope": "full_production_audit",
+    "environment": "production"
+  },
+  "railway_services": {
+    "python_microservice": {
+      "name": "syncads-python-microservice",
+      "url": "https://syncads-python-microservice-production.up.railway.app",
+      "status": "healthy",
+      "version": "2.0.0",
+      "port": 8000,
+      "health_endpoint": "/health",
+      "additional_endpoints": [
+        "/api/chat",
+        "/api/expansion/health",
+        "/api/expansion/info",
+        "/browser-automation/execute"
+      ],
+      "services": {
+        "supabase": "connected",
+        "playwright": true,
+        "selenium": false,
+        "ai_modules": {
+          "openai": false,
+          "anthropic": false,
+          "groq": false
+        }
+      }
+    }
+  },
+  "supabase_edge_functions": {
+    "total_count": 74,
+    "critical_functions": [
+      "chat-enhanced",
+      "process-payment",
+      "payment-webhook",
+      "shopify-create-order",
+      "system-health"
+    ],
+    "functions_list": [
+      "advanced-analytics",
+      "advanced-scraper",
+      "ai-advisor",
+      "ai-tools",
+      "auth-meta",
+      "automation-engine",
+      "chat-enhanced",
+      "chat-stream-v2",
+      "cleanup-pending-orders",
+      "content-assistant",
+      "create-csv",
+      "create-excel",
+      "create-pdf",
+      "extension-commands",
+      "extension-log",
+      "extension-register",
+      "facebook-connect",
+      "facebook-sync",
+      "file-generator-v2",
+      "file-manager",
+      "gateway-config-verify",
+      "gateway-test-runner",
+      "generate-image",
+      "generate-video",
+      "generate-zip",
+      "google-ads-control",
+      "google-ads-oauth",
+      "google-analytics-oauth",
+      "hotmart-connect",
+      "hotmart-sync",
+      "initialize-free-plan",
+      "instagram-connect",
+      "instagram-sync",
+      "job-processor",
+      "linkedin-ads-control",
+      "linkedin-oauth",
+      "linkedin-sync",
+      "mercadolivre-oauth",
+      "mercadolivre-sync",
+      "meta-ads-control",
+      "meta-ads-oauth",
+      "meta-ads-tools",
+      "metrics-dashboard",
+      "nuvemshop-connect",
+      "nuvemshop-sync",
+      "oauth-init",
+      "payment-queue-processor",
+      "payment-retry-processor",
+      "payment-webhook",
+      "playwright-scraper",
+      "predictive-analysis",
+      "process-payment",
+      "python-executor",
+      "rdstation-oauth",
+      "read-database",
+      "recover-abandoned-carts",
+      "renew-subscriptions",
+      "shopify-create-order",
+      "shopify-oauth",
+      "shopify-sync",
+      "shopify-webhook",
+      "super-ai-tools",
+      "sync-order-to-shopify",
+      "system-health",
+      "test-gateway",
+      "tiktokads-connect",
+      "tiktokads-sync",
+      "twitter-oauth",
+      "twitter-sync",
+      "verify-domain",
+      "vtex-connect",
+      "vtex-sync",
+      "web-scraper",
+      "web-search",
+      "whatsapp-connect",
+      "whatsapp-sync",
+      "woocommerce-connect",
+      "woocommerce-sync"
+    ],
+    "runtime": "deno",
+    "with_health_checks": 5
+  },
+  "frontend_vercel": {
+    "url": "https://syncads.vercel.app",
+    "status": "online",
+    "framework": "React + Vite",
+    "deployment_platform": "Vercel",
+    "critical_routes": [
+      "/",
+      "/login",
+      "/register",
+      "/dashboard",
+      "/chat",
+      "/ads",
+      "/checkout",
+      "/settings"
+    ],
+    "api_routes": [
+      "/api/*"
+    ]
+  },
+  "browser_extension": {
+    "status": "deployed",
+    "manifest_version": "3",
+    "permissions": [
+      "storage",
+      "tabs",
+      "activeTab",
+      "scripting"
+    ],
+    "background_scripts": true,
+    "content_scripts": true
+  },
+  "database": {
+    "provider": "Supabase PostgreSQL",
+    "project_ref": "ovskepqggmxlfckxqgbr",
+    "region": "us-east-1",
+    "indexes_applied": true,
+    "pitr_enabled": false
+  },
+  "integrations": [
+    {
+      "source": "Extension",
+      "target": "Vercel Frontend",
+      "protocol": "WebSocket/HTTP"
+    },
+    {
+      "source": "Vercel Frontend",
+      "target": "Supabase Edge Functions",
+      "protocol": "HTTPS"
+    },
+    {
+      "source": "Supabase Edge Functions",
+      "target": "Railway Python Service",
+      "protocol": "HTTPS"
+    },
+    {
+      "source": "Railway Python Service",
+      "target": "Supabase Database",
+      "protocol": "PostgreSQL"
+    }
+  ]
+}
