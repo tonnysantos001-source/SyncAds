@@ -6,6 +6,47 @@ IA + Supabase + Streaming + AI Tools
 """
 
 # ==========================================
+# IMPORTS
+# ==========================================
+import asyncio
+import json
+import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import httpx
+import jwt
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+from jwt.exceptions import InvalidTokenError
+from loguru import logger
+from pydantic import BaseModel, Field
+
+from supabase import Client, create_client
+
+# ==========================================
+# SYSTEM PROMPTS
+# ==========================================
+ENHANCED_SYSTEM_PROMPT = """
+Você é um assistente de IA inteligente do SyncAds AI que pode:
+- Automatizar tarefas de navegador através da extensão Chrome
+- Executar automações complexas com Playwright e AgentQL
+- Interagir com o DOM de páginas web
+- Realizar scraping de dados
+- Processar e analisar informações
+
+Quando o usuário solicitar automação web, você deve:
+1. Identificar se é uma tarefa simples (DOM direto via extensão) ou complexa (Playwright/AgentQL)
+2. Explicar o que vai fazer antes de executar
+3. Fornecer feedback claro sobre o progresso
+4. Reportar erros de forma compreensível
+
+Seja direto, eficiente e sempre confirme ações importantes.
+"""
+
+
+# ==========================================
 # CRIAR APP FASTAPI
 # ==========================================
 app = FastAPI(
@@ -411,7 +452,7 @@ async def chat(
 
         # 2. Detectar se precisa usar ferramenta AI
         logger.info(f"📝 Mensagem recebida: '{request.message}'")
-        tool_intent = detect_tool_intent(request.message)
+        tool_intent = detect_browser_automation_intent(request.message)
         logger.info(f"🔍 Detecção de intent resultado: {tool_intent}")
         tool_result = None
 
