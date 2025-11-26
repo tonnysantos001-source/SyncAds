@@ -49,6 +49,28 @@ RUN echo "=== INSTALANDO DEPENDENCIAS ===" && \
     pip install --no-cache-dir -r requirements.txt && \
     echo "=== INSTALACAO CONCLUIDA ==="
 
+# Copiar AI Expansion
+COPY ./ai_expansion ./ai_expansion
+
+# Instalar dependências AI Expansion (minimal)
+RUN echo "=== INSTALANDO AI EXPANSION ===" && \
+    pip install --no-cache-dir \
+    playwright>=1.48.0 \
+    selenium>=4.27.0 \
+    webdriver-manager>=4.0.0 \
+    selectolax>=0.3.21 \
+    langchain>=0.1.0 \
+    langchain-openai>=0.0.5 \
+    langchain-anthropic>=0.1.0 \
+    opencv-python-headless>=4.10.0 \
+    pytesseract>=0.3.10 \
+    orjson>=3.9.0 \
+    tenacity>=8.2.0 \
+    backoff>=2.2.0 && \
+    echo "=== AI EXPANSION INSTALADO ===" && \
+    playwright install chromium --with-deps && \
+    echo "=== PLAYWRIGHT BROWSER INSTALADO ==="
+
 # Copiar código da aplicação
 COPY ./app ./app
 
