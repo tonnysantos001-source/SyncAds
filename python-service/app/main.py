@@ -599,12 +599,18 @@ async def startup_event():
 
     # Try to register routers
     try:
-        from app.routers.browser_automation import router as browser_automation_router
+        from app.routers import browser_automation
 
-        app.include_router(browser_automation_router)
+        app.include_router(browser_automation.router)
         logger.info("✅ Browser Automation router registered")
+        logger.info(f"    Available endpoints: {len(browser_automation.router.routes)}")
     except ImportError as e:
         logger.warning(f"⚠️ Browser Automation router not available: {e}")
+        logger.info(
+            "    Reason: Missing dependencies (browser-use, agentql, playwright)"
+        )
+    except Exception as e:
+        logger.error(f"❌ Error registering Browser Automation router: {e}")
 
     logger.info("✅ Supabase: " + ("Connected" if supabase else "Disconnected"))
     logger.info("=" * 50)
