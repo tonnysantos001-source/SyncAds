@@ -1274,3 +1274,20 @@ async def scrape_health():
 async def shutdown_event():
     """Shutdown event"""
     logger.info("🛑 SyncAds Python Microservice - Encerrando...")
+
+
+# ==========================================
+# MAIN - Para execução direta
+# ==========================================
+if __name__ == "__main__":
+    import uvicorn
+    
+    port = int(os.getenv("PORT", 8000))
+    
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        workers=int(os.getenv("WORKERS", 2)),
+        log_level="info"
+    )
