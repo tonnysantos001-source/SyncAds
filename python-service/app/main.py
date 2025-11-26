@@ -584,6 +584,46 @@ async def chat(request: ChatRequest):
 
 
 # ==========================================
+# BROWSER AUTOMATION - FALLBACK ENDPOINT
+# ==========================================
+class BrowserTaskRequest(BaseModel):
+    task: str = Field(..., description="Tarefa em linguagem natural")
+    context: Optional[Dict[str, Any]] = Field(None, description="Contexto adicional")
+    use_vision: bool = Field(True, description="Usar Vision AI")
+    timeout: int = Field(60, description="Timeout em segundos")
+
+
+@app.post("/browser-automation/execute")
+async def browser_automation_execute(request: BrowserTaskRequest):
+    """
+    Endpoint de automação de navegador (fallback direto no main.py)
+
+    Usado quando Router decide PYTHON_AI
+    """
+    try:
+        logger.info(f"🤖 [BROWSER-AUTO] Recebendo tarefa: {request.task}")
+
+        # Por enquanto, retornar mock response
+        # Quando browser_ai estiver disponível, implementar execução real
+        return {
+            "success": True,
+            "result": {
+                "status": "received",
+                "message": f"Tarefa '{request.task}' registrada",
+                "task": request.task,
+                "context": request.context,
+                "note": "Browser automation em desenvolvimento. Módulos: playwright, browser-use, agentql",
+            },
+            "task": request.task,
+            "executor": "PYTHON_AI",
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Erro em browser automation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
 # STARTUP EVENT
 # ==========================================
 @app.on_event("startup")
@@ -596,21 +636,24 @@ async def startup_event():
     logger.info("✅ Docs: /docs")
     logger.info("✅ Health: /health")
     logger.info("✅ Chat: /api/chat")
+    logger.info("✅ Browser Automation: /browser-automation/execute (fallback)")
 
     # Try to register routers
     try:
         from app.routers import browser_automation
 
         app.include_router(browser_automation.router)
-        logger.info("✅ Browser Automation router registered")
+        logger.info("✅ Browser Automation router registered (full version)")
         logger.info(f"    Available endpoints: {len(browser_automation.router.routes)}")
     except ImportError as e:
         logger.warning(f"⚠️ Browser Automation router not available: {e}")
+        logger.info("    Using fallback endpoint in main.py")
         logger.info(
             "    Reason: Missing dependencies (browser-use, agentql, playwright)"
         )
     except Exception as e:
         logger.error(f"❌ Error registering Browser Automation router: {e}")
+        logger.info("    Using fallback endpoint in main.py")
 
     logger.info("✅ Supabase: " + ("Connected" if supabase else "Disconnected"))
     logger.info("=" * 50)
