@@ -32,6 +32,11 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 # ==========================================
+# IMPORTS - UTILS
+# ==========================================
+from app.utils.ai_key_manager import get_ai_keys_from_supabase
+
+# ==========================================
 # IMPORTS - SUPABASE
 # ==========================================
 from supabase import Client, create_client
@@ -489,11 +494,25 @@ async def health_check(request: Request):
         health_status["services"]["supabase"] = {"status": "error", "error": str(e)}
         health_status["status"] = "degraded"
 
-    # Verificar módulos de IA disponíveis
+    # Verificar módulos de IA disponíveis e keys do banco
+    ai_keys = {}
+    try:
+        if supabase:
+            ai_keys = get_ai_keys_from_supabase(supabase)
+    except Exception as e:
+        logger.warning(f"Could not load AI keys from database: {e}")
+
     health_status["services"]["ai_modules"] = {
         "openai": "openai" in sys.modules,
         "anthropic": "anthropic" in sys.modules,
         "groq": "groq" in sys.modules,
+    }
+
+    health_status["services"]["ai_keys_loaded"] = {
+        "openai": bool(ai_keys.get("openai")),
+        "anthropic": bool(ai_keys.get("anthropic")),
+        "groq": bool(ai_keys.get("groq")),
+        "source": "database" if ai_keys else "none",
     }
 
     # Verificar módulos de automação
