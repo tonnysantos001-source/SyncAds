@@ -731,6 +731,54 @@ async def startup_event():
         logger.error(f"❌ Error registering Browser Automation router: {e}")
         logger.info("    Using fallback endpoint in main.py")
 
+    # ==========================================
+    # AI EXPANSION INTEGRATION
+    # ==========================================
+    try:
+        logger.info("=" * 50)
+        logger.info("🚀 Initializing AI EXPANSION modules...")
+        logger.info("=" * 50)
+
+        # Add parent directory to path
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        from ai_expansion.integration import integrate_expansion
+
+        # Integrate all expansion modules
+        integrator = await integrate_expansion(app, enable_all=True)
+
+        status = integrator.get_status()
+        logger.info(
+            f"✅ AI Expansion integrated: {status['enabled_count']}/{status['total_modules']} modules"
+        )
+
+        # Log enabled modules
+        for module_name, enabled in status["modules"].items():
+            status_icon = "🟢" if enabled else "🔴"
+            logger.info(
+                f"    {status_icon} {module_name}: {'ENABLED' if enabled else 'DISABLED'}"
+            )
+
+        logger.info("=" * 50)
+        logger.info("🎉 AI EXPANSION READY!")
+        logger.info("    - Multi-Engine Automation (Playwright/Selenium/Pyppeteer)")
+        logger.info("    - Ultra-Fast DOM Intelligence (10-100x faster)")
+        logger.info("    - AI Agents (LangChain + AutoGen)")
+        logger.info("    - Computer Vision (OpenCV + OCR)")
+        logger.info("    - Captcha Solving (Ethical)")
+        logger.info("    - Planner System (PEOV)")
+        logger.info("    - API: /api/expansion/*")
+        logger.info("=" * 50)
+
+    except ImportError as e:
+        logger.warning(f"⚠️ AI Expansion not available: {e}")
+        logger.info(
+            "    Install with: pip install -r ai_expansion/requirements-expansion.txt"
+        )
+    except Exception as e:
+        logger.error(f"❌ AI Expansion initialization failed: {e}")
+        logger.info("    System will continue without expansion modules")
+
     logger.info("✅ Supabase: " + ("Connected" if supabase else "Disconnected"))
     logger.info("=" * 50)
 
