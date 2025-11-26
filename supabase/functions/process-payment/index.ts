@@ -24,6 +24,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
 import { gatewayRegistry, getGateway } from "./gateways/registry.ts";
 import type { PaymentMethod as GatewayPaymentMethod } from "./gateways/types.ts";
+import { handleHealthCheck } from "../_shared/healthcheck.ts";
+
+const FUNCTION_START_TIME = Date.now();
 
 // ===== INTERFACES =====
 
@@ -361,6 +364,24 @@ async function processAsaasPayment(
 // ===== MAIN HANDLER =====
 
 serve(async (req) => {
+  // Handle health check
+  if (new URL(req.url).pathname.endsWith("/health")) {
+    return handleHealthCheck(req, {
+      functionName: "process-payment",
+      version: "2.0.0",
+      startTime: FUNCTION_START_TIME,
+      additionalChecks: async () => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+        return {
+          supabase_configured: !!(supabaseUrl && supabaseKey),
+          gateways_loaded: Object.keys(gatewayRegistry).length,
+        };
+      },
+    });
+  }
+
   // CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });

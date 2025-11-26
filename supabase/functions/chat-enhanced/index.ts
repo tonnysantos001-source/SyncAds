@@ -26,8 +26,30 @@ import {
   explainExecutorCapabilities,
 } from "../_utils/command-router.ts";
 import { getSystemPrompt, getContextualPrompt } from "./system-prompts.ts";
+import { handleHealthCheck } from "../_shared/healthcheck.ts";
+
+const FUNCTION_START_TIME = Date.now();
 
 serve(async (req) => {
+  // Handle health check
+  if (new URL(req.url).pathname.endsWith("/health")) {
+    return handleHealthCheck(req, {
+      functionName: "chat-enhanced",
+      version: "2.0.0",
+      startTime: FUNCTION_START_TIME,
+      additionalChecks: async () => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+        return {
+          supabase_configured: !!(supabaseUrl && supabaseKey),
+          anthropic_key_present: !!Deno.env.get("ANTHROPIC_API_KEY"),
+          openai_key_present: !!Deno.env.get("OPENAI_API_KEY"),
+        };
+      },
+    });
+  }
+
   // Handle CORS
   if (req.method === "OPTIONS") {
     return handlePreflightRequest();

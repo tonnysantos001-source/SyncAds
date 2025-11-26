@@ -10,6 +10,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
+import { handleHealthCheck } from "../_shared/healthcheck.ts";
+
+const FUNCTION_START_TIME = Date.now();
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -57,6 +60,24 @@ function generateOrderNumber(): string {
 }
 
 serve(async (req) => {
+  // Handle health check
+  if (new URL(req.url).pathname.endsWith("/health")) {
+    return handleHealthCheck(req, {
+      functionName: "shopify-create-order",
+      version: "2.0.0",
+      startTime: FUNCTION_START_TIME,
+      additionalChecks: async () => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+        return {
+          supabase_configured: !!(supabaseUrl && supabaseKey),
+          frontend_url_configured: !!Deno.env.get("FRONTEND_URL"),
+        };
+      },
+    });
+  }
+
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
