@@ -48,9 +48,10 @@ const CONFIG = {
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
   supabaseAnonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
-  functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   restUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/rest/v1",
-  version: "4.0.0",
+  functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
+  realtimeUrl: "wss://ovskepqggmxlfckxqgbr.supabase.co/realtime/v1/websocket",
+  version: "4.0.9",
 
   // Retry & Timeout Configuration
   retry: {
@@ -90,6 +91,8 @@ let state = {
   refreshTimer: null,
   keepAliveTimer: null,
   commandTimer: null,
+  realtimeChannel: null,
+  realtimeSocket: null,
 };
 
 // ============================================
@@ -127,6 +130,113 @@ const Logger = {
 // ============================================
 // COMMAND POLLING (NEW)
 // ============================================
+// REALTIME SUBSCRIPTION - Substituir Polling
+// ============================================
+async function subscribeToRealtimeCommands() {
+  if (!state.accessToken || !state.deviceId) {
+    Logger.debug("Skipping realtime subscription: not authenticated");
+    return;
+  }
+
+  // Se já existe uma conexão, desconectar primeiro
+  if (state.realtimeSocket) {
+    unsubscribeFromRealtime();
+  }
+
+  try {
+    Logger.info("📡 Iniciando Realtime subscription...");
+
+    // Criar WebSocket connection
+    const wsUrl = `${CONFIG.realtimeUrl}?apikey=${CONFIG.supabaseAnonKey}&vsn=1.0.0`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      Logger.success("✅ Realtime WebSocket conectado!");
+
+      // Autenticar
+      socket.send(
+        JSON.stringify({
+          topic: "realtime:auth",
+          event: "phx_join",
+          payload: {
+            access_token: state.accessToken,
+          },
+          ref: "1",
+        }),
+      );
+
+      // Subscrever aos comandos do device
+      socket.send(
+        JSON.stringify({
+          topic: `realtime:public:extension_commands:device_id=eq.${state.deviceId}`,
+          event: "phx_join",
+          payload: {
+            config: {
+              postgres_changes: [
+                {
+                  event: "INSERT",
+                  schema: "public",
+                  table: "extension_commands",
+                  filter: `device_id=eq.${state.deviceId}`,
+                },
+              ],
+            },
+          },
+          ref: "2",
+        }),
+      );
+    };
+
+    socket.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // Processar evento INSERT de novo comando
+        if (data.event === "postgres_changes" && data.payload?.data) {
+          const command = data.payload.data;
+
+          if (command.status === "pending") {
+            Logger.info("📨 Realtime - Novo comando recebido:", command);
+            await processCommand(command);
+          }
+        }
+      } catch (error) {
+        Logger.error("Erro ao processar mensagem Realtime:", error);
+      }
+    };
+
+    socket.onerror = (error) => {
+      Logger.error("❌ Realtime WebSocket erro:", error);
+    };
+
+    socket.onclose = () => {
+      Logger.warn("🔌 Realtime WebSocket desconectado");
+      state.realtimeSocket = null;
+
+      // Tentar reconectar após 5 segundos
+      setTimeout(() => {
+        if (state.isConnected && state.deviceId) {
+          Logger.info("🔄 Tentando reconectar Realtime...");
+          subscribeToRealtimeCommands();
+        }
+      }, 5000);
+    };
+
+    state.realtimeSocket = socket;
+  } catch (error) {
+    Logger.error("Erro ao criar Realtime subscription:", error);
+  }
+}
+
+function unsubscribeFromRealtime() {
+  if (state.realtimeSocket) {
+    Logger.info("🔌 Desconectando Realtime...");
+    state.realtimeSocket.close();
+    state.realtimeSocket = null;
+  }
+}
+
+// Função de fallback - buscar comandos pendentes manualmente (apenas para sync inicial)
 async function checkPendingCommands() {
   if (!state.accessToken || !state.deviceId) {
     Logger.debug("Skipping command check: not authenticated");
@@ -397,21 +507,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // SERVICE WORKER KEEP-ALIVE
 // ============================================
 function startKeepAlive() {
-  Logger.debug("Starting keep-alive and command polling...");
+  Logger.debug("Starting keep-alive with Realtime...");
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
     chrome.runtime.getPlatformInfo().catch(() => {});
   }, CONFIG.keepAlive.interval);
 
-  // Command polling interval (check for new commands)
-  if (state.commandTimer) clearInterval(state.commandTimer);
-  state.commandTimer = setInterval(checkPendingCommands, 5000); // 5 segundos (menos agressivo)
+  // ✅ USAR REALTIME ao invés de polling
+  subscribeToRealtimeCommands();
 
-  Logger.debug("Keep-alive started", {
-    interval: CONFIG.keepAlive.interval,
-    polling: 5000,
-  });
+  // Sync inicial (buscar comandos pendentes que podem ter sido perdidos)
+  checkPendingCommands();
+
+  Logger.success("Keep-alive started with Realtime! 🚀");
 }
 
 // ============================================
@@ -998,6 +1107,9 @@ async function handleAuthToken(data) {
     if (state.refreshToken) {
       startTokenRefreshScheduler();
     }
+
+    // ✅ Subscribe to Realtime
+    subscribeToRealtimeCommands();
 
     // Update UI
     updateBadge();

@@ -11,6 +11,7 @@ IA + Supabase + Browser Automation + AI Tools
 import asyncio
 import json
 import os
+import sys
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -34,6 +35,11 @@ from slowapi.util import get_remote_address
 # IMPORTS - SUPABASE
 # ==========================================
 from supabase import Client, create_client
+
+# ==========================================
+# STARTUP TIME
+# ==========================================
+startup_time = time.time()
 
 # ==========================================
 # SYSTEM PROMPTS
@@ -430,13 +436,68 @@ async def root():
 @app.get("/health")
 @limiter.limit("60/minute")
 async def health_check(request: Request):
-    """Health check endpoint"""
-    return {
+    """
+    Health check endpoint com verificações detalhadas
+    Retorna status de todos os serviços críticos
+    """
+    health_status = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "supabase": "connected" if supabase else "disconnected",
         "version": "2.0.0",
+        "services": {},
+        "uptime_seconds": time.time() - startup_time
+        if "startup_time" in globals()
+        else 0,
     }
+
+    # Verificar Supabase
+    try:
+        if supabase:
+            # Tentar fazer uma query simples
+            test_query = (
+                await supabase.table("GlobalAiConnection")
+                .select("id")
+                .limit(1)
+                .execute()
+            )
+            health_status["services"]["supabase"] = {
+                "status": "connected",
+                "response_time_ms": 0,
+            }
+        else:
+            health_status["services"]["supabase"] = {
+                "status": "disconnected",
+                "error": "Client not initialized",
+            }
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["services"]["supabase"] = {"status": "error", "error": str(e)}
+        health_status["status"] = "degraded"
+
+    # Verificar módulos de IA disponíveis
+    health_status["services"]["ai_modules"] = {
+        "openai": "openai" in sys.modules,
+        "anthropic": "anthropic" in sys.modules,
+        "groq": "groq" in sys.modules,
+    }
+
+    # Verificar módulos de automação
+    health_status["services"]["automation"] = {
+        "playwright": "playwright" in sys.modules,
+        "selenium": "selenium" in sys.modules,
+    }
+
+    # Rate limiting status
+    health_status["services"]["rate_limiter"] = {
+        "status": "active",
+        "limits": {
+            "health": "60/minute",
+            "chat": "20/minute",
+            "browser_automation": "10/minute",
+        },
+    }
+
+    return health_status
 
 
 @app.post("/api/chat")
