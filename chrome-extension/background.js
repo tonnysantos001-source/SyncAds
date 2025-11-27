@@ -520,7 +520,16 @@ function startKeepAlive() {
   // Sync inicial (buscar comandos pendentes que podem ter sido perdidos)
   checkPendingCommands();
 
-  Logger.success("Keep-alive started with Realtime! 🚀");
+  // ✅ POLLING DE BACKUP (A cada 3 segundos)
+  // Garante que comandos sejam executados mesmo se o Realtime falhar
+  if (state.commandTimer) clearInterval(state.commandTimer);
+  state.commandTimer = setInterval(() => {
+    if (state.isConnected && state.deviceId) {
+      checkPendingCommands();
+    }
+  }, 3000);
+
+  Logger.success("Keep-alive started with Realtime + Polling (3s)! 🚀");
 }
 
 // ============================================

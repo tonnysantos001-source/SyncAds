@@ -501,8 +501,21 @@ async def execute_task(request: ExecuteTaskRequest):
                 "executor": "PYTHON_AI_MOCK",
             }
 
-        # Criar manager
-        manager = BrowserAIManager(llm_provider="anthropic", headless=True)
+        # Criar manager usando configuração global
+        from app.utils.ai_key_manager import get_active_ai_config
+        from app.main import supabase  # Importar cliente supabase global
+
+        ai_config = get_active_ai_config(supabase)
+        
+        if not ai_config:
+             raise HTTPException(status_code=500, detail="Global AI configuration not found")
+
+        manager = BrowserAIManager(
+            llm_provider=ai_config["provider"].lower(),
+            api_key=ai_config["apiKey"],
+            model_name=ai_config["model"],
+            headless=True
+        )
 
         active_managers[session_id] = manager
 

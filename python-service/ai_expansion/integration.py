@@ -125,11 +125,12 @@ class ExpansionIntegration:
                 has_2captcha = bool(os.getenv("TWOCAPTCHA_API_KEY"))
                 has_anticaptcha = bool(os.getenv("ANTICAPTCHA_API_KEY"))
 
+                self.modules_enabled["captcha"] = True
+
                 if has_2captcha or has_anticaptcha:
                     logger.success("✓ Captcha solving module available")
-                    self.modules_enabled["captcha"] = True
                 else:
-                    logger.info("⚠ Captcha module available but no API keys configured")
+                    logger.warning("⚠ Captcha module enabled but no API keys configured (Functionality limited)")
             except Exception as e:
                 logger.warning(f"Captcha module not available: {e}")
 

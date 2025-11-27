@@ -16,28 +16,26 @@ try:
     from bs4 import BeautifulSoup
 
     BS4_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     BS4_AVAILABLE = False
-    logger.warning(
-        "BeautifulSoup4 not available - install with: pip install beautifulsoup4"
-    )
+    logger.warning(f"BeautifulSoup4 not available: {e}")
 
 try:
     from lxml import etree
     from lxml import html as lxml_html
 
     LXML_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     LXML_AVAILABLE = False
-    logger.warning("LXML not available - install with: pip install lxml")
+    logger.warning(f"LXML not available: {e}")
 
 try:
     from selectolax.parser import HTMLParser as SelectolaxParser
 
     SELECTOLAX_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     SELECTOLAX_AVAILABLE = False
-    logger.warning("Selectolax not available - install with: pip install selectolax")
+    logger.warning(f"Selectolax not available: {e}")
 
 
 class ParserEngine(str, Enum):
@@ -130,9 +128,11 @@ class DOMParser:
         self._available_engines = self._detect_available_engines()
 
         if not self._available_engines:
-            raise RuntimeError(
+            logger.error(
                 "No parsing engines available. Install at least one: beautifulsoup4, lxml, or selectolax"
             )
+            # Do not raise error to allow module loading
+            # raise RuntimeError(...)
 
         logger.info(
             f"DOMParser initialized with engines: {', '.join(self._available_engines)}"

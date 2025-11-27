@@ -80,3 +80,53 @@ def clear_cache():
     _keys_cache = {}
     _cache_timestamp = 0
     logger.info("🔄 AI keys cache cleared")
+
+def get_active_ai_config(supabase_client) -> Optional[Dict]:
+    """
+    Busca configuração completa da IA ativa global DO SUPABASE
+    Retorna provider, apiKey, model, etc.
+    """
+    if not supabase_client:
+        logger.warning("Supabase not configured, using env fallback")
+        return {
+            "provider": "ANTHROPIC",
+            "apiKey": os.getenv("ANTHROPIC_API_KEY", "placeholder"),
+            "model": "claude-3-haiku-20240307",
+            "maxTokens": 4096,
+            "temperature": 0.7,
+        }
+
+    try:
+        # Buscar da tabela GlobalAiConnection
+        response = (
+            supabase_client.table("GlobalAiConnection")
+            .select("*")
+            .eq("isActive", True)
+            .order("createdAt", desc=False)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data and len(response.data) > 0:
+            ai_config = response.data[0]
+            logger.info(
+                f"✅ IA Global encontrada: {ai_config['name']} "
+                f"({ai_config['provider']} - {ai_config.get('model', 'default')})"
+            )
+
+            return {
+                "provider": ai_config["provider"],
+                "apiKey": ai_config["apiKey"],
+                "model": ai_config.get("model", "claude-3-haiku-20240307"),
+                "maxTokens": ai_config.get("maxTokens", 4096),
+                "temperature": float(ai_config.get("temperature", 0.7)),
+                "systemPrompt": ai_config.get("systemPrompt"),
+                "name": ai_config.get("name", "Global AI"),
+            }
+
+        logger.warning("⚠️ Nenhuma IA Global ativa encontrada no Supabase")
+        return None
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar IA config do Supabase: {e}")
+        return None

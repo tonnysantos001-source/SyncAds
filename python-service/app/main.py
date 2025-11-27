@@ -34,7 +34,7 @@ from slowapi.util import get_remote_address
 # ==========================================
 # IMPORTS - UTILS
 # ==========================================
-from app.utils.ai_key_manager import get_ai_keys_from_supabase
+from app.utils.ai_key_manager import get_ai_keys_from_supabase, get_active_ai_config
 
 # ==========================================
 # IMPORTS - SUPABASE
@@ -344,58 +344,7 @@ async def validate_jwt(authorization: Optional[str] = Header(None)) -> Dict[str,
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-async def get_active_ai(supabase_client=None) -> Optional[Dict]:
-    """Busca configuração da IA ativa global DO SUPABASE"""
-    # Use global supabase se não passar client específico
-    client = supabase_client or supabase
-
-    if not client:
-        logger.warning("Supabase not configured, using env fallback")
-        # Fallback para env vars apenas se Supabase não disponível
-        return {
-            "provider": "ANTHROPIC",
-            "apiKey": os.getenv("ANTHROPIC_API_KEY", "placeholder"),
-            "model": "claude-3-haiku-20240307",
-            "maxTokens": 4096,
-            "temperature": 0.7,
-            "systemPrompt": ENHANCED_SYSTEM_PROMPT,
-        }
-
-    try:
-        logger.info("🔍 Buscando IA Global ativa no Supabase...")
-
-        response = (
-            client.table("GlobalAiConnection")
-            .select("*")
-            .eq("isActive", True)
-            .order("createdAt", desc=False)
-            .limit(1)
-            .execute()
-        )
-
-        if response.data and len(response.data) > 0:
-            ai_config = response.data[0]
-            logger.info(
-                f"✅ IA Global encontrada: {ai_config['name']} "
-                f"({ai_config['provider']} - {ai_config.get('model', 'default')})"
-            )
-
-            return {
-                "provider": ai_config["provider"],
-                "apiKey": ai_config["apiKey"],
-                "model": ai_config.get("model", "claude-3-haiku-20240307"),
-                "maxTokens": ai_config.get("maxTokens", 4096),
-                "temperature": float(ai_config.get("temperature", 0.7)),
-                "systemPrompt": ai_config.get("systemPrompt") or ENHANCED_SYSTEM_PROMPT,
-                "name": ai_config.get("name", "Global AI"),
-            }
-
-        logger.warning("⚠️ Nenhuma IA Global ativa encontrada no Supabase")
-        return None
-
-    except Exception as e:
-        logger.error(f"❌ Erro ao buscar IA config do Supabase: {e}")
-        return None
+# get_active_ai removido - usar get_active_ai_config de utils
 
 
 async def get_conversation_history(conversation_id: str, limit: int = 10) -> List[Dict]:
@@ -543,8 +492,8 @@ async def chat_endpoint(request: ChatRequest, req: Request = None):
     try:
         logger.info(f"📨 Chat request: conversationId={request.conversationId}")
 
-        # 1. Buscar IA Global ativa do Supabase
-        ai_config = await get_active_ai()
+        # 1. Buscar IA Global ativa do Supabase (Centralizado)
+        ai_config = get_active_ai_config(supabase)
 
         if not ai_config:
             raise HTTPException(
@@ -690,47 +639,7 @@ async def chat_endpoint(request: ChatRequest, req: Request = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==========================================
-# BROWSER AUTOMATION - FALLBACK ENDPOINT
-# ==========================================
-class BrowserTaskRequest(BaseModel):
-    task: str = Field(..., description="Tarefa em linguagem natural")
-    context: Optional[Dict[str, Any]] = Field(None, description="Contexto adicional")
-    use_vision: bool = Field(True, description="Usar Vision AI")
-    timeout: int = Field(60, description="Timeout em segundos")
-
-
-@app.post("/browser-automation/execute")
-@limiter.limit("10/minute")
-async def browser_automation_execute(request: BrowserTaskRequest, req: Request = None):
-    """
-    Endpoint de automação de navegador (fallback direto no main.py)
-
-    Usado quando Router decide PYTHON_AI
-
-    Rate limit: 10 requests por minuto por IP
-    """
-    try:
-        logger.info(f"🤖 [BROWSER-AUTO] Recebendo tarefa: {request.task}")
-
-        # Por enquanto, retornar mock response
-        # Quando browser_ai estiver disponível, implementar execução real
-        return {
-            "success": True,
-            "result": {
-                "status": "received",
-                "message": f"Tarefa '{request.task}' registrada",
-                "task": request.task,
-                "context": request.context,
-                "note": "Browser automation em desenvolvimento. Módulos: playwright, browser-use, agentql",
-            },
-            "task": request.task,
-            "executor": "PYTHON_AI",
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Erro em browser automation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Endpoint de fallback removido - usar router browser_automation real
 
 
 # ==========================================
@@ -749,6 +658,7 @@ async def startup_event():
     logger.info("✅ Browser Automation: /browser-automation/execute (fallback)")
 
     # Try to register routers
+    # Register routers (Fail loudly if dependencies missing)
     try:
         from app.routers import browser_automation
 
@@ -756,14 +666,11 @@ async def startup_event():
         logger.info("✅ Browser Automation router registered (full version)")
         logger.info(f"    Available endpoints: {len(browser_automation.router.routes)}")
     except ImportError as e:
-        logger.warning(f"⚠️ Browser Automation router not available: {e}")
-        logger.info("    Using fallback endpoint in main.py")
-        logger.info(
-            "    Reason: Missing dependencies (browser-use, agentql, playwright)"
-        )
+        logger.error(f"❌ CRITICAL: Browser Automation router failed to load: {e}")
+        logger.error("    Please check requirements.txt and installed packages.")
+        # Não usar fallback, deixar erro visível nos logs
     except Exception as e:
         logger.error(f"❌ Error registering Browser Automation router: {e}")
-        logger.info("    Using fallback endpoint in main.py")
 
     # ==========================================
     # AI EXPANSION INTEGRATION
