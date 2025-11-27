@@ -706,12 +706,20 @@ export default function ChatPageNovo() {
   // RENDER
   // ============================================
   return (
-    // Ajuste de altura para caber no layout (100vh - header ~64px - padding ~32px)
-    <div className="flex h-[calc(100vh-8rem)] bg-gray-950 text-white rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
+    // Card responsivo com altura ajustada para o viewport menos header e padding
+    <div className="flex w-full h-[calc(100vh-10rem)] bg-gray-950 text-white rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative">
+      {/* MOBILE BACKDROP */}
+      {sidebarOpen && (
+        <div
+          className="absolute inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <div
-        className={`${sidebarOpen ? "w-72" : "w-0"
-          } transition-all duration-300 border-r border-gray-800 flex flex-col bg-gray-900/50`}
+        className={`${sidebarOpen ? "translate-x-0 w-72" : "-translate-x-full w-0 md:translate-x-0 md:w-0"
+          } absolute md:relative z-30 h-full transition-all duration-300 border-r border-gray-800 flex flex-col bg-gray-900 flex-shrink-0`}
       >
         {sidebarOpen && (
           <>
@@ -738,8 +746,8 @@ export default function ChatPageNovo() {
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
                     className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
-                        ? "bg-gray-800 border border-blue-600"
-                        : "bg-gray-900 hover:bg-gray-800"
+                      ? "bg-gray-800 border border-blue-600"
+                      : "bg-gray-900 hover:bg-gray-800"
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -783,8 +791,8 @@ export default function ChatPageNovo() {
           <div className="flex items-center gap-2">
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
-                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                  : "bg-gray-800 text-gray-400 border border-gray-700"
+                ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                : "bg-gray-800 text-gray-400 border border-gray-700"
                 }`}
             >
               <div
