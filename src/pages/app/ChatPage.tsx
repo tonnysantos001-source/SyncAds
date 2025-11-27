@@ -490,9 +490,9 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [...conv.messages, newMessage],
-              }
+              ...conv,
+              messages: [...conv.messages, newMessage],
+            }
             : conv,
         ),
       );
@@ -540,17 +540,17 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  ...conv.messages,
-                  {
-                    id: tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                ...conv.messages,
+                {
+                  id: tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
@@ -617,24 +617,24 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  // Remover temporários e adicionar as mensagens reais do banco
-                  ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
-                  {
-                    id: data.userMessageId || tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                  {
-                    id: data.aiMessageId || tempAiMsgId,
-                    role: "assistant",
-                    content: cleanResponse,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                // Remover temporários e adicionar as mensagens reais do banco
+                ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
+                {
+                  id: data.userMessageId || tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+                {
+                  id: data.aiMessageId || tempAiMsgId,
+                  role: "assistant",
+                  content: cleanResponse,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
@@ -646,11 +646,11 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: conv.messages.filter(
-                  (m) => !m.id.startsWith("temp-"),
-                ),
-              }
+              ...conv,
+              messages: conv.messages.filter(
+                (m) => !m.id.startsWith("temp-"),
+              ),
+            }
             : conv,
         ),
       );
@@ -706,12 +706,12 @@ export default function ChatPageNovo() {
   // RENDER
   // ============================================
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    // Ajuste de altura para caber no layout (100vh - header ~64px - padding ~32px)
+    <div className="flex h-[calc(100vh-8rem)] bg-gray-950 text-white rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
       {/* SIDEBAR */}
       <div
-        className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } transition-all duration-300 border-r border-gray-800 flex flex-col`}
+        className={`${sidebarOpen ? "w-72" : "w-0"
+          } transition-all duration-300 border-r border-gray-800 flex flex-col bg-gray-900/50`}
       >
         {sidebarOpen && (
           <>
@@ -737,11 +737,10 @@ export default function ChatPageNovo() {
                   <div
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
-                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
-                      activeConversationId === conv.id
+                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
                         ? "bg-gray-800 border border-blue-600"
                         : "bg-gray-900 hover:bg-gray-800"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm truncate">{conv.title}</span>
@@ -783,16 +782,14 @@ export default function ChatPageNovo() {
           {/* Status da Extensão */}
           <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                extensionStatus.connected
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
                   ? "bg-green-600/20 text-green-400 border border-green-600/30"
                   : "bg-gray-800 text-gray-400 border border-gray-700"
-              }`}
+                }`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${
-                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                }`}
+                className={`w-2 h-2 rounded-full ${extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                  }`}
               />
               <span>
                 {extensionStatus.connected
@@ -853,9 +850,8 @@ export default function ChatPageNovo() {
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${
-                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                    }`}
+                    className={`max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-blue-600" : "bg-gray-800"
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
