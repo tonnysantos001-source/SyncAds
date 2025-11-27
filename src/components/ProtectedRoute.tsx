@@ -17,7 +17,10 @@ const ProtectedRoute: React.FC = () => {
   // Checkout Customize page doesn't use DashboardLayout (has its own full-page editor)
   const isCheckoutCustomizePage = location.pathname === "/checkout/customize";
 
-  if (isSuperAdminRoute || isCheckoutCustomizePage) {
+  // Chat page has its own full-screen layout
+  const isChatPage = location.pathname === "/chat";
+
+  if (isSuperAdminRoute || isCheckoutCustomizePage || isChatPage) {
     return <Outlet />;
   }
 
