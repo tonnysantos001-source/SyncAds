@@ -565,33 +565,6 @@ function generateConversationTitle(firstMessage) {
 }
 
 // ============================================
-// QUICK ACTIONS
-// ============================================
-async function handleQuickAction(action) {
-    console.log("⚡ [QUICK ACTION]:", action);
-
-    const actionMessages = {
-        "analyze-page": "Analise a página atual e me dê um resumo completo",
-        "extract-data": "Extraia todos os dados estruturados desta página",
-        "list-tabs": "Liste todas as abas abertas no navegador",
-        "automation": "Ajude-me a criar uma automação para esta página",
-    };
-
-    const message = actionMessages[action];
-    if (message) {
-        // Set input value
-        const input = document.getElementById("message-input");
-        if (input) {
-            input.value = message;
-            input.focus();
-        }
-
-        // Auto-send
-        await sendMessage(message);
-    }
-}
-
-// ============================================
 // UI RENDERING
 // ============================================
 function renderConversationsList() {
@@ -625,11 +598,12 @@ function renderConversationsList() {
                     <div class="conversation-title">${escapeHtml(conv.title)}</div>
                     <div class="conversation-meta">
                         <span>${date}</span>
+                        <span class="message-count-badge">${messageCount}</span>
                         <div class="conversation-actions">
                             <button class="conversation-action-btn delete-conversation"
                                     data-conversation-id="${conv.id}"
                                     title="Deletar">
-                                <i class="ti ti-trash"></i>
+                                🗑️
                             </button>
                         </div>
                     </div>
