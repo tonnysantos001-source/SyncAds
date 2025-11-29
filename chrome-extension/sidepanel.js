@@ -1098,12 +1098,12 @@ function updateStatusIndicator(isOnline) {
     if (statusText && statusDot) {
         if (isOnline) {
             statusText.textContent = "Online";
-            statusText.style.color = "var(
-
-            --success);
+            statusText.style.color = "var(--success)";
             statusDot.style.background = "var(--success)";
         } else {
-            statusText.innerHTML = `<span class="status-dot" style="background: var(--error);"></span><span>Offline</span>`;
+            statusText.textContent = "Offline";
+            statusText.style.color = "var(--error)";
+            statusDot.style.background = "var(--error)";
         }
     }
 }
