@@ -23,6 +23,7 @@ const CONFIG = {
 // ============================================
 const State = {
     supabase: null,
+    api: null, // ExtensionAPI instance
     userId: null,
     accessToken: null,
     deviceId: null,
@@ -64,6 +65,17 @@ async function initializeSupabase() {
         console.log("✅ [SUPABASE] Initialized successfully");
         console.log("👤 [AUTH] User ID:", State.userId);
         console.log("📱 [AUTH] Device ID:", State.deviceId);
+
+        // Initialize Extension API
+        if (window.ExtensionAPI) {
+            State.api = new window.ExtensionAPI(State.supabase, {
+                userId: State.userId,
+                deviceId: State.deviceId
+            });
+            console.log("✅ [API] ExtensionAPI initialized");
+        } else {
+            console.warn("⚠️ [API] ExtensionAPI not loaded");
+        }
 
         // Register device
         await registerDevice();
