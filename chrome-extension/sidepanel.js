@@ -838,44 +838,213 @@ function showToast(message, type = "success") {
 }
 
 // ============================================
+// QUICK ACTIONS EVENT LISTENERS
+// ============================================
+function initializeQuickActions() {
+    const quickActionCards = document.querySelectorAll(".quick-action-card");
+
+    quickActionCards.forEach((card) => {
+        card.addEventListener("click", async () => {
+            const action = card.dataset.action;
+            await handleQuickAction(action);
+        });
+
+        // Keyboard accessibility
+        card.addEventListener("keypress", async (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                const action = card.dataset.action;
+                await handleQuickAction(action);
+            }
+        });
+    });
+
+    console.log("✅ [QUICK ACTIONS] Event listeners initialized");
+}
+
+// ============================================
+// QUICK ACTIONS HANDLERS
+// ============================================
+async function handleQuickAction(action) {
+    console.log("⚡ [QUICK ACTION]:", action);
+
+    // Hide welcome screen and show chat
+    hideWelcomeScreen();
+    showChatContainer();
+
+    try {
+        switch (action) {
+            case "analyze-page":
+                await handleAnalyzePage();
+                break;
+            case "extract-data":
+                await handleExtractData();
+                break;
+            case "list-tabs":
+                await handleListTabs();
+                break;
+            case "automation":
+                await handleCreateAutomation();
+                break;
+            default:
+                console.warn("Unknown action:", action);
+        }
+    } catch (error) {
+        console.error("❌ [QUICK ACTION] Error:", error);
+        showToast(`❌ Erro ao executar ação: ${error.message}`, "error");
+    }
+}
+
+// Handler 1: Analisar Página
+async function handleAnalyzePage() {
+    console.log("🔍 [ANALYZE PAGE] Starting page analysis...");
+
+    // Create conversation if needed
+    if (!State.currentConversationId) {
+        await createNewConversation();
+    }
+
+    // Send message to chat
+    const message = "Analise a página atual e me dê um resumo completo";
+    await sendMessage(message);
+
+    showToast("🔍 Analisando página...", "info");
+}
+
+// Handler 2: Extrair Dados
+async function handleExtractData() {
+    console.log("📊 [EXTRACT DATA] Starting data extraction...");
+
+    // Create conversation if needed
+    if (!State.currentConversationId) {
+        await createNewConversation();
+    }
+
+    // Send message to chat
+    const message = "Extraia todos os dados estruturados desta página";
+    await sendMessage(message);
+
+    showToast("📊 Extraindo dados...", "info");
+}
+
+// Handler 3: Listar Abas
+async function handleListTabs() {
+    console.log("📑 [LIST TABS] Fetching tabs...");
+
+    try {
+        // Get tabs from background script
+        chrome.runtime.sendMessage({ type: "LIST_TABS" }, (response) => {
+            if (response.success) {
+                console.log("✅ [LIST TABS] Tabs retrieved:", response.tabs);
+
+                // Create conversation if needed
+                if (!State.currentConversationId) {
+                    createNewConversation().then(() => {
+                        displayTabsInChat(response.tabs);
+                    });
+                } else {
+                    displayTabsInChat(response.tabs);
+                }
+
+                showToast(`📑 ${response.count} abas encontradas`, "success");
+            } else {
+                throw new Error(response.error);
+            }
+        });
+    } catch (error) {
+        console.error("❌ [LIST TABS] Error:", error);
+        showToast("❌ Erro ao listar abas", "error");
+    }
+}
+
+// Handler 4: Criar Automação
+async function handleCreateAutomation() {
+    console.log("⚡ [AUTOMATION] Starting automation wizard...");
+
+    // Create conversation if needed
+    if (!State.currentConversationId) {
+        await createNewConversation();
+    }
+
+    // Send message to chat
+    const message = "Ajude-me a criar uma automação para esta página";
+    await sendMessage(message);
+
+    showToast("⚡ Iniciando assistente de automação...", "info");
+}
+
+// Helper: Display tabs in chat
+function displayTabsInChat(tabs) {
+    // Format tabs list
+    let tabsList = `📑 **Abas Abertas** (${tabs.length} total):\n\n`;
+    tabs.forEach((tab, index) => {
+        const activeMarker = tab.active ? " ✓" : "";
+        tabsList += `${index + 1}. ${tab.title}${activeMarker}\n   ${tab.url}\n\n`;
+    });
+
+    // Add as assistant message
+    const assistantMessage = {
+        id: `tabs_${Date.now()}`,
+        conversation_id: State.currentConversationId,
+        role: "assistant",
+        content: tabsList,
+        created_at: new Date().toISOString(),
+    };
+
+    State.messages.push(assistantMessage);
+    renderMessages();
+    scrollToBottom();
+
+    // Save to database
+    State.supabase
+        .from("ChatMessage")
+        .insert({
+            conversation_id: State.currentConversationId,
+            role: "assistant",
+            content: tabsList,
+            created_at: new Date().toISOString(),
+        })
+        .then(({ error }) => {
+            if (error) {
+                console.error("Failed to save tabs message:", error);
+            }
+        });
+}
+
+// ============================================
 // EVENT HANDLERS
 // ============================================
 function setupEventListeners() {
-    console.log("🎯 [EVENTS] Setting up event listeners...");
-
-    // Menu button - toggle sidebar
+    // Menu button
     const menuBtn = document.getElementById("menu-btn");
     if (menuBtn) {
-        menuBtn.addEventListener("click", () => {
-            toggleSidebar();
-        });
+        menuBtn.addEventListener("click", toggleSidebar);
     }
 
     // New chat button
     const newChatBtn = document.getElementById("new-chat-btn");
     if (newChatBtn) {
-        newChatBtn.addEventListener("click", async () => {
-            await createNewConversation();
-        });
+        newChatBtn.addEventListener("click", createNewConversation);
     }
 
     // Message input
-    const input = document.getElementById("message-input");
-    if (input) {
-        // Auto-resize
-        input.addEventListener("input", () => {
-            input.style.height = "48px";
-            input.style.height = Math.min(input.scrollHeight, 120) + "px";
+    const messageInput = document.getElementById("message-input");
+    if (messageInput) {
+        messageInput.addEventListener("input", () => {
+            // Auto-resize
+            messageInput.style.height = "48px";
+            messageInput.style.height = messageInput.scrollHeight + "px";
+
+            // Update send button state
             updateSendButtonState();
         });
 
-        // Enter to send
-        input.addEventListener("keydown", (e) => {
+        messageInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 const sendBtn = document.getElementById("send-btn");
                 if (sendBtn && !sendBtn.disabled) {
-                    sendBtn.click();
+                    sendMessage(messageInput.value);
                 }
             }
         });
@@ -884,25 +1053,13 @@ function setupEventListeners() {
     // Send button
     const sendBtn = document.getElementById("send-btn");
     if (sendBtn) {
-        sendBtn.addEventListener("click", async () => {
-            if (input && !sendBtn.disabled) {
-                const message = input.value.trim();
-                if (message) {
-                    await sendMessage(message);
-                }
+        sendBtn.addEventListener("click", () => {
+            const input = document.getElementById("message-input");
+            if (input && input.value.trim()) {
+                sendMessage(input.value);
             }
         });
     }
-
-    // Quick actions
-    document.querySelectorAll(".quick-action-card").forEach((card) => {
-        card.addEventListener("click", () => {
-            const action = card.dataset.action;
-            if (action) {
-                handleQuickAction(action);
-            }
-        });
-    });
 
     // Click outside sidebar to close
     document.addEventListener("click", (e) => {
@@ -919,7 +1076,7 @@ function setupEventListeners() {
         }
     });
 
-    console.log("✅ [EVENTS] Event listeners setup complete");
+    console.log("✅ [EVENT LISTENERS] All event listeners setup");
 }
 
 // ============================================
@@ -931,6 +1088,9 @@ async function initialize() {
     try {
         // Setup event listeners
         setupEventListeners();
+
+        // Initialize quick actions
+        initializeQuickActions();
 
         // Initialize Supabase
         const supabaseReady = await initializeSupabase();
@@ -966,12 +1126,12 @@ function updateStatusIndicator(isOnline) {
             statusText.textContent = "Online";
             statusText.style.color = "var(
 
---success);
-        statusDot.style.background = "var(--success)";
-    } else {
-        statusText.innerHTML = `<span class="status-dot" style="background: var(--error);"></span><span>Offline</span>`;
+            --success);
+            statusDot.style.background = "var(--success)";
+        } else {
+            statusText.innerHTML = `<span class="status-dot" style="background: var(--error);"></span><span>Offline</span>`;
+        }
     }
- }
 }
 
 // Start application when DOM is loaded
