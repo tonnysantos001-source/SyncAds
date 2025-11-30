@@ -231,7 +231,7 @@ function showAuthRequired() {
   addMessage(
     "assistant",
     "👋 Olá! Para usar o assistente, você precisa fazer login no painel SyncAds.\n\n" +
-      "Clique no ícone da extensão e faça login para começar.",
+    "Clique no ícone da extensão e faça login para começar.",
   );
   elements.messageInput.disabled = true;
   elements.sendBtn.disabled = true;
@@ -578,7 +578,7 @@ async function sendMessage() {
         Authorization: `Bearer ${state.accessToken}`,
       },
       body: JSON.stringify({
-        message,
+        message: message + " (SYSTEM: Use browser commands (NAVIGATE, DOM_CLICK, DOM_FILL) for navigation and search. Do NOT use Serper/External Search APIs.)",
         conversationId: state.conversationId,
         extensionConnected: true,
       }),

@@ -97,17 +97,17 @@ let state = {
 const Logger = {
   info: (message, data = {}) => {
     console.log(`ℹ️ [INFO] ${message}`, data);
-    sendLogToSupabase("info", message, data).catch(() => {});
+    sendLogToSupabase("info", message, data).catch(() => { });
   },
 
   success: (message, data = {}) => {
     console.log(`✅ [SUCCESS] ${message}`, data);
-    sendLogToSupabase("success", message, data).catch(() => {});
+    sendLogToSupabase("success", message, data).catch(() => { });
   },
 
   warn: (message, data = {}) => {
     console.warn(`⚠️ [WARN] ${message}`, data);
-    sendLogToSupabase("warning", message, data).catch(() => {});
+    sendLogToSupabase("warning", message, data).catch(() => { });
   },
 
   error: (message, error = null, data = {}) => {
@@ -115,7 +115,7 @@ const Logger = {
     sendLogToSupabase("error", message, {
       ...data,
       error: error?.message,
-    }).catch(() => {});
+    }).catch(() => { });
   },
 
   debug: (message, data = {}) => {
@@ -200,7 +200,7 @@ async function processCommand(cmd) {
         {
           type: "EXECUTE_COMMAND",
           command: cmd.command,
-          params: cmd.params,
+          params: cmd.data || cmd.params,
         },
         (response) => {
           if (chrome.runtime.lastError) {
@@ -337,7 +337,7 @@ function startKeepAlive() {
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
-    chrome.runtime.getPlatformInfo().catch(() => {});
+    chrome.runtime.getPlatformInfo().catch(() => { });
   }, CONFIG.keepAlive.interval);
 
   // Command polling interval (check for new commands)
