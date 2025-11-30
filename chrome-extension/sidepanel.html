@@ -1,1003 +1,899 @@
 <!doctype html>
 <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SyncAds AI Assistant</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SyncAds AI Assistant</title>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0a0f1e;
-            --bg-secondary: #1e1e2e;
-            --bg-tertiary: #16162a;
-            --bg-hover: #2a2a3e;
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --text-muted: #808080;
-            --accent-primary: #3b82f6;
-            --accent-secondary: #ec4899;
-            --accent-gradient: linear-gradient(135deg,
+            :root {
+                --bg-primary: #0a0f1e;
+                --bg-secondary: #1e1e2e;
+                --bg-tertiary: #16162a;
+                --bg-hover: #2a2a3e;
+                --text-primary: #ffffff;
+                --text-secondary: #b0b0b0;
+                --text-muted: #808080;
+                --accent-primary: #3b82f6;
+                --accent-secondary: #ec4899;
+                --accent-gradient: linear-gradient(
+                    135deg,
                     #3b82f6 0%,
                     #8b5cf6 50%,
-                    #ec4899 100%);
-            --border-color: #2a2a3a;
-            --scrollbar-thumb: #3a3a4a;
-            --scrollbar-track: #1a1a2a;
-        }
-
-        body {
-            font-family:
-                -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                "Helvetica Neue", Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
-        .header {
-            background: rgba(30, 30, 46, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            flex-shrink: 0;
-            z-index: 10;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .logo-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--accent-gradient);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .logo-icon i {
-            width: 14px;
-            height: 14px;
-        }
-
-        .logo-text {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            background: transparent;
-            border: none;
-            border-radius: 6px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .icon-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            transform: scale(1.1);
-        }
-
-        .icon-btn i {
-            width: 18px;
-            height: 18px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .icon-btn:hover i {
-            transform: rotate(5deg);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* Welcome Section */
-        .welcome-section {
-            padding: 32px 20px;
-            text-align: center;
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        .avatar {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 20px;
-            background: var(--accent-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-            color: white;
-        }
-
-        .avatar i {
-            width: 48px;
-            height: 48px;
-        }
-
-        .welcome-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .welcome-subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Quick Actions */
-        .quick-actions {
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            animation: slideUp 0.5s ease-out 0.1s backwards;
-        }
-
-        .action-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .action-card:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .action-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-primary);
-        }
-
-        .action-icon i {
-            width: 20px;
-            height: 20px;
-        }
-
-        .action-title {
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--text-primary);
-            line-height: 1.3;
-        }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .messages-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .messages-area::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .messages-area::-webkit-scrollbar-track {
-            background: rgba(26, 26, 42, 0.5);
-            border-radius: 10px;
-        }
-
-        .messages-area::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            border-radius: 10px;
-            border: 2px solid rgba(26, 26, 42, 0.5);
-        }
-
-        .messages-area::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #60a5fa, #a78bfa);
-        }
-
-        .message {
-            display: flex;
-            gap: 12px;
-            animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideInFromBottom {
-            from {
-                opacity: 0;
-                transform: translateY(20px) scale(0.95);
+                    #ec4899 100%
+                );
+                --border-color: #2a2a3a;
+                --scrollbar-thumb: #3a3a4a;
+                --scrollbar-track: #1a1a2a;
             }
 
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    "Helvetica Neue", Arial, sans-serif;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
             }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            /* Header */
+            .header {
+                background: var(--bg-secondary);
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid var(--border-color);
+                flex-shrink: 0;
             }
-        }
 
-        .message.user {
-            flex-direction: row-reverse;
-        }
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
 
-        .message-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            color: white;
-        }
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
 
-        .message-avatar i {
-            width: 16px;
-            height: 16px;
-        }
+            .logo-icon {
+                width: 24px;
+                height: 24px;
+                background: var(--accent-gradient);
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+            }
 
-        .message.user .message-avatar {
-            background: var(--accent-gradient);
-        }
+            .logo-text {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
 
-        .message.assistant .message-avatar {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-        }
+            .header-actions {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
 
-        .message-content {
-            flex: 1;
-            max-width: 80%;
-        }
+            .icon-btn {
+                width: 32px;
+                height: 32px;
+                background: transparent;
+                border: none;
+                border-radius: 6px;
+                color: var(--text-secondary);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
 
-        .message-bubble {
-            background: rgba(22, 22, 42, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--text-primary);
-            word-wrap: break-word;
-        }
+            .icon-btn:hover {
+                background: var(--bg-hover);
+                color: var(--text-primary);
+            }
 
-        .message.user .message-bubble {
-            background: linear-gradient(135deg,
+            .menu-btn {
+                font-size: 20px;
+            }
+
+            /* Main Content */
+            .main-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            /* Welcome Section */
+            .welcome-section {
+                padding: 32px 20px;
+                text-align: center;
+            }
+
+            .avatar {
+                width: 120px;
+                height: 120px;
+                margin: 0 auto 20px;
+                background: var(--accent-gradient);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 48px;
+                box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+            }
+
+            .welcome-title {
+                font-size: 20px;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: var(--text-primary);
+            }
+
+            .welcome-subtitle {
+                font-size: 14px;
+                color: var(--text-secondary);
+                line-height: 1.5;
+            }
+
+            /* Quick Actions */
+            .quick-actions {
+                padding: 20px;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+            }
+
+            .action-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 16px 12px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .action-card:hover {
+                background: var(--bg-hover);
+                border-color: var(--accent-primary);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            }
+
+            .action-icon {
+                width: 48px;
+                height: 48px;
+                background: var(--bg-tertiary);
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+            }
+
+            .action-title {
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-primary);
+                line-height: 1.3;
+            }
+
+            /* Chat Container */
+            .chat-container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .messages-area {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .messages-area::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .messages-area::-webkit-scrollbar-track {
+                background: var(--scrollbar-track);
+            }
+
+            .messages-area::-webkit-scrollbar-thumb {
+                background: var(--scrollbar-thumb);
+                border-radius: 4px;
+            }
+
+            .messages-area::-webkit-scrollbar-thumb:hover {
+                background: #5a5a5a;
+            }
+
+            .message {
+                display: flex;
+                gap: 12px;
+                animation: fadeIn 0.3s ease;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .message.user {
+                flex-direction: row-reverse;
+            }
+
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                font-size: 16px;
+            }
+
+            .message.user .message-avatar {
+                background: var(--accent-gradient);
+            }
+
+            .message.assistant .message-avatar {
+                background: var(--accent-gradient);
+            }
+
+            .message-content {
+                flex: 1;
+                max-width: 80%;
+            }
+
+            .message-bubble {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 12px 16px;
+                font-size: 14px;
+                line-height: 1.6;
+                color: var(--text-primary);
+                word-wrap: break-word;
+            }
+
+            .message.user .message-bubble {
+                background: linear-gradient(
+                    135deg,
                     rgba(59, 130, 246, 0.2),
-                    rgba(139, 92, 246, 0.2));
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .message-time {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 4px;
-            padding-left: 4px;
-        }
-
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 12px 16px;
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-
-            0%,
-            60%,
-            100% {
-                transform: translateY(0);
-                opacity: 0.4;
+                    rgba(139, 92, 246, 0.2)
+                );
+                border-color: rgba(59, 130, 246, 0.3);
             }
 
-            30% {
-                transform: translateY(-6px);
+            .message-time {
+                font-size: 11px;
+                color: var(--text-muted);
+                margin-top: 4px;
+                padding-left: 4px;
+            }
+
+            .typing-indicator {
+                display: flex;
+                gap: 4px;
+                padding: 12px 16px;
+            }
+
+            .typing-dot {
+                width: 8px;
+                height: 8px;
+                background: var(--text-secondary);
+                border-radius: 50%;
+                animation: typing 1.4s infinite;
+            }
+
+            .typing-dot:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            .typing-dot:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+
+            @keyframes typing {
+                0%,
+                60%,
+                100% {
+                    transform: translateY(0);
+                    opacity: 0.4;
+                }
+                30% {
+                    transform: translateY(-10px);
+                    opacity: 1;
+                }
+            }
+
+            /* Input Area */
+            .input-area {
+                background: var(--bg-secondary);
+                border-top: 1px solid var(--border-color);
+                padding: 16px;
+                flex-shrink: 0;
+            }
+
+            .input-tools {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .tool-btn {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                color: var(--text-secondary);
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .tool-btn:hover {
+                background: var(--bg-hover);
+                color: var(--text-primary);
+                border-color: var(--accent-primary);
+                box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+            }
+
+            .input-wrapper {
+                display: flex;
+                gap: 8px;
+                align-items: flex-end;
+            }
+
+            .input-container {
+                flex: 1;
+                position: relative;
+            }
+
+            #messageInput {
+                width: 100%;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 12px 16px;
+                color: var(--text-primary);
+                font-size: 14px;
+                font-family: inherit;
+                resize: none;
+                min-height: 44px;
+                max-height: 120px;
+                transition: border-color 0.2s;
+            }
+
+            #messageInput:focus {
+                outline: none;
+                border-color: var(--accent-primary);
+            }
+
+            #messageInput::placeholder {
+                color: var(--text-muted);
+            }
+
+            .send-btn {
+                width: 44px;
+                height: 44px;
+                background: var(--accent-gradient);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+                flex-shrink: 0;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+            .send-btn:hover:not(:disabled) {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+            }
+
+            .send-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            /* Sidebar Menu */
+            .sidebar-menu {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                background: var(--bg-secondary);
+                border-right: 1px solid var(--border-color);
+                transition: left 0.3s ease;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .sidebar-menu.open {
+                left: 0;
+            }
+
+            .sidebar-header {
+                padding: 16px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .sidebar-title {
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .sidebar-content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+            }
+
+            .menu-section {
+                margin-bottom: 16px;
+            }
+
+            .menu-section-title {
+                font-size: 12px;
+                color: var(--text-muted);
+                padding: 8px 12px;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+
+            .menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                color: var(--text-secondary);
+            }
+
+            .menu-item:hover {
+                background: var(--bg-hover);
+                color: var(--text-primary);
+            }
+
+            .menu-item-icon {
+                font-size: 18px;
+            }
+
+            .menu-item-text {
+                font-size: 14px;
+            }
+
+            /* Overlay */
+            .overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s;
+                z-index: 999;
+            }
+
+            .overlay.active {
                 opacity: 1;
+                visibility: visible;
             }
-        }
 
-        /* Input Area */
-        .input-area {
-            background: rgba(30, 30, 46, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 16px;
-            flex-shrink: 0;
-            z-index: 10;
-        }
+            /* Tabs/Windows List */
+            .tabs-list {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 12px;
+                margin: 0 20px 20px;
+            }
 
-        .input-tools {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
+            .tabs-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
 
-        .tool-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-secondary);
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+            .tabs-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-secondary);
+            }
 
-        .tool-btn i {
-            width: 14px;
-            height: 14px;
-        }
+            .tab-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                margin-bottom: 4px;
+            }
 
-        .tool-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
-        }
+            .tab-item:hover {
+                background: var(--bg-hover);
+            }
 
-        .input-wrapper {
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-        }
+            .tab-checkbox {
+                width: 18px;
+                height: 18px;
+                border: 2px solid var(--border-color);
+                border-radius: 4px;
+                cursor: pointer;
+            }
 
-        .input-container {
-            flex: 1;
-            position: relative;
-        }
+            .tab-favicon {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        #messageInput {
-            width: 100%;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: var(--text-primary);
-            font-size: 14px;
-            font-family: inherit;
-            resize: none;
-            min-height: 44px;
-            max-height: 120px;
-            transition: border-color 0.2s;
-        }
+            .tab-info {
+                flex: 1;
+                min-width: 0;
+            }
 
-        #messageInput:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
+            .tab-title {
+                font-size: 13px;
+                color: var(--text-primary);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-        #messageInput::placeholder {
-            color: var(--text-muted);
-        }
+            .tab-url {
+                font-size: 11px;
+                color: var(--text-muted);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-        .send-btn {
-            width: 44px;
-            height: 44px;
-            background: var(--accent-gradient);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
+            /* Hidden */
+            .hidden {
+                display: none !important;
+            }
 
-        .send-btn i {
-            width: 20px;
-            height: 20px;
-        }
+            /* Chat History */
+            .chat-history {
+                position: fixed;
+                top: 0;
+                right: -320px;
+                width: 320px;
+                height: 100vh;
+                background: var(--bg-secondary);
+                border-left: 1px solid var(--border-color);
+                transition: right 0.3s ease;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+            }
 
-        .send-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
+            .chat-history.open {
+                right: 0;
+            }
 
-        .send-btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
+            .history-header {
+                padding: 16px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-        .send-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-        }
+            .history-title {
+                font-size: 16px;
+                font-weight: 600;
+            }
 
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+            .new-chat-btn {
+                width: 100%;
+                padding: 12px;
+                background: var(--accent-gradient);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                margin: 12px 16px;
+                transition: all 0.2s;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
 
-        /* Sidebar Menu */
-        .sidebar-menu {
-            position: fixed;
-            top: 0;
-            left: -280px;
-            width: 280px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            transition: left 0.3s ease;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
+            .new-chat-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+            }
 
-        .sidebar-menu.open {
-            left: 0;
-        }
+            .history-search {
+                margin: 0 16px 12px;
+            }
 
-        .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+            .search-input {
+                width: 100%;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 10px 12px;
+                color: var(--text-primary);
+                font-size: 13px;
+            }
 
-        .sidebar-title {
-            font-size: 16px;
-            font-weight: 600;
-        }
+            .search-input::placeholder {
+                color: var(--text-muted);
+            }
 
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-        }
+            .history-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 0 16px;
+            }
 
-        .menu-section {
-            margin-bottom: 16px;
-        }
+            .history-item {
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                margin-bottom: 8px;
+                transition: all 0.2s;
+                border: 1px solid transparent;
+            }
 
-        .menu-section-title {
-            font-size: 12px;
-            color: var(--text-muted);
-            padding: 8px 12px;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
+            .history-item:hover {
+                background: var(--bg-hover);
+                border-color: var(--border-color);
+            }
 
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--text-secondary);
-        }
+            .history-item.active {
+                background: var(--bg-hover);
+                border-color: var(--accent-primary);
+                box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+            }
 
-        .menu-item:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
+            .history-item-title {
+                font-size: 13px;
+                color: var(--text-primary);
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-        .menu-item-icon {
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-        }
+            .history-item-date {
+                font-size: 11px;
+                color: var(--text-muted);
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Overlay -->
+        <div class="overlay" id="overlay"></div>
 
-        .menu-item-icon i {
-            width: 18px;
-            height: 18px;
-        }
-
-        .menu-item-text {
-            font-size: 14px;
-        }
-
-        /* Overlay */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
-            z-index: 999;
-            backdrop-filter: blur(2px);
-        }
-
-        .overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Tabs/Windows List */
-        .tabs-list {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px;
-            margin: 0 20px 20px;
-        }
-
-        .tabs-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .tabs-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .tab-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 4px;
-        }
-
-        .tab-item:hover {
-            background: var(--bg-hover);
-        }
-
-        .tab-checkbox {
-            width: 18px;
-            height: 18px;
-            border: 2px solid var(--border-color);
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .tab-favicon {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tab-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .tab-title {
-            font-size: 13px;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .tab-url {
-            font-size: 11px;
-            color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Hidden */
-        .hidden {
-            display: none !important;
-        }
-
-        /* Chat History */
-        .chat-history {
-            position: fixed;
-            top: 0;
-            right: -320px;
-            width: 320px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-color);
-            transition: right 0.3s ease;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-history.open {
-            right: 0;
-        }
-
-        .history-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .history-title {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .new-chat-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--accent-gradient);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 12px 16px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .new-chat-btn i {
-            width: 16px;
-            height: 16px;
-        }
-
-        .new-chat-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-        }
-
-        .history-search {
-            margin: 0 16px 12px;
-        }
-
-        .search-input {
-            width: 100%;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 12px;
-            color: var(--text-primary);
-            font-size: 13px;
-        }
-
-        .search-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .history-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 16px;
-        }
-
-        .history-item {
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 8px;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .history-item:hover {
-            background: var(--bg-hover);
-            border-color: var(--border-color);
-        }
-
-        .history-item.active {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .history-item-title {
-            font-size: 13px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .history-item-date {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Overlay -->
-    <div class="overlay" id="overlay"></div>
-
-    <!-- Sidebar Menu -->
-    <div class="sidebar-menu" id="sidebarMenu">
-        <div class="sidebar-header">
-            <span class="sidebar-title">Menu</span>
-            <button class="icon-btn" id="closeSidebar"><i data-lucide="x"></i></button>
-        </div>
-        <div class="sidebar-content">
-            <div class="menu-section">
-                <div class="menu-section-title">Ações</div>
-                <div class="menu-item" data-action="new-chat">
-                    <span class="menu-item-icon"><i data-lucide="message-circle"></i></span>
-                    <span class="menu-item-text">Nova Conversa</span>
-                </div>
-                <div class="menu-item" data-action="history">
-                    <span class="menu-item-icon"><i data-lucide="history"></i></span>
-                    <span class="menu-item-text">Histórico</span>
-                </div>
-                <div class="menu-item" data-action="tabs">
-                    <span class="menu-item-icon"><i data-lucide="folder-open"></i></span>
-                    <span class="menu-item-text">Abas Abertas</span>
-                </div>
+        <!-- Sidebar Menu -->
+        <div class="sidebar-menu" id="sidebarMenu">
+            <div class="sidebar-header">
+                <span class="sidebar-title">Menu</span>
+                <button class="icon-btn" id="closeSidebar">✕</button>
             </div>
-            <div class="menu-section">
-                <div class="menu-section-title">Configurações</div>
-                <div class="menu-item" data-action="settings">
-                    <span class="menu-item-icon"><i data-lucide="settings"></i></span>
-                    <span class="menu-item-text">Configurações</span>
+            <div class="sidebar-content">
+                <div class="menu-section">
+                    <div class="menu-section-title">Ações</div>
+                    <div class="menu-item" data-action="new-chat">
+                        <span class="menu-item-icon">💬</span>
+                        <span class="menu-item-text">Nova Conversa</span>
+                    </div>
+                    <div class="menu-item" data-action="history">
+                        <span class="menu-item-icon">📋</span>
+                        <span class="menu-item-text">Histórico</span>
+                    </div>
+                    <div class="menu-item" data-action="tabs">
+                        <span class="menu-item-icon">🗂️</span>
+                        <span class="menu-item-text">Abas Abertas</span>
+                    </div>
                 </div>
-                <div class="menu-item" data-action="help">
-                    <span class="menu-item-icon"><i data-lucide="help-circle"></i></span>
-                    <span class="menu-item-text">Ajuda</span>
+                <div class="menu-section">
+                    <div class="menu-section-title">Configurações</div>
+                    <div class="menu-item" data-action="settings">
+                        <span class="menu-item-icon">⚙️</span>
+                        <span class="menu-item-text">Configurações</span>
+                    </div>
+                    <div class="menu-item" data-action="help">
+                        <span class="menu-item-icon">❓</span>
+                        <span class="menu-item-text">Ajuda</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Chat History Sidebar -->
-    <div class="chat-history" id="chatHistory">
-        <div class="history-header">
-            <span class="history-title">Histórico de Conversas</span>
-            <button class="icon-btn" id="closeHistory"><i data-lucide="x"></i></button>
-        </div>
-        <button class="new-chat-btn" id="newChatFromHistory">
-            <i data-lucide="plus"></i> Nova Conversa
-        </button>
-        <div class="history-search">
-            <input type="text" class="search-input" placeholder="Buscar conversas..." id="searchChats" />
-        </div>
-        <div class="history-list" id="historyList">
-            <!-- History items will be populated here -->
-        </div>
-    </div>
-
-    <!-- Header -->
-    <div class="header">
-        <div class="header-left">
-            <button class="icon-btn menu-btn" id="menuBtn"><i data-lucide="menu"></i></button>
-            <div class="logo">
-                <div class="logo-icon"><i data-lucide="bot"></i></div>
-                <span class="logo-text">SyncAds AI Assistant</span>
+        <!-- Chat History Sidebar -->
+        <div class="chat-history" id="chatHistory">
+            <div class="history-header">
+                <span class="history-title">Histórico de Conversas</span>
+                <button class="icon-btn" id="closeHistory">✕</button>
             </div>
-        </div>
-        <div class="header-actions">
-            <button class="icon-btn" id="historyBtn" title="Histórico">
-                <i data-lucide="history"></i>
+            <button class="new-chat-btn" id="newChatFromHistory">
+                + Nova Conversa
             </button>
-            <button class="icon-btn" id="settingsBtn" title="Configurações">
-                <i data-lucide="settings"></i>
-            </button>
+            <div class="history-search">
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="Buscar conversas..."
+                    id="searchChats"
+                />
+            </div>
+            <div class="history-list" id="historyList">
+                <!-- History items will be populated here -->
+            </div>
         </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Welcome Screen -->
-        <div id="welcomeScreen">
-            <div class="welcome-section">
-                <div class="avatar"><i data-lucide="sparkles"></i></div>
-                <h1 class="welcome-title">Como posso ajudá-lo hoje?</h1>
-                <p class="welcome-subtitle">
-                    Automatize, integre, extraia dados de qualquer site.<br />
-                    Comandos inteligentes para controlar seu navegador.
-                </p>
-            </div>
-
-            <div class="quick-actions">
-                <div class="action-card" data-action="automate">
-                    <div class="action-icon"><i data-lucide="cpu"></i></div>
-                    <div class="action-title">Automatizar<br />Tarefas</div>
-                </div>
-                <div class="action-card" data-action="extract">
-                    <div class="action-icon"><i data-lucide="database"></i></div>
-                    <div class="action-title">Extrair<br />Dados</div>
-                </div>
-                <div class="action-card" data-action="crawl">
-                    <div class="action-icon"><i data-lucide="search"></i></div>
-                    <div class="action-title">Rastrear<br />Páginas</div>
-                </div>
-                <div class="action-card" data-action="docs">
-                    <div class="action-icon"><i data-lucide="file-text"></i></div>
-                    <div class="action-title">Criar<br />Docs/PDFs</div>
-                </div>
-                <div class="action-card" data-action="apis">
-                    <div class="action-icon"><i data-lucide="plug"></i></div>
-                    <div class="action-title">Chamar<br />APIs</div>
-                </div>
-                <div class="action-card" data-action="sheets">
-                    <div class="action-icon"><i data-lucide="zap"></i></div>
-                    <div class="action-title">Workflows<br />Sheets</div>
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="icon-btn menu-btn" id="menuBtn">☰</button>
+                <div class="logo">
+                    <div class="logo-icon">🤖</div>
+                    <span class="logo-text">SyncAds AI Assistant</span>
                 </div>
             </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="historyBtn" title="Histórico">
+                    📋
+                </button>
+                <button class="icon-btn" id="settingsBtn" title="Configurações">
+                    ⚙️
+                </button>
+            </div>
+        </div>
 
-            <!-- Placeholder for examples -->
-            <div style="
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen">
+                <div class="welcome-section">
+                    <div class="avatar">🦊</div>
+                    <h1 class="welcome-title">Como posso ajudá-lo hoje?</h1>
+                    <p class="welcome-subtitle">
+                        Automatize, integre, extraia dados de qualquer site.<br />
+                        Comandos inteligentes para controlar seu navegador.
+                    </p>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="action-card" data-action="automate">
+                        <div class="action-icon">🤖</div>
+                        <div class="action-title">Automatizar<br />Tarefas</div>
+                    </div>
+                    <div class="action-card" data-action="extract">
+                        <div class="action-icon">📊</div>
+                        <div class="action-title">Extrair<br />Dados</div>
+                    </div>
+                    <div class="action-card" data-action="crawl">
+                        <div class="action-icon">🕷️</div>
+                        <div class="action-title">Rastrear<br />Páginas</div>
+                    </div>
+                    <div class="action-card" data-action="docs">
+                        <div class="action-icon">📄</div>
+                        <div class="action-title">Criar<br />Docs/PDFs</div>
+                    </div>
+                    <div class="action-card" data-action="apis">
+                        <div class="action-icon">🔌</div>
+                        <div class="action-title">Chamar<br />APIs</div>
+                    </div>
+                    <div class="action-card" data-action="sheets">
+                        <div class="action-icon">🚀</div>
+                        <div class="action-title">Workflows<br />Sheets</div>
+                    </div>
+                </div>
+
+                <!-- Placeholder for examples -->
+                <div
+                    style="
                         padding: 0 20px 20px;
                         font-size: 13px;
                         color: var(--text-muted);
-                        text-align: center;
-                    ">
-                <p style="margin-bottom: 8px">
-                    Digite @ para ferramentas, # para abas, / para atalhos
-                </p>
+                    "
+                >
+                    <p style="margin-bottom: 8px">
+                        Digite @ para ferramentas, # para abas, / para atalhos
+                    </p>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container hidden" id="chatContainer">
+                <div class="messages-area" id="messagesArea">
+                    <!-- Messages will be added here -->
+                </div>
             </div>
         </div>
 
-        <!-- Chat Container -->
-        <div class="chat-container hidden" id="chatContainer">
-            <div class="messages-area" id="messagesArea">
-                <!-- Messages will be added here -->
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-tools">
+                <button class="tool-btn" id="addTabBtn">+ Aba</button>
+                <button class="tool-btn" id="attachBtn" title="Anexar">
+                    📎
+                </button>
+                <button class="tool-btn" id="recordBtn" title="Gravar">
+                    🎙️
+                </button>
+                <button class="tool-btn" id="toolsBtn" title="Ferramentas">
+                    🛠️
+                </button>
+            </div>
+            <div class="input-wrapper">
+                <div class="input-container">
+                    <textarea
+                        id="messageInput"
+                        placeholder="Digite @ para ferramentas, # para abas, / para atalhos"
+                        rows="1"
+                    ></textarea>
+                </div>
+                <button class="send-btn" id="sendBtn" title="Enviar (Enter)">
+                    ➤
+                </button>
             </div>
         </div>
-    </div>
 
-    <!-- Input Area -->
-    <div class="input-area">
-        <div class="input-tools">
-            <button class="tool-btn" id="addTabBtn">+ Aba</button>
-            <button class="tool-btn" id="attachBtn" title="Anexar">
-                <i data-lucide="paperclip"></i>
-            </button>
-            <button class="tool-btn" id="recordBtn" title="Gravar">
-                <i data-lucide="mic"></i>
-            </button>
-            <button class="tool-btn" id="toolsBtn" title="Ferramentas">
-                <i data-lucide="wrench"></i>
-            </button>
-        </div>
-        <div class="input-wrapper">
-            <div class="input-container">
-                <textarea id="messageInput" placeholder="Digite sua mensagem..." rows="1"></textarea>
-            </div>
-            <button class="send-btn" id="sendBtn" title="Enviar (Enter)">
-                <i data-lucide="send"></i>
-            </button>
-        </div>
-    </div>
-
-    <script src="sidepanel.js"></script>
-</body>
-
+        <script src="sidepanel.js"></script>
+    </body>
 </html>
