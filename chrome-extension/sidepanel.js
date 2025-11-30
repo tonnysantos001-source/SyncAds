@@ -211,6 +211,8 @@ async function loadAuthData() {
 
     if (state.isAuthenticated) {
       console.log("✅ [AUTH] User authenticated");
+      elements.messageInput.disabled = false;
+      elements.sendBtn.disabled = false;
       await loadConversations();
     } else {
       console.log("⚠️ [AUTH] User not authenticated");
@@ -231,7 +233,7 @@ function showAuthRequired() {
   addMessage(
     "assistant",
     "👋 Olá! Para usar o assistente, você precisa fazer login no painel SyncAds.\n\n" +
-      "Clique no ícone da extensão e faça login para começar.",
+    "Clique no ícone da extensão e faça login para começar.",
   );
   elements.messageInput.disabled = true;
   elements.sendBtn.disabled = true;
@@ -316,12 +318,24 @@ async function createNewConversation() {
     state.conversationId = conversation.id;
     state.messages = [];
 
+    // Clear UI
+    elements.messagesArea.innerHTML = '';
+
     await chrome.storage.local.set({ conversationId: conversation.id });
 
     console.log("✅ [CONVERSATIONS] Created:", conversation.id);
 
     // Refresh conversations list
     await loadConversations();
+
+    // Add welcome message
+    addMessage("assistant", "Olá! Como posso ajudar você hoje?");
+
+    // Ensure input is enabled
+    elements.messageInput.disabled = false;
+    elements.sendBtn.disabled = false;
+    elements.messageInput.focus();
+
   } catch (error) {
     console.error("❌ [CONVERSATIONS] Error creating:", error);
   }
@@ -455,7 +469,12 @@ function appendMessageToDOM(message) {
 
   const avatar = document.createElement("div");
   avatar.className = "message-avatar";
-  avatar.textContent = message.role === "user" ? "👤" : "🤖";
+  // Use Lucide icons structure
+  if (message.role === "user") {
+    avatar.innerHTML = '<i data-lucide="user"></i>';
+  } else {
+    avatar.innerHTML = '<i data-lucide="bot"></i>';
+  }
 
   const content = document.createElement("div");
   content.className = "message-content";
@@ -479,6 +498,11 @@ function appendMessageToDOM(message) {
   messageDiv.appendChild(content);
 
   elements.messagesArea.appendChild(messageDiv);
+
+  // Initialize new icons
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 /**
@@ -495,7 +519,7 @@ function showTypingIndicator() {
 
   const avatar = document.createElement("div");
   avatar.className = "message-avatar";
-  avatar.textContent = "🤖";
+  avatar.innerHTML = '<i data-lucide="bot"></i>';
 
   const content = document.createElement("div");
   content.className = "message-content";
@@ -514,6 +538,10 @@ function showTypingIndicator() {
 
   elements.messagesArea.appendChild(typingDiv);
   scrollToBottom();
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 /**
@@ -1413,6 +1441,210 @@ async function initialize() {
       console.log("✅ [SIDE PANEL] Initialized with authentication");
     } else {
       console.log("⚠️ [SIDE PANEL] Initialized without authentication");
+    }
+
+    // Initialize icons
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    // Focus input
+    elements.messageInput.focus();
+
+    console.log("✅ [SIDE PANEL] Initialization complete");
+  } catch (error) {
+    console.error("❌ [SIDE PANEL] Initialization error:", error);
+  }
+}
+
+// Wait for DOM to be ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initialize);
+} else {
+  initialize();
+}
+
+console.log("✅ [SIDE PANEL] Script loaded successfully");
+
+if (matches.length === 0) {
+  hideSuggestions();
+  return;
+}
+
+state.suggestions = matches;
+
+// Criar/atualizar container de sugestões
+let container = document.getElementById("suggestions-container");
+if (!container) {
+  container = document.createElement("div");
+  container.id = "suggestions-container";
+  container.style.cssText = `
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    `;
+  elements.messageInput.parentElement.style.position = "relative";
+  elements.messageInput.parentElement.appendChild(container);
+}
+
+// Renderizar sugestões
+container.innerHTML = matches
+  .map(
+    (cmd, index) => `
+    <div class="suggestion-item" data-index="${index}" style="
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.2s;
+    ">
+      <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 2px;">
+        ${highlightMatch(cmd.text, input)}
+      </div>
+      <div style="font-size: 11px; color: var(--text-muted);">
+        ${cmd.description}
+      </div>
+    </div>
+  `,
+  )
+  .join("");
+
+// Add hover effects
+container.querySelectorAll(".suggestion-item").forEach((item) => {
+  item.addEventListener("mouseenter", function () {
+    this.style.background = "var(--bg-hover)";
+  });
+  item.addEventListener("mouseleave", function () {
+    this.style.background = "transparent";
+  });
+  item.addEventListener("click", function () {
+    const index = parseInt(this.dataset.index);
+    elements.messageInput.value = matches[index].text;
+    hideSuggestions();
+    elements.messageInput.focus();
+  });
+});
+  }
+
+/**
+ * Hide suggestions
+ */
+function hideSuggestions() {
+  const container = document.getElementById("suggestions-container");
+  if (container) {
+    container.remove();
+  }
+  state.suggestions = [];
+}
+
+/**
+ * Accept first suggestion
+ */
+function acceptSuggestion() {
+  if (state.suggestions.length > 0) {
+    elements.messageInput.value = state.suggestions[0].text;
+    hideSuggestions();
+  }
+}
+
+/**
+ * Highlight matching text
+ */
+function highlightMatch(text, query) {
+  const regex = new RegExp(`(${query})`, "gi");
+  return text.replace(
+    regex,
+    '<span style="background: rgba(59, 130, 246, 0.3); color: var(--accent-primary);">$1</span>',
+  );
+}
+
+/**
+ * Show keyboard shortcuts help
+ */
+function showKeyboardShortcuts() {
+  if (state.currentView === "welcome") {
+    switchToChat();
+  }
+
+  addMessage(
+    "assistant",
+    `⌨️ **Atalhos de Teclado**
+
+**Navegação:**
+• \`Ctrl/Cmd + K\` - Foco no input
+• \`Ctrl/Cmd + N\` - Nova conversa
+• \`Ctrl/Cmd + H\` - Abrir histórico
+• \`Ctrl/Cmd + /\` - Este menu de atalhos
+
+**No Input:**
+• \`Enter\` - Enviar mensagem
+• \`Shift + Enter\` - Nova linha
+• \`Tab\` - Aceitar sugestão
+• \`Esc\` - Limpar input
+• \`↑\` - Comando anterior
+• \`↓\` - Próximo comando
+
+**Dicas:**
+• Digite pelo menos 2 caracteres para ver sugestões
+• Use Tab para autocompletar rapidamente
+• Use ↑/↓ para navegar no histórico de comandos
+
+Experimente agora! Digite algo e veja as sugestões aparecerem. 😊`,
+  );
+}
+
+// ============================================
+// STORAGE LISTENERS
+// ============================================
+
+/**
+ * Listen for storage changes
+ */
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "local") {
+    console.log("💾 [STORAGE] Changes detected:", Object.keys(changes));
+
+    if (changes.userId || changes.accessToken) {
+      console.log("🔄 [STORAGE] Auth changed, reloading...");
+      loadAuthData();
+    }
+  }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+/**
+ * Initialize side panel
+ */
+async function initialize() {
+  console.log("🚀 [SIDE PANEL] Initializing...");
+
+  try {
+    // Setup event listeners
+    setupEventListeners();
+
+    // Load authentication
+    const isAuthenticated = await loadAuthData();
+
+    if (isAuthenticated) {
+      console.log("✅ [SIDE PANEL] Initialized with authentication");
+    } else {
+      console.log("⚠️ [SIDE PANEL] Initialized without authentication");
+    }
+
+    // Initialize icons
+    if (window.lucide) {
+      lucide.createIcons();
     }
 
     // Focus input
