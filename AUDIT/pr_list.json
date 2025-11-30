@@ -1,0 +1,157 @@
+{
+  "audit_date": "2025-11-26",
+  "total_fixes": 13,
+  "critical": 3,
+  "high": 5,
+  "medium": 5,
+  "proposed_prs": [
+    {
+      "id": "PR-001",
+      "title": "hotfix: Fix Supabase async/await error (CRITICAL)",
+      "priority": "P0",
+      "severity": "CRITICAL",
+      "branch": "hotfix/supabase-async-fix",
+      "files": ["python-service/app/main.py"],
+      "estimated_time": "2h",
+      "risk": "MEDIUM",
+      "description": "Remove incorrect await from Supabase sync client calls",
+      "validation": "curl /health should return supabase.status=healthy",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-002",
+      "title": "feat: Deploy AI Expansion to Railway (CRITICAL)",
+      "priority": "P0",
+      "severity": "CRITICAL",
+      "branch": "hotfix/ai-expansion-deploy",
+      "files": ["python-service/Dockerfile", "python-service/requirements.txt"],
+      "estimated_time": "3h",
+      "risk": "LOW",
+      "description": "Add AI Expansion dependencies and module to Railway build",
+      "validation": "curl /api/expansion/health should return 200 OK",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-003",
+      "title": "feat: Add health checks to critical Edge Functions",
+      "priority": "P0",
+      "severity": "CRITICAL",
+      "branch": "feat/edge-function-health-checks",
+      "files": [
+        "supabase/functions/_shared/healthcheck.ts",
+        "supabase/functions/chat-enhanced/index.ts",
+        "supabase/functions/process-payment/index.ts",
+        "supabase/functions/payment-webhook/index.ts",
+        "supabase/functions/system-health/index.ts"
+      ],
+      "estimated_time": "2h",
+      "risk": "LOW",
+      "description": "Implement health endpoints for 5 critical functions + aggregator",
+      "validation": "curl /functions/v1/system-health returns all 5 healthy",
+      "rollback_time": "2min"
+    },
+    {
+      "id": "PR-004",
+      "title": "security: Restrict CORS to whitelist (HIGH)",
+      "priority": "P1",
+      "severity": "HIGH",
+      "branch": "security/cors-whitelist",
+      "files": ["python-service/app/main.py"],
+      "estimated_time": "30min",
+      "risk": "MEDIUM",
+      "description": "Replace CORS wildcard with specific allowed origins",
+      "validation": "Frontend works, other domains blocked",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-005",
+      "title": "feat: Implement circuit breaker for external APIs (HIGH)",
+      "priority": "P1",
+      "severity": "HIGH",
+      "branch": "feat/circuit-breaker",
+      "files": ["python-service/app/main.py", "python-service/app/utils/circuit_breaker.py"],
+      "estimated_time": "2h",
+      "risk": "LOW",
+      "description": "Add circuit breaker + fallback for Anthropic/OpenAI/Groq",
+      "validation": "Test API failures don't cascade",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-006",
+      "title": "security: Sanitize secrets in logs (HIGH)",
+      "priority": "P1",
+      "severity": "HIGH",
+      "branch": "security/sanitize-logs",
+      "files": ["python-service/app/main.py"],
+      "estimated_time": "1h",
+      "risk": "LOW",
+      "description": "Add log sanitizer to redact API keys, tokens, passwords",
+      "validation": "Grep logs for 'api_key', should see REDACTED",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-007",
+      "title": "perf: Add database indexes for slow queries (HIGH)",
+      "priority": "P1",
+      "severity": "HIGH",
+      "branch": "perf/add-indexes",
+      "files": ["supabase/migrations/add_performance_indexes.sql"],
+      "estimated_time": "2h",
+      "risk": "LOW",
+      "description": "Add indexes on frequently queried columns",
+      "validation": "EXPLAIN ANALYZE shows index usage",
+      "rollback_time": "5min"
+    },
+    {
+      "id": "PR-008",
+      "title": "feat: Adjust rate limits by user tier (HIGH)",
+      "priority": "P1",
+      "severity": "HIGH",
+      "branch": "feat/tiered-rate-limits",
+      "files": ["python-service/app/main.py"],
+      "estimated_time": "2h",
+      "risk": "MEDIUM",
+      "description": "Implement per-tier rate limiting (free/pro/enterprise)",
+      "validation": "Pro users can send >20 msgs/min",
+      "rollback_time": "5min"
+    }
+  ],
+  "immediate_actions": [
+    {
+      "action": "Create manual database backup",
+      "command": "supabase db dump --data-only > backup.sql",
+      "estimated_time": "30min",
+      "risk": "ZERO"
+    },
+    {
+      "action": "Enable PITR backups",
+      "command": "Via Supabase Dashboard",
+      "estimated_time": "5min",
+      "risk": "ZERO"
+    },
+    {
+      "action": "Configure basic alerts",
+      "command": "Railway + Supabase notifications",
+      "estimated_time": "15min",
+      "risk": "ZERO"
+    }
+  ],
+  "testing_requirements": {
+    "unit_tests": "All PRs must include unit tests",
+    "integration_tests": "Critical PRs (P0) must include integration tests",
+    "e2e_tests": "Must pass existing E2E suite (when implemented)",
+    "staging_validation": "All changes tested in staging before production",
+    "production_smoke_tests": "Health checks + critical flows after deploy"
+  },
+  "deployment_checklist": [
+    "Backup created and verified",
+    "Tests passing in CI",
+    "Staging validation complete",
+    "Team notified of upcoming deploy",
+    "Rollback plan documented",
+    "Deploy during business hours (not Friday PM)",
+    "Monitor for 1 hour post-deploy",
+    "Update documentation",
+    "Create incident report if needed"
+  ]
+}

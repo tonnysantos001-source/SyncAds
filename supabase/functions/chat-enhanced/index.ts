@@ -4,8 +4,52 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
 import { rateLimitByUser } from "../_utils/rate-limiter.ts";
+import {
+  generateCacheKey,
+  getCachedResponse,
+  setCachedResponse,
+  checkUserRateLimit,
+  logAudit,
+} from "../_utils/ai-cache-helper.ts";
+import {
+  detectDomCommands,
+  generateCommandResponse,
+  isUrlSafe,
+  normalizeUrl,
+} from "../_utils/dom-command-detector.ts";
+import {
+  createExtensionCommand,
+  getUserActiveDevice,
+} from "../_utils/extension-command-helper.ts";
+import {
+  createRouter,
+  explainExecutorCapabilities,
+} from "../_utils/command-router.ts";
+import { getSystemPrompt, getContextualPrompt } from "./system-prompts.ts";
+import { handleHealthCheck } from "../_shared/healthcheck.ts";
+
+const FUNCTION_START_TIME = Date.now();
 
 serve(async (req) => {
+  // Handle health check
+  if (new URL(req.url).pathname.endsWith("/health")) {
+    return handleHealthCheck(req, {
+      functionName: "chat-enhanced",
+      version: "2.0.0",
+      startTime: FUNCTION_START_TIME,
+      additionalChecks: async () => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+        return {
+          supabase_configured: !!(supabaseUrl && supabaseKey),
+          anthropic_key_present: !!Deno.env.get("ANTHROPIC_API_KEY"),
+          openai_key_present: !!Deno.env.get("OPENAI_API_KEY"),
+        };
+      },
+    });
+  }
+
   // Handle CORS
   if (req.method === "OPTIONS") {
     return handlePreflightRequest();
@@ -16,7 +60,6 @@ serve(async (req) => {
       message,
       conversationId,
       conversationHistory = [],
-      systemPrompt,
       extensionConnected: rawExtensionConnected,
     } = await req.json();
 
@@ -24,9 +67,13 @@ serve(async (req) => {
     const extensionConnected =
       rawExtensionConnected === true || rawExtensionConnected === "true";
 
+    // ✅ Obter system prompt do módulo (não vem mais do cliente)
+    const systemPrompt = getSystemPrompt(extensionConnected);
+
     console.log("🔍 DEBUG - Request recebido:", {
       hasMessage: !!message,
       conversationId,
+      extensionConnected,
       rawExtensionConnected,
       extensionConnectedFinal: extensionConnected,
     });
@@ -60,12 +107,50 @@ serve(async (req) => {
     const isAdmin =
       userData?.role === "ADMIN" || userData?.role === "SUPER_ADMIN";
 
-    // ✅ Rate limiting - 10 mensagens por minuto por usuário (não aplica para admins)
+    // ✅ Rate limiting robusto (multi-nível)
     if (!isAdmin) {
-      const rateLimitResponse = await rateLimitByUser(user.id, "AI_CHAT");
-      if (rateLimitResponse) {
-        return rateLimitResponse;
+      const rateLimitResult = await checkUserRateLimit(
+        supabase,
+        user.id,
+        "AI_CHAT",
+        {
+          requestsPerMinute: 10,
+          requestsPerHour: 100,
+          requestsPerDay: 500,
+        },
+      );
+
+      if (!rateLimitResult.allowed) {
+        console.warn("⚠️ Rate limit excedido:", {
+          userId: user.id,
+          remaining: rateLimitResult.remaining,
+          current: rateLimitResult.current,
+        });
+
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded",
+            message: `Você atingiu o limite de requisições. Tente novamente em alguns segundos.`,
+            remaining: rateLimitResult.remaining,
+            retryAfter: rateLimitResult.retryAfter,
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+              "Retry-After": String(rateLimitResult.retryAfter || 60),
+            },
+          },
+        );
       }
+
+      console.log("✅ Rate limit OK:", {
+        userId: user.id,
+        remaining: rateLimitResult.remaining,
+        current: rateLimitResult.current,
+      });
     } else {
       console.log("🔓 Admin bypass - rate limit disabled for user:", user.id);
     }
@@ -167,6 +252,302 @@ serve(async (req) => {
     console.log("✅ AI Connection válida, prosseguindo com chat...");
 
     console.log("✅ Usando GlobalAiConnection:", aiConnection.name);
+
+    // ============================================================================
+    // 🎯 DETECÇÃO PRÉVIA DE COMANDOS DOM (ANTES DA IA)
+    // ============================================================================
+    // Detectar comandos simples como "abra o Facebook" e executar imediatamente
+    // ============================================================================
+
+    let domCommandExecuted = false;
+    let domCommandResponse = "";
+
+    if (extensionConnected) {
+      console.log("🔍 Detectando comandos DOM na mensagem do usuário...");
+
+      const detection = detectDomCommands(message);
+
+      if (detection.hasCommand && detection.commands.length > 0) {
+        console.log(
+          `✅ ${detection.commands.length} comando(s) DOM detectado(s):`,
+          detection.commands,
+        );
+
+        // 🧭 USAR COMMAND ROUTER PARA DECIDIR EXECUTOR
+        const router = createRouter(supabase);
+
+        // Buscar device ativo do usuário
+        const deviceId = await getUserActiveDevice(supabase, user.id);
+
+        if (deviceId) {
+          console.log("✅ Device ativo encontrado:", deviceId);
+
+          // Processar cada comando com roteamento inteligente
+          for (const command of detection.commands) {
+            // Converter SEARCH para NAVIGATE (pesquisa já vem com URL pronta)
+            if (command.type === "SEARCH") {
+              command.type = "NAVIGATE";
+              console.log(
+                "🔍 [SEARCH] Convertendo pesquisa para navegação:",
+                command.params.url,
+              );
+            }
+
+            // Validar URL se for comando de navegação
+            if (command.type === "NAVIGATE") {
+              const url = normalizeUrl(command.params.url);
+              if (!isUrlSafe(url)) {
+                console.warn("⚠️ URL não segura detectada:", url);
+                domCommandResponse += `⚠️ A URL "${url}" não parece segura. Por favor, verifique e tente novamente.\n\n`;
+                continue;
+              }
+              command.params.url = url;
+            }
+
+            // 🎯 ROTEAMENTO INTELIGENTE
+            const routingContext = {
+              hasActiveExtension: true,
+              extensionCapabilities: ["dom_access", "visual_feedback"],
+              userLocation: "extension" as const,
+              currentUrl: undefined,
+              deviceInfo: { device_id: deviceId },
+            };
+
+            const routingDecision = await router.route(
+              {
+                type: command.type,
+                data: command.params,
+                user_message: message,
+              },
+              routingContext,
+            );
+
+            console.log("🧭 [ROUTING] Decision:", {
+              executor: routingDecision.executor,
+              confidence: routingDecision.confidence,
+              reason: routingDecision.reason,
+            });
+
+            // ==========================================
+            // SALVAR ANALYTICS DE ROTEAMENTO
+            // ==========================================
+            try {
+              await supabase.from("routing_analytics").insert({
+                command_type: command.type,
+                command_message: message,
+                executor_chosen: routingDecision.executor,
+                confidence: routingDecision.confidence,
+                complexity_score: routingDecision.complexity_score || 5,
+                complexity_factors: routingDecision.complexity_factors || [],
+                capabilities_needed: routingDecision.capabilities_needed || [],
+                estimated_time: routingDecision.estimated_time_seconds,
+              });
+              console.log("✅ Analytics salvas com sucesso");
+            } catch (analyticsError) {
+              console.error("⚠️ Erro ao salvar analytics:", analyticsError);
+              // Não bloquear execução se analytics falhar
+            }
+
+            // Adicionar explicação do roteamento à resposta
+            if (routingDecision.explanation_user) {
+              domCommandResponse += routingDecision.explanation_user + "\n\n";
+            }
+
+            // Executar comando baseado no executor escolhido
+            if (routingDecision.executor === "EXTENSION") {
+              // Criar comando na extensão
+              const result = await createExtensionCommand(
+                supabase,
+                user.id,
+                deviceId,
+                command,
+              );
+
+              if (result.success) {
+                console.log("✅ Comando criado com sucesso:", result.commandId);
+                domCommandExecuted = true;
+                domCommandResponse += generateCommandResponse(command) + "\n\n";
+              } else {
+                console.error("❌ Erro ao criar comando:", result.error);
+                domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+              }
+            } else if (routingDecision.executor === "PYTHON_AI") {
+              console.log(
+                "🤖 [ROUTING] Python AI selecionado, chamando Python Service...",
+              );
+
+              try {
+                const PYTHON_SERVICE_URL =
+                  Deno.env.get("PYTHON_SERVICE_URL") ||
+                  "https://syncads-python-microservice-production.up.railway.app";
+
+                console.log("📡 Chamando Python Service:", PYTHON_SERVICE_URL);
+
+                const pythonResponse = await fetch(
+                  `${PYTHON_SERVICE_URL}/browser-automation/execute`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      task: message,
+                      context: {
+                        user_id: user.id,
+                        conversation_id: conversationId,
+                        command_type: command.type,
+                        command_data: command.params,
+                      },
+                    }),
+                  },
+                );
+
+                if (pythonResponse.ok) {
+                  const pythonResult = await pythonResponse.json();
+                  console.log(
+                    "✅ Python AI executado com sucesso:",
+                    pythonResult,
+                  );
+
+                  domCommandExecuted = true;
+                  domCommandResponse += `✅ **Tarefa executada via IA Avançada**\n\n${routingDecision.explanation_user}\n\n`;
+
+                  if (pythonResult.result) {
+                    domCommandResponse += `📊 **Resultado:**\n${JSON.stringify(pythonResult.result, null, 2)}\n\n`;
+                  }
+                } else {
+                  throw new Error(
+                    `Python Service error: ${pythonResponse.status}`,
+                  );
+                }
+              } catch (pythonError) {
+                console.error("❌ Erro ao chamar Python Service:", pythonError);
+                console.log("🔄 Fallback para extensão...");
+
+                domCommandResponse += `⚠️ **Python AI indisponível, usando extensão**\n\n`;
+
+                // Fallback para extensão
+                const result = await createExtensionCommand(
+                  supabase,
+                  user.id,
+                  deviceId,
+                  command,
+                );
+
+                if (result.success) {
+                  domCommandExecuted = true;
+                  domCommandResponse +=
+                    generateCommandResponse(command) + "\n\n";
+                } else {
+                  domCommandResponse += `❌ Erro ao executar comando: ${result.error}\n\n`;
+                }
+              }
+            }
+          }
+
+          // Se comandos foram executados com sucesso, retornar resposta imediata
+          if (domCommandExecuted) {
+            console.log(
+              "✅ Comandos DOM executados, retornando resposta imediata",
+            );
+
+            // Salvar mensagem do usuário
+            const userMsgId = crypto.randomUUID();
+            await supabase.from("ChatMessage").insert({
+              id: userMsgId,
+              conversationId,
+              role: "USER",
+              content: message,
+              userId: user.id,
+            });
+
+            // Salvar resposta da IA
+            const aiMsgId = crypto.randomUUID();
+            await supabase.from("ChatMessage").insert({
+              id: aiMsgId,
+              conversationId,
+              role: "ASSISTANT",
+              content: domCommandResponse.trim(),
+              userId: user.id,
+            });
+
+            return new Response(
+              JSON.stringify({
+                response: domCommandResponse.trim(),
+                cached: false,
+                domCommand: true,
+                commandsExecuted: detection.commands.length,
+              }),
+              {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  "Content-Type": "application/json",
+                  "X-DOM-Command": "executed",
+                },
+              },
+            );
+          }
+        } else {
+          console.warn(
+            "⚠️ Nenhum device ativo encontrado, prosseguindo com IA normal",
+          );
+          domCommandResponse =
+            "⚠️ A extensão está offline. Por favor, certifique-se de que a extensão está conectada e tente novamente.\n\n";
+        }
+      } else {
+        console.log(
+          "ℹ️ Nenhum comando DOM detectado, prosseguindo normalmente com IA",
+        );
+      }
+    }
+
+    // ✅ CACHE DE IA - Verificar se já temos resposta em cache
+    const cacheKey = generateCacheKey(message, {
+      conversationId,
+      model: aiConnection.model,
+      provider: aiConnection.provider,
+    });
+
+    console.log("🔍 Verificando cache:", cacheKey);
+
+    const cachedResponse = await getCachedResponse(supabase, cacheKey);
+
+    if (cachedResponse.hit && cachedResponse.response) {
+      console.log("✅ Cache HIT! Retornando resposta em cache");
+
+      // Registrar uso de cache no audit log
+      await logAudit(
+        supabase,
+        "ai_cache",
+        cacheKey,
+        "UPDATE",
+        null,
+        { hits: cachedResponse.hits, cached: true },
+        user.id,
+      );
+
+      return new Response(
+        JSON.stringify({
+          response: cachedResponse.response,
+          cached: true,
+          cacheKey,
+          hits: cachedResponse.hits,
+          metadata: cachedResponse.metadata,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "X-Cache": "HIT",
+            "X-Cache-Hits": String(cachedResponse.hits),
+          },
+        },
+      );
+    }
+
+    console.log("❌ Cache MISS - Chamando IA");
 
     // System prompt customizado (se existir no GlobalAiConnection)
     const customSystemPrompt = aiConnection.systemPrompt || null;
@@ -272,6 +653,72 @@ Você tem acesso a ferramentas que podem ser ativadas automaticamente quando nec
    - "Crie uma imagem de um pôr do sol na praia"
    - Você: *usa generate_image automaticamente*
    - Depois mostra o resultado
+
+# 🌐 CONTEXTOS DE EXECUÇÃO (IMPORTANTE)
+
+Você está integrada em DOIS ambientes diferentes:
+
+## 1️⃣ **EXTENSÃO CHROME** (Navegador do usuário)
+**Quando usar:** Ações rápidas na página atual
+**Capacidades:**
+- ✅ Cliques, preenchimento de formulários, leitura de elementos
+- ✅ Feedback visual em tempo real (usuário vê o que você faz)
+- ✅ Screenshots, scroll, hover
+- ✅ Resposta < 1 segundo
+**Limitações:**
+- ❌ Apenas página atual (sem múltiplas abas)
+- ❌ Não suporta workflows complexos
+- ❌ Sem Vision AI ou seletores semânticos
+
+## 2️⃣ **PAINEL WEB** (Python AI - em breve)
+**Quando usar:** Tarefas complexas e automação avançada
+**Capacidades:**
+- ✅ Automação com linguagem natural (Browser-Use)
+- ✅ Vision AI para identificar elementos visualmente
+- ✅ Seletores semânticos (AgentQL) que não quebram
+- ✅ Múltiplas abas e sites
+- ✅ Workflows complexos multi-passo
+- ✅ Criação de campanhas publicitárias completas
+- ✅ Execução em background (usuário pode continuar trabalhando)
+**Limitações:**
+- ❌ Mais lento (3-10 segundos)
+- ❌ Usuário não vê feedback visual direto
+
+## 🧭 **COMO ORIENTAR O USUÁRIO**
+
+Quando o usuário pedir algo, **explique onde é melhor executar:**
+
+**Exemplo 1 - Ação simples:**
+Usuário: "Clique no botão de login"
+Você: "✅ Vou fazer isso agora pela extensão! É rápido e você verá o que estou fazendo."
+
+**Exemplo 2 - Tarefa complexa:**
+Usuário: "Crie uma campanha no Facebook Ads"
+Você: "🤖 Para criar uma campanha completa, é melhor usar o **Painel Web** onde tenho acesso a automação avançada.
+
+**Por quê?**
+- Múltiplos passos e formulários
+- Demora 3-5 minutos
+- Você pode continuar trabalhando enquanto eu faço
+
+Quer que eu abra o painel web para você? Ou prefere que eu tente aqui (vai ser mais manual)?"
+
+**Exemplo 3 - Usuário no lugar errado:**
+Usuário na extensão: "Faça uma pesquisa no Google e compare preços em 5 sites"
+Você: "📱 Essa tarefa é melhor no **Painel Web**!
+
+Na extensão eu só consigo trabalhar na página atual, mas no painel web eu posso:
+- Abrir múltiplas abas
+- Navegar entre sites
+- Fazer comparações automáticas
+
+[Abrir Painel Web] ou quer que eu te ensine a fazer manualmente?"
+
+## ⚡ **REGRA DE OURO**
+- **Extensão** = rápido, visual, página atual
+- **Painel Web** = complexo, multi-site, automação pesada
+
+Sempre explique **ONDE** e **POR QUÊ** antes de executar tarefas complexas.
 
 # 🎭 TOM E ESTILO
 
@@ -521,6 +968,20 @@ Você é uma IA poderosa, inteligente e versátil. Pode conversar sobre qualquer
 
 Você está no **Side Panel** da extensão SyncAds AI, com controle total do navegador!
 
+## ⚠️ REGRAS CRÍTICAS - LEIA PRIMEIRO:
+
+### 🚨 NUNCA ALUCINE RESULTADOS:
+- ❌ PROIBIDO inventar dados que você não tem
+- ❌ PROIBIDO retornar resultados de pesquisas sem executá-las
+- ❌ PROIBIDO criar listas/tabelas com dados falsos
+- ✅ SEMPRE execute o comando e AGUARDE o resultado real
+- ✅ Se não tem o dado, diga "Vou buscar isso" + envie comando JSON
+
+### 📋 EXEMPLO DE ERRO (NÃO FAÇA ISSO):
+Usuário: "pesquise por receitas de bolo"
+❌ ERRADO: Retornar lista inventada de receitas
+✅ CORRETO: Enviar comando JSON de navegação + dizer "Buscando receitas..."
+
 ## 🎯 SUAS CAPACIDADES REAIS:
 
 ### 📌 Onde você está:
@@ -604,7 +1065,30 @@ Você está no **Side Panel** da extensão SyncAds AI, com controle total do nav
 
 ## 💡 COMO RESPONDER:
 
-**FORMATO CORRETO:**
+### ✅ FLUXO CORRETO PARA PESQUISAS/BUSCAS:
+
+**Usuário pede busca → Você envia comando → Aguarda resultado → Responde com dados reais**
+
+**EXEMPLO 1 - Pesquisa no YouTube:**
+Usuário: "pesquise por videos de pudin no youtube"
+Você: "🔍 Abrindo YouTube e buscando por 'videos de pudin'...
+
+\`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://www.youtube.com/results?search_query=videos+de+pudin" } }
+\`\`\`"
+
+**❌ NÃO INVENTE:** Você não sabe quais vídeos existem até a página carregar!
+**✅ AGUARDE:** A extensão abrirá a página e poderá extrair os resultados reais.
+
+**EXEMPLO 2 - Pesquisa no Google:**
+Usuário: "procure por restaurantes italianos"
+Você: "🔍 Pesquisando por 'restaurantes italianos' no Google...
+
+\`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://www.google.com/search?q=restaurantes+italianos" } }
+\`\`\`"
+
+**EXEMPLO 3 - Comando simples:**
 Usuário: "liste as abas"
 Você: "📋 Listando suas abas abertas...
 
@@ -627,19 +1111,27 @@ Você: "📋 Listando suas abas abertas...
   - "Acesse o painel de integrações"
   - "Sincronizar com [serviço]"
 
+❌ **NUNCA ALUCINE**:
+  - NÃO invente resultados de pesquisas
+  - NÃO crie listas com dados falsos
+  - NÃO retorne informações que você não extraiu
+  - NÃO simule ter executado ações sem enviar comando JSON
+
 ✅ **Você FAZ**:
   - Controlar DOM de qualquer página
   - Automatizar ações repetitivas
-  - Extrair dados de sites
+  - Extrair dados de sites (MAS só depois de navegar até eles)
   - Preencher formulários
   - Clicar em botões
   - Navegar entre páginas
   - Executar JavaScript
-  - Ler conteúdo de páginas
+  - Ler conteúdo de páginas (MAS só depois de abrir a página)
 
 ## 🎯 EXEMPLOS PRÁTICOS:
 
-**Certo:**
+### ✅ COMANDOS SIMPLES (página atual):
+
+**Extrair emails:**
 Usuário: "extraia os emails desta página"
 Você: "📧 Extraindo todos os emails da página!
 
@@ -647,7 +1139,7 @@ Você: "📧 Extraindo todos os emails da página!
 { "type": "EXTRACT_EMAILS" }
 \`\`\`"
 
-**Certo:**
+**Screenshot:**
 Usuário: "tire uma screenshot desta página"
 Você: "📸 Capturando screenshot da página!
 
@@ -655,7 +1147,7 @@ Você: "📸 Capturando screenshot da página!
 { "type": "SCREENSHOT", "data": { "fullPage": true } }
 \`\`\`"
 
-**Certo:**
+**Extrair tabela:**
 Usuário: "extraia a tabela de produtos"
 Você: "📊 Extraindo dados da tabela!
 
@@ -663,36 +1155,58 @@ Você: "📊 Extraindo dados da tabela!
 { "type": "EXTRACT_TABLE", "data": { "selector": "table", "headers": true } }
 \`\`\`"
 
-**Certo:**
-Usuário: "preencha o formulário de login com meus dados"
-Você: "✅ Preenchendo formulário de login!
+### ✅ NAVEGAÇÃO + PESQUISA (abrir páginas):
+
+**Pesquisa YouTube:**
+Usuário: "pesquise videos de receitas no youtube"
+Você: "🔍 Abrindo YouTube e buscando 'videos de receitas'...
 
 \`\`\`json
-{ "type": "FILL_FORM", "data": {
-  "formSelector": "form",
-  "fields": {
-    "email": "usuario@email.com",
-    "password": "senha123"
-  }
-}}
+{ "type": "NAVIGATE", "data": { "url": "https://www.youtube.com/results?search_query=videos+de+receitas" } }
 \`\`\`"
 
-**ERRADO:**
+**Pesquisa Google:**
+Usuário: "procure por hotéis em paris"
+Você: "🔍 Pesquisando 'hotéis em paris' no Google...
+
+\`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://www.google.com/search?q=hotéis+em+paris" } }
+\`\`\`"
+
+**Abrir site:**
+Usuário: "abra o facebook"
+Você: "🌐 Abrindo Facebook...
+
+\`\`\`json
+{ "type": "NAVIGATE", "data": { "url": "https://www.facebook.com" } }
+\`\`\`"
+
+### ❌ EXEMPLOS DE ERRO (NÃO FAÇA):
+
+**ERRADO - Alucinar resultados:**
+Usuário: "pesquise por laptops baratos"
+❌ Você: "Encontrei estes laptops: 1. Dell Inspiron R$2000..."
+✅ CORRETO: Enviar comando NAVIGATE e dizer "Buscando laptops baratos..."
+
+**ERRADO - OAuth:**
 Usuário: "conecte com meu Google Ads"
-Você: ❌ "Para conectar com Google Ads, acesse o painel..."
+❌ Você: "Para conectar com Google Ads, acesse o painel..."
+✅ CORRETO: "Posso ajudá-lo a automatizar ações no Google Ads Manager! Quer que eu abra a página?"
 
-**CORRETO:**
-Você: ✅ "Posso ajudá-lo a automatizar ações no Google Ads Manager! Quer que eu abra a página e faça algo específico?"
-
-## 🚨 REGRAS CRÍTICAS:
+## 🚨 REGRAS CRÍTICAS - MEMORIZE:
 
 1. **SEMPRE responda de forma natural + JSON**
-2. **NUNCA mencione integrações OAuth antigas**
-3. **Use seletores CSS flexíveis** (múltiplas opções separadas por vírgula)
-4. **Seja confiante** - você TEM controle total do DOM
-5. **NAVIGATE sempre abre em nova aba** - não sai do Side Panel
-6. **O usuário NÃO vê o JSON** - é removido automaticamente
-7. **Você está no SIDE PANEL** - não é popup nem chat web
+2. **NUNCA ALUCINE** - não invente dados que você não tem
+3. **PESQUISAS = NAVIGATE** - use URLs com query parameters
+   - YouTube: https://www.youtube.com/results?search_query=TERMO
+   - Google: https://www.google.com/search?q=TERMO
+4. **AGUARDE resultados reais** - não simule ter executado
+5. **NUNCA mencione integrações OAuth antigas**
+6. **Use seletores CSS flexíveis** (múltiplas opções separadas por vírgula)
+7. **Seja confiante** - você TEM controle total do DOM
+8. **NAVIGATE sempre abre em nova aba** - não sai do Side Panel
+9. **O usuário NÃO vê o JSON** - é removido automaticamente
+10. **Você está no SIDE PANEL** - não é popup nem chat web
 
 ## 🎨 Sua Personalidade:
 
@@ -1416,14 +1930,13 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
     }
 
     // ==================== TOOL CALLING PARA GROQ ====================
-    // ✅ ÚNICA FERRAMENTA PERMITIDA: web_scraping
     const groqTools = [
       {
         type: "function",
         function: {
           name: "web_scraping",
           description:
-            "Extrai dados de produtos de um site. Use APENAS esta ferramenta para raspar/baixar/importar dados de URLs. NUNCA tente executar código Python diretamente.",
+            "Extrai dados de produtos de um site. Use para raspar/baixar/importar dados de URLs.",
           parameters: {
             type: "object",
             properties: {
@@ -1439,7 +1952,89 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
               },
             },
             required: ["url"],
-            additionalProperties: false, // ✅ CRÍTICO: GROQ exige isso!
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_csv",
+          description:
+            "Cria um arquivo CSV a partir de dados estruturados e retorna link de download temporário (expira em 24h).",
+          parameters: {
+            type: "object",
+            properties: {
+              data: {
+                type: "array",
+                description: "Array de objetos para converter em CSV",
+                items: { type: "object" },
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: produtos.csv)",
+              },
+            },
+            required: ["data", "filename"],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_excel",
+          description:
+            "Cria um arquivo Excel (.xlsx) com uma ou múltiplas planilhas e retorna link de download.",
+          parameters: {
+            type: "object",
+            properties: {
+              sheets: {
+                type: "array",
+                description: "Array de planilhas, cada uma com nome e dados",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    data: { type: "array", items: { type: "object" } },
+                  },
+                },
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: relatorio.xlsx)",
+              },
+            },
+            required: ["sheets", "filename"],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_pdf",
+          description:
+            "Cria um documento PDF a partir de conteúdo HTML ou Markdown e retorna link de download.",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "Conteúdo em HTML ou Markdown",
+              },
+              filename: {
+                type: "string",
+                description: "Nome do arquivo (ex: relatorio.pdf)",
+              },
+              format: {
+                type: "string",
+                enum: ["html", "markdown"],
+                description: "Formato do conteúdo de entrada",
+              },
+            },
+            required: ["content", "filename"],
+            additionalProperties: false,
           },
         },
       },
@@ -1540,19 +2135,9 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
             JSON.stringify(functionArgs, null, 2),
           );
 
-          // ✅ PROTEÇÃO: Apenas web_scraping é permitida
-          if (functionName !== "web_scraping") {
-            console.error(
-              `❌ [TOOL] FERRAMENTA INVÁLIDA: "${functionName}" não é permitida!`,
-            );
-            console.error(
-              `⚠️  [TOOL] Ferramentas permitidas: ["web_scraping"]`,
-            );
-            toolResult = `❌ Erro: A ferramenta "${functionName}" não está disponível. Use apenas "web_scraping" para extrair dados de sites.`;
-            continue; // Pula esta ferramenta inválida
-          }
+          let toolResult = "";
 
-          // ✅ Executar web_scraping
+          // ✅ Executar ferramentas
           if (functionName === "web_scraping") {
             const url = functionArgs.url;
             const format = functionArgs.format || "csv";
@@ -1614,6 +2199,126 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
               );
               console.error("❌ [WEB_SCRAPING] Stack:", error.stack);
               toolResult = `Erro ao executar scraping: ${error.message}`;
+            }
+          } else if (functionName === "create_csv") {
+            // ✅ Criar CSV
+            const { data, filename } = functionArgs;
+
+            console.log(`📄 [CREATE_CSV] Criando CSV: ${filename}`);
+            console.log(`📊 [CREATE_CSV] Linhas: ${data?.length || 0}`);
+
+            try {
+              const csvResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-csv`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ data, filename }),
+                },
+              );
+
+              if (!csvResponse.ok) {
+                const error = await csvResponse.text();
+                console.error(`❌ [CREATE_CSV] Erro:`, error);
+                toolResult = `Erro ao criar CSV: ${error}`;
+              } else {
+                const result = await csvResponse.json();
+                console.log(
+                  `✅ [CREATE_CSV] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_CSV] Exceção:`, error.message);
+              toolResult = `Erro ao criar CSV: ${error.message}`;
+            }
+          } else if (functionName === "create_excel") {
+            // ✅ Criar Excel
+            const { sheets, filename } = functionArgs;
+
+            console.log(`📊 [CREATE_EXCEL] Criando Excel: ${filename}`);
+            console.log(`📑 [CREATE_EXCEL] Planilhas: ${sheets?.length || 0}`);
+
+            try {
+              const excelResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-excel`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ sheets, filename }),
+                },
+              );
+
+              if (!excelResponse.ok) {
+                const error = await excelResponse.text();
+                console.error(`❌ [CREATE_EXCEL] Erro:`, error);
+                toolResult = `Erro ao criar Excel: ${error}`;
+              } else {
+                const result = await excelResponse.json();
+                console.log(
+                  `✅ [CREATE_EXCEL] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_EXCEL] Exceção:`, error.message);
+              toolResult = `Erro ao criar Excel: ${error.message}`;
+            }
+          } else if (functionName === "create_pdf") {
+            // ✅ Criar PDF
+            const { content, filename, format } = functionArgs;
+
+            console.log(`📄 [CREATE_PDF] Criando PDF: ${filename}`);
+            console.log(`📝 [CREATE_PDF] Formato: ${format || "html"}`);
+
+            try {
+              const pdfResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-pdf`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: authHeader,
+                  },
+                  body: JSON.stringify({ content, filename, format }),
+                },
+              );
+
+              if (!pdfResponse.ok) {
+                const error = await pdfResponse.text();
+                console.error(`❌ [CREATE_PDF] Erro:`, error);
+                toolResult = `Erro ao criar PDF: ${error}`;
+              } else {
+                const result = await pdfResponse.json();
+                console.log(
+                  `✅ [CREATE_PDF] Arquivo criado: ${result.file?.url}`,
+                );
+
+                toolResult = JSON.stringify({
+                  type: "file_generated",
+                  file: result.file,
+                  message: result.message,
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ [CREATE_PDF] Exceção:`, error.message);
+              toolResult = `Erro ao criar PDF: ${error.message}`;
             }
           }
         }
@@ -1844,20 +2549,19 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
 
               // Salvar comando no banco para a extensão executar
               const { data: savedCommand, error: cmdError } = await supabase
-                .from("ExtensionCommand")
+                .from("extension_commands")
                 .insert({
-                  deviceId,
-                  userId: user.id,
-                  command: command.type,
-                  params: command.data || {},
-                  status: "PENDING",
-                  conversationId,
+                  device_id: deviceId,
+                  user_id: user.id,
+                  type: command.type,
+                  data: command.data || {},
+                  status: "pending",
                 })
                 .select()
                 .single();
 
               if (!cmdError && savedCommand) {
-                console.log("✅ Comando salvo no banco:", savedCommand.id);
+                console.log("✅ Comando JSON salvo no banco:", savedCommand.id);
 
                 // ✅ REMOVER COMPLETAMENTE O BLOCO JSON DA RESPOSTA
                 cleanResponse = cleanResponse.replace(match[0], "").trim();
@@ -1912,6 +2616,18 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       }
 
       response = cleanResponse.trim();
+    } else if (extensionConnected && jsonMatches.length > 0) {
+      console.warn("⚠️ Comandos JSON detectados mas extensão offline");
+      // Ainda assim remover os blocos JSON da resposta
+      for (const match of jsonMatches) {
+        cleanResponse = cleanResponse.replace(match[0], "").trim();
+      }
+      response = cleanResponse.trim();
+    }
+
+    // Adicionar resposta de comando DOM pré-executado (se houver)
+    if (domCommandResponse && !domCommandExecuted) {
+      response = domCommandResponse + response;
     }
 
     // Salvar resposta da IA no banco

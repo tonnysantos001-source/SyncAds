@@ -1,0 +1,31 @@
+# ==========================================
+# AI EXPANSION - MINIMAL REQUIREMENTS
+# Core modules only for Railway deployment
+# ==========================================
+
+# Multi-Engine Automation (Core)
+playwright>=1.48.0
+selenium>=4.27.0
+webdriver-manager>=4.0.0
+
+# DOM Intelligence (Ultra-Fast)
+selectolax>=0.3.21
+
+# AI Agents (LangChain only)
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.1.0
+
+# Computer Vision (Basic)
+opencv-python-headless>=4.10.0
+pytesseract>=0.3.10
+
+# Utilities
+orjson>=3.9.0
+tenacity>=8.2.0
+backoff>=2.2.0
+
+# Already in main requirements but ensuring compatibility
+# httpx>=0.26.0
+# pydantic>=2.5.0
+# loguru>=0.7.0

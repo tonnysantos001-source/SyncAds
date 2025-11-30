@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test DOM Commands - SyncAds Extension</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-card h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .test-card p {
+            margin-bottom: 15px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .test-card code {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status.info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .results {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .results h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-entry.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .log-entry.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .log-entry.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .log-entry.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .command-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .command-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+
+        .command-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .command-item h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .command-item pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test DOM Commands</h1>
+            <p>Sistema de Verificação de Comandos DOM - SyncAds Extension</p>
+        </div>
+
+        <div class="content">
+            <!-- Status da Extensão -->
+            <div class="section">
+                <h2>📊 Status da Extensão</h2>
+                <div class="test-card">
+                    <h3>Verificação de Conectividade</h3>
+                    <p>Verifica se a extensão está instalada, carregada e conectada.</p>
+                    <button class="button" onclick="checkExtensionStatus()">
+                        Verificar Status
+                    </button>
+                    <span id="extensionStatus"></span>
+                </div>
+
+                <div class="stats" id="statsContainer" style="display: none;">
+                    <div class="stat-card">
+                        <h4>Device ID</h4>
+                        <div class="value" id="deviceId">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>User ID</h4>
+                        <div class="value" id="userId">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Status</h4>
+                        <div class="value" id="connectionStatus">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Última Atividade</h4>
+                        <div class="value" id="lastActivity">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testes de Navegação -->
+            <div class="section">
+                <h2>🌐 Testes de Navegação</h2>
+                <div class="command-list">
+                    <div class="command-item">
+                        <h4>Abrir Facebook</h4>
+                        <pre>NAVIGATE
+url: https://www.facebook.com</pre>
+                        <button class="button" onclick="testCommand('NAVIGATE', {url: 'https://www.facebook.com'})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Abrir Google</h4>
+                        <pre>NAVIGATE
+url: https://www.google.com</pre>
+                        <button class="button" onclick="testCommand('NAVIGATE', {url: 'https://www.google.com'})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Abrir GitHub</h4>
+                        <pre>NAVIGATE
+url: https://github.com</pre>
+                        <button class="button" onclick="testCommand('NAVIGATE', {url: 'https://github.com'})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Abrir YouTube</h4>
+                        <pre>NAVIGATE
+url: https://www.youtube.com</pre>
+                        <button class="button" onclick="testCommand('NAVIGATE', {url: 'https://www.youtube.com'})">
+                            Testar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testes de Screenshot -->
+            <div class="section">
+                <h2>📸 Testes de Screenshot</h2>
+                <div class="test-card">
+                    <h3>Capturar Tela</h3>
+                    <p>Captura screenshot da página atual.</p>
+                    <button class="button secondary" onclick="testCommand('SCREENSHOT', {})">
+                        Capturar Screenshot
+                    </button>
+                </div>
+            </div>
+
+            <!-- Testes de Extração -->
+            <div class="section">
+                <h2>📖 Testes de Extração</h2>
+                <div class="command-list">
+                    <div class="command-item">
+                        <h4>Extrair Links</h4>
+                        <pre>EXTRACT_LINKS</pre>
+                        <button class="button success" onclick="testCommand('EXTRACT_LINKS', {})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Extrair Imagens</h4>
+                        <pre>EXTRACT_IMAGES</pre>
+                        <button class="button success" onclick="testCommand('EXTRACT_IMAGES', {})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Extrair Tabelas</h4>
+                        <pre>EXTRACT_TABLE</pre>
+                        <button class="button success" onclick="testCommand('EXTRACT_TABLE', {})">
+                            Testar
+                        </button>
+                    </div>
+                    <div class="command-item">
+                        <h4>Informações da Página</h4>
+                        <pre>GET_PAGE_INFO</pre>
+                        <button class="button success" onclick="testCommand('GET_PAGE_INFO', {})">
+                            Testar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teste do Banco de Dados -->
+            <div class="section">
+                <h2>🗄️ Teste do Banco de Dados</h2>
+                <div class="test-card">
+                    <h3>Verificar Comandos Pendentes</h3>
+                    <p>Verifica se há comandos pendentes na tabela <code>extension_commands</code>.</p>
+                    <button class="button" onclick="checkPendingCommands()">
+                        Verificar Comandos
+                    </button>
+                    <span id="dbStatus"></span>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="section">
+                <h2>📋 Logs de Execução</h2>
+                <div class="results">
+                    <h3>Logs em Tempo Real</h3>
+                    <div id="logsContainer">
+                        <div class="log-entry info">
+                            <strong>[INFO]</strong> Sistema de testes inicializado
+                        </div>
+                    </div>
+                </div>
+                <button class="button secondary" onclick="clearLogs()" style="margin-top: 10px;">
+                    Limpar Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ovskepqggmxlfckxqgbr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E';
+
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logsContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logsContainer').innerHTML = '';
+            addLog('Logs limpos', 'info');
+        }
+
+        async function checkExtensionStatus() {
+            addLog('🔍 Verificando status da extensão...', 'info');
+
+            try {
+                // Verificar se storage está disponível
+                const data = await chrome.storage.local.get(['deviceId', 'userId', 'accessToken', 'isConnected', 'lastActivity']);
+
+                if (data.deviceId && data.userId && data.accessToken) {
+                    addLog('✅ Extensão conectada!', 'success');
+
+                    // Atualizar stats
+                    document.getElementById('deviceId').textContent = data.deviceId.substring(0, 8) + '...';
+                    document.getElementById('userId').textContent = data.userId.substring(0, 8) + '...';
+                    document.getElementById('connectionStatus').textContent = data.isConnected ? '🟢 Online' : '🔴 Offline';
+                    document.getElementById('lastActivity').textContent = data.lastActivity ? new Date(data.lastActivity).toLocaleTimeString() : 'N/A';
+                    document.getElementById('statsContainer').style.display = 'grid';
+
+                    document.getElementById('extensionStatus').innerHTML = '<span class="status success">✅ Conectada</span>';
+                } else {
+                    addLog('⚠️ Extensão não está conectada. Faça login primeiro!', 'warning');
+                    document.getElementById('extensionStatus').innerHTML = '<span class="status error">❌ Offline</span>';
+                }
+            } catch (error) {
+                addLog('❌ Erro ao verificar extensão: ' + error.message, 'error');
+                document.getElementById('extensionStatus').innerHTML = '<span class="status error">❌ Erro</span>';
+            }
+        }
+
+        async function testCommand(type, params) {
+            addLog(`🚀 Testando comando: ${type}`, 'info');
+
+            try {
+                // Obter dados da extensão
+                const data = await chrome.storage.local.get(['deviceId', 'userId', 'accessToken']);
+
+                if (!data.deviceId || !data.accessToken) {
+                    addLog('❌ Extensão não conectada. Faça login primeiro!', 'error');
+                    return;
+                }
+
+                // Criar comando no banco
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/extension_commands`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${data.accessToken}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        device_id: data.deviceId,
+                        user_id: data.userId,
+                        command_type: type,
+                        params: params,
+                        status: 'pending'
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${error}`);
+                }
+
+                const command = await response.json();
+                addLog(`✅ Comando criado: ${command[0].id}`, 'success');
+                addLog(`⏳ Aguardando execução... (polling de 5s)`, 'info');
+
+                // Aguardar execução (30 segundos)
+                let attempts = 0;
+                const maxAttempts = 6;
+
+                const checkExecution = setInterval(async () => {
+                    attempts++;
+
+                    const statusResponse = await fetch(
+                        `${SUPABASE_URL}/rest/v1/extension_commands?id=eq.${command[0].id}&select=*`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${data.accessToken}`,
+                                'apikey': SUPABASE_ANON_KEY
+                            }
+                        }
+                    );
+
+                    const [cmd] = await statusResponse.json();
+
+                    if (cmd.status === 'completed') {
+                        clearInterval(checkExecution);
+                        addLog(`✅ Comando executado com sucesso!`, 'success');
+                        if (cmd.result) {
+                            addLog(`📊 Resultado: ${JSON.stringify(cmd.result).substring(0, 200)}`, 'info');
+                        }
+                    } else if (cmd.status === 'failed') {
+                        clearInterval(checkExecution);
+                        addLog(`❌ Comando falhou: ${cmd.error}`, 'error');
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkExecution);
+                        addLog(`⏱️ Timeout: comando não executado em 30s`, 'warning');
+                    }
+                }, 5000);
+
+            } catch (error) {
+                addLog(`❌ Erro ao criar comando: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkPendingCommands() {
+            addLog('🔍 Verificando comandos pendentes...', 'info');
+
+            try {
+                const data = await chrome.storage.local.get(['deviceId', 'accessToken']);
+
+                if (!data.deviceId || !data.accessToken) {
+                    addLog('❌ Extensão não conectada', 'error');
+                    return;
+                }
+
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/extension_commands?device_id=eq.${data.deviceId}&order=created_at.desc&limit=20`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${data.accessToken}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        }
+                    }
+                );
+
+                const commands = await response.json();
+
+                addLog(`📊 Total de comandos: ${commands.length}`, 'info');
+
+                const pending = commands.filter(c => c.status === 'pending').length;
+                const completed = commands.filter(c => c.status === 'completed').length;
+                const failed = commands.filter(c => c.status === 'failed').length;
+
+                addLog(`⏳ Pendentes: ${pending}`, 'info');
+                addLog(`✅ Completados: ${completed}`, 'success');
+                addLog(`❌ Falhados: ${failed}`, failed > 0 ? 'error' : 'info');
+
+                document.getElementById('dbStatus').innerHTML =
+                    `<span class="status info">📊 ${commands.length} comandos</span>`;
+
+            } catch (error) {
+                addLog(`❌ Erro ao verificar banco: ${error.message}`, 'error');
+            }
+        }
+
+        // Verificar status automaticamente ao carregar
+        window.addEventListener('load', () => {
+            addLog('🎯 Página de testes carregada', 'info');
+            setTimeout(checkExtensionStatus, 500);
+        });
+    </script>
+</body>
+</html>

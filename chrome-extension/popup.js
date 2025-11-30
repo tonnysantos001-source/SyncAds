@@ -60,8 +60,14 @@ function updateStatus(isConnected) {
   } else {
     statusIndicator.classList.remove("connected");
     statusTitle.textContent = "⚠️ Desconectado";
-    statusSubtitle.textContent = "Clique em Conectar para ativar";
+    statusSubtitle.textContent = "Entre no painel para conectar";
     openPanelBtn.style.display = "inline-flex";
+
+    // Atualizar texto do botão
+    const btnText = document.getElementById("btnText");
+    if (btnText) {
+      btnText.textContent = "Verificar";
+    }
   }
 }
 
@@ -96,10 +102,11 @@ async function checkConnectionStatus() {
       `https://ovskepqggmxlfckxqgbr.supabase.co/rest/v1/extension_devices?device_id=eq.${result.deviceId}&select=last_seen,status`,
       {
         headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
+          apikey:
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
           Authorization: `Bearer ${result.accessToken}`,
         },
-      }
+      },
     );
 
     const data = await response.json();
@@ -155,65 +162,56 @@ openPanelBtn.addEventListener("click", async (e) => {
     const isOnPanel =
       currentTab.url &&
       (currentTab.url.includes("syncads.com.br") ||
-        currentTab.url.includes("localhost"));
+        currentTab.url.includes("localhost") ||
+        currentTab.url.includes("vercel.app"));
 
     if (!isOnPanel) {
-      console.log("🔄 [POPUP] Not on SyncAds panel, redirecting...");
+      console.log("⚠️ [POPUP] Not on SyncAds panel");
 
-      // Se não está no painel, redirecionar
-      await chrome.tabs.update(currentTab.id, {
-        url: CONFIG.PANEL_URL,
-      });
+      // Mostrar mensagem para ir ao painel (sem redirecionar)
+      setButtonState("default");
 
-      // Aguardar carregamento e verificar status múltiplas vezes
-      console.log("⏳ [POPUP] Waiting for login...");
+      // Atualizar UI para mostrar instrução
+      statusTitle.textContent = "⚠️ Abra o Painel";
+      statusSubtitle.textContent = "Entre no painel SyncAds para conectar";
 
-      setTimeout(() => checkConnectionStatus(), 2000);
-      setTimeout(() => checkConnectionStatus(), 4000);
-      setTimeout(() => checkConnectionStatus(), 6000);
+      console.log("💡 [POPUP] User needs to open SyncAds panel manually");
 
-      setTimeout(async () => {
-        const connected = await checkConnectionStatus();
-        setButtonState(connected ? "connected" : "default");
-      }, 7000);
-    } else {
-      console.log(
-        "✅ [POPUP] Already on SyncAds panel! Checking connection...",
-      );
-
-      // Já está no painel, forçar detecção
-      try {
-        console.log("📤 [POPUP] Sending CHECK_AUTH to content-script...");
-        const response = await chrome.tabs.sendMessage(currentTab.id, {
-          type: "CHECK_AUTH",
-        });
-        console.log("✅ [POPUP] Content-script response:", response);
-      } catch (err) {
-        console.log(
-          "⚠️ [POPUP] Content script not loaded, reloading tab...",
-          err.message,
-        );
-        await chrome.tabs.reload(currentTab.id);
-      }
-
-      // Verificar status múltiplas vezes
-      setTimeout(() => checkConnectionStatus(), 500);
-      setTimeout(() => checkConnectionStatus(), 1500);
-      setTimeout(() => checkConnectionStatus(), 3000);
-
-      setTimeout(async () => {
-        const connected = await checkConnectionStatus();
-        setButtonState(connected ? "connected" : "default");
-
-        if (!connected) {
-          console.log(
-            "🔴 [POPUP] Still not connected. Please login on the panel.",
-          );
-        } else {
-          console.log("🎉 [POPUP] Connection successful!");
-        }
-      }, 4000);
+      return;
     }
+
+    console.log("✅ [POPUP] Already on SyncAds panel! Checking connection...");
+
+    // Já está no painel, forçar detecção
+    try {
+      console.log("📤 [POPUP] Sending CHECK_AUTH to content-script...");
+      const response = await chrome.tabs.sendMessage(currentTab.id, {
+        type: "CHECK_AUTH",
+      });
+      console.log("✅ [POPUP] Content-script response:", response);
+    } catch (err) {
+      console.log("⚠️ [POPUP] Content script not responding", err.message);
+    }
+
+    // Verificar status múltiplas vezes
+    setTimeout(() => checkConnectionStatus(), 500);
+    setTimeout(() => checkConnectionStatus(), 1500);
+    setTimeout(() => checkConnectionStatus(), 3000);
+
+    setTimeout(async () => {
+      const connected = await checkConnectionStatus();
+      setButtonState(connected ? "connected" : "default");
+
+      if (!connected) {
+        console.log(
+          "🔴 [POPUP] Still not connected. Please login on the panel.",
+        );
+        statusTitle.textContent = "⚠️ Faça Login";
+        statusSubtitle.textContent = "Entre no painel para conectar";
+      } else {
+        console.log("🎉 [POPUP] Connection successful!");
+      }
+    }, 4000);
   } catch (error) {
     console.error("❌ [POPUP] Error connecting:", error);
     setButtonState("default");

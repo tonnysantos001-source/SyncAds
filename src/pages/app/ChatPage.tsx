@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { useRealtimeCommands } from "@/hooks/useRealtimeCommands";
 
 // ============================================
 // TYPES
@@ -64,7 +65,39 @@ export default function ChatPageNovo() {
   const [pendingCommands, setPendingCommands] = useState<PendingCommand[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const resultPollingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // ============================================
+  // REALTIME - Substituir polling por event-driven
+  // ============================================
+  const { isConnected: realtimeConnected } = useRealtimeCommands({
+    userId: user?.id,
+    enabled: !!user?.id,
+    onCommandCompleted: async (command) => {
+      console.log("✅ Realtime - Comando completado:", command);
+
+      // Encontrar comando pendente
+      const pending = pendingCommands.find((p) => p.id === command.id);
+      if (!pending) return;
+
+      // Processar resultado com IA
+      await processCommandResult(command, pending.messageId);
+
+      // Remover da lista de pendentes
+      setPendingCommands((prev) => prev.filter((p) => p.id !== command.id));
+    },
+    onCommandFailed: async (command) => {
+      console.error("❌ Realtime - Comando falhou:", command);
+
+      // Remover da lista de pendentes
+      setPendingCommands((prev) => prev.filter((p) => p.id !== command.id));
+
+      toast({
+        title: "Comando falhou",
+        description: command.error || "Erro ao executar comando na extensão",
+        variant: "destructive",
+      });
+    },
+  });
 
   // ============================================
   // AUTH CHECK
@@ -239,45 +272,6 @@ export default function ChatPageNovo() {
   }, [conversations, activeConversationId]);
 
   // ============================================
-  // POLLING DE RESULTADOS DE COMANDOS
-  // ============================================
-  useEffect(() => {
-    // Iniciar polling se houver comandos pendentes
-    if (pendingCommands.length > 0) {
-      console.log(
-        `🔄 Iniciando polling de ${pendingCommands.length} comandos pendentes`,
-      );
-
-      // Verificar imediatamente
-      checkCommandResults();
-
-      // Depois verificar a cada 3 segundos
-      if (!resultPollingInterval.current) {
-        resultPollingInterval.current = setInterval(() => {
-          checkCommandResults();
-        }, 3000);
-      }
-    } else {
-      // Parar polling se não houver comandos pendentes
-      if (resultPollingInterval.current) {
-        console.log(
-          "⏸️ Parando polling de resultados (sem comandos pendentes)",
-        );
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
-      }
-    }
-
-    // Cleanup ao desmontar
-    return () => {
-      if (resultPollingInterval.current) {
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
-      }
-    };
-  }, [pendingCommands.length, activeConversationId, user]);
-
-  // ============================================
   // CRIAR NOVA CONVERSA
   // ============================================
   const createNewConversation = async () => {
@@ -297,7 +291,6 @@ export default function ChatPageNovo() {
         userId: user.id,
         title: `Conversa ${new Date().toLocaleDateString()}`,
         createdAt: now,
-        updatedAt: now, // CORREÇÃO: campo obrigatório
       };
 
       console.log("🆕 Criando nova conversa:", newConv);
@@ -323,6 +316,18 @@ export default function ChatPageNovo() {
 
       setConversations([newConversation, ...conversations]);
       setActiveConversationId(newConv.id);
+
+      // IMPORTANTE: Limpar mensagens do estado atual
+      setMessages([]);
+      setIsLoadingMessages(false);
+
+      // Scroll para o topo
+      setTimeout(() => {
+        const chatContainer = document.querySelector(".overflow-y-auto");
+        if (chatContainer) {
+          chatContainer.scrollTop = 0;
+        }
+      }, 100);
 
       toast({
         title: "Nova conversa criada!",
@@ -395,56 +400,6 @@ export default function ChatPageNovo() {
     } catch (error) {
       console.error("❌ Erro ao enviar comando:", error);
       return null;
-    }
-  };
-
-  // ============================================
-  // POLLING DE RESULTADOS
-  // ============================================
-  const checkCommandResults = async () => {
-    if (pendingCommands.length === 0) return;
-
-    try {
-      const commandIds = pendingCommands.map((c) => c.id);
-
-      const { data: completedCommands, error } = await supabase
-        .from("ExtensionCommand")
-        .select("*")
-        .in("id", commandIds)
-        .in("status", ["COMPLETED", "FAILED"]);
-
-      if (error) {
-        console.error("❌ Erro ao buscar resultados:", error);
-        return;
-      }
-
-      if (completedCommands && completedCommands.length > 0) {
-        for (const cmd of completedCommands) {
-          const pending = pendingCommands.find((p) => p.id === cmd.id);
-          if (!pending) continue;
-
-          console.log("✅ Comando completado:", {
-            id: cmd.id,
-            command: cmd.command,
-            status: cmd.status,
-            result: cmd.result,
-          });
-
-          // Processar resultado com IA
-          await processCommandResult(cmd, pending.messageId);
-
-          // Remover da lista de pendentes
-          setPendingCommands((prev) => prev.filter((p) => p.id !== cmd.id));
-        }
-      }
-
-      // Limpar comandos muito antigos (> 2 minutos)
-      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-      setPendingCommands((prev) =>
-        prev.filter((p) => p.timestamp > twoMinutesAgo),
-      );
-    } catch (error) {
-      console.error("❌ Erro no polling de resultados:", error);
     }
   };
 
@@ -535,9 +490,9 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [...conv.messages, newMessage],
-              }
+              ...conv,
+              messages: [...conv.messages, newMessage],
+            }
             : conv,
         ),
       );
@@ -585,17 +540,17 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  ...conv.messages,
-                  {
-                    id: tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                ...conv.messages,
+                {
+                  id: tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
@@ -607,14 +562,11 @@ export default function ChatPageNovo() {
 
       if (!session) throw new Error("Sem sessão");
 
-      // LOG DE DEBUG CRÍTICO
+      // LOG DE DEBUG
       console.log("🚀 Enviando mensagem para IA:", {
         message: userMessage,
         extensionConnected: extensionStatus.connected,
         deviceId: extensionStatus.deviceId,
-        systemPromptLength: extensionStatus.connected
-          ? "LONG (Connected)"
-          : "SHORT (Offline)",
       });
 
       const response = await fetch(
@@ -629,40 +581,6 @@ export default function ChatPageNovo() {
             message: userMessage,
             conversationId: activeConversationId,
             extensionConnected: extensionStatus.connected,
-            systemPrompt: JSON.stringify({
-              role: "system",
-              content: extensionStatus.connected
-                ? `🚀 EXTENSÃO DO NAVEGADOR ATIVA - MODO DE AUTOMAÇÃO WEB
-
-**REGRAS CRÍTICAS:**
-
-1. **NUNCA mostre blocos JSON ao usuário**
- - ❌ ERRADO: "Vou abrir para você \`\`\`json {...} \`\`\`"
- - ✅ CORRETO: Responda naturalmente: "Abrindo Facebook Ads em nova aba..."
- - O JSON será detectado e executado automaticamente nos bastidores
-
-2. **Comandos disponíveis (use internamente, não mostre):**
- - NAVIGATE: {"type": "NAVIGATE", "data": {"url": "https://..."}}
- - LIST_TABS: {"type": "LIST_TABS", "data": {}}
- - CLICK_ELEMENT: {"type": "CLICK_ELEMENT", "data": {"selector": "button"}}
- - TYPE_TEXT: {"type": "TYPE_TEXT", "data": {"selector": "input", "text": "..."}}
- - READ_TEXT: {"type": "READ_TEXT", "data": {"selector": ".class"}}
- - GET_PAGE_INFO: {"type": "GET_PAGE_INFO", "data": {}}
- - EXECUTE_JS: {"type": "EXECUTE_JS", "data": {"code": "..."}}
-
-3. **Fluxo correto:**
- - Usuário: "abra o facebook"
- - Você: "Abrindo Facebook em nova aba... \`\`\`json\\n{\"type\": \"NAVIGATE\", \"data\": {\"url\": \"https://facebook.com\"}}\\n\`\`\`"
- - Sistema detecta o JSON, executa silenciosamente e remove da tela
- - Usuário vê apenas: "Abrindo Facebook em nova aba..."
-
-4. **IMPORTANTE:**
- - Todas as navegações SEMPRE abrem em NOVA ABA
- - NUNCA sai da página do SaaS/chat
- - Seja natural e conversacional com o usuário
- - O JSON é apenas para o sistema, não para o usuário ver`
-                : "Extensão do navegador OFFLINE. Não há acesso ao navegador. Responda normalmente.",
-            }),
           }),
         },
       );
@@ -699,24 +617,24 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: [
-                  // Remover temporários e adicionar as mensagens reais do banco
-                  ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
-                  {
-                    id: data.userMessageId || tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                  {
-                    id: data.aiMessageId || tempAiMsgId,
-                    role: "assistant",
-                    content: cleanResponse,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
+              ...conv,
+              messages: [
+                // Remover temporários e adicionar as mensagens reais do banco
+                ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
+                {
+                  id: data.userMessageId || tempUserMsgId,
+                  role: "user",
+                  content: userMessage,
+                  createdAt: new Date().toISOString(),
+                },
+                {
+                  id: data.aiMessageId || tempAiMsgId,
+                  role: "assistant",
+                  content: cleanResponse,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
             : conv,
         ),
       );
@@ -728,11 +646,11 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-                ...conv,
-                messages: conv.messages.filter(
-                  (m) => !m.id.startsWith("temp-"),
-                ),
-              }
+              ...conv,
+              messages: conv.messages.filter(
+                (m) => !m.id.startsWith("temp-"),
+              ),
+            }
             : conv,
         ),
       );
@@ -788,12 +706,20 @@ export default function ChatPageNovo() {
   // RENDER
   // ============================================
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    // Card responsivo com altura ajustada para o viewport menos header e padding
+    <div className="flex w-full h-[calc(100vh-10rem)] bg-gray-950 text-white rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative">
+      {/* MOBILE BACKDROP */}
+      {sidebarOpen && (
+        <div
+          className="absolute inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <div
-        className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } transition-all duration-300 border-r border-gray-800 flex flex-col`}
+        className={`${sidebarOpen ? "translate-x-0 w-72" : "-translate-x-full w-0 md:translate-x-0 md:w-0"
+          } absolute md:relative z-30 h-full transition-all duration-300 border-r border-gray-800 flex flex-col bg-gray-900 flex-shrink-0`}
       >
         {sidebarOpen && (
           <>
@@ -819,11 +745,10 @@ export default function ChatPageNovo() {
                   <div
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
-                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
-                      activeConversationId === conv.id
-                        ? "bg-gray-800 border border-blue-600"
-                        : "bg-gray-900 hover:bg-gray-800"
-                    }`}
+                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
+                      ? "bg-gray-800 border border-blue-600"
+                      : "bg-gray-900 hover:bg-gray-800"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm truncate">{conv.title}</span>
@@ -865,16 +790,14 @@ export default function ChatPageNovo() {
           {/* Status da Extensão */}
           <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                extensionStatus.connected
-                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                  : "bg-gray-800 text-gray-400 border border-gray-700"
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
+                ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                : "bg-gray-800 text-gray-400 border border-gray-700"
+                }`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${
-                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                }`}
+                className={`w-2 h-2 rounded-full ${extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                  }`}
               />
               <span>
                 {extensionStatus.connected
@@ -935,9 +858,8 @@ export default function ChatPageNovo() {
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${
-                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                    }`}
+                    className={`max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-blue-600" : "bg-gray-800"
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}

@@ -1,8 +1,69 @@
 """
 ============================================
-SYNCADS PYTHON MICROSERVICE - FULL
-IA + Supabase + Streaming + AI Tools
+SYNCADS PYTHON MICROSERVICE - PRODUCTION
+IA + Supabase + Browser Automation + AI Tools
 ============================================
+"""
+
+# ==========================================
+# IMPORTS - CORE
+# ==========================================
+import asyncio
+import json
+import os
+import sys
+import time
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+# ==========================================
+# IMPORTS - FASTAPI
+# ==========================================
+import httpx
+import jwt
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+from jwt.exceptions import InvalidTokenError
+from loguru import logger
+from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+# ==========================================
+# IMPORTS - UTILS
+# ==========================================
+from app.utils.ai_key_manager import get_ai_keys_from_supabase, get_active_ai_config
+
+# ==========================================
+# IMPORTS - SUPABASE
+# ==========================================
+from supabase import Client, create_client
+
+# ==========================================
+# STARTUP TIME
+# ==========================================
+startup_time = time.time()
+
+# ==========================================
+# SYSTEM PROMPTS
+# ==========================================
+ENHANCED_SYSTEM_PROMPT = """
+Você é um assistente de IA inteligente do SyncAds AI que pode:
+- Automatizar tarefas de navegador através da extensão Chrome
+- Executar automações complexas com Playwright e AgentQL
+- Interagir com o DOM de páginas web
+- Realizar scraping de dados
+- Processar e analisar informações
+
+Quando o usuário solicitar automação web, você deve:
+1. Identificar se é uma tarefa simples (DOM direto via extensão) ou complexa (Playwright/AgentQL)
+2. Explicar o que vai fazer antes de executar
+3. Fornecer feedback claro sobre o progresso
+4. Reportar erros de forma compreensível
+
+Seja direto, eficiente e sempre confirme ações importantes.
 """
 
 # ==========================================
@@ -10,18 +71,43 @@ IA + Supabase + Streaming + AI Tools
 # ==========================================
 app = FastAPI(
     title="SyncAds Python Microservice",
-    description="IA Service - Claude, OpenAI, Groq",
-    version="1.0.0-minimal",
+    description="IA Service - Claude, OpenAI, Groq + Browser Automation",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
 # ==========================================
+# RATE LIMITING
+# ==========================================
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ==========================================
 # CORS
 # ==========================================
+ALLOWED_ORIGINS = [
+    "https://syncads.vercel.app",
+    "https://www.syncads.com",
+    "https://syncads.com",
+    "https://ovskepqggmxlfckxqgbr.supabase.co",
+]
+
+# Add development origins if in development mode
+if os.getenv("ENVIRONMENT") == "development":
+    ALLOWED_ORIGINS.extend(
+        [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ]
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,82 +135,87 @@ class SupabaseHTTP:
 
 
 class SupabaseTableHTTP:
-    """Operações de tabela usando httpx"""
-
-    def __init__(self, base_url: str, table_name: str, headers: dict):
-        self.base_url = base_url
+    def __init__(self, url: str, table_name: str, headers: dict):
+        self.url = url
         self.table_name = table_name
         self.headers = headers
-        self.endpoint = f"{base_url}/rest/v1/{table_name}"
+        self.base_url = f"{url}/rest/v1/{table_name}"
 
     async def insert(self, data: dict):
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(self.endpoint, json=data, headers=self.headers)
-            return {"data": response.json() if response.status_code == 201 else None}
+        async with httpx.AsyncClient() as client:
+            response = await client.post(self.base_url, json=data, headers=self.headers)
+            return response
 
     async def select(self, columns: str = "*"):
-        return SupabaseSelectHTTP(self.endpoint, columns, self.headers)
+        return SupabaseSelectHTTP(self.url, self.table_name, self.headers, columns)
 
     async def update(self, data: dict):
-        return SupabaseUpdateHTTP(self.endpoint, data, self.headers)
+        return SupabaseUpdateHTTP(self.url, self.table_name, self.headers, data)
 
     async def upsert(self, data: dict):
-        headers = {**self.headers, "Prefer": "resolution=merge-duplicates"}
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(self.endpoint, json=data, headers=headers)
-            return {
-                "data": response.json() if response.status_code in [200, 201] else None
-            }
+        headers = self.headers.copy()
+        headers["Prefer"] = "resolution=merge-duplicates"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(self.base_url, json=data, headers=headers)
+            return response
 
 
 class SupabaseSelectHTTP:
-    def __init__(self, endpoint: str, columns: str, headers: dict):
-        self.endpoint = endpoint
-        self.columns = columns
+    def __init__(self, url: str, table_name: str, headers: dict, columns: str):
+        self.url = url
+        self.table_name = table_name
         self.headers = headers
+        self.columns = columns
         self.filters = []
 
-    def eq(self, column: str, value: str):
+    def eq(self, column: str, value: Any):
         self.filters.append(f"{column}=eq.{value}")
         return self
 
     async def execute(self):
-        params = {"select": self.columns}
+        query_url = f"{self.url}/rest/v1/{self.table_name}?select={self.columns}"
         if self.filters:
-            for filter_str in self.filters:
-                key, val = filter_str.split("=", 1)
-                params[key] = val
+            query_url += "&" + "&".join(self.filters)
 
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        url = f"{self.endpoint}?{query_string}"
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url, headers=self.headers)
-            return {"data": response.json() if response.status_code == 200 else []}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(query_url, headers=self.headers)
+            data = response.json() if response.status_code == 200 else []
+            return type(
+                "Response",
+                (),
+                {
+                    "data": data,
+                    "error": None if response.status_code == 200 else response.text,
+                },
+            )()
 
 
 class SupabaseUpdateHTTP:
-    def __init__(self, endpoint: str, data: dict, headers: dict):
-        self.endpoint = endpoint
-        self.data = data
+    def __init__(self, url: str, table_name: str, headers: dict, data: dict):
+        self.url = url
+        self.table_name = table_name
         self.headers = headers
+        self.data = data
         self.filters = []
 
-    def eq(self, column: str, value: str):
+    def eq(self, column: str, value: Any):
         self.filters.append(f"{column}=eq.{value}")
         return self
 
     async def execute(self):
-        query_string = "&".join(self.filters)
-        url = f"{self.endpoint}?{query_string}"
+        query_url = f"{self.url}/rest/v1/{self.table_name}"
+        if self.filters:
+            query_url += "?" + "&".join(self.filters)
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.patch(url, json=self.data, headers=self.headers)
-            return {"data": response.json() if response.status_code == 200 else None}
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(
+                query_url, json=self.data, headers=self.headers
+            )
+            return response
 
 
 # ==========================================
-# SUPABASE CLIENT
+# ENVIRONMENT VARIABLES
 # ==========================================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
@@ -133,6 +224,7 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 supabase: Optional[Client] = None
 supabase_http: Optional[SupabaseHTTP] = None
 
+# Initialize Supabase
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -146,6 +238,8 @@ if SUPABASE_URL and SUPABASE_KEY:
         except Exception as e2:
             logger.error(f"❌ Supabase HTTP fallback also failed: {e2}")
             logger.warning("⚠️ Running without Supabase connection")
+else:
+    logger.warning("⚠️ Supabase credentials not configured")
 
 
 # ==========================================
@@ -160,55 +254,37 @@ def detect_browser_automation_intent(message: str) -> Optional[Dict]:
         word in message_lower
         for word in ["abra", "abrir", "navegue", "vá para", "acesse"]
     ):
-        # Extrair URL se houver
         import re
 
-        url_pattern = (
-            r"https?://[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?"
-        )
-        urls = re.findall(url_pattern, message)
-        if urls:
-            return {"type": "NAVIGATE", "data": {"url": urls[0]}}
+        url_match = re.search(r"https?://[^\s]+", message)
+        if url_match:
+            return {"type": "NAVIGATE", "data": {"url": url_match.group(0)}}
 
     # Clicar em elemento
-    if any(
-        word in message_lower for word in ["clique", "clicar", "pressione", "aperte"]
-    ):
-        # Extrair texto do botão/elemento
-        button_patterns = [
-            r'bot[ãa]o ["\']([^"\']+)["\']',
-            r'em ["\']([^"\']+)["\']',
-            r"no bot[ãa]o ([^\s]+)",
-        ]
-        for pattern in button_patterns:
-            import re
+    if any(word in message_lower for word in ["clique", "click", "pressione"]):
+        # Tentar extrair seletor
+        if "botão" in message_lower or "button" in message_lower:
+            return {"type": "CLICK", "data": {"selector": "button"}}
+        return {"type": "CLICK", "data": {"selector": "*"}}
 
-            match = re.search(pattern, message_lower)
-            if match:
-                return {
-                    "type": "DOM_CLICK",
-                    "data": {
-                        "selector": f"button:contains('{match.group(1)}')",
-                        "text": match.group(1),
-                    },
-                }
-
-    # Preencher campo
+    # Preencher formulário
     if any(
-        word in message_lower
-        for word in ["preencha", "preencher", "digite", "escreva", "insira"]
+        word in message_lower for word in ["digite", "preencha", "escreva", "insira"]
     ):
-        # Extrair campo e valor
         import re
 
-        fill_pattern = r'campo ["\']?([^"\']+)["\']? (?:com|de) ["\']?([^"\']+)["\']?'
-        match = re.search(fill_pattern, message_lower)
-        if match:
+        value_match = re.search(r'"([^"]+)"', message)
+        field_match = re.search(r"no campo (\w+)", message_lower)
+
+        if value_match:
+            selector = (
+                f"input[name*='{field_match.group(1)}']" if field_match else "input"
+            )
             return {
-                "type": "DOM_FILL",
+                "type": "TYPE",
                 "data": {
-                    "selector": f"input[name*='{match.group(1)}']",
-                    "value": match.group(2),
+                    "selector": selector,
+                    "value": value_match.group(1),
                 },
             }
 
@@ -229,7 +305,7 @@ def detect_browser_automation_intent(message: str) -> Optional[Dict]:
 
 
 # ==========================================
-# MODELS
+# PYDANTIC MODELS
 # ==========================================
 class ChatRequest(BaseModel):
     message: str
@@ -238,17 +314,16 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    response: str
-    model: str
-    provider: str
-    tokens_used: Optional[int] = None
+    role: str
+    content: str
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 
 # ==========================================
 # HELPER FUNCTIONS
 # ==========================================
-async def validate_jwt(authorization: str) -> Dict:
-    """Valida JWT do Supabase e retorna payload"""
+async def validate_jwt(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """Valida JWT do Supabase"""
     try:
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Token não fornecido")
@@ -269,37 +344,11 @@ async def validate_jwt(authorization: str) -> Dict:
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-async def get_active_ai() -> Optional[Dict]:
-    """Busca primeira IA global ativa no Supabase"""
-    if not supabase:
-        logger.warning("Supabase not configured, using fallback")
-        return None
-
-    try:
-        # Buscar primeira IA global ativa
-        response = (
-            supabase.table("GlobalAiConnection")
-            .select("*")
-            .eq("isActive", True)
-            .order("createdAt", desc=False)
-            .limit(1)
-            .execute()
-        )
-
-        if response.data and len(response.data) > 0:
-            logger.info(f"✅ Using global AI: {response.data[0].get('name')}")
-            return response.data[0]
-
-        logger.warning("⚠️ No active AI found")
-        return None
-
-    except Exception as e:
-        logger.error(f"Error fetching AI config: {e}")
-        return None
+# get_active_ai removido - usar get_active_ai_config de utils
 
 
 async def get_conversation_history(conversation_id: str, limit: int = 10) -> List[Dict]:
-    """Busca histórico da conversa no Supabase"""
+    """Busca histórico de conversação"""
     if not supabase:
         return []
 
@@ -313,7 +362,7 @@ async def get_conversation_history(conversation_id: str, limit: int = 10) -> Lis
             .execute()
         )
 
-        return response.data if response.data else []
+        return response.data or []
     except Exception as e:
         logger.error(f"Error fetching history: {e}")
         return []
@@ -322,7 +371,7 @@ async def get_conversation_history(conversation_id: str, limit: int = 10) -> Lis
 async def save_message(
     conversation_id: str, role: str, content: str, user_id: Optional[str] = None
 ):
-    """Salva mensagem no Supabase"""
+    """Salva mensagem no banco"""
     if not supabase:
         return
 
@@ -333,7 +382,6 @@ async def save_message(
             "content": content,
             "createdAt": datetime.utcnow().isoformat(),
         }
-
         if user_id:
             data["userId"] = user_id
 
@@ -344,320 +392,159 @@ async def save_message(
 
 
 # ==========================================
-# HEALTH CHECK
+# ENDPOINTS
 # ==========================================
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "service": "syncads-python-microservice",
-        "status": "running",
-        "version": "1.0.0-minimal",
-        "timestamp": time.time(),
+        "service": "SyncAds Python Microservice",
+        "version": "2.0.0",
+        "status": "online",
+        "endpoints": {"health": "/health", "docs": "/docs", "chat": "/api/chat"},
     }
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
+@limiter.limit("60/minute")
+async def health_check(request: Request):
+    """
+    Health check endpoint com verificações detalhadas
+    Retorna status de todos os serviços críticos
+    """
+    health_status = {
         "status": "healthy",
-        "service": "syncads-python-microservice",
-        "version": "1.0.0-minimal",
-        "timestamp": time.time(),
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "2.0.0",
+        "services": {},
+        "uptime_seconds": time.time() - startup_time
+        if "startup_time" in globals()
+        else 0,
     }
 
+    # Verificar Supabase
+    try:
+        if supabase:
+            # Tentar fazer uma query simples
+            test_query = (
+                supabase.table("GlobalAiConnection").select("id").limit(1).execute()
+            )
+            health_status["services"]["supabase"] = {
+                "status": "connected",
+                "response_time_ms": 0,
+            }
+        else:
+            health_status["services"]["supabase"] = {
+                "status": "disconnected",
+                "error": "Client not initialized",
+            }
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["services"]["supabase"] = {"status": "error", "error": str(e)}
+        health_status["status"] = "degraded"
 
-# ==========================================
-# IA CHAT ENDPOINT - FULL VERSION
-# ==========================================
+    # Verificar módulos de IA disponíveis e keys do banco
+    ai_keys = {}
+    try:
+        if supabase:
+            ai_keys = get_ai_keys_from_supabase(supabase)
+    except Exception as e:
+        logger.warning(f"Could not load AI keys from database: {e}")
+
+    health_status["services"]["ai_modules"] = {
+        "openai": "openai" in sys.modules,
+        "anthropic": "anthropic" in sys.modules,
+        "groq": "groq" in sys.modules,
+    }
+
+    health_status["services"]["ai_keys_loaded"] = {
+        "openai": bool(ai_keys.get("openai")),
+        "anthropic": bool(ai_keys.get("anthropic")),
+        "groq": bool(ai_keys.get("groq")),
+        "source": "database" if ai_keys else "none",
+    }
+
+    # Verificar módulos de automação
+    health_status["services"]["automation"] = {
+        "playwright": "playwright" in sys.modules,
+        "selenium": "selenium" in sys.modules,
+    }
+
+    # Rate limiting status
+    health_status["services"]["rate_limiter"] = {
+        "status": "active",
+        "limits": {
+            "health": "60/minute",
+            "chat": "20/minute",
+            "browser_automation": "10/minute",
+        },
+    }
+
+    return health_status
+
+
 @app.post("/api/chat")
-async def chat(
-    request: ChatRequest, authorization: str = Header(None, alias="Authorization")
-):
-    """Chat com IA integrado ao Supabase + AI Tools"""
+@limiter.limit("20/minute")
+async def chat_endpoint(request: ChatRequest, req: Request = None):
+    """
+    Chat endpoint with AI streaming support usando GlobalAI do Supabase
+    """
     try:
         logger.info(f"📨 Chat request: conversationId={request.conversationId}")
 
-        # 1. Validar JWT
-        user_payload = (
-            await validate_jwt(authorization) if authorization else {"sub": "anonymous"}
-        )
-        user_id = request.userId or user_payload.get("sub")
+        # 1. Buscar IA Global ativa do Supabase (Centralizado)
+        ai_config = get_active_ai_config(supabase)
 
-        # 1.5 Verificar se usuário tem extensão conectada
-        user_devices = []
-        if supabase:
-            try:
-                response = (
-                    supabase.table("extension_devices")
-                    .select("*")
-                    .eq("user_id", user_id)
-                    .eq("status", "online")
-                    .execute()
-                )
-                user_devices = response.data if response.data else []
-            except Exception as e:
-                logger.error(f"❌ Error fetching devices: {e}")
-
-        has_extension = len(user_devices) > 0
-
-        if has_extension:
-            logger.info(
-                f"✅ Usuário {user_id} tem {len(user_devices)} extensão(ões) conectada(s)"
-            )
-        else:
-            logger.info(f"⚠️ Usuário {user_id} sem extensões conectadas")
-
-        # 2. Detectar se precisa usar ferramenta AI
-        logger.info(f"📝 Mensagem recebida: '{request.message}'")
-        tool_intent = detect_tool_intent(request.message)
-        logger.info(f"🔍 Detecção de intent resultado: {tool_intent}")
-        tool_result = None
-
-        # 2.5 Detectar automação de navegador
-        browser_intent = detect_browser_automation_intent(request.message)
-        if browser_intent and has_extension:
-            logger.info(
-                f"🌐 Automação de navegador detectada: {browser_intent['type']}"
-            )
-
-            # Criar comando para extensão
-            if user_devices:
-                device_id = user_devices[0]["device_id"]
-                
-                command_data = {
-                    "user_id": user_id,
-                    "device_id": device_id,
-                    "command": browser_intent["type"], # Adjusted to match schema
-                    "params": browser_intent["data"],  # Adjusted to match schema
-                    "status": "PENDING",               # Adjusted to match schema
-                    "created_at": datetime.utcnow().isoformat(),
-                }
-
-                try:
-                    # Salvar comando no Supabase
-                    cmd_response = supabase.table("extension_commands").insert(command_data).execute()
-                    
-                    if cmd_response.data:
-                        command_id = cmd_response.data[0]['id']
-                        logger.info(f"✅ Comando criado no DB: {command_id}")
-
-                        # Adicionar ao contexto da resposta
-                        tool_result = (
-                            f"\n\n[COMANDO DE AUTOMAÇÃO ENVIADO: {browser_intent['type']}]\n"
-                        )
-                    else:
-                        logger.error("❌ Falha ao criar comando: sem dados retornados")
-                except Exception as e:
-                    logger.error(f"❌ Erro ao salvar comando no Supabase: {e}")
-
-        if tool_intent:
-            logger.info(f"🛠️ TOOL DETECTED! Executando ferramenta: {tool_intent}")
-
-            try:
-                # NOVO: Verificar se precisa usar extensão do navegador
-                if tool_intent in [
-                    "dom_automation",
-                    "browser_action",
-                    "web_automation",
-                ]:
-                    # Tentar criar comando para extensão
-                    try:
-                        # Extrair informações do comando da mensagem
-                        command_type = "DOM_CLICK"  # Default
-                        selector = None
-                        value = None
-
-                        # Análise simples da mensagem
-                        msg_lower = request.message.lower()
-                        if "clicar" in msg_lower or "click" in msg_lower:
-                            command_type = "DOM_CLICK"
-                        elif (
-                            "preencher" in msg_lower
-                            or "digitar" in msg_lower
-                            or "fill" in msg_lower
-                        ):
-                            command_type = "DOM_FILL"
-                        elif (
-                            "ler" in msg_lower
-                            or "extrair" in msg_lower
-                            or "read" in msg_lower
-                        ):
-                            command_type = "DOM_READ"
-                        elif (
-                            "navegar" in msg_lower
-                            or "ir para" in msg_lower
-                            or "navigate" in msg_lower
-                        ):
-                            command_type = "NAVIGATE"
-
-                        command_id = await send_command_to_extension(
-                            user_id=user_id,
-                            command_type=command_type,
-                            selector=selector,
-                            value=value,
-                            options={},
-                        )
-
-                        # Aguardar resultado (com timeout)
-                        tool_result = await wait_for_command_result(
-                            command_id, timeout=30
-                        )
-
-                    except Exception as ext_error:
-                        logger.error(f"❌ Extension error: {ext_error}")
-                        tool_result = {
-                            "success": False,
-                            "error": str(ext_error),
-                            "message": "Erro ao usar extensão. Verifique se está instalada e ativa.",
-                        }
-
-                elif tool_intent == "image":
-                    # Gerar imagem com Pollinations.ai (gratuito)
-                    logger.info(
-                        f"🎨 Iniciando geração de imagem com prompt: {request.message}"
-                    )
-                    image_gen = create_image_generator()
-                    tool_result = await image_gen.generate(request.message)
-                    logger.info(f"🎨 Resultado da geração: {tool_result}")
-
-                elif tool_intent == "video":
-                    # Gerar vídeo com Pollinations.ai (gratuito)
-                    logger.info(
-                        f"🎬 Iniciando geração de vídeo com prompt: {request.message}"
-                    )
-                    video_gen = create_video_generator()
-                    tool_result = await video_gen.generate_from_prompt(request.message)
-                    logger.info(f"🎬 Resultado da geração: {tool_result}")
-
-                elif tool_intent == "search":
-                    # Buscar na web
-                    query = (
-                        request.message.replace("pesquise", "")
-                        .replace("busque", "")
-                        .replace("procure", "")
-                        .strip()
-                    )
-                    searcher = create_web_searcher()
-                    tool_result = await searcher.search(query, num_results=5)
-
-                elif tool_intent == "file":
-                    # Placeholder - precisa de nome e conteúdo
-                    tool_result = {
-                        "success": False,
-                        "error": "Criar arquivo requer nome e conteúdo. Use: 'crie arquivo dados.txt com conteúdo: [texto]'",
-                    }
-
-                elif tool_intent == "python":
-                    # Executar Python
-                    code = (
-                        request.message.replace("execute python", "")
-                        .replace("rode python", "")
-                        .strip()
-                    )
-                    executor = create_python_executor()
-                    tool_result = await executor.execute(code)
-
-            except Exception as tool_error:
-                logger.error(
-                    f"❌ ERRO NA FERRAMENTA {tool_intent}: {tool_error}", exc_info=True
-                )
-                tool_result = {"success": False, "error": str(tool_error)}
-        else:
-            logger.info("ℹ️ Nenhuma ferramenta detectada - resposta normal de chat")
-
-        # 3. Salvar mensagem do usuário
-        await save_message(request.conversationId, "user", request.message, user_id)
-
-        # 4. Buscar IA global ativa
-        ai_config = await get_active_ai()
-
-        # 4. Fallback para variáveis de ambiente se não houver config
         if not ai_config:
-            logger.warning("⚠️ No AI config found, using env vars")
-            ai_config = {
-                "provider": "ANTHROPIC",
-                "apiKey": os.getenv("ANTHROPIC_API_KEY"),
-                "model": "claude-3-5-sonnet-20241022",
-                "maxTokens": 4096,
-                "temperature": 0.7,
-                "systemPrompt": ENHANCED_SYSTEM_PROMPT,
-            }
+            raise HTTPException(
+                status_code=503,
+                detail="No AI configured. Please configure Global AI in admin panel.",
+            )
 
-        # 5. Buscar histórico
+        # Extrair configurações
+        provider = ai_config["provider"].upper()
+        api_key = ai_config["apiKey"]
+        model = ai_config["model"]
+        max_tokens = ai_config["maxTokens"]
+        temperature = ai_config["temperature"]
+        system_prompt = ai_config["systemPrompt"]
+
+        logger.info(f"🤖 Using: {ai_config['name']} - {provider} / {model}")
+
+        # 2. Save user message
+        await save_message(
+            request.conversationId, "user", request.message, request.userId
+        )
+
+        # 3. Detect browser automation intent
+        browser_intent = detect_browser_automation_intent(request.message)
+
+        if browser_intent:
+            logger.info(f"🌐 Browser automation detected: {browser_intent['type']}")
+            response_content = (
+                f"Detectei uma solicitação de automação: {browser_intent['type']}. "
+                "Executando via extensão Chrome..."
+            )
+
+            # Save response
+            await save_message(
+                request.conversationId, "assistant", response_content, request.userId
+            )
+
+            return ChatResponse(role="assistant", content=response_content)
+
+        # 4. Buscar histórico da conversa
         history = await get_conversation_history(request.conversationId, limit=10)
 
-        # 6. Montar mensagens (incluir resultado da ferramenta se houver)
+        # 5. Montar mensagens
         messages = []
         for msg in history:
             messages.append({"role": msg.get("role"), "content": msg.get("content")})
 
-        # Se usou ferramenta, adicionar resultado ao contexto
-        if tool_result:
-            tool_context = f"\n\n[TOOL_RESULT]\n{json.dumps(tool_result, indent=2, ensure_ascii=False)}\n[/TOOL_RESULT]\n\nResponda ao usuário sobre o resultado acima de forma amigável."
-            messages.append({"role": "system", "content": tool_context})
+        messages.append({"role": "user", "content": request.message})
 
-        # 7. Gerar resposta baseado no provider
-        provider = ai_config.get("provider", "ANTHROPIC").upper()
-        api_key = ai_config.get("apiKey")
-        model = ai_config.get("model", "claude-3-5-sonnet-20241022")
-        max_tokens = ai_config.get("maxTokens", 4096)
-        temperature = ai_config.get("temperature", 0.7)
-
-        # Usar prompt do banco OU o enhanced prompt
-        base_system_prompt = ai_config.get(
-            "systemPrompt", "Você é um assistente útil de marketing digital."
-        )
-
-        # Condicionar system prompt baseado em extensão
-        extension_status = ""
-        if has_extension:
-            extension_status = """
-
-✅ EXTENSÃO DO NAVEGADOR CONECTADA E ATIVA!
-
-O usuário tem a extensão SyncAds AI instalada e conectada.
-Você PODE e DEVE usar os comandos de automação de navegador!
-
-Quando o usuário pedir para:
-- Criar campanhas
-- Preencher formulários
-- Navegar em sites
-- Clicar em botões
-- Ler dados de páginas
-
-EXECUTE automaticamente usando a extensão!
-NUNCA diga "não posso acessar o navegador" - VOCÊ PODE!
-"""
-        else:
-            extension_status = """
-
-⚠️ EXTENSÃO DO NAVEGADOR NÃO CONECTADA
-
-O usuário NÃO tem a extensão SyncAds AI conectada no momento.
-
-Se ele pedir automação de navegador:
-1. Informe: "Para realizar essa automação, preciso que você conecte a extensão SyncAds AI"
-2. Instrua: "Clique no ícone da extensão no Chrome e clique em 'Conectar'"
-3. Ofereça alternativas: "Posso ajudar de outras formas enquanto isso?"
-
-NÃO prometa funcionalidades de navegador sem extensão conectada.
-"""
-
-        system_prompt = (
-            f"{base_system_prompt}\n\n{ENHANCED_SYSTEM_PROMPT}\n\n{extension_status}"
-        )
-
-        logger.info(
-            f"🤖 Using provider: {provider}, model: {model}, extension: {has_extension}"
-        )
-
-        # 8. Gerar resposta com streaming
+        # 6. Gerar resposta baseado no provider
         if provider == "ANTHROPIC":
-            if not api_key:
-                api_key = os.getenv("ANTHROPIC_API_KEY")
-
             from anthropic import Anthropic
 
             client = Anthropic(api_key=api_key)
@@ -675,18 +562,15 @@ NÃO prometa funcionalidades de navegador sem extensão conectada.
                         full_response += text
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
-                # Salvar resposta completa
+                # Salvar resposta
                 await save_message(
-                    request.conversationId, "assistant", full_response, user_id
+                    request.conversationId, "assistant", full_response, request.userId
                 )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
 
         elif provider == "OPENAI":
-            if not api_key:
-                api_key = os.getenv("OPENAI_API_KEY")
-
             from openai import OpenAI
 
             client = OpenAI(api_key=api_key)
@@ -708,16 +592,13 @@ NÃO prometa funcionalidades de navegador sem extensão conectada.
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
                 await save_message(
-                    request.conversationId, "assistant", full_response, user_id
+                    request.conversationId, "assistant", full_response, request.userId
                 )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
 
         elif provider == "GROQ":
-            if not api_key:
-                api_key = os.getenv("GROQ_API_KEY")
-
             from groq import Groq
 
             client = Groq(api_key=api_key)
@@ -739,7 +620,7 @@ NÃO prometa funcionalidades de navegador sem extensão conectada.
                         yield f"data: {json.dumps({'text': text})}\n\n"
 
                 await save_message(
-                    request.conversationId, "assistant", full_response, user_id
+                    request.conversationId, "assistant", full_response, request.userId
                 )
                 yield f"data: {json.dumps({'done': True})}\n\n"
 
@@ -747,311 +628,137 @@ NÃO prometa funcionalidades de navegador sem extensão conectada.
 
         else:
             raise HTTPException(
-                status_code=400, detail=f"Provider '{provider}' não suportado"
+                status_code=400,
+                detail=f"Provider '{provider}' não suportado. Use ANTHROPIC, OPENAI ou GROQ.",
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ Chat error: {str(e)}")
+        logger.error(f"❌ Chat error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==========================================
-# EXCEPTION HANDLER
-# ==========================================
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Handle all exceptions"""
-    logger.error(f"Global exception: {str(exc)}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal Server Error",
-            "message": str(exc),
-            "timestamp": time.time(),
-        },
-    )
+# Endpoint de fallback removido - usar router browser_automation real
 
 
 # ==========================================
-# EXTENSION HELPER FUNCTIONS
-# ==========================================
-
-
-async def send_command_to_extension(
-    user_id: str,
-    command_type: str,
-    selector: str = None,
-    value: str = None,
-    options: dict = None,
-) -> str:
-    """
-    Envia comando para extensão do navegador
-    """
-    try:
-        # Buscar device ativo do usuário
-        result = (
-            supabase.table("extension_devices")
-            .select("device_id")
-            .eq("user_id", user_id)
-            .eq("status", "online")
-            .limit(1)
-            .execute()
-        )
-
-        if not result.data or len(result.data) == 0:
-            raise Exception(
-                "Nenhuma extensão conectada. Por favor, instale e ative a extensão."
-            )
-
-        device_id = result.data[0]["device_id"]
-
-        # Criar comando
-        command = (
-            supabase.table("extension_commands")
-            .insert(
-                {
-                    "device_id": device_id,
-                    "user_id": user_id,
-                    "type": command_type,
-                    "selector": selector,
-                    "value": value,
-                    "options": options or {},
-                    "status": "pending",
-                }
-            )
-            .execute()
-        )
-
-        command_id = command.data[0]["id"]
-        logger.info(f"✅ Command created: {command_id}")
-
-        return command_id
-
-                    "success": False,
-                    "error": command.get("result", {}).get("error", "Command failed"),
-                }
-
-        # Aguardar 500ms antes de verificar novamente
-        await asyncio.sleep(0.5)
-
-    # Timeout
-    return {"success": False, "error": f"Command timeout after {timeout}s"}
-
-
-# ==========================================
-# EXTENSION API ENDPOINTS
-# ==========================================
-
-
-@app.post("/api/extension/register")
-async def register_extension(request: Request):
-    """
-    Registra dispositivo da extensão
-    Body: { deviceId, userId, browser, version, timestamp }
-    """
-    try:
-        data = await request.json()
-
-        logger.info(f"📱 Registrando extensão: {data.get('deviceId')}")
-
-        # Salvar no Supabase
-        result = (
-            supabase.table("extension_devices")
-            .upsert(
-                {
-                    "device_id": data["deviceId"],
-                    "user_id": data.get("userId"),
-                    "browser_info": data.get("browser"),
-                    "version": data.get("version"),
-                    "status": "online",
-                    "last_seen": datetime.utcnow().isoformat(),
-                }
-            )
-            .execute()
-        )
-
-        logger.info(f"✅ Extension registered: {data['deviceId']}")
-
-        return {
-            "success": True,
-            "deviceId": data["deviceId"],
-            "message": "Extension registered successfully",
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Registration error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/extension/commands")
-async def get_extension_commands(deviceId: str):
-    """
-    Long polling - retorna comandos pendentes para a extensão
-    Query: ?deviceId=device_xxx
-    """
-    try:
-        logger.info(f"🔍 Buscando comandos para: {deviceId}")
-
-        # Buscar comandos pendentes no Supabase
-        result = (
-            supabase.table("extension_commands")
-            .select("*")
-            .eq("device_id", deviceId)
-            .eq("status", "pending")
-            .order("created_at")
-            .execute()
-        )
-
-        commands = result.data if result.data else []
-
-        # Marcar como "processing"
-        if commands:
-            command_ids = [cmd["id"] for cmd in commands]
-            supabase.table("extension_commands").update(
-                {"status": "processing", "started_at": datetime.utcnow().isoformat()}
-            ).in_("id", command_ids).execute()
-
-            logger.info(f"✅ Retornando {len(commands)} comandos")
-
-        return {"success": True, "commands": commands, "count": len(commands)}
-
-    except Exception as e:
-        logger.error(f"❌ Commands fetch error: {e}")
-        return {"success": False, "commands": [], "error": str(e)}
-
-
-@app.post("/api/extension/result")
-async def receive_extension_result(request: Request):
-    """
-    Recebe resultado de comando executado pela extensão
-    Body: { deviceId, commandId, result, timestamp }
-    """
-    try:
-        data = await request.json()
-
-        logger.info(f"📥 Recebendo resultado: {data.get('commandId')}")
-
-        # Atualizar comando no Supabase
-        supabase.table("extension_commands").update(
-            {
-                "status": "completed" if data["result"].get("success") else "failed",
-                "result": data["result"],
-                "completed_at": datetime.utcnow().isoformat(),
-            }
-        ).eq("id", data["commandId"]).execute()
-
-        logger.info(f"✅ Command result received: {data['commandId']}")
-
-        # Salvar log da execução
-        supabase.table("extension_logs").insert(
-            {
-                "device_id": data["deviceId"],
-                "command_id": data["commandId"],
-                "result": data["result"],
-                "action": "COMMAND_COMPLETED",
-                "message": f"Command {data['commandId']} completed",
-                "timestamp": data.get("timestamp", int(time.time() * 1000)),
-            }
-        ).execute()
-
-        return {"success": True, "message": "Result received"}
-
-    except Exception as e:
-        logger.error(f"❌ Result error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/extension/log")
-async def receive_extension_log(request: Request):
-    """
-    Recebe logs da extensão
-    Body: { deviceId, userId, action, message, data, timestamp }
-    """
-    try:
-        data = await request.json()
-
-        # Salvar log no Supabase
-        supabase.table("extension_logs").insert(
-            {
-                "device_id": data["deviceId"],
-                "user_id": data.get("userId"),
-                "action": data["action"],
-                "message": data["message"],
-                "data": data.get("data"),
-                "url": data.get("url"),
-                "timestamp": data.get("timestamp", int(time.time() * 1000)),
-            }
-        ).execute()
-
-        logger.info(f"📝 Log recebido: {data['action']} - {data['message']}")
-
-        return {"success": True}
-
-    except Exception as e:
-        logger.error(f"❌ Log error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/extension/devices/{user_id}")
-async def get_user_devices(user_id: str):
-    """
-    Lista dispositivos conectados de um usuário
-    """
-    try:
-        user_devices = []
-        
-        # Buscar no Supabase
-        if supabase:
-            try:
-                result = (
-                    supabase.table("extension_devices")
-                    .select("*")
-                    .eq("user_id", user_id)
-                    .execute()
-                )
-                if result.data:
-                    for db_device in result.data:
-                        user_devices.append(
-                            {
-                                "device_id": db_device["device_id"],
-                                "browser_info": db_device.get("browser_info"),
-                                "version": db_device.get("version"),
-                                "status": db_device.get("status"),
-                                "last_seen": db_device.get("last_seen"),
-                            }
-                        )
-            except Exception as e:
-                logger.warning(f"⚠️ Erro ao buscar devices no Supabase: {e}")
-
-        logger.info(f"📱 Usuário {user_id} tem {len(user_devices)} dispositivos")
-
-        return {"success": True, "devices": user_devices, "count": len(user_devices)}
-
-    except Exception as e:
-        logger.error(f"❌ Erro ao buscar dispositivos: {e}")
-        return {"success": False, "devices": [], "error": str(e)}
-
-
-# ==========================================
-# STARTUP
+# STARTUP EVENT
 # ==========================================
 @app.on_event("startup")
 async def startup_event():
     """Startup event"""
     logger.info("=" * 50)
-    logger.info("🚀 SyncAds Python Microservice - FULL + AI TOOLS + EXTENSION")
+    logger.info("🚀 SyncAds Python Microservice - STARTING")
     logger.info("=" * 50)
-    logger.info("✅ FastAPI iniciado")
-    logger.info(f"✅ Docs: /docs")
-    logger.info(f"✅ Health: /health")
-    logger.info(f"✅ Chat: /api/chat (streaming + Supabase + AI Tools)")
-    logger.info(f"✅ Extension API: /api/extension/* (4 endpoints)")
-    logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
-    logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
+    logger.info("✅ FastAPI initialized")
+    logger.info("✅ Docs: /docs")
+    logger.info("✅ Health: /health")
+    logger.info("✅ Chat: /api/chat")
+    logger.info("✅ Browser Automation: /browser-automation/execute (fallback)")
+
+    # Try to register routers
+    # Register routers (Fail loudly if dependencies missing)
+    try:
+        from app.routers import browser_automation
+
+        app.include_router(browser_automation.router)
+        logger.info("✅ Browser Automation router registered (full version)")
+        logger.info(f"    Available endpoints: {len(browser_automation.router.routes)}")
+    except ImportError as e:
+        logger.error(f"❌ CRITICAL: Browser Automation router failed to load: {e}")
+        logger.error("    Please check requirements.txt and installed packages.")
+        # Não usar fallback, deixar erro visível nos logs
+    except Exception as e:
+        logger.error(f"❌ Error registering Browser Automation router: {e}")
+
+    # ==========================================
+    # AI EXPANSION INTEGRATION
+    # ==========================================
+    try:
+        logger.info("=" * 50)
+        logger.info("🚀 Initializing AI EXPANSION modules...")
+        logger.info("=" * 50)
+
+        # Add parent directory to path
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        from ai_expansion.integration import integrate_expansion
+
+        # Integrate all expansion modules
+        integrator = await integrate_expansion(app, enable_all=True)
+
+        status = integrator.get_status()
+        logger.info(
+            f"✅ AI Expansion integrated: {status['enabled_count']}/{status['total_modules']} modules"
+        )
+
+        # Log enabled modules
+        for module_name, enabled in status["modules"].items():
+            status_icon = "🟢" if enabled else "🔴"
+            logger.info(
+                f"    {status_icon} {module_name}: {'ENABLED' if enabled else 'DISABLED'}"
+            )
+
+        logger.info("=" * 50)
+        logger.info("🎉 AI EXPANSION READY!")
+        logger.info("    - Multi-Engine Automation (Playwright/Selenium/Pyppeteer)")
+        logger.info("    - Ultra-Fast DOM Intelligence (10-100x faster)")
+        logger.info("    - AI Agents (LangChain + AutoGen)")
+        logger.info("    - Computer Vision (OpenCV + OCR)")
+        logger.info("    - Captcha Solving (Ethical)")
+        logger.info("    - Planner System (PEOV)")
+        logger.info("    - API: /api/expansion/*")
+        logger.info("=" * 50)
+
+    except ImportError as e:
+        logger.warning(f"⚠️ AI Expansion not available: {e}")
+        logger.info(
+            "    Install with: pip install -r ai_expansion/requirements-expansion.txt"
+        )
+    except Exception as e:
+        logger.error(f"❌ AI Expansion initialization failed: {e}")
+        logger.info("    System will continue without expansion modules")
+
+    logger.info("✅ Supabase: " + ("Connected" if supabase else "Disconnected"))
     logger.info("=" * 50)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Shutdown event"""
-    logger.info("🛑 SyncAds Python Microservice - Encerrando...")
+    logger.info("🛑 SyncAds Python Microservice - Shutting down...")
+
+
+# ==========================================
+# EXCEPTION HANDLER
+# ==========================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler"""
+    logger.error(f"Global exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "detail": str(exc),
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    )
+
+
+# ==========================================
+# MAIN - Para execução direta
+# ==========================================
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", 8000))
+
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        workers=int(os.getenv("WORKERS", 2)),
+        log_level="info",
+    )

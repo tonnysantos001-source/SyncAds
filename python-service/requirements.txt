@@ -1,166 +1,222 @@
 # ==========================================
 # CORE FRAMEWORK
 # ==========================================
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-starlette==0.35.1
-httpx==0.26.0
-python-dotenv==1.0.0
-loguru==0.7.2
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+starlette>=0.35.0
+httpx>=0.26.0
+python-dotenv>=1.0.0
+loguru>=0.7.0
 
 # ==========================================
 # SUPABASE
 # ==========================================
-supabase==2.9.0
-postgrest==0.17.0
-psycopg2-binary==2.9.9
+supabase>=2.9.0
+postgrest>=0.17.0
+psycopg2-binary>=2.9.0
 
 # ==========================================
 # AI PROVIDERS
 # ==========================================
-openai==1.10.0
-anthropic==0.9.0
-groq==0.4.2
+openai>=1.10.0
+anthropic>=0.9.0
+groq>=0.4.0
 
 # ==========================================
 # AI TOOLS & PROCESSING
 # ==========================================
-transformers==4.37.2
-tokenizers==0.15.1
-huggingface-hub==0.20.3
-tiktoken==0.5.2
+transformers>=4.37.0
+tokenizers>=0.15.0
+huggingface-hub>=0.20.0
+tiktoken>=0.5.0
 
 # ==========================================
 # DOCUMENT PROCESSING
 # ==========================================
-pypdf==3.17.4
-python-docx==1.1.0
-python-pptx==0.6.23
+pypdf>=3.17.0
+python-docx>=1.1.0
+python-pptx>=0.6.0
 
 # ==========================================
 # DATA PROCESSING
 # ==========================================
-pandas==2.1.4
-numpy==1.26.3
-openpyxl==3.1.2
-xlsxwriter==3.1.9
+pandas>=2.1.0
+numpy>=1.26.0
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
 
 # ==========================================
 # WEB & APIs
 # ==========================================
-requests==2.31.0
-validators==0.22.0
-python-dateutil==2.8.2
-aiohttp==3.9.3
-websockets==12.0
-httpx-sse==0.4.0
+requests>=2.31.0
+validators>=0.22.0
+python-dateutil>=2.8.0
+aiohttp>=3.9.0
+websockets>=12.0
+httpx-sse>=0.4.0
 
 # ==========================================
 # WEB SCRAPING
 # ==========================================
-beautifulsoup4==4.12.3
-lxml==5.1.0
-html5lib==1.1
+beautifulsoup4>=4.12.0
+lxml>=5.1.0
+html5lib>=1.1
 
 # ==========================================
-# IMAGE PROCESSING
+# AI-POWERED BROWSER AUTOMATION
 # ==========================================
-Pillow==10.2.0
-imageio==2.33.1
+playwright>=1.48.0
+browser-use>=0.1.16
+agentql>=1.17.0
+selenium>=4.27.0
+webdriver-manager>=4.0.0
+
+# ==========================================
+# IMAGE PROCESSING & COMPUTER VISION
+# ==========================================
+Pillow>=10.2.0
+imageio>=2.33.0
+opencv-python-headless>=4.10.0
+pytesseract>=0.3.0
 
 # ==========================================
 # DATABASE
 # ==========================================
-sqlalchemy==2.0.25
-alembic==1.13.1
-asyncpg==0.29.0
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+asyncpg>=0.29.0
 
 # ==========================================
 # LANGCHAIN
 # ==========================================
-langchain==0.1.6
-langchain-openai==0.0.5
-langchain-community==0.0.20
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-community>=0.0.20
 
 # ==========================================
 # RATE LIMITING & CACHING
 # ==========================================
-slowapi==0.1.9
-cachetools==5.3.2
+slowapi>=0.1.9
+cachetools>=5.3.0
 
 # ==========================================
 # SECURITY & AUTH
 # ==========================================
-pyjwt==2.8.0
-cryptography==42.0.2
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+pyjwt>=2.8.0
+cryptography>=42.0.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.0
 
 # ==========================================
 # UTILITIES
 # ==========================================
-pytz==2023.3.post1
-python-multipart==0.0.6
-pyyaml==6.0.1
-toml==0.10.2
-click==8.1.7
+pytz>=2023.3
+python-multipart>=0.0.6
+pyyaml>=6.0.0
+toml>=0.10.0
+click>=8.1.0
 
 # ==========================================
 # MONITORING & OBSERVABILITY
 # ==========================================
-prometheus-client==0.19.0
+prometheus-client>=0.19.0
 
 # ==========================================
 # VIDEO PROCESSING (LIGHTWEIGHT)
 # ==========================================
-moviepy==1.0.3
+moviepy>=1.0.3
 
 # ==========================================
 # WEB SEARCH
 # ==========================================
-duckduckgo-search==4.1.1
-google-search-results==2.4.2
+duckduckgo-search>=4.1.0
+google-search-results>=2.4.0
 
 # ==========================================
 # SAFE PYTHON EXECUTION
 # ==========================================
-RestrictedPython==6.2
-astunparse==1.6.3
+RestrictedPython>=6.2
+astunparse>=1.6.0
 
 # ==========================================
 # FILE OPERATIONS
 # ==========================================
-pathvalidate==3.2.0
-send2trash==1.8.2
+pathvalidate>=3.2.0
+send2trash>=1.8.0
 
 # ==========================================
 # TASK SCHEDULING (LIGHTWEIGHT)
 # ==========================================
-apscheduler==3.10.4
-schedule==1.2.0
+apscheduler>=3.10.0
+schedule>=1.2.0
 
 # ==========================================
 # JSON & DATA VALIDATION
 # ==========================================
-jsonschema==4.21.1
-marshmallow==3.20.2
+jsonschema>=4.21.0
+marshmallow>=3.20.0
 
 # ==========================================
 # HTTP & API CLIENTS
 # ==========================================
-urllib3==2.1.0
-certifi==2023.11.17
+urllib3>=2.1.0
+certifi>=2023.11.0
 
 # ==========================================
 # STRING & TEXT PROCESSING
 # ==========================================
-unidecode==1.3.8
-python-slugify==8.0.1
-chardet==5.2.0
+unidecode>=1.3.0
+python-slugify>=8.0.0
+chardet>=5.2.0
+
+# ==========================================
+# AI VISION & ELEMENT DETECTION
+# ==========================================
+scikit-image>=0.24.0
+easyocr>=1.7.0
+
+# ==========================================
+# ASYNC & CONCURRENCY
+# ==========================================
+nest-asyncio>=1.6.0
 
 # ==========================================
 # ENVIRONMENT & CONFIG
 # ==========================================
-environs==11.0.0
-python-decouple==3.8
+environs>=11.0.0
+python-decouple>=3.8
+
+# AI EXPANSION (Optional - install separately)
+# pip install -r ai_expansion/requirements-expansion.txt
+# ==========================================
+# AI EXPANSION - MINIMAL REQUIREMENTS
+# Core modules only for Railway deployment
+# ==========================================
+
+# Multi-Engine Automation (Core)
+playwright>=1.48.0
+selenium>=4.27.0
+webdriver-manager>=4.0.0
+
+# DOM Intelligence (Ultra-Fast)
+selectolax>=0.3.21
+
+# AI Agents (LangChain only)
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.1.0
+
+# Computer Vision (Basic)
+opencv-python-headless>=4.10.0
+pytesseract>=0.3.10
+
+# Utilities
+orjson>=3.9.0
+tenacity>=8.2.0
+backoff>=2.2.0
+
+# Already in main requirements but ensuring compatibility
+# httpx>=0.26.0
+# pydantic>=2.5.0
+# loguru>=0.7.0

@@ -48,9 +48,10 @@ const CONFIG = {
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
   supabaseAnonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
-  functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   restUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/rest/v1",
-  version: "4.0.0",
+  functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
+  realtimeUrl: "wss://ovskepqggmxlfckxqgbr.supabase.co/realtime/v1/websocket",
+  version: "4.0.9",
 
   // Retry & Timeout Configuration
   retry: {
@@ -89,6 +90,9 @@ let state = {
   isProcessingToken: false,
   refreshTimer: null,
   keepAliveTimer: null,
+  commandTimer: null,
+  realtimeChannel: null,
+  realtimeSocket: null,
 };
 
 // ============================================
@@ -126,6 +130,113 @@ const Logger = {
 // ============================================
 // COMMAND POLLING (NEW)
 // ============================================
+// REALTIME SUBSCRIPTION - Substituir Polling
+// ============================================
+async function subscribeToRealtimeCommands() {
+  if (!state.accessToken || !state.deviceId) {
+    Logger.debug("Skipping realtime subscription: not authenticated");
+    return;
+  }
+
+  // Se já existe uma conexão, desconectar primeiro
+  if (state.realtimeSocket) {
+    unsubscribeFromRealtime();
+  }
+
+  try {
+    Logger.info("📡 Iniciando Realtime subscription...");
+
+    // Criar WebSocket connection
+    const wsUrl = `${CONFIG.realtimeUrl}?apikey=${CONFIG.supabaseAnonKey}&vsn=1.0.0`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      Logger.success("✅ Realtime WebSocket conectado!");
+
+      // Autenticar
+      socket.send(
+        JSON.stringify({
+          topic: "realtime:auth",
+          event: "phx_join",
+          payload: {
+            access_token: state.accessToken,
+          },
+          ref: "1",
+        }),
+      );
+
+      // Subscrever aos comandos do device
+      socket.send(
+        JSON.stringify({
+          topic: `realtime:public:extension_commands:device_id=eq.${state.deviceId}`,
+          event: "phx_join",
+          payload: {
+            config: {
+              postgres_changes: [
+                {
+                  event: "INSERT",
+                  schema: "public",
+                  table: "extension_commands",
+                  filter: `device_id=eq.${state.deviceId}`,
+                },
+              ],
+            },
+          },
+          ref: "2",
+        }),
+      );
+    };
+
+    socket.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // Processar evento INSERT de novo comando
+        if (data.event === "postgres_changes" && data.payload?.data) {
+          const command = data.payload.data;
+
+          if (command.status === "pending") {
+            Logger.info("📨 Realtime - Novo comando recebido:", command);
+            await processCommand(command);
+          }
+        }
+      } catch (error) {
+        Logger.error("Erro ao processar mensagem Realtime:", error);
+      }
+    };
+
+    socket.onerror = (error) => {
+      Logger.error("❌ Realtime WebSocket erro:", error);
+    };
+
+    socket.onclose = () => {
+      Logger.warn("🔌 Realtime WebSocket desconectado");
+      state.realtimeSocket = null;
+
+      // Tentar reconectar após 5 segundos
+      setTimeout(() => {
+        if (state.isConnected && state.deviceId) {
+          Logger.info("🔄 Tentando reconectar Realtime...");
+          subscribeToRealtimeCommands();
+        }
+      }, 5000);
+    };
+
+    state.realtimeSocket = socket;
+  } catch (error) {
+    Logger.error("Erro ao criar Realtime subscription:", error);
+  }
+}
+
+function unsubscribeFromRealtime() {
+  if (state.realtimeSocket) {
+    Logger.info("🔌 Desconectando Realtime...");
+    state.realtimeSocket.close();
+    state.realtimeSocket = null;
+  }
+}
+
+// Função de fallback - buscar comandos pendentes manualmente (apenas para sync inicial)
 async function checkPendingCommands() {
   if (!state.accessToken || !state.deviceId) {
     Logger.debug("Skipping command check: not authenticated");
@@ -135,7 +246,7 @@ async function checkPendingCommands() {
   try {
     // Buscar comandos PENDING para este dispositivo
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=10`,
+      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`,
       {
         method: "GET",
         headers: {
@@ -170,13 +281,29 @@ async function checkPendingCommands() {
 }
 
 async function processCommand(cmd) {
-  Logger.info("Processing command", { id: cmd.id, command: cmd.command });
+  // Delegar para função com retry
+  return await processCommandWithRetry(cmd, 0);
+}
+
+async function processCommandWithRetry(cmd, retryCount = 0) {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s (backoff exponencial)
+
+  Logger.info("Processing command", {
+    id: cmd.id,
+    command: cmd.command,
+    attempt: retryCount + 1,
+    maxAttempts: MAX_RETRIES + 1,
+  });
 
   try {
-    // Marcar como EXECUTING
-    await updateCommandStatus(cmd.id, "EXECUTING", {
-      executedAt: new Date().toISOString(),
-    });
+    // Marcar como PROCESSING (apenas na primeira tentativa)
+    if (retryCount === 0) {
+      await updateCommandStatus(cmd.id, "processing", {
+        executed_at: new Date().toISOString(),
+        retry_count: 0,
+      });
+    }
 
     // Obter tab ativa
     const [activeTab] = await chrome.tabs.query({
@@ -199,7 +326,7 @@ async function processCommand(cmd) {
         activeTab.id,
         {
           type: "EXECUTE_COMMAND",
-          command: cmd.command,
+          command: cmd.command_type,
           params: cmd.params,
         },
         (response) => {
@@ -212,28 +339,75 @@ async function processCommand(cmd) {
       );
     });
 
-    // Marcar como COMPLETED
-    await updateCommandStatus(cmd.id, "COMPLETED", {
+    // ✅ SUCESSO - Marcar como COMPLETED
+    await updateCommandStatus(cmd.id, "completed", {
       result: response,
-      completedAt: new Date().toISOString(),
+      executed_at: new Date().toISOString(),
+      retry_count: retryCount,
     });
 
-    Logger.success("✅ Command executed successfully", { id: cmd.id });
+    Logger.success("✅ Command executed successfully", {
+      id: cmd.id,
+      attempts: retryCount + 1,
+    });
+
+    return { success: true, result: response, attempts: retryCount + 1 };
   } catch (error) {
-    Logger.error("❌ Command execution failed", error, { id: cmd.id });
-
-    // Marcar como FAILED
-    await updateCommandStatus(cmd.id, "FAILED", {
-      error: error.message,
-      completedAt: new Date().toISOString(),
+    Logger.error("❌ Command execution failed", error, {
+      id: cmd.id,
+      attempt: retryCount + 1,
+      maxAttempts: MAX_RETRIES + 1,
     });
+
+    // Verificar se deve fazer retry
+    if (retryCount < MAX_RETRIES) {
+      const delay = RETRY_DELAYS[retryCount];
+
+      Logger.warn(`🔄 Retrying command in ${delay}ms...`, {
+        id: cmd.id,
+        nextAttempt: retryCount + 2,
+      });
+
+      // Atualizar status com informação de retry
+      await updateCommandStatus(cmd.id, "processing", {
+        retry_count: retryCount + 1,
+        last_error: error.message,
+        next_retry_in: delay,
+      });
+
+      // Aguardar delay com backoff exponencial
+      await sleep(delay);
+
+      // Tentar novamente (recursivo)
+      return await processCommandWithRetry(cmd, retryCount + 1);
+    } else {
+      // ❌ FALHOU APÓS TODAS AS TENTATIVAS
+      Logger.error("❌ Command failed after all retries", {
+        id: cmd.id,
+        totalAttempts: retryCount + 1,
+        finalError: error.message,
+      });
+
+      await updateCommandStatus(cmd.id, "failed", {
+        error: error.message,
+        executed_at: new Date().toISOString(),
+        retry_count: retryCount,
+        total_attempts: retryCount + 1,
+      });
+
+      return {
+        success: false,
+        error: error.message,
+        attempts: retryCount + 1,
+      };
+    }
   }
 }
 
 async function updateCommandStatus(commandId, status, extraData = {}) {
   try {
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
+      `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
       {
         method: "PATCH",
         headers: {
@@ -333,21 +507,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // SERVICE WORKER KEEP-ALIVE
 // ============================================
 function startKeepAlive() {
-  Logger.debug("Starting keep-alive and command polling...");
+  Logger.debug("Starting keep-alive with Realtime...");
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
     chrome.runtime.getPlatformInfo().catch(() => {});
   }, CONFIG.keepAlive.interval);
 
-  // Command polling interval (check for new commands)
-  if (state.commandTimer) clearInterval(state.commandTimer);
-  state.commandTimer = setInterval(checkPendingCommands, 5000); // 5 segundos (menos agressivo)
+  // ✅ USAR REALTIME ao invés de polling
+  subscribeToRealtimeCommands();
 
-  Logger.debug("Keep-alive started", {
-    interval: CONFIG.keepAlive.interval,
-    polling: 5000,
-  });
+  // Sync inicial (buscar comandos pendentes que podem ter sido perdidos)
+  checkPendingCommands();
+
+  // ✅ POLLING DE BACKUP (A cada 3 segundos)
+  // Garante que comandos sejam executados mesmo se o Realtime falhar
+  if (state.commandTimer) clearInterval(state.commandTimer);
+  state.commandTimer = setInterval(() => {
+    if (state.isConnected && state.deviceId) {
+      checkPendingCommands();
+    }
+  }, 3000);
+
+  Logger.success("Keep-alive started with Realtime + Polling (3s)! 🚀");
 }
 
 // ============================================
@@ -934,6 +1116,9 @@ async function handleAuthToken(data) {
     if (state.refreshToken) {
       startTokenRefreshScheduler();
     }
+
+    // ✅ Subscribe to Realtime
+    subscribeToRealtimeCommands();
 
     // Update UI
     updateBadge();

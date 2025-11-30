@@ -29,7 +29,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }, [location]);
 
   // Páginas que não devem ter padding/container
-  const isFullPageRoute = location.pathname === "/chat";
+  const isFullPageRoute = false; // Todas as páginas agora respeitam o layout padrão
 
   // Fallback UI em caso de erro
   if (hasError) {
@@ -100,7 +100,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
           {/* Main content */}
           <main
-            className={`flex-1 overflow-y-auto ${isFullPageRoute ? "" : "p-4 md:p-6 lg:p-8"}`}
+            className={`flex-1 ${isFullPageRoute ? "overflow-hidden flex flex-col" : "overflow-y-auto p-4 md:p-6 lg:p-8"}`}
           >
             {isFullPageRoute ? (
               <ErrorBoundaryWrapper
