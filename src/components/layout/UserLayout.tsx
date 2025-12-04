@@ -278,7 +278,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-full relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+    <div className="flex h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
       {/* Background decorativo */}
       <SyncAdsWatermarkBg watermarkOpacity={0.08} variant="default" />
 
@@ -310,172 +310,170 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
         }}
         className="fixed md:static inset-y-0 left-0 z-50 w-64 bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col shadow-2xl"
       >
-      </text>
-
-      <old_text line=251>
-      <AnimatePresence>
-        {isExpanded && item.submenu && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            {/* Logo */}
-            <div className="p-6 border-b border-gray-700/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <IoFlash className="w-6 h-6 text-white" />
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-700/50">
+          {isExpanded && item.submenu && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {/* Logo */}
+              <div className="p-6 border-b border-gray-700/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <IoFlash className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-black text-white">SyncAds</h1>
+                      <p className="text-xs text-blue-400 font-semibold">MARKETING AI</p>
                     </div>
                   </div>
-                  <div>
-                    <h1 className="text-lg font-black text-white">SyncAds</h1>
-                    <p className="text-xs text-blue-400 font-semibold">MARKETING AI</p>
+
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="md:hidden text-gray-400 hover:text-white transition-colors"
+                  >
+                    <IoClose className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                {menuItems.map((item) => (
+                  <NavItem key={item.label} item={item} />
+                ))}
+              </nav>
+
+              <div className="px-6 py-4 border-t border-gray-700/50">
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Sistema Online</span>
+                </div>
+              </div>
+
+              {/* User Info */}
+              <div className="p-4 border-t border-gray-700/50 bg-gray-800/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {user?.name || "Usuário"}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="md:hidden text-gray-400 hover:text-white transition-colors"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 border border-red-500/20"
                 >
-                  <IoClose className="w-6 h-6" />
+                  <IoLogOut className="w-4 h-4" />
+                  <span className="text-sm font-medium">Sair</span>
                 </button>
               </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {menuItems.map((item) => (
-                <NavItem key={item.label} item={item} />
-              ))}
-            </nav>
-
-            <div className="px-6 py-4 border-t border-gray-700/50">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span>Sistema Online</span>
-              </div>
-            </div>
-
-            {/* User Info */}
-            <div className="p-4 border-t border-gray-700/50 bg-gray-800/30">
-              <div className="flex items-center gap-3 mb-3">
-                <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {user?.name || "Usuário"}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 border border-red-500/20"
-              >
-                <IoLogOut className="w-4 h-4" />
-                <span className="text-sm font-medium">Sair</span>
-              </button>
-            </div>
-          </motion.aside>
+            </motion.aside>
 
       {/* Main Content */}
-        <div className="flex-1 flex flex-col relative z-10">
-          {/* Header */}
-          <header className="h-16 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50 flex items-center justify-between px-6 shadow-lg">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="md:hidden text-gray-400 hover:text-white transition-colors"
-              >
-                <IoMenu className="w-6 h-6" />
-              </button>
-
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  {menuItems.find((item) => item.to && isActive(item.to))?.label || "Dashboard"}
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Badge
-                variant="secondary"
-                className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-500/30"
-              >
-                Plano: {user?.plan || "Free"}
-              </Badge>
-            </div>
-          </header>
-
-          {/* Content */}
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-7xl mx-auto">{children}</div>
-          </main>
-        </div>
-
-        {/* Chat IA Flutuante */}
-        <AnimatePresence mode="wait">
-          {chatOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{
-                duration: 0.25,
-                ease: [0.4, 0, 0.2, 1]
-              }}
-              className="fixed bottom-24 right-6 w-96 h-[600px] z-50 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden"
-            >
-              {/* Chat Header */}
-              <div className="h-14 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <HiSparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Assistente IA</h3>
-                    <p className="text-xs text-white/80">Online</p>
-                  </div>
-                </div>
+          <div className="flex-1 flex flex-col relative z-10">
+            {/* Header */}
+            <header className="h-16 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50 flex items-center justify-between px-6 shadow-lg">
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={() => setChatOpen(false)}
-                  className="text-white/80 hover:text-white transition-colors"
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden text-gray-400 hover:text-white transition-colors"
                 >
-                  <IoClose className="w-5 h-5" />
+                  <IoMenu className="w-6 h-6" />
                 </button>
+
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    {menuItems.find((item) => item.to && isActive(item.to))?.label || "Dashboard"}
+                  </h2>
+                </div>
               </div>
 
-              {/* Chat Content */}
-              <iframe
-                src="/chat"
-                className="w-full h-[calc(100%-3.5rem)] border-0"
-                title="Chat IA"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div className="flex items-center gap-4">
+                <Badge
+                  variant="secondary"
+                  className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-500/30"
+                >
+                  Plano: {user?.plan || "Free"}
+                </Badge>
+              </div>
+            </header>
 
-        {/* Botão Chat IA */}
-        <motion.button
-          onClick={() => setChatOpen(!chatOpen)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="fixed bottom-6 right-6 z-40 h-14 px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center gap-2 font-semibold transition-all"
-        >
-          <HiSparkles className="w-5 h-5" />
-          <span>Assistente IA</span>
-        </motion.button>
-    </div>
-  );
+            {/* Content */}
+            <main className="flex-1 overflow-y-auto p-6">
+              <div className="max-w-7xl mx-auto">{children}</div>
+            </main>
+          </div>
+
+          {/* Chat IA Flutuante */}
+          <AnimatePresence mode="wait">
+            {chatOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{
+                  duration: 0.25,
+                  ease: [0.4, 0, 0.2, 1]
+                }}
+                className="fixed bottom-24 right-6 w-96 h-[600px] z-50 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden"
+              >
+                {/* Chat Header */}
+                <div className="h-14 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <HiSparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Assistente IA</h3>
+                      <p className="text-xs text-white/80">Online</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <IoClose className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Chat Content */}
+                <iframe
+                  src="/chat"
+                  className="w-full h-[calc(100%-3.5rem)] border-0"
+                  title="Chat IA"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Botão Chat IA */}
+          <motion.button
+            onClick={() => setChatOpen(!chatOpen)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-40 h-14 px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center gap-2 font-semibold transition-all"
+          >
+            <HiSparkles className="w-5 h-5" />
+            <span>Assistente IA</span>
+          </motion.button>
+        </div>
+        );
 };
 
-export default UserLayout;
+        export default UserLayout;
