@@ -189,21 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20",
             )}
           >
-            <motion.div
-              animate={
-                isExpanded
-                  ? {
-                    scale: [1, 1.15, 1],
-                    rotate: [0, 180, 360],
-                  }
-                  : {}
-              }
-              transition={{
-                duration: 0.6,
-                ease: "easeInOut",
-              }}
-              className="relative"
-            >
+            <div className="relative">
               <item.icon
                 className={cn(
                   "h-6 w-6 transition-colors",
@@ -212,36 +198,19 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                     : "text-gray-600 dark:text-gray-400",
                 )}
               />
-              {isExpanded && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1"
-                >
-                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                </motion.div>
-              )}
-            </motion.div>
+            </div>
             <span className="flex-1 text-left">{item.label}</span>
             {item.badge && (
               <Badge variant="destructive" className="text-[10px] px-1.5 h-5">
                 {item.badge}
               </Badge>
             )}
-            <motion.div
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{
-                duration: 0.4,
-                ease: [0.4, 0, 0.2, 1],
-              }}
-            >
-              <IoChevronDown
-                className={cn(
-                  "h-4 w-4",
-                  isExpanded ? "text-white" : "text-gray-400",
-                )}
-              />
-            </motion.div>
+            <IoChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform duration-150",
+                isExpanded ? "text-white rotate-180" : "text-gray-400",
+              )}
+            />
           </button>
 
           {
