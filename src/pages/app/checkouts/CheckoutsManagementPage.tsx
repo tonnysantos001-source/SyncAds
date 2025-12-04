@@ -478,7 +478,7 @@ const CheckoutsManagementPage: React.FC = () => {
                 </div>
               </motion.div>
             ))}
-          </AnimatePresence>
+
           </div>
         )}
     </div>
