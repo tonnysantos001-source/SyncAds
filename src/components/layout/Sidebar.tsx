@@ -247,83 +247,70 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             </motion.div>
           </button>
 
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0, y: -10 }}
-                animate={{ height: "auto", opacity: 1, y: 0 }}
-                exit={{ height: 0, opacity: 0, y: -10 }}
-                transition={{
-                  duration: 0.3,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
-                className="overflow-hidden"
-              >
-                <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                  {item.subItems?.map((subItem) =>
-                    subItem.openInNewTab ? (
-                      <a
-                        key={subItem.to}
-                        href={`${window.location.origin}${subItem.to}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
-                      >
+          {isExpanded && (
+            <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+              {item.subItems?.map((subItem) =>
+                subItem.openInNewTab ? (
+                  <a
+                    key={subItem.to}
+                    href={`${window.location.origin}${subItem.to}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
+                  >
+                    <div className="flex items-center gap-2 flex-1">
+                      {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                      <span>{subItem.label}</span>
+                    </div>
+                  </a>
+                ) : (
+                  <NavLink
+                    key={subItem.to}
+                    to={subItem.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
+                        isActive
+                          ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
                         <div className="flex items-center gap-2 flex-1">
-                          {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                          {subItem.icon && (
+                            <subItem.icon className="h-4 w-4" />
+                          )}
                           <span>{subItem.label}</span>
                         </div>
-                      </a>
-                    ) : (
-                      <NavLink
-                        key={subItem.to}
-                        to={subItem.to}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
-                            isActive
-                              ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
-                          )
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            <div className="flex items-center gap-2 flex-1">
-                              {subItem.icon && (
-                                <subItem.icon className="h-4 w-4" />
-                              )}
-                              <span>{subItem.label}</span>
-                            </div>
-                            {isActive && (
-                              <motion.div
-                                layoutId="activeSubDot"
-                                className="w-1.5 h-1.5 rounded-full bg-blue-600"
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 35,
-                                  mass: 0.5,
-                                }}
-                              />
-                            )}
-                            {subItem.badge && (
-                              <Badge
-                                variant="destructive"
-                                className="text-[9px] px-1 h-4"
-                              >
-                                {subItem.badge}
-                              </Badge>
-                            )}
-                          </>
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeSubDot"
+                            className="w-1.5 h-1.5 rounded-full bg-blue-600"
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 35,
+                              mass: 0.5,
+                            }}
+                          />
                         )}
-                      </NavLink>
-                    ),
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                        {subItem.badge && (
+                          <Badge
+                            variant="destructive"
+                            className="text-[9px] px-1 h-4"
+                          >
+                            {subItem.badge}
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ),
+              )}
+            </div>
+          )}
         </div>
       );
     }
