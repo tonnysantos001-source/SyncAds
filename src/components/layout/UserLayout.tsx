@@ -278,7 +278,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+    <div className="flex h-full relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
       {/* Background decorativo */}
       <SyncAdsWatermarkBg watermarkOpacity={0.08} variant="default" />
 
