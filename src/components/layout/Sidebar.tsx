@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -329,32 +329,14 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       >
         {({ isActive }) => (
           <>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 25,
-              }}
-              className="relative"
-            >
+            <div className="relative">
               <item.icon
                 className={cn(
-                  "h-6 w-6 transition-colors",
+                  "h-6 w-6 transition-colors duration-150",
                   isActive ? "text-white" : "text-gray-600 dark:text-gray-400",
                 )}
               />
-              {isActive && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1"
-                >
-                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                </motion.div>
-              )}
-            </motion.div>
+            </div>
             <span className="flex-1">{item.label}</span>
             {item.badge && (
               <Badge
@@ -368,16 +350,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               </Badge>
             )}
             {isActive && (
-              <motion.div
-                layoutId="activeIndicator"
-                className="absolute left-0 w-1 h-10 bg-white rounded-r-full"
-                transition={{
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 35,
-                  mass: 0.5,
-                }}
-              />
+              <div className="absolute left-0 w-1 h-10 bg-white rounded-r-full" />
             )}
           </>
         )}
@@ -391,18 +364,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
         <div className="relative">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
-            <motion.div
-              animate={{
-                rotate: [0, 360],
-              }}
-              transition={{
-                duration: 60,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            >
-              <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
-            </motion.div>
+            <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
           </div>
         </div>
         <div>
@@ -422,21 +384,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
-          <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-            }}
-          >
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-          </motion.div>
+          <div className="w-2 h-2 rounded-full bg-green-500" />
           <span>Sistema Online</span>
         </div>
       </div>
