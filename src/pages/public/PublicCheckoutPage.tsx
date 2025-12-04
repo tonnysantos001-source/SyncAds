@@ -865,9 +865,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 {(navigationSteps === 1 || currentStep === 1) && (
                   <motion.div
                     key="step1"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                     className="space-y-4"
                   >
                     <CheckoutInput
@@ -956,9 +957,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 {(navigationSteps === 1 || currentStep === 2) && (
                   <motion.div
                     key="step2"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                     className={
                       navigationSteps === 1 ? "mt-6 space-y-4" : "space-y-4"
                     }
@@ -1120,9 +1122,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 {(navigationSteps === 1 || currentStep === 3) && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                     className={
                       navigationSteps === 1 ? "mt-6 space-y-4" : "space-y-4"
                     }
@@ -1159,31 +1162,28 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                     >
                       <button
                         onClick={() => setPaymentMethod("PIX")}
-                        className={`p-4 rounded-lg border-2 font-semibold transition ${
-                          paymentMethod === "PIX"
+                        className={`p-4 rounded-lg border-2 font-semibold transition ${paymentMethod === "PIX"
                             ? "border-purple-600 bg-purple-50"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         PIX
                       </button>
                       <button
                         onClick={() => setPaymentMethod("CREDIT_CARD")}
-                        className={`p-4 rounded-lg border-2 font-semibold transition ${
-                          paymentMethod === "CREDIT_CARD"
+                        className={`p-4 rounded-lg border-2 font-semibold transition ${paymentMethod === "CREDIT_CARD"
                             ? "border-purple-600 bg-purple-50"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         Cartão
                       </button>
                       <button
                         onClick={() => setPaymentMethod("BOLETO")}
-                        className={`p-4 rounded-lg border-2 font-semibold transition ${
-                          paymentMethod === "BOLETO"
+                        className={`p-4 rounded-lg border-2 font-semibold transition ${paymentMethod === "BOLETO"
                             ? "border-purple-600 bg-purple-50"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         Boleto
                       </button>

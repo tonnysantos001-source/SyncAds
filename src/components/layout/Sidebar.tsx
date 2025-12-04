@@ -3,7 +3,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  HiSparkles,
   HiChatBubbleBottomCenterText,
   HiHome,
   HiChartBar,
@@ -157,13 +156,13 @@ const navItems: NavItem[] = [
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
 
-  // Calcula o menu inicial apenas uma vez
+  // Calcula o menu inicial baseado na rota atual
   const initialExpandedMenu = React.useMemo(() => {
     const activeMenu = navItems.find((item) =>
       item.subItems?.some((s) => location.pathname.startsWith(s.to)),
     );
     return activeMenu?.label || null;
-  }, []); // Array vazio - calcula apenas uma vez
+  }, [location.pathname]); // Atualiza quando a rota muda
 
   const [expandedMenu, setExpandedMenu] = useState<string | null>(
     initialExpandedMenu,
@@ -197,9 +196,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
               animate={
                 isExpanded
                   ? {
-                      scale: [1, 1.15, 1],
-                      rotate: [0, 180, 360],
-                    }
+                    scale: [1, 1.15, 1],
+                    rotate: [0, 180, 360],
+                  }
                   : {}
               }
               transition={{
@@ -344,12 +343,12 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         {({ isActive }) => (
           <>
             <motion.div
-              whileHover={{ scale: 1.15, rotate: 5 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               transition={{
                 type: "spring",
-                stiffness: 400,
-                damping: 20,
+                stiffness: 300,
+                damping: 25,
               }}
               className="relative"
             >
@@ -410,40 +409,14 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 rotate: [0, 360],
               }}
               transition={{
-                duration: 15,
+                duration: 60,
                 repeat: Infinity,
                 ease: "linear",
               }}
             >
               <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
             </motion.div>
-            <motion.div
-              animate={{
-                rotate: 360,
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-              className="absolute -top-1 -right-1"
-            >
-              <HiSparkles className="h-4 w-4 text-yellow-400 drop-shadow-lg" />
-            </motion.div>
           </div>
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute inset-0 rounded-2xl bg-blue-400/30 blur-xl -z-10"
-          />
         </div>
         <div>
           <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white">
