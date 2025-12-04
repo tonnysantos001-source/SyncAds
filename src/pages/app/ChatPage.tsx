@@ -788,7 +788,7 @@ export default function ChatPageNovo() {
   // RENDER
   // ============================================
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    <div className="flex h-full bg-gray-950 text-white">
       {/* SIDEBAR */}
       <div
         className={`${
