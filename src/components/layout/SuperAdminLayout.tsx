@@ -85,7 +85,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
+    <div className="flex h-full relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40">
       {/* Sidebar - Sempre visível */}
       <aside className="w-64 bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50 flex flex-col shadow-2xl">
         {/* Logo */}
