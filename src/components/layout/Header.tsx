@@ -207,55 +207,28 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
         {/* Seletor de Checkout */}
         {/* Theme Toggle */}
         {/* Dark Mode Toggle */}
-        <motion.button
+        <button
           onClick={toggleTheme}
           className={cn(
             "relative p-2 rounded-xl overflow-hidden",
             "bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-yellow-500/10 dark:to-orange-500/10",
             "border border-gray-200 dark:border-gray-700",
             "hover:border-blue-400 dark:hover:border-yellow-400",
-            "transition-all duration-300",
+            "transition-all duration-200 hover:scale-105",
             "group",
           )}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
         >
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-yellow-500/20 dark:to-orange-500/20"
-            initial={{ opacity: 0 }}
-            whileHover={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-yellow-500/20 dark:to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
           <div className="relative w-5 h-5">
-            <AnimatePresence mode="wait">
-              {theme === "dark" ? (
-                <motion.div
-                  key="sun"
-                  initial={{ scale: 0, rotate: -180, opacity: 0 }}
-                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                  exit={{ scale: 0, rotate: 180, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "backOut" }}
-                  className="absolute inset-0"
-                >
-                  <Sun className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="moon"
-                  initial={{ scale: 0, rotate: 180, opacity: 0 }}
-                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                  exit={{ scale: 0, rotate: -180, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "backOut" }}
-                  className="absolute inset-0"
-                >
-                  <Moon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5 text-yellow-500 dark:text-yellow-400 transition-transform duration-200" />
+            ) : (
+              <Moon className="h-5 w-5 text-blue-600 dark:text-blue-400 transition-transform duration-200" />
+            )}
           </div>
 
-          <motion.span
+          <span
             className={cn(
               "absolute -bottom-10 left-1/2 -translate-x-1/2",
               "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
@@ -265,8 +238,8 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             )}
           >
             {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
-          </motion.span>
-        </motion.button>
+          </span>
+        </button>
 
         {/* Notificações */}
         <DropdownMenu>
