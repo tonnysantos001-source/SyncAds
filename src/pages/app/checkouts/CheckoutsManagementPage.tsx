@@ -387,173 +387,171 @@ const CheckoutsManagementPage: React.FC = () => {
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence mode="popLayout">
-              {checkouts.map((checkout, index) => (
-                <motion.div
-                  key={checkout.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group"
+            {checkouts.map((checkout, index) => (
+              <motion.div
+                key={checkout.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="group"
+              >
+                <div
+                  onClick={() => openCheckoutWorkspace(checkout.id)}
+                  className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
-                  <div
-                    onClick={() => openCheckoutWorkspace(checkout.id)}
-                    className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer"
-                  >
-                    {/* Header */}
-                    <div className="p-6 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border-b border-gray-200 dark:border-gray-800">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white truncate flex items-center gap-2">
-                            {checkout.name}
-                            <ExternalLink className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            ID: {checkout.id.slice(0, 8)}...
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleActive(checkout);
-                          }}
-                          className="ml-2 flex-shrink-0"
-                        >
-                          {checkout.isActive ? (
-                            <HiCheckCircle className="h-8 w-8 text-green-500" />
-                          ) : (
-                            <HiXCircle className="h-8 w-8 text-gray-400" />
-                          )}
-                        </button>
+                  {/* Header */}
+                  <div className="p-6 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white truncate flex items-center gap-2">
+                          {checkout.name}
+                          <ExternalLink className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          ID: {checkout.id.slice(0, 8)}...
+                        </p>
                       </div>
-
-                      <Badge
-                        className={cn(
-                          "font-semibold",
-                          checkout.isActive
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-300 text-gray-700",
-                        )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleActive(checkout);
+                        }}
+                        className="ml-2 flex-shrink-0"
                       >
-                        {checkout.isActive ? "Ativo" : "Inativo"}
-                      </Badge>
+                        {checkout.isActive ? (
+                          <HiCheckCircle className="h-8 w-8 text-green-500" />
+                        ) : (
+                          <HiXCircle className="h-8 w-8 text-gray-400" />
+                        )}
+                      </button>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-6">
-                      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        <span>Criado em:</span>
-                        <span className="font-medium">
-                          {new Date(checkout.createdAt).toLocaleDateString(
-                            "pt-BR",
-                          )}
-                        </span>
-                      </div>
+                    <Badge
+                      className={cn(
+                        "font-semibold",
+                        checkout.isActive
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-300 text-gray-700",
+                      )}
+                    >
+                      {checkout.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openCheckoutWorkspace(checkout.id);
-                          }}
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 gap-2"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Abrir Painel
-                        </Button>
+                  {/* Footer */}
+                  <div className="p-6">
+                    <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      <span>Criado em:</span>
+                      <span className="font-medium">
+                        {new Date(checkout.createdAt).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </span>
+                    </div>
 
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCheckout(checkout);
-                            setShowDeleteDialog(true);
-                          }}
-                          variant="outline"
-                          size="icon"
-                          className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
-                        >
-                          <HiTrash className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCheckoutWorkspace(checkout.id);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir Painel
+                      </Button>
+
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCheckout(checkout);
+                          setShowDeleteDialog(true);
+                        }}
+                        variant="outline"
+                        size="icon"
+                        className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                      >
+                        <HiTrash className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
           </div>
         )}
+    </div>
+
+      {/* Create Dialog */ }
+  <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Criar Novo Checkout</DialogTitle>
+        <DialogDescription>
+          Um novo workspace será aberto em uma aba separada com painel
+          completo
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 py-4">
+        <div>
+          <Label htmlFor="name">Nome do Checkout *</Label>
+          <Input
+            id="name"
+            placeholder="Ex: Loja Principal, Black Friday 2024..."
+            value={newCheckoutName}
+            onChange={(e) => setNewCheckoutName(e.target.value)}
+            maxLength={100}
+            className="mt-2"
+          />
+        </div>
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Criar Novo Checkout</DialogTitle>
-            <DialogDescription>
-              Um novo workspace será aberto em uma aba separada com painel
-              completo
-            </DialogDescription>
-          </DialogHeader>
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setShowCreateDialog(false);
+            setNewCheckoutName("");
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleCreateCheckout}
+          disabled={creating || !newCheckoutName.trim()}
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+        >
+          {creating ? "Criando..." : "Criar Checkout"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="name">Nome do Checkout *</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Loja Principal, Black Friday 2024..."
-                value={newCheckoutName}
-                onChange={(e) => setNewCheckoutName(e.target.value)}
-                maxLength={100}
-                className="mt-2"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCreateDialog(false);
-                setNewCheckoutName("");
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCreateCheckout}
-              disabled={creating || !newCheckoutName.trim()}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-            >
-              {creating ? "Criando..." : "Criar Checkout"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deletar Checkout?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja deletar "{selectedCheckout?.name}"? Todas
-              as configurações e personalizações serão perdidas permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteCheckout}
-              disabled={deleting}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              {deleting ? "Deletando..." : "Deletar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+  {/* Delete Dialog */ }
+  <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Deletar Checkout?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Tem certeza que deseja deletar "{selectedCheckout?.name}"? Todas
+          as configurações e personalizações serão perdidas permanentemente.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+        <AlertDialogAction
+          onClick={handleDeleteCheckout}
+          disabled={deleting}
+          className="bg-red-500 hover:bg-red-600"
+        >
+          {deleting ? "Deletando..." : "Deletar"}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+    </div >
   );
 };
 

@@ -100,11 +100,10 @@ const IntegrationCard: React.FC<IntegrationCardProps> = React.memo(
         className="group"
       >
         <Card
-          className={`relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 ${
-            isConnected
+          className={`relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 ${isConnected
               ? "border-green-500/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5"
               : "hover:border-primary/50"
-          }`}
+            }`}
         >
           {/* Background gradient decorativo */}
           <div
@@ -120,11 +119,10 @@ const IntegrationCard: React.FC<IntegrationCardProps> = React.memo(
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3 flex-1">
                 <motion.div
-                  className={`relative p-3 rounded-xl backdrop-blur-xl border transition-all duration-300 ${
-                    isConnected
+                  className={`relative p-3 rounded-xl backdrop-blur-xl border transition-all duration-300 ${isConnected
                       ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
                       : "bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20 group-hover:border-primary/50"
-                  }`}
+                    }`}
                   whileHover={{ scale: 1.1, rotate: 5 }}
                 >
                   {isConnected && (
@@ -442,68 +440,60 @@ const IntegrationsPage: React.FC = () => {
       </motion.div>
 
       {/* Lista de integrações por categoria */}
-      <AnimatePresence mode="wait">
-        {filteredCategories.length === 0 ? (
+      {filteredCategories.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="inline-flex p-6 rounded-full bg-gradient-to-br from-gray-500/10 to-gray-600/10 mb-4">
+            <Search className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-bold mb-2">
+            Nenhuma integração encontrada
+          </h3>
+          <p className="text-muted-foreground">
+            Tente ajustar os filtros ou buscar por outro termo
+          </p>
+        </div>
+      ) : (
+        filteredCategories.map((category, catIndex) => (
           <motion.div
+            layout
+            key={category.title}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center py-12"
+            transition={{ delay: catIndex * 0.1 }}
+            className="space-y-4"
           >
-            <div className="inline-flex p-6 rounded-full bg-gradient-to-br from-gray-500/10 to-gray-600/10 mb-4">
-              <Search className="w-12 h-12 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-1 h-8 rounded-full bg-gradient-to-b from-primary to-purple-600"
+              />
+              <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+                {category.title}
+              </h2>
+              <Badge variant="outline" className="ml-auto">
+                {category.integrations.length}
+              </Badge>
             </div>
-            <h3 className="text-xl font-bold mb-2">
-              Nenhuma integração encontrada
-            </h3>
-            <p className="text-muted-foreground">
-              Tente ajustar os filtros ou buscar por outro termo
-            </p>
-          </motion.div>
-        ) : (
-          filteredCategories.map((category, catIndex) => (
+
             <motion.div
               layout
-              key={category.title}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ delay: catIndex * 0.1 }}
-              className="space-y-4"
+              className={
+                viewMode === "grid"
+                  ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  : "flex flex-col gap-4"
+              }
             >
-              <div className="flex items-center gap-3">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="w-1 h-8 rounded-full bg-gradient-to-b from-primary to-purple-600"
+              {category.integrations.map((integration, index) => (
+                <IntegrationCard
+                  key={integration.id}
+                  integration={integration}
+                  index={index}
                 />
-                <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
-                  {category.title}
-                </h2>
-                <Badge variant="outline" className="ml-auto">
-                  {category.integrations.length}
-                </Badge>
-              </div>
-
-              <motion.div
-                layout
-                className={
-                  viewMode === "grid"
-                    ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-                    : "flex flex-col gap-4"
-                }
-              >
-                {category.integrations.map((integration, index) => (
-                  <IntegrationCard
-                    key={integration.id}
-                    integration={integration}
-                    index={index}
-                  />
-                ))}
-              </motion.div>
+              ))}
             </motion.div>
-          ))
-        )}
-      </AnimatePresence>
+          </motion.div>
+        ))
+      )}
     </div>
   );
 };

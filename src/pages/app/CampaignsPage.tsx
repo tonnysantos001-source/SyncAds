@@ -137,7 +137,7 @@ const CampaignsPage: React.FC = () => {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
-  
+
   const ITEMS_PER_PAGE = 6;
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -163,7 +163,7 @@ const CampaignsPage: React.FC = () => {
       setIsLoadingMore(false);
     }, 500);
   };
-  
+
   const paginatedCampaigns = filteredCampaigns.slice(0, visibleCount);
   const canLoadMore = visibleCount < filteredCampaigns.length;
 
@@ -171,7 +171,7 @@ const CampaignsPage: React.FC = () => {
     <>
       <NewCampaignModal isOpen={isNewModalOpen} onOpenChange={setIsNewModalOpen} />
       {editingCampaign && <EditCampaignModal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen} campaign={editingCampaign} />}
-      
+
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
           <div>
@@ -187,8 +187,8 @@ const CampaignsPage: React.FC = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold mb-1">Crie campanhas com a IA</h3>
                   <p className="text-sm text-muted-foreground">
-                    As campanhas agora são criadas automaticamente pela IA no chat. 
-                    Vá para o menu <strong>Chat</strong> e peça para a IA criar uma campanha. 
+                    As campanhas agora são criadas automaticamente pela IA no chat.
+                    Vá para o menu <strong>Chat</strong> e peça para a IA criar uma campanha.
                     Exemplo: "Crie uma campanha de Black Friday no Meta com orçamento de R$ 5000"
                   </p>
                 </div>
@@ -232,11 +232,9 @@ const CampaignsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <motion.div layout className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence>
-                {paginatedCampaigns.map(campaign => (
-                  <CampaignCard key={campaign.id} campaign={campaign} onEdit={handleEditClick} />
-                ))}
-              </AnimatePresence>
+              {paginatedCampaigns.map(campaign => (
+                <CampaignCard key={campaign.id} campaign={campaign} onEdit={handleEditClick} />
+              ))}
             </motion.div>
             {paginatedCampaigns.length === 0 && (
               <EmptyState
