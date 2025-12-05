@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -153,35 +153,115 @@ const navItems: NavItem[] = [
   { to: "/settings", icon: HiCog6Tooth, label: "Configurações" },
 ];
 
+// Memoizar o componente de submenu para evitar re-renders desnecessários
+const SubMenuItem = React.memo<{
+  subItem: SubMenuItem;
+}>(({ subItem }) => {
+  if (subItem.openInNewTab) {
+    return (
+      <a
+        href={`${window.location.origin}${subItem.to}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
+      >
+        <div className="flex items-center gap-2 flex-1">
+          {subItem.icon && <subItem.icon className="h-4 w-4" />}
+          <span>{subItem.label}</span>
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <NavLink
+      to={subItem.to}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
+          isActive
+            ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20"
+            : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <div className="flex items-center gap-2 flex-1">
+            {subItem.icon && <subItem.icon className="h-4 w-4" />}
+            <span>{subItem.label}</span>
+          </div>
+          {isActive && (
+            <motion.div
+              layoutId="activeSubDot"
+              className="w-1.5 h-1.5 rounded-full bg-blue-600"
+              transition={{
+                type: "spring",
+                stiffness: 500,
+                damping: 35,
+                mass: 0.5,
+              }}
+            />
+          )}
+          {subItem.badge && (
+            <Badge variant="destructive" className="text-[9px] px-1 h-4">
+              {subItem.badge}
+            </Badge>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+});
+
+SubMenuItem.displayName = "SubMenuItem";
+
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
 
-  // Calcula o menu inicial baseado na rota atual
-  const initialExpandedMenu = React.useMemo(() => {
+  // Estado para controlar menus expandidos
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(() => {
     const activeMenu = navItems.find((item) =>
       item.subItems?.some((s) => location.pathname.startsWith(s.to)),
     );
-    return activeMenu?.label || null;
-  }, [location.pathname]); // Atualiza quando a rota muda
+    return activeMenu ? new Set([activeMenu.label]) : new Set();
+  });
 
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(
-    initialExpandedMenu,
-  );
+  // Memoizar função de toggle para evitar recriação
+  const toggleMenu = useCallback((label: string) => {
+    setExpandedMenus((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(label)) {
+        newSet.delete(label);
+      } else {
+        newSet.add(label);
+      }
+      return newSet;
+    });
+  }, []);
 
-  const toggleMenu = (label: string) => {
-    setExpandedMenu(expandedMenu === label ? null : label);
-  };
+  // Memoizar função de fechar sidebar
+  const handleCloseSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, [setSidebarOpen]);
 
-  const NavItem: React.FC<{ item: NavItem }> = ({ item }) => {
+  // Componente NavItem memoizado
+  const NavItemComponent = React.memo<{ item: NavItem }>(({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    const isExpanded = expandedMenu === item.label;
+    const isExpanded = expandedMenus.has(item.label);
+
+    const handleClick = useCallback(() => {
+      if (hasSubItems) {
+        toggleMenu(item.label);
+      }
+    }, [hasSubItems]);
 
     if (hasSubItems) {
       return (
         <div>
           <button
             type="button"
-            onClick={() => toggleMenu(item.label)}
+            onClick={handleClick}
             className={cn(
               "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-semibold transition-all duration-200",
               isExpanded
@@ -207,79 +287,33 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             )}
             <IoChevronDown
               className={cn(
-                "h-4 w-4 transition-transform duration-150",
+                "h-4 w-4 transition-transform duration-200",
                 isExpanded ? "text-white rotate-180" : "text-gray-400",
               )}
             />
           </button>
 
-          {
-            isExpanded && (
-              <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                {item.subItems?.map((subItem) =>
-                  subItem.openInNewTab ? (
-                    <a
-                      key={subItem.to}
-                      href={`${window.location.origin}${subItem.to}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
-                    >
-                      <div className="flex items-center gap-2 flex-1">
-                        {subItem.icon && <subItem.icon className="h-4 w-4" />}
-                        <span>{subItem.label}</span>
-                      </div>
-                    </a>
-                  ) : (
-                    <NavLink
-                      key={subItem.to}
-                      to={subItem.to}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium transition-all duration-150",
-                          isActive
-                            ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600",
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <div className="flex items-center gap-2 flex-1">
-                            {subItem.icon && (
-                              <subItem.icon className="h-4 w-4" />
-                            )}
-                            <span>{subItem.label}</span>
-                          </div>
-                          {isActive && (
-                            <motion.div
-                              layoutId="activeSubDot"
-                              className="w-1.5 h-1.5 rounded-full bg-blue-600"
-                              transition={{
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 35,
-                                mass: 0.5,
-                              }}
-                            />
-                          )}
-                          {subItem.badge && (
-                            <Badge
-                              variant="destructive"
-                              className="text-[9px] px-1 h-4"
-                            >
-                              {subItem.badge}
-                            </Badge>
-                          )}
-                        </>
-                      )}
-                    </NavLink>
-                  ),
-                )}
-              </div>
-            )
-          }
-        </div >
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  duration: 0.2,
+                  ease: "easeInOut",
+                }}
+                className="overflow-hidden"
+              >
+                <div className="ml-10 mt-1 space-y-0.5 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                  {item.subItems?.map((subItem) => (
+                    <SubMenuItem key={subItem.to} subItem={subItem} />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       );
     }
 
@@ -324,41 +358,47 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         )}
       </NavLink>
     );
-  };
+  });
 
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col bg-white dark:bg-gray-950">
-      {/* Logo Header */}
-      <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
-        <div className="relative">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
-            <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
+  NavItemComponent.displayName = "NavItemComponent";
+
+  // Memoizar o conteúdo da sidebar
+  const SidebarContent = useMemo(
+    () => (
+      <div className="flex h-full flex-col bg-white dark:bg-gray-950">
+        {/* Logo Header */}
+        <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
+          <div className="relative">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
+              <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white">
+              SyncAds
+            </h1>
+            <p className="text-[11px] font-bold tracking-wider text-blue-600 dark:text-blue-400">
+              MARKETING AI
+            </p>
           </div>
         </div>
-        <div>
-          <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white">
-            SyncAds
-          </h1>
-          <p className="text-[11px] font-bold tracking-wider text-blue-600 dark:text-blue-400">
-            MARKETING AI
-          </p>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 pt-16 pb-4 space-y-1 scrollbar-hide">
+          {navItems.map((item) => (
+            <NavItemComponent key={item.label} item={item} />
+          ))}
+        </nav>
+
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span>Sistema Online</span>
+          </div>
         </div>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pt-16 pb-4 space-y-1 scrollbar-hide">
-        {navItems.map((item) => (
-          <NavItem key={item.label} item={item} />
-        ))}
-      </nav>
-
-      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-          <span>Sistema Online</span>
-        </div>
-      </div>
-    </div>
+    ),
+    [expandedMenus],
   );
 
   return (
@@ -370,33 +410,39 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSidebarOpen(false)}
+            transition={{ duration: 0.15 }}
+            onClick={handleCloseSidebar}
             className="fixed inset-0 z-40 bg-black/50 md:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* Mobile Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ x: sidebarOpen ? 0 : "-100%" }}
-        transition={{
-          type: "spring",
-          damping: 30,
-          stiffness: 300,
-          mass: 0.8,
-        }}
-        className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
-      >
-        <SidebarContent />
-      </motion.aside>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{
+              type: "spring",
+              damping: 30,
+              stiffness: 300,
+              mass: 0.8,
+            }}
+            className="fixed inset-y-0 left-0 z-50 w-64 md:hidden border-r border-gray-200 dark:border-gray-800"
+          >
+            {SidebarContent}
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-gray-200 dark:border-gray-800">
-        <SidebarContent />
+        {SidebarContent}
       </aside>
     </>
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);
