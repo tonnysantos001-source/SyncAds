@@ -6,6 +6,11 @@ IA + Supabase + Streaming + AI Tools
 """
 
 # ==========================================
+# IMPORTS DE ROUTERS
+# ==========================================
+from app.routers.automation import router as automation_router
+
+# ==========================================
 # CRIAR APP FASTAPI
 # ==========================================
 app = FastAPI(
@@ -27,6 +32,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==========================================
+# INCLUDE ROUTERS
+# ==========================================
+app.include_router(automation_router, prefix="/api", tags=["Automation"])
 
 # ==========================================
 # SUPABASE HTTP FALLBACK
@@ -425,7 +434,7 @@ async def chat(
             # Criar comando para extensão
             if user_devices:
                 device_id = user_devices[0]["device_id"]
-                
+
                 command_data = {
                     "user_id": user_id,
                     "device_id": device_id,
@@ -438,7 +447,7 @@ async def chat(
                 try:
                     # Salvar comando no Supabase
                     cmd_response = supabase.table("extension_commands").insert(command_data).execute()
-                    
+
                     if cmd_response.data:
                         command_id = cmd_response.data[0]['id']
                         logger.info(f"✅ Comando criado no DB: {command_id}")
@@ -999,7 +1008,7 @@ async def get_user_devices(user_id: str):
     """
     try:
         user_devices = []
-        
+
         # Buscar no Supabase
         if supabase:
             try:
@@ -1046,6 +1055,7 @@ async def startup_event():
     logger.info(f"✅ Health: /health")
     logger.info(f"✅ Chat: /api/chat (streaming + Supabase + AI Tools)")
     logger.info(f"✅ Extension API: /api/extension/* (4 endpoints)")
+    logger.info(f"✅ Browser Automation: /api/browser-automation/* (Playwright + Browser-Use)")
     logger.info(f"✅ Supabase: {'Connected' if supabase else 'Not configured'}")
     logger.info("✅ AI Tools: Image, Video, Search, Files, Python")
     logger.info("=" * 50)
