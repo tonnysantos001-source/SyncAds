@@ -70,16 +70,83 @@ serve(async (req) => {
       console.log("🔓 Admin bypass - rate limit disabled for user:", user.id);
     }
 
-    // ✅ SISTEMA SIMPLIFICADO: SEM ORGANIZAÇÕES
-    // Todos os usuários usam a GlobalAiConnection configurada pelo Super Admin
-    console.log("🔍 Buscando GlobalAiConnection ativa...");
+    // ============================================
+    // 🎯 AI ROUTER - SELEÇÃO INTELIGENTE DE IA
+    // ============================================
+    console.log("🤖 Chamando AI Router para selecionar melhor IA...");
 
-    const { data: aiConnection, error: aiError } = await supabase
+    let selectedProvider = "GROQ"; // fallback padrão
+    let selectedReason = "Default fallback";
+
+    try {
+      const routerResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-router`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            conversationId,
+            userId: user.id,
+            context: {
+              extensionActive: extensionConnected,
+            },
+          }),
+        },
+      );
+
+      if (routerResponse.ok) {
+        const routerData = await routerResponse.json();
+        selectedProvider = routerData.selection.provider;
+        selectedReason = routerData.selection.reason;
+
+        console.log("✅ AI Router selecionou:", {
+          provider: selectedProvider,
+          reason: selectedReason,
+          confidence: routerData.selection.confidence,
+        });
+      } else {
+        console.warn("⚠️ AI Router falhou, usando fallback GROQ");
+      }
+    } catch (routerError) {
+      console.error("❌ Erro ao chamar AI Router:", routerError);
+      console.log("🔄 Usando fallback GROQ");
+    }
+
+    // ============================================
+    // 📡 BUSCAR IA SELECIONADA
+    // ============================================
+    console.log(
+      `🔍 Buscando GlobalAiConnection para provider: ${selectedProvider}`,
+    );
+
+    // Tentar buscar a IA selecionada pelo router
+    let { data: aiConnection, error: aiError } = await supabase
       .from("GlobalAiConnection")
       .select("*")
+      .eq("provider", selectedProvider)
       .eq("isActive", true)
-      .limit(1)
       .maybeSingle();
+
+    // Se não encontrou a IA selecionada, buscar qualquer IA ativa
+    if (!aiConnection) {
+      console.warn(
+        `⚠️ ${selectedProvider} não configurada, buscando qualquer IA ativa...`,
+      );
+
+      const fallbackQuery = await supabase
+        .from("GlobalAiConnection")
+        .select("*")
+        .eq("isActive", true)
+        .limit(1)
+        .maybeSingle();
+
+      aiConnection = fallbackQuery.data;
+      aiError = fallbackQuery.error;
+    }
 
     console.log("📊 DEBUG - Resultado da query:", {
       hasData: !!aiConnection,
@@ -1935,6 +2002,40 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       .from("ChatConversation")
       .update({ updatedAt: new Date().toISOString() })
       .eq("id", conversationId);
+
+    // ============================================
+    // 📊 LOGGING DE USO - AI ROUTER
+    // ============================================
+    console.log("📊 Salvando log de uso da IA...");
+
+    try {
+      await supabase.from("ai_usage_logs").insert({
+        user_id: user.id,
+        conversation_id: conversationId,
+        provider: aiConnection.provider,
+        model: aiConnection.model,
+        selected_reason: selectedReason,
+        prompt_tokens: tokensUsed > 0 ? Math.floor(tokensUsed * 0.3) : 0,
+        completion_tokens: tokensUsed > 0 ? Math.floor(tokensUsed * 0.7) : 0,
+        total_tokens: tokensUsed,
+        latency_ms: Date.now() - Date.now(), // Será calculado na próxima iteração
+        success: true,
+        message_length: message.length,
+        complexity:
+          message.length > 1000
+            ? "high"
+            : message.length > 300
+              ? "medium"
+              : "low",
+        needs_image: /crie|gere|faça.*imagem|banner|logo/i.test(message),
+        needs_multimodal: /analise.*imagem|leia.*pdf/i.test(message),
+      });
+
+      console.log("✅ Log de uso salvo com sucesso");
+    } catch (logError) {
+      console.error("⚠️ Erro ao salvar log de uso (não crítico):", logError);
+      // Não falhar a requisição por causa de logging
+    }
 
     // Track AI usage (async, don't wait) - Sistema simplificado sem organizações
     supabase.from("AiUsage").upsert(

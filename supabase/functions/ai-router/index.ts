@@ -1,0 +1,352 @@
+/**
+ * ============================================
+ * AI ROUTER - ROTEADOR INTELIGENTE DE IAs
+ * ============================================
+ *
+ * Seleciona automaticamente a melhor IA entre Groq e Gemini
+ * baseado no tipo de tarefa solicitada pelo usuário.
+ *
+ * IAs Disponíveis:
+ * - GROQ (Llama 3.3 70B) - Chat rápido, grátis, 500-800 tokens/seg
+ * - GEMINI (2.0 Flash) - Multimodal, imagens, PDFs, 1M tokens contexto
+ *
+ * Autor: SyncAds AI Team
+ * Data: 27/01/2025
+ * ============================================
+ */
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// ============================================
+// TYPES
+// ============================================
+
+interface AIRouterRequest {
+  message: string;
+  conversationId?: string;
+  userId?: string;
+  context?: {
+    extensionActive?: boolean;
+    currentUrl?: string;
+    attachments?: Array<{
+      type: string;
+      url: string;
+      size: number;
+    }>;
+  };
+}
+
+interface AISelection {
+  provider: "GROQ" | "GEMINI";
+  model: string;
+  reason: string;
+  confidence: number; // 0-100
+}
+
+interface AIRouterResponse {
+  selection: AISelection;
+  alternatives?: AISelection[];
+  analysis: {
+    needsImage: boolean;
+    needsMultimodal: boolean;
+    hasAttachment: boolean;
+    complexity: "low" | "medium" | "high";
+    messageLength: number;
+  };
+}
+
+// ============================================
+// CORS HEADERS
+// ============================================
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+// ============================================
+// MAIN HANDLER
+// ============================================
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const requestData: AIRouterRequest = await req.json();
+    const { message, context } = requestData;
+
+    if (!message || message.trim() === "") {
+      return new Response(
+        JSON.stringify({ error: "Message is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("🤖 [AI Router] Analyzing message:", {
+      messagePreview: message.substring(0, 100),
+      hasAttachments: context?.attachments?.length || 0,
+    });
+
+    // Analisar mensagem e contexto
+    const analysis = analyzeMessage(message, context);
+
+    // Selecionar IA
+    const selection = selectAI(analysis, message, context);
+
+    // Gerar alternativas (para debugging)
+    const alternatives = generateAlternatives(selection);
+
+    const response: AIRouterResponse = {
+      selection,
+      alternatives,
+      analysis: {
+        needsImage: analysis.needsImage,
+        needsMultimodal: analysis.needsMultimodal,
+        hasAttachment: analysis.hasAttachment,
+        complexity: analysis.complexity,
+        messageLength: message.length,
+      },
+    };
+
+    console.log("✅ [AI Router] Selected:", {
+      provider: selection.provider,
+      reason: selection.reason,
+      confidence: selection.confidence,
+    });
+
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("❌ [AI Router] Error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
+
+// ============================================
+// ANÁLISE DE MENSAGEM
+// ============================================
+
+interface MessageAnalysis {
+  needsImage: boolean;
+  needsMultimodal: boolean;
+  hasAttachment: boolean;
+  complexity: "low" | "medium" | "high";
+  keywords: string[];
+}
+
+function analyzeMessage(
+  message: string,
+  context?: AIRouterRequest["context"]
+): MessageAnalysis {
+  const lowerMessage = message.toLowerCase();
+  const keywords: string[] = [];
+
+  // 1. DETECTAR NECESSIDADE DE IMAGEM
+  const imageKeywords = [
+    "crie imagem",
+    "gere imagem",
+    "faça imagem",
+    "criar banner",
+    "gerar banner",
+    "fazer banner",
+    "crie logo",
+    "gere logo",
+    "faça logo",
+    "criar foto",
+    "gerar foto",
+    "design de",
+    "arte de",
+    "ilustração de",
+    "thumbnail",
+    "capa para",
+  ];
+
+  const needsImage = imageKeywords.some((kw) => {
+    if (lowerMessage.includes(kw)) {
+      keywords.push(kw);
+      return true;
+    }
+    return false;
+  });
+
+  // 2. DETECTAR NECESSIDADE MULTIMODAL (análise de imagem/vídeo)
+  const multimodalKeywords = [
+    "analise esta imagem",
+    "analise este vídeo",
+    "analise esta foto",
+    "o que tem nesta imagem",
+    "descreva esta imagem",
+    "leia esta imagem",
+    "extraia texto de",
+    "ocr",
+    "reconheça",
+  ];
+
+  const needsMultimodal = multimodalKeywords.some((kw) => {
+    if (lowerMessage.includes(kw)) {
+      keywords.push(kw);
+      return true;
+    }
+    return false;
+  });
+
+  // 3. VERIFICAR SE TEM ANEXO
+  const hasAttachment =
+    (context?.attachments && context.attachments.length > 0) || false;
+
+  // 4. ESTIMAR COMPLEXIDADE
+  let complexity: "low" | "medium" | "high" = "low";
+
+  if (message.length > 1000) {
+    complexity = "high";
+  } else if (message.length > 300) {
+    complexity = "medium";
+  }
+
+  // Complexidade alta se tem múltiplas perguntas
+  const questionMarks = (message.match(/\?/g) || []).length;
+  if (questionMarks >= 3) {
+    complexity = "high";
+  }
+
+  return {
+    needsImage,
+    needsMultimodal,
+    hasAttachment,
+    complexity,
+    keywords,
+  };
+}
+
+// ============================================
+// SELEÇÃO DE IA
+// ============================================
+
+function selectAI(
+  analysis: MessageAnalysis,
+  message: string,
+  context?: AIRouterRequest["context"]
+): AISelection {
+
+  // ============================================
+  // REGRA 1: GERAÇÃO DE IMAGEM → GEMINI
+  // ============================================
+  if (analysis.needsImage) {
+    return {
+      provider: "GEMINI",
+      model: "gemini-2.0-flash-exp",
+      reason: "Geração de imagem solicitada - Gemini é a única IA com essa capacidade",
+      confidence: 100,
+    };
+  }
+
+  // ============================================
+  // REGRA 2: ANÁLISE DE IMAGEM/VÍDEO → GEMINI
+  // ============================================
+  if (analysis.needsMultimodal || analysis.hasAttachment) {
+    return {
+      provider: "GEMINI",
+      model: "gemini-2.0-flash-exp",
+      reason: "Análise multimodal necessária - Gemini suporta imagens e vídeos",
+      confidence: 100,
+    };
+  }
+
+  // ============================================
+  // REGRA 3: CONTEXTO MUITO GRANDE → GEMINI
+  // ============================================
+  if (message.length > 50000) {
+    return {
+      provider: "GEMINI",
+      model: "gemini-2.0-flash-exp",
+      reason: "Contexto muito grande (>50k chars) - Gemini tem 1M tokens",
+      confidence: 90,
+    };
+  }
+
+  // ============================================
+  // REGRA 4: ANÁLISE DE DOCUMENTOS → GEMINI
+  // ============================================
+  const documentKeywords = [
+    "analise este pdf",
+    "leia este documento",
+    "extraia informações de",
+    "resuma este texto",
+  ];
+
+  if (documentKeywords.some((kw) => message.toLowerCase().includes(kw))) {
+    return {
+      provider: "GEMINI",
+      model: "gemini-2.0-flash-exp",
+      reason: "Análise de documento - Gemini lida melhor com PDFs e textos longos",
+      confidence: 85,
+    };
+  }
+
+  // ============================================
+  // REGRA 5 (DEFAULT): CHAT RÁPIDO → GROQ
+  // ============================================
+  return {
+    provider: "GROQ",
+    model: "llama-3.3-70b-versatile",
+    reason: "Chat conversacional - Groq é mais rápido (500-800 tokens/seg) e gratuito",
+    confidence: 95,
+  };
+}
+
+// ============================================
+// GERAR ALTERNATIVAS
+// ============================================
+
+function generateAlternatives(selected: AISelection): AISelection[] {
+  const alternatives: AISelection[] = [];
+
+  // Se selecionou Groq, Gemini é alternativa
+  if (selected.provider === "GROQ") {
+    alternatives.push({
+      provider: "GEMINI",
+      model: "gemini-2.0-flash-exp",
+      reason: "Alternativa com maior contexto (1M tokens) e capacidades multimodais",
+      confidence: 70,
+    });
+  }
+
+  // Se selecionou Gemini, Groq é alternativa
+  if (selected.provider === "GEMINI") {
+    alternatives.push({
+      provider: "GROQ",
+      model: "llama-3.3-70b-versatile",
+      reason: "Alternativa mais rápida para chat simples (500-800 tokens/seg)",
+      confidence: 60,
+    });
+  }
+
+  return alternatives;
+}
+
+// ============================================
+// HEALTH CHECK
+// ============================================
+
+// Se for GET, retornar status
+if (Deno.env.get("DENO_DEPLOYMENT_ID")) {
+  console.log("🚀 [AI Router] Edge Function initialized");
+  console.log("📊 [AI Router] Available models:");
+  console.log("   - GROQ: llama-3.3-70b-versatile (default para chat)");
+  console.log("   - GEMINI: gemini-2.0-flash-exp (imagens e multimodal)");
+}
