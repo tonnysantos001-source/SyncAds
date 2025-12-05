@@ -61,7 +61,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   try {
     return (
       <div
-        className={`flex h-screen relative overflow-hidden ${isFullPageRoute ? "" : "bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40"}`}
+        className={`flex h-screen max-h-screen relative overflow-hidden ${isFullPageRoute ? "" : "bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40"}`}
       >
         {/* Background customizado - apenas quando NÃO for chat */}
         {!isFullPageRoute && (
@@ -81,7 +81,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </ErrorBoundaryWrapper>
 
         {/* Main Content Area */}
-        <div className="flex flex-col flex-1 md:ml-64 relative z-10">
+        <div className="flex flex-col flex-1 md:ml-64 relative z-10 min-h-0 overflow-hidden">
           {/* Header com error boundary */}
           {!isFullPageRoute && (
             <ErrorBoundaryWrapper
@@ -100,7 +100,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
           {/* Main content */}
           <main
-            className={`flex-1 ${isFullPageRoute ? "h-full overflow-hidden" : "overflow-y-auto p-4 md:p-6 lg:p-8"}`}
+            className={`flex-1 min-h-0 ${isFullPageRoute ? "h-full max-h-full overflow-hidden" : "overflow-y-auto p-4 md:p-6 lg:p-8"}`}
           >
             {isFullPageRoute ? (
               <ErrorBoundaryWrapper

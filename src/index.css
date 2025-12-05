@@ -48,6 +48,38 @@ html:not(.dark) {
     );
 }
 
+/* CORREÇÃO DEFINITIVA - PREVINE EXPANSÃO DO CHAT */
+html,
+body {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+#root {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+/* Força containers flex a respeitar altura do viewport */
+[class*="flex"][class*="h-full"],
+[class*="flex"][class*="h-screen"] {
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+/* Previne que mensagens do chat façam o layout crescer */
+[class*="overflow-y-auto"] {
+    max-height: 100%;
+}
+
+/* Garante que flex items com flex-1 não ultrapassem o container */
+.flex-1 {
+    min-height: 0;
+    min-width: 0;
+}
+
 /* Firefox */
 .custom-scrollbar {
     scrollbar-width: thin;

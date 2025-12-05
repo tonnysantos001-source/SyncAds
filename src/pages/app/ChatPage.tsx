@@ -293,7 +293,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900">
+    <div className="flex h-full w-full max-h-full overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900">
       {/* SIDEBAR */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -381,7 +381,7 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {/* MAIN CHAT AREA */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#12121A] to-[#1A1A2E] border-b border-gray-700/50 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
@@ -429,7 +429,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F]">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F]">
           {isLoadingConversations ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
