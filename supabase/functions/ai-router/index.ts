@@ -3,15 +3,16 @@
  * AI ROUTER - ROTEADOR INTELIGENTE DE IAs
  * ============================================
  *
- * Seleciona automaticamente a melhor IA entre Groq e Gemini
+ * Seleciona automaticamente a melhor IA entre Groq, Gemini e Python Backend
  * baseado no tipo de tarefa solicitada pelo usuário.
  *
  * IAs Disponíveis:
  * - GROQ (Llama 3.3 70B) - Chat rápido, grátis, 500-800 tokens/seg
  * - GEMINI (2.0 Flash) - Multimodal, imagens, PDFs, 1M tokens contexto
+ * - PYTHON - Browser automation com Browser-Use e Playwright
  *
  * Autor: SyncAds AI Team
- * Data: 27/01/2025
+ * Data: 05/12/2025
  * ============================================
  */
 
@@ -38,10 +39,11 @@ interface AIRouterRequest {
 }
 
 interface AISelection {
-  provider: "GROQ" | "GEMINI";
+  provider: "GROQ" | "GEMINI" | "PYTHON";
   model: string;
   reason: string;
   confidence: number; // 0-100
+  pythonEndpoint?: string;
 }
 
 interface AIRouterResponse {
@@ -51,10 +53,19 @@ interface AIRouterResponse {
     needsImage: boolean;
     needsMultimodal: boolean;
     hasAttachment: boolean;
+    needsAutomation: boolean;
     complexity: "low" | "medium" | "high";
     messageLength: number;
   };
 }
+
+// ============================================
+// CONFIGURATION
+// ============================================
+
+const PYTHON_SERVICE_URL =
+  Deno.env.get("PYTHON_SERVICE_URL") ||
+  "https://syncads-python-service.railway.app";
 
 // ============================================
 // CORS HEADERS
@@ -81,13 +92,10 @@ serve(async (req) => {
     const { message, context } = requestData;
 
     if (!message || message.trim() === "") {
-      return new Response(
-        JSON.stringify({ error: "Message is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Message is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("🤖 [AI Router] Analyzing message:", {
@@ -111,6 +119,7 @@ serve(async (req) => {
         needsImage: analysis.needsImage,
         needsMultimodal: analysis.needsMultimodal,
         hasAttachment: analysis.hasAttachment,
+        needsAutomation: analysis.needsAutomation,
         complexity: analysis.complexity,
         messageLength: message.length,
       },
@@ -132,7 +141,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
@@ -145,13 +154,14 @@ interface MessageAnalysis {
   needsImage: boolean;
   needsMultimodal: boolean;
   hasAttachment: boolean;
+  needsAutomation: boolean;
   complexity: "low" | "medium" | "high";
   keywords: string[];
 }
 
 function analyzeMessage(
   message: string,
-  context?: AIRouterRequest["context"]
+  context?: AIRouterRequest["context"],
 ): MessageAnalysis {
   const lowerMessage = message.toLowerCase();
   const keywords: string[] = [];
@@ -209,7 +219,33 @@ function analyzeMessage(
   const hasAttachment =
     (context?.attachments && context.attachments.length > 0) || false;
 
-  // 4. ESTIMAR COMPLEXIDADE
+  // 4. DETECTAR NECESSIDADE DE AUTOMAÇÃO (Browser/Scraping)
+  const automationKeywords = [
+    "navegue para",
+    "abra o site",
+    "clique em",
+    "preencha o formulário",
+    "extraia dados de",
+    "faça scraping",
+    "colete informações de",
+    "automatize",
+    "busque no google",
+    "pesquise em",
+    "acesse",
+    "faça login em",
+    "encontre na página",
+    "capture da página",
+  ];
+
+  const needsAutomation = automationKeywords.some((kw) => {
+    if (lowerMessage.includes(kw)) {
+      keywords.push(kw);
+      return true;
+    }
+    return false;
+  });
+
+  // 5. ESTIMAR COMPLEXIDADE
   let complexity: "low" | "medium" | "high" = "low";
 
   if (message.length > 1000) {
@@ -228,6 +264,7 @@ function analyzeMessage(
     needsImage,
     needsMultimodal,
     hasAttachment,
+    needsAutomation,
     complexity,
     keywords,
   };
@@ -240,23 +277,37 @@ function analyzeMessage(
 function selectAI(
   analysis: MessageAnalysis,
   message: string,
-  context?: AIRouterRequest["context"]
+  context?: AIRouterRequest["context"],
 ): AISelection {
+  // ============================================
+  // REGRA 1: AUTOMAÇÃO BROWSER → PYTHON BACKEND
+  // ============================================
+  if (analysis.needsAutomation) {
+    return {
+      provider: "PYTHON",
+      model: "browser-use + playwright",
+      reason:
+        "Automação browser/scraping solicitada - Python Backend com Browser-Use",
+      confidence: 95,
+      pythonEndpoint: `${PYTHON_SERVICE_URL}/api/browser-automation/execute`,
+    };
+  }
 
   // ============================================
-  // REGRA 1: GERAÇÃO DE IMAGEM → GEMINI
+  // REGRA 2: GERAÇÃO DE IMAGEM → GEMINI
   // ============================================
   if (analysis.needsImage) {
     return {
       provider: "GEMINI",
       model: "gemini-2.0-flash-exp",
-      reason: "Geração de imagem solicitada - Gemini é a única IA com essa capacidade",
+      reason:
+        "Geração de imagem solicitada - Gemini é a única IA com essa capacidade",
       confidence: 100,
     };
   }
 
   // ============================================
-  // REGRA 2: ANÁLISE DE IMAGEM/VÍDEO → GEMINI
+  // REGRA 3: ANÁLISE DE IMAGEM/VÍDEO → GEMINI
   // ============================================
   if (analysis.needsMultimodal || analysis.hasAttachment) {
     return {
@@ -268,7 +319,7 @@ function selectAI(
   }
 
   // ============================================
-  // REGRA 3: CONTEXTO MUITO GRANDE → GEMINI
+  // REGRA 4: CONTEXTO MUITO GRANDE → GEMINI
   // ============================================
   if (message.length > 50000) {
     return {
@@ -280,7 +331,7 @@ function selectAI(
   }
 
   // ============================================
-  // REGRA 4: ANÁLISE DE DOCUMENTOS → GEMINI
+  // REGRA 5: ANÁLISE DE DOCUMENTOS → GEMINI
   // ============================================
   const documentKeywords = [
     "analise este pdf",
@@ -293,18 +344,20 @@ function selectAI(
     return {
       provider: "GEMINI",
       model: "gemini-2.0-flash-exp",
-      reason: "Análise de documento - Gemini lida melhor com PDFs e textos longos",
+      reason:
+        "Análise de documento - Gemini lida melhor com PDFs e textos longos",
       confidence: 85,
     };
   }
 
   // ============================================
-  // REGRA 5 (DEFAULT): CHAT RÁPIDO → GROQ
+  // REGRA 6 (DEFAULT): CHAT RÁPIDO → GROQ
   // ============================================
   return {
     provider: "GROQ",
     model: "llama-3.3-70b-versatile",
-    reason: "Chat conversacional - Groq é mais rápido (500-800 tokens/seg) e gratuito",
+    reason:
+      "Chat conversacional - Groq é mais rápido (500-800 tokens/seg) e gratuito",
     confidence: 95,
   };
 }
@@ -321,7 +374,8 @@ function generateAlternatives(selected: AISelection): AISelection[] {
     alternatives.push({
       provider: "GEMINI",
       model: "gemini-2.0-flash-exp",
-      reason: "Alternativa com maior contexto (1M tokens) e capacidades multimodais",
+      reason:
+        "Alternativa com maior contexto (1M tokens) e capacidades multimodais",
       confidence: 70,
     });
   }
@@ -333,6 +387,17 @@ function generateAlternatives(selected: AISelection): AISelection[] {
       model: "llama-3.3-70b-versatile",
       reason: "Alternativa mais rápida para chat simples (500-800 tokens/seg)",
       confidence: 60,
+    });
+  }
+
+  // Adicionar alternativa Python se aplicável
+  if (selected.provider !== "PYTHON") {
+    alternatives.push({
+      provider: "PYTHON",
+      model: "browser-use + playwright",
+      reason: "Alternativa para automação browser e scraping",
+      confidence: 50,
+      pythonEndpoint: `${PYTHON_SERVICE_URL}/api/browser-automation/execute`,
     });
   }
 
@@ -349,4 +414,6 @@ if (Deno.env.get("DENO_DEPLOYMENT_ID")) {
   console.log("📊 [AI Router] Available models:");
   console.log("   - GROQ: llama-3.3-70b-versatile (default para chat)");
   console.log("   - GEMINI: gemini-2.0-flash-exp (imagens e multimodal)");
+  console.log("   - PYTHON: browser-use + playwright (automação e scraping)");
+  console.log(`🐍 [Python Service] ${PYTHON_SERVICE_URL}`);
 }
