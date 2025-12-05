@@ -1,26 +1,41 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { IconSend, IconPlus, IconMenu2, IconX } from "@tabler/icons-react";
+import {
+  IconSend,
+  IconPlus,
+  IconMenu2,
+  IconX,
+  IconBrandOpenai,
+  IconUserCircle,
+  IconTrash,
+  IconSparkles,
+  IconCircleCheck,
+  IconAlertCircle,
+} from "@tabler/icons-react";
+import Textarea from "react-textarea-autosize";
 import { useAuthStore } from "@/store/authStore";
-import { supabase } from "@/lib/supabase";
+import { useChatStore } from "@/store/chatStore";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import chatService from "@/lib/api/chatService";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 
-// ============================================
-// TYPES
-// ============================================
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
-}
+const MAX_CHARS = 2000;
 
-interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-}
+const USER_SYSTEM_PROMPT = `Você é um assistente de IA especializado em marketing digital para a plataforma SyncAds.
+
+Você pode ajudar com:
+- Estratégias de marketing digital
+- Criação de campanhas
+- Análise de público-alvo
+- Otimização de conversões
+- Dicas de anúncios
+- Análise de métricas
+
+Quando o usuário mencionar navegação web ou automação, informe que a extensão do navegador está disponível.
+
+Responda sempre em português do Brasil de forma clara, objetiva e prática.`;
 
 interface ExtensionStatus {
   connected: boolean;
@@ -28,149 +43,53 @@ interface ExtensionStatus {
   lastCheck: number;
 }
 
-interface PendingCommand {
-  id: string;
-  command: string;
-  messageId: string;
-  timestamp: number;
-}
-
-// ============================================
-// CHAT PAGE - VERSÃO SIMPLES E FUNCIONAL
-// ============================================
-export default function ChatPageNovo() {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  // Estados básicos
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<
-    string | null
-  >(null);
+export default function ChatPage() {
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [aiStatus, setAiStatus] = useState<
-    "thinking" | "searching" | "navigating" | null
-  >(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     connected: false,
     deviceId: null,
     lastCheck: 0,
   });
-  const [pendingCommands, setPendingCommands] = useState<PendingCommand[]>([]);
+
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const navigate = useNavigate();
+
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId,
+  );
+  const setActiveConversationId = useChatStore(
+    (state) => state.setActiveConversationId,
+  );
+  const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
+  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
+  const addMessage = useChatStore((state) => state.addMessage);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const resultPollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
-  // ============================================
-  // MOUNT CHECK
-  // ============================================
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
 
-  // ============================================
-  // AUTH CHECK
-  // ============================================
+  // Auth check
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate("/login-v2", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
-  // ============================================
-  // CARREGAR CONVERSAS
-  // ============================================
-  useEffect(() => {
-    if (!user) return;
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    const loadConversations = async () => {
-      setIsLoading(true);
-      try {
-        // Buscar conversas
-        const { data: convs, error: convsError } = await supabase
-          .from("ChatConversation")
-          .select("id, title, createdAt")
-          .eq("userId", user.id)
-          .order("createdAt", { ascending: false });
+  useEffect(scrollToBottom, [activeConversation?.messages, isAssistantTyping]);
 
-        if (convsError) throw convsError;
-
-        if (!convs || convs.length === 0) {
-          // Criar primeira conversa automaticamente
-          const firstConv = {
-            id: crypto.randomUUID(),
-            userId: user.id,
-            title: `Conversa ${new Date().toLocaleDateString()}`,
-            createdAt: new Date().toISOString(),
-          };
-
-          const { error: insertError } = await supabase
-            .from("ChatConversation")
-            .insert(firstConv);
-
-          if (!insertError) {
-            setConversations([
-              {
-                id: firstConv.id,
-                title: firstConv.title,
-                messages: [],
-              },
-            ]);
-            setActiveConversationId(firstConv.id);
-          }
-          return;
-        }
-
-        // Buscar mensagens para cada conversa
-        const conversationsWithMessages = await Promise.all(
-          convs.map(async (conv) => {
-            const { data: msgs } = await supabase
-              .from("ChatMessage")
-              .select("id, role, content, createdAt")
-              .eq("conversationId", conv.id)
-              .order("createdAt", { ascending: true });
-
-            return {
-              id: conv.id,
-              title: conv.title,
-              messages: (msgs || []).map((m) => ({
-                id: m.id,
-                role: m.role.toLowerCase() as "user" | "assistant",
-                content: m.content,
-                createdAt: m.createdAt,
-              })),
-            };
-          }),
-        );
-
-        setConversations(conversationsWithMessages);
-        if (!activeConversationId && conversationsWithMessages.length > 0) {
-          setActiveConversationId(conversationsWithMessages[0].id);
-        }
-      } catch (error: any) {
-        console.error("Erro ao carregar conversas:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as conversas",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadConversations();
-  }, [user]);
-
-  // ============================================
-  // VERIFICAR EXTENSÃO - SISTEMA ROBUSTO
-  // ============================================
+  // Check extension status
   useEffect(() => {
     if (!user) return;
 
@@ -189,12 +108,8 @@ export default function ChatPageNovo() {
           .maybeSingle();
 
         if (error) {
-          console.error("❌ Erro ao verificar extensão:", error);
           consecutiveFailures++;
           if (consecutiveFailures >= MAX_FAILURES) {
-            console.warn(
-              `⚠️ ${MAX_FAILURES} falhas consecutivas, marcando como offline`,
-            );
             setExtensionStatus({
               connected: false,
               deviceId: null,
@@ -207,14 +122,7 @@ export default function ChatPageNovo() {
         const now = Date.now();
         const lastSeen = data ? new Date(data.last_seen).getTime() : 0;
         const timeDiff = now - lastSeen;
-        const isConnected = !!data && timeDiff < 30000; // 30s timeout (2x heartbeat de 15s)
-
-        console.log(`🔍 Extensão check:`, {
-          hasData: !!data,
-          timeDiff: `${Math.round(timeDiff / 1000)}s`,
-          isConnected,
-          deviceId: data?.device_id?.substring(0, 8) + "...",
-        });
+        const isConnected = !!data && timeDiff < 30000;
 
         setExtensionStatus({
           connected: isConnected,
@@ -222,779 +130,502 @@ export default function ChatPageNovo() {
           lastCheck: now,
         });
 
-        // Reset contador se sucesso
         if (!error) consecutiveFailures = 0;
       } catch (error) {
-        console.error("❌ Exception ao verificar extensão:", error);
         consecutiveFailures++;
       }
     };
 
-    // Verificar imediatamente
     checkExtension();
-
-    // Verificar a cada 5 segundos (polling agressivo para responsividade)
     const interval = setInterval(checkExtension, 5000);
-
     return () => clearInterval(interval);
   }, [user]);
 
-  // ============================================
-  // SCROLL TO BOTTOM
-  // ============================================
+  // Initialize chat
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conversations, activeConversationId]);
+    const initChat = async () => {
+      if (!user) return;
 
-  // ============================================
-  // POLLING DE RESULTADOS DE COMANDOS
-  // ============================================
-  useEffect(() => {
-    // Iniciar polling se houver comandos pendentes
-    if (pendingCommands.length > 0) {
-      console.log(
-        `🔄 Iniciando polling de ${pendingCommands.length} comandos pendentes`,
-      );
+      try {
+        setIsLoadingConversations(true);
+        await useChatStore.getState().loadConversations(user.id);
 
-      // Verificar imediatamente
-      checkCommandResults();
+        const { data: existingConversations, error: queryError } =
+          await supabase
+            .from("ChatConversation")
+            .select("id")
+            .eq("userId", user.id)
+            .limit(1);
 
-      // Depois verificar a cada 3 segundos
-      if (!resultPollingInterval.current) {
-        resultPollingInterval.current = setInterval(() => {
-          checkCommandResults();
-        }, 3000);
-      }
-    } else {
-      // Parar polling se não houver comandos pendentes
-      if (resultPollingInterval.current) {
-        console.log(
-          "⏸️ Parando polling de resultados (sem comandos pendentes)",
-        );
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
-      }
-    }
+        if (queryError) throw queryError;
 
-    // Cleanup ao desmontar
-    return () => {
-      if (resultPollingInterval.current) {
-        clearInterval(resultPollingInterval.current);
-        resultPollingInterval.current = null;
+        if (!existingConversations || existingConversations.length === 0) {
+          await useChatStore
+            .getState()
+            .createNewConversation(
+              user.id,
+              `Conversa ${new Date().toLocaleDateString()}`,
+            );
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar chat:", error);
+        toast({
+          title: "Erro ao carregar chat",
+          description: "Tente recarregar a página.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingConversations(false);
       }
     };
-  }, [pendingCommands.length, activeConversationId, user]);
 
-  // ============================================
-  // CRIAR NOVA CONVERSA
-  // ============================================
-  const createNewConversation = async () => {
-    if (!user) {
-      toast({
-        title: "Erro",
-        description: "Usuário não autenticado",
-        variant: "destructive",
-      });
+    initChat();
+  }, [user, toast]);
+
+  // Send message
+  const handleSend = useCallback(async () => {
+    if (
+      input.trim() === "" ||
+      !activeConversationId ||
+      input.length > MAX_CHARS
+    ) {
       return;
     }
 
-    try {
-      const now = new Date().toISOString();
-      const newConv = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        title: `Conversa ${new Date().toLocaleDateString()}`,
-        createdAt: now,
-        updatedAt: now, // CORREÇÃO: campo obrigatório
-      };
-
-      console.log("🆕 Criando nova conversa:", newConv);
-
-      const { data, error } = await supabase
-        .from("ChatConversation")
-        .insert(newConv)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("❌ Erro Supabase:", error);
-        throw error;
-      }
-
-      console.log("✅ Conversa criada:", data);
-
-      const newConversation: Conversation = {
-        id: newConv.id,
-        title: newConv.title,
-        messages: [],
-      };
-
-      setConversations([newConversation, ...conversations]);
-      setActiveConversationId(newConv.id);
-
-      toast({
-        title: "Nova conversa criada!",
-      });
-    } catch (error: any) {
-      console.error("❌ Erro ao criar conversa:", error);
-      toast({
-        title: "Erro",
-        description: error?.message || "Não foi possível criar nova conversa",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // ============================================
-  // ENVIAR MENSAGEM
-  // ============================================
-  // ============================================
-  // ENVIAR COMANDO PARA EXTENSÃO
-  // ============================================
-  const sendBrowserCommand = async (
-    commandType: string,
-    params: any,
-    messageId: string,
-  ) => {
-    if (!extensionStatus.connected || !extensionStatus.deviceId) {
-      console.warn("⚠️ Extensão não conectada, comando não enviado");
-      return null;
-    }
-
-    try {
-      const commandId = crypto.randomUUID();
-
-      console.log("📤 Enviando comando para extensão:", {
-        id: commandId,
-        command: commandType,
-        params,
-        deviceId: extensionStatus.deviceId,
-      });
-
-      const { error } = await supabase.from("ExtensionCommand").insert({
-        id: commandId,
-        deviceId: extensionStatus.deviceId,
-        userId: user?.id,
-        command: commandType,
-        params: params,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error("❌ Erro ao inserir comando:", error);
-        return null;
-      }
-
-      console.log("✅ Comando inserido com sucesso:", commandId);
-
-      // Adicionar comando à lista de pendentes
-      setPendingCommands((prev) => [
-        ...prev,
-        {
-          id: commandId,
-          command: commandType,
-          messageId: messageId,
-          timestamp: Date.now(),
-        },
-      ]);
-
-      return commandId;
-    } catch (error) {
-      console.error("❌ Erro ao enviar comando:", error);
-      return null;
-    }
-  };
-
-  // ============================================
-  // POLLING DE RESULTADOS
-  // ============================================
-  const checkCommandResults = async () => {
-    if (pendingCommands.length === 0) return;
-
-    try {
-      const commandIds = pendingCommands.map((c) => c.id);
-
-      const { data: completedCommands, error } = await supabase
-        .from("ExtensionCommand")
-        .select("*")
-        .in("id", commandIds)
-        .in("status", ["COMPLETED", "FAILED"]);
-
-      if (error) {
-        console.error("❌ Erro ao buscar resultados:", error);
-        return;
-      }
-
-      if (completedCommands && completedCommands.length > 0) {
-        for (const cmd of completedCommands) {
-          const pending = pendingCommands.find((p) => p.id === cmd.id);
-          if (!pending) continue;
-
-          console.log("✅ Comando completado:", {
-            id: cmd.id,
-            command: cmd.command,
-            status: cmd.status,
-            result: cmd.result,
-          });
-
-          // Processar resultado com IA
-          await processCommandResult(cmd, pending.messageId);
-
-          // Remover da lista de pendentes
-          setPendingCommands((prev) => prev.filter((p) => p.id !== cmd.id));
-        }
-      }
-
-      // Limpar comandos muito antigos (> 2 minutos)
-      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-      setPendingCommands((prev) =>
-        prev.filter((p) => p.timestamp > twoMinutesAgo),
-      );
-    } catch (error) {
-      console.error("❌ Erro no polling de resultados:", error);
-    }
-  };
-
-  // ============================================
-  // PROCESSAR RESULTADO COM IA
-  // ============================================
-  const processCommandResult = async (command: any, messageId: string) => {
-    if (!user || !activeConversationId) return;
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      // Criar prompt para IA processar resultado
-      let resultPrompt = "";
-
-      if (command.status === "COMPLETED" && command.result) {
-        const result = command.result.result || command.result;
-
-        switch (command.command) {
-          case "LIST_TABS":
-            const tabs = result.tabs || [];
-            resultPrompt = `RESULTADO: Encontrei ${tabs.length} abas abertas:\n\n${tabs.map((t: any, i: number) => `${i + 1}. ${t.title}\n   URL: ${t.url}`).join("\n\n")}\n\nPor favor, apresente esta lista de forma organizada e amigável para o usuário.`;
-            break;
-
-          case "GET_PAGE_INFO":
-            resultPrompt = `RESULTADO: Informações da página:\n- Título: ${result.title}\n- URL: ${result.url}\n- Domínio: ${result.domain}\n\nResumo do conteúdo:\n${result.bodyText?.substring(0, 500) || "Sem conteúdo"}\n\nPor favor, apresente essas informações de forma clara para o usuário.`;
-            break;
-
-          case "NAVIGATE":
-            resultPrompt = `RESULTADO: Nova aba aberta com sucesso em: ${result.navigated}\n\nConfirme ao usuário que a ação foi concluída.`;
-            break;
-
-          case "CLICK_ELEMENT":
-            resultPrompt = `RESULTADO: Clique executado com sucesso no elemento: ${result.clicked}\n\nConfirme ao usuário que a ação foi concluída.`;
-            break;
-
-          case "TYPE_TEXT":
-            resultPrompt = `RESULTADO: Texto digitado com sucesso: "${result.value}"\n\nConfirme ao usuário que a ação foi concluída.`;
-            break;
-
-          case "READ_TEXT":
-            resultPrompt = `RESULTADO: Texto lido do elemento:\n\n${result.text}\n\nPor favor, apresente este conteúdo de forma clara para o usuário.`;
-            break;
-
-          default:
-            resultPrompt = `RESULTADO da ação ${command.command}:\n\n${JSON.stringify(result, null, 2)}\n\nPor favor, apresente este resultado de forma clara para o usuário.`;
-        }
-      } else if (command.status === "FAILED") {
-        resultPrompt = `ERRO: A ação ${command.command} falhou com o seguinte erro: ${command.error}\n\nPor favor, explique o problema ao usuário de forma amigável e sugira uma solução.`;
-      }
-
-      // Enviar para IA processar
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-enhanced`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            message: resultPrompt,
-            conversationId: activeConversationId,
-            extensionConnected: extensionStatus.connected,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const aiResponse = await response.json();
-
-      // Adicionar resposta da IA no chat
-      const newMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant" as const,
-        content: aiResponse.response,
-        createdAt: new Date().toISOString(),
-      };
-
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === activeConversationId
-            ? {
-                ...conv,
-                messages: [...conv.messages, newMessage],
-              }
-            : conv,
-        ),
-      );
-
-      console.log("✅ Resultado processado pela IA e adicionado ao chat");
-    } catch (error) {
-      console.error("❌ Erro ao processar resultado:", error);
-    }
-  };
-
-  // ============================================
-  // ENVIAR MENSAGEM
-  // ============================================
-  const sendMessage = async () => {
-    if (!input.trim() || !activeConversationId || !user || isSending) return;
-
     const userMessage = input.trim();
-    const tempUserMsgId = `temp-user-${Date.now()}`;
-    const tempAiMsgId = `temp-ai-${Date.now()}`;
-
     setInput("");
-    setIsSending(true);
+    setAssistantTyping(true);
 
-    // Determinar status da IA baseado na mensagem
-    const msgLower = userMessage.toLowerCase();
-    if (
-      msgLower.includes("pesquis") ||
-      msgLower.includes("busca") ||
-      msgLower.includes("procur")
-    ) {
-      setAiStatus("searching");
-    } else if (
-      msgLower.includes("abr") ||
-      msgLower.includes("naveg") ||
-      msgLower.includes("acess")
-    ) {
-      setAiStatus("navigating");
-    } else {
-      setAiStatus("thinking");
-    }
+    const tempUserMessage = {
+      id: `temp-user-${Date.now()}`,
+      role: "user" as const,
+      content: userMessage,
+      timestamp: new Date().toISOString(),
+    };
+
+    addMessage(activeConversationId, tempUserMessage);
 
     try {
-      // 1. Adicionar mensagem do usuário na UI imediatamente (otimistic update)
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === activeConversationId
-            ? {
-                ...conv,
-                messages: [
-                  ...conv.messages,
-                  {
-                    id: tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
-            : conv,
-        ),
+      const response = await chatService.sendMessage(
+        activeConversationId,
+        userMessage,
       );
 
-      // 2. Chamar Edge Function (ela vai salvar AMBAS mensagens)
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) throw new Error("Sem sessão");
-
-      // LOG DE DEBUG CRÍTICO
-      console.log("🚀 Enviando mensagem para IA:", {
-        message: userMessage,
-        extensionConnected: extensionStatus.connected,
-        deviceId: extensionStatus.deviceId,
-        systemPromptLength: extensionStatus.connected
-          ? "LONG (Connected)"
-          : "SHORT (Offline)",
-      });
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-enhanced`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            message: userMessage,
-            conversationId: activeConversationId,
-            extensionConnected: extensionStatus.connected,
-            systemPrompt: JSON.stringify({
-              role: "system",
-              content: extensionStatus.connected
-                ? `🚀 EXTENSÃO DO NAVEGADOR ATIVA - MODO DE AUTOMAÇÃO WEB
-
-**REGRAS CRÍTICAS:**
-
-1. **NUNCA mostre blocos JSON ao usuário**
- - ❌ ERRADO: "Vou abrir para você \`\`\`json {...} \`\`\`"
- - ✅ CORRETO: Responda naturalmente: "Abrindo Facebook Ads em nova aba..."
- - O JSON será detectado e executado automaticamente nos bastidores
-
-2. **Comandos disponíveis (use internamente, não mostre):**
- - NAVIGATE: {"type": "NAVIGATE", "data": {"url": "https://..."}}
- - LIST_TABS: {"type": "LIST_TABS", "data": {}}
- - CLICK_ELEMENT: {"type": "CLICK_ELEMENT", "data": {"selector": "button"}}
- - TYPE_TEXT: {"type": "TYPE_TEXT", "data": {"selector": "input", "text": "..."}}
- - READ_TEXT: {"type": "READ_TEXT", "data": {"selector": ".class"}}
- - GET_PAGE_INFO: {"type": "GET_PAGE_INFO", "data": {}}
- - EXECUTE_JS: {"type": "EXECUTE_JS", "data": {"code": "..."}}
-
-3. **Fluxo correto:**
- - Usuário: "abra o facebook"
- - Você: "Abrindo Facebook em nova aba... \`\`\`json\\n{\"type\": \"NAVIGATE\", \"data\": {\"url\": \"https://facebook.com\"}}\\n\`\`\`"
- - Sistema detecta o JSON, executa silenciosamente e remove da tela
- - Usuário vê apenas: "Abrindo Facebook em nova aba..."
-
-4. **IMPORTANTE:**
- - Todas as navegações SEMPRE abrem em NOVA ABA
- - NUNCA sai da página do SaaS/chat
- - Seja natural e conversacional com o usuário
- - O JSON é apenas para o sistema, não para o usuário ver`
-                : "Extensão do navegador OFFLINE. Não há acesso ao navegador. Responda normalmente.",
-            }),
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
+      if (response.reply) {
+        const aiMessage = {
+          id: `msg-${Date.now()}`,
+          role: "assistant" as const,
+          content: response.reply,
+          timestamp: new Date().toISOString(),
+        };
+        addMessage(activeConversationId, aiMessage);
       }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // ✅ Limpar qualquer JSON residual da resposta antes de exibir
-      let cleanResponse = data.response || "";
-
-      // Remover blocos JSON completos (```json ... ```)
-      cleanResponse = cleanResponse.replace(/```json\s*[\s\S]*?\s*```/g, "");
-
-      // Remover JSON soltos que possam ter sobrado
-      cleanResponse = cleanResponse.replace(/\{[\s\S]*?"type"[\s\S]*?\}/g, "");
-
-      // Remover múltiplos espaços/quebras de linha
-      cleanResponse = cleanResponse.replace(/\n{3,}/g, "\n\n").trim();
-
-      // Se a resposta ficou vazia após limpeza, usar mensagem padrão
-      if (!cleanResponse) {
-        cleanResponse = "Executando ação...";
-      }
-
-      // 3. Atualizar UI com IDs reais do banco (substituir temporários)
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === activeConversationId
-            ? {
-                ...conv,
-                messages: [
-                  // Remover temporários e adicionar as mensagens reais do banco
-                  ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
-                  {
-                    id: data.userMessageId || tempUserMsgId,
-                    role: "user",
-                    content: userMessage,
-                    createdAt: new Date().toISOString(),
-                  },
-                  {
-                    id: data.aiMessageId || tempAiMsgId,
-                    role: "assistant",
-                    content: cleanResponse,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
-            : conv,
-        ),
-      );
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
-
-      // Remover mensagem temporária em caso de erro
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === activeConversationId
-            ? {
-                ...conv,
-                messages: conv.messages.filter(
-                  (m) => !m.id.startsWith("temp-"),
-                ),
-              }
-            : conv,
-        ),
-      );
-
       toast({
         title: "Erro ao enviar mensagem",
         description: error.message || "Tente novamente",
         variant: "destructive",
       });
     } finally {
-      setIsSending(false);
-      setAiStatus(null);
+      setAssistantTyping(false);
+    }
+  }, [input, activeConversationId, addMessage, setAssistantTyping, toast]);
+
+  // Handle key press
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
-  // ============================================
-  // DELETAR CONVERSA
-  // ============================================
-  const deleteConversation = async (id: string) => {
+  // New conversation
+  const handleNewConversation = useCallback(async () => {
+    if (!user) return;
+
     try {
-      const { error } = await supabase
-        .from("ChatConversation")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setConversations((prev) => prev.filter((c) => c.id !== id));
-      if (activeConversationId === id) {
-        setActiveConversationId(conversations[0]?.id || null);
-      }
-
+      await useChatStore
+        .getState()
+        .createNewConversation(
+          user.id,
+          `Conversa ${new Date().toLocaleDateString()}`,
+        );
       toast({
-        title: "Conversa deletada",
+        title: "✨ Nova conversa criada",
       });
-    } catch (error: any) {
-      console.error("Erro ao deletar:", error);
+    } catch (error) {
+      console.error("Erro ao criar conversa:", error);
       toast({
-        title: "Erro ao deletar",
+        title: "Erro ao criar conversa",
         variant: "destructive",
       });
     }
-  };
+  }, [user, toast]);
 
-  // ============================================
-  // CONVERSA ATIVA
-  // ============================================
-  const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId,
+  // Delete conversation
+  const handleDeleteConversation = useCallback(
+    async (id: string) => {
+      if (!confirm("Tem certeza que deseja deletar esta conversa?")) return;
+
+      try {
+        const { error } = await supabase
+          .from("ChatConversation")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        await useChatStore.getState().loadConversations(user!.id);
+
+        toast({
+          title: "🗑️ Conversa deletada",
+        });
+      } catch (error) {
+        console.error("Erro ao deletar:", error);
+        toast({
+          title: "Erro ao deletar",
+          variant: "destructive",
+        });
+      }
+    },
+    [user, toast],
   );
 
-  // ============================================
-  // RENDER
-  // ============================================
-  if (!isMounted) {
-    return null;
-  }
-
   return (
-    <div className="flex h-full w-full overflow-hidden bg-gray-950 text-white">
+    <div className="flex h-full w-full overflow-hidden bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900">
       {/* SIDEBAR */}
-      <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-0"
-        } flex-shrink-0 transition-all duration-300 border-r border-gray-800 flex flex-col overflow-hidden bg-gray-950 relative z-10`}
-      >
-        {/* Header Sidebar */}
-        <div className="p-4 border-b border-gray-800 flex-shrink-0">
-          <button
-            onClick={createNewConversation}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors whitespace-nowrap"
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ x: -320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -320, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="w-80 bg-gradient-to-b from-[#12121A] to-[#1A1A2E] border-r border-gray-700/50 flex flex-col shadow-2xl"
           >
-            <IconPlus className="w-5 h-5" />
-            Nova Conversa
-          </button>
-        </div>
-
-        {/* Lista de Conversas */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {isLoading ? (
-            <div className="text-center text-gray-500 py-4">Carregando...</div>
-          ) : (
-            conversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => setActiveConversationId(conv.id)}
-                className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
-                  activeConversationId === conv.id
-                    ? "bg-gray-800 border border-blue-600"
-                    : "bg-gray-900 hover:bg-gray-800"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm truncate">{conv.title}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteConversation(conv.id);
-                    }}
-                    className="text-gray-500 hover:text-red-500 flex-shrink-0"
-                  >
-                    <IconX className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {conv.messages.length} mensagens
-                </div>
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-gray-700/50">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <IconSparkles className="w-5 h-5 text-blue-400" />
+                  Conversas
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-800/50 text-gray-400 hover:text-white transition-all"
+                >
+                  <IconX className="w-5 h-5" />
+                </motion.button>
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* MAIN CHAT */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="h-16 flex-shrink-0 border-b border-gray-800 flex items-center px-4 justify-between">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <IconMenu2 className="w-6 h-6" />
-          </button>
-
-          <h1 className="text-lg font-semibold flex-1 text-center">
-            {activeConversation?.title || "Chat IA"}
-          </h1>
-
-          {/* Status da Extensão */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                extensionStatus.connected
-                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                  : "bg-gray-800 text-gray-400 border border-gray-700"
-              }`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                }`}
-              />
-              <span>
-                {extensionStatus.connected
-                  ? "Extensão Ativa"
-                  : "Extensão Offline"}
-              </span>
+              <motion.button
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: "0 0 25px rgba(59, 130, 246, 0.5)",
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleNewConversation}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 font-medium transition-all shadow-lg shadow-blue-500/30"
+              >
+                <IconPlus className="w-5 h-5" />
+                Nova Conversa
+              </motion.button>
             </div>
+
+            {/* Conversations List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {conversations.map((conv) => (
+                <motion.div
+                  key={conv.id}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  onClick={() => setActiveConversationId(conv.id)}
+                  className={cn(
+                    "p-3 rounded-xl cursor-pointer transition-all group relative",
+                    activeConversationId === conv.id
+                      ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/50 shadow-lg shadow-blue-500/20"
+                      : "bg-gray-800/30 hover:bg-gray-800/50 border border-transparent",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-sm truncate">
+                        {conv.title}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {conv.messages && conv.messages.length > 0
+                          ? conv.messages[
+                              conv.messages.length - 1
+                            ].content.substring(0, 35) + "..."
+                          : "Nova conversa"}
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteConversation(conv.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                    >
+                      <IconTrash className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MAIN CHAT AREA */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#12121A] to-[#1A1A2E] border-b border-gray-700/50 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            {!sidebarOpen && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-800/50 text-gray-400 hover:text-white transition-all"
+              >
+                <IconMenu2 className="w-6 h-6" />
+              </motion.button>
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                <IconSparkles className="w-6 h-6 text-blue-400" />
+                Chat IA - Marketing
+              </h1>
+              <p className="text-sm text-gray-400">
+                Assistente especializado em marketing digital
+              </p>
+            </div>
+          </div>
+
+          {/* Extension Status */}
+          <div
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium transition-all",
+              extensionStatus.connected
+                ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                : "bg-gray-800/50 text-gray-400 border border-gray-700/30",
+            )}
+          >
+            {extensionStatus.connected ? (
+              <IconCircleCheck className="w-4 h-4" />
+            ) : (
+              <IconAlertCircle className="w-4 h-4" />
+            )}
+            <span>
+              {extensionStatus.connected
+                ? "Extensão Ativa"
+                : "Extensão Offline"}
+            </span>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950">
-          {!activeConversation ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#0A0A0F]">
+          {isLoadingConversations ? (
+            <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-xl mb-2">Nenhuma conversa selecionada</p>
-                <p className="text-sm">Crie uma nova conversa para começar</p>
-
-                {/* Aviso sobre extensão */}
-                {!extensionStatus.connected && (
-                  <div className="mt-8 p-4 bg-yellow-600/10 border border-yellow-600/30 rounded-lg max-w-md mx-auto">
-                    <p className="text-yellow-400 text-sm mb-2 font-medium">
-                      ⚠️ Extensão do navegador offline
-                    </p>
-                    <p className="text-gray-400 text-xs">
-                      Para usar automação de navegador, instale e ative a
-                      extensão SyncAds AI
-                    </p>
-                  </div>
-                )}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                  className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
+                />
+                <p className="text-gray-400 text-lg font-medium">
+                  Carregando conversas...
+                </p>
               </div>
             </div>
-          ) : activeConversation.messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <div className="text-center">
-                <p className="text-xl mb-2">Nova conversa</p>
-                <p className="text-sm">Envie uma mensagem para começar</p>
-
-                {/* Dica sobre extensão */}
-                {extensionStatus.connected && (
-                  <div className="mt-8 p-4 bg-green-600/10 border border-green-600/30 rounded-lg max-w-md mx-auto">
-                    <p className="text-green-400 text-sm mb-2 font-medium">
-                      ✨ Extensão conectada!
-                    </p>
-                    <p className="text-gray-400 text-xs">
-                      Agora posso controlar seu navegador. Experimente: "Abra o
-                      Facebook Ads"
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
+          ) : activeConversation && activeConversation.messages ? (
             <>
-              {activeConversation.messages.map((message) => (
-                <div
+              {activeConversation.messages.map((message: any) => (
+                <motion.div
                   key={message.id}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "flex",
+                    message.role === "user" ? "justify-end" : "justify-start",
+                  )}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${
-                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                    }`}
+                    className={cn(
+                      "max-w-[80%] rounded-2xl p-4 backdrop-blur-sm",
+                      message.role === "user"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20 border border-blue-400/30"
+                        : "bg-gray-800/50 text-gray-200 border border-gray-700/30",
+                    )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                    <div className="flex items-start gap-3">
+                      {message.role === "assistant" && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 200 }}
+                          whileHover={{ rotate: 10, scale: 1.1 }}
+                          className="flex-shrink-0"
+                        >
+                          <IconBrandOpenai className="w-6 h-6 text-blue-400" />
+                        </motion.div>
+                      )}
+                      {message.role === "user" && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 200 }}
+                          whileHover={{ scale: 1.1 }}
+                          className="flex-shrink-0"
+                        >
+                          <IconUserCircle className="w-6 h-6 text-white" />
+                        </motion.div>
+                      )}
+                      <div className="flex-1 whitespace-pre-wrap break-words">
+                        {message.content}
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-xs mt-2 ml-9",
+                        message.role === "user"
+                          ? "text-white/60"
+                          : "text-gray-500",
+                      )}
+                    >
+                      {message.timestamp
+                        ? new Date(message.timestamp).toLocaleTimeString(
+                            "pt-BR",
+                          )
+                        : ""}
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-              {/* Typing indicator quando IA está processando */}
-              {aiStatus && <TypingIndicator status={aiStatus} />}
+
+              {isAssistantTyping && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="max-w-[80%] bg-gray-800/50 rounded-2xl p-4 border border-gray-700/30">
+                    <div className="flex items-center gap-3">
+                      <IconBrandOpenai className="w-6 h-6 text-blue-400 animate-pulse" />
+                      <div className="flex gap-1">
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            delay: 0,
+                          }}
+                          className="w-2 h-2 bg-blue-400 rounded-full"
+                        />
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            delay: 0.2,
+                          }}
+                          className="w-2 h-2 bg-blue-400 rounded-full"
+                        />
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            delay: 0.4,
+                          }}
+                          className="w-2 h-2 bg-blue-400 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               <div ref={messagesEndRef} />
             </>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <IconSparkles className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                <p className="text-gray-400 text-xl mb-2">
+                  Olá! 👋 Como posso ajudar?
+                </p>
+                <p className="text-gray-600 text-sm">
+                  Estou aqui para ajudar com marketing digital e estratégias
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Input */}
-        <div className="border-t border-gray-800 p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === "Enter" && !e.shiftKey && sendMessage()
-              }
-              onPaste={(e) => {
-                // FORÇA paste a funcionar
-                e.stopPropagation();
-                const pastedText = e.clipboardData.getData("text");
-                if (pastedText) {
-                  setInput(input + pastedText);
-                }
-              }}
-              placeholder="Digite sua mensagem..."
-              disabled={isSending || !activeConversationId}
-              className="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 disabled:opacity-50"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isSending || !activeConversationId}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
-            >
-              {isSending ? (
-                <span>Enviando...</span>
-              ) : (
-                <>
+        {/* Input Area */}
+        <div className="border-t border-gray-700/50 p-4 bg-gradient-to-r from-[#12121A] to-[#1A1A2E] flex-shrink-0">
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Digite sua mensagem... (Shift+Enter para nova linha)"
+                maxLength={MAX_CHARS}
+                disabled={isAssistantTyping}
+                className="w-full bg-gray-800/50 border border-gray-700/50 rounded-2xl px-6 py-4 pr-24 text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                minRows={1}
+                maxRows={6}
+              />
+              <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                <span
+                  className={cn(
+                    "text-xs font-medium px-2 py-1 rounded",
+                    input.length > MAX_CHARS * 0.9
+                      ? "text-red-400 bg-red-500/20"
+                      : "text-gray-500 bg-gray-800/50",
+                  )}
+                >
+                  {input.length}/{MAX_CHARS}
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSend}
+                  disabled={
+                    input.trim() === "" ||
+                    input.length > MAX_CHARS ||
+                    isAssistantTyping
+                  }
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/30"
+                >
                   <IconSend className="w-5 h-5" />
-                  Enviar
-                </>
-              )}
-            </button>
+                </motion.button>
+              </div>
+            </div>
+
+            {!extensionStatus.connected && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 text-xs text-yellow-400/80 flex items-center gap-2 bg-yellow-500/10 px-3 py-2 rounded-lg border border-yellow-500/20"
+              >
+                <IconAlertCircle className="w-4 h-4" />
+                <span>
+                  Extensão offline - Recursos de automação indisponíveis
+                </span>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
