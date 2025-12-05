@@ -219,24 +219,31 @@ SubMenuItem.displayName = "SubMenuItem";
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
 
-  // Estado para controlar menus expandidos
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(() => {
+  // Estado para controlar menu expandido (apenas 1 por vez - accordion)
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(() => {
     const activeMenu = navItems.find((item) =>
       item.subItems?.some((s) => location.pathname.startsWith(s.to)),
     );
-    return activeMenu ? new Set([activeMenu.label]) : new Set();
+    return activeMenu?.label || null;
   });
 
   // Memoizar função de toggle para evitar recriação
-  const toggleMenu = useCallback((label: string) => {
-    setExpandedMenus((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(label)) {
-        newSet.delete(label);
-      } else {
-        newSet.add(label);
+  const toggleMenu = useCallback((label: string, element?: HTMLElement) => {
+    setExpandedMenu((prev) => {
+      const newValue = prev === label ? null : label;
+
+      // Scroll suave para o item clicado após um pequeno delay
+      if (newValue && element) {
+        setTimeout(() => {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "nearest",
+          });
+        }, 100);
       }
-      return newSet;
+
+      return newValue;
     });
   }, []);
 
@@ -248,11 +255,12 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   // Componente NavItem memoizado
   const NavItemComponent = React.memo<{ item: NavItem }>(({ item }) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    const isExpanded = expandedMenus.has(item.label);
+    const isExpanded = expandedMenu === item.label;
+    const buttonRef = React.useRef<HTMLButtonElement>(null);
 
     const handleClick = useCallback(() => {
-      if (hasSubItems) {
-        toggleMenu(item.label);
+      if (hasSubItems && buttonRef.current) {
+        toggleMenu(item.label, buttonRef.current);
       }
     }, [hasSubItems]);
 
@@ -260,6 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       return (
         <div>
           <button
+            ref={buttonRef}
             type="button"
             onClick={handleClick}
             className={cn(
@@ -398,7 +407,7 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
       </div>
     ),
-    [expandedMenus],
+    [expandedMenu],
   );
 
   return (
