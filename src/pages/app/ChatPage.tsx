@@ -800,12 +800,12 @@ export default function ChatPageNovo() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-950 text-white">
+    <div className="flex h-full w-full overflow-hidden bg-gray-950 text-white">
       {/* SIDEBAR */}
       <div
         className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } flex-shrink-0 transition-all duration-300 border-r border-gray-800 flex flex-col overflow-hidden bg-gray-950`}
+          sidebarOpen ? "w-64" : "w-0"
+        } flex-shrink-0 transition-all duration-300 border-r border-gray-800 flex flex-col overflow-hidden bg-gray-950 relative z-10`}
       >
         {/* Header Sidebar */}
         <div className="p-4 border-b border-gray-800 flex-shrink-0">
