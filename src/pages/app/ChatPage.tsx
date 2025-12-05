@@ -47,6 +47,8 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isAIConfigured, setIsAIConfigured] = useState(false);
+  const [checkingAI, setCheckingAI] = useState(true);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     connected: false,
     deviceId: null,
@@ -141,6 +143,35 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Check if AI is configured
+  useEffect(() => {
+    const checkAI = async () => {
+      try {
+        setCheckingAI(true);
+        const configured = await chatService.isAIConfigured();
+        setIsAIConfigured(configured);
+
+        if (!configured) {
+          console.warn("⚠️ [ChatPage] Nenhuma IA configurada");
+          toast({
+            title: "⚠️ IA não configurada",
+            description: "Configure uma IA em Configurações para usar o chat.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao verificar IA:", error);
+        setIsAIConfigured(false);
+      } finally {
+        setCheckingAI(false);
+      }
+    };
+
+    if (user) {
+      checkAI();
+    }
+  }, [user, toast]);
+
   // Initialize chat
   useEffect(() => {
     const initChat = async () => {
@@ -192,6 +223,17 @@ export default function ChatPage() {
       return;
     }
 
+    // Check if AI is configured
+    if (!isAIConfigured) {
+      toast({
+        title: "⚠️ IA não configurada",
+        description:
+          "Configure uma IA em Configurações antes de enviar mensagens.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const userMessage = input.trim();
     setInput("");
     setAssistantTyping(true);
@@ -203,23 +245,21 @@ export default function ChatPage() {
       timestamp: new Date().toISOString(),
     };
 
-    addMessage(activeConversationId, tempUserMessage);
+    addMessage(user!.id, activeConversationId, tempUserMessage);
 
     try {
       const response = await chatService.sendMessage(
-        activeConversationId,
         userMessage,
+        activeConversationId,
       );
 
-      if (response.reply) {
-        const aiMessage = {
-          id: `msg-${Date.now()}`,
-          role: "assistant" as const,
-          content: response.reply,
-          timestamp: new Date().toISOString(),
-        };
-        addMessage(activeConversationId, aiMessage);
-      }
+      const aiMessage = {
+        id: `msg-${Date.now()}`,
+        role: "assistant" as const,
+        content: response,
+        timestamp: new Date().toISOString(),
+      };
+      addMessage(user!.id, activeConversationId, aiMessage);
     } catch (error: any) {
       console.error("Erro ao enviar mensagem:", error);
       toast({
@@ -230,7 +270,15 @@ export default function ChatPage() {
     } finally {
       setAssistantTyping(false);
     }
-  }, [input, activeConversationId, addMessage, setAssistantTyping, toast]);
+  }, [
+    input,
+    activeConversationId,
+    addMessage,
+    setAssistantTyping,
+    toast,
+    isAIConfigured,
+    user,
+  ]);
 
   // Handle key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -447,6 +495,27 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
+          ) : !isAIConfigured && !checkingAI ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md">
+                <IconAlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+                <p className="text-gray-400 text-xl mb-2">
+                  ⚠️ IA não configurada
+                </p>
+                <p className="text-gray-600 text-sm mb-4">
+                  Nenhuma IA está configurada no sistema. Você precisa
+                  configurar uma IA antes de usar o chat.
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/settings")}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-3 font-medium transition-all shadow-lg shadow-blue-500/30"
+                >
+                  Ir para Configurações
+                </motion.button>
+              </div>
+            </div>
           ) : activeConversation && activeConversation.messages ? (
             <>
               {activeConversation.messages.map((message: any) => (
@@ -605,7 +674,8 @@ export default function ChatPage() {
                   disabled={
                     input.trim() === "" ||
                     input.length > MAX_CHARS ||
-                    isAssistantTyping
+                    isAssistantTyping ||
+                    !isAIConfigured
                   }
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/30"
                 >
@@ -614,7 +684,21 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {!extensionStatus.connected && (
+            {!isAIConfigured && !checkingAI && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 text-xs text-red-400/80 flex items-center gap-2 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20"
+              >
+                <IconAlertCircle className="w-4 h-4" />
+                <span>
+                  IA não configurada - Configure em Configurações para usar o
+                  chat
+                </span>
+              </motion.div>
+            )}
+
+            {!extensionStatus.connected && isAIConfigured && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
