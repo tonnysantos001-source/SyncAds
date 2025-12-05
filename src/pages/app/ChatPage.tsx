@@ -56,6 +56,7 @@ export default function ChatPageNovo() {
     "thinking" | "searching" | "navigating" | null
   >(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     connected: false,
     deviceId: null,
@@ -65,6 +66,13 @@ export default function ChatPageNovo() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const resultPollingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // ============================================
+  // MOUNT CHECK
+  // ============================================
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // ============================================
   // AUTH CHECK
@@ -535,9 +543,9 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: [...conv.messages, newMessage],
-            }
+                ...conv,
+                messages: [...conv.messages, newMessage],
+              }
             : conv,
         ),
       );
@@ -585,17 +593,17 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: [
-                ...conv.messages,
-                {
-                  id: tempUserMsgId,
-                  role: "user",
-                  content: userMessage,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  {
+                    id: tempUserMsgId,
+                    role: "user",
+                    content: userMessage,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
             : conv,
         ),
       );
@@ -699,24 +707,24 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: [
-                // Remover temporários e adicionar as mensagens reais do banco
-                ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
-                {
-                  id: data.userMessageId || tempUserMsgId,
-                  role: "user",
-                  content: userMessage,
-                  createdAt: new Date().toISOString(),
-                },
-                {
-                  id: data.aiMessageId || tempAiMsgId,
-                  role: "assistant",
-                  content: cleanResponse,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
+                ...conv,
+                messages: [
+                  // Remover temporários e adicionar as mensagens reais do banco
+                  ...conv.messages.filter((m) => !m.id.startsWith("temp-")),
+                  {
+                    id: data.userMessageId || tempUserMsgId,
+                    role: "user",
+                    content: userMessage,
+                    createdAt: new Date().toISOString(),
+                  },
+                  {
+                    id: data.aiMessageId || tempAiMsgId,
+                    role: "assistant",
+                    content: cleanResponse,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
             : conv,
         ),
       );
@@ -728,11 +736,11 @@ export default function ChatPageNovo() {
         prev.map((conv) =>
           conv.id === activeConversationId
             ? {
-              ...conv,
-              messages: conv.messages.filter(
-                (m) => !m.id.startsWith("temp-"),
-              ),
-            }
+                ...conv,
+                messages: conv.messages.filter(
+                  (m) => !m.id.startsWith("temp-"),
+                ),
+              }
             : conv,
         ),
       );
@@ -787,90 +795,93 @@ export default function ChatPageNovo() {
   // ============================================
   // RENDER
   // ============================================
+  if (!isMounted) {
+    return null;
+  }
+
   return (
-    <div className="flex h-full max-h-full overflow-hidden bg-gray-950 text-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-gray-950 text-white">
       {/* SIDEBAR */}
       <div
-        className={`${sidebarOpen ? "w-80" : "w-0"
-          } transition-all duration-300 border-r border-gray-800 flex flex-col`}
+        className={`${
+          sidebarOpen ? "w-80" : "w-0"
+        } flex-shrink-0 transition-all duration-300 border-r border-gray-800 flex flex-col overflow-hidden bg-gray-950`}
       >
-        {sidebarOpen && (
-          <>
-            {/* Header Sidebar */}
-            <div className="p-4 border-b border-gray-800">
-              <button
-                onClick={createNewConversation}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors"
-              >
-                <IconPlus className="w-5 h-5" />
-                Nova Conversa
-              </button>
-            </div>
+        {/* Header Sidebar */}
+        <div className="p-4 border-b border-gray-800 flex-shrink-0">
+          <button
+            onClick={createNewConversation}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <IconPlus className="w-5 h-5" />
+            Nova Conversa
+          </button>
+        </div>
 
-            {/* Lista de Conversas */}
-            <div className="flex-1 overflow-y-auto p-2">
-              {isLoading ? (
-                <div className="text-center text-gray-500 py-4">
-                  Carregando...
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => setActiveConversationId(conv.id)}
-                    className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
-                      ? "bg-gray-800 border border-blue-600"
-                      : "bg-gray-900 hover:bg-gray-800"
-                      }`}
+        {/* Lista de Conversas */}
+        <div className="flex-1 overflow-y-auto p-2">
+          {isLoading ? (
+            <div className="text-center text-gray-500 py-4">Carregando...</div>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => setActiveConversationId(conv.id)}
+                className={`p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
+                  activeConversationId === conv.id
+                    ? "bg-gray-800 border border-blue-600"
+                    : "bg-gray-900 hover:bg-gray-800"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm truncate">{conv.title}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation(conv.id);
+                    }}
+                    className="text-gray-500 hover:text-red-500 flex-shrink-0"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm truncate">{conv.title}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteConversation(conv.id);
-                        }}
-                        className="text-gray-500 hover:text-red-500"
-                      >
-                        <IconX className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {conv.messages.length} mensagens
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </>
-        )}
+                    <IconX className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {conv.messages.length} mensagens
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* MAIN CHAT */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="h-16 border-b border-gray-800 flex items-center px-4 justify-between">
+        <div className="h-16 flex-shrink-0 border-b border-gray-800 flex items-center px-4 justify-between">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-800 rounded-lg"
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
           >
             <IconMenu2 className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-semibold">
-            {activeConversation?.title || "Chat"}
+
+          <h1 className="text-lg font-semibold flex-1 text-center">
+            {activeConversation?.title || "Chat IA"}
           </h1>
 
           {/* Status da Extensão */}
           <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${extensionStatus.connected
-                ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                : "bg-gray-800 text-gray-400 border border-gray-700"
-                }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                extensionStatus.connected
+                  ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                  : "bg-gray-800 text-gray-400 border border-gray-700"
+              }`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
-                  }`}
+                className={`w-2 h-2 rounded-full ${
+                  extensionStatus.connected ? "bg-green-400" : "bg-gray-500"
+                }`}
               />
               <span>
                 {extensionStatus.connected
@@ -882,7 +893,7 @@ export default function ChatPageNovo() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950">
           {!activeConversation ? (
             <div className="flex items-center justify-center h-full text-gray-500">
               <div className="text-center">
@@ -931,8 +942,9 @@ export default function ChatPageNovo() {
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-blue-600" : "bg-gray-800"
-                      }`}
+                    className={`max-w-[70%] rounded-lg p-4 ${
+                      message.role === "user" ? "bg-blue-600" : "bg-gray-800"
+                    }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
