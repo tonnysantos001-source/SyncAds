@@ -212,6 +212,10 @@ async function loadAuthData() {
     if (state.isAuthenticated) {
       console.log("✅ [AUTH] User authenticated");
       await loadConversations();
+      // Enable input for authenticated users
+      elements.messageInput.disabled = false;
+      elements.sendBtn.disabled = false;
+      elements.messageInput.placeholder = "Digite sua mensagem... (Shift+Enter para nova linha)";
     } else {
       console.log("⚠️ [AUTH] User not authenticated");
       showAuthRequired();
