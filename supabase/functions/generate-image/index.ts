@@ -1,34 +1,30 @@
-// ================================================
-// EDGE FUNCTION: Geração de Imagens com Google Gemini/Imagen
-// URL: /functions/v1/generate-image
-// ================================================
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+/**
+ * Enhanced Image Generation with Multiple Providers
+ * 
+ * Priority:
+ * 1. Pollinations.ai (FREE, no API key)
+ * 2. DALL-E 3 (OpenAI, requires API key)
+ * 3. Stable Diffusion (if configured)
+ */
 
 serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return handlePreflightRequest();
   }
 
   try {
-    // 1. Criar cliente Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // 2. Autenticar usuário
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Missing authorization header");
     }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const token = authHeader.replace("Bearer ", "");
     const {
@@ -40,208 +36,200 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // 3. Parsear body
     const body = await req.json();
-    const { prompt, size = "1024x1024", quality = "standard" } = body;
+    const {
+      prompt,
+      size = "1024x1024",
+      quality = "standard",
+      provider = "auto"
+    } = body;
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
 
-    console.log("🎨 [Image Generation] Generating image:", {
-      userId: user.id,
-      prompt,
-    });
+    console.log("🎨 [Image Gen] Request:", { userId: user.id, prompt, provider });
 
-    // 4. Buscar configuração do Gemini/Google da tabela GlobalAiConnection
-    const { data: aiConfig, error: aiError } = await supabase
-      .from("GlobalAiConnection")
-      .select("apiKey, provider, model, baseUrl")
-      .eq("provider", "GOOGLE")
-      .eq("isActive", true)
-      .limit(1)
-      .single();
+    let imageUrl: string | null = null;
+    let usedProvider = "";
+    let cost = 0;
 
-    if (aiError || !aiConfig) {
-      console.error(
-        "❌ [Image Generation] Google/Gemini não configurado:",
-        aiError,
-      );
-      return new Response(
-        JSON.stringify({
-          error:
-            "Para gerar imagens, configure a API Key da Google Gemini no painel Super Admin.",
-          hint: "Vá em Configurações > IA Global e adicione uma IA com provider GOOGLE",
-          needsConfig: true,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    // ============================================
+    // PROVIDER 1: POLLINATIONS.AI (FREE, NO API KEY)
+    // ============================================
+    if (provider === "auto" || provider === "pollinations") {
+      try {
+        console.log("🌸 Trying Pollinations.ai (free)...");
+
+        // Pollinations.ai - Direct URL generation (no API call needed!)
+        const encodedPrompt = encodeURIComponent(prompt);
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+
+        // Verify the image exists
+        const testResponse = await fetch(pollinationsUrl, { method: "HEAD" });
+
+        if (testResponse.ok) {
+          imageUrl = pollinationsUrl;
+          usedProvider = "Pollinations.ai";
+          cost = 0; // FREE!
+          console.log("✅ [Image Gen] Pollinations.ai SUCCESS");
+        } else {
+          console.warn("⚠️ Pollinations.ai failed, trying next provider...");
+        }
+      } catch (error) {
+        console.warn("⚠️ Pollinations.ai error:", error);
+      }
     }
 
-    const googleApiKey = aiConfig.apiKey;
-    const model = aiConfig.model || "gemini-2.0-flash-exp";
+    // ============================================
+    // PROVIDER 2: DALL-E 3 (OpenAI - requires API key)
+    // ============================================
+    if (!imageUrl && (provider === "auto" || provider === "dalle")) {
+      try {
+        console.log("🎨 Trying DALL-E 3...");
 
-    console.log("✅ [Image Generation] Using Gemini model:", model);
+        const { data: openaiConfig } = await supabase
+          .from("GlobalAiConnection")
+          .select("apiKey")
+          .eq("provider", "OPENAI")
+          .eq("isActive", true)
+          .single();
 
-    // 5. Gerar imagem com Google Gemini (Imagen 3)
-    // Google Gemini pode gerar imagens nativamente com prompts
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`;
-
-    const geminiPayload = {
-      contents: [
-        {
-          parts: [
-            {
-              text: `Gere uma imagem baseada nesta descrição: ${prompt}. A imagem deve ser de alta qualidade, detalhada e visualmente atraente.`,
+        if (openaiConfig?.apiKey) {
+          const openaiResponse = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${openaiConfig.apiKey}`,
+              "Content-Type": "application/json",
             },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.9,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      },
-    };
+            body: JSON.stringify({
+              model: "dall-e-3",
+              prompt: prompt,
+              n: 1,
+              size: size === "1024x1024" ? "1024x1024" : "1792x1024",
+              quality: quality === "hd" ? "hd" : "standard",
+            }),
+          });
 
-    console.log("📡 [Image Generation] Calling Gemini API...");
+          if (openaiResponse.ok) {
+            const data = await openaiResponse.json();
+            imageUrl = data.data[0].url;
+            usedProvider = "DALL-E 3";
+            cost = quality === "hd" ? 0.08 : 0.04;
+            console.log("✅ [Image Gen] DALL-E 3 SUCCESS");
+          }
+        } else {
+          console.log("ℹ️ OpenAI not configured, skipping DALL-E");
+        }
+      } catch (error) {
+        console.warn("⚠️ DALL-E error:", error);
+      }
+    }
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(geminiPayload),
-    });
-
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text();
-      console.error("❌ [Image Generation] Gemini API error:", errorData);
-
+    // ============================================
+    // FALLBACK: Error if no provider worked
+    // ============================================
+    if (!imageUrl) {
       return new Response(
         JSON.stringify({
-          error: "Erro ao gerar imagem com Gemini",
-          details: errorData,
-          suggestion:
-            "O Gemini 2.0 Flash pode não suportar geração de imagens diretamente. Considere usar DALL-E ou Stable Diffusion.",
-          alternativeSolution:
-            "Use o chat para gerar descrições e depois use uma API de imagem externa.",
+          error: "Failed to generate image with all providers",
+          suggestion: "Try configuring OpenAI (DALL-E) in Super Admin for better results",
+          providers_tried: provider === "auto" ? ["Pollinations.ai", "DALL-E 3"] : [provider],
         }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        }
       );
     }
 
-    const geminiData = await geminiResponse.json();
-    console.log("📦 [Image Generation] Gemini response received");
+    // ============================================
+    // UPLOAD TO SUPABASE STORAGE (optional)
+    // ============================================
+    let finalUrl = imageUrl;
 
-    // 6. Extrair texto da resposta do Gemini
-    let imageDescription = "";
-    let imageDataUrl = null;
+    // Only download and upload if it's not Pollinations (which is already hosted)
+    if (usedProvider !== "Pollinations.ai") {
+      try {
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        const imageBuffer = await imageBlob.arrayBuffer();
 
-    if (geminiData.candidates && geminiData.candidates[0]) {
-      const parts = geminiData.candidates[0].content.parts;
+        const fileName = `images/${user.id}/${Date.now()}-${crypto.randomUUID()}.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("media-generations")
+          .upload(fileName, imageBuffer, {
+            contentType: "image/png",
+            upsert: false,
+          });
 
-      // Procurar por imagem em base64 ou URL na resposta
-      for (const part of parts) {
-        if (part.text) {
-          imageDescription = part.text;
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("media-generations")
+            .getPublicUrl(fileName);
+          finalUrl = publicUrl;
         }
-        if (part.inlineData && part.inlineData.data) {
-          imageDataUrl = part.inlineData.data;
-        }
+      } catch (uploadError) {
+        console.warn("⚠️ Upload to storage failed, using external URL:", uploadError);
       }
     }
 
-    // 7. Se não houver imagem direta, retornar erro informativo
-    if (!imageDataUrl) {
-      console.warn(
-        "⚠️ [Image Generation] Gemini não retornou imagem, apenas texto",
-      );
-
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "O Gemini 2.0 Flash não suporta geração de imagens nativa.",
-          description: imageDescription,
-          suggestion: "Para gerar imagens, você precisa:",
-          options: [
-            "1. Adicionar uma IA OpenAI (DALL-E 3) no painel",
-            "2. Adicionar integração com Stable Diffusion",
-            "3. Usar a descrição gerada para criar imagem em outra ferramenta",
-          ],
-          generatedDescription: imageDescription,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ============================================
+    // SAVE TO DATABASE
+    // ============================================
+    try {
+      await supabase.from("MediaGeneration").insert({
+        userId: user.id,
+        type: "IMAGE",
+        provider: usedProvider,
+        prompt: prompt,
+        url: finalUrl,
+        size: size,
+        quality: quality,
+        cost: cost,
+        status: "COMPLETED",
+        metadata: {
+          originalUrl: imageUrl,
+          provider: usedProvider,
         },
-      );
-    }
-
-    // 8. Se houver imagem, fazer upload para Supabase Storage
-    const imageBuffer = Uint8Array.from(atob(imageDataUrl), (c) =>
-      c.charCodeAt(0),
-    );
-
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.png`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("media-generations")
-      .upload(fileName, imageBuffer, {
-        contentType: "image/png",
-        upsert: false,
       });
-
-    if (uploadError) {
-      console.error("❌ [Image Generation] Upload error:", uploadError);
-      throw new Error(`Failed to upload image: ${uploadError.message}`);
+    } catch (dbError) {
+      console.warn("⚠️ DB insert failed:", dbError);
     }
 
-    console.log("✅ [Image Generation] Image uploaded to storage:", fileName);
-
-    // 9. Gerar URL pública
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("media-generations").getPublicUrl(fileName);
-
-    // 10. Retornar sucesso
+    // ============================================
+    // SUCCESS RESPONSE
+    // ============================================
     return new Response(
       JSON.stringify({
         success: true,
         image: {
-          url: publicUrl,
+          url: finalUrl,
           prompt: prompt,
-          description: imageDescription,
           size: size,
-          provider: "Google Gemini",
-          model: model,
+          quality: quality,
+          provider: usedProvider,
+          cost: cost,
+          free: cost === 0,
         },
-        message: "Imagem gerada com sucesso!",
+        message: `Imagem gerada com ${usedProvider}!`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      }
     );
   } catch (error: any) {
-    console.error("❌ [Image Generation] Fatal error:", error);
+    console.error("❌ [Image Gen] Error:", error);
 
     return new Response(
       JSON.stringify({
-        error: error.message || "Erro desconhecido ao gerar imagem",
+        error: error.message || "Unknown error",
         details: error.stack,
-        suggestion:
-          "Verifique se a API Key do Google está correta e se o modelo suporta geração de imagens.",
       }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      }
     );
   }
 });

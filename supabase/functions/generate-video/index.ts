@@ -1,254 +1,264 @@
-// ================================================
-// EDGE FUNCTION: Geração de Vídeos com Runway ML
-// URL: /functions/v1/generate-video
-// ================================================
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+/**
+ * Enhanced Video Generation with Multiple Providers
+ * 
+ * Priority:
+ * 1. Pollinations.ai (FREE video generation)
+ * 2. Runway ML (requires API key)
+ * 3. Pika (if configured)
+ */
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return handlePreflightRequest();
   }
 
   try {
-    // 1. Criar cliente Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // 2. Autenticar usuário
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error('Missing authorization header')
+      throw new Error("Missing authorization header");
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
-      throw new Error('Unauthorized')
+      throw new Error("Unauthorized");
     }
 
-    // 3. ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
-    // 4. Parsear body
-    const body = await req.json()
-    const { 
-      prompt, 
+    const body = await req.json();
+    const {
+      prompt,
       duration = 5,
-      quality = 'standard' 
-    } = body
+      quality = "standard",
+      provider = "auto",
+    } = body;
 
     if (!prompt) {
-      throw new Error('Prompt is required')
+      throw new Error("Prompt is required");
     }
 
-    console.log('Generating video:', { userId: user.id, prompt, duration, quality })
+    console.log("🎬 [Video Gen] Request:", { userId: user.id, prompt, duration, provider });
 
-    // 5. Verificar quota (se sistema de quotas estiver implementado)
-    // Por enquanto, pular check de quota para vídeos
+    let videoUrl: string | null = null;
+    let usedProvider = "";
+    let cost = 0;
 
-    // 6. Buscar API Key da tabela GlobalAiConnection (configuração visual)
-    const { data: aiConfig, error: aiError } = await supabase
-      .from('GlobalAiConnection')
-      .select('apiKey, provider, model, baseUrl')
-      .or('provider.eq.RUNWAY,provider.eq.OPENAI') // Aceita RUNWAY ou OpenAI
-      .eq('isActive', true)
-      .limit(1)
-      .single()
+    // ============================================
+    // PROVIDER 1: POLLINATIONS.AI VIDEO (FREE)
+    // ============================================
+    if (provider === "auto" || provider === "pollinations") {
+      try {
+        console.log("🌸 Trying Pollinations.ai video...");
 
-    if (aiError || !aiConfig) {
-      return new Response(
-        JSON.stringify({
-          error: 'Runway ML não configurada. Adicione uma conexão de IA no painel Super Admin.',
-          hint: 'Acesse /super-admin/ai-connections e adicione uma IA'
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const runwayKey = aiConfig.apiKey
-
-    // Runway ML API para geração de vídeos
-    const baseUrl = aiConfig.baseUrl || 'https://api.runwayml.com/v1'
-    const runwayResponse = await fetch(`${baseUrl}/video/generate`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + runwayKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        duration: duration,
-        fps: 24,
-        width: 1280,
-        height: 720
-      })
-    })
-
-    if (!runwayResponse.ok) {
-      // Se Runway falhar, simular geração para desenvolvimento
-      const videoUrl = `https://placehold.co/1280x720/mp4`
-      
-      console.log('Using placeholder video:', videoUrl)
-
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('media-generations')
-        .getPublicUrl(`videos/placeholder-${Date.now()}.mp4`)
-
-      // 7. Salvar no banco
-      const { data: mediaRecord, error: insertError } = await supabase
-        .from('MediaGeneration')
-        .insert({
-          userId: user.id,
-          type: 'VIDEO',
-          provider: 'RUNWAY',
+        // Pollinations.ai video API
+        const pollinationsVideoUrl = "https://text.pollinations.ai/video";
+        const videoPromptPayload = {
           prompt: prompt,
-          url: publicUrl,
-          duration: duration,
-          quality: quality,
-          cost: duration * 0.20, // $0.20 por segundo
-          status: 'COMPLETED',
-          metadata: {
-            simulated: true
+          duration: Math.min(duration, 10), // Max 10 seconds for free tier
+          resolution: "720p",
+        };
+
+        const pollinationsResponse = await fetch(pollinationsVideoUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(videoPromptPayload),
+        });
+
+        if (pollinationsResponse.ok) {
+          const data = await pollinationsResponse.json();
+          videoUrl = data.video_url || data.url;
+          usedProvider = "Pollinations.ai";
+          cost = 0;
+          console.log("✅ [Video Gen] Pollinations.ai SUCCESS");
+        } else {
+          console.warn("⚠️ Pollinations video failed:", await pollinationsResponse.text());
+        }
+      } catch (error) {
+        console.warn("⚠️ Pollinations video error:", error);
+      }
+    }
+
+    // ============================================
+    // PROVIDER 2: RUNWAY ML (requires API key)
+    // ============================================
+    if (!videoUrl && (provider === "auto" || provider === "runway")) {
+      try {
+        console.log("🎬 Trying Runway ML...");
+
+        const { data: runwayConfig } = await supabase
+          .from("GlobalAiConnection")
+          .select("apiKey, baseUrl")
+          .eq("provider", "RUNWAY")
+          .eq("isActive", true)
+          .single();
+
+        if (runwayConfig?.apiKey) {
+          const baseUrl = runwayConfig.baseUrl || "https://api.runwayml.com/v1";
+          const runwayResponse = await fetch(`${baseUrl}/video/generate`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${runwayConfig.apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              prompt: prompt,
+              duration: duration,
+              fps: 24,
+              width: 1280,
+              height: 720,
+            }),
+          });
+
+          if (runwayResponse.ok) {
+            const data = await runwayResponse.json();
+            videoUrl = data.video_url;
+            usedProvider = "Runway ML";
+            cost = duration * 0.20; // $0.20 per second
+            console.log("✅ [Video Gen] Runway SUCCESS");
           }
-        })
-        .select()
-        .single()
+        } else {
+          console.log("ℹ️ Runway not configured, skipping");
+        }
+      } catch (error) {
+        console.warn("⚠️ Runway error:", error);
+      }
+    }
+
+    // ============================================
+    // FALLBACK: Generate placeholder video
+    // ============================================
+    if (!videoUrl) {
+      console.log("⚠️ All video providers failed, using placeholder");
+
+      // Create a simple text-to-video placeholder using image sequence
+      const encodedPrompt = encodeURIComponent(`Video: ${prompt} (Generated by AI)`);
+      videoUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true`;
+      usedProvider = "Placeholder (Static Image)";
+      cost = 0;
 
       return new Response(
         JSON.stringify({
-          success: true,
-          video: {
-            id: mediaRecord.id,
-            url: publicUrl,
-            prompt: prompt,
-            duration: duration,
-            quality: quality,
-            cost: duration * 0.20,
-            simulated: true
+          success: false,
+          error: "Video generation not available",
+          suggestion: {
+            message: "Configure Runway ML API key for real video generation",
+            alternatives: [
+              "Use image generation instead",
+              "Configure Runway ML in Super Admin",
+              "Use external video generation tools",
+            ],
           },
-          quota: {
-            remaining: 1000,
-            used: 0,
-            total: 1000
-          }
+          placeholder: {
+            url: videoUrl,
+            note: "This is a static image placeholder, not a video",
+          },
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
-      )
+      );
     }
 
-    const runwayData = await runwayResponse.json()
-    const videoUrl = runwayData.video_url
-    const videoId = runwayData.id
+    // ============================================
+    // UPLOAD TO SUPABASE STORAGE (if external URL)
+    // ============================================
+    let finalUrl = videoUrl;
 
-    console.log('Video generated:', videoUrl)
+    if (usedProvider !== "Placeholder (Static Image)") {
+      try {
+        const videoResponse = await fetch(videoUrl);
+        const videoBlob = await videoResponse.blob();
+        const videoBuffer = await videoBlob.arrayBuffer();
 
-    // 7. Upload para Supabase Storage (download do vídeo)
-    const videoResponse = await fetch(videoUrl)
-    const videoBlob = await videoResponse.blob()
-    const videoBuffer = await videoBlob.arrayBuffer()
+        const fileName = `videos/${user.id}/${Date.now()}-${crypto.randomUUID()}.mp4`;
+        const { error: uploadError } = await supabase.storage
+          .from("media-generations")
+          .upload(fileName, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: false,
+          });
 
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.mp4`
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('media-generations')
-      .upload(fileName, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: false
-      })
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError)
-      // Continuar com URL externa
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("media-generations")
+            .getPublicUrl(fileName);
+          finalUrl = publicUrl;
+        }
+      } catch (uploadError) {
+        console.warn("⚠️ Upload failed, using external URL:", uploadError);
+      }
     }
 
-    // 8. Gerar URL pública ou usar URL original
-    let finalUrl = videoUrl
-    if (!uploadError) {
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('media-generations')
-        .getPublicUrl(fileName)
-      finalUrl = publicUrl
-    }
-
-    // 9. Calcular custo (Runway ML pricing: ~$0.20 por segundo)
-    const cost = duration * 0.20 // USD
-
-    // 10. Salvar no banco
-    const { data: mediaRecord, error: insertError } = await supabase
-      .from('MediaGeneration')
-      .insert({
-        organizationId: organizationId,
+    // ============================================
+    // SAVE TO DATABASE
+    // ============================================
+    try {
+      await supabase.from("MediaGeneration").insert({
         userId: user.id,
-        type: 'VIDEO',
-        provider: 'RUNWAY',
+        type: "VIDEO",
+        provider: usedProvider,
         prompt: prompt,
         url: finalUrl,
         duration: duration,
         quality: quality,
         cost: cost,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         metadata: {
-          videoId: videoId,
-          originalUrl: videoUrl
-        }
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
+          originalUrl: videoUrl,
+          provider: usedProvider,
+        },
+      });
+    } catch (dbError) {
+      console.warn("⚠️ DB insert failed:", dbError);
     }
 
-    // 11. Retornar sucesso
+    // ============================================
+    // SUCCESS RESPONSE
+    // ============================================
     return new Response(
       JSON.stringify({
         success: true,
         video: {
-          id: mediaRecord?.id,
           url: finalUrl,
           prompt: prompt,
           duration: duration,
           quality: quality,
-          cost: cost
+          provider: usedProvider,
+          cost: cost,
+          free: cost === 0,
         },
-        quota: {
-          remaining: 1000,
-          used: 0,
-          total: 1000
-        }
+        message: `Vídeo gerado com ${usedProvider}!`,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
-
+    );
   } catch (error: any) {
-    console.error('Generate video error:', error)
-    
+    console.error("❌ [Video Gen] Error:", error);
+
     return new Response(
       JSON.stringify({
-        error: error.message,
-        details: error.stack
+        error: error.message || "Unknown error",
+        details: error.stack,
       }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
+    );
   }
-})
-
+});
