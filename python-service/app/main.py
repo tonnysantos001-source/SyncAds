@@ -38,6 +38,28 @@ app.add_middleware(
 app.include_router(automation_router, prefix="/api", tags=["Automation"])
 
 # ==========================================
+# HEALTH CHECK ENDPOINT
+# ==========================================
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway and monitoring"""
+    return {
+        "status": "healthy",
+        "service": "SyncAds Python Microservice",
+        "version": "1.0.0"
+    }
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "SyncAds Python Microservice API",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+
+# ==========================================
 # SUPABASE HTTP FALLBACK
 # ==========================================
 class SupabaseHTTP:
