@@ -1110,22 +1110,28 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       }
     }
 
-    // 🌐 DETECTAR AUTOMAÇÃO DE NAVEGADOR
+    // 🌐 DETECTAR AUTOMAÇÃO DE NAVEGADOR - VERSÃO MELHORADA
     if (
       !toolResult &&
-      extensionConnected &&
       (
         lowerMessage.includes("preencha") ||
         lowerMessage.includes("clique") ||
         lowerMessage.includes("navegue") ||
         lowerMessage.includes("abra") ||
+        lowerMessage.includes("acesse") ||
+        lowerMessage.includes("vá para") ||
         lowerMessage.includes("extraia") ||
         lowerMessage.includes("raspe") ||
         lowerMessage.includes("screenshot") ||
         lowerMessage.includes("formulário") ||
         lowerMessage.includes("fill") ||
         lowerMessage.includes("click") ||
-        lowerMessage.includes("scrape")
+        lowerMessage.includes("scrape") ||
+        lowerMessage.includes("facebook") ||
+        lowerMessage.includes("google") ||
+        lowerMessage.includes("instagram") ||
+        lowerMessage.includes("shopify") ||
+        lowerMessage.includes("mercado livre")
       )
     ) {
       console.log("🌐 Browser automation detected");
@@ -1135,19 +1141,63 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
         let command = "NAVIGATE";
         let params: any = {};
 
-        // Navigate detection
+        // Platform URL mapping for natural commands
+        const platformUrls: Record<string, string> = {
+          "facebook": "https://www.facebook.com",
+          "facebook ads": "https://business.facebook.com/adsmanager",
+          "gerenciador de anúncios": "https://business.facebook.com/adsmanager",
+          "google": "https://www.google.com",
+          "google ads": "https://ads.google.com",
+          "google analytics": "https://analytics.google.com",
+          "instagram": "https://www.instagram.com",
+          "shopify": "https://www.shopify.com/admin",
+          "mercado livre": "https://www.mercadolivre.com.br",
+          "youtube": "https://www.youtube.com",
+          "linkedin": "https://www.linkedin.com",
+          "twitter": "https://twitter.com",
+          "tiktok": "https://www.tiktok.com",
+        };
+
+        // Navigate detection - IMPROVED
         if (
           lowerMessage.includes("navegue") ||
           lowerMessage.includes("abra") ||
+          lowerMessage.includes("acesse") ||
           lowerMessage.includes("vá para")
         ) {
           command = "NAVIGATE";
-          // Extract URL
+
+          // First try to extract explicit URL
           const urlMatch = message.match(
             /https?:\/\/[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/
           );
+
           if (urlMatch) {
             params.url = urlMatch[0];
+            // Add protocol if missing
+            if (!params.url.startsWith("http")) {
+              params.url = "https://" + params.url;
+            }
+          } else {
+            // No explicit URL - try to map platform name
+            let foundPlatform = false;
+            for (const [platform, url] of Object.entries(platformUrls)) {
+              if (lowerMessage.includes(platform)) {
+                params.url = url;
+                foundPlatform = true;
+                console.log(`🎯 Mapped platform "${platform}" to ${url}`);
+                break;
+              }
+            }
+
+            if (!foundPlatform) {
+              // Extract any word that might be a site name
+              const siteMatch = message.match(/(?:abra|acesse|navegue)\s+(?:o|a)?\s*([\w]+)/i);
+              if (siteMatch && siteMatch[1]) {
+                params.url = `https://www.${siteMatch[1].toLowerCase()}.com`;
+                console.log(`🔍 Guessed URL: ${params.url}`);
+              }
+            }
           }
         }
 
