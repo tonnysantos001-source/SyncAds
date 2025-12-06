@@ -105,6 +105,7 @@ serve(async (req) => {
 
         console.log("✅ AI Router selecionou:", {
           provider: selectedProvider,
+          model: routerData.selection.model,
           reason: selectedReason,
           confidence: routerData.selection.confidence,
         });
@@ -137,15 +138,31 @@ serve(async (req) => {
         `⚠️ ${selectedProvider} não configurada, buscando qualquer IA ativa...`,
       );
 
-      const fallbackQuery = await supabase
+      // Tentar GROQ primeiro como fallback
+      const groqQuery = await supabase
         .from("GlobalAiConnection")
         .select("*")
+        .eq("provider", "GROQ")
         .eq("isActive", true)
-        .limit(1)
         .maybeSingle();
 
-      aiConnection = fallbackQuery.data;
-      aiError = fallbackQuery.error;
+      if (groqQuery.data) {
+        aiConnection = groqQuery.data;
+        aiError = groqQuery.error;
+        console.log("🔄 Usando GROQ como fallback");
+      } else {
+        // Se GROQ não existir, pegar qualquer IA ativa
+        const anyQuery = await supabase
+          .from("GlobalAiConnection")
+          .select("*")
+          .eq("isActive", true)
+          .limit(1)
+          .maybeSingle();
+
+        aiConnection = anyQuery.data;
+        aiError = anyQuery.error;
+        console.log("🔄 Usando primeira IA ativa disponível");
+      }
     }
 
     console.log("📊 DEBUG - Resultado da query:", {
@@ -1527,6 +1544,10 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       "PERPLEXITY",
     ];
 
+    console.log(
+      `🤖 [AI Provider] Using: ${aiConnection.provider} - Model: ${aiConnection.model}`,
+    );
+
     if (openaiCompatibleProviders.includes(aiConnection.provider)) {
       // Determine base URL
       const baseUrl = aiConnection.baseUrl || "https://api.openai.com/v1";
@@ -1790,35 +1811,108 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       const data = await anthropicResponse.json();
       response = data.content[0].text;
       tokensUsed = data.usage.input_tokens + data.usage.output_tokens;
-    } else if (aiConnection.provider === "GOOGLE") {
-      const googleResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${aiConnection.model || "gemini-pro"}:generateContent?key=${aiConnection.apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: messages
-              .filter((m) => m.role !== "system")
-              .map((m) => ({
-                role: m.role === "assistant" ? "model" : "user",
-                parts: [{ text: m.content }],
-              })),
-            generationConfig: {
-              temperature: aiConnection.temperature || 0.7,
-              maxOutputTokens: aiConnection.maxTokens || 4096,
-            },
-          }),
-        },
-      );
+    } else if (
+      aiConnection.provider === "GOOGLE" ||
+      aiConnection.provider === "GEMINI"
+    ) {
+      // ✅ GEMINI com suporte a geração de imagens e multimodal
+      console.log("🤖 [GEMINI] Usando Gemini API");
 
-      if (!googleResponse.ok) {
-        const error = await googleResponse.text();
-        throw new Error(`Google API error: ${error}`);
+      // Detectar se é solicitação de geração de imagem
+      const isImageGeneration =
+        lowerMessage.includes("crie imagem") ||
+        lowerMessage.includes("gere imagem") ||
+        lowerMessage.includes("faça imagem") ||
+        lowerMessage.includes("criar banner") ||
+        lowerMessage.includes("gerar banner") ||
+        lowerMessage.includes("criar logo") ||
+        lowerMessage.includes("desenhe") ||
+        lowerMessage.includes("arte de") ||
+        lowerMessage.includes("ilustração");
+
+      if (isImageGeneration) {
+        console.log("🎨 [GEMINI] Geração de imagem detectada");
+
+        try {
+          // Chamar edge function de geração de imagem
+          const imageGenUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-image`;
+          const imageResponse = await fetch(imageGenUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: JSON.stringify({
+              prompt: message,
+              userId: user.id,
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            response = `🎨 **Imagem Gerada!**\n\n${imageData.imageUrl ? `![Imagem gerada](${imageData.imageUrl})` : "Imagem em processamento..."}\n\n**Prompt:** ${message}`;
+            tokensUsed = 1000; // Estimate
+          } else {
+            const errorText = await imageResponse.text();
+            console.error("❌ [GEMINI] Erro ao gerar imagem:", errorText);
+            response = `❌ Erro ao gerar imagem. Tentando resposta conversacional...`;
+            // Fallback para chat normal
+            isImageGeneration = false;
+          }
+        } catch (imageError) {
+          console.error("❌ [GEMINI] Erro na geração de imagem:", imageError);
+          response = `⚠️ Sistema de geração de imagens temporariamente indisponível. Mas posso ajudar de outras formas!`;
+          tokensUsed = 500;
+        }
       }
 
-      const data = await googleResponse.json();
-      response = data.candidates[0].content.parts[0].text;
-      tokensUsed = data.usageMetadata.totalTokenCount || 0;
+      // Se não for geração de imagem OU se falhou, usar chat normal
+      if (!isImageGeneration) {
+        const googleResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${aiConnection.model || "gemini-2.0-flash-exp"}:generateContent?key=${aiConnection.apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: messages
+                .filter((m) => m.role !== "system")
+                .map((m) => ({
+                  role: m.role === "assistant" ? "model" : "user",
+                  parts: [{ text: m.content }],
+                })),
+              generationConfig: {
+                temperature: aiConnection.temperature || 0.8,
+                maxOutputTokens: aiConnection.maxTokens || 8000,
+              },
+              systemInstruction: {
+                parts: [{ text: finalSystemPrompt }],
+              },
+            }),
+          },
+        );
+
+        if (!googleResponse.ok) {
+          const error = await googleResponse.text();
+          console.error("❌ [GEMINI] API error:", error);
+          throw new Error(`Gemini API error: ${error}`);
+        }
+
+        const data = await googleResponse.json();
+
+        if (
+          !data.candidates ||
+          !data.candidates[0] ||
+          !data.candidates[0].content
+        ) {
+          console.error("❌ [GEMINI] Invalid response structure:", data);
+          throw new Error("Gemini retornou resposta inválida");
+        }
+
+        response = data.candidates[0].content.parts[0].text;
+        tokensUsed = data.usageMetadata?.totalTokenCount || 0;
+
+        console.log("✅ [GEMINI] Resposta gerada com sucesso");
+      }
     } else if (aiConnection.provider === "COHERE") {
       // Convert messages to Cohere format
       const chatHistory = messages.slice(1, -1).map((m) => ({

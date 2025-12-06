@@ -66,10 +66,10 @@ html5lib==1.1
 # ==========================================
 # BROWSER AUTOMATION
 # ==========================================
-playwright==1.40.0
-selenium==4.16.0
-browser-use==0.1.2
-webdriver-manager==4.0.1
+playwright==1.41.2
+selenium==4.17.2
+browser-use==0.10.1
+webdriver-manager==4.0.2
 
 # ==========================================
 # IMAGE PROCESSING

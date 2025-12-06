@@ -39,7 +39,7 @@ interface AIRouterRequest {
 }
 
 interface AISelection {
-  provider: "GROQ" | "GEMINI" | "PYTHON";
+  provider: "GROQ" | "GOOGLE" | "PYTHON";
   model: string;
   reason: string;
   confidence: number; // 0-100
@@ -179,11 +179,18 @@ function analyzeMessage(
     "faça logo",
     "criar foto",
     "gerar foto",
+    "fazer foto",
     "design de",
     "arte de",
+    "arte para",
+    "ilustração",
     "ilustração de",
     "thumbnail",
     "capa para",
+    "desenhe",
+    "desenhar",
+    "arte digital",
+    "visual de",
   ];
 
   const needsImage = imageKeywords.some((kw) => {
@@ -199,12 +206,19 @@ function analyzeMessage(
     "analise esta imagem",
     "analise este vídeo",
     "analise esta foto",
+    "analise esse",
     "o que tem nesta imagem",
+    "o que tem nessa",
     "descreva esta imagem",
+    "descreva essa",
     "leia esta imagem",
+    "leia esse",
     "extraia texto de",
+    "extrair texto",
     "ocr",
     "reconheça",
+    "reconhecer",
+    "identifique na imagem",
   ];
 
   const needsMultimodal = multimodalKeywords.some((kw) => {
@@ -235,6 +249,7 @@ function analyzeMessage(
     "faça login em",
     "encontre na página",
     "capture da página",
+    "controle o navegador",
   ];
 
   const needsAutomation = automationKeywords.some((kw) => {
@@ -279,10 +294,20 @@ function selectAI(
   message: string,
   context?: AIRouterRequest["context"],
 ): AISelection {
+  console.log("🔍 [AI Router] Analyzing message for AI selection:", {
+    needsImage: analysis.needsImage,
+    needsMultimodal: analysis.needsMultimodal,
+    hasAttachment: analysis.hasAttachment,
+    needsAutomation: analysis.needsAutomation,
+    messageLength: message.length,
+    keywords: analysis.keywords,
+  });
+
   // ============================================
   // REGRA 1: AUTOMAÇÃO BROWSER → PYTHON BACKEND
   // ============================================
   if (analysis.needsAutomation) {
+    console.log("✅ [AI Router] Selected PYTHON for browser automation");
     return {
       provider: "PYTHON",
       model: "browser-use + playwright",
@@ -294,24 +319,28 @@ function selectAI(
   }
 
   // ============================================
-  // REGRA 2: GERAÇÃO DE IMAGEM → GEMINI
+  // REGRA 2: GERAÇÃO DE IMAGEM → GOOGLE/GEMINI
   // ============================================
   if (analysis.needsImage) {
+    console.log("✅ [AI Router] Selected GOOGLE (Gemini) for image generation");
     return {
-      provider: "GEMINI",
+      provider: "GOOGLE",
       model: "gemini-2.0-flash-exp",
       reason:
-        "Geração de imagem solicitada - Gemini é a única IA com essa capacidade",
+        "Geração de imagem solicitada - Gemini tem capacidade de criar imagens",
       confidence: 100,
     };
   }
 
   // ============================================
-  // REGRA 3: ANÁLISE DE IMAGEM/VÍDEO → GEMINI
+  // REGRA 3: ANÁLISE DE IMAGEM/VÍDEO → GOOGLE/GEMINI
   // ============================================
   if (analysis.needsMultimodal || analysis.hasAttachment) {
+    console.log(
+      "✅ [AI Router] Selected GOOGLE (Gemini) for multimodal analysis",
+    );
     return {
-      provider: "GEMINI",
+      provider: "GOOGLE",
       model: "gemini-2.0-flash-exp",
       reason: "Análise multimodal necessária - Gemini suporta imagens e vídeos",
       confidence: 100,
@@ -319,11 +348,12 @@ function selectAI(
   }
 
   // ============================================
-  // REGRA 4: CONTEXTO MUITO GRANDE → GEMINI
+  // REGRA 4: CONTEXTO MUITO GRANDE → GOOGLE/GEMINI
   // ============================================
   if (message.length > 50000) {
+    console.log("✅ [AI Router] Selected GOOGLE (Gemini) for long context");
     return {
-      provider: "GEMINI",
+      provider: "GOOGLE",
       model: "gemini-2.0-flash-exp",
       reason: "Contexto muito grande (>50k chars) - Gemini tem 1M tokens",
       confidence: 90,
@@ -331,18 +361,26 @@ function selectAI(
   }
 
   // ============================================
-  // REGRA 5: ANÁLISE DE DOCUMENTOS → GEMINI
+  // REGRA 5: ANÁLISE DE DOCUMENTOS → GOOGLE/GEMINI
   // ============================================
   const documentKeywords = [
     "analise este pdf",
+    "analise esse pdf",
     "leia este documento",
+    "leia esse documento",
     "extraia informações de",
+    "extrair informações",
     "resuma este texto",
+    "resuma esse texto",
+    "resumir este",
   ];
 
   if (documentKeywords.some((kw) => message.toLowerCase().includes(kw))) {
+    console.log(
+      "✅ [AI Router] Selected GOOGLE (Gemini) for document analysis",
+    );
     return {
-      provider: "GEMINI",
+      provider: "GOOGLE",
       model: "gemini-2.0-flash-exp",
       reason:
         "Análise de documento - Gemini lida melhor com PDFs e textos longos",
@@ -353,6 +391,7 @@ function selectAI(
   // ============================================
   // REGRA 6 (DEFAULT): CHAT RÁPIDO → GROQ
   // ============================================
+  console.log("✅ [AI Router] Selected GROQ for conversational chat (default)");
   return {
     provider: "GROQ",
     model: "llama-3.3-70b-versatile",
@@ -372,7 +411,7 @@ function generateAlternatives(selected: AISelection): AISelection[] {
   // Se selecionou Groq, Gemini é alternativa
   if (selected.provider === "GROQ") {
     alternatives.push({
-      provider: "GEMINI",
+      provider: "GOOGLE",
       model: "gemini-2.0-flash-exp",
       reason:
         "Alternativa com maior contexto (1M tokens) e capacidades multimodais",
@@ -381,7 +420,7 @@ function generateAlternatives(selected: AISelection): AISelection[] {
   }
 
   // Se selecionou Gemini, Groq é alternativa
-  if (selected.provider === "GEMINI") {
+  if (selected.provider === "GOOGLE") {
     alternatives.push({
       provider: "GROQ",
       model: "llama-3.3-70b-versatile",
@@ -413,7 +452,7 @@ if (Deno.env.get("DENO_DEPLOYMENT_ID")) {
   console.log("🚀 [AI Router] Edge Function initialized");
   console.log("📊 [AI Router] Available models:");
   console.log("   - GROQ: llama-3.3-70b-versatile (default para chat)");
-  console.log("   - GEMINI: gemini-2.0-flash-exp (imagens e multimodal)");
+  console.log("   - GOOGLE: gemini-2.0-flash-exp (imagens e multimodal)");
   console.log("   - PYTHON: browser-use + playwright (automação e scraping)");
   console.log(`🐍 [Python Service] ${PYTHON_SERVICE_URL}`);
 }

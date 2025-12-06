@@ -69,6 +69,11 @@ let state = {
   // Track what we've already processed
   processedTokens: new Set(),
   lastDetectionTime: null,
+
+  // DOM Control State
+  isDomActive: false,
+  domOverlay: null,
+  domBorder: null,
 };
 
 // ============================================
@@ -95,6 +100,374 @@ const Logger = {
     console.log(`🔍 [ContentScript] ${message}`, data);
   },
 };
+
+// ============================================
+// DOM VISUAL FEEDBACK
+// ============================================
+
+/**
+ * Cria e injeta estilos CSS para feedback visual
+ */
+function injectDomStyles() {
+  if (document.getElementById("syncads-dom-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "syncads-dom-styles";
+  style.textContent = `
+    /* Borda piscando animada */
+    @keyframes syncads-pulse-border {
+      0%, 100% {
+        box-shadow: inset 0 0 0 4px rgba(99, 102, 241, 0.8);
+      }
+      50% {
+        box-shadow: inset 0 0 0 8px rgba(99, 102, 241, 0.4);
+      }
+    }
+
+    .syncads-dom-border {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      pointer-events: none !important;
+      z-index: 999999998 !important;
+      animation: syncads-pulse-border 2s ease-in-out infinite !important;
+      border-radius: 0 !important;
+    }
+
+    /* Overlay de bloqueio */
+    .syncads-dom-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(17, 24, 39, 0.85) !important;
+      backdrop-filter: blur(4px) !important;
+      z-index: 999999999 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    /* Conteúdo do overlay */
+    .syncads-dom-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      padding: 32px 48px !important;
+      border-radius: 16px !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+      text-align: center !important;
+      max-width: 500px !important;
+      animation: syncads-fade-in 0.3s ease-out !important;
+    }
+
+    @keyframes syncads-fade-in {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .syncads-dom-icon {
+      font-size: 64px !important;
+      margin-bottom: 16px !important;
+      animation: syncads-spin 3s linear infinite !important;
+    }
+
+    @keyframes syncads-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .syncads-dom-title {
+      color: #ffffff !important;
+      font-size: 24px !important;
+      font-weight: 700 !important;
+      margin: 0 0 12px 0 !important;
+      letter-spacing: -0.5px !important;
+    }
+
+    .syncads-dom-message {
+      color: rgba(255, 255, 255, 0.9) !important;
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      margin: 0 0 20px 0 !important;
+    }
+
+    .syncads-dom-status {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      padding: 8px 16px !important;
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 20px !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+    }
+
+    .syncads-dom-pulse {
+      width: 8px !important;
+      height: 8px !important;
+      background: #10b981 !important;
+      border-radius: 50% !important;
+      animation: syncads-pulse-dot 1.5s ease-in-out infinite !important;
+    }
+
+    @keyframes syncads-pulse-dot {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+  Logger.success("DOM styles injected");
+}
+
+/**
+ * Ativa o modo DOM - mostra feedback visual
+ */
+function activateDomMode(
+  message = "Aguarde enquanto a IA controla o navegador...",
+) {
+  if (state.isDomActive) {
+    Logger.warn("DOM mode already active");
+    return;
+  }
+
+  Logger.info("Activating DOM mode with visual feedback");
+
+  // Injetar estilos
+  injectDomStyles();
+
+  // Criar borda piscando
+  state.domBorder = document.createElement("div");
+  state.domBorder.className = "syncads-dom-border";
+  document.body.appendChild(state.domBorder);
+
+  // Criar overlay de bloqueio
+  state.domOverlay = document.createElement("div");
+  state.domOverlay.className = "syncads-dom-overlay";
+  state.domOverlay.innerHTML = `
+    <div class="syncads-dom-content">
+      <div class="syncads-dom-icon">🤖</div>
+      <h2 class="syncads-dom-title">IA Controlando Navegador</h2>
+      <p class="syncads-dom-message">${message}</p>
+      <div class="syncads-dom-status">
+        <div class="syncads-dom-pulse"></div>
+        <span>Processando...</span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(state.domOverlay);
+
+  state.isDomActive = true;
+
+  Logger.success("DOM mode activated - visual feedback shown");
+}
+
+/**
+ * Desativa o modo DOM - remove feedback visual
+ */
+function deactivateDomMode() {
+  if (!state.isDomActive) {
+    Logger.warn("DOM mode not active");
+    return;
+  }
+
+  Logger.info("Deactivating DOM mode");
+
+  // Remover borda
+  if (state.domBorder) {
+    state.domBorder.remove();
+    state.domBorder = null;
+  }
+
+  // Remover overlay
+  if (state.domOverlay) {
+    state.domOverlay.remove();
+    state.domOverlay = null;
+  }
+
+  state.isDomActive = false;
+
+  Logger.success("DOM mode deactivated - visual feedback removed");
+}
+
+/**
+ * Atualiza mensagem do DOM overlay
+ */
+function updateDomMessage(message) {
+  if (!state.isDomActive || !state.domOverlay) return;
+
+  const messageEl = state.domOverlay.querySelector(".syncads-dom-message");
+  if (messageEl) {
+    messageEl.textContent = message;
+  }
+}
+
+// ============================================
+// MESSAGE LISTENERS - DOM CONTROL
+// ============================================
+
+/**
+ * Listener para comandos de controle DOM
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  Logger.debug("Message received from background", { type: message.type });
+
+  switch (message.type) {
+    case "DOM_ACTIVATE":
+      activateDomMode(
+        message.message || "A IA está controlando o navegador...",
+      );
+      sendResponse({ success: true, active: true });
+      break;
+
+    case "DOM_DEACTIVATE":
+      deactivateDomMode();
+      sendResponse({ success: true, active: false });
+      break;
+
+    case "DOM_UPDATE_MESSAGE":
+      updateDomMessage(message.message);
+      sendResponse({ success: true });
+      break;
+
+    case "DOM_STATUS":
+      sendResponse({ active: state.isDomActive });
+      break;
+
+    case "EXECUTE_DOM_ACTION":
+      handleDomAction(message.action, message.params)
+        .then((result) => sendResponse({ success: true, result }))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true; // Mantém canal aberto para async
+
+    default:
+      Logger.warn("Unknown message type", { type: message.type });
+      sendResponse({ success: false, error: "Unknown message type" });
+  }
+
+  return true;
+});
+
+/**
+ * Handler para ações DOM
+ */
+async function handleDomAction(action, params = {}) {
+  Logger.info(`Executing DOM action: ${action}`, params);
+
+  try {
+    switch (action) {
+      case "CLICK":
+        return await clickElement(params.selector);
+
+      case "FILL":
+        return await fillInput(params.selector, params.value);
+
+      case "NAVIGATE":
+        window.location.href = params.url;
+        return { success: true, url: params.url };
+
+      case "SCROLL":
+        window.scrollBy({
+          top: params.y || 0,
+          left: params.x || 0,
+          behavior: "smooth",
+        });
+        return { success: true };
+
+      case "WAIT":
+        await new Promise((resolve) =>
+          setTimeout(resolve, params.duration || 1000),
+        );
+        return { success: true };
+
+      case "GET_TEXT":
+        const el = document.querySelector(params.selector);
+        return { success: true, text: el?.textContent || null };
+
+      case "SCREENSHOT":
+        // Request screenshot from background
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: "TAKE_SCREENSHOT" }, resolve);
+        });
+
+      default:
+        throw new Error(`Unknown DOM action: ${action}`);
+    }
+  } catch (error) {
+    Logger.error(`DOM action failed: ${action}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Clica em um elemento
+ */
+async function clickElement(selector) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Highlight element briefly
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #10b981";
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  element.click();
+  element.style.outline = originalOutline;
+
+  Logger.success(`Clicked element: ${selector}`);
+  return { success: true, selector };
+}
+
+/**
+ * Preenche um input
+ */
+async function fillInput(selector, value) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Input not found: ${selector}`);
+  }
+
+  // Highlight element
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #3b82f6";
+
+  // Simulate typing
+  element.focus();
+  element.value = "";
+
+  for (const char of value) {
+    element.value += char;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.style.outline = originalOutline;
+
+  Logger.success(`Filled input: ${selector} with: ${value}`);
+  return { success: true, selector, value };
+}
 
 // ============================================
 // UI COMPONENTS
