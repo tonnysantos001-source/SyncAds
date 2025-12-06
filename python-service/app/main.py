@@ -6,6 +6,12 @@ IA + Supabase + Streaming + AI Tools
 """
 
 # ==========================================
+# IMPORTS PRINCIPAIS
+# ==========================================
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# ==========================================
 # IMPORTS DE ROUTERS
 # ==========================================
 from app.routers.automation import router as automation_router
