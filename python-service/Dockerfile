@@ -42,7 +42,7 @@ RUN pip install --upgrade pip==24.0
 WORKDIR /app
 
 # Copiar requirements
-COPY requirements.txt .
+COPY python-service/requirements.txt .
 
 # Instalar dependências Python
 RUN echo "=== INSTALANDO DEPENDENCIAS ===" && \
@@ -50,7 +50,7 @@ RUN echo "=== INSTALANDO DEPENDENCIAS ===" && \
     echo "=== INSTALACAO CONCLUIDA ==="
 
 # Copiar código da aplicação
-COPY ./app ./app
+COPY python-service/app ./app
 
 # Criar diretórios necessários
 RUN mkdir -p /app/temp /app/logs
