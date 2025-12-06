@@ -1,12 +1,13 @@
 """
 ============================================
 BROWSER AUTOMATION ROUTER
-Browser-Use + Playwright Integration
+Browser-Use + Playwright Integration + Enhanced Browser Service
 ============================================
 """
 
 import asyncio
 import json
+import base64
 import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
@@ -14,6 +15,9 @@ from typing import Any, Dict, List, Literal, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from loguru import logger
 from pydantic import BaseModel, Field
+
+# Import enhanced browser service
+from app.services.browser_service import browser_service
 
 # Playwright imports
 try:
@@ -504,3 +508,111 @@ async def test_automation():
             "error": str(e),
             "message": "Browser automation test failed",
         }
+
+
+# ==========================================
+# ENHANCED BROWSER SERVICE ENDPOINTS
+# ==========================================
+
+@router.post("/session/create")
+async def create_enhanced_session(session_id: str, user_agent: Optional[str] = None):
+    """Create enhanced browser session"""
+    try:
+        await browser_service.create_session(session_id, user_agent)
+        return {
+            "success": True,
+            "session_id": session_id,
+            "message": "Enhanced browser session created"
+        }
+    except Exception as e:
+        logger.error(f"Session creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/navigate")
+async def enhanced_navigate(session_id: str, url: str):
+    """Navigate using enhanced browser service"""
+    try:
+        result = await browser_service.navigate(session_id, url)
+        return result
+    except Exception as e:
+        logger.error(f"Navigation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/fill-form")
+async def enhanced_fill_form(
+    session_id: str,
+    form_data: Dict[str, Any],
+    form_selector: Optional[str] = None
+):
+    """Fill form using enhanced browser service with human-like behavior"""
+    try:
+        result = await browser_service.fill_form(session_id, form_data, form_selector)
+        return result
+    except Exception as e:
+        logger.error(f"Form fill failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/scrape-products")
+async def enhanced_scrape_products(
+    session_id: str,
+    product_selectors: Dict[str, str]
+):
+    """Scrape products using enhanced browser service"""
+    try:
+        result = await browser_service.scrape_products(session_id, product_selectors)
+        return result
+    except Exception as e:
+        logger.error(f"Product scraping failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/detect-checkout")
+async def enhanced_detect_checkout(session_id: str):
+    """Detect checkout form on current page"""
+    try:
+        result = await browser_service.detect_checkout_form(session_id)
+        return result
+    except Exception as e:
+        logger.error(f"Checkout detection failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{session_id}/screenshot")
+async def enhanced_screenshot(session_id: str, full_page: bool = False):
+    """Take screenshot using enhanced browser service"""
+    try:
+        result = await browser_service.screenshot(session_id, full_page)
+        
+        # Convert bytes to base64
+        if result.get('success') and result.get('screenshot'):
+            screenshot_base64 = base64.b64encode(result['screenshot']).decode('utf-8')
+            result['screenshot'] = f"data:image/png;base64,{screenshot_base64}"
+            
+        return result
+    except Exception as e:
+        logger.error(f"Screenshot failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/session/{session_id}")
+async def close_enhanced_session(session_id: str):
+    """Close enhanced browser session"""
+    try:
+        if session_id in browser_service.pages:
+            await browser_service.pages[session_id].close()
+            del browser_service.pages[session_id]
+            
+        if session_id in browser_service.contexts:
+            await browser_service.contexts[session_id].close()
+            del browser_service.contexts[session_id]
+            
+        return {
+            "success": True,
+            "message": f"Session {session_id} closed"
+        }
+    except Exception as e:
+        logger.error(f"Session cleanup failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

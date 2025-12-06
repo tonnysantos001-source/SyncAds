@@ -1110,6 +1110,159 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       }
     }
 
+    // 🌐 DETECTAR AUTOMAÇÃO DE NAVEGADOR
+    if (
+      !toolResult &&
+      extensionConnected &&
+      (
+        lowerMessage.includes("preencha") ||
+        lowerMessage.includes("clique") ||
+        lowerMessage.includes("navegue") ||
+        lowerMessage.includes("abra") ||
+        lowerMessage.includes("extraia") ||
+        lowerMessage.includes("raspe") ||
+        lowerMessage.includes("screenshot") ||
+        lowerMessage.includes("formulário") ||
+        lowerMessage.includes("fill") ||
+        lowerMessage.includes("click") ||
+        lowerMessage.includes("scrape")
+      )
+    ) {
+      console.log("🌐 Browser automation detected");
+
+      try {
+        // Determine command type
+        let command = "NAVIGATE";
+        let params: any = {};
+
+        // Navigate detection
+        if (
+          lowerMessage.includes("navegue") ||
+          lowerMessage.includes("abra") ||
+          lowerMessage.includes("vá para")
+        ) {
+          command = "NAVIGATE";
+          // Extract URL
+          const urlMatch = message.match(
+            /https?:\/\/[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/
+          );
+          if (urlMatch) {
+            params.url = urlMatch[0];
+          }
+        }
+
+        // Fill form detection
+        if (
+          lowerMessage.includes("preencha") ||
+          lowerMessage.includes("fill")
+        ) {
+          command = "FILL_FORM";
+          // AI will need to specify form_data - for now just signal intent
+          params.form_data = {};
+          params.form_selector = null;
+        }
+
+        // Click detection
+        if (lowerMessage.includes("clique") || lowerMessage.includes("click")) {
+          command = "CLICK";
+          // Extract button text if present
+          const buttonMatch = message.match(
+            /(?:clique|click)\s+(?:no|em|on)?\s+["']?([^"']+)["']?/i
+          );
+          if (buttonMatch) {
+            params.selector = `button:contains('${buttonMatch[1]}')`;
+          }
+        }
+
+        // Screenshot detection
+        if (
+          lowerMessage.includes("screenshot") ||
+          lowerMessage.includes("captura") ||
+          lowerMessage.includes("print")
+        ) {
+          command = "SCREENSHOT";
+          params.full_page = lowerMessage.includes("completa") || lowerMessage.includes("full");
+        }
+
+        // Scraping detection
+        if (
+          lowerMessage.includes("extraia") ||
+          lowerMessage.includes("raspe") ||
+          lowerMessage.includes("scrape")
+        ) {
+          if (
+            lowerMessage.includes("produto") ||
+            lowerMessage.includes("product")
+          ) {
+            command = "SCRAPE_PRODUCTS";
+            // Default selectors - AI should refine these
+            params.product_selectors = {
+              container: ".product, .product-item, .product-card",
+              name: "h1, h2, h3, .product-title, .product-name",
+              price: ".price, .product-price, [class*='price']",
+              image: "img",
+            };
+          } else {
+            command = "EXTRACT_DATA";
+            params.selectors = {};
+          }
+        }
+
+        // Create session for user if not exists
+        const sessionId = `user-${user.id}`;
+
+        // Call browser-automation Edge Function
+        console.log(`🤖 Calling browser-automation: ${command}`);
+
+        const automationUrl = `${Deno.env.get(
+          "SUPABASE_URL"
+        )}/functions/v1/browser-automation`;
+
+        const automationResponse = await fetch(automationUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({
+            command,
+            session_id: sessionId,
+            params,
+          }),
+        });
+
+        if (automationResponse.ok) {
+          const automationData = await automationResponse.json();
+          console.log("✅ Browser automation result:", automationData);
+
+          // Format result for AI
+          if (command === "SCREENSHOT" && automationData.screenshot) {
+            toolResult = `📸 **Screenshot capturado!**\n\n![Screenshot](${automationData.screenshot})`;
+          } else if (command === "SCRAPE_PRODUCTS" && automationData.products) {
+            const products = automationData.products.slice(0, 5);
+            toolResult = `🛍️ **${automationData.count} produtos encontrados!**\n\n`;
+            products.forEach((p: any, i: number) => {
+              toolResult += `${i + 1}. **${p.name || "Produto"}** - ${p.price || "Preço não encontrado"}\n`;
+            });
+            toolResult += `\n[Download CSV com todos os produtos]`;
+          } else if (command === "FILL_FORM" && automationData.success) {
+            toolResult = `✅ **Formulário preenchido!**\n\nCampos preenchidos: ${automationData.filled_fields?.length || 0}`;
+          } else if (command === "NAVIGATE" && automationData.success) {
+            toolResult = `🌐 **Navegação concluída!**\n\nURL: ${automationData.url}\nTítulo: ${automationData.title}`;
+          } else {
+            toolResult = `✅ **Automação executada!**\n\n${JSON.stringify(automationData, null, 2)}`;
+          }
+        } else {
+          const error = await automationResponse.text();
+          console.error("❌ Browser automation failed:", error);
+          toolResult = `❌ Erro na automação de navegador: ${error}`;
+        }
+      } catch (error: any) {
+        console.error("❌ Browser automation error:", error);
+        toolResult = `❌ Erro ao executar automação: ${error.message}`;
+      }
+    }
+
     // Detectar sistema de dicas
     if (
       lowerMessage.includes("dicas") ||
