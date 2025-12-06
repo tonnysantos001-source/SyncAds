@@ -1,243 +1,247 @@
 // ================================================
-// EDGE FUNCTION: Geração de Imagens com DALL-E 3
+// EDGE FUNCTION: Geração de Imagens com Google Gemini/Imagen
 // URL: /functions/v1/generate-image
 // ================================================
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
   // CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     // 1. Criar cliente Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // 2. Autenticar usuário
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error('Missing authorization header')
+      throw new Error("Missing authorization header");
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
-      throw new Error('Unauthorized')
+      throw new Error("Unauthorized");
     }
 
-    // 3. ✅ SISTEMA SIMPLIFICADO: Não precisa buscar organization
-    // 4. Parsear body
-    const body = await req.json()
-    const { 
-      prompt, 
-      size = '1024x1024',
-      quality = 'standard' 
-    } = body
+    // 3. Parsear body
+    const body = await req.json();
+    const { prompt, size = "1024x1024", quality = "standard" } = body;
 
     if (!prompt) {
-      throw new Error('Prompt is required')
+      throw new Error("Prompt is required");
     }
 
-    console.log('Generating image:', { userId: user.id, prompt, size, quality })
+    console.log("🎨 [Image Generation] Generating image:", {
+      userId: user.id,
+      prompt,
+    });
 
-    // 5. Verificar quota (simplificado)
-    const { data: quotaCheck, error: quotaError } = await supabase
-      .rpc('check_and_use_quota', {
-        user_id: user.id,
-        quota_type: 'images',
-        amount: 1
-      })
-
-    if (quotaError) {
-      throw new Error(`Quota check failed: ${quotaError.message}`)
-    }
-
-    if (!quotaCheck.success) {
-      return new Response(
-        JSON.stringify({
-          error: quotaCheck.error,
-          quota: quotaCheck.quota,
-          used: quotaCheck.used
-        }),
-        { 
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // 6. Buscar API Key da tabela GlobalAiConnection (configuração visual)
+    // 4. Buscar configuração do Gemini/Google da tabela GlobalAiConnection
     const { data: aiConfig, error: aiError } = await supabase
-      .from('GlobalAiConnection')
-      .select('apiKey, provider, model, baseUrl')
-      .eq('provider', 'OPENAI')
-      .eq('isActive', true)
+      .from("GlobalAiConnection")
+      .select("apiKey, provider, model, baseUrl")
+      .eq("provider", "GOOGLE")
+      .eq("isActive", true)
       .limit(1)
-      .single()
+      .single();
 
     if (aiError || !aiConfig) {
+      console.error(
+        "❌ [Image Generation] Google/Gemini não configurado:",
+        aiError,
+      );
       return new Response(
         JSON.stringify({
-          error: 'OpenAI não configurada. Adicione uma conexão de IA no painel Super Admin.',
-          hint: 'Acesse /super-admin/ai-connections e adicione uma IA com provider OPENAI'
+          error:
+            "Para gerar imagens, configure a API Key da Google Gemini no painel Super Admin.",
+          hint: "Vá em Configurações > IA Global e adicione uma IA com provider GOOGLE",
+          needsConfig: true,
         }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    const openaiKey = aiConfig.apiKey
+    const googleApiKey = aiConfig.apiKey;
+    const model = aiConfig.model || "gemini-2.0-flash-exp";
 
-    const baseUrl = aiConfig.baseUrl || 'https://api.openai.com/v1'
-    const dalleResponse = await fetch(`${baseUrl}/images/generations`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + openaiKey,
-        'Content-Type': 'application/json'
+    console.log("✅ [Image Generation] Using Gemini model:", model);
+
+    // 5. Gerar imagem com Google Gemini (Imagen 3)
+    // Google Gemini pode gerar imagens nativamente com prompts
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`;
+
+    const geminiPayload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Gere uma imagem baseada nesta descrição: ${prompt}. A imagem deve ser de alta qualidade, detalhada e visualmente atraente.`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.9,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 8192,
       },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: size,
-        quality: quality,
-        response_format: 'url'
-      })
-    })
+    };
 
-    if (!dalleResponse.ok) {
-      const errorData = await dalleResponse.json()
-      console.error('DALL-E error:', errorData)
-      throw new Error(`DALL-E API error: ${errorData.error?.message || 'Unknown error'}`)
+    console.log("📡 [Image Generation] Calling Gemini API...");
+
+    const geminiResponse = await fetch(geminiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(geminiPayload),
+    });
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      console.error("❌ [Image Generation] Gemini API error:", errorData);
+
+      return new Response(
+        JSON.stringify({
+          error: "Erro ao gerar imagem com Gemini",
+          details: errorData,
+          suggestion:
+            "O Gemini 2.0 Flash pode não suportar geração de imagens diretamente. Considere usar DALL-E ou Stable Diffusion.",
+          alternativeSolution:
+            "Use o chat para gerar descrições e depois use uma API de imagem externa.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    const dalleData = await dalleResponse.json()
-    const imageUrl = dalleData.data[0].url
-    const revisedPrompt = dalleData.data[0].revised_prompt
+    const geminiData = await geminiResponse.json();
+    console.log("📦 [Image Generation] Gemini response received");
 
-    console.log('Image generated:', imageUrl)
+    // 6. Extrair texto da resposta do Gemini
+    let imageDescription = "";
+    let imageDataUrl = null;
 
-    // 7. Fazer download da imagem temporária
-    const imageResponse = await fetch(imageUrl)
-    const imageBlob = await imageResponse.blob()
-    const imageBuffer = await imageBlob.arrayBuffer()
+    if (geminiData.candidates && geminiData.candidates[0]) {
+      const parts = geminiData.candidates[0].content.parts;
 
-    // 8. Upload para Supabase Storage
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.png`
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('media-generations')
+      // Procurar por imagem em base64 ou URL na resposta
+      for (const part of parts) {
+        if (part.text) {
+          imageDescription = part.text;
+        }
+        if (part.inlineData && part.inlineData.data) {
+          imageDataUrl = part.inlineData.data;
+        }
+      }
+    }
+
+    // 7. Se não houver imagem direta, retornar erro informativo
+    if (!imageDataUrl) {
+      console.warn(
+        "⚠️ [Image Generation] Gemini não retornou imagem, apenas texto",
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "O Gemini 2.0 Flash não suporta geração de imagens nativa.",
+          description: imageDescription,
+          suggestion: "Para gerar imagens, você precisa:",
+          options: [
+            "1. Adicionar uma IA OpenAI (DALL-E 3) no painel",
+            "2. Adicionar integração com Stable Diffusion",
+            "3. Usar a descrição gerada para criar imagem em outra ferramenta",
+          ],
+          generatedDescription: imageDescription,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // 8. Se houver imagem, fazer upload para Supabase Storage
+    const imageBuffer = Uint8Array.from(atob(imageDataUrl), (c) =>
+      c.charCodeAt(0),
+    );
+
+    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.png`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("media-generations")
       .upload(fileName, imageBuffer, {
-        contentType: 'image/png',
-        upsert: false
-      })
+        contentType: "image/png",
+        upsert: false,
+      });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError)
-      throw new Error(`Failed to upload image: ${uploadError.message}`)
+      console.error("❌ [Image Generation] Upload error:", uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
     }
+
+    console.log("✅ [Image Generation] Image uploaded to storage:", fileName);
 
     // 9. Gerar URL pública
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('media-generations')
-      .getPublicUrl(fileName)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("media-generations").getPublicUrl(fileName);
 
-    // 10. Calcular custo (DALL-E 3 pricing)
-    const cost = quality === 'hd' ? 0.08 : 0.04 // USD
-
-    // 11. Salvar no banco
-    const { data: mediaRecord, error: insertError } = await supabase
-      .from('MediaGeneration')
-      .insert({
-        organizationId: organizationId,
-        userId: user.id,
-        type: 'IMAGE',
-        provider: 'DALL-E',
-        prompt: prompt,
-        url: publicUrl,
-        size: size,
-        quality: quality,
-        cost: cost,
-        status: 'COMPLETED',
-        metadata: {
-          revisedPrompt: revisedPrompt,
-          originalUrl: imageUrl
-        }
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
-      throw new Error(`Failed to save record: ${insertError.message}`)
-    }
-
-    // 12. Registrar uso no histórico
-    await supabase
-      .from('QuotaUsageHistory')
-      .insert({
-        organizationId: organizationId,
-        userId: user.id,
-        type: 'IMAGE',
-        amount: 1,
-        cost: cost,
-        metadata: {
-          provider: 'DALL-E',
-          size: size,
-          quality: quality
-        }
-      })
-
-    // 13. Retornar sucesso
+    // 10. Retornar sucesso
     return new Response(
       JSON.stringify({
         success: true,
         image: {
-          id: mediaRecord.id,
           url: publicUrl,
           prompt: prompt,
-          revisedPrompt: revisedPrompt,
+          description: imageDescription,
           size: size,
-          quality: quality,
-          cost: cost
+          provider: "Google Gemini",
+          model: model,
         },
-        quota: {
-          remaining: quotaCheck.remaining,
-          used: quotaCheck.used,
-          total: quotaCheck.quota
-        }
+        message: "Imagem gerada com sucesso!",
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
-
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
-    console.error('Generate image error:', error)
-    
+    console.error("❌ [Image Generation] Fatal error:", error);
+
     return new Response(
       JSON.stringify({
-        error: error.message,
-        details: error.stack
+        error: error.message || "Erro desconhecido ao gerar imagem",
+        details: error.stack,
+        suggestion:
+          "Verifique se a API Key do Google está correta e se o modelo suporta geração de imagens.",
       }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
-})
+});
