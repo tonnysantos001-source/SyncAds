@@ -68,6 +68,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# ✅ SOLUÇÃO DEFINITIVA: Python lê PORT diretamente do OS
-# Não depende de shell expansion
+# ✅ SOLUÇÃO DEFINITIVA: Python lê PORT via os.getenv no if __name__
 CMD ["python", "-m", "app.main"]

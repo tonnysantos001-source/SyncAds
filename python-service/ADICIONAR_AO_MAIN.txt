@@ -1,0 +1,26 @@
+
+
+# ==========================================
+# RAILWAY: EXECUTE DIRECTLY VIA PYTHON
+# ==========================================
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Read PORT from environment (Railway injects this)
+    port = int(os.getenv("PORT", "8000"))
+    
+    print("=" * 60)
+    print(f"🚀 SyncAds Python Microservice Starting")
+    print(f"📍 Host: 0.0.0.0")
+    print(f"🔌 Port: {port}")
+    print(f"⚙️  Workers: 1")
+    print("=" * 60)
+    
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        workers=1,
+        log_level="info"
+    )
