@@ -29,7 +29,7 @@ python-jose[cryptography]==3.3.0
 # Utilities
 python-multipart==0.0.6
 loguru==0.7.2
-requests==2.31.0
+requests==2.32.3
 
 # PDF Generation & Processing
 PyPDF2==3.0.1
