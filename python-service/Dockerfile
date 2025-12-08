@@ -19,17 +19,16 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8000
 
-# Instalar dependências do sistema
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Instalar dependências do sistema (SIMPLIFICADO)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
-    libssl-dev \
-    libffi-dev \
     curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
 
 # Criar virtual environment
 RUN python -m venv /opt/venv
@@ -65,10 +64,13 @@ RUN python -c "import fastapi; print('FastAPI OK')" && \
 # Expor porta
 EXPOSE 8000
 
+# Copiar e dar permissão ao script de start
+COPY python-service/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Health check  
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# ✅ Comando de inicialização - SHELL FORM para expansão de variável
-# Railway injeta PORT dinamicamente, precisamos do shell para expandir
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+# ✅ Usar script de start que GARANTE expansão de PORT
+CMD ["/app/start.sh"]
