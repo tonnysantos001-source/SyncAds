@@ -19,14 +19,19 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8000
 
-# Instalar dependências do sistema (SIMPLIFICADO)
+# Instalar dependências do sistema + WeasyPrint libs
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
     curl \
-    ca-certificates && \
+    ca-certificates \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
@@ -54,7 +59,7 @@ COPY app ./app
 # Criar diretórios necessários
 RUN mkdir -p /app/temp /app/logs
 
-# Verificação simplificada - apenas principais
+# Verificação simplificada
 RUN python -c "import fastapi; print('FastAPI OK')" && \
     python -c "import anthropic; print('Anthropic OK')" && \
     python -c "import openai; print('OpenAI OK')" && \
