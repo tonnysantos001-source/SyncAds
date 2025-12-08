@@ -1,7 +1,7 @@
 # Core - MINIMAL para Railway funcionar
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-pydantic==2.5.3
+pydantic==2.9.2
 httpx==0.26.0
 python-dotenv==1.0.0
 
