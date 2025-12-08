@@ -64,13 +64,10 @@ RUN python -c "import fastapi; print('FastAPI OK')" && \
 # Expor porta
 EXPOSE 8000
 
-# Copiar e dar permissão ao script de start
-COPY python-service/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# Health check  
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# ✅ Usar script de start que GARANTE expansão de PORT
-CMD ["/app/start.sh"]
+# ✅ SOLUÇÃO DEFINITIVA: Python lê PORT diretamente do OS
+# Não depende de shell expansion
+CMD ["python", "-m", "app.main"]
