@@ -27,6 +27,7 @@ python-jose[cryptography]==3.3.0
 
 # Utilities
 python-multipart==0.0.6
+loguru==0.7.2
 
 # Computer Vision (for image processing)
 numpy<2  # Required for opencv compatibility
