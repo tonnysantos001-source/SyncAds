@@ -49,7 +49,7 @@ const MODAL_PATTERNS: Record<ModalType, RegExp[]> = {
     /constru(a|ir)\s+(uma?\s+)?(p[aá]gina|site|landing)/i,
     /desenvolv(a|er)\s+(uma?\s+)?(p[aá]gina|site)/i,
     /preciso\s+(de\s+)?(uma?\s+)?(p[aá]gina|landing\s*page)/i,
-    /quero\s+(uma?\s+)?(p[aá]gina|landing\s*page|site)/i,
+    /quero\s+(una?\s+)?(p[aá]gina|landing\s*page|site)/i,
     /edit(e|ar)\s+(uma?\s+|essa?\s+|a\s+)?(p[aá]gina|landing|layout)/i,
     /modific(ar|ue)\s+(uma?\s+|essa?\s+|a\s+)?(p[aá]gina|layout)/i,
     /ajust(e|ar)\s+(uma?\s+|essa?\s+|a\s+)?(p[aá]gina|layout)/i,
@@ -59,11 +59,19 @@ const MODAL_PATTERNS: Record<ModalType, RegExp[]> = {
     /layout\s+(de\s+|para\s+)?(p[aá]gina|site)/i,
     /protótipo\s+(de\s+)?(p[aá]gina|site)/i,
     /mockup\s+(de\s+)?(p[aá]gina|site)/i,
+    // ✨ NOVOS: Casos de uso reais
+    /mont(e|ar)\s+(uma?\s+)?(p[aá]gina|site|landing)/i,
+    /faz\s+(um\s+)?(site|p[aá]gina)/i,
+    /web\s*(page|site)/i,
+    /landing\s*page/i,
+    /p[aá]gina\s+(de\s+)?(vendas|captura|obrigado)/i,
+    /formul[aá]rio\s+(de\s+)?(contato|cadastro)/i,
+    /home\s*page/i,
   ],
 
   "image-gallery": [
     // Gerar imagens
-    /ger(e|ar)\s+(uma?\s+)?(imagem|foto|ilustra[çc][aã]o|arte)/i,
+    /ger(e|ar)\s+(una?\s+)?(imagem|foto|ilustra[çc][aã]o|arte)/i,
     /cri(e|ar)\s+(uma?\s+)?(imagem|foto|ilustra[çc][aã]o|arte)/i,
     /fa(ça|z|zer)\s+(uma?\s+)?(imagem|foto|ilustra[çc][aã]o)/i,
     /desenh(e|ar)\s+(uma?\s+)?(imagem|ilustra[çc][aã]o)/i,
@@ -85,6 +93,13 @@ const MODAL_PATTERNS: Record<ModalType, RegExp[]> = {
     /dall[\s-]?e/i,
     /stable\s*diffusion/i,
     /midjourney/i,
+    // ✨ NOVOS: Casos de uso reais
+    /faz\s+(um\s+)?(banner|logo|thumbnail)/i,
+    /cri(e|ar)\s+(um\s+)?(banner|logo|thumbnail|avatar)/i,
+    /imagem\s+(para|de)\s+(produto|post|instagram|facebook)/i,
+    /arte\s+(para|de)\s+(capa|perfil|post)/i,
+    /render/i,
+    /concept\s*art/i,
   ],
 
   "video-gallery": [
@@ -109,6 +124,13 @@ const MODAL_PATTERNS: Record<ModalType, RegExp[]> = {
     /runway/i,
     /pika\s*labs?/i,
     /sora/i,
+    // ✨ NOVOS: Casos de uso reais
+    /faz\s+(um\s+)?(v[ií]deo|reel|short)/i,
+    /anima(r|[çc][aã]o)\s+(de\s+)?(texto|logo)/i,
+    /v[ií]deo\s+(para|de)\s+(tiktok|instagram|youtube)/i,
+    /reel/i,
+    /short/i,
+    /motion\s*graphics/i,
   ],
 
   "code-editor": [
@@ -156,6 +178,19 @@ const CONFIDENCE_BOOSTERS: Record<ModalType, string[]> = {
     "hero",
     "cta",
     "formulário",
+    // ✨ NOVOS
+    "botão",
+    "menu",
+    "navbar",
+    "sidebar",
+    "card",
+    "grid",
+    "flexbox",
+    "container",
+    "section",
+    "modal",
+    "popup",
+    "dropdown",
   ],
   "image-gallery": [
     "prompt",
@@ -170,6 +205,19 @@ const CONFIDENCE_BOOSTERS: Record<ModalType, string[]> = {
     "thumbnail",
     "4k",
     "alta resolução",
+    // ✨ NOVOS
+    "hd",
+    "wallpaper",
+    "background",
+    "textura",
+    "pattern",
+    "ícone",
+    "avatar",
+    "capa",
+    "post",
+    "story",
+    "feed",
+    "pinterest",
   ],
   "video-gallery": [
     "fps",
@@ -182,6 +230,17 @@ const CONFIDENCE_BOOSTERS: Record<ModalType, string[]> = {
     "efeito",
     "trilha",
     "áudio",
+    // ✨ NOVOS
+    "montagem",
+    "edição",
+    "corte",
+    "zoom",
+    "fade",
+    "legendas",
+    "música",
+    "som",
+    "voz",
+    "narração",
   ],
   "code-editor": [
     "função",
