@@ -16,7 +16,6 @@ groq==0.4.2
 
 # Browser Automation
 playwright==1.48.0
-browser-use==0.1.7
 
 # Web Scraping (para browser-use funcionar)
 beautifulsoup4==4.12.3
