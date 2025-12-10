@@ -1,0 +1,38 @@
+[
+  {
+    "id": "5f47519b-0823-45aa-ab00-bc9bcaaa1c94",
+    "name": "syncads-python-microservice",
+    "createdAt": "2025-11-14T17:25:48.167Z",
+    "updatedAt": "2025-12-08T23:41:57.283Z",
+    "deletedAt": null,
+    "environments": {
+      "edges": [
+        {
+          "node": {
+            "id": "44abe3b5-91e1-4189-b24d-81e2931e5f28",
+            "name": "production"
+          }
+        }
+      ]
+    },
+    "services": {
+      "edges": [
+        {
+          "node": {
+            "id": "6b9a747d-8375-4793-9fba-1b5636e0efee",
+            "name": "SyncAds",
+            "serviceInstances": {
+              "edges": [
+                {
+                  "node": {
+                    "environmentId": "44abe3b5-91e1-4189-b24d-81e2931e5f28"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+]

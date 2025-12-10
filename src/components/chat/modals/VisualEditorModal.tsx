@@ -36,6 +36,8 @@ import Textarea from "react-textarea-autosize";
 import { toast } from "sonner";
 import { orchestrator } from "@/lib/orchestrator";
 import { quickDeploy, type DeployStep } from "@/lib/workflows/DeployWorkflow";
+import { useChatStream } from "@/hooks/useChatStream";
+import { useModalError } from "@/hooks/useModalError";
 
 interface VisualEditorModalProps {
   onSendMessage?: (message: string) => void;
@@ -84,6 +86,10 @@ export function VisualEditorModal({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Hooks customizados
+  const { sendMessage, isStreaming, streamedContent } = useChatStream();
+  const { handleError } = useModalError();
+
   // Auto scroll messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,14 +109,15 @@ export function VisualEditorModal({
     }
   }, [input, onDetectContext]);
 
-  // Handle send message
+  // Handle send message com IA real
   const handleSend = async () => {
     if (!input.trim() || isGenerating) return;
 
+    const prompt = input;
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: prompt,
       timestamp: Date.now(),
     };
 
@@ -120,38 +127,137 @@ export function VisualEditorModal({
 
     try {
       // Callback
-      onSendMessage?.(input);
+      onSendMessage?.(prompt);
 
-      // Simulate AI response (substituir com chamada real)
-      await simulateAIGeneration(input);
+      // System prompt especializado para geração de código
+      const systemPrompt = `Você é um expert em criar landing pages e websites modernos.
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Página criada com sucesso! Veja o preview ao lado.",
-        timestamp: Date.now(),
-      };
+REGRAS:
+1. Gere HTML/CSS/JS completo e responsivo
+2. Use Tailwind CSS via CDN  
+3. Design moderno e profissional
+4. Mobile-first e acessível
+5. RETORNE APENAS O CÓDIGO, sem explicações
+6. Código completo com <!DOCTYPE html>
 
-      setMessages((prev) => [...prev, assistantMessage]);
+EXEMPLO DE PROMPT:
+"landing page para vender curso"
+
+EXEMPLO DE RESPOSTA:
+<!DOCTYPE html>
+<html>...(código completo)...</html>
+
+AGORA GERE O CÓDIGO PARA:`;
+
+      // Chamar IA com streaming
+      const fullResponse = await sendMessage(prompt, {
+        context: 'visual-editor',
+        systemPrompt,
+        model: 'claude', // Claude é melhor para código
+      });
+
+      // Extrair código HTML da resposta
+      const extractedCode = extractHTMLCode(fullResponse);
+
+      if (extractedCode) {
+        setGeneratedCode(extractedCode);
+
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "✅ Página criada com sucesso! Veja o preview ao lado.",
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        throw new Error('Não foi possível extrair o código HTML');
+      }
     } catch (error) {
       console.error("Error generating page:", error);
+      handleError(error, {
+        context: 'Visual Editor',
+        userMessage: 'Erro ao gerar página. Tente novamente.',
+      });
+
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "❌ Erro ao gerar página. Tente novamente ou reformule a descrição.",
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsGenerating(false);
       textareaRef.current?.focus();
     }
   };
 
-  // Simulate AI generation
-  const simulateAIGeneration = async (prompt: string) => {
-    // Simular delay de geração
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+  /**
+   * Extrai código HTML de uma resposta da IA
+   * A IA pode retornar código com markdown code blocks ou texto puro
+   */
+  const extractHTMLCode = (response: string): string => {
+    // Remover markdown code blocks se existirem
+    const codeBlockRegex = /```(?:html)?\n?(.*?)```/s;
+    const match = response.match(codeBlockRegex);
 
-    // Gerar código HTML/CSS básico baseado no prompt
-    const code = generateBasicHTML(prompt);
-    setGeneratedCode(code);
+    if (match) {
+      return match[1].trim();
+    }
+
+    // Se não tem code block, procurar por <!DOCTYPE html>
+    const htmlMatch = response.match(/<!DOCTYPE html>[\s\S]*/i);
+    if (htmlMatch) {
+      return htmlMatch[0].trim();
+    }
+
+    // Se não encontrou, tentar procurar <html>
+    const htmlTagMatch = response.match(/<html[\s\S]*/i);
+    if (htmlTagMatch) {
+      return htmlTagMatch[0].trim();
+    }
+
+    // Último recurso: retornar resposta completa se parecer HTML
+    if (response.includes('<html') || response.includes('<!DOCTYresponse')) {
+      return response.trim();
+    }
+
+    // Se não conseguiu extrair, retornar template básico com a resposta
+    return generateFallbackHTML(response);
   };
 
-  // Generate basic HTML template
+  /**
+   * Gera HTML fallback caso a IA não retorne código válido
+   */
+  const generateFallbackHTML = (content: string) => {
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página Gerada - SyncAds</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
+  <div class="container mx-auto px-4 py-16">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6 mb-8">
+        <h2 class="text-yellow-400 font-semibold mb-2">⚠️ Código não detectado</h2>
+        <p class="text-gray-300 text-sm">A IA retornou uma resposta textual. Por favor, reformule sua solicitação pedindo explicitamente para gerar código HTML.</p>
+      </div>
+      <div class="bg-white/5 backdrop-blur-lg rounded-xl p-8 border border-white/10">
+        <h3 class="text-white font-semibold mb-4">Resposta da IA:</h3>
+        <pre class="text-gray-300 text-sm whitespace-pre-wrap font-mono">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  /**
+   * Gera template HTML básico (backup/exemplo)
+   */
   const generateBasicHTML = (prompt: string) => {
     const isLanding = /landing|página inicial/i.test(prompt);
     const hasForm = /formulário|contato/i.test(prompt);
@@ -185,9 +291,8 @@ export function VisualEditorModal({
     </div>
   </div>
 
-  ${
-    hasForm
-      ? `
+  ${hasForm
+        ? `
   <!-- Contact Form -->
   <div class="container mx-auto px-4 py-16">
     <div class="max-w-2xl mx-auto bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
@@ -212,8 +317,8 @@ export function VisualEditorModal({
     </div>
   </div>
   `
-      : ""
-  }
+        : ""
+      }
 
   <!-- Features Section -->
   <div class="container mx-auto px-4 py-16">
@@ -453,7 +558,7 @@ export function VisualEditorModal({
               onKeyDown={handleKeyDown}
               placeholder="Descreva a página..."
               maxRows={4}
-              disabled={isGenerating}
+              disabled={isGenerating || isStreaming}
               className={cn(
                 "w-full px-3 py-2 pr-10",
                 "bg-white/5 border border-white/10 rounded-lg",
@@ -464,10 +569,10 @@ export function VisualEditorModal({
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isGenerating}
+              disabled={!input.trim() || isGenerating || isStreaming}
               className={cn(
                 "absolute right-2 bottom-2 w-7 h-7 rounded-md flex items-center justify-center",
-                input.trim() && !isGenerating
+                input.trim() && !isGenerating && !isStreaming
                   ? "bg-blue-600 text-white hover:bg-blue-700"
                   : "bg-white/5 text-gray-500",
               )}
