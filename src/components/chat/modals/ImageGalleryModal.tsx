@@ -36,8 +36,9 @@ import {
   IconRefresh,
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
-import { generateImage, type ImageGenerationOptions } from '@/lib/ai/advancedFeatures';
 import { useToast } from '@/components/ui/use-toast';
+import { createClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/store/authStore';
 
 interface ImageGalleryModalProps {
   onSendMessage?: (message: string) => void;
@@ -94,25 +95,45 @@ export function ImageGalleryModal({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const supabase = createClient();
+  const user = useAuthStore((state) => state.user);
 
-  // Load saved images from localStorage
+  // Load images from Supabase on mount
   useEffect(() => {
-    const savedImages = localStorage.getItem('syncads_generated_images');
-    if (savedImages) {
-      try {
-        setImages(JSON.parse(savedImages));
-      } catch (error) {
-        console.error('Error loading saved images:', error);
-      }
-    }
+    loadImagesFromSupabase();
   }, []);
 
-  // Save images to localStorage
-  useEffect(() => {
-    if (images.length > 0) {
-      localStorage.setItem('syncads_generated_images', JSON.stringify(images));
+  // Function to load images from Supabase
+  const loadImagesFromSupabase = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('generated_images')
+        .select('id, url, prompt, timestamp:created_at, size, model, liked')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedImages: GeneratedImage[] = data.map((img) => ({
+          id: img.id,
+          url: img.url,
+          prompt: img.prompt,
+          timestamp: new Date(img.timestamp).getTime(),
+          size: img.size,
+          model: img.model,
+          liked: img.liked || false,
+        }));
+        setImages(formattedImages);
+      }
+    } catch (error) {
+      console.error('Error loading images from Supabase:', error);
     }
-  }, [images]);
+  };
 
   // Detect context on input change
   useEffect(() => {
@@ -124,9 +145,9 @@ export function ImageGalleryModal({
     }
   }, [input, onDetectContext]);
 
-  // Handle generate image
+  // Handle generate image with Edge Function
   const handleGenerate = async () => {
-    if (!input.trim() || isGenerating || !userId) return;
+    if (!input.trim() || isGenerating || !user) return;
 
     const prompt = input.trim();
     setInput('');
@@ -140,33 +161,70 @@ export function ImageGalleryModal({
         description: 'Isso pode levar alguns segundos',
       });
 
-      const result = await generateImage({
-        prompt,
-        size: selectedSize as any,
-        style: selectedStyle as any,
-        quality: 'hd',
-        model: 'dall-e-3',
-        userId,
+      // Get auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      // Call Edge Function
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          size: selectedSize,
+          quality: 'standard',
+          provider: 'auto', // Usa Pollinations.ai grátis primeiro
+        }),
       });
 
-      if (result.success && result.imageUrl) {
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao gerar imagem');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.image?.url) {
+        // Salvar no Supabase
+        const { data: savedImage, error: insertError } = await supabase
+          .from('generated_images')
+          .insert({
+            user_id: user.id,
+            url: result.image.url,
+            prompt,
+            model: result.image.provider || 'pollinations',
+            style: selectedStyle,
+            size: selectedSize,
+            quality: 'standard',
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        // Adicionar à lista local
         const newImage: GeneratedImage = {
-          id: Date.now().toString(),
-          url: result.imageUrl,
+          id: savedImage.id,
+          url: result.image.url,
           prompt,
           timestamp: Date.now(),
           size: selectedSize,
-          model: 'dall-e-3',
+          model: result.image.provider || 'pollinations',
         };
 
         setImages((prev) => [newImage, ...prev]);
 
         toast({
           title: 'Imagem gerada!',
-          description: 'Sua imagem foi criada com sucesso',
+          description: result.image.free
+            ? '🎉 Gerada gratuitamente com Pollinations.ai!'
+            : 'Sua imagem foi criada com sucesso',
         });
       } else {
-        throw new Error(result.error || 'Erro ao gerar imagem');
+        throw new Error('Resposta inválida do servidor');
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
@@ -195,13 +253,33 @@ export function ImageGalleryModal({
     textareaRef.current?.focus();
   };
 
-  // Toggle like
-  const toggleLike = (imageId: string) => {
+  // Toggle like with Supabase sync
+  const toggleLike = async (imageId: string) => {
+    // Update locally first (optimistic update)
     setImages((prev) =>
       prev.map((img) =>
         img.id === imageId ? { ...img, liked: !img.liked } : img
       )
     );
+
+    // Sync with Supabase
+    try {
+      const image = images.find(img => img.id === imageId);
+      if (!image) return;
+
+      await supabase
+        .from('generated_images')
+        .update({ liked: !image.liked })
+        .eq('id', imageId);
+    } catch (error) {
+      console.error('Error updating like status:', error);
+      // Revert on error
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === imageId ? { ...img, liked: !img.liked } : img
+        )
+      );
+    }
   };
 
   // Download image
@@ -241,8 +319,9 @@ export function ImageGalleryModal({
     });
   };
 
-  // Delete image
-  const handleDelete = (imageId: string) => {
+  // Delete image (soft delete in Supabase)
+  const handleDelete = async (imageId: string) => {
+    // Remove locally first
     setImages((prev) => prev.filter((img) => img.id !== imageId));
     setSelectedImage(null);
 
@@ -250,6 +329,16 @@ export function ImageGalleryModal({
       title: 'Imagem removida',
       description: 'A imagem foi excluída da galeria',
     });
+
+    // Soft delete in Supabase
+    try {
+      await supabase
+        .from('generated_images')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', imageId);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+    }
   };
 
   // Filter images
