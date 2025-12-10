@@ -20,6 +20,8 @@ import Textarea from 'react-textarea-autosize';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { ChatMessage } from '@/components/chat/ChatMessage';
+import { useChatStream } from '@/hooks/useChatStream';
+import { useModalError } from '@/hooks/useModalError';
 
 interface ChatModalNormalProps {
   onSendMessage?: (message: string) => void;
@@ -42,7 +44,6 @@ export function ChatModalNormal({
   isExpanded,
 }: ChatModalNormalProps) {
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,10 +51,13 @@ export function ChatModalNormal({
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore((state) => state.activeConversationId);
   const isAssistantTyping = useChatStore((state) => state.isAssistantTyping);
-  const addMessage = useChatStore((state) => state.addMessage);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const messages = activeConversation?.messages || [];
+
+  // Usar hooks customizados
+  const { sendMessage, isStreaming, streamedContent } = useChatStream();
+  const { handleError } = useModalError();
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -62,7 +66,7 @@ export function ChatModalNormal({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isAssistantTyping]);
+  }, [messages, isAssistantTyping, streamedContent]);
 
   // Detect context on input change
   useEffect(() => {
@@ -75,30 +79,28 @@ export function ChatModalNormal({
     }
   }, [input, onDetectContext]);
 
-  // Handle send
+  // Handle send com streaming
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isStreaming) return;
 
     const message = input.trim();
     setInput('');
-    setIsTyping(true);
 
     try {
-      // Callback para o manager
+      // Callback para o manager (detecção de contexto)
       onSendMessage?.(message);
 
-      // Se tiver conversação ativa, adicionar mensagem
-      if (activeConversationId && user) {
-        await addMessage(user.id, activeConversationId, {
-          role: 'user',
-          content: message,
-        });
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsTyping(false);
+      // Enviar mensagem com streaming
+      await sendMessage(message, {
+        conversationId: activeConversationId,
+        context: 'chat',
+      });
+
+      // Focar no textarea após envio
       textareaRef.current?.focus();
+    } catch (error) {
+      // Error já tratado pelo hook useChatStream
+      console.error('Error in handleSend:', error);
     }
   };
 
@@ -258,7 +260,7 @@ export function ChatModalNormal({
               onKeyDown={handleKeyDown}
               placeholder="Digite sua mensagem... (Shift+Enter para nova linha)"
               maxRows={6}
-              disabled={isTyping}
+              disabled={isStreaming}
               className={cn(
                 'w-full px-4 py-3 pr-12',
                 'bg-white/5 border border-white/10',
@@ -273,20 +275,20 @@ export function ChatModalNormal({
             {/* Send button */}
             <motion.button
               onClick={handleSend}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isStreaming}
               className={cn(
                 'absolute right-2 bottom-2',
                 'w-9 h-9 rounded-lg',
                 'flex items-center justify-center',
                 'transition-all duration-200',
-                input.trim() && !isTyping
+                input.trim() && !isStreaming
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:bg-blue-700'
                   : 'bg-white/5 text-gray-500 cursor-not-allowed'
               )}
-              whileHover={input.trim() && !isTyping ? { scale: 1.05 } : {}}
-              whileTap={input.trim() && !isTyping ? { scale: 0.95 } : {}}
+              whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
+              whileTap={input.trim() && !isStreaming ? { scale: 0.95 } : {}}
             >
-              {isTyping ? (
+              {isStreaming ? (
                 <IconLoader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <IconSend className="w-5 h-5" />
