@@ -32,9 +32,9 @@ import {
   IconMinimize,
 } from '@tabler/icons-react';
 
-// Import dos modais (serão criados depois)
+// Import dos modais
 import { ChatModalNormal } from './ChatModalNormal';
-import { VisualEditorModal } from './VisualEditorModal';
+import VisualEditorPro from '../visual-editor/VisualEditorPro';
 import { ImageGalleryModal } from './ImageGalleryModal';
 import { VideoGalleryModal } from './VideoGalleryModal';
 
@@ -169,7 +169,7 @@ export function ChatModalManager({
 
     switch (currentModal) {
       case 'visual-editor':
-        return <VisualEditorModal {...modalProps} />;
+        return <VisualEditorPro {...modalProps} />;
 
       case 'image-gallery':
         return <ImageGalleryModal {...modalProps} />;
