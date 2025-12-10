@@ -21,6 +21,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { useChatStream } from '@/hooks/useChatStream';
+import { useModalShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useModalError } from '@/hooks/useModalError';
 
 interface ChatModalNormalProps {
@@ -58,6 +59,15 @@ export function ChatModalNormal({
   // Usar hooks customizados
   const { sendMessage, isStreaming, streamedContent } = useChatStream();
   const { handleError } = useModalError();
+
+  // Keyboard shortcuts
+  const shortcuts = useModalShortcuts({
+    onSend: () => {
+      if (input.trim() && !isStreaming) {
+        handleSend();
+      }
+    },
+  });
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -119,9 +129,14 @@ export function ChatModalNormal({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" role="region" aria-label="Chat com IA">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 space-y-6">
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 space-y-6"
+        role="log"
+        aria-live="polite"
+        aria-label="Histórico de mensagens"
+      >
         {messages.length === 0 ? (
           // Empty state
           <motion.div
@@ -258,8 +273,10 @@ export function ChatModalNormal({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Digite sua mensagem... (Shift+Enter para nova linha)"
+              placeholder="Digite sua mensagem... (Ctrl+Enter para enviar)"
               maxRows={6}
+              aria-label="Campo de mensagem"
+              aria-describedby="chat-input-help"
               disabled={isStreaming}
               className={cn(
                 'w-full px-4 py-3 pr-12',
@@ -297,14 +314,19 @@ export function ChatModalNormal({
           </div>
 
           {/* Character count */}
-          <div className="flex items-center justify-between mt-2 px-1">
+          <div className="flex items-center justify-between mt-2 px-1" id="chat-input-help">
             <p className="text-xs text-gray-500">
-              Shift + Enter para nova linha
+              <kbd className="px-1.5 py-0.5 text-xs bg-white/10 rounded">Ctrl</kbd> +{' '}
+              <kbd className="px-1.5 py-0.5 text-xs bg-white/10 rounded">Enter</kbd> para enviar
             </p>
-            <p className={cn(
-              'text-xs',
-              input.length > 1800 ? 'text-orange-500' : 'text-gray-500'
-            )}>
+            <p
+              className={cn(
+                'text-xs',
+                input.length > 1800 ? 'text-orange-500' : 'text-gray-500'
+              )}
+              role="status"
+              aria-live="polite"
+            >
               {input.length} / 2000
             </p>
           </div>
