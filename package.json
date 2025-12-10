@@ -78,6 +78,7 @@
     "lucide-react": "^0.417.0",
     "mini-svg-data-uri": "^1.4.4",
     "monaco-editor": "^0.55.1",
+    "nanoid": "^5.1.6",
     "payment": "^2.4.7",
     "payment-icons": "^1.2.1",
     "qrcode": "^1.5.4",

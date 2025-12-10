@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { CodeEditor } from './CodeEditor';
 import { ComponentPalette } from './ComponentPalette';
 import { DesignTools } from './DesignTools';
+import { PageManager } from './PageManager';
 
 // Lib
 import { Component } from '@/lib/visual-editor/components';
@@ -46,6 +47,7 @@ import {
 } from '@/lib/visual-editor/ai-tools';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useModalError } from '@/hooks/useModalError';
+import { usePages } from '@/hooks/usePages';
 
 interface VisualEditorProProps {
     onSendMessage?: (message: string) => void;
@@ -64,18 +66,32 @@ export function VisualEditorPro({
     userId,
     isExpanded,
 }: VisualEditorProProps) {
+    // Multi-page management
+    const {
+        pages,
+        currentPage,
+        addPage,
+        deletePage,
+        updatePage,
+        setCurrentPage,
+        setHomePage,
+        duplicatePage,
+        renamePage,
+    } = usePages();
+
     // State
     const [viewMode, setViewMode] = useState<ViewMode>('split');
     const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
     const [activeTab, setActiveTab] = useState<CodeTab>('html');
 
-    // Code states
-    const [htmlCode, setHtmlCode] = useState(getDefaultHTML());
-    const [cssCode, setCssCode] = useState('');
-    const [jsCode, setJsCode] = useState('');
+    // Code states (synced with current page)
+    const [htmlCode, setHtmlCode] = useState(currentPage?.htmlCode || getDefaultHTML());
+    const [cssCode, setCssCode] = useState(currentPage?.cssCode || '');
+    const [jsCode, setJsCode] = useState(currentPage?.jsCode || '');
 
     // UI state
-    const [showComponentPalette, setShowComponentPalette] = useState(true);
+    const [showComponentPalette, setShowComponentPalette] = useState(false);
+    const [showPageManager, setShowPageManager] = useState(true);
     const [showDesignTools, setShowDesignTools] = useState(false);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -87,6 +103,30 @@ export function VisualEditorPro({
     // Hooks
     const { sendMessage, isStreaming } = useChatStream();
     const { handleError } = useModalError();
+
+    // Sync code with current page
+    useEffect(() => {
+        if (currentPage) {
+            setHtmlCode(currentPage.htmlCode);
+            setCssCode(currentPage.cssCode);
+            setJsCode(currentPage.jsCode);
+        }
+    }, [currentPage?.id]);
+
+    // Save code to current page when it changes
+    useEffect(() => {
+        if (currentPage) {
+            const timeoutId = setTimeout(() => {
+                updatePage(currentPage.id, {
+                    htmlCode,
+                    cssCode,
+                    jsCode,
+                });
+            }, 500); // Debounce 500ms
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [htmlCode, cssCode, jsCode, currentPage?.id, updatePage]);
 
     // Combine code for preview
     const fullCode = `${htmlCode}\n<style>\n${cssCode}\n</style>\n<script>\n${jsCode}\n</script>`;
@@ -177,6 +217,22 @@ export function VisualEditorPro({
 
     return (
         <div className="flex h-full bg-gray-950">
+            {/* Left Sidebar - Page Manager */}
+            {showPageManager && (
+                <div className="w-80 border-r border-white/10">
+                    <PageManager
+                        pages={pages}
+                        currentPageId={currentPage?.id || ''}
+                        onPageSelect={setCurrentPage}
+                        onPageAdd={addPage}
+                        onPageDelete={deletePage}
+                        onPageDuplicate={duplicatePage}
+                        onPageRename={renamePage}
+                        onSetHome={setHomePage}
+                    />
+                </div>
+            )}
+
             {/* Left Sidebar - Component Palette */}
             {showComponentPalette && (
                 <div className="w-80 border-r border-white/10">
@@ -269,6 +325,17 @@ export function VisualEditorPro({
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowPageManager(!showPageManager)}
+                            className={cn(
+                                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                showPageManager
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            )}
+                        >
+                            Páginas ({pages.length})
+                        </button>
                         <button
                             onClick={() => setShowComponentPalette(!showComponentPalette)}
                             className={cn(
