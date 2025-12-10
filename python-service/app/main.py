@@ -8,6 +8,7 @@ IA + Supabase + Streaming + AI Tools
 # ==========================================
 # IMPORTS PRINCIPAIS
 # ==========================================
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -63,7 +64,6 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     import os
-    import time
     
     # Ler PORT do environment (Railway injeta isso)
     port = int(os.getenv("PORT", "8000"))
