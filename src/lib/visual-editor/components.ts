@@ -14,13 +14,13 @@
  */
 
 export interface Component {
-    id: string;
-    name: string;
-    category: string;
-    tags: string[];
-    preview: string;
-    description: string;
-    code: () => string;
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+  preview: string;
+  description: string;
+  code: () => string;
 }
 
 // ========================================
@@ -28,14 +28,14 @@ export interface Component {
 // ========================================
 
 export const NAVIGATION_COMPONENTS: Component[] = [
-    {
-        id: 'navbar-modern',
-        name: 'Navbar Moderna',
-        category: 'navigation',
-        tags: ['navbar', 'responsive', 'dropdown'],
-        preview: '/previews/navbar-modern.png',
-        description: 'Navbar responsiva com dropdown e CTA',
-        code: () => `
+  {
+    id: 'navbar-modern',
+    name: 'Navbar Moderna',
+    category: 'navigation',
+    tags: ['navbar', 'responsive', 'dropdown'],
+    preview: '/previews/navbar-modern.png',
+    description: 'Navbar responsiva com dropdown e CTA',
+    code: () => `
 <!-- Navbar Moderna -->
 <nav class="bg-white shadow-lg sticky top-0 z-50">
   <div class="container mx-auto px-4">
@@ -71,16 +71,16 @@ export const NAVIGATION_COMPONENTS: Component[] = [
   </div>
 </nav>
     `.trim()
-    },
+  },
 
-    {
-        id: 'navbar-transparent',
-        name: 'Navbar Transparente',
-        category: 'navigation',
-        tags: ['navbar', 'transparent', 'overlay'],
-        preview: '/previews/navbar-transparent.png',
-        description: 'Navbar transparente para hero sections',
-        code: () => `
+  {
+    id: 'navbar-transparent',
+    name: 'Navbar Transparente',
+    category: 'navigation',
+    tags: ['navbar', 'transparent', 'overlay'],
+    preview: '/previews/navbar-transparent.png',
+    description: 'Navbar transparente para hero sections',
+    code: () => `
 <!-- Navbar Transparente -->
 <nav class="absolute top-0 left-0 right-0 z-50">
   <div class="container mx-auto px-4">
@@ -98,7 +98,7 @@ export const NAVIGATION_COMPONENTS: Component[] = [
   </div>
 </nav>
     `.trim()
-    }
+  }
 ];
 
 // ========================================
@@ -106,14 +106,14 @@ export const NAVIGATION_COMPONENTS: Component[] = [
 // ========================================
 
 export const HERO_COMPONENTS: Component[] = [
-    {
-        id: 'hero-centered',
-        name: 'Hero Centrado',
-        category: 'hero',
-        tags: ['hero', 'centered', 'gradient'],
-        preview: '/previews/hero-centered.png',
-        description: 'Hero section centrado com gradiente vibrante',
-        code: () => `
+  {
+    id: 'hero-centered',
+    name: 'Hero Centrado',
+    category: 'hero',
+    tags: ['hero', 'centered', 'gradient'],
+    preview: '/previews/hero-centered.png',
+    description: 'Hero section centrado com gradiente vibrante',
+    code: () => `
 <!-- Hero Centrado -->
 <section class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 relative overflow-hidden">
   <!-- Background Animation -->
@@ -167,16 +167,16 @@ export const HERO_COMPONENTS: Component[] = [
 .delay-1000 { animation-delay: 1s; }
 </style>
     `.trim()
-    },
+  },
 
-    {
-        id: 'hero-split',
-        name: 'Hero Split Screen',
-        category: 'hero',
-        tags: ['hero', 'split', 'image'],
-        preview: '/previews/hero-split.png',
-        description: 'Hero com conteúdo e imagem lado a lado',
-        code: () => `
+  {
+    id: 'hero-split',
+    name: 'Hero Split Screen',
+    category: 'hero',
+    tags: ['hero', 'split', 'image'],
+    preview: '/previews/hero-split.png',
+    description: 'Hero com conteúdo e imagem lado a lado',
+    code: () => `
 <!-- Hero Split Screen -->
 <section class="min-h-screen grid md:grid-cols-2">
   <!-- Left Content -->
@@ -230,16 +230,16 @@ export const HERO_COMPONENTS: Component[] = [
   </div>
 </section>
     `.trim()
-    },
+  },
 
-    {
-        id: 'hero-video-bg',
-        name: 'Hero com Vídeo Background',
-        category: 'hero',
-        tags: ['hero', 'video', 'overlay'],
-        preview: '/previews/hero-video.png',
-        description: 'Hero com vídeo de fundo e overlay',
-        code: () => `
+  {
+    id: 'hero-video-bg',
+    name: 'Hero com Vídeo Background',
+    category: 'hero',
+    tags: ['hero', 'video', 'overlay'],
+    preview: '/previews/hero-video.png',
+    description: 'Hero com vídeo de fundo e overlay',
+    code: () => `
 <!-- Hero com Vídeo Background -->
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
   <!-- Video Background -->
@@ -265,7 +265,7 @@ export const HERO_COMPONENTS: Component[] = [
   </div>
 </section>
     `.trim()
-    }
+  }
 ];
 
 // ========================================
@@ -273,14 +273,14 @@ export const HERO_COMPONENTS: Component[] = [
 // ========================================
 
 export const FEATURES_COMPONENTS: Component[] = [
-    {
-        id: 'features-grid-3x3',
-        name: 'Features Grid 3x3',
-        category: 'features',
-        tags: ['features', 'grid', 'icons'],
-        preview: '/previews/features-grid.png',
-        description: 'Grid 3x3 de features com ícones',
-        code: () => `
+  {
+    id: 'features-grid-3x3',
+    name: 'Features Grid 3x3',
+    category: 'features',
+    tags: ['features', 'grid', 'icons'],
+    preview: '/previews/features-grid.png',
+    description: 'Grid 3x3 de features com ícones',
+    code: () => `
 <!-- Features Grid 3x3 -->
 <section class="py-20 bg-gray-50">
   <div class="container mx-auto px-4">
@@ -368,26 +368,150 @@ export const FEATURES_COMPONENTS: Component[] = [
   </div>
 </section>
     `.trim()
-    }
+  }
 ];
 
 // Continue com mais componentes...
 // Por brevidade, mostrando estrutura
 
 export const PRICING_COMPONENTS: Component[] = [
-    // Pricing tables, cards, etc
+  {
+    id: 'pricing-3-cards',
+    name: 'Pricing 3 Cards',
+    category: 'pricing',
+    tags: ['pricing', 'cards', '3-column'],
+    preview: '/previews/pricing.png',
+    description: 'Tabela de preços 3 planos',
+    code: () => `
+<section class="py-20 bg-gray-50">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold mb-4">Planos e Preços</h2>
+      <p class="text-xl text-gray-600">Escolha o plano ideal</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h3 class="text-2xl font-bold mb-2">Basic</h3>
+        <div class="mb-8"><span class="text-5xl font-bold">R$ 29</span><span class="text-gray-600">/mês</span></div>
+        <button class="w-full px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold">Começar</button>
+      </div>
+      <div class="bg-gradient-to-br from-blue-600 to-purple-600 p-8 rounded-2xl shadow-2xl scale-105">
+        <h3 class="text-2xl font-bold text-white mb-2">Pro</h3>
+        <div class="mb-8"><span class="text-5xl font-bold text-white">R$ 99</span><span class="text-white/90">/mês</span></div>
+        <button class="w-full px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold">Começar</button>
+      </div>
+      <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h3 class="text-2xl font-bold mb-2">Enterprise</h3>
+        <div class="mb-8"><span class="text-5xl font-bold">Custom</span></div>
+        <button class="w-full px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold">Falar com Vendas</button>
+      </div>
+    </div>
+  </div>
+</section>
+    `.trim()
+  }
 ];
 
 export const FORM_COMPONENTS: Component[] = [
-    // Contact forms, newsletter, etc
+  {
+    id: 'contact-form',
+    name: 'Contact Form',
+    category: 'forms',
+    tags: ['form', 'contact'],
+    preview: '/previews/contact.png',
+    description: 'Formulário de contato profissional',
+    code: () => `
+<section class="py-20">
+  <div class="container mx-auto px-4 max-w-2xl">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold mb-4">Entre em Contato</h2>
+      <p class="text-xl text-gray-600">Responderemos em até 24h</p>
+    </div>
+    <form class="space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <input type="text" placeholder="Nome" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+        <input type="email" placeholder="Email" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      </div>
+      <textarea rows="5" placeholder="Mensagem" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+      <button class="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Enviar</button>
+    </form>
+  </div>
+</section>
+    `.trim()
+  }
 ];
 
 export const CTA_COMPONENTS: Component[] = [
-    // Call to action sections
+  {
+    id: 'cta-gradient',
+    name: 'CTA Gradient',
+    category: 'cta',
+    tags: ['cta', 'call-to-action'],
+    preview: '/previews/cta.png',
+    description: 'Call to action com gradiente',
+    code: () => `
+<section class="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+  <div class="container mx-auto px-4 text-center">
+    <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">Pronto para Começar?</h2>
+    <p class="text-xl text-white/90 mb-10">Junte-se a milhares de empresas de sucesso</p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <button class="px-10 py-5 bg-white text-blue-600 rounded-lg font-bold text-lg hover:scale-105 transition">Começar Grátis</button>
+      <button class="px-10 py-5 bg-white/10 border-2 border-white text-white rounded-lg font-bold text-lg">Agendar Demo</button>
+    </div>
+  </div>
+</section>
+    `.trim()
+  }
 ];
 
 export const FOOTER_COMPONENTS: Component[] = [
-    // Footer variants
+  {
+    id: 'footer-4-column',
+    name: 'Footer 4 Colunas',
+    category: 'footer',
+    tags: ['footer', 'complete'],
+    preview: '/previews/footer.png',
+    description: 'Footer completo 4 colunas',
+    code: () => `
+<footer class="bg-gray-900 text-white pt-16 pb-8">
+  <div class="container mx-auto px-4">
+    <div class="grid md:grid-cols-4 gap-8 mb-12">
+      <div>
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg"></div>
+          <span class="text-xl font-bold">Logo</span>
+        </div>
+        <p class="text-gray-400">Transformando ideias em realidade</p>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Produto</h4>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-400 hover:text-white">Features</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white">Preços</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Empresa</h4>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-400 hover:text-white">Sobre</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Legal</h4>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-400 hover:text-white">Privacidade</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white">Termos</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10 pt-8 text-center">
+      <p class="text-gray-400">© 2024 Todos os direitos reservados</p>
+    </div>
+  </div>
+</footer>
+    `.trim()
+  }
 ];
 
 // ========================================
@@ -395,21 +519,21 @@ export const FOOTER_COMPONENTS: Component[] = [
 // ========================================
 
 export const ALL_COMPONENTS: Component[] = [
-    ...NAVIGATION_COMPONENTS,
-    ...HERO_COMPONENTS,
-    ...FEATURES_COMPONENTS,
-    ...PRICING_COMPONENTS,
-    ...FORM_COMPONENTS,
-    ...CTA_COMPONENTS,
-    ...FOOTER_COMPONENTS,
+  ...NAVIGATION_COMPONENTS,
+  ...HERO_COMPONENTS,
+  ...FEATURES_COMPONENTS,
+  ...PRICING_COMPONENTS,
+  ...FORM_COMPONENTS,
+  ...CTA_COMPONENTS,
+  ...FOOTER_COMPONENTS,
 ];
 
 export const COMPONENTS_BY_CATEGORY = {
-    navigation: NAVIGATION_COMPONENTS,
-    hero: HERO_COMPONENTS,
-    features: FEATURES_COMPONENTS,
-    pricing: PRICING_COMPONENTS,
-    forms: FORM_COMPONENTS,
-    cta: CTA_COMPONENTS,
-    footer: FOOTER_COMPONENTS,
+  navigation: NAVIGATION_COMPONENTS,
+  hero: HERO_COMPONENTS,
+  features: FEATURES_COMPONENTS,
+  pricing: PRICING_COMPONENTS,
+  forms: FORM_COMPONENTS,
+  cta: CTA_COMPONENTS,
+  footer: FOOTER_COMPONENTS,
 };
