@@ -1,12 +1,22 @@
 /**
- * DesignTools - Ferramentas de Design Visual
- * Sidebar com controles de cores, tipografia e spacing
+ * DesignTools Component - Sidebar with Design Utilities
+ * 
+ * Ferramentas de design visuais:
+ * - Colors: Color picker e paletas
+ * - Typography: Escalas de texto
+ * - Spacing: Sistema de espaçamento
+ * - Gradients: Gradient builder
+ * - Shadows: Shadow generator
+ * - Animations: Animation timeline
  */
 
 import React, { useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { GradientBuilder } from './GradientBuilder';
+import { ShadowGenerator } from './ShadowGenerator';
+import { AnimationTimeline } from './AnimationTimeline';
 import {
     IconPalette,
     IconTypography,
@@ -15,23 +25,26 @@ import {
     IconCheck,
 } from '@tabler/icons-react';
 
-interface DesignToolsProps {
-    onColorSelect?: (color: string) => void;
-}
+type DesignTab = 'colors' | 'typography' | 'spacing' | 'gradients' | 'shadows' | 'animations';
 
-export function DesignTools({ onColorSelect }: DesignToolsProps) {
-    const [activeTab, setActiveTab] = useState<'colors' | 'typography' | 'spacing'>('colors');
+export function DesignTools() {
+    const [activeTab, setActiveTab] = useState<DesignTab>('colors');
     const [selectedColor, setSelectedColor] = useState('#3b82f6');
     const [copiedColor, setCopiedColor] = useState<string | null>(null);
 
-    // Generate color palette
+    // Color palette from selected color
     const generatePalette = (baseColor: string) => {
-        // Simplified palette generation
-        const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
-        return shades.map(shade => ({
-            shade,
-            color: baseColor, // Simplified - real implementation would calculate shades
-        }));
+        // Simple palette generation (can be enhanced)
+        // Placeholder for lighten/darken functions
+        const lighten = (color: string, amount: number) => color; // Implement actual lighten logic
+        const darken = (color: string, amount: number) => color; // Implement actual darken logic
+        return [
+            baseColor,
+            lighten(baseColor, 0.2),
+            darken(baseColor, 0.2),
+            lighten(baseColor, 0.4),
+            darken(baseColor, 0.4),
+        ];
     };
 
     const handleCopyColor = (color: string) => {
@@ -244,7 +257,17 @@ export function DesignTools({ onColorSelect }: DesignToolsProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Gradient Builder */}
+                {activeTab === 'gradients' && <GradientBuilder />}
+
+                {/* Shadow Generator */}
+                {activeTab === 'shadows' && <ShadowGenerator />}
+
+                {/* Animation Timeline */}
+                {activeTab === 'animations' && <AnimationTimeline />}
             </div>
         </div>
     );
 }
+```
