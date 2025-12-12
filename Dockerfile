@@ -49,7 +49,8 @@ WORKDIR /app
 COPY python-service/requirements.txt .
 
 # Instalar dependências Python
-RUN echo "=== INSTALANDO DEPENDENCIAS ===" && \
+ARG CACHEBUST=1
+RUN echo "=== INSTALANDO DEPENDENCIAS (CACHEBUST: ${CACHEBUST}) ===" && \
     pip install --no-cache-dir -r requirements.txt && \
     echo "=== INSTALACAO CONCLUIDA ==="
 
