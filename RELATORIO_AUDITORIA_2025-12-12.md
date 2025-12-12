@@ -345,18 +345,26 @@ chrome.runtime.sendMessage({
 
 ### 7️⃣ Status da Correção de Dependências
 
-> **SOLUÇÃO DEFINITIVA APLICADA**: O conflito de versões entre `pydantic` e `browser-use` foi resolvido.
+> **ESTRATÉGIA FINAL ADOTADA**: Substituição completa do `browser-use` instável.
 
-Correções no `requirements.txt`:
-1. `fastapi` atualizado para `0.110.0`
-2. `pydantic` atualizado para `2.9.2`
-3. `browser-use` mantido em `0.1.6`
+Devido a problemas persistentes de compatibilidade e instabilidade da biblioteca `browser-use`, optamos por uma solução mais robusta para garantir o lançamento seguro.
 
-Isso elimina o erro `ResolutionImpossible` e garante que o build automático do Railway funcione sem intervenção manual.
+**Mudanças Implementadas:**
+1.  **Removido**: `browser-use` (Instável)
+2.  **Adicionado**: Stack `LangChain` Moderno (v0.2.x)
+    - `langchain==0.2.11`
+    - `langchain-openai==0.1.17`
+    - `langchain-community==0.2.10`
+3.  **Novo Agente**: Implementado `services/langchain_browser.py` isolado para evitar importações circulares e controlar o navegador via Playwright Toolkit.
+
+**Benefícios:**
+- ✅ Build estável (dependências alinhadas)
+- ✅ Agente Playwright nativo oficial da LangChain
+- ✅ Arquitetura limpa (Service Layer isolada)
 
 ---
 
-## 8️⃣ Métricas de Sucesso (Atualizadas)
+## 8️⃣ Métricas de Sucesso (Finais)
 
 ### Critérios de Aprovação
 
