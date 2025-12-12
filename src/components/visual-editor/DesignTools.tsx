@@ -20,7 +20,7 @@ import { AnimationTimeline } from './AnimationTimeline';
 import {
     IconPalette,
     IconTypography,
-    IconSpacing,
+    IconRuler,
     IconCopy,
     IconCheck,
 } from '@tabler/icons-react';
@@ -95,7 +95,7 @@ export function DesignTools() {
                                 : 'text-gray-400 hover:text-white'
                         )}
                     >
-                        <IconSpacing className="w-4 h-4" />
+                        <IconRuler className="w-4 h-4" />
                         Espaço
                     </button>
                 </div>
