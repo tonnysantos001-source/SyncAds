@@ -17,7 +17,7 @@ groq==0.4.2
 # Browser Automation
 playwright==1.48.0
 browser-use==0.1.6  # ✅ CORREÇÃO: Versão específica que funciona
-selenium==4.16.0
+selenium==4.27.0    # ✅ CORREÇÃO: Versão compatível com browser-use
 
 # Video & Audio Processing (✅ NOVO: Para modais de Video/Audio)
 moviepy==1.0.3
