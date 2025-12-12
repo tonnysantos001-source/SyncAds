@@ -369,14 +369,6 @@ export class StorageService {
       };
     }
   }
-</text>
-
-<old_text line=587>
-    try {
-      await this.updateFileMetadata(bucket || this.config.defaultBucket, path, {
-        is_deleted: false,
-        deleted_at: null,
-      });
 
   // ============================================================================
   // FILE MANAGEMENT
