@@ -34,7 +34,7 @@ import {
 
 // Import dos modais
 import { ChatModalNormal } from './ChatModalNormal';
-import VisualEditorPro from '../visual-editor/VisualEditorPro';
+import VisualEditorPro from '../../visual-editor/VisualEditorPro';
 import { ImageGalleryModal } from './ImageGalleryModal';
 import { VideoGalleryModal } from './VideoGalleryModal';
 
