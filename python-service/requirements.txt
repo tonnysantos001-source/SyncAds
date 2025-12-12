@@ -15,9 +15,12 @@ anthropic==0.75.0   # Versão válida mais recente (compatível com browser-use 
 groq==0.4.2
 
 # Browser Automation
+# Browser Automation & AI Agents
 playwright==1.48.0
-browser-use==0.1.6  # ✅ CORREÇÃO: Versão específica que funciona
-selenium==4.27.0    # ✅ CORREÇÃO: Versão compatível com browser-use
+selenium==4.27.0
+langchain==0.1.0
+langchain-openai==0.0.5
+langchain-community==0.0.13
 
 # Video & Audio Processing (✅ NOVO: Para modais de Video/Audio)
 moviepy==1.0.3

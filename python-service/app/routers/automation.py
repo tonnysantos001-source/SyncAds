@@ -28,14 +28,15 @@ except ImportError:
     PLAYWRIGHT_AVAILABLE = False
     logger.warning("Playwright not installed. Install with: pip install playwright")
 
-# Browser-Use imports
+# LangChain Browser Agent
 try:
-    from browser_use import BrowserUse
-
-    BROWSER_USE_AVAILABLE = True
-except ImportError:
+    from app.omnibrain.modules.browser_agent import BrowserAgent
+    BROWSER_AGENT_AVAILABLE = True
+except ImportError as e:
+    BROWSER_AGENT_AVAILABLE = False
+    logger.warning(f"BrowserAgent not available: {e}")
+    # Definir para evitar erro de referência se usado em outro lugar
     BROWSER_USE_AVAILABLE = False
-    logger.warning("Browser-Use not installed. Install with: pip install browser-use")
 
 router = APIRouter(prefix="/browser-automation", tags=["Browser Automation"])
 
@@ -275,23 +276,20 @@ async def execute_automation(request: AutomationRequest):
                 if action.type == "screenshot":
                     screenshot = result.get("screenshot")
 
-        # Or execute natural language action with Browser-Use AI
-        elif request.use_ai and BROWSER_USE_AVAILABLE:
-            logger.info(f"Executing AI action: {request.action}")
-
-            # Navigate to URL if provided
-            if request.url:
-                await page.goto(request.url, wait_until="networkidle")
-
-            # TODO: Integrate Browser-Use AI here
-            # For now, return a placeholder
-            results.append(
-                {
-                    "status": "AI automation not fully integrated yet",
-                    "action": request.action,
-                    "url": request.url,
-                }
-            )
+        # Execute natural language action with LangChain Browser Agent
+        elif request.use_ai and BROWSER_AGENT_AVAILABLE:
+            logger.info(f"Executing AI action with LangChain: {request.action}")
+            
+            # Initialize agent
+            agent = BrowserAgent()
+            
+            # Execute task
+            ai_result = await agent.execute_task(request.action)
+            
+            results.append(ai_result)
+            
+            if not ai_result["success"]:
+                 raise Exception(ai_result.get("error", "Unknown AI error"))
 
         # Fallback: Simple navigation
         elif request.url:
