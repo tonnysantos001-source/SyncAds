@@ -75,9 +75,6 @@ const elements = {
   historyList: document.getElementById("historyList"),
   newChatBtn: document.getElementById("newChatFromHistory"),
   searchChats: document.getElementById("searchChats"),
-
-  // Settings
-  settingsBtn: document.getElementById("settingsBtn"),
 };
 
 // ============================================
@@ -315,13 +312,14 @@ async function createNewConversation() {
 
     console.log("✅ [CONVERSATIONS] Created:", conversation.id);
 
+    // Update conversations list manually to avoid reload
+    state.conversations.unshift(conversation);
+    renderConversationsList();
+
     // Clear UI and show new chat
-    renderMessages();
+    renderMessages(); // Clears DOM since state.messages is []
     switchToChat();
     addMessage("assistant", "👋 Nova conversa iniciada! Como posso ajudar?");
-
-    // Refresh conversations list
-    await loadConversations();
   } catch (error) {
     console.error("❌ [CONVERSATIONS] Error creating:", error);
   }
@@ -908,12 +906,7 @@ function setupEventListeners() {
     });
   });
 
-  // Settings button
-  if (elements.settingsBtn) {
-    elements.settingsBtn.addEventListener("click", () => {
-      addMessage("assistant", "⚙️ Configurações em desenvolvimento!");
-    });
-  }
+
 
   // Search chats
   elements.searchChats.addEventListener("input", (e) => {
