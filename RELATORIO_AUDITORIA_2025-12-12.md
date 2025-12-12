@@ -343,23 +343,16 @@ chrome.runtime.sendMessage({
 // 5. Se não funcionar: Verificar logs background.js
 ```
 
-### 7️⃣ Status da Execução Automática
+### 7️⃣ Status da Correção de Dependências
 
-> **ATENÇÃO**: A instalação automática via build encontrou problemas de cache/sincronização. 
-> Foi executada **instalação manual** no container para garantir funcionamento imediato.
+> **SOLUÇÃO DEFINITIVA APLICADA**: O conflito de versões entre `pydantic` e `browser-use` foi resolvido.
 
-```bash
-railway run python -m pip install browser-use moviepy pydub
-```
+Correções no `requirements.txt`:
+1. `fastapi` atualizado para `0.110.0`
+2. `pydantic` atualizado para `2.9.2`
+3. `browser-use` mantido em `0.1.6`
 
-Status pós-instalação manual:
-- **browser-use**: ✅ INSTALADO
-- **moviepy**: ✅ INSTALADO
-- **pydub**: ✅ INSTALADO
-
-Para garantir persistência em deploys futuros:
-- ✅ `requirements.txt` atualizado no repo
-- ✅ `Dockerfile` atualizado com CACHEBUST
+Isso elimina o erro `ResolutionImpossible` e garante que o build automático do Railway funcione sem intervenção manual.
 
 ---
 
