@@ -63,7 +63,7 @@ logger = logging.getLogger("omnibrain.core")
 # LEGACY COMPATIBILITY
 # ============================================
 # Manter alguns tipos aqui para compatibilidade com código existente
-    UNKNOWN = "unknown"
+UNKNOWN = "unknown"
 
 
 class ExecutionStatus(Enum):
