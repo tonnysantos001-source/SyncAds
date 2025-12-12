@@ -326,6 +326,55 @@ async function createNewConversation() {
 }
 
 /**
+ * Delete conversation
+ */
+async function deleteConversation(conversationId) {
+  try {
+    console.log("🗑️ [CONVERSATIONS] Deleting conversation:", conversationId);
+
+    if (!confirm("Tem certeza que deseja excluir esta conversa?")) {
+      return;
+    }
+
+    const response = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation?id=eq.${conversationId}`,
+      {
+        method: "DELETE",
+        headers: {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${state.accessToken}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    console.log("✅ [CONVERSATIONS] Deleted:", conversationId);
+
+    // Update local state
+    state.conversations = state.conversations.filter(
+      (c) => c.id !== conversationId,
+    );
+
+    // If deleted current conversation, create new one or switch
+    if (state.conversationId === conversationId) {
+      if (state.conversations.length > 0) {
+        loadConversation(state.conversations[0].id);
+      } else {
+        createNewConversation();
+      }
+    }
+
+    renderConversationsList();
+  } catch (error) {
+    console.error("❌ [CONVERSATIONS] Error deleting:", error);
+    alert("Erro ao excluir conversa. Tente novamente.");
+  }
+}
+
+/**
  * Load specific conversation
  */
 async function loadConversation(conversationId) {
@@ -395,13 +444,24 @@ function renderConversationsList() {
     const date = new Date(conv.createdAt).toLocaleDateString("pt-BR");
 
     item.innerHTML = `
-      <div class="history-item-title">${conv.title || "Nova Conversa"}</div>
-      <div class="history-item-date">${date}</div>
+      <div class="history-content">
+        <div class="history-item-title">${conv.title || "Nova Conversa"}</div>
+        <div class="history-item-date">${date}</div>
+      </div>
+      <button class="delete-chat-btn" title="Excluir conversa">🗑️</button>
     `;
 
+    // Click to load
     item.addEventListener("click", () => {
       loadConversation(conv.id);
       closeHistoryPanel();
+    });
+
+    // Click to delete
+    const deleteBtn = item.querySelector(".delete-chat-btn");
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteConversation(conv.id);
     });
 
     list.appendChild(item);
