@@ -37,7 +37,7 @@ import {
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
 import { useToast } from '@/components/ui/use-toast';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 interface ImageGalleryModalProps {
@@ -95,7 +95,7 @@ export function ImageGalleryModal({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const supabase = createClient();
+  // const supabase = createClient(); // REMOVED
   const user = useAuthStore((state) => state.user);
 
   // Load images from Supabase on mount
