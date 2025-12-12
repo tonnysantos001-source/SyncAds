@@ -179,7 +179,7 @@ export function ChatModalManager({
 
       case 'chat':
       default:
-        return <ChatModalNormal {...modalProps} />;
+        return <ChatModalNormal {...modalProps} onSwitchModal={handleManualSwitch} />;
     }
   };
 
