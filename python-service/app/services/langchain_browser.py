@@ -4,6 +4,8 @@ from langchain.agents import AgentType, initialize_agent, Tool
 from langchain_community.tools.playwright.utils import create_async_playwright_browser
 import os
 import asyncio
+import json
+import httpx
 from loguru import logger
 from playwright.async_api import Page, Browser
 from app.file_uploader import FileUploader
@@ -14,8 +16,11 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 class BrowserAgent:
     """
-    Agente de Automação de Navegador & Sistema de Arquivos (Enterprise Grade).
-    Capaz de navegar, extrair dados, criar arquivos e gerar links de download.
+    Agente de Automação HÍBRIDO (Server-Side + Client-Side Extension).
+    Capaz de:
+    1. Navegar no servidor (Playwright headless)
+    2. Controlar navegador do usuário (Chrome Extension Remote Control)
+    3. Criar e gerenciar arquivos (System File IO)
     """
     
     def __init__(self):
@@ -24,6 +29,7 @@ class BrowserAgent:
         self.agent_chain = None
         self.playwright = None
         self.browser_instance = None
+        self.user_id: Optional[str] = None
         
     async def initialize(self):
         """Inicializa o navegador e as ferramentas manuais"""
@@ -37,10 +43,10 @@ class BrowserAgent:
             )
             self.page = await self.browser_instance.new_page()
             
-            # --- FERRAMENTAS DE NAVEGAÇÃO ---
+            # --- FERRAMENTAS DE NAVEGAÇÃO (SERVER-SIDE) ---
             
             async def navigate(url: str) -> str:
-                """Navega para uma URL específica."""
+                """Navega para uma URL específica (Server-Side)."""
                 try:
                     await self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
                     title = await self.page.title()
@@ -49,15 +55,15 @@ class BrowserAgent:
                     return f"Erro ao navegar: {e}"
 
             async def extract_text(selector: str = "body") -> str:
-                """Extrai texto da página atual."""
+                """Extrai texto da página atual (Server-Side)."""
                 try:
                     content = await self.page.inner_text(selector)
-                    return content[:5000]  # Aumentado limite
+                    return content[:5000]
                 except Exception as e:
                     return f"Erro ao extrair: {e}"
 
             async def click_element(selector: str) -> str:
-                """Clica em um elemento específico."""
+                """Clica em um elemento específico (Server-Side)."""
                 try:
                     await self.page.click(selector, timeout=5000)
                     return f"Clicado em {selector}"
@@ -65,168 +71,166 @@ class BrowserAgent:
                     return f"Erro ao clicar: {e}"
             
             async def fill_form(input_string: str) -> str:
-                """Preenche campo. Formato: 'selector|value'"""
+                """Preenche campo (Server-Side). Formato: 'selector|value'"""
                 try:
                     selector, value = input_string.split("|", 1)
                     await self.page.fill(selector, value)
                     return f"Preenchido {selector} com {value}"
                 except Exception as e:
-                    return f"Erro ao preencher (use formato 'seletor|valor'): {e}"
+                    return f"Erro ao preencher: {e}"
 
             async def get_html(selector: str = "body") -> str:
-                """Pega o HTML raw da página (útil para debugging ou parsing complexo)"""
+                """Pega HTML (Server-Side)."""
                 try:
                     html = await self.page.inner_html(selector)
                     return html[:10000]
                 except Exception as e:
                     return f"Erro ao pegar HTML: {e}"
 
-            # --- FERRAMENTAS DE ARQUIVO & STORAGE (NOVO) ---
+            # --- FERRAMENTAS DE EXTENSÃO (CLIENT-SIDE REMOTO) ---
+            
+            async def control_user_extension(input_string: str) -> str:
+                """
+                Envia comando para o Chrome REAL do usuário.
+                Use para: Sites logados, Facebook Ads, Ações no PC do usuário.
+                
+                Input: 'COMANDO|JSON_PARAMS'
+                Ex: 'NAVIGATE|{"url": "https://facebook.com"}'
+                Ex: 'CLICK|{"selector": "#submit-btn"}'
+                """
+                if not self.user_id:
+                    return "ERRO: User ID não disponível. Não posso controlar a extensão remota."
+                
+                try:
+                    cmd_type, params_str = input_string.split("|", 1)
+                    params = json.loads(params_str)
+                except:
+                    return "ERRO FORMATO. Use: TIPO|JSON. Ex: NAVIGATE|{\"url\":\"...\"}"
+
+                supabase_url = os.getenv("SUPABASE_URL")
+                supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+                
+                if not supabase_url or not supabase_key:
+                    return "Erro: Credenciais Supabase ausentes."
+
+                # 1. Encontrar dispositivo online do usuário
+                params_get = {
+                    "user_id": f"eq.{self.user_id}",
+                    # "status": "eq.online", # Opcional: filtrar apenas online
+                    "order": "last_seen.desc",
+                    "limit": "1"
+                }
+                headers = {
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    # Get Device
+                    resp = await client.get(f"{supabase_url}/rest/v1/extension_devices", params=params_get, headers=headers)
+                    if resp.status_code != 200:
+                        return f"Erro ao buscar devices: {resp.text}"
+                    
+                    devices = resp.json()
+                    if not devices:
+                        return "Nenhum dispositivo com a extensão ativa encontrado para este usuário."
+                    
+                    device_id = devices[0]['device_id']
+                    
+                    # 2. Inserir Comando na Fila
+                    payload = {
+                        "deviceId": device_id,
+                        "command": cmd_type.upper(),
+                        "data": params,
+                        "status": "PENDING"
+                    }
+                    
+                    resp_cmd = await client.post(f"{supabase_url}/rest/v1/ExtensionCommand", json=payload, headers=headers)
+                    
+                    if resp_cmd.status_code == 201:
+                        return f"Comando {cmd_type} enviado para dispositivo {device_id}. Aguardando execução..."
+                    else:
+                        return f"Erro ao enviar comando: {resp_cmd.text}"
+
+            # --- FERRAMENTAS DE ARQUIVO ---
 
             async def create_file(input_string: str) -> str:
                 """Cria arquivo local. Formato: 'filename.ext|conteudo'"""
                 try:
-                    if "|" not in input_string:
-                        return "Erro: Formato deve ser 'filename.ext|conteudo'"
-                    
                     filename, content = input_string.split("|", 1)
-                    filename = filename.strip()
-                    filepath = os.path.join(TEMP_DIR, filename)
-                    
+                    filepath = os.path.join(TEMP_DIR, filename.strip())
                     with open(filepath, "w", encoding="utf-8") as f:
                         f.write(content)
-                        
-                    return f"Arquivo criado localmente em: {filepath}"
+                    return f"Arquivo criado: {filepath}"
                 except Exception as e:
                     return f"Erro ao criar arquivo: {e}"
 
             async def upload_and_generate_link(filename: str) -> str:
-                """
-                Sobe arquivo local para nuvem e gera link de download.
-                Input: Apenas o nome do arquivo (ex: 'relatorio.txt') criado anteriormente.
-                """
+                """Sobe arquivo para nuvem e gera link."""
                 try:
                     filename = filename.strip()
                     filepath = os.path.join(TEMP_DIR, filename)
+                    if not os.path.exists(filepath): return "Erro: Arquivo não existe."
                     
-                    if not os.path.exists(filepath):
-                        return f"Erro: Arquivo {filename} não encontrado localmente. Crie-o primeiro."
-
-                    # Configuração Supabase
-                    supabase_url = os.getenv("SUPABASE_URL")
-                    supabase_key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+                    supa_url = os.getenv("SUPABASE_URL")
+                    supa_key = os.getenv("SUPABASE_KEY")
+                    if not supa_url: return "Erro config Supabase."
                     
-                    if not supabase_url or not supabase_key:
-                        return "Erro: Credenciais do Supabase não configuradas (SUPABASE_URL/KEY)."
-
-                    uploader = FileUploader(supabase_url, supabase_key)
+                    uploader = FileUploader(supa_url, supa_key)
+                    url = await uploader.upload_file(filepath, filename, "ai_agent")
                     
-                    # Upload
-                    url = await uploader.upload_file(filepath, filename, "ai-agent")
-                    
-                    if url:
-                        # Markdown link format
-                        return f"SUCESSO! Link de download: {url}"
-                    else:
-                        return "Falha no upload para o Storage."
-                        
+                    return f"Download Link: {url}" if url else "Erro upload."
                 except Exception as e:
-                    return f"Erro no processo de upload: {e}"
+                    return f"Erro upload: {e}"
 
-            # 3. Lista de Ferramentas
+            # Lista de Ferramentas
             tools = [
-                # Browser
+                # Server Browser
+                Tool(name="navigate_server", func=None, coroutine=navigate, description="Navegar no SERVIDOR (Headless). Use para pesquisa pública."),
+                Tool(name="extract_server", func=None, coroutine=extract_text, description="Extrair texto no SERVIDOR."),
+                
+                # Client Browser (Extension)
                 Tool(
-                    name="navigate_browser",
+                    name="control_user_browser",
                     func=None,
-                    coroutine=navigate,
-                    description="Navegar para URL. Input: URL (ex: https://google.com)"
+                    coroutine=control_user_extension,
+                    description="COMANDAR O NAVEGADOR DO USUÁRIO. Use APENAS se precisar logar em contas (Facebook, Google). Input: 'CMD|JSON'. Ex: NAVIGATE|{\"url\":\"...\"}"
                 ),
-                Tool(
-                    name="extract_content",
-                    func=None,
-                    coroutine=extract_text,
-                    description="Ler texto da página. Input: seletor CSS (opcional, default 'body')"
-                ),
-                Tool(
-                    name="click_element",
-                    func=None,
-                    coroutine=click_element,
-                    description="Clicar em elemento. Input: seletor CSS"
-                ),
-                Tool(
-                    name="fill_field",
-                    func=None,
-                    coroutine=fill_form,
-                    description="Preencher formulário. Input: 'seletor|valor'"
-                ),
-                Tool(
-                    name="get_html",
-                    func=None,
-                    coroutine=get_html,
-                    description="DEBUG: Ver código HTML da página. Útil quando extract_content falha."
-                ),
+                
                 # Files
-                Tool(
-                    name="create_file",
-                    func=None,
-                    coroutine=create_file,
-                    description="Criar arquivo de texto/código. Input: 'nome_arquivo.ext|conteudo'. Ex: 'lista.txt|Item 1\nItem 2'"
-                ),
-                Tool(
-                    name="generate_download_link",
-                    func=None,
-                    coroutine=upload_and_generate_link,
-                    description="Gerar link de download para arquivo criado. Input: 'nome_arquivo.ext'. Retorna URL pública."
-                )
+                Tool(name="create_file", func=None, coroutine=create_file, description="Criar arquivo. Input: 'nome|conteudo'"),
+                Tool(name="generate_download_link", func=None, coroutine=upload_and_generate_link, description="Gerar link download. Input: 'nome'")
             ]
             
-            # 4. Inicializa o LLM
-            llm = ChatOpenAI(
-                model_name="gpt-4o-mini", 
-                temperature=0, 
-                api_key=os.getenv("OPENAI_API_KEY")
-            )
+            llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
             
-            # 5. Inicializa Agente
             self.agent_chain = initialize_agent(
-                tools,
-                llm,
-                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-                verbose=True,
+                tools, llm, 
+                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, 
+                verbose=True, 
                 handle_parsing_errors=True
             )
-            logger.info("BrowserAgent initialized with FILE SYSTEM Capabilities 🚀")
+            logger.info("Hybrid BrowserAgent initialized (Server + Client + Files) 🚀")
 
-    async def execute_task(self, instruction: str) -> Dict[str, Any]:
-        """Executa uma tarefa em linguagem natural"""
+    async def execute_task(self, instruction: str, user_id: str = None) -> Dict[str, Any]:
+        """Executa tarefa com contexto de usuário"""
+        self.user_id = user_id
         if not self.agent_chain:
             await self.initialize()
             
         try:
-            # Enriquecer instrução para incentivar uso de arquivos se necessário
-            enhanced_instruction = instruction
-            if "download" in instruction.lower() or "arquivo" in instruction.lower() or "salv" in instruction.lower():
-                enhanced_instruction += " (Se precisar gerar arquivo, use create_file e depois generate_download_link)"
+            # Enriquecer instrução
+            enhanced = instruction
+            if user_id:
+                enhanced += " (Você tem acesso ao navegador do usuário via control_user_browser se necessário)"
                 
-            logger.info(f"BrowserAgent executing: {enhanced_instruction}")
-            result = await self.agent_chain.arun(enhanced_instruction)
-            return {
-                "success": True,
-                "result": result,
-                "action": instruction
-            }
+            logger.info(f"BrowserAgent executing for user {user_id}: {enhanced}")
+            result = await self.agent_chain.arun(enhanced)
+            return {"success": True, "result": result}
         except Exception as e:
-            logger.error(f"BrowserAgent execution failed: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "action": instruction
-            }
-            
+            return {"success": False, "error": str(e)}
+
     async def cleanup(self):
-        """Limpa recursos"""
-        if self.browser_instance:
-            await self.browser_instance.close()
-        if self.playwright:
-            await self.playwright.stop()
+        if self.browser_instance: await self.browser_instance.close()
+        if self.playwright: await self.playwright.stop()

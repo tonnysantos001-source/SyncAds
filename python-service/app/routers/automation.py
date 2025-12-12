@@ -77,6 +77,8 @@ class AutomationRequest(BaseModel):
     use_ai: bool = Field(True, description="Use Browser-Use AI for complex tasks")
     headless: bool = Field(True, description="Run browser in headless mode")
     timeout: int = Field(60, description="Overall timeout in seconds")
+    user_id: Optional[str] = Field(None, description="User ID for extension control")
+
 
 
 class AutomationResponse(BaseModel):
@@ -284,7 +286,7 @@ async def execute_automation(request: AutomationRequest):
             agent = BrowserAgent()
             
             # Execute task
-            ai_result = await agent.execute_task(request.action)
+            ai_result = await agent.execute_task(request.action, user_id=request.user_id)
             
             results.append(ai_result)
             
