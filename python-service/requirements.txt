@@ -18,9 +18,9 @@ groq==0.4.2
 # Browser Automation & AI Agents
 playwright==1.48.0
 selenium==4.27.0
-langchain==0.1.0
-langchain-openai==0.0.5
-langchain-community==0.0.13
+langchain==0.2.11
+langchain-openai==0.1.17
+langchain-community==0.2.10
 
 # Video & Audio Processing (✅ NOVO: Para modais de Video/Audio)
 moviepy==1.0.3
