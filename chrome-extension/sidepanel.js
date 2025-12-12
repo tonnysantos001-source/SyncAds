@@ -32,6 +32,7 @@ const state = {
   commandHistory: [],
   commandHistoryIndex: -1,
   suggestions: [],
+  activeTabId: null,
 };
 
 // ============================================
@@ -64,6 +65,8 @@ const elements = {
   // Input
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
+  activeTabSelector: document.getElementById("activeTabSelector"),
+  refreshTabsBtn: document.getElementById("refreshTabsBtn"),
 
   // Overlays
   overlay: document.getElementById("overlay"),
@@ -91,6 +94,51 @@ async function getAllTabs() {
   } catch (error) {
     console.error("❌ [TABS] Error getting tabs:", error);
     return [];
+  }
+}
+
+/**
+ * Load tabs into selector
+ */
+async function loadTabsForSelector() {
+  try {
+    const tabs = await getAllTabs();
+    const selector = elements.activeTabSelector;
+
+    selector.innerHTML = '<option value="" disabled>Selecione uma aba...</option>';
+
+    // Get active tab to default to
+    const [activeTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    tabs.forEach((tab) => {
+      const option = document.createElement("option");
+      option.value = tab.id;
+      let title = tab.title || tab.url || "Sem título";
+      if (title.length > 40) title = title.substring(0, 40) + "...";
+
+      option.textContent = (tab.active ? "📍 " : "") + title;
+      selector.appendChild(option);
+    });
+
+    // Set selection
+    if (state.activeTabId && tabs.find(t => t.id == state.activeTabId)) {
+      selector.value = state.activeTabId;
+    } else if (activeTab) {
+      selector.value = activeTab.id;
+      state.activeTabId = activeTab.id;
+    }
+
+    // Listener for change
+    selector.onchange = (e) => {
+      state.activeTabId = parseInt(e.target.value);
+      console.log("📍 [TABS] Selected tab:", state.activeTabId);
+    };
+
+  } catch (error) {
+    console.error("❌ [TABS] Error loading selector:", error);
   }
 }
 
@@ -636,7 +684,7 @@ async function sendMessage() {
         Authorization: `Bearer ${state.accessToken}`,
       },
       body: JSON.stringify({
-        message: message + " (SYSTEM: Use browser commands (NAVIGATE, DOM_CLICK, DOM_FILL) for navigation and search. Do NOT use Serper/External Search APIs.)",
+        message: message + ` (SYSTEM: If user just greets or asks general questions, REPLY DIRECTLY. ONLY use browser commands (NAVIGATE, DOM_CLICK, DOM_FILL) if user EXPLICITLY asks to interact with the page. Do NOT use Serper/External Search APIs. Active Tab ID: ${state.activeTabId || 'current'})`,
         conversationId: state.conversationId,
         extensionConnected: true,
       }),
@@ -956,6 +1004,13 @@ function setupEventListeners() {
     switchToChat();
   });
 
+  // Tab selector refresh
+  elements.refreshTabsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    console.log("🔄 [TABS] Refreshing tabs list...");
+    loadTabsForSelector();
+  });
+
   // Quick actions
   document.querySelectorAll(".action-card").forEach((card) => {
     card.addEventListener("click", (e) => {
@@ -1236,6 +1291,9 @@ async function initialize() {
     } else {
       console.log("⚠️ [SIDE PANEL] Initialized without authentication");
     }
+
+    // Load tabs
+    await loadTabsForSelector();
 
     // Focus input
     elements.messageInput.focus();

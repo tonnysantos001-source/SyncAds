@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SyncAds AI Assistant</title>
+    <base target="_blank">
     <style>
         * {
             margin: 0;
@@ -860,7 +861,15 @@
 
     <!-- Input Area -->
     <div class="input-area">
-        <!-- Input Tools Removed -->
+        <div class="tab-selector-wrapper" style="margin-bottom: 8px; display: flex; gap: 8px;">
+            <select id="activeTabSelector"
+                style="flex: 1; padding: 6px; border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 12px; outline: none;">
+                <option value="" disabled selected>Carregando abas...</option>
+            </select>
+            <button id="refreshTabsBtn"
+                style="padding: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-primary);"
+                title="Atualizar abas">🔄</button>
+        </div>
 
         <div class="input-wrapper">
             <div class="input-container">
