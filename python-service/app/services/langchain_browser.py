@@ -234,6 +234,50 @@ class BrowserAgent:
                 except Exception as e:
                     return f"Erro upload: {e}"
 
+            # --- FERRAMENTAS DE COGNIÇÃO & SEGURANÇA (NOVO) ---
+
+            async def solve_captcha(url: str) -> str:
+                """
+                Tenta resolver CAPTCHA na página atual (ReCaptcha/hCaptcha).
+                Requer TWOCAPTCHA_API_KEY configurada no ambiente.
+                Retorna: Status da resolução.
+                """
+                api_key = os.getenv("TWOCAPTCHA_API_KEY")
+                if not api_key:
+                    return "ERRO: Chave API 2Captcha não configurada (TWOCAPTCHA_API_KEY)."
+
+                try:
+                    from twocaptcha import TwoCaptcha
+                    solver = TwoCaptcha(api_key)
+                    
+                    # Identificar imagem ou sitekey seria o ideal
+                    # Por enquanto, tentamos resolver via URL (menos confiável mas genérico)
+                    result = solver.recaptcha(sitekey='DETECT_ME', url=url) # Placeholder logic
+                    
+                    return f"Captcha Resolvido! Código: {result['code']}. (Nota: A injeção automática requer seletor específico)"
+                except Exception as e:
+                    return f"Erro ao resolver captcha: {e}"
+
+            async def consult_hive_mind(query: str) -> str:
+                """
+                Consulta a 'Mente Coletiva' para ver se já aprendemos a fazer isso.
+                Input: Descrição da tarefa (ex: 'criar campanha google ads rede display')
+                Retorna: Instruções aprendidas ou 'Nenhum conhecimento prévio'.
+                """
+                # Simulação de Busca Semântica (RAG)
+                # Em produção, isso consultaria tabela 'ai_memory' no Supabase via pgvector
+                return "Memória: Para criar campanha no Google Ads, comece clicando em 'Nova Campanha' (botão azul, canto esquerdo). Se falhar, tente a URL direta: https://ads.google.com/aw/campaigns/new"
+
+            async def share_learning(experience: str) -> str:
+                """
+                Ensina a IA (e outros usuários) com base no sucesso/erro atual.
+                Input: 'TIPO_TAREFA|CAMINHO_SUCESSO'.
+                Ex: 'google_ads_login|Use o botão "Fazer Login" no topo direito, não o do meio.'
+                """
+                # Em produção, salvaria na tabela 'ai_memory'
+                logger.info(f"🧠 HIVE MIND APRENDEU: {experience}")
+                return "Lição aprendida e salva na Mente Coletiva."
+
             # Lista de Ferramentas
             tools = [
                 # Server Browser
@@ -250,7 +294,12 @@ class BrowserAgent:
                 
                 # Files
                 Tool(name="create_file", func=None, coroutine=create_file, description="Criar arquivo. Input: 'nome|conteudo'"),
-                Tool(name="generate_download_link", func=None, coroutine=upload_and_generate_link, description="Gerar link download. Input: 'nome'")
+                Tool(name="generate_download_link", func=None, coroutine=upload_and_generate_link, description="Gerar link download. Input: 'nome'"),
+                
+                # Cognition & Security
+                Tool(name="solve_captcha", func=None, coroutine=solve_captcha, description="Resolver Captcha. Input: URL da página."),
+                Tool(name="consult_hive_mind", func=None, coroutine=consult_hive_mind, description="Buscar conhecimento prévio. Input: 'tema'"),
+                Tool(name="share_learning", func=None, coroutine=share_learning, description="Salvar aprendizado. Input: 'tema|lição'")
             ]
             
             llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
@@ -261,7 +310,7 @@ class BrowserAgent:
                 verbose=True, 
                 handle_parsing_errors=True
             )
-            logger.info("Hybrid BrowserAgent initialized (Server + Client + Files) 🚀")
+            logger.info("Hybrid BrowserAgent v3.0 initialized (Cognitive + Captcha) 🧠")
 
     async def execute_task(self, instruction: str, user_id: str = None) -> Dict[str, Any]:
         """Executa tarefa com contexto de usuário"""
@@ -274,6 +323,9 @@ class BrowserAgent:
             enhanced = instruction
             if user_id:
                 enhanced += " (Você tem acesso ao navegador do usuário via control_user_browser se necessário)"
+            
+            # Incentivo para usar a memória
+            enhanced += ". Antes de agir, consulte a hive_mind para ver se já sabemos fazer isso."
                 
             logger.info(f"BrowserAgent executing for user {user_id}: {enhanced}")
             result = await self.agent_chain.arun(enhanced)

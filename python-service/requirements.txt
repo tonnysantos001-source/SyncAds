@@ -25,6 +25,7 @@ langchain-community==0.2.10
 # Video & Audio Processing (✅ NOVO: Para modais de Video/Audio)
 moviepy==1.0.3
 pydub==0.25.1
+2captcha-python==1.2.0
 
 
 # Web Scraping (para browser-use funcionar)
