@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, List
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentType, initialize_agent
-from langchain_community.agent_toolkits import PlaywrightBrowserToolkit
+from langchain_community.agent_toolkits.playwright.toolkit import PlaywrightBrowserToolkit
 from langchain_community.tools.playwright.utils import create_async_playwright_browser
 import os
 from loguru import logger
