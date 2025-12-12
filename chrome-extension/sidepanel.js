@@ -65,10 +65,7 @@ const elements = {
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
 
-  // Menus
-  menuBtn: document.getElementById("menuBtn"),
-  sidebarMenu: document.getElementById("sidebarMenu"),
-  closeSidebar: document.getElementById("closeSidebar"),
+  // Overlays
   overlay: document.getElementById("overlay"),
 
   // History
@@ -78,12 +75,6 @@ const elements = {
   historyList: document.getElementById("historyList"),
   newChatBtn: document.getElementById("newChatFromHistory"),
   searchChats: document.getElementById("searchChats"),
-
-  // Tools
-  addTabBtn: document.getElementById("addTabBtn"),
-  attachBtn: document.getElementById("attachBtn"),
-  recordBtn: document.getElementById("recordBtn"),
-  toolsBtn: document.getElementById("toolsBtn"),
 
   // Settings
   settingsBtn: document.getElementById("settingsBtn"),
@@ -323,6 +314,11 @@ async function createNewConversation() {
     await chrome.storage.local.set({ conversationId: conversation.id });
 
     console.log("✅ [CONVERSATIONS] Created:", conversation.id);
+
+    // Clear UI and show new chat
+    renderMessages();
+    switchToChat();
+    addMessage("assistant", "👋 Nova conversa iniciada! Como posso ajudar?");
 
     // Refresh conversations list
     await loadConversations();
@@ -687,50 +683,9 @@ function switchToChat() {
 // ============================================
 
 /**
- * Toggle sidebar menu
- */
-function toggleSidebar() {
-  const wasOpen = elements.sidebarMenu.classList.contains("open");
-
-  // Fechar histórico se estiver aberto
-  if (elements.chatHistory.classList.contains("open")) {
-    closeHistoryPanel();
-  }
-
-  const isOpen = elements.sidebarMenu.classList.toggle("open");
-
-  if (isOpen) {
-    elements.overlay.classList.add("active");
-    console.log("📂 [MENU] Opened");
-  } else {
-    elements.overlay.classList.remove("active");
-    console.log("📁 [MENU] Closed");
-  }
-}
-
-/**
- * Close sidebar menu
- */
-function closeSidebarMenu() {
-  elements.sidebarMenu.classList.remove("open");
-
-  // Só remover overlay se histórico também estiver fechado
-  if (!elements.chatHistory.classList.contains("open")) {
-    elements.overlay.classList.remove("active");
-  }
-}
-
-/**
  * Toggle history panel
  */
 function toggleHistory() {
-  const wasOpen = elements.chatHistory.classList.contains("open");
-
-  // Fechar menu se estiver aberto
-  if (elements.sidebarMenu.classList.contains("open")) {
-    closeSidebarMenu();
-  }
-
   const isOpen = elements.chatHistory.classList.toggle("open");
 
   if (isOpen) {
@@ -747,11 +702,7 @@ function toggleHistory() {
  */
 function closeHistoryPanel() {
   elements.chatHistory.classList.remove("open");
-
-  // Só remover overlay se menu também estiver fechado
-  if (!elements.sidebarMenu.classList.contains("open")) {
-    elements.overlay.classList.remove("active");
-  }
+  elements.overlay.classList.remove("active");
 }
 
 // ============================================
@@ -849,22 +800,7 @@ async function detectAndExecuteCommands(message) {
 /**
  * Handle tool button click
  */
-function handleToolButton(tool) {
-  console.log("🛠️ [TOOL] Tool clicked:", tool);
 
-  const commands = {
-    addTab: "Liste minhas abas abertas",
-    attach: "Como posso anexar arquivos?",
-    record: "Iniciar gravação de tela",
-    tools: "Quais ferramentas estão disponíveis?",
-  };
-
-  const message = commands[tool];
-  if (message) {
-    elements.messageInput.value = message;
-    elements.messageInput.focus();
-  }
-}
 
 // ============================================
 // EVENT LISTENERS
@@ -935,22 +871,9 @@ function setupEventListeners() {
     setTimeout(hideSuggestions, 200);
   });
 
-  // Menu buttons
-  elements.menuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [MENU] Menu button clicked");
-    toggleSidebar();
-  });
-
-  elements.closeSidebar.addEventListener("click", (e) => {
-    e.stopPropagation();
-    console.log("🖱️ [MENU] Close sidebar clicked");
-    closeSidebarMenu();
-  });
-
+  // Overlay
   elements.overlay.addEventListener("click", () => {
     console.log("🖱️ [OVERLAY] Overlay clicked, closing all");
-    closeSidebarMenu();
     closeHistoryPanel();
   });
 
@@ -975,88 +898,6 @@ function setupEventListeners() {
     switchToChat();
   });
 
-  // Menu items
-  document.querySelectorAll(".menu-item").forEach((item) => {
-    item.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const action = item.dataset.action;
-      console.log("📋 [MENU] Item clicked:", action);
-
-      closeSidebarMenu();
-
-      // Pequeno delay para animação
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      switch (action) {
-        case "new-chat":
-          console.log("🆕 [MENU] Creating new chat");
-          await createNewConversation();
-          switchToChat();
-          addMessage(
-            "assistant",
-            "💬 Nova conversa iniciada! Como posso ajudar?",
-          );
-          break;
-
-        case "history":
-          console.log("📋 [MENU] Opening history");
-          toggleHistory();
-          break;
-
-        case "tabs":
-          console.log("🗂️ [MENU] Listing tabs");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          await showTabsList();
-          break;
-
-        case "settings":
-          console.log("⚙️ [MENU] Opening settings");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          addMessage(
-            "assistant",
-            "⚙️ **Configurações**\n\nEm breve você poderá configurar:\n• Temas (Light/Dark)\n• Atalhos de teclado\n• Preferências de IA\n• Notificações",
-          );
-          break;
-
-        case "help":
-          console.log("❓ [MENU] Opening help");
-          if (state.currentView === "welcome") {
-            switchToChat();
-          }
-          addMessage(
-            "assistant",
-            `❓ **Ajuda - SyncAds AI Assistant**
-
-**Comandos Básicos:**
-• "Liste minhas abas" - Mostra todas as abas abertas
-• "Qual o título desta página?" - Info da página atual
-• "Abra [URL]" - Abre site em nova aba
-• "Feche esta aba" - Fecha aba ativa
-
-**Quick Actions:**
-Clique nos 6 botões principais para ações rápidas!
-
-**Ferramentas:**
-• +Aba - Lista abas
-• 📎 Anexar - Anexos (em breve)
-• 🎙️ Gravar - Gravação (em breve)
-• 🛠️ Tools - Ver todas as ferramentas
-
-**Dica:** Seja específico nos comandos! Exemplo:
-"Clique no botão de login" ✅
-"Faça algo" ❌
-
-Precisa de ajuda específica? É só perguntar! 😊`,
-          );
-          break;
-      }
-    });
-  });
-
   // Quick actions
   document.querySelectorAll(".action-card").forEach((card) => {
     card.addEventListener("click", (e) => {
@@ -1065,82 +906,6 @@ Precisa de ajuda específica? É só perguntar! 😊`,
       console.log("⚡ [QUICK ACTION] Card clicked:", action);
       handleQuickAction(action);
     });
-  });
-
-  // Tool buttons
-  elements.addTabBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] +Aba clicked");
-
-    // Switch to chat view if in welcome
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-
-    await showTabsList();
-  });
-
-  elements.attachBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Anexar clicked");
-
-    addMessage(
-      "assistant",
-      "📎 **Anexos** - Em desenvolvimento\n\nEm breve você poderá:\n• Anexar imagens\n• Enviar arquivos\n• Compartilhar screenshots",
-    );
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-  });
-
-  elements.recordBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Gravar clicked");
-
-    addMessage(
-      "assistant",
-      "🎙️ **Gravação de Tela** - Em desenvolvimento\n\nEm breve você poderá:\n• Gravar sua tela\n• Narrar com áudio\n• Compartilhar tutoriais",
-    );
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
-  });
-
-  elements.toolsBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    console.log("🖱️ [TOOL] Ferramentas clicked");
-
-    const toolsList = `🛠️ **Ferramentas Disponíveis:**
-
-**Controle de Abas:**
-• Lista todas as abas abertas
-• Fecha abas específicas
-• Navega entre abas
-
-**Automação:**
-• Clica em elementos
-• Preenche formulários
-• Lê conteúdo de páginas
-• Executa JavaScript
-
-**Extração de Dados:**
-• Captura texto de elementos
-• Extrai tabelas
-• Coleta emails/links
-• Exporta informações
-
-**Quick Actions:**
-Clique nos botões acima para atalhos rápidos!
-
-Digite um comando ou pergunte o que posso fazer! 😊`;
-
-    addMessage("assistant", toolsList);
-
-    if (state.currentView === "welcome") {
-      switchToChat();
-    }
   });
 
   // Settings button
