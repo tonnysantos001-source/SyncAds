@@ -30,7 +30,7 @@ except ImportError:
 
 # LangChain Browser Agent
 try:
-    from app.omnibrain.modules.browser_agent import BrowserAgent
+    from app.services.langchain_browser import BrowserAgent
     BROWSER_AGENT_AVAILABLE = True
 except ImportError as e:
     BROWSER_AGENT_AVAILABLE = False
