@@ -113,32 +113,56 @@ class BrowserAgent:
                 if not supabase_url or not supabase_key:
                     return "Erro: Credenciais Supabase ausentes."
 
-                # 1. Encontrar dispositivo online do usuário
-                params_get = {
-                    "user_id": f"eq.{self.user_id}",
-                    # "status": "eq.online", # Opcional: filtrar apenas online
-                    "order": "last_seen.desc",
-                    "limit": "1"
-                }
-                headers = {
-                    "apikey": supabase_key,
-                    "Authorization": f"Bearer {supabase_key}",
-                    "Content-Type": "application/json"
-                }
+            async def control_user_extension(input_string: str) -> str:
+                """
+                Envia comando para o Chrome REAL do usuário e AGUARDA o resultado.
+                Use para: Sites logados, Facebook Ads, Ações no PC do usuário.
                 
-                async with httpx.AsyncClient() as client:
-                    # Get Device
+                Input: 'COMANDO|JSON_PARAMS'
+                Ex: 'NAVIGATE|{"url": "https://facebook.com"}'
+                Ex: 'CLICK|{"selector": "#submit-btn"}'
+                Ex: 'EXTRACT|{"selector": ".price"}'
+                """
+                if not self.user_id:
+                    return "ERRO: User ID não disponível. Não posso controlar a extensão remota."
+                
+                try:
+                    cmd_type, params_str = input_string.split("|", 1)
+                    params = json.loads(params_str)
+                except:
+                    return "ERRO FORMATO. Use: TIPO|JSON. Ex: NAVIGATE|{\"url\":\"...\"}"
+
+                supabase_url = os.getenv("SUPABASE_URL")
+                supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+                
+                if not supabase_url or not supabase_key:
+                    return "Erro: Credenciais Supabase ausentes."
+
+                timeout_seconds = 45 # Tempo máximo de espera pela resposta do navegador
+
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    headers = {
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=representation" # Importante para receber o ID criado
+                    }
+
+                    # 1. Encontrar dispositivo online
+                    params_get = {
+                        "user_id": f"eq.{self.user_id}",
+                        "order": "last_seen.desc",
+                        "limit": "1"
+                    }
+                    
                     resp = await client.get(f"{supabase_url}/rest/v1/extension_devices", params=params_get, headers=headers)
-                    if resp.status_code != 200:
-                        return f"Erro ao buscar devices: {resp.text}"
+                    if resp.status_code != 200: return f"Erro busca device: {resp.text}"
                     
                     devices = resp.json()
-                    if not devices:
-                        return "Nenhum dispositivo com a extensão ativa encontrado para este usuário."
-                    
+                    if not devices: return "Nenhum dispositivo ativo encontrado."
                     device_id = devices[0]['device_id']
                     
-                    # 2. Inserir Comando na Fila
+                    # 2. Inserir Comando e Pegar ID
                     payload = {
                         "deviceId": device_id,
                         "command": cmd_type.upper(),
@@ -148,10 +172,36 @@ class BrowserAgent:
                     
                     resp_cmd = await client.post(f"{supabase_url}/rest/v1/ExtensionCommand", json=payload, headers=headers)
                     
-                    if resp_cmd.status_code == 201:
-                        return f"Comando {cmd_type} enviado para dispositivo {device_id}. Aguardando execução..."
-                    else:
+                    if resp_cmd.status_code != 201:
                         return f"Erro ao enviar comando: {resp_cmd.text}"
+                    
+                    cmd_data = resp_cmd.json()
+                    cmd_id = cmd_data[0]['id']
+                    
+                    # 3. Loop de Espera (Polling) pelo Resultado
+                    start_time = asyncio.get_event_loop().time()
+                    
+                    while (asyncio.get_event_loop().time() - start_time) < timeout_seconds:
+                        await asyncio.sleep(2) # Esperar 2s entre checks
+                        
+                        resp_check = await client.get(
+                            f"{supabase_url}/rest/v1/ExtensionCommand?id=eq.{cmd_id}&select=status,result,error", 
+                            headers=headers
+                        )
+                        
+                        if resp_check.status_code == 200:
+                            current_cmd = resp_check.json()[0]
+                            status = current_cmd.get('status')
+                            
+                            if status == 'COMPLETED':
+                                result = current_cmd.get('result', {})
+                                return f"SUCESSO: {json.dumps(result, ensure_ascii=False)}"
+                            
+                            if status == 'FAILED':
+                                error = current_cmd.get('error', 'Erro desconhecido')
+                                return f"FALHA na execução remota: {error}"
+                    
+                    return f"TIMEOUT: Navegador não respondeu em {timeout_seconds}s."
 
             # --- FERRAMENTAS DE ARQUIVO ---
 
