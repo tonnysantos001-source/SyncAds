@@ -9,6 +9,8 @@
  * - Suno AI (music generation)
  */
 
+import { createClient } from '@/lib/supabase/client';
+
 export interface AudioGenerationOptions {
     type: 'tts' | 'music' | 'sfx';
     text?: string; // For TTS
@@ -58,12 +60,61 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             'dave', 'fin', 'sarah', 'antoni', 'thomas'
         ],
         generate: async (options) => {
-            // TODO: Implementar ElevenLabs API
-            // https://elevenlabs.io/docs
-            throw new Error('ElevenLabs not implemented yet');
+            // Call Edge Function generate-audio
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabase = createClient();
+
+            // Get auth session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Not authenticated');
+
+            const response = await fetch(
+                `${supabaseUrl}/functions/v1/generate-audio`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: options.text,
+                        voice: options.voice || 'rachel',
+                        provider: 'elevenlabs',
+                        style: options.style || 'natural',
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Audio generation failed');
+            }
+
+            const result = await response.json();
+
+            if (!result.success || !result.audio) {
+                throw new Error('Invalid response from server');
+            }
+
+            return {
+                url: result.audio.url,
+                type: 'tts',
+                text: result.audio.text,
+                provider: result.audio.provider,
+                timestamp: Date.now(),
+                cost: result.audio.cost || 0,
+                metadata: {
+                    model: 'eleven_monolingual_v1',
+                    duration: result.audio.duration,
+                    voice: result.audio.voice,
+                },
+            };
         },
         isAvailable: async () => {
-            return !!process.env.ELEVENLABS_API_KEY;
+            // Check if user is authenticated
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            return !!session;
         },
     },
 
@@ -78,12 +129,11 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             'kimberly', 'salli', 'joey', 'nicole', 'russell'
         ],
         generate: async (options) => {
-            // TODO: Implementar Play.ht API
-            // https://docs.play.ht
+            // TODO: Implementar Play.ht API via Edge Function
             throw new Error('Play.ht not implemented yet');
         },
         isAvailable: async () => {
-            return !!process.env.PLAYHT_API_KEY;
+            return false; // Not implemented yet
         },
     },
 
@@ -99,7 +149,7 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             throw new Error('Stable Audio not implemented yet');
         },
         isAvailable: async () => {
-            return !!process.env.STABILITY_API_KEY;
+            return false; // Not implemented yet
         },
     },
 
@@ -114,7 +164,7 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             throw new Error('Suno AI not implemented yet');
         },
         isAvailable: async () => {
-            return !!process.env.SUNO_API_KEY;
+            return false; // Not implemented yet
         },
     },
 };
