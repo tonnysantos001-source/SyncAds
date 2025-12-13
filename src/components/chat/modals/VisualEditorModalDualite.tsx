@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { quickDeploy } from '@/lib/workflows/DeployWorkflow';
 import { developerCredentials } from '@/lib/developer';
 import { DeveloperSetupModal } from '@/components/developer';
+import { PlanningBlock } from "@/components/chat/PlanningBlock";
 
 interface VisualEditorModalDualiteProps {
   isOpen: boolean;
@@ -716,21 +717,30 @@ footer {
                     </div>
                   )}
 
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        'p-3 rounded-lg',
-                        msg.role === 'user'
-                          ? 'bg-blue-500/10 border border-blue-500/20 ml-4'
-                          : 'bg-white/5 border border-white/10 mr-4'
-                      )}
-                    >
-                      <p className="text-sm text-gray-200 whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
-                    </div>
-                  ))}
+                  {messages.map((msg) => {
+                    const thinkingMatch = msg.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+                    const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : null;
+                    const cleanContent = msg.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={cn(
+                          'p-3 rounded-lg flex flex-col gap-2',
+                          msg.role === 'user'
+                            ? 'bg-blue-500/10 border border-blue-500/20 ml-4'
+                            : 'bg-white/5 border border-white/10 mr-4'
+                        )}
+                      >
+                        {thinkingContent && <PlanningBlock content={thinkingContent} />}
+                        {cleanContent && (
+                          <p className="text-sm text-gray-200 whitespace-pre-wrap">
+                            {cleanContent}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                   <div ref={messagesEndRef} />
                 </div>
 

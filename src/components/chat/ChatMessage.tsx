@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { IntegrationActionButtons } from "./IntegrationActionButtons";
+import { PlanningBlock } from "./PlanningBlock";
 import type { IntegrationSlug } from "@/lib/integrations/types";
 import ReactMarkdown from "react-markdown";
 
@@ -53,14 +54,21 @@ export const ChatMessage = React.memo(function ChatMessage({
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
   const [videoError, setVideoError] = useState<{ [key: string]: boolean }>({});
 
+  // Detectar Thinking Block
+  const thinkingMatch = message.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+  const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : null;
+
+  // Clean content - Remove thinking block for display vs thinking display
+  const cleanContent = message.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+
   // Detectar URLs de imagem no conteúdo (Markdown e diretas)
   const imageUrlRegex =
     /!\[([^\]]*)\]\(([^)]+)\)|(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?)/gi;
   const videoUrlRegex =
     /(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)(?:\?[^\s]*)?)/gi;
 
-  const imageMatches = Array.from(message.content.matchAll(imageUrlRegex));
-  const videoMatches = Array.from(message.content.matchAll(videoUrlRegex));
+  const imageMatches = Array.from(cleanContent.matchAll(imageUrlRegex));
+  const videoMatches = Array.from(cleanContent.matchAll(videoUrlRegex));
 
   // Extrair URLs de imagem (tanto markdown quanto diretas)
   const extractedImages = imageMatches
@@ -79,7 +87,7 @@ export const ChatMessage = React.memo(function ChatMessage({
   const extractedVideos = videoMatches.map((match) => match[1]);
 
   // Remover URLs de mídia do conteúdo para não duplicar
-  let contentWithoutMedia = message.content;
+  let contentWithoutMedia = cleanContent;
   extractedImages.forEach((img) => {
     contentWithoutMedia = contentWithoutMedia.replace(img.url, "");
   });
@@ -113,6 +121,11 @@ export const ChatMessage = React.memo(function ChatMessage({
       <div
         className={cn("flex flex-col gap-2 max-w-[80%]", isUser && "items-end")}
       >
+        {/* Thinking / Planning Block (Only for Assistant) */}
+        {!isUser && thinkingContent && (
+          <PlanningBlock content={thinkingContent} />
+        )}
+
         {/* Mensagem de texto */}
         {contentWithoutMedia && (
           <div

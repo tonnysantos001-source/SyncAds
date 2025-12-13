@@ -38,6 +38,7 @@ import { orchestrator } from "@/lib/orchestrator";
 import { quickDeploy, type DeployStep } from "@/lib/workflows/DeployWorkflow";
 import { useChatStream } from "@/hooks/useChatStream";
 import { useModalError } from "@/hooks/useModalError";
+import { PlanningBlock } from "@/components/chat/PlanningBlock";
 
 interface VisualEditorModalProps {
   onSendMessage?: (message: string) => void;
@@ -522,19 +523,26 @@ AGORA GERE O CÓDIGO PARA:`;
             </div>
           ) : (
             <div className="space-y-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "p-3 rounded-lg",
-                    msg.role === "user"
-                      ? "bg-blue-600/20 border border-blue-600/30 ml-4"
-                      : "bg-white/5 border border-white/10 mr-4",
-                  )}
-                >
-                  <p className="text-sm text-gray-200">{msg.content}</p>
-                </div>
-              ))}
+              {messages.map((msg) => {
+                const thinkingMatch = msg.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+                const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : null;
+                const cleanContent = msg.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "p-3 rounded-lg flex flex-col gap-2",
+                      msg.role === "user"
+                        ? "bg-blue-600/20 border border-blue-600/30 ml-4"
+                        : "bg-white/5 border border-white/10 mr-4",
+                    )}
+                  >
+                    {thinkingContent && <PlanningBlock content={thinkingContent} />}
+                    {cleanContent && <p className="text-sm text-gray-200 whitespace-pre-wrap">{cleanContent}</p>}
+                  </div>
+                );
+              })}
             </div>
           )}
 

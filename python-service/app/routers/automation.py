@@ -11,6 +11,8 @@ import base64
 import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
+import subprocess
+import sys
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from loguru import logger
@@ -616,3 +618,75 @@ async def close_enhanced_session(session_id: str):
     except Exception as e:
         logger.error(f"Session cleanup failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# PYTHON EXECUTION (For AI)
+# ==========================================
+
+class PythonExecutionRequest(BaseModel):
+    code: str
+    libraries: List[str] = []
+    timeout: int = 30
+
+@router.post("/execute-python")
+async def execute_python_code(request: PythonExecutionRequest):
+    """Execute arbitrary Python code safely"""
+    try:
+        logger.info(f"Executing Python code (timeout={request.timeout}s)")
+        
+        # Create a temporary script
+        import tempfile
+        import os
+        
+        # Prepare imports
+        imports_str = "\n".join([f"import {lib}" for lib in request.libraries])
+        
+        # Wrap code to print last expression if it's not a print
+        # (This is basic, for advanced use Omnibrain)
+        
+        full_code = f"{imports_str}\n\n{request.code}"
+        
+        # Write to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(full_code)
+            temp_path = f.name
+            
+        try:
+            # Execute
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, temp_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            try:
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=request.timeout)
+                output = stdout.decode().strip()
+                error = stderr.decode().strip()
+                
+                return {
+                    "success": proc.returncode == 0,
+                    "output": output,
+                    "error": error,
+                    "executionTime": 0 # TODO: measure
+                }
+            except asyncio.TimeoutError:
+                proc.kill()
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Execution timed out after {request.timeout}s"
+                }
+                
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
+    except Exception as e:
+        logger.error(f"Python execution failed: {e}")
+        return {
+            "success": False,
+            "output": "",
+            "error": str(e)
+        }

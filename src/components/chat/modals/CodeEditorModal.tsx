@@ -36,6 +36,7 @@ import {
   IconBrandHtml5,
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
+import { PlanningBlock } from "@/components/chat/PlanningBlock";
 
 interface CodeEditorModalProps {
   onSendMessage?: (message: string) => void;
@@ -515,19 +516,26 @@ console.log(processed);`;
             </div>
           ) : (
             <div className="space-y-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'p-3 rounded-lg',
-                    msg.role === 'user'
-                      ? 'bg-green-600/20 border border-green-600/30 ml-4'
-                      : 'bg-white/5 border border-white/10 mr-4'
-                  )}
-                >
-                  <p className="text-sm text-gray-200">{msg.content}</p>
-                </div>
-              ))}
+              {messages.map((msg) => {
+                const thinkingMatch = msg.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+                const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : null;
+                const cleanContent = msg.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      'p-3 rounded-lg flex flex-col gap-2',
+                      msg.role === 'user'
+                        ? 'bg-green-600/20 border border-green-600/30 ml-4'
+                        : 'bg-white/5 border border-white/10 mr-4'
+                    )}
+                  >
+                    {thinkingContent && <PlanningBlock content={thinkingContent} />}
+                    {cleanContent && <p className="text-sm text-gray-200">{cleanContent}</p>}
+                  </div>
+                );
+              })}
             </div>
           )}
 

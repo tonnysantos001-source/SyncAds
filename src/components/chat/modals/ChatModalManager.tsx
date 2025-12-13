@@ -27,6 +27,7 @@ import {
   IconBrush,
   IconPhoto,
   IconVideo,
+  IconMicrophone,
   IconX,
   IconMaximize,
   IconMinimize,
@@ -37,6 +38,7 @@ import { ChatModalNormal } from './ChatModalNormal';
 import VisualEditorPro from '../../visual-editor/VisualEditorPro';
 import { ImageGalleryModal } from './ImageGalleryModal';
 import { VideoGalleryModal } from './VideoGalleryModal';
+import AudioGalleryPro from '../../media/audio/AudioGalleryPro';
 
 interface ChatModalManagerProps {
   /** Se deve detectar automaticamente o contexto */
@@ -63,6 +65,7 @@ const MODAL_ICONS: Record<ModalType, React.ComponentType<any>> = {
   'visual-editor': IconBrush,
   'image-gallery': IconPhoto,
   'video-gallery': IconVideo,
+  'audio-gallery': IconMicrophone,
   'code-editor': IconMessageCircle, // Placeholder
 };
 
@@ -74,6 +77,7 @@ const MODAL_NAMES: Record<ModalType, string> = {
   'visual-editor': 'Editor Visual',
   'image-gallery': 'Imagens',
   'video-gallery': 'Vídeos',
+  'audio-gallery': 'Áudio',
   'code-editor': 'Código',
 };
 
@@ -176,6 +180,9 @@ export function ChatModalManager({
 
       case 'video-gallery':
         return <VideoGalleryModal {...modalProps} />;
+
+      case 'audio-gallery':
+        return <AudioGalleryPro {...modalProps} />;
 
       case 'chat':
       default:

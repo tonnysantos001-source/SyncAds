@@ -27,49 +27,49 @@ serve(async (req) => {
 
         switch (command) {
             case "NAVIGATE":
-                endpoint = "/automation/browser/navigate";
+                endpoint = "/api/automation/browser/navigate";
                 payload.url = params.url;
                 break;
 
             case "FILL_FORM":
-                endpoint = "/automation/browser/fill-form";
+                endpoint = "/api/automation/browser/fill-form";
                 payload.form_data = params.form_data;
                 payload.form_selector = params.form_selector;
                 break;
 
             case "CLICK":
-                endpoint = "/automation/browser/click";
+                endpoint = "/api/automation/browser/click";
                 payload.selector = params.selector;
                 break;
 
             case "EXTRACT_DATA":
-                endpoint = "/automation/browser/extract";
+                endpoint = "/api/automation/browser/extract";
                 payload.selectors = params.selectors;
                 break;
 
             case "SCREENSHOT":
-                endpoint = "/automation/browser/screenshot";
+                endpoint = "/api/automation/browser/screenshot";
                 payload.full_page = params.full_page || false;
                 break;
 
             case "SCRAPE_PRODUCTS":
-                endpoint = "/automation/browser/scrape-products";
+                endpoint = "/api/automation/browser/scrape-products";
                 payload.url = params.url;
                 payload.product_selectors = params.product_selectors;
                 break;
 
             case "DETECT_CHECKOUT":
-                endpoint = "/automation/browser/detect-checkout";
+                endpoint = "/api/automation/browser/detect-checkout";
                 break;
 
             case "CREATE_SESSION":
-                endpoint = "/automation/browser/session";
+                endpoint = "/api/automation/browser/session";
                 payload.user_agent = params.user_agent;
                 break;
 
             case "CLOSE_SESSION":
                 const closeResponse = await fetch(
-                    `${PYTHON_SERVICE_URL}/automation/browser/session/${session_id}`,
+                    `${PYTHON_SERVICE_URL}/api/automation/browser/session/${session_id}`,
                     {
                         method: "DELETE",
                         headers: {

@@ -16,74 +16,42 @@ export async function executePython(
   const startTime = Date.now();
 
   try {
-    // Preparar imports
-    const imports = libraries.length > 0 
-      ? `import ${libraries.join(', ')}\n\n` 
-      : '';
-    
-    const fullCode = imports + code;
+    const pythonServiceUrl = Deno.env.get("PYTHON_SERVICE_URL") || "https://python-service-production.up.railway.app";
+    const endpoint = `${pythonServiceUrl}/api/browser-automation/execute-python`;
 
-    // Executar via subprocess do Deno
-    const command = new Deno.Command('python3', {
-      args: ['-c', fullCode],
-      stdin: 'null',
-      stdout: 'piped',
-      stderr: 'piped'
+    console.log(`🐍 Executing Python via Service: ${endpoint}`);
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code,
+        libraries,
+        timeout: Math.floor(timeout / 1000)
+      }),
     });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    let output: Uint8Array;
-    let errorOutput: Uint8Array;
-
-    try {
-      const process = command.spawn();
-      
-      const [stdout, stderr, status] = await Promise.all([
-        process.stdout.getReader().read().then(({ value }) => value),
-        process.stderr.getReader().read().then(({ value }) => value),
-        process.status
-      ]);
-
-      clearTimeout(timeoutId);
-
-      output = stdout || new Uint8Array();
-      errorOutput = stderr || new Uint8Array();
-
-      if (!status.success) {
-        const errorText = new TextDecoder().decode(errorOutput);
-        return {
-          success: false,
-          output: '',
-          error: errorText || 'Erro na execução Python',
-          executionTime: Date.now() - startTime
-        };
-      }
-
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      return {
-        success: false,
-        output: '',
-        error: error.message,
-        executionTime: Date.now() - startTime
-      };
+    if (!response.ok) {
+      throw new Error(`Service Error ${response.status}: ${await response.text()}`);
     }
 
-    const outputText = new TextDecoder().decode(output);
+    const result = await response.json();
 
     return {
-      success: true,
-      output: outputText.trim(),
+      success: result.success,
+      output: result.output || "",
+      error: result.error,
       executionTime: Date.now() - startTime
     };
 
   } catch (error: any) {
+    console.error("Python Service execution failed:", error);
     return {
       success: false,
       output: '',
-      error: error.message,
+      error: `Python Service Error: ${error.message}`,
       executionTime: Date.now() - startTime
     };
   }
@@ -94,15 +62,15 @@ export async function executeCalculation(expression: string): Promise<number> {
   try {
     // Validar expressão matemática
     const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, '');
-    
+
     const pythonCode = `result = ${sanitized}\nprint(result)`;
-    
+
     const result = await executePython(pythonCode);
-    
+
     if (!result.success) {
       throw new Error(result.error);
     }
-    
+
     return parseFloat(result.output);
   } catch (error: any) {
     throw new Error(`Erro ao calcular: ${error.message}`);

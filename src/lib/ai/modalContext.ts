@@ -20,6 +20,7 @@ export type ModalType =
   | "visual-editor" // Editor visual tipo Dualite
   | "image-gallery" // Galeria de imagens tipo Canva
   | "video-gallery" // Galeria de vídeos
+  | "audio-gallery" // Galeria de áudio PRO
   | "code-editor"; // Editor de código
 
 /**
@@ -133,6 +134,44 @@ const MODAL_PATTERNS: Record<ModalType, RegExp[]> = {
     /motion\s*graphics/i,
   ],
 
+  "audio-gallery": [
+    // Gerar/criar áudio
+    /ger(e|ar)\s+(um\s+)?(áudio|audio|som)/i,
+    /cri(e|ar)\s+(um\s+)?(áudio|audio|som|voz)/i,
+    /fa(ça|z|zer)\s+(um\s+)?(áudio|audio|narração)/i,
+    /produz(a|ir)\s+(um\s+)?(áudio|audio)/i,
+    /grav(e|ar)\s+(um\s+)?(áudio|audio|voz)/i,
+    // Text-to-Speech
+    /text[\s-]?to[\s-]?speech/i,
+    /tts/i,
+    /voz\s+(para|de)/i,
+    /narração/i,
+    /voice\s*over/i,
+    /locutor/i,
+    // Música
+    /ger(e|ar)\s+(uma?\s+)?música/i,
+    /cri(e|ar)\s+(uma?\s+)?música/i,
+    /compor\s+(uma?\s+)?música/i,
+    /trilha\s*sonora/i,
+    // Podcast
+    /podcast/i,
+    /episódio/i,
+    // Áudio para vídeo
+    /áudio\s+para\s+(o\s+)?vídeo/i,
+    /dublar/i,
+    /dublagem/i,
+    // Palavras-chave fortes
+    /elevenlabs/i,
+    /play\.ht/i,
+    /stable\s*audio/i,
+    /suno/i,
+    // Casos de uso
+    /faz\s+(um\s+)?(áudio|audio|voz)/i,
+    /conver(ta|ter)\s+texto\s+em\s+(fala|voz)/i,
+    /ler\s+(o\s+)?texto/i,
+    /sintetiz(ar|e)\s+voz/i,
+  ],
+
   "code-editor": [
     // Editar/criar código
     /edit(e|ar)\s+(o\s+)?c[óo]digo/i,
@@ -191,6 +230,28 @@ const CONFIDENCE_BOOSTERS: Record<ModalType, string[]> = {
     "modal",
     "popup",
     "dropdown",
+  ],
+  "audio-gallery": [
+    "voz",
+    "narração",
+    "locutor",
+    "podcast",
+    "episódio",
+    "música",
+    "trilha",
+    "áudio",
+    "audio",
+    "tts",
+    "voiceover",
+    "dublagem",
+    "elevenlabs",
+    "play.ht",
+    "microfone",
+    "gravação",
+    "som",
+    "efeito sonoro",
+    "sfx",
+    "soundeffect",
   ],
   "image-gallery": [
     "prompt",
@@ -478,6 +539,7 @@ function getIntent(type: ModalType): string {
     "visual-editor": "create-or-edit-page",
     "image-gallery": "generate-or-view-images",
     "video-gallery": "generate-or-view-videos",
+    "audio-gallery": "generate-or-edit-audio",
     "code-editor": "write-or-debug-code",
     chat: "general-conversation",
   };
@@ -493,6 +555,7 @@ function getSuggestedAction(type: ModalType): string {
     "visual-editor": "Abrindo editor visual...",
     "image-gallery": "Abrindo galeria de imagens...",
     "video-gallery": "Abrindo galeria de vídeos...",
+    "audio-gallery": "Abrindo galeria de áudio...",
     "code-editor": "Abrindo editor de código...",
     chat: "",
   };

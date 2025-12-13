@@ -185,35 +185,7 @@ async function showTabsList() {
   }
 }
 
-/**
- * Execute command on active tab
- */
-async function executeCommandOnTab(command) {
-  try {
-    console.log("⚡ [COMMAND] Executing on active tab:", command);
 
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    if (!tab) {
-      throw new Error("Nenhuma aba ativa encontrada");
-    }
-
-    // Send command to content script
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      type: "EXECUTE_COMMAND",
-      command: command,
-    });
-
-    console.log("✅ [COMMAND] Response:", response);
-    return response;
-  } catch (error) {
-    console.error("❌ [COMMAND] Error:", error);
-    throw error;
-  }
-}
 
 // ============================================
 // AUTHENTICATION
@@ -368,6 +340,9 @@ async function createNewConversation() {
     renderMessages(); // Clears DOM since state.messages is []
     switchToChat();
     addMessage("assistant", "👋 Nova conversa iniciada! Como posso ajudar?");
+
+    // Force reload to ensure 100% clean state if requested
+    window.location.reload();
   } catch (error) {
     console.error("❌ [CONVERSATIONS] Error creating:", error);
   }
@@ -566,9 +541,90 @@ function appendMessageToDOM(message) {
   const content = document.createElement("div");
   content.className = "message-content";
 
-  const bubble = document.createElement("div");
-  bubble.className = "message-bubble";
-  bubble.textContent = message.content;
+  // Check for antigravity_thinking tags
+  let thinkingContent = null;
+  let cleanContent = message.content;
+
+  const thinkingMatch = message.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+  if (thinkingMatch) {
+    thinkingContent = thinkingMatch[1].trim();
+    cleanContent = message.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+  }
+
+  // Render Thinking Block if exists
+  if (thinkingContent) {
+    const details = document.createElement("details");
+    details.className = "thinking-block";
+    details.open = true; // Default to open, or false to collapsed
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = "<span>🤖 Processamento & Raciocínio</span>";
+    summary.style.cursor = "pointer";
+    summary.style.marginBottom = "8px";
+    summary.style.fontWeight = "600";
+    summary.style.fontSize = "12px";
+    summary.style.color = "#a5b4fc"; // Indigo-300-ish
+
+    const p = document.createElement("div");
+    p.style.whiteSpace = "pre-wrap";
+    p.style.fontSize = "12px";
+    p.style.color = "#e0e7ff"; // Indigo-100-ish
+    p.style.padding = "8px";
+    p.style.backgroundColor = "rgba(79, 70, 229, 0.2)"; // Indigo-600 with opacity
+    p.style.borderRadius = "4px";
+    p.style.marginTop = "4px";
+
+    // Basic markdown parsing for thinking block (optional)
+    p.textContent = thinkingContent;
+
+    details.appendChild(summary);
+    details.appendChild(p);
+
+    // Style the details block container
+    details.style.marginBottom = "12px";
+    details.style.border = "1px solid rgba(79, 70, 229, 0.3)";
+    details.style.borderRadius = "6px";
+    details.style.padding = "8px";
+    details.style.backgroundColor = "rgba(49, 46, 129, 0.4)"; // Darker indigo background
+
+    content.appendChild(details);
+  }
+
+  // Render Main Content Bubble
+  if (cleanContent) {
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+
+    // HIDE TEXT IF IT IS A RAW JSON TOOL OUTPUT
+    // Regex matches content that starts with { and ends with } (ignoring whitespace) and looks like JSON
+    // But we must be careful not to hide code blocks that user explicitly asked for
+    // A heuristic: if it looks like a tool result (e.g. "success": true), hide it or show "Action Completed"
+
+    let displayContent = cleanContent;
+
+    // Check for JSON-like start/end
+    const trimmed = cleanContent.trim();
+    if (trimmed.startsWith("{") && trimmed.endsWith("}") && trimmed.includes('"success":')) {
+      // It's likely a tool output. 
+      // We can either hide it or replace with a badge.
+      // Let's replace with a friendly badge
+      try {
+        const data = JSON.parse(trimmed);
+        if (data.message) {
+          displayContent = `✅ ${data.message}`;
+        } else if (data.success) {
+          displayContent = `✅ Ação executada com sucesso.`;
+        }
+      } catch (e) {
+        // Not valid JSON, probably just code. Keep as is.
+      }
+    }
+
+    // Simple URL linker or markdown replacement could go here
+    bubble.innerText = displayContent;
+
+    content.appendChild(bubble);
+  }
 
   const time = document.createElement("div");
   time.className = "message-time";
@@ -578,7 +634,6 @@ function appendMessageToDOM(message) {
     minute: "2-digit",
   });
 
-  content.appendChild(bubble);
   content.appendChild(time);
 
   messageDiv.appendChild(avatar);
@@ -717,8 +772,10 @@ async function sendMessage() {
       addMessage("assistant", cleanResponse);
     }
 
-    // Try to detect and execute local commands
-    await detectAndExecuteCommands(message);
+    // Try to detect and execute AI commands from the response (RAW RESPONSE)
+    if (data.response) {
+      await detectAndExecuteCommands(data.response);
+    }
   } catch (error) {
     console.error("❌ [CHAT] Error sending message:", error);
     hideTypingIndicator();
@@ -841,6 +898,27 @@ function handleQuickAction(action) {
  * Detect commands in message
  */
 async function detectAndExecuteCommands(message) {
+  if (!message) return false;
+
+  console.log("🔍 [COMMANDS] Analyzing message for commands...", message.substring(0, 50));
+
+  // 1. Try to find JSON block
+  const jsonMatch = message.match(/```json\s*([\s\S]*?)\s*```/);
+
+  if (jsonMatch && jsonMatch[1]) {
+    try {
+      const jsonStr = jsonMatch[1].trim();
+      const command = JSON.parse(jsonStr);
+      console.log("🎯 [COMMANDS] Found JSON command:", command);
+
+      await executeAiCommand(command);
+      return true;
+    } catch (e) {
+      console.error("❌ [COMMANDS] Failed to parse JSON:", e);
+    }
+  }
+
+  // 2. Fallback: Check for specific keywords in User Message (legacy)
   const lowerMessage = message.toLowerCase();
 
   // List tabs
@@ -852,55 +930,118 @@ async function detectAndExecuteCommands(message) {
     return true;
   }
 
-  // Get page info
-  if (
-    lowerMessage.includes("título") ||
-    lowerMessage.includes("página atual")
-  ) {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      addMessage(
-        "assistant",
-        `📄 **Página Atual**\n\n**Título:** ${tab.title}\n**URL:** ${tab.url}`,
-      );
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error getting page info:", error);
-    }
-  }
-
-  // Close tab
-  if (lowerMessage.includes("fechar") && lowerMessage.includes("aba")) {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      await chrome.tabs.remove(tab.id);
-      addMessage("assistant", "✅ Aba fechada com sucesso!");
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error closing tab:", error);
-    }
-  }
-
-  // Open URL
-  const urlMatch = message.match(/abr(?:a|ir)?.*?(https?:\/\/[^\s]+)/i);
-  if (urlMatch) {
-    try {
-      const url = urlMatch[1];
-      await chrome.tabs.create({ url });
-      addMessage("assistant", `✅ Abrindo: ${url}`);
-      return true;
-    } catch (error) {
-      console.error("❌ [COMMAND] Error opening URL:", error);
-    }
-  }
-
   return false;
+}
+
+/**
+ * Execute AI Command
+ */
+async function executeAiCommand(command) {
+  try {
+    console.log("⚡ [EXECUTE] Executing AI command:", command);
+    const { type, data } = command;
+
+    switch (type) {
+      case "NAVIGATE":
+        if (data && data.url) {
+          addMessage("assistant", `🌐 Navegando para: ${data.url}`);
+          // Always use chrome.tabs.create for Side Panel unless explicit
+          await chrome.tabs.create({ url: data.url });
+        }
+        break;
+
+      case "LIST_TABS":
+        await showTabsList();
+        break;
+
+      case "SCREENSHOT":
+        await executeCommandOnTab("SCREENSHOT", data);
+        break;
+
+      case "CLICK_ELEMENT":
+      case "DOM_CLICK":
+        await executeCommandOnTab("DOM_CLICK", { selector: data.selector });
+        break;
+
+      case "TYPE_TEXT":
+      case "DOM_FILL":
+      case "FILL_FORM":
+        await executeCommandOnTab(type === "TYPE_TEXT" ? "DOM_FILL" : type, data);
+        break;
+
+      case "EXTRACT_DATA":
+      case "EXTRACT_TABLE":
+      case "EXTRACT_IMAGES":
+      case "EXTRACT_EMAILS":
+      case "EXTRACT_LINKS":
+      case "EXTRACT_ALL":
+        const result = await executeCommandOnTab(type, data);
+        if (result && result.result) {
+          console.log("📊 Extraction Result:", result.result);
+        }
+        break;
+
+      default:
+        // Try generic execution
+        await executeCommandOnTab(type, data);
+    }
+  } catch (error) {
+    console.error("❌ [EXECUTE] Error executing command:", error);
+    addMessage("assistant", `❌ Erro ao executar comando: ${error.message}`);
+  }
+}
+
+/**
+ * Execute command on active tab
+ */
+async function executeCommandOnTab(commandType, params = {}) {
+  try {
+    console.log(`⚡ [TAB CMD] ${commandType}`, params);
+
+    // Get active tab using state.activeTabId if available, else query
+    let tabId = state.activeTabId;
+
+    if (!tabId) {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (tab) tabId = tab.id;
+    }
+
+    if (!tabId) {
+      throw new Error("Nenhuma aba ativa encontrada");
+    }
+
+    // Validate tab
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab || !tab.url) {
+      throw new Error("Aba inválida");
+    }
+
+    // Check if we can inject scripting (skip purely chrome:// urls)
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
+      throw new Error("Não posso controlar páginas internas do navegador via extensão.");
+    }
+
+    // Send command to content script
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "EXECUTE_COMMAND",
+      command: commandType,
+      params: params,
+    });
+
+    console.log("✅ [TAB CMD] Response:", response);
+
+    if (response && response.result && response.result.error) {
+      throw new Error(response.result.error);
+    }
+
+    return response;
+  } catch (error) {
+    console.error("❌ [TAB CMD] Error:", error);
+    throw error;
+  }
 }
 
 /**
