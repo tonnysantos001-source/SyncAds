@@ -39,13 +39,13 @@ SELECT TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
 -- Policy: Usuarios podem ver apenas seus próprios logs
 CREATE POLICY "Users can view their own logs" ON ai_database_logs FOR
-SELECT TO authenticated USING (user_id = auth.uid());
+SELECT TO authenticated USING (user_id = auth.uid()::text);
 -- Policy: Apenas sistema pode inserir
 CREATE POLICY "System can insert logs" ON ai_database_logs FOR
 INSERT TO authenticated WITH CHECK (true);
@@ -148,7 +148,7 @@ SELECT TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -158,7 +158,7 @@ INSERT TO authenticated WITH CHECK (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -168,7 +168,7 @@ UPDATE TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -214,7 +214,7 @@ SELECT TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -224,7 +224,7 @@ INSERT TO authenticated WITH CHECK (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -234,7 +234,7 @@ UPDATE TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
@@ -276,7 +276,7 @@ INSERT TO authenticated WITH CHECK (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
