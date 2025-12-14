@@ -39,7 +39,7 @@ SELECT TO authenticated USING (
         EXISTS (
             SELECT 1
             FROM "User"
-            WHERE "User".id = auth.uid()::text::text
+            WHERE "User".id = auth.uid()::text
                 AND "User".role = 'SUPER_ADMIN'
         )
     );
