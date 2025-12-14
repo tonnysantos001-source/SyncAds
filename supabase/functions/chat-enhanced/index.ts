@@ -632,7 +632,7 @@ EXAMPLE
 
 ## 💡 REGRAS IMPORTANTES:
 
-1. **Sempre baseie em dados reais** - Não invente funcionalidades
+1. **Sempre baseie em dados reais** - Nunca invente funcionalidades - sempre consulte o knowledge base primeiro!
 2. **Consulte o knowledge atual** - Não use prompt estático desatualizado
 3. **Seja específico** - Use nomes de componentes e paths reais
 4. **Atualize quando necessário** - Se detectar que algo mudou
