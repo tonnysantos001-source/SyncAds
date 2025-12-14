@@ -255,3 +255,4 @@ export function VideoEditor({ videoUrl, onSave, onClose }: VideoEditorProps) {
         </div>
     );
 }
+

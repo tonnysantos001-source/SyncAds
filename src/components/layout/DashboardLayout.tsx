@@ -185,3 +185,4 @@ class ErrorBoundaryWrapper extends React.Component<
 }
 
 export default DashboardLayout;
+

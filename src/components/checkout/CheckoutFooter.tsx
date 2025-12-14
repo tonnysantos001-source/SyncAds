@@ -448,3 +448,4 @@ export const CheckoutFooter: React.FC<CheckoutFooterProps> = ({
 };
 
 export default CheckoutFooter;
+

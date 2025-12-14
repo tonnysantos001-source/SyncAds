@@ -21,3 +21,4 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, title, descr
     </div>
   );
 };
+

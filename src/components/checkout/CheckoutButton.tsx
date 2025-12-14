@@ -241,3 +241,4 @@ export const SecondaryButton: React.FC<
 > = (props) => <CheckoutButton {...props} variant="secondary" />;
 
 export default CheckoutButton;
+

@@ -423,3 +423,4 @@ export function useVoiceInput(onTranscript: (text: string) => void) {
     handleStop,
   };
 }
+

@@ -763,3 +763,4 @@ const AllProductsPage = () => {
 };
 
 export default AllProductsPage;
+

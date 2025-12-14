@@ -345,3 +345,4 @@ export function PurpleAdmin() {
 export function MinimalAdmin() {
   return <AdminBackground theme="dark" showGrid={false} showPattern={false} />;
 }
+

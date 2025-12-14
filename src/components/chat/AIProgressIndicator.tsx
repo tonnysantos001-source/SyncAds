@@ -168,3 +168,4 @@ export const AIProgressIndicator: React.FC<AIProgressIndicatorProps> = ({ steps,
     </motion.div>
   );
 };
+

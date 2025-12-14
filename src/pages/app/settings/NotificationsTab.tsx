@@ -302,3 +302,4 @@ export const NotificationsTab: React.FC = () => {
     </motion.div>
   );
 };
+

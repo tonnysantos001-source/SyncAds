@@ -271,3 +271,4 @@ export const MinimalGlassCard: React.FC<GlassmorphismCardProps> = ({
 };
 
 export default GlassmorphismCard;
+

@@ -65,3 +65,4 @@ export const SecurityTab: React.FC = () => {
     </Card>
   );
 };
+

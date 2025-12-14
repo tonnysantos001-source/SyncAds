@@ -537,3 +537,4 @@ function getDefaultHTML() {
 }
 
 export default VisualEditorPro;
+

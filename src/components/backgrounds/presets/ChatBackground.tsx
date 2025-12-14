@@ -159,3 +159,4 @@ export function ProfessionalChatBackground() {
     </div>
   );
 }
+

@@ -455,3 +455,4 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
 };
 
 export default React.memo(Sidebar);
+

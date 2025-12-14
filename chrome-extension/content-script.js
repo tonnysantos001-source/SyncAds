@@ -988,11 +988,15 @@ async function initialize() {
   }
 
   // Create connect button (after delay)
+  // ⚠️ DESABILITADO: Botão removido para não aparecer em todos os sites
+  // A detecção de token continua funcionando automaticamente em background
+  /*
   setTimeout(() => {
     if (document.body && !isSyncAdsSite) {
       createConnectButton();
     }
   }, CONFIG.detection.initialDelay + 500);
+  */
 
   // Start periodic checks (APENAS SE NÃO TEMOS TOKEN AINDA)
   setInterval(() => {

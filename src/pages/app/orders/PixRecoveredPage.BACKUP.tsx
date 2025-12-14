@@ -467,3 +467,4 @@ const PixRecoveredPage = () => {
 };
 
 export default PixRecoveredPage;
+

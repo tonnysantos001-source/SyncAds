@@ -736,3 +736,4 @@ export default function ReportsOverviewPage() {
           color="bg-gradient-to-br from-orange-400 to-red-500"
           iconColor="bg-gradient-to-br from-orange-500 to-red-600"
           progressValue={Math.min((metrics.aver
+

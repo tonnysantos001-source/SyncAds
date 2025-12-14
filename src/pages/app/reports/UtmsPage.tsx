@@ -772,3 +772,4 @@ gradient-to-r from-pink-500/10 to-red-500/10"
 };
 
 export default UtmsPage;
+

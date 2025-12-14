@@ -804,3 +804,4 @@ footer {
 }
 
 export default VisualEditorModalDualite;
+

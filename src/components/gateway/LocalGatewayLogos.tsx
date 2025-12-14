@@ -103,3 +103,4 @@ export const hasLocalLogo = (slug: string): boolean => {
 export const getLocalLogo = (slug: string): string | undefined => {
   return slug ? localGatewayLogos[slug.toLowerCase()] : undefined;
 };
+

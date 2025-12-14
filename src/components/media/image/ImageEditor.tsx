@@ -365,3 +365,4 @@ export function ImageEditor({ imageUrl, onSave, onClose }: ImageEditorProps) {
         </div>
     );
 }
+

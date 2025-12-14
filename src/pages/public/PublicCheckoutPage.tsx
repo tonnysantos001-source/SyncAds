@@ -1604,3 +1604,4 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 };
 
 export default PublicCheckoutPageNovo;
+

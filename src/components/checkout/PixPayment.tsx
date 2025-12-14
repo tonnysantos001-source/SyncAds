@@ -633,3 +633,4 @@ export const PixPayment: React.FC<PixPaymentProps> = ({
     </motion.div>
   );
 };
+

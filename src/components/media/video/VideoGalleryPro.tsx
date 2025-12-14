@@ -37,7 +37,7 @@ import {
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 // Import components
@@ -109,7 +109,7 @@ export function VideoGalleryPro({
     const [generationProgress, setGenerationProgress] = useState<{ [key: string]: number }>({});
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const supabase = createClient();
+    // supabase já importado
     const user = useAuthStore((state) => state.user);
 
     // Load available providers
@@ -802,3 +802,5 @@ export function VideoGalleryPro({
 }
 
 export default VideoGalleryPro;
+
+

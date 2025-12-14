@@ -175,3 +175,4 @@ export const SecurityBadges: React.FC<SecurityBadgesProps> = ({
 };
 
 export default SecurityBadges;
+

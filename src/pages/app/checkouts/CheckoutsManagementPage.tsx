@@ -556,3 +556,4 @@ const CheckoutsManagementPage: React.FC = () => {
 };
 
 export default CheckoutsManagementPage;
+

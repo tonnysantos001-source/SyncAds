@@ -181,3 +181,4 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
 };
 
 export default GatewayLogo;
+

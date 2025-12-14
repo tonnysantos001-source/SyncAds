@@ -1648,3 +1648,4 @@ O link abrirá em uma nova aba para você autorizar o acesso.`,
 };
 
 export default ChatPage;
+

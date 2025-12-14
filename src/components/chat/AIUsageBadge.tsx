@@ -136,3 +136,4 @@ export const AIUsageBadge: React.FC = () => {
     </TooltipProvider>
   );
 };
+

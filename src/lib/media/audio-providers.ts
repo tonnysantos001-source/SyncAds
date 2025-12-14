@@ -9,7 +9,7 @@
  * - Suno AI (music generation)
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export interface AudioGenerationOptions {
     type: 'tts' | 'music' | 'sfx';
@@ -62,7 +62,6 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
         generate: async (options) => {
             // Call Edge Function generate-audio
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabase = createClient();
 
             // Get auth session
             const { data: { session } } = await supabase.auth.getSession();
@@ -112,7 +111,6 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
         },
         isAvailable: async () => {
             // Check if user is authenticated
-            const supabase = createClient();
             const { data: { session } } = await supabase.auth.getSession();
             return !!session;
         },

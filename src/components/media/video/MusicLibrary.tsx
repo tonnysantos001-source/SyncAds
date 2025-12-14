@@ -12,7 +12,7 @@ import {
     IconX,
     IconLoader2,
     IconMusic,
-    IconWaveform,
+    IconWaveSine,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -289,7 +289,7 @@ export function MusicLibrary({ onSelectMusic, onClose }: MusicLibraryProps) {
 
                                 {/* Waveform Placeholder */}
                                 <div className="w-32 h-12 flex items-center justify-center opacity-50">
-                                    <IconWaveform className="w-full h-full text-blue-500" />
+                                    <IconWaveSine className="w-full h-full text-blue-500" />
                                 </div>
 
                                 {/* Actions */}
@@ -326,3 +326,4 @@ export function MusicLibrary({ onSelectMusic, onClose }: MusicLibraryProps) {
         </div>
     );
 }
+

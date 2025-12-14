@@ -338,3 +338,4 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
 };
 
 export default NoticeBar;
+

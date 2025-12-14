@@ -400,3 +400,4 @@ export const BoletoPayment: React.FC<BoletoPaymentProps> = ({
     </div>
   );
 };
+

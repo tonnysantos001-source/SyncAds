@@ -125,3 +125,4 @@ const CheckoutSuccessPage: React.FC = () => {
 };
 
 export default CheckoutSuccessPage;
+

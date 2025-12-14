@@ -201,3 +201,4 @@ export function ComponentPalette({ onComponentSelect }: ComponentPaletteProps) {
         </div>
     );
 }
+

@@ -383,3 +383,4 @@ export const ModernPixPayment: React.FC<ModernPixPaymentProps> = ({
     </div>
   );
 };
+

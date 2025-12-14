@@ -189,3 +189,4 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
 };
 
 export default GatewayCard;
+

@@ -342,3 +342,4 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
 };
 
 export default Header;
+

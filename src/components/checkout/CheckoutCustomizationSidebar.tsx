@@ -1089,3 +1089,4 @@ export const CheckoutCustomizationSidebar: React.FC<
     </div>
   );
 };
+

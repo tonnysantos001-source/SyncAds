@@ -309,3 +309,4 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onOp
     </Dialog>
   );
 };
+

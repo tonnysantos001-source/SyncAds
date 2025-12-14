@@ -111,3 +111,4 @@ export const NotificationsTab: React.FC = () => {
     </Card>
   );
 };
+

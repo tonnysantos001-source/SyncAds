@@ -344,3 +344,4 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
 };
 
 export default OrderBumpCard;
+

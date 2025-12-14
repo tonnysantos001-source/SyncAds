@@ -200,3 +200,4 @@ export const IntegrationConnectionCard: React.FC<IntegrationConnectionCardProps>
     </div>
   );
 };
+

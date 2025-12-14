@@ -966,3 +966,4 @@ const GatewayConfigPage = () => {
 };
 
 export default GatewayConfigPage;
+

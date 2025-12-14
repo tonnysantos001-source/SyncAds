@@ -109,3 +109,4 @@ export const ActiveCampaignsTable: React.FC = () => {
     </div>
   );
 };
+

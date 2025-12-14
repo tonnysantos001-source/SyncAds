@@ -860,3 +860,4 @@ export const CustomGatewayLogo: React.FC<{
 };
 
 export default CustomGatewayLogo;
+

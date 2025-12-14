@@ -77,3 +77,4 @@ export const DashboardChart: React.FC = () => {
     </ResponsiveContainer>
   );
 };
+

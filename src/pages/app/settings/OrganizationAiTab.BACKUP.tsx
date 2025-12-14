@@ -269,3 +269,4 @@ export const OrganizationAiTab: React.FC = () => {
     </div>
   );
 };
+

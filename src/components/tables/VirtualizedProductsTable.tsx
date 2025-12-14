@@ -256,3 +256,4 @@ export function VirtualizedProductsTable({
 }
 
 export default VirtualizedProductsTable;
+

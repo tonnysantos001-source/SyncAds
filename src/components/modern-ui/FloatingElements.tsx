@@ -474,3 +474,4 @@ export default {
   FloatingGradient,
   FloatingText,
 };
+

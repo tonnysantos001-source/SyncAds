@@ -125,3 +125,4 @@ export const SearchSourcesIndicator: React.FC<{
 
   return null;
 };
+

@@ -1134,3 +1134,4 @@ const PublicCheckoutPageNovo: React.FC = () => {
 };
 
 export default PublicCheckoutPageNovo;
+

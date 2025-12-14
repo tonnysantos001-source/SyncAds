@@ -38,7 +38,7 @@ import {
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 // Import new components
@@ -106,7 +106,7 @@ export function ImageGalleryPro({
     const [availableProviders, setAvailableProviders] = useState<string[]>([]);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const supabase = createClient();
+    // supabase já importado
     const user = useAuthStore((state) => state.user);
 
     // Load available providers on mount
@@ -706,3 +706,5 @@ export function ImageGalleryPro({
 }
 
 export default ImageGalleryPro;
+
+

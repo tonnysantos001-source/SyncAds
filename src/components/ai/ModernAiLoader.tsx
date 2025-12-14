@@ -288,3 +288,4 @@ export const FloatingDotsLoader: React.FC<{ color?: string }> = ({
     </div>
   );
 };
+

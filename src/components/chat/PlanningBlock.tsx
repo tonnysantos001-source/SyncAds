@@ -44,3 +44,4 @@ export const PlanningBlock: React.FC<PlanningBlockProps> = ({ content }) => {
         </div>
     );
 };
+

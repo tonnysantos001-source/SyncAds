@@ -326,3 +326,4 @@ const PixelsPage = () => {
 };
 
 export default PixelsPage;
+

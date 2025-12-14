@@ -520,3 +520,4 @@ const PixPaymentPage: React.FC = () => {
 };
 
 export default PixPaymentPage;
+

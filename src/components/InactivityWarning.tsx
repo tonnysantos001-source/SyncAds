@@ -326,3 +326,4 @@ export function InactivityToast({
     </div>
   );
 }
+

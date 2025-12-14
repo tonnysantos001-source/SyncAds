@@ -745,3 +745,4 @@ const PublicCheckoutPageNew: React.FC = () => {
                   <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+

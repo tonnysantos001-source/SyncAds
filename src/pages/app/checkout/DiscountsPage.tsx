@@ -698,3 +698,4 @@ const DiscountsPage: React.FC = () => {
 };
 
 export default DiscountsPage;
+

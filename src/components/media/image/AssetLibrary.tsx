@@ -302,3 +302,4 @@ export function AssetLibrary({ onSelectImage, onClose }: AssetLibraryProps) {
         </div>
     );
 }
+

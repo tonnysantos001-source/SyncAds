@@ -199,3 +199,4 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
 };
 
 export default ModernLogo;
+

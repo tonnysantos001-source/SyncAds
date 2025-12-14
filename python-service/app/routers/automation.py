@@ -513,6 +513,110 @@ async def test_automation():
 
 
 # ==========================================
+# LEGACY ENDPOINTS (For Edge Function Compatibility)
+# ==========================================
+
+@router.post("/automation/browser/navigate")
+async def legacy_navigate(session_id: str, url: str):
+    """Legacy endpoint - redirects to enhanced navigate"""
+    logger.info(f"Legacy navigate called: {url}")
+    return await enhanced_navigate(session_id, url)
+
+
+@router.post("/automation/browser/fill-form")
+async def legacy_fill_form(
+    session_id: str,
+    form_data: Dict[str, Any],
+    form_selector: Optional[str] = None
+):
+    """Legacy endpoint - redirects to enhanced fill form"""
+    logger.info("Legacy fill-form called")
+    return await enhanced_fill_form(session_id, form_data, form_selector)
+
+
+@router.post("/automation/browser/click")
+async def legacy_click(session_id: str, selector: str):
+    """Legacy endpoint - click on element"""
+    logger.info(f"Legacy click called: {selector}")
+    try:
+        page = browser_service.pages.get(session_id)
+        if not page:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        await page.click(selector)
+        return {
+            "success": True,
+            "action": "click",
+            "selector": selector
+        }
+    except Exception as e:
+        logger.error(f"Click failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/automation/browser/extract")
+async def legacy_extract(session_id: str, selectors: Dict[str, str]):
+    """Legacy endpoint - extract data from page"""
+    logger.info("Legacy extract called")
+    try:
+        page = browser_service.pages.get(session_id)
+        if not page:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        extracted_data = {}
+        for key, selector in selectors.items():
+            try:
+                element = await page.query_selector(selector)
+                if element:
+                    extracted_data[key] = await element.text_content()
+                else:
+                    extracted_data[key] = None
+            except Exception as e:
+                logger.warning(f"Failed to extract {key}: {e}")
+                extracted_data[key] = None
+        
+        return {
+            "success": True,
+            "data": extracted_data
+        }
+    except Exception as e:
+        logger.error(f"Extract failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/automation/browser/screenshot")
+async def legacy_screenshot(session_id: str, full_page: bool = False):
+    """Legacy endpoint - redirects to enhanced screenshot"""
+    logger.info("Legacy screenshot called")
+    return await enhanced_screenshot(session_id, full_page)
+
+
+@router.post("/automation/browser/scrape-products")
+async def legacy_scrape_products(
+    session_id: str,
+    product_selectors: Dict[str, str]
+):
+    """Legacy endpoint - redirects to enhanced scrape products"""
+    logger.info("Legacy scrape-products called")
+    return await enhanced_scrape_products(session_id, product_selectors)
+
+
+@router.post("/automation/browser/detect-checkout")
+async def legacy_detect_checkout(session_id: str):
+    """Legacy endpoint - redirects to enhanced detect checkout"""
+    logger.info("Legacy detect-checkout called")
+    return await enhanced_detect_checkout(session_id)
+
+
+@router.post("/automation/browser/session")
+async def legacy_create_session(session_id: str, user_agent: Optional[str] = None):
+    """Legacy endpoint - redirects to create enhanced session"""
+    logger.info(f"Legacy create session called: {session_id}")
+    return await create_enhanced_session(session_id, user_agent)
+
+
+
+# ==========================================
 # ENHANCED BROWSER SERVICE ENDPOINTS
 # ==========================================
 

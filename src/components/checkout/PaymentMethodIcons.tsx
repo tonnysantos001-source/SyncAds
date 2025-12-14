@@ -211,3 +211,4 @@ export const PaymentMethodIcons: React.FC<PaymentMethodIconsProps> = ({
 };
 
 export default PaymentMethodIcons;
+

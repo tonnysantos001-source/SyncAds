@@ -65,3 +65,4 @@ export const AiTab: React.FC = () => {
     </div>
   );
 };
+

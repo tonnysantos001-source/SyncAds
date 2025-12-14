@@ -23,3 +23,4 @@ export function TypingIndicator({ status = "thinking" }: TypingIndicatorProps) {
         </div>
     );
 }
+

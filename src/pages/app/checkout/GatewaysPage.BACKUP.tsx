@@ -747,3 +747,4 @@ const GatewaysPage = () => {
 };
 
 export default GatewaysPage;
+

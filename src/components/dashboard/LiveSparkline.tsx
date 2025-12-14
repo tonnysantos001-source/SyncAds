@@ -135,3 +135,4 @@ export const LiveSparkline: React.FC<LiveSparklineProps> = ({
 };
 
 export default LiveSparkline;
+

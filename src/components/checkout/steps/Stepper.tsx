@@ -113,3 +113,4 @@ const Connector: React.FC<ConnectorProps> = ({ isCompleted, theme }) => {
 };
 
 export default Stepper;
+

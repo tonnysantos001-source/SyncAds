@@ -758,3 +758,4 @@ export default function GlobalAiPage() {
     </SuperAdminLayout>
   );
 }
+

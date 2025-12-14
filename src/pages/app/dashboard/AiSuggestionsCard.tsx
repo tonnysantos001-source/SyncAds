@@ -32,3 +32,4 @@ export const AiSuggestionsCard: React.FC = () => {
     </Card>
   );
 };
+

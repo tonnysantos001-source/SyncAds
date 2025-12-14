@@ -30,11 +30,11 @@ import {
     IconHistory,
     IconTrash,
     IconPlayerPlay,
-    IconWaveform,
+    IconWaveSine,
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 // Import components
@@ -105,7 +105,7 @@ export function AudioGalleryPro({
     const [availableProviders, setAvailableProviders] = useState<string[]>([]);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const supabase = createClient();
+    // supabase já importado
     const user = useAuthStore((state) => state.user);
 
     // Load available providers
@@ -634,7 +634,7 @@ export function AudioGalleryPro({
                                 >
                                     {audios.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center h-96">
-                                            <IconWaveform className="w-20 h-20 text-gray-600 mb-4" />
+                                            <IconWaveSine className="w-20 h-20 text-gray-600 mb-4" />
                                             <p className="text-xl text-gray-400 mb-2">
                                                 Nenhum áudio ainda
                                             </p>
@@ -684,7 +684,7 @@ export function AudioGalleryPro({
 
                                                     {/* Waveform Placeholder */}
                                                     <div className="w-32 h-12 opacity-50">
-                                                        <IconWaveform className="w-full h-full text-blue-500" />
+                                                        <IconWaveSine className="w-full h-full text-blue-500" />
                                                     </div>
 
                                                     {/* Actions */}
@@ -762,3 +762,5 @@ export function AudioGalleryPro({
 }
 
 export default AudioGalleryPro;
+
+

@@ -585,3 +585,4 @@ const PixelsPage: React.FC = () => {
 };
 
 export default PixelsPage;
+

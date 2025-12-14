@@ -115,3 +115,4 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
     </div>
   );
 };
+

@@ -486,3 +486,4 @@ const GatewaysListPage = () => {
 };
 
 export default GatewaysListPage;
+

@@ -322,3 +322,4 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
     </div>
   );
 };
+

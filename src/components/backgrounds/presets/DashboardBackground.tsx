@@ -85,3 +85,4 @@ export function CleanDashboard() {
 export function GridDashboard() {
   return <DashboardBackground theme="dark" showGrid={true} showParticles={false} />;
 }
+

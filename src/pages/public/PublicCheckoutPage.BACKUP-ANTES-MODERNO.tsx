@@ -1781,3 +1781,4 @@ const PublicCheckoutPage: React.FC<PublicCheckoutProps> = ({
 };
 
 export default PublicCheckoutPage;
+

@@ -232,3 +232,4 @@ export const AiConnectionModal: React.FC<AiConnectionModalProps> = ({ isOpen, on
     </Dialog>
   );
 };
+

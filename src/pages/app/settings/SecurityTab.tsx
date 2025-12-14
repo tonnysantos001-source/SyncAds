@@ -235,3 +235,4 @@ export const SecurityTab: React.FC = () => {
     </motion.div>
   );
 };
+

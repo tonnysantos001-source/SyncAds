@@ -14,7 +14,7 @@ import {
     IconZoomOut,
     IconX,
     IconDownload,
-    IconWaveform,
+    IconWaveSine,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -159,7 +159,7 @@ export function AudioEditor({ audioUrl, onSave, onClose }: AudioEditorProps) {
                 <div className="bg-gray-900 rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                            <IconWaveform className="w-6 h-6 text-purple-400" />
+                            <IconWaveSine className="w-6 h-6 text-purple-400" />
                             <h3 className="text-lg font-bold text-white">Waveform</h3>
                         </div>
                         <div className="text-sm text-gray-400">
@@ -335,3 +335,4 @@ export function AudioEditor({ audioUrl, onSave, onClose }: AudioEditorProps) {
         </div>
     );
 }
+

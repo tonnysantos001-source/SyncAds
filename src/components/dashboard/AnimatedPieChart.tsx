@@ -197,3 +197,4 @@ export const AnimatedPieChart: React.FC<AnimatedPieChartProps> = ({
 };
 
 export default AnimatedPieChart;
+

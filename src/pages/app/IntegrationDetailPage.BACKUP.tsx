@@ -745,3 +745,4 @@ const IntegrationDetailPage: React.FC = () => {
 };
 
 export default IntegrationDetailPage;
+

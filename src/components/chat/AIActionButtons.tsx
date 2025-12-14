@@ -193,3 +193,4 @@ export const AIActionButtons: React.FC<AIActionButtonsProps> = ({ action, onComp
 
   return null;
 };
+

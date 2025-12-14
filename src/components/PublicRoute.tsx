@@ -16,3 +16,4 @@ const PublicRoute: React.FC = () => {
 };
 
 export default PublicRoute;
+

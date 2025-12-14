@@ -860,3 +860,4 @@ const DiscountBannerPage = () => {
 };
 
 export default DiscountBannerPage;
+

@@ -1226,3 +1226,4 @@ export default function PlansManagementPage() {
     </SuperAdminLayout>
   );
 }
+

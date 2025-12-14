@@ -546,3 +546,4 @@ function getStatusIcon(status: 'healthy' | 'degraded' | 'down') {
       return AlertCircle;
   }
 }
+

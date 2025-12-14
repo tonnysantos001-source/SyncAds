@@ -798,3 +798,4 @@ AGORA GERE O CÓDIGO PARA:`;
 }
 
 export default VisualEditorModal;
+

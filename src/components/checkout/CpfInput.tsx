@@ -185,3 +185,4 @@ export const CpfInput: React.FC<CpfInputProps> = ({
 };
 
 export default CpfInput;
+

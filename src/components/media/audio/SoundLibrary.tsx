@@ -11,7 +11,7 @@ import {
     IconDownload,
     IconX,
     IconLoader2,
-    IconWaveform,
+    IconWaveSine,
     IconVolume,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
@@ -272,7 +272,7 @@ export function SoundLibrary({ onSelectSound, onClose }: SoundLibraryProps) {
 
                                 {/* Waveform Placeholder */}
                                 <div className="w-32 h-12 flex items-center justify-center opacity-50">
-                                    <IconWaveform className="w-full h-full text-green-500" />
+                                    <IconWaveSine className="w-full h-full text-green-500" />
                                 </div>
 
                                 {/* Actions */}
@@ -309,3 +309,4 @@ export function SoundLibrary({ onSelectSound, onClose }: SoundLibraryProps) {
         </div>
     );
 }
+

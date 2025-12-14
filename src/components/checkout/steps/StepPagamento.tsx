@@ -357,3 +357,4 @@ export const StepPagamento: React.FC<StepPagamentoProps> = ({
 };
 
 export default StepPagamento;
+
