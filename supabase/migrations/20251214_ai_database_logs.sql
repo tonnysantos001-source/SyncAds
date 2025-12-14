@@ -4,7 +4,7 @@
 -- ==========================================
 CREATE TABLE IF NOT EXISTS ai_database_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES "User"(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES "User"(id) ON DELETE CASCADE,
     -- Detalhes da operação
     action TEXT NOT NULL CHECK (
         action IN ('query', 'insert', 'update', 'delete', 'schema')
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS ai_database_logs (
         risk_level IN ('low', 'medium', 'high', 'critical')
     ),
     is_approved BOOLEAN DEFAULT false,
-    approved_by UUID REFERENCES "User"(id),
+    approved_by TEXT REFERENCES "User"(id),
     approved_at TIMESTAMP WITH TIME ZONE,
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS ai_generated_gateways (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Aprovação
     approved_at TIMESTAMP WITH TIME ZONE,
-    approved_by UUID REFERENCES "User"(id),
+    approved_by TEXT REFERENCES "User"(id),
     rejection_reason TEXT,
     -- Tracking de uso
     usage_count INTEGER DEFAULT 0,
@@ -130,10 +130,8 @@ CREATE TABLE IF NOT EXISTS ai_generated_gateways (
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_ai_gateways_status ON ai_generated_gateways(status);
 CREATE INDEX IF NOT EXISTS idx_ai_gateways_type ON ai_generated_gateways(type);
-CREATE INDEX IF NOT EXISTS idx_ai_gateways_public ON ai_generated_gateways(
-    is_public
-    WHERE is_public = true
-);
+CREATE INDEX IF NOT EXISTS idx_ai_gateways_public ON ai_generated_gateways(is_public)
+WHERE is_public = true;
 CREATE INDEX IF NOT EXISTS idx_ai_gateways_rating ON ai_generated_gateways(rating DESC)
 WHERE is_public = true;
 -- RLS
@@ -192,9 +190,9 @@ CREATE TABLE IF NOT EXISTS system_prompt_versions (
     ),
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID REFERENCES "User"(id),
+    created_by TEXT REFERENCES "User"(id),
     approved_at TIMESTAMP WITH TIME ZONE,
-    approved_by UUID REFERENCES "User"(id),
+    approved_by TEXT REFERENCES "User"(id),
     -- Métricas de performance
     performance_score DECIMAL(3, 2),
     usage_count INTEGER DEFAULT 0,
