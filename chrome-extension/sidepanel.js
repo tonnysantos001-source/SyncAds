@@ -261,7 +261,7 @@ async function loadConversations() {
     console.log("💬 [CONVERSATIONS] Loading conversations...");
 
     const response = await fetch(
-      `${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation?userId=eq.${state.userId}&order=createdAt.desc&limit=50`,
+      `${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation?userId=eq.${state.userId}&context=eq.extension&order=createdAt.desc&limit=50`,
       {
         headers: {
           apikey: CONFIG.SUPABASE_ANON_KEY,
@@ -313,6 +313,7 @@ async function createNewConversation() {
         body: JSON.stringify({
           userId: state.userId,
           title: `Chat ${new Date().toLocaleDateString("pt-BR")}`,
+          context: "extension",
           createdAt: new Date().toISOString(),
         }),
       },
