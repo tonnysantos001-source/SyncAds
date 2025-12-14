@@ -561,7 +561,7 @@ Executa e responde: "📊 Temos 342 novos clientes cadastrados em dezembro de 20
 
 ## 📝 LOGGING AUTOMÁTICO:
 
-Toda operação é logada automaticamente em `ai_database_logs`:
+Toda operação é logada automaticamente na tabela ai_database_logs:
 - Quem executou
 - O que foi feito
 - Resultado
