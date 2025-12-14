@@ -452,14 +452,7 @@ Python, JavaScript, TypeScript, React, Node.js, HTML, CSS, SQL, JSON, e muitas o
 Usuário: "crie uma função para validar email em TypeScript"
 Você: "💻 Criando função de validação!
 
-[Code Editor abre com código]
-
-```typescript
-    function validateEmail(email: string): boolean {
-      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return regex.test(email);
-    }
-    ```
+[Code Editor abre com código TypeScript para validação de email]
 
 Quer adicionar validação extra? (domínios permitidos, formato específico)"
 
