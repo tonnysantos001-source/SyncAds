@@ -1,33 +1,47 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import { ChatModalManager } from '@/components/chat/modals';
+import { ConversationSidebar, MenuToggleButton } from '@/components/chat/ConversationSidebar';
 import chatService from '@/lib/api/chatService';
 import type { ModalContext } from '@/lib/ai/modalContext';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 
 /**
- * CHAT PAGE - SISTEMA DE MODAIS ADAPTATIVOS
+ * CHAT PAGE - SISTEMA DE MODAIS ADAPTATIVOS COM SIDEBAR
  * 
- * Versão 2.0 - Usando ChatModalManager com detecção automática de contexto
+ * Versão 3.0 - Sidebar restaurada + ChatModalManager
  * 
  * Features:
- * - Detecção automática de intenção do usuário
- * - Transição suave entre modais especializados:
- *   - Chat Normal: conversas gerais
- *   - Visual Editor: criar landing pages (estilo Dualite)
- *   - Image Gallery: gerar/visualizar imagens (estilo Canva)
- *   - Video Gallery: criar/visualizar vídeos
- *   - Browser Automation: controlar navegador via extensão
- * - NLP para classificação de contexto
- * - Analytics e tracking de uso
+ * - ✅ Sidebar com histórico de conversas (estilo ChatGPT)
+ * - ✅ Auto-hide sidebar ao enviar mensagem
+ * - ✅ Toggle Menu button para mostrar/esconder
+ * - ✅ Detecção automática de contexto (modais adaptativos)
+ * - ✅ Separação de contextos web/extension
  * 
- * @version 2.0.0
- * @date 2025-12-08
+ * @version 3.0.0
+ * @date 2025-12-14
  */
 export default function ChatPage() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Chat store
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore((state) => state.activeConversationId);
+  const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
+  const createNewConversation = useChatStore((state) => state.createNewConversation);
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const loadConversations = useChatStore((state) => state.loadConversations);
+
+  // Sidebar state (open by default on desktop, closed on mobile)
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== 'undefined' && window.innerWidth >= 768
+  );
 
   // Auth check
   useEffect(() => {
@@ -36,57 +50,111 @@ export default function ChatPage() {
     }
   }, [isAuthenticated, user, navigate]);
 
-  /**
-   * Handle modal changes
-   * Track analytics when user switches between modals
-   */
+  // Load conversations for web context only
+  useEffect(() => {
+    if (user) {
+      loadConversations(user.id, 'web'); // Only web conversations
+    }
+  }, [user?.id, loadConversations]);
+
+  // Handle modal changes
   const handleModalChange = (modalType: string) => {
     console.log('[ChatPage] Modal changed:', modalType);
-
-    // TODO: Add analytics tracking
-    // analytics.track('modal_changed', {
-    //   modalType,
-    //   userId: user?.id,
-    //   timestamp: Date.now(),
-    // });
   };
 
-  /**
-   * Handle message sending with context awareness
-   * Routes messages to appropriate backend endpoint based on modal context
-   */
+  // Handle message sending with sidebar auto-hide
   const handleSendMessage = async (message: string, context: ModalContext) => {
     console.log('[ChatPage] Sending message:', {
       message: message.substring(0, 50) + '...',
       modalType: context.type,
-      confidence: context.confidence,
     });
 
+    // Auto-hide sidebar when sending message (ChatGPT behavior)
+    setSidebarOpen(false);
+
     try {
-      // Send message to backend with context
-      // Backend can handle differently based on modal type
       await chatService.sendMessage(message, {
         modalType: context.type,
         confidence: context.confidence,
         params: context.params,
         metadata: context.metadata,
+        conversationId: activeConversationId,
       });
-
-      // TODO: Add success tracking
-      // analytics.track('message_sent', {
-      //   modalType: context.type,
-      //   confidence: context.confidence,
-      //   messageLength: message.length,
-      // });
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
-
-      // TODO: Add error tracking
-      // analytics.track('message_error', {
-      //   modalType: context.type,
-      //   error: error.message,
-      // });
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível enviar a mensagem.',
+        variant: 'destructive',
+      });
     }
+  };
+
+  // Handle new conversation
+  const handleNewConversation = async () => {
+    if (!user) return;
+
+    try {
+      const newConv = await createNewConversation(user.id, 'web'); // Web context
+      setActiveConversationId(newConv.id);
+
+      toast({
+        title: '✨ Nova Conversa',
+        description: 'Conversa criada com sucesso!',
+      });
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar nova conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle delete conversation
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (!user) return;
+
+    try {
+      // Delete messages first
+      await supabase
+        .from('ChatMessage')
+        .delete()
+        .eq('conversationId', conversationId);
+
+      // Delete conversation
+      await supabase
+        .from('ChatConversation')
+        .delete()
+        .eq('id', conversationId);
+
+      // Reload conversations
+      await loadConversations(user.id, 'web');
+
+      // Clear active if deleted
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+      }
+
+      toast({
+        title: '🗑️ Conversa deletada',
+        description: 'A conversa foi removida com sucesso.',
+      });
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível deletar a conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Load conversation messages
+  const loadConversationMessages = async (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    // Messages will be loaded by ChatModalManager
   };
 
   // Don't render until authenticated
@@ -95,16 +163,40 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden">
-      <ChatModalManager
-        autoDetect={true}
-        allowManualSwitch={true}
-        initialModal="chat"
-        userId={user.id}
-        onModalChange={handleModalChange}
-        onSendMessage={handleSendMessage}
-        className="h-full w-full"
+    <div className="h-screen w-full flex overflow-hidden">
+      {/* Sidebar */}
+      <ConversationSidebar
+        isOpen={sidebarOpen}
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onClose={() => setSidebarOpen(false)}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={loadConversationMessages}
+        onDeleteConversation={handleDeleteConversation}
       />
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        {/* Menu Toggle Button (visible when sidebar is closed) */}
+        {!sidebarOpen && (
+          <div className="absolute top-4 left-4 z-10">
+            <MenuToggleButton onClick={() => setSidebarOpen(true)} />
+          </div>
+        )}
+
+        {/* Chat Modal Manager */}
+        <ChatModalManager
+          autoDetect={true}
+          allowManualSwitch={true}
+          initialModal="chat"
+          userId={user.id}
+          conversationId={activeConversationId || undefined}
+          onModalChange={handleModalChange}
+          onSendMessage={handleSendMessage}
+          className="h-full w-full"
+        />
+      </div>
     </div>
   );
 }
