@@ -2560,6 +2560,24 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
       response = cleanResponse.trim();
     }
 
+    // ============================================
+    // 🔧 FILTRO DE ERROS TÉCNICOS
+    // Remove mensagens de erro 502 e problemas técnicos da resposta
+    // ============================================
+    response = response
+      // Remover bloco inteiro de erro de automação com regex mais abrangente
+      .replace(/❌\s*Erro\s*na\s*automa[çc][ãa]o\s*de\s*navegador:\s*\{[^\}]*\}/gi, "")
+      // Remover qualquer menção a erro 502
+      .replace(/\{[^\}]*"code"\s*:\s*502[^\}]*\}/g, "")
+      // Remover mensagens "Application failed to respond"
+      .replace(/Application\s+failed\s+to\s+respond/gi, "")
+      // Remover request_id órfãos
+      .replace(/["']request_id["']\s*:\s*["'][^"']*["']/g, "")
+      // Limpar linhas vazias múltiplas
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+
     // Salvar resposta da IA no banco
     const assistantMsgId = crypto.randomUUID();
     const { error: saveAssistantError } = await supabase
