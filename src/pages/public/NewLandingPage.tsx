@@ -912,11 +912,11 @@ const NewLandingPage = () => {
           </div>
         </motion.div>
     </div>
-    </div >
-  </section >
+    </div>
+  </section>
 
-  {/* AI Multimodal Section */ }
-  < section className = "py-24 relative overflow-hidden" >
+  {/* AI Multimodal Section */}
+  <section className="py-24 relative overflow-hidden">
     <div className="container mx-auto px-4 sm:px-6">
       <motion.div
         initial="hidden"
@@ -1031,10 +1031,10 @@ const NewLandingPage = () => {
         </Button>
       </motion.div>
     </div>
-  </section >
+  </section>
 
-  {/* Store Cloning Section */ }
-  < section className = "py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950" >
+  {/* Store Cloning Section */}
+  <section className="py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
     <div className="container mx-auto px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
@@ -1166,12 +1166,12 @@ const NewLandingPage = () => {
         </motion.div>
       </div>
     </div>
-  </section >
+  </section>
 
-  {/* Pricing Section */ }
-  < section
-id = "pricing"
-className = "py-24 bg-gray-50 dark:bg-gray-900 relative"
+  {/* Pricing Section */}
+  <section
+    id="pricing"
+    className="py-24 bg-gray-50 dark:bg-gray-900 relative"
   >
   <div className="container mx-auto px-4 sm:px-6">
     <motion.div
@@ -1300,10 +1300,10 @@ className = "py-24 bg-gray-50 dark:bg-gray-900 relative"
       />
     </div>
   </div>
-      </section >
+      </section>
 
-  {/* FAQ Section */ }
-  < section id = "faq" className = "py-24 bg-white dark:bg-gray-950" >
+  {/* FAQ Section */}
+  <section id="faq" className="py-24 bg-white dark:bg-gray-950">
     <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
       <motion.div
         initial="hidden"
@@ -1364,11 +1364,11 @@ className = "py-24 bg-gray-50 dark:bg-gray-900 relative"
         ))}
       </div>
     </div>
-      </section >
+      </section>
 
-  {/* Footer */ }
-  < LandingFooter />
-    </div >
+  {/* Footer */}
+  <LandingFooter />
+    </div>
   );
 };
 
