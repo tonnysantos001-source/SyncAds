@@ -29,5 +29,5 @@ ENV PYTHONPATH=/app
 # Railway provides PORT
 ENV PORT=8000
 
-# Start command
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Start command (shell form para expandir variável corretamente)
+CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"
