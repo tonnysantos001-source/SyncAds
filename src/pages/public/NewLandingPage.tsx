@@ -912,8 +912,8 @@ const NewLandingPage = () => {
           </div>
         </motion.div>
     </div>
-        </div >
-      </section >
+    </div >
+  </section >
 
   {/* AI Multimodal Section */ }
   < section className = "py-24 relative overflow-hidden" >
