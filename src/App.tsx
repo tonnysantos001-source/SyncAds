@@ -332,11 +332,11 @@ function App() {
                 isAuthenticated ? (
                   <Navigate to={redirectPath} />
                 ) : (
-                  <Navigate to="/landing" />
+                  <NewLandingPage />
                 )
               }
             />
-            <Route path="/landing" element={<NewLandingPage />} />
+            {/* <Route path="/landing" element={<NewLandingPage />} /> */}
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/refund" element={<RefundPolicy />} />

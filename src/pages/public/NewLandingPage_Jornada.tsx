@@ -6,12 +6,9 @@ import {
     Rocket,
     MessageCircle,
     Puzzle,
-    Globe,
-    Award,
     Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 export const JornadaSection = () => {
     const steps = [
@@ -114,113 +111,48 @@ export const ApiSection = () => {
     return (
         <section className="py-24 bg-gray-50 dark:bg-gray-900 relative">
             <div className="container mx-auto px-4 sm:px-6">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
-                    <motion.div
-                        initial={{ opacity: 0, x: -50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                    >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 font-semibold mb-6">
-                            <Puzzle className="h-5 w-5" />
-                            Biblioteca de APIs
-                        </div>
-                        <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-6">
-                            "IA, conecta meu Gateway favorito..."
-                        </h2>
-                        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                            Não se limite. Nossa IA possui uma biblioteca vasta de APIs e pode
-                            adicionar novas integrações sob demanda. Se existe uma API, nós
-                            conectamos.
-                        </p>
-                        <ul className="space-y-4 mb-8">
-                            {[
-                                "Gateways de Pagamento (55+ opções)",
-                                "Ferramentas de Email Marketing",
-                                "CRMs e ERPs",
-                                "Plataformas de Logística",
-                                "Tracker e Analytics",
-                            ].map((item, i) => (
-                                <li key={i} className="flex items-center gap-3">
-                                    <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                                        <Zap className="h-4 w-4 text-green-600" />
-                                    </div>
-                                    <span className="text-gray-700 dark:text-gray-200 font-medium">
-                                        {item}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                        <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
-                            Ver Todas Integrações
-                        </Button>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        className="grid grid-cols-3 gap-4"
-                    >
-                        {/* Logos Grid Mockup - Using placeholders/icons for layout */}
-                        {Array.from({ length: 9 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="aspect-square bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-lg border border-gray-100 dark:border-gray-700 p-6 hover:scale-105 transition-transform"
-                            >
-                                <Globe className="h-10 w-10 text-gray-400" />
-                            </div>
-                        ))}
-                    </motion.div>
-                </div>
-            </div>
-        </section>
-    );
-};
-
-export const PioneerSection = () => {
-    return (
-        <section className="py-24 bg-gradient-to-br from-blue-900 to-indigo-900 text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-            <div className="container mx-auto px-4 sm:px-6 relative z-10 text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
+                    className="max-w-4xl mx-auto text-center"
                 >
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-yellow-400/20 backdrop-blur-md border border-yellow-400/50 mb-8">
-                        <Award className="h-10 w-10 text-yellow-400" />
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 font-semibold mb-6">
+                        <Puzzle className="h-5 w-5" />
+                        Biblioteca de APIs
                     </div>
-                    <h2 className="text-4xl sm:text-6xl font-black mb-6">
-                        O Primeiro Gestor Pessoal com IA do Brasil 🇧🇷
+                    <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-6">
+                        "IA, conecta meu Gateway favorito..."
                     </h2>
-                    <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-10">
-                        Esqueça agências caras e ferramentas complexas. SyncAds é a primeira
-                        plataforma que coloca um Gestor de Tráfego Senior IA,
-                        Designer Sênior IA e Copywriter Sênior IA trabalhando EXCLUSIVAMENTE
-                        para você, 24/7.
+                    <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+                        Não se limite. Nossa IA possui uma biblioteca vasta de APIs e pode
+                        adicionar novas integrações sob demanda. Se existe uma API, nós
+                        conectamos.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-6">
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/20">
-                            <p className="text-3xl font-bold">100%</p>
-                            <p className="text-blue-200 text-sm">Automático</p>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/20">
-                            <p className="text-3xl font-bold">Sem Censura</p>
-                            <p className="text-blue-200 text-sm">Liberdade Total</p>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/20">
-                            <p className="text-3xl font-bold">Pioneiro</p>
-                            <p className="text-blue-200 text-sm">Brasil</p>
-                        </div>
+
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 text-left max-w-2xl mx-auto mb-10">
+                        {[
+                            "Gateways de Pagamento (+55)",
+                            "Email Marketing & CRM",
+                            "Ferramentas de Logística",
+                            "Trackers & Analytics",
+                            "ERPs & Notas Fiscais",
+                            "APIs Customizadas",
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:border-purple-500/50 transition-colors">
+                                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                    <Zap className="h-4 w-4 text-green-600" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {item}
+                                </span>
+                            </div>
+                        ))}
                     </div>
 
-                    <div className="mt-12">
-                        <Button size="lg" asChild className="bg-white text-blue-900 hover:bg-gray-100 text-lg px-8 py-6 rounded-full font-bold shadow-xl">
-                            <Link to="/register">
-                                Quero Ter Vantagem Competitiva Agora
-                            </Link>
-                        </Button>
-                    </div>
+                    <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+                        Ver Todas Integrações
+                    </Button>
                 </motion.div>
             </div>
         </section>
