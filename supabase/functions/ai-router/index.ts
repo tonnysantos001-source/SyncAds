@@ -65,7 +65,7 @@ interface AIRouterResponse {
 
 const PYTHON_SERVICE_URL =
   Deno.env.get("PYTHON_SERVICE_URL") ||
-  "https://syncads-python-service.railway.app";
+  "https://syncads-production.up.railway.app";
 
 // ============================================
 // CORS HEADERS

@@ -16,7 +16,7 @@ export async function executePython(
   const startTime = Date.now();
 
   try {
-    const pythonServiceUrl = Deno.env.get("PYTHON_SERVICE_URL") || "https://python-service-production.up.railway.app";
+    const pythonServiceUrl = Deno.env.get("PYTHON_SERVICE_URL") || "https://syncads-production.up.railway.app";
     const endpoint = `${pythonServiceUrl}/api/browser-automation/execute-python`;
 
     console.log(`🐍 Executing Python via Service: ${endpoint}`);

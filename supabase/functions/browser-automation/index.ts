@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
 
-const PYTHON_SERVICE_URL = Deno.env.get("PYTHON_SERVICE_URL") || "https://python-service-production.up.railway.app";
+const PYTHON_SERVICE_URL = Deno.env.get("PYTHON_SERVICE_URL") || "https://syncads-production.up.railway.app";
 
 serve(async (req) => {
     if (req.method === "OPTIONS") {
