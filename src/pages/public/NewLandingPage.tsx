@@ -1031,7 +1031,7 @@ const NewLandingPage = () => {
         </Button>
       </motion.div>
     </div>
-      </section >
+  </section >
 
   {/* Store Cloning Section */ }
   < section className = "py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950" >
@@ -1166,7 +1166,7 @@ const NewLandingPage = () => {
         </motion.div>
       </div>
     </div>
-      </section >
+  </section >
 
   {/* Pricing Section */ }
   < section
