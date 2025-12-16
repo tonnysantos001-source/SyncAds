@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import { FAQItem, LandingFooter } from "./NewLandingPageFooter";
 import { FeatureCard, PricingCard } from "./NewLandingPageComponents";
+import { JornadaSection, ApiSection, PioneerSection } from "./NewLandingPage_Jornada";
 
 const NewLandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -474,6 +475,9 @@ const NewLandingPage = () => {
         </motion.div>
       </section>
 
+      {/* Jornada do Usuário - Nova Seção */}
+      <JornadaSection />
+
       {/* Checkout Payment Highlight */}
       <section className="py-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-20" />
@@ -601,6 +605,9 @@ const NewLandingPage = () => {
           </div>
         </div>
       </section>
+
+      {/* API Library Section */}
+      <ApiSection />
 
       {/* Why SyncAds vs Courses Section */}
       <section className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
@@ -1345,6 +1352,9 @@ const NewLandingPage = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Pioneer Trust Section */}
+      <PioneerSection />
 
       {/* Footer */}
       <LandingFooter />
