@@ -977,6 +977,141 @@ const NewLandingPage = () => {
         </div>
       </section>
 
+      {/* Store Cloning Section */}
+      <section className="py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">
+                Clone Lojas Completas em Minutos
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                Copia produtos, descrições, imagens e até estrutura completa. IA personaliza tudo automaticamente.
+              </p>
+            </motion.div>
+
+            <div className="grid lg:grid-cols-3 gap-8 items-center">
+              {/* Step 1 */}
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="text-center"
+              >
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+                  <ShoppingCart className="h-10 w-10 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                  1. Cole a URL
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Cole o link da loja que quer clonar (Shopify, WooCommerce, etc)
+                </p>
+              </motion.div>
+
+              {/* Arrow */}
+              <div className="hidden lg:flex justify-center">
+                <ArrowRight className="h-12 w-12 text-purple-500" />
+              </div>
+
+              {/* Step 2 */}
+              <motion.div
+                initial={{ opacity: 0, x: 0 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-center"
+              >
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+                  <Bot className="h-10 w-10 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                  2. IA Clona
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  IA copia tudo: produtos, imagens, descrições em minutos
+                </p>
+              </motion.div>
+
+              {/* Arrow */}
+              <div className="hidden lg:flex justify-center">
+                <ArrowRight className="h-12 w-12 text-pink-500" />
+              </div>
+
+              {/* Step 3 */}
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-pink-100 dark:bg-pink-900/30 mb-4">
+                  <Check className="h-10 w-10 text-pink-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                  3. Loja Pronta
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Sua loja clonada e personalizada pronta para vender
+                </p>
+              </motion.div>
+            </div>
+
+            {/* Features */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-16 grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              {[
+                { title: "Scraping Completo", desc: "Todos os dados copiados" },
+                { title: "Personalização IA", desc: "Textos únicos gerados" },
+                { title: "Importação Shopify", desc: "Integração direta" },
+                { title: "Sem Limites", desc: "Clone quantas quiser" },
+              ].map((feature, i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800"
+                >
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-2">
+                    {feature.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {feature.desc}
+                  </p>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mt-12"
+            >
+              <Button
+                size="lg"
+                asChild
+                className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-2xl"
+              >
+                <Link to="/register">
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Clonar Minha Primeira Loja
+                </Link>
+              </Button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section
         id="pricing"
