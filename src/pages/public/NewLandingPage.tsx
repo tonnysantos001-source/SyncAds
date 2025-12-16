@@ -213,7 +213,7 @@ const NewLandingPage = () => {
               >
                 <Sparkles className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Checkout de Pagamento 7 Dias Grátis
+                  Checkout 100% Grátis - 0% de Taxa Para Sempre
                 </span>
               </motion.div>
 
@@ -223,11 +223,11 @@ const NewLandingPage = () => {
                 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight"
               >
                 <span className="text-gray-900 dark:text-white">
-                  Checkout Inteligente +
+                  Pare de Gastar R$5k em Cursos.
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  IA que Vende 24/7
+                  Use IA Profissional que Faz Tudo
                 </span>
               </motion.h1>
 
@@ -236,15 +236,15 @@ const NewLandingPage = () => {
                 variants={fadeInUp}
                 className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto lg:mx-0"
               >
-                Plataforma completa de{" "}
+                Gestor de Anúncios Profissional +{" "}
                 <strong className="text-gray-900 dark:text-white">
-                  checkout customizado
+                  Extensão Chrome
                 </strong>{" "}
-                com múltiplos gateways +{" "}
+                +{" "}
                 <strong className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Inteligência Artificial
+                  IA Sem Censura
                 </strong>{" "}
-                para gerenciar seu e-commerce automaticamente.
+                + Checkout 0% Taxa + Clone Lojas em Minutos.
               </motion.p>
 
               {/* CTA Buttons */}
@@ -493,13 +493,14 @@ const NewLandingPage = () => {
               </div>
 
               <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">
-                7 Dias Grátis + Apenas 1,5% por Transação Paga
+                Checkout 100% Grátis - 0% de Taxa de Transação
               </h2>
 
               <p className="text-xl text-white/90 max-w-2xl mx-auto">
-                Nosso checkout aceita PIX, cartão de crédito e boleto. Você só
-                paga <strong>1,5%</strong> sobre transações aprovadas. Sem
-                mensalidades, sem taxas escondidas. Teste grátis por 7 dias!
+                Diferente de TODOS os concorrentes (Stripe 2.9%, PagSeguro 4.99%),
+                nosso checkout é <strong>100% GRÁTIS</strong>.
+                Zero taxa. Zero custo. Economize milhares por mês.
+                Aceita PIX, cartão de crédito e boleto.
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-6 pt-6">
@@ -618,13 +619,13 @@ const NewLandingPage = () => {
               variants={fadeInUp}
               className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4"
             >
-              Planos que Cabem no Seu Bolso
+              Checkout Grátis + IAs Pagas nos Planos
             </motion.h2>
             <motion.p
               variants={fadeInUp}
               className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
             >
-              Escolha o plano ideal para o seu negócio. Cancele quando quiser.
+              Checkout 0% taxa em TODOS os planos. Você só paga pela IA. Cancele quando quiser.
             </motion.p>
           </motion.div>
 
@@ -632,14 +633,17 @@ const NewLandingPage = () => {
             <PricingCard
               name="Gratuito"
               price="R$ 0"
-              description="Teste completo da plataforma"
+              description="Experimente todas as funcionalidades"
               features={[
-                "10 mensagens IA/dia",
-                "5 imagens IA/dia",
-                "1 página de checkout",
-                "Até 10 produtos",
-                "Integrações básicas",
-                "Suporte via email",
+                "✅ Checkout 0% Taxa - Para Sempre",
+                "✅ 10 mensagens IA/dia",
+                "✅ 5 imagens IA/dia",
+                "✅ 2 vídeos IA/dia",
+                "✅ Extensão Chrome (50 comandos/dia)",
+                "✅ 1 loja + 50 produtos",
+                "✅ 1 clonagem de loja/mês",
+                "✅ Gestor de anúncios básico",
+                "✅ Suporte via email",
               ]}
               buttonText="Começar Grátis"
               buttonLink="/register"
@@ -651,15 +655,20 @@ const NewLandingPage = () => {
               name="Starter"
               price="R$ 97"
               period="/mês"
-              description="Ideal para pequenos negócios"
+              description="Ideal para começar a vender"
               features={[
-                "50 mensagens IA/dia",
-                "20 imagens IA/dia",
-                "3 páginas de checkout",
-                "Até 50 produtos",
-                "Todas integrações",
-                "Relatórios completos",
-                "Carrinho lateral customizado",
+                "✅ Checkout 0% Taxa - Para Sempre",
+                "✅ 100 mensagens IA/dia",
+                "✅ 30 imagens IA/dia",
+                "✅ 10 vídeos IA/dia",
+                "✅ 20 áudios IA/dia",
+                "✅ Extensão Chrome (300 comandos/dia)",
+                "✅ 3 lojas + 200 produtos cada",
+                "✅ 5 clonagens de loja/mês",
+                "✅ Todos os 10 modais (vídeo, áudio, código)",
+                "✅ Gestor de anúncios completo",
+                "✅ Criação sem censura",
+                "✅ Suporte prioritário 24h",
               ]}
               buttonText="Escolher Starter"
               buttonLink="/register"
@@ -671,17 +680,23 @@ const NewLandingPage = () => {
               name="Pro"
               price="R$ 297"
               period="/mês"
-              description="Perfeito para médias empresas"
+              description="Para profissionais que vendem sério"
               features={[
-                "200 mensagens IA/dia",
-                "100 imagens IA/dia",
-                "10 páginas de checkout",
-                "Produtos ilimitados",
-                "Domínio customizado",
-                "Analytics avançados",
-                "Suporte prioritário 24h",
-                "Automações de marketing",
-                "Webhooks customizados",
+                "✅ Checkout 0% Taxa - Para Sempre",
+                "✅ 500 mensagens IA/dia",
+                "✅ 150 imagens IA/dia",
+                "✅ 50 vídeos IA/dia",
+                "✅ 100 áudios IA/dia",
+                "✅ Código ilimitado",
+                "✅ Extensão Chrome ilimitada",
+                "✅ 10 lojas + produtos ilimitados",
+                "✅ 20 clonagens de loja/mês",
+                "✅ Domínio customizado",
+                "✅ A/B Testing automático",
+                "✅ Analytics com predições IA",
+                "✅ Webhooks customizados",
+                "✅ White label parcial",
+                "✅ Suporte 24/7 + WhatsApp",
               ]}
               buttonText="Escolher Pro"
               buttonLink="/register"
@@ -694,21 +709,27 @@ const NewLandingPage = () => {
               name="Enterprise"
               price="R$ 997"
               period="/mês"
-              description="Para grandes volumes"
+              description="Para grandes volumes e agências"
               features={[
-                "1.000 mensagens IA/dia",
-                "500 imagens IA/dia",
-                "Páginas ilimitadas",
-                "Produtos ilimitados",
-                "White label",
-                "API Access completo",
-                "Manager dedicado",
-                "SLA 99.9%",
-                "Onboarding personalizado",
-                "Infraestrutura dedicada",
+                "✅ Checkout 0% Taxa - Para Sempre",
+                "✅ IA 100% ILIMITADA",
+                "✅ Mensagens ilimitadas",
+                "✅ Imagens ilimitadas",
+                "✅ Vídeos ilimitados",
+                "✅ Áudios ilimitados",
+                "✅ Extensão Chrome ilimitada",
+                "✅ Multi-usuários (10 contas)",
+                "✅ Lojas e produtos ilimitados",
+                "✅ Clonagem ilimitada",
+                "✅ White label completo",
+                "✅ API Access completo",
+                "✅ Infraestrutura dedicada",
+                "✅ SLA 99.9%",
+                "✅ Manager dedicado",
+                "✅ Onboarding personalizado",
               ]}
-              buttonText="Escolher Enterprise"
-              buttonLink="/register"
+              buttonText="Falar com Vendas"
+              buttonLink="/contact"
               delay={0.3}
             />
           </div>
