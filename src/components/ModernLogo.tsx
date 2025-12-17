@@ -69,61 +69,20 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
       transition={{ type: "spring", stiffness: 400 }}
     >
       {/* Glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-blue-500 rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
 
       {/* Logo container */}
       <div
         className={cn(
-          "relative bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-2xl",
+          "relative rounded-2xl flex items-center justify-center",
           sizes.icon
         )}
       >
-        {/* Shine effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-2xl" />
-
-        {/* Letter S com estilo moderno */}
-        <svg viewBox="0 0 24 24" className={sizes.iconSvg}>
-          <path
-            d="M7 8 Q6 8 6 9 Q6 10 7 10 L17 10 Q18 10 18 11 Q18 12 17 12 L7 16"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            fill="none"
-            className="drop-shadow-lg"
-          />
-        </svg>
-
-        {/* Sparkle decorativo animado */}
-        {animated ? (
-          <motion.div
-            className={cn(
-              "absolute -top-1 -right-1 bg-yellow-400 rounded-full shadow-lg",
-              sizes.sparkle
-            )}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [1, 0.8, 1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        ) : (
-          <div
-            className={cn(
-              "absolute -top-1 -right-1 bg-yellow-400 rounded-full shadow-lg",
-              sizes.sparkle
-            )}
-          />
-        )}
-
-        <Sparkles
-          className={cn(
-            "absolute -bottom-0.5 -left-0.5 text-yellow-300 opacity-80",
-            sizes.sparkleSmall
-          )}
+        {/* Nova Logo */}
+        <img
+          src="/syncads-logo.png"
+          alt="SyncAds"
+          className={cn("object-contain drop-shadow-2xl", sizes.icon)}
         />
       </div>
     </motion.div>
@@ -133,7 +92,7 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
     <div className="flex flex-col">
       <motion.span
         className={cn(
-          "font-black tracking-tight bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent",
+          "font-black tracking-tight bg-gradient-to-r from-cyan-400 via-blue-600 to-purple-600 bg-clip-text text-transparent",
           sizes.text
         )}
         whileHover={animated ? { scale: 1.02 } : undefined}
@@ -165,7 +124,7 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
           <LogoIcon />
           <span
             className={cn(
-              "font-black tracking-tight bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent",
+              "font-black tracking-tight bg-gradient-to-r from-cyan-400 via-blue-600 to-purple-600 bg-clip-text text-transparent",
               sizes.text
             )}
           >
