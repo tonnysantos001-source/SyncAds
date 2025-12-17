@@ -80,7 +80,7 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
       >
         {/* Nova Logo */}
         <img
-          src="/syncads-logo.png"
+          src="/syncads-logo.svg"
           alt="SyncAds"
           className={cn("object-contain drop-shadow-2xl", sizes.icon)}
         />
