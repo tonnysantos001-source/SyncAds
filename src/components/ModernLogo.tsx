@@ -65,24 +65,21 @@ const ModernLogo: React.FC<ModernLogoProps> = ({
   const LogoIcon = () => (
     <motion.div
       className="relative"
-      whileHover={animated ? { scale: 1.05, rotate: 5 } : undefined}
+      whileHover={animated ? { scale: 1.05 } : undefined}
       transition={{ type: "spring", stiffness: 400 }}
     >
-      {/* Glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-
-      {/* Logo container */}
+      {/* Logo container limpo */}
       <div
         className={cn(
-          "relative rounded-2xl flex items-center justify-center",
+          "relative flex items-center justify-center",
           sizes.icon
         )}
       >
-        {/* Nova Logo */}
+        {/* Logo SVG limpa */}
         <img
           src="/syncads-logo.svg"
           alt="SyncAds"
-          className={cn("object-contain drop-shadow-2xl", sizes.icon)}
+          className={cn("object-contain", sizes.icon)}
         />
       </div>
     </motion.div>

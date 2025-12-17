@@ -1,155 +1,21 @@
 <svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Gradientes para o S -->
-    <linearGradient id="gradientS" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00FFD1;stop-opacity:1" />
-      <stop offset="30%" style="stop-color:#00D9FF;stop-opacity:1" />
-      <stop offset="70%" style="stop-color:#3B82F6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
-    </linearGradient>
-    
-    <!-- Gradiente para seta superior (roxo/azul) -->
-    <linearGradient id="gradientArrowTop" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#818CF8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#A78BFA;stop-opacity:1" />
-    </linearGradient>
-    
-    <!-- Gradiente para seta inferior (azul/cyan) -->
-    <linearGradient id="gradientArrowBottom" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
+    <!-- Gradiente ultra clean -->
+    <linearGradient id="finalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
     </linearGradient>
-    
-    <!-- Gradiente para círculos de conexão -->
-    <radialGradient id="gradientCircle1">
-      <stop offset="0%" style="stop-color:#00FFD1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#00D9FF;stop-opacity:1" />
-    </radialGradient>
-    
-    <radialGradient id="gradientCircle2">
-      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
-    </radialGradient>
-    
-    <radialGradient id="gradientCircle3">
-      <stop offset="0%" style="stop-color:#A78BFA;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
-    </radialGradient>
-    
-    <!-- Sombra/Glow -->
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
   </defs>
   
-  <!-- Letra S grande e estilizada -->
-  <g filter="url(#glow)">
-    <!-- Parte superior do S -->
-    <path d="M 300 250 
-             Q 250 250 250 300
-             Q 250 340 280 360
-             L 480 360
-             Q 520 360 520 400
-             Q 520 440 480 440
-             L 320 440" 
-          stroke="url(#gradientS)" 
-          stroke-width="60" 
-          stroke-linecap="round" 
-          fill="none"
-          opacity="0.95"/>
-    
-    <!-- Parte inferior do S -->
-    <path d="M 320 440
-             L 480 440
-             Q 550 440 550 500
-             Q 550 560 480 560
-             L 300 560
-             Q 250 560 250 600
-             Q 250 640 300 640
-             L 500 640" 
-          stroke="url(#gradientS)" 
-          stroke-width="60" 
-          stroke-linecap="round" 
-          fill="none"
-          opacity="0.95"/>
-  </g>
+  <!-- S FINAL - Ultra Clean - Inspirado em Stripe -->
+  <!-- 3 barras horizontais arredondadas formando S -->
   
-  <!-- Seta Superior Direita (Roxo/Azul) -->
-  <g filter="url(#glow)">
-    <path d="M 450 280 L 600 280 L 550 230 M 600 280 L 550 330" 
-          stroke="url(#gradientArrowTop)" 
-          stroke-width="35" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          fill="none"/>
-    <polygon points="520,280 620,280 600,250 620,310 540,310" 
-             fill="url(#gradientArrowTop)" 
-             opacity="0.9"/>
-  </g>
+  <!-- Barra superior -->
+  <rect x="180" y="180" width="440" height="100" rx="50" fill="url(#finalGrad)"/>
   
-  <!-- Seta Inferior Esquerda (Azul/Cyan) -->
-  <g filter="url(#glow)">
-    <path d="M 350 610 L 200 610 L 250 560 M 200 610 L 250 660" 
-          stroke="url(#gradientArrowBottom)" 
-          stroke-width="35" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          fill="none"/>
-    <polygon points="280,610 180,610 200,580 180,640 260,640" 
-             fill="url(#gradientArrowBottom)" 
-             opacity="0.9"/>
-  </g>
+  <!-- Barra do meio (mais curta, alinhada à direita) -->
+  <rect x="300" y="330" width="320" height="100" rx="50" fill="url(#finalGrad)"/>
   
-  <!-- Linhas e pontos de conexão - Lado Esquerdo (Cyan) -->
-  <g stroke="url(#gradientCircle1)" stroke-width="6" fill="none" opacity="0.8">
-    <!-- Arco esquerdo -->
-    <path d="M 240 400 Q 180 400 180 450 Q 180 500 220 520" 
-          stroke-linecap="round"/>
-    
-    <!-- Círculos de conexão -->
-    <circle cx="240" cy="380" r="12" fill="url(#gradientCircle1)" stroke="none"/>
-    <circle cx="180" cy="480" r="10" fill="url(#gradientCircle1)" stroke="none"/>
-    <circle cx="200" cy="530" r="8" fill="url(#gradientCircle1)" stroke="none"/>
-  </g>
-  
-  <!-- Linhas e pontos de conexão - Lado Direito (Azul/Roxo) -->
-  <g stroke="url(#gradientCircle2)" stroke-width="6" fill="none" opacity="0.8">
-    <!-- Linhas superiores -->
-    <path d="M 540 300 L 600 250" stroke-linecap="round"/>
-    <path d="M 580 290 L 620 280" stroke-linecap="round"/>
-    
-    <!-- Linhas inferiores direita -->
-    <path d="M 560 440 Q 620 440 620 500 Q 620 550 580 570" 
-          stroke="url(#gradientCircle3)" stroke-linecap="round"/>
-    
-    <!-- Círculos de conexão -->
-    <circle cx="600" cy="250" r="12" fill="url(#gradientCircle2)" stroke="none"/>
-    <circle cx="630" cy="280" r="10" fill="url(#gradientCircle2)" stroke="none"/>
-    <circle cx="620" cy="490" r="10" fill="url(#gradientCircle3)" stroke="none"/>
-    <circle cx="590" cy="560" r="8" fill="url(#gradientCircle3)" stroke="none"/>
-    <circle cx="600" cy="590" r="8" fill="url(#gradientCircle3)" stroke="none"/>
-  </g>
-  
-  <!-- Linhas e pontos - Superior Centro (Azul) -->
-  <g stroke="url(#gradientCircle2)" stroke-width="6" fill="none" opacity="0.8">
-    <path d="M 420 240 L 420 180" stroke-linecap="round"/>
-    <path d="M 480 220 L 520 190" stroke-linecap="round"/>
-    
-    <circle cx="420" cy="180" r="12" fill="url(#gradientCircle2)" stroke="none"/>
-    <circle cx="530" cy="185" r="10" fill="url(#gradientCircle2)" stroke="none"/>
-  </g>
-  
-  <!-- Linha inferior com pontos (Cyan/Azul) -->
-  <g stroke="url(#gradientArrowBottom)" stroke-width="6" fill="none" opacity="0.8">
-    <path d="M 330 680 L 450 680" stroke-linecap="round"/>
-    
-    <circle cx="340" cy="680" r="12" fill="url(#gradientCircle1)" stroke="none"/>
-    <circle cx="440" cy="680" r="10" fill="url(#gradientCircle2)" stroke="none"/>
-  </g>
+  <!-- Barra inferior -->
+  <rect x="180" y="480" width="440" height="100" rx="50" fill="url(#finalGrad)"/>
 </svg>

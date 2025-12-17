@@ -1,37 +1,13 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="favGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00FFD1;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <!-- S simplificado para favicon -->
-  <path d="M 180 140 
-           Q 140 140 140 180
-           Q 140 210 165 225
-           L 320 225
-           Q 360 225 360 260
-           Q 360 295 320 295
-           L 200 295" 
-        stroke="url(#favGradient)" 
-        stroke-width="45" 
-        stroke-linecap="round" 
-        fill="none"
-        opacity="0.95"/>
-  
-  <path d="M 200 295
-           L 320 295
-           Q 372 295 372 340
-           Q 372 385 320 385
-           L 180 385
-           Q 140 385 140 425
-           Q 140 465 180 465
-           L 330 465" 
-        stroke="url(#favGradient)" 
-        stroke-width="45" 
-        stroke-linecap="round" 
-        fill="none"
-        opacity="0.95"/>
+  <!-- S para favicon - versão simplificada -->
+  <rect x="100" y="100" width="312" height="70" rx="35" fill="url(#favGrad)"/>
+  <rect x="180" y="220" width="232" height="70" rx="35" fill="url(#favGrad)"/>
+  <rect x="100" y="340" width="312" height="70" rx="35" fill="url(#favGrad)"/>
 </svg>

@@ -9,15 +9,12 @@ const Logo = () => {
   return (
     <Link to={to} className="flex items-center gap-3 group">
       {/* Logo Icon */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-        <div className="relative h-12 w-12 rounded-xl flex items-center justify-center">
-          <img
-            src="/syncads-logo.svg"
-            alt="SyncAds Logo"
-            className="h-10 w-10 object-contain drop-shadow-lg"
-          />
-        </div>
+      <div className="relative h-12 w-12 flex items-center justify-center">
+        <img
+          src="/syncads-logo.svg"
+          alt="SyncAds Logo"
+          className="h-10 w-10 object-contain"
+        />
       </div>
 
       {/* Logo Text */}
