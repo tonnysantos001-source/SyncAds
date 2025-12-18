@@ -34,7 +34,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://*.vercel.app https://*.vercel.live https://vercel.live; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://viacep.com.br https://*.supabase.co https://*.railway.app wss://*.supabase.co https://vercel.live https://*.vercel.live; frame-src 'self' https://vercel.live https://*.vercel.live;"
+          "value": "frame-ancestors 'self' https://*.vercel.app https://*.vercel.live https://vercel.live; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live https://*.vercel.app https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data: https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; connect-src 'self' https://viacep.com.br https://*.supabase.co https://*.railway.app wss://*.supabase.co https://vercel.live https://*.vercel.live https://cdn.jsdelivr.net https://unpkg.com; frame-src 'self' https://vercel.live https://*.vercel.live blob: data:; worker-src 'self' blob:;"
         }
       ]
     }
