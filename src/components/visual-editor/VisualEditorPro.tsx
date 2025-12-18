@@ -129,7 +129,22 @@ export function VisualEditorPro({
     }, [htmlCode, cssCode, jsCode, currentPage?.id, updatePage]);
 
     // Combine code for preview
-    const fullCode = `${htmlCode}\n<style>\n${cssCode}\n</style>\n<script>\n${jsCode}\n</script>`;
+    const fullCode = React.useMemo(() => {
+        const trimmedHtml = htmlCode.trim();
+        // If it's a full document, inject CSS/JS if they exist, otherwise just return it
+        if (trimmedHtml.startsWith('<!DOCTYPE') || trimmedHtml.startsWith('<html')) {
+            let code = trimmedHtml;
+            if (cssCode.trim()) {
+                code = code.replace('</head>', `<style>${cssCode}</style>\n</head>`);
+            }
+            if (jsCode.trim()) {
+                code = code.replace('</body>', `<script>${jsCode}</script>\n</body>`);
+            }
+            return code;
+        }
+        // Fallback for partial code
+        return `${htmlCode}\n<style>\n${cssCode}\n</style>\n<script>\n${jsCode}\n</script>`;
+    }, [htmlCode, cssCode, jsCode]);
 
     // Update preview
     useEffect(() => {
@@ -185,14 +200,39 @@ export function VisualEditorPro({
     };
 
     // Handle component insert
-    const handleComponentSelect = (component: Component) => {
-        const componentCode = component.code();
+    // Handle component insert via AI
+    const handleComponentSelect = async (component: Component) => {
+        const prompt = `Adicione o componente "${component.name}" (${component.description}) à página. 
+        Mantenha o estilo visual existente e integre-o ao componente App principal.`;
 
-        // Insert before </body>
-        const newHtml = htmlCode.replace('</body>', `${componentCode}\n</body>`);
-        setHtmlCode(newHtml);
+        // Update UI to show what's happening
+        setMessages(prev => [...prev, { role: 'user', content: prompt }]);
 
-        toast.success(`${component.name} adicionado!`);
+        try {
+            const response = await sendMessage(prompt, {
+                context: 'visual-editor',
+                systemPrompt: ADVANCED_SYSTEM_PROMPT,
+                model: 'claude',
+            });
+
+            const { updatedCode, messages: toolMessages } = await executeAITools(response, htmlCode);
+
+            if (updatedCode !== htmlCode) {
+                setHtmlCode(updatedCode);
+                toast.success(`${component.name} adicionado via IA!`);
+            }
+
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: toolMessages.length > 0 ? toolMessages.join('\n') : 'Código atualizado!'
+            }]);
+
+        } catch (error) {
+            handleError(error, {
+                context: 'Visual Editor Component Add',
+                userMessage: 'Erro ao adicionar componente'
+            });
+        }
     };
 
     // Handle download
@@ -506,32 +546,79 @@ export function VisualEditorPro({
 }
 
 // Default HTML template
+// Default HTML template (React + Tailwind + Framer Motion)
 function getDefaultHTML() {
     return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu Site</title>
+  <title>Novo Projeto</title>
+  
+  <!-- Core Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
 </head>
-<body class="bg-gray-50">
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="text-center">
-      <h1 class="text-6xl font-bold text-gray-900 mb-4">
-        Bem-vindo ao
-        <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Construtor
-        </span>
-      </h1>
-      <p class="text-xl text-gray-600 mb-8">
-        Use a IA para criar sua página perfeita
-      </p>
-      <button class="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
-        Começar Agora
-      </button>
-    </div>
-  </div>
+<body class="bg-gray-950 text-white antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { motion } = window.Motion;
+
+    // Wrapper para Ícones Lucide
+    const Icon = ({ name, className }) => {
+      useEffect(() => { lucide.createIcons(); }, [name]);
+      return <i data-lucide={name} className={className}></i>;
+    };
+
+    function App() {
+      useEffect(() => { lucide.createIcons(); }, []);
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-6 max-w-2xl bg-white/5 backdrop-blur-lg border border-white/10 p-12 rounded-3xl shadow-2xl"
+          >
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Icon name="rocket" className="text-white w-8 h-8" />
+              </div>
+            </div>
+            
+            <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Construtor Web Pro
+            </h1>
+            
+            <p className="text-lg text-gray-400 leading-relaxed">
+              Seu ambiente de desenvolvimento profissional está pronto.
+              Peça para a IA criar landing pages, dashboards ou componentes complexos.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                <Icon name="layout" className="w-6 h-6 text-blue-400 mb-2 mx-auto" />
+                <span className="text-sm font-medium">React + Tailwind</span>
+              </div>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                <Icon name="zap" className="w-6 h-6 text-purple-400 mb-2 mx-auto" />
+                <span className="text-sm font-medium">Animações</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>`;
 }

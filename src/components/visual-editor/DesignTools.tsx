@@ -10,9 +10,8 @@
  * - Animations: Animation timeline
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GradientBuilder } from './GradientBuilder';
 import { ShadowGenerator } from './ShadowGenerator';
@@ -32,18 +31,39 @@ export function DesignTools() {
     const [selectedColor, setSelectedColor] = useState('#3b82f6');
     const [copiedColor, setCopiedColor] = useState<string | null>(null);
 
+    // Color utilities
+    const adjustBrightness = (hex: string, percent: number) => {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const B = ((num >> 8) & 0x00ff) + amt;
+        const G = (num & 0x0000ff) + amt;
+        return (
+            '#' +
+            (
+                0x1000000 +
+                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+                (B < 255 ? (B < 1 ? 0 : B) : 255) * 0x100 +
+                (G < 255 ? (G < 1 ? 0 : G) : 255)
+            )
+                .toString(16)
+                .slice(1)
+        );
+    };
+
     // Color palette from selected color
     const generatePalette = (baseColor: string) => {
-        // Simple palette generation (can be enhanced)
-        // Placeholder for lighten/darken functions
-        const lighten = (color: string, amount: number) => color; // Implement actual lighten logic
-        const darken = (color: string, amount: number) => color; // Implement actual darken logic
         return [
-            baseColor,
-            lighten(baseColor, 0.2),
-            darken(baseColor, 0.2),
-            lighten(baseColor, 0.4),
-            darken(baseColor, 0.4),
+            { shade: '50', color: adjustBrightness(baseColor, 90) },
+            { shade: '100', color: adjustBrightness(baseColor, 80) },
+            { shade: '200', color: adjustBrightness(baseColor, 60) },
+            { shade: '300', color: adjustBrightness(baseColor, 40) },
+            { shade: '400', color: adjustBrightness(baseColor, 20) },
+            { shade: '500', color: baseColor },
+            { shade: '600', color: adjustBrightness(baseColor, -20) },
+            { shade: '700', color: adjustBrightness(baseColor, -40) },
+            { shade: '800', color: adjustBrightness(baseColor, -60) },
+            { shade: '900', color: adjustBrightness(baseColor, -80) },
         ];
     };
 
@@ -51,7 +71,6 @@ export function DesignTools() {
         navigator.clipboard.writeText(color);
         setCopiedColor(color);
         setTimeout(() => setCopiedColor(null), 2000);
-        onColorSelect?.(color);
     };
 
     return (
@@ -155,10 +174,10 @@ export function DesignTools() {
                                     <button
                                         key={shade}
                                         onClick={() => handleCopyColor(color)}
-                                        className="group relative aspect-square rounded-lg hover:scale-110 transition-transform"
+                                        className="group relative aspect-square rounded-lg hover:scale-110 transition-transform shadow-sm"
                                         style={{ backgroundColor: color }}
                                     >
-                                        <span className="absolute inset-0 flex items-center justify-center text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/50 rounded-lg">
+                                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/40 rounded-lg">
                                             {shade}
                                         </span>
                                     </button>

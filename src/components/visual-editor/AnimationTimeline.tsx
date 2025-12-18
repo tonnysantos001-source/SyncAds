@@ -3,7 +3,7 @@
  * Editor visual de animações CSS com keyframes
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { IconPlus, IconTrash, IconCopy, IconPlayerPlay } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
