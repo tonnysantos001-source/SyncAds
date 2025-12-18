@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import { FAQItem, LandingFooter } from "./NewLandingPageFooter";
 import { FeatureCard, PricingCard } from "./NewLandingPageComponents";
-import { JornadaSection, ApiSection, PioneerSection } from "./NewLandingPage_Jornada";
+import { JornadaSection, PioneerSection } from "./NewLandingPage_Jornada";
 
 const NewLandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -245,7 +245,7 @@ const NewLandingPage = () => {
                 <strong className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   IA Sem Censura
                 </strong>{" "}
-                + Checkout 0% Taxa + Clone Lojas em Minutos.
+                + Checkout 0% Taxa.
               </motion.p>
 
               {/* CTA Buttons */}
@@ -606,8 +606,6 @@ const NewLandingPage = () => {
         </div>
       </section>
 
-      {/* API Library Section */}
-      <ApiSection />
 
       {/* Why SyncAds vs Courses Section */}
       <section className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
