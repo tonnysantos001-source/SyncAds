@@ -224,11 +224,11 @@ const NewLandingPage = () => {
                 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight"
               >
                 <span className="text-gray-900 dark:text-white">
-                  Pare de Gastar R$5k em Cursos.
+                  Primeiro Gestor de Anúncios
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Use IA Profissional que Faz Tudo
+                  Pessoal com IA do Brasil
                 </span>
               </motion.h1>
 
@@ -237,15 +237,14 @@ const NewLandingPage = () => {
                 variants={fadeInUp}
                 className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto lg:mx-0"
               >
-                Gestor de Anúncios Profissional +{" "}
                 <strong className="text-gray-900 dark:text-white">
-                  Extensão Chrome
+                  IA Pessoal
                 </strong>{" "}
                 +{" "}
                 <strong className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  IA Sem Censura
+                  Checkout 100% Grátis
                 </strong>{" "}
-                + Checkout 0% Taxa.
+                + Extensão Chrome + Automação Completa.
               </motion.p>
 
               {/* CTA Buttons */}

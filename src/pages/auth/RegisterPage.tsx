@@ -221,7 +221,7 @@ export default function RegisterPage() {
 
       {/* Botão Voltar */}
       <Link
-        to="/landing"
+        to="/"
         className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors z-10"
       >
         <ArrowLeft className="h-5 w-5" />
@@ -261,8 +261,8 @@ export default function RegisterPage() {
             <div className="flex items-center gap-2">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${currentStep >= 1
-                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
-                    : "bg-gray-800 text-gray-500"
+                  ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
+                  : "bg-gray-800 text-gray-500"
                   }`}
               >
                 {currentStep > 1 ? <CheckCircle2 className="h-5 w-5" /> : "1"}
@@ -282,8 +282,8 @@ export default function RegisterPage() {
             <div className="flex items-center gap-2">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${currentStep >= 2
-                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
-                    : "bg-gray-800 text-gray-500"
+                  ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
+                  : "bg-gray-800 text-gray-500"
                   }`}
               >
                 2
