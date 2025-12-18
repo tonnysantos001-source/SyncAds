@@ -15,6 +15,8 @@ import {
     IconBolt,
     IconSocial,
     IconSearch,
+    IconHelp,
+    IconUsers,
 } from '@tabler/icons-react';
 import { COMPONENTS_BY_CATEGORY, Component } from '@/lib/visual-editor/components';
 
@@ -29,6 +31,8 @@ const CATEGORY_ICONS = {
     pricing: IconCurrencyDollar,
     forms: IconMail,
     cta: IconBolt,
+    faq: IconHelp,
+    team: IconUsers,
     footer: IconSocial,
 };
 
@@ -39,6 +43,8 @@ const CATEGORY_NAMES = {
     pricing: 'Preços',
     forms: 'Formulários',
     cta: 'Call to Action',
+    faq: 'FAQ',
+    team: 'Equipe',
     footer: 'Rodapé',
 };
 

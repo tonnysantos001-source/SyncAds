@@ -515,6 +515,145 @@ export const FOOTER_COMPONENTS: Component[] = [
 ];
 
 // ========================================
+// FAQ SECTIONS
+// ========================================
+
+export const FAQ_COMPONENTS: Component[] = [
+  {
+    id: 'faq-accordion',
+    name: 'FAQ Accordion',
+    category: 'faq',
+    tags: ['faq', 'accordion', 'help'],
+    preview: '/previews/faq.png',
+    description: 'Lista de perguntas frequentes expansível',
+    code: () => `
+<!-- FAQ Section -->
+<section class="py-20 bg-white">
+  <div class="container mx-auto px-4 max-w-3xl">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold mb-4">Perguntas Frequentes</h2>
+      <p class="text-xl text-gray-600">Tire suas dúvidas sobre nossa plataforma</p>
+    </div>
+    
+    <div class="space-y-4">
+      <!-- FAQ Item 1 -->
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left" onclick="this.nextElementSibling.classList.toggle('hidden')">
+          <span class="font-semibold text-gray-900">Como posso começar a usar?</span>
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="p-4 bg-white hidden">
+          <p class="text-gray-600">É muito simples! Basta criar uma conta, escolher um plano e você terá acesso imediato a todas as ferramentas.</p>
+        </div>
+      </div>
+
+      <!-- FAQ Item 2 -->
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left" onclick="this.nextElementSibling.classList.toggle('hidden')">
+          <span class="font-semibold text-gray-900">Posso cancelar a qualquer momento?</span>
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="p-4 bg-white hidden">
+          <p class="text-gray-600">Sim, não temos fidelidade. Você pode cancelar sua assinatura quando quiser diretamente pelo painel.</p>
+        </div>
+      </div>
+
+      <!-- FAQ Item 3 -->
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left" onclick="this.nextElementSibling.classList.toggle('hidden')">
+          <span class="font-semibold text-gray-900">Oferecem suporte técnico?</span>
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="p-4 bg-white hidden">
+          <p class="text-gray-600">Com certeza! Nossa equipe de suporte está disponível 24/7 para ajudar você em qualquer etapa.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    `.trim()
+  }
+];
+
+// ========================================
+// TEAM SECTIONS
+// ========================================
+
+export const TEAM_COMPONENTS: Component[] = [
+  {
+    id: 'team-grid',
+    name: 'Team Grid',
+    category: 'team',
+    tags: ['team', 'members', 'about'],
+    preview: '/previews/team.png',
+    description: 'Grid de membros da equipe com redes sociais',
+    code: () => `
+<!-- Team Section -->
+<section class="py-20 bg-gray-50">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold mb-4">Nossa Equipe</h2>
+      <p class="text-xl text-gray-600">Conheça os especialistas por trás do projeto</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <!-- Member 1 -->
+      <div class="bg-white p-6 rounded-2xl shadow-lg text-center hover:scale-105 transition-transform duration-300">
+        <div class="w-32 h-32 mx-auto bg-gray-200 rounded-full mb-4 overflow-hidden">
+          <img src="https://i.pravatar.cc/150?img=11" alt="Member" class="w-full h-full object-cover"/>
+        </div>
+        <h3 class="text-xl font-bold mb-1">Carlos Silva</h3>
+        <p class="text-blue-600 text-sm mb-4">CEO & Founder</p>
+        <div class="flex justify-center space-x-3">
+          <a href="#" class="text-gray-400 hover:text-blue-600"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+          <a href="#" class="text-gray-400 hover:text-blue-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+        </div>
+      </div>
+
+      <!-- Member 2 -->
+      <div class="bg-white p-6 rounded-2xl shadow-lg text-center hover:scale-105 transition-transform duration-300">
+        <div class="w-32 h-32 mx-auto bg-gray-200 rounded-full mb-4 overflow-hidden">
+          <img src="https://i.pravatar.cc/150?img=5" alt="Member" class="w-full h-full object-cover"/>
+        </div>
+        <h3 class="text-xl font-bold mb-1">Ana Costa</h3>
+        <p class="text-purple-600 text-sm mb-4">CTO</p>
+        <div class="flex justify-center space-x-3">
+          <a href="#" class="text-gray-400 hover:text-blue-600"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+          <a href="#" class="text-gray-400 hover:text-blue-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+        </div>
+      </div>
+      
+       <!-- Member 3 -->
+      <div class="bg-white p-6 rounded-2xl shadow-lg text-center hover:scale-105 transition-transform duration-300">
+        <div class=" w-32 h-32 mx-auto bg-gray-200 rounded-full mb-4 overflow-hidden">
+          <img src="https://i.pravatar.cc/150?img=13" alt="Member" class="w-full h-full object-cover"/>
+        </div>
+        <h3 class="text-xl font-bold mb-1">Pedro Santos</h3>
+        <p class="text-green-600 text-sm mb-4">Designer</p>
+        <div class="flex justify-center space-x-3">
+          <a href="#" class="text-gray-400 hover:text-blue-600"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+        </div>
+      </div>
+      
+      <!-- Member 4 -->
+      <div class="bg-white p-6 rounded-2xl shadow-lg text-center hover:scale-105 transition-transform duration-300">
+        <div class="w-32 h-32 mx-auto bg-gray-200 rounded-full mb-4 overflow-hidden">
+          <img src="https://i.pravatar.cc/150?img=32" alt="Member" class="w-full h-full object-cover"/>
+        </div>
+        <h3 class="text-xl font-bold mb-1">Julia Lima</h3>
+        <p class="text-orange-600 text-sm mb-4">Marketing</p>
+        <div class="flex justify-center space-x-3">
+          <a href="#" class="text-gray-400 hover:text-blue-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    `.trim()
+  }
+];
+
+// ========================================
 // EXPORT ALL COMPONENTS
 // ========================================
 
@@ -525,6 +664,8 @@ export const ALL_COMPONENTS: Component[] = [
   ...PRICING_COMPONENTS,
   ...FORM_COMPONENTS,
   ...CTA_COMPONENTS,
+  ...FAQ_COMPONENTS,
+  ...TEAM_COMPONENTS,
   ...FOOTER_COMPONENTS,
 ];
 
@@ -535,5 +676,7 @@ export const COMPONENTS_BY_CATEGORY = {
   pricing: PRICING_COMPONENTS,
   forms: FORM_COMPONENTS,
   cta: CTA_COMPONENTS,
+  faq: FAQ_COMPONENTS,
+  team: TEAM_COMPONENTS,
   footer: FOOTER_COMPONENTS,
 };
