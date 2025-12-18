@@ -148,13 +148,11 @@ export default function LoginPage() {
         <CardHeader className="text-center pt-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl blur-xl opacity-50 animate-pulse" />
-              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/50">
-                <span className="text-white font-black text-3xl">S</span>
-                <div className="absolute -top-2 -right-2 h-3 w-3 bg-yellow-400 rounded-full animate-pulse shadow-lg shadow-yellow-400/50" />
-              </div>
-            </div>
+            <img
+              src="/syncads-logo.svg"
+              alt="SyncAds Logo"
+              className="h-16 w-16 object-contain"
+            />
           </div>
           <div className="mb-6">
             <h1

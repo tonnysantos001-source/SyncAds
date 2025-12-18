@@ -233,18 +233,17 @@ export default function RegisterPage() {
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-pulse" />
 
         <CardHeader className="text-center pt-8 pb-6">
-          {/* Logo */}
           <div className="flex justify-center mb-6">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-50 animate-pulse" />
-              <div className="relative h-16 w-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/50">
-                <span className="text-white font-black text-3xl">S</span>
-              </div>
+              <img
+                src="/syncads-logo.svg"
+                alt="SyncAds Logo"
+                className="h-16 w-16 object-contain"
+              />
             </motion.div>
           </div>
 
@@ -261,11 +260,10 @@ export default function RegisterPage() {
           <div className="flex items-center justify-center gap-4 mt-6">
             <div className="flex items-center gap-2">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                  currentStep >= 1
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${currentStep >= 1
                     ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
                     : "bg-gray-800 text-gray-500"
-                }`}
+                  }`}
               >
                 {currentStep > 1 ? <CheckCircle2 className="h-5 w-5" /> : "1"}
               </div>
@@ -283,11 +281,10 @@ export default function RegisterPage() {
 
             <div className="flex items-center gap-2">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                  currentStep >= 2
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${currentStep >= 2
                     ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/50"
                     : "bg-gray-800 text-gray-500"
-                }`}
+                  }`}
               >
                 2
               </div>
