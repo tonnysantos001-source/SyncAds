@@ -780,6 +780,7 @@ AGORA GERE O CÓDIGO PARA:`;
                     srcDoc={generatedCode}
                     className="w-full h-full border-0"
                     title="Preview"
+                    sandbox="allow-scripts"
                   />
                 </motion.div>
               ) : (

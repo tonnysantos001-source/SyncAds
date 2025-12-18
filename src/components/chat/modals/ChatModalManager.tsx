@@ -74,7 +74,7 @@ const MODAL_ICONS: Record<ModalType, React.ComponentType<any>> = {
  */
 const MODAL_NAMES: Record<ModalType, string> = {
   chat: 'Chat',
-  'visual-editor': 'Editor Visual',
+  'visual-editor': 'Construtor Web',
   'image-gallery': 'Imagens',
   'video-gallery': 'Vídeos',
   'audio-gallery': 'Áudio',

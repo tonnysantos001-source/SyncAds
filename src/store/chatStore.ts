@@ -46,6 +46,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           return {
             id: conv.id,
             title: conv.title,
+            createdAt: conv.createdAt,
             messages:
               messages?.map((msg) => ({
                 id: msg.id,
@@ -84,6 +85,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           {
             id: newConversation.id,
             title: newConversation.title,
+            createdAt: newConversation.createdAt,
             messages: [],
           },
           ...state.conversations,

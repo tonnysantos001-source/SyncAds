@@ -6,6 +6,7 @@ interface Conversation {
     id: string;
     title: string;
     messages?: Array<{ content: string }>;
+    createdAt?: string | Date;
 }
 
 interface ConversationSidebarProps {
@@ -42,14 +43,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             {/* SIDEBAR - Conversas Antigas (Mobile: Overlay, Desktop: Sidebar) */}
             <div
                 className={`${isOpen
-                        ? "fixed md:relative inset-0 md:inset-auto w-full sm:w-80 md:w-72 z-50 md:z-auto animate-in slide-in-from-left duration-300"
-                        : "hidden md:w-0"
-                    } bg-white md:bg-gray-50 md:border-r border-gray-200 flex flex-col overflow-hidden shadow-xl md:shadow-none`}
+                    ? "fixed md:relative inset-0 md:inset-auto w-full sm:w-80 md:w-72 z-50 md:z-auto animate-in slide-in-from-left duration-300"
+                    : "hidden md:w-0"
+                    } bg-white dark:bg-gray-950 md:border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden shadow-xl md:shadow-none transition-colors duration-300`}
             >
                 {/* Sidebar Header */}
-                <div className="p-4 border-b border-gray-200 bg-white md:bg-transparent">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 md:bg-transparent">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-base md:text-sm font-semibold text-gray-900 md:text-gray-700">
+                        <h2 className="text-base md:text-sm font-semibold text-gray-900 dark:text-white md:text-gray-700 dark:md:text-gray-200">
                             Conversas
                         </h2>
                         <Button
@@ -58,7 +59,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             size="sm"
                             className="h-8 w-8 md:h-7 md:w-7 p-0 hover:bg-gray-100"
                         >
-                            <X className="h-5 w-5 md:h-4 md:w-4" />
+                            <X className="h-5 w-5 md:h-4 md:w-4 text-gray-500 dark:text-gray-400" />
                         </Button>
                     </div>
                     <Button
@@ -82,9 +83,9 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     {conversations.map((conv) => (
                         <div
                             key={conv.id}
-                            className={`group relative flex items-center gap-3 p-3 md:p-2.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 ${activeConversationId === conv.id
-                                    ? "bg-blue-50 border border-blue-200 shadow-sm"
-                                    : "bg-gray-50 md:bg-white hover:shadow-sm"
+                            className={`group relative flex items-center gap-3 p-3 md:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-all duration-200 ${activeConversationId === conv.id
+                                ? "bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm"
+                                : "bg-gray-50 dark:bg-white/5 md:bg-white dark:md:bg-transparent hover:shadow-sm"
                                 }`}
                             onClick={() => {
                                 if (activeConversationId !== conv.id) {
@@ -98,9 +99,17 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         >
                             <MessageSquare className="h-5 w-5 md:h-4 md:w-4 text-gray-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm md:text-sm font-medium text-gray-900 truncate">
-                                    {conv.title}
-                                </p>
+                                <div className="flex justify-between items-baseline w-full">
+                                    <p className={`text-sm md:text-sm font-medium truncate transition-colors flex-1 ${activeConversationId === conv.id ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-gray-200"
+                                        }`}>
+                                        {conv.title}
+                                    </p>
+                                    {conv.createdAt && (
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-2 whitespace-nowrap">
+                                            {new Date(conv.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                        </span>
+                                    )}
+                                </div>
                                 {/* Preview da última mensagem (estilo ChatGPT) */}
                                 <p className="text-xs text-gray-500 truncate mt-0.5">
                                     {conv.messages && conv.messages.length > 0

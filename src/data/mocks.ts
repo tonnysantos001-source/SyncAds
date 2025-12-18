@@ -729,6 +729,7 @@ export type ChatConversation = {
   id: string;
   title: string;
   messages: ChatMessage[];
+  createdAt?: string | Date;
 };
 
 export const chatConversations: ChatConversation[] = [
