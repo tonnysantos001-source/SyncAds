@@ -253,9 +253,11 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
         <div className="p-6 border-b border-gray-700/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <IoFlash className="w-6 h-6 text-white" />
-              </div>
+              <img
+                src="/syncads-logo.svg"
+                alt="SyncAds Logo"
+                className="h-10 w-10 object-contain"
+              />
               <div>
                 <h1 className="text-lg font-black text-white">SyncAds</h1>
                 <p className="text-xs text-blue-400 font-semibold">MARKETING AI</p>

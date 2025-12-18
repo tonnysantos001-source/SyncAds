@@ -378,9 +378,11 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Logo Header */}
         <div className="flex items-center gap-3 px-5 py-6 border-b border-gray-200 dark:border-gray-800">
           <div className="relative">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/40">
-              <IoFlash className="h-7 w-7 text-white drop-shadow-lg" />
-            </div>
+            <img
+              src="/syncads-logo.svg"
+              alt="SyncAds Logo"
+              className="h-12 w-12 object-contain"
+            />
           </div>
           <div>
             <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white">
