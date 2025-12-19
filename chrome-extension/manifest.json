@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SyncAds AI Automation",
-  "version": "5.0.0",
-  "description": "Assistente IA completo para automação web - Controle total do navegador com Side Panel",
+  "name": "Gestor de Anuncios SyncAds",
+  "version": "5.0.1",
+  "description": "Seu Gestor de Anúncios com IA - Controle total do navegador e automação de marketing",
   "permissions": [
     "activeTab",
     "storage",
@@ -16,20 +16,28 @@
     "bookmarks",
     "sidePanel"
   ],
-  "host_permissions": ["https://*/*", "http://*/*", "<all_urls>"],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*",
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-script.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }
   ],
   "action": {
-    "default_title": "Abrir SyncAds AI Assistant"
+    "default_title": "Abrir Gestor SyncAds"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -41,8 +49,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["injected.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "injected.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "content_security_policy": {
