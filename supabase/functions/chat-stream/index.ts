@@ -334,6 +334,64 @@ async function getAnalytics(ctx: ToolContext): Promise<string> {
   }
 }
 
+// 11. BROWSER AUTOMATION (NEW)
+async function browserAutomationTool(
+  action: string,
+  sessionId: string,
+  url?: string
+): Promise<string> {
+  try {
+    const pythonServiceUrl = Deno.env.get("PYTHON_SERVICE_URL");
+    if (!pythonServiceUrl) return "❌ Erro: PYTHON_SERVICE_URL não configurada.";
+
+    console.log(`🤖 Browser Automation: "${action}" [Session: ${sessionId}]`);
+
+    const response = await fetch(`${pythonServiceUrl}/browser-automation/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: action,
+        session_id: sessionId,
+        url: url,
+        use_ai: true // Enable AI agent on python side
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      return `❌ Erro na automação: ${err}`;
+    }
+
+    const data = await response.json();
+    if (!data.success) return `❌ Erro na automação: ${data.error || "Erro desconhecido"}`;
+
+    let output = `✅ **Ação de Navegador Concluída**\n\n`;
+
+    // Process results
+    if (data.result?.results && Array.isArray(data.result.results)) {
+      const results = data.result.results;
+      if (results.length > 0) {
+        const lastRes = results[results.length - 1];
+        if (lastRes.result) {
+          output += `📝 Resultado: ${lastRes.result}\n`;
+        }
+      }
+    }
+
+    // Check for specific returned values from AI
+    if (data.result?.result) {
+      // Recursive result structure possible
+      output += `📝 ${data.result.result}\n`;
+    }
+
+    return output;
+  } catch (error: any) {
+    console.error("Browser Automation Error:", error);
+    return `❌ Erro na automação: ${error.message}`;
+  }
+}
+
+
 // Detector de intenção (melhorado com comandos)
 function detectIntent(message: string): { tool: string; params?: any } | null {
   const lower = message.toLowerCase().trim();
@@ -359,6 +417,26 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
       return { tool: "list_products" };
     }
   }
+
+  // ===== BROWSER AUTOMATION DETECTION (PRIORITY) =====
+  if (
+    lower.includes("naveg") ||
+    lower.includes("acesse") ||
+    (lower.includes("vá para") && !lower.includes("relatório")) ||
+    lower.includes("abra o site") ||
+    lower.includes("clique") ||
+    lower.includes("preench") ||
+    lower.includes("digite") ||
+    (lower.includes("entre no site") && !lower.includes("scrap"))
+  ) {
+    // Extract URL if exists
+    const urlMatch = message.match(/https?:\/\/[^\s]+/);
+    return {
+      tool: "browser_automation",
+      params: { action: message, url: urlMatch ? urlMatch[0] : undefined }
+    };
+  }
+
 
   // ===== DETECÇÃO DE INTENÇÃO NATURAL =====
 
@@ -524,11 +602,12 @@ function detectIntent(message: string): { tool: string; params?: any } | null {
 
   // Web search genérico (fallback)
   if (
-    lower.includes("pesquis") ||
-    lower.includes("busca") ||
-    lower.includes("procur") ||
-    lower.includes("internet") ||
-    lower.startsWith("buscar")
+    (lower.includes("pesquis") ||
+      lower.includes("busca") ||
+      lower.includes("procur") ||
+      lower.includes("internet") ||
+      lower.startsWith("buscar")) &&
+    !lower.includes("naveg") // avoid conflict
   ) {
     return { tool: "web_search", params: message };
   }
@@ -1361,6 +1440,15 @@ serve(async (req) => {
             intent.params.packages,
           );
           break;
+        case "browser_automation":
+          // Call Python Service with persistent session based on conversationId
+          const sessionId = `sess_${conversationId}`;
+          toolResult = await browserAutomationTool(
+            intent.params.action,
+            sessionId,
+            intent.params.url
+          );
+          break;
         case "list_campaigns":
           toolResult = await listCampaigns(toolContext);
           break;
@@ -1431,12 +1519,13 @@ serve(async (req) => {
     // ✅ SOLUÇÃO RADICAL: Se tem resultado de scraping/busca, retornar DIRETO sem chamar IA
     if (
       toolResult &&
-      (intent?.action === "scrape_products" ||
-        intent?.action === "search_google" ||
-        intent?.action === "search_youtube" ||
-        intent?.action === "search_news" ||
-        intent?.action === "scrape_website" ||
-        intent?.action === "execute_python")
+      (intent?.tool === "scrape_products" ||
+        intent?.tool === "search_google" ||
+        intent?.tool === "search_youtube" ||
+        intent?.tool === "search_news" ||
+        intent?.tool === "scrape_website" ||
+        intent?.tool === "execute_python" ||
+        intent?.tool === "browser_automation")
     ) {
       console.log(
         "✅ Retornando resultado direto sem chamar IA (evitar tool calling)",
@@ -1600,20 +1689,14 @@ serve(async (req) => {
       .select();
 
     if (insertError) {
-      console.error("Erro ao salvar mensagens:", insertError);
-      throw new Error(`Failed to save messages: ${insertError.message}`);
+      console.error("Failed to save messages:", insertError);
     }
 
-    console.log("Mensagens salvas com sucesso:", savedMessages?.length || 0);
-
-    return new Response(JSON.stringify({ response: aiResponse }), {
+    return new Response(JSON.stringify({ content: aiResponse }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Chat stream error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("❌ Error in chat-stream:", error);
+    return errorResponse(error);
   }
 });
