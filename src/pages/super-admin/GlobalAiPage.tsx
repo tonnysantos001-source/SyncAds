@@ -501,6 +501,13 @@ export default function GlobalAiPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, model: e.target.value })
                     }
+                    onPaste={(e) => {
+                      e.stopPropagation();
+                      const pastedText = e.clipboardData.getData('text');
+                      if (pastedText) {
+                        setFormData({ ...formData, model: pastedText });
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     {formData.provider === "OPENROUTER"
@@ -542,6 +549,13 @@ export default function GlobalAiPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, baseUrl: e.target.value })
                     }
+                    onPaste={(e) => {
+                      e.stopPropagation();
+                      const pastedText = e.clipboardData.getData('text');
+                      if (pastedText) {
+                        setFormData({ ...formData, baseUrl: pastedText });
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     URL da API do provider
