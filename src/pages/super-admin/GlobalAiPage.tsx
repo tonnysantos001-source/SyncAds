@@ -40,6 +40,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import AIRoleBadge from "@/components/chat/AIRoleBadge";
 
 interface GlobalAiConnection {
   id: string;
@@ -53,6 +54,7 @@ interface GlobalAiConnection {
   isActive: boolean;
   systemPrompt?: string;
   initialGreetings?: string[];
+  aiRole?: "REASONING" | "EXECUTOR" | "NAVIGATOR" | "GENERAL";
   createdAt: string;
 }
 
@@ -73,6 +75,7 @@ export default function GlobalAiPage() {
     model: "",
     maxTokens: 4096,
     temperature: 0.7,
+    aiRole: "GENERAL" as "REASONING" | "EXECUTOR" | "NAVIGATOR" | "GENERAL",
   });
 
   useEffect(() => {
@@ -124,6 +127,7 @@ export default function GlobalAiPage() {
         model: formData.model || null,
         maxTokens: formData.maxTokens,
         temperature: formData.temperature,
+        aiRole: formData.aiRole,
         isActive: true,
       });
 
@@ -149,6 +153,7 @@ export default function GlobalAiPage() {
         model: "",
         maxTokens: 4096,
         temperature: 0.7,
+        aiRole: "GENERAL",
       });
     } catch (error: any) {
       toast({
@@ -383,7 +388,7 @@ export default function GlobalAiPage() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-8">
+      <div>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -504,6 +509,28 @@ export default function GlobalAiPage() {
                   </p>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="aiRole" className="text-gray-300">Função da IA</Label>
+                  <Select
+                    value={formData.aiRole}
+                    onValueChange={(value: "REASONING" | "EXECUTOR" | "NAVIGATOR" | "GENERAL") =>
+                      setFormData({ ...formData, aiRole: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="REASONING">🧠 Raciocínio (Thinking)</SelectItem>
+                      <SelectItem value="EXECUTOR">⚡ Executora (Actions)</SelectItem>
+                      <SelectItem value="NAVIGATOR">🌐 Navegação (Browser)</SelectItem>
+                      <SelectItem value="GENERAL">✨ Geral (Multipurpose)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">
+                    Define a função desta IA no sistema multi-agente
+                  </p>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="baseUrl" className="text-gray-300">Base URL</Label>
                   <Input
                     id="baseUrl"
@@ -550,8 +577,11 @@ export default function GlobalAiPage() {
                           <Badge className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border-green-500/30 border">✓ Testada</Badge>
                         )}
                       </div>
-                      <CardDescription className="mt-1 flex items-center gap-2">
+                      <CardDescription className="mt-1 flex items-center gap-2 flex-wrap">
                         {getProviderBadge(ai.provider)}
+                        {ai.aiRole && (
+                          <AIRoleBadge role={ai.aiRole} size="sm" />
+                        )}
                         {ai.model && (
                           <span className="text-sm">• {ai.model}</span>
                         )}

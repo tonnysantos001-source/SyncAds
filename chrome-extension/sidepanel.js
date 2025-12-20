@@ -203,22 +203,27 @@ async function loadConversations() {
 
 async function createNewConversation() {
   try {
+    console.log("🚀 Creating new conversation...");
     if (!state.userId) await loadAuthData();
-    if (!state.userId) throw new Error("Usuário não logado.");
+    if (!state.userId) {
+      console.error("❌ Cannot create conversation: No User ID");
+      throw new Error("Usuário não logado. Por favor, faça login.");
+    }
 
-    // Generate Client-Side ID to prevent 400 Error
+    // Generate Client-Side ID
     const newId = uuidv4();
+    const now = new Date().toISOString();
 
     const payload = {
-      id: newId, // EXPLICIT ID
+      id: newId,
       userId: state.userId,
-      title: `Chat ${new Date().toLocaleDateString("pt-BR")}`,
+      title: `Chat ${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR")}`,
       context: "extension",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now // Garantindo que o campo existe
     };
 
-    console.log("Creating conversation with payload:", payload);
+    console.log("📦 Payload:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation`, {
       method: "POST",
@@ -231,10 +236,17 @@ async function createNewConversation() {
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("❌ API Error:", response.status, errText);
+      throw new Error(`Erro API (${response.status}): ${errText}`);
+    }
 
     const data = await response.json();
-    const conv = data[0];
+    console.log("✅ Conversation created:", data);
+
+    // Fallback: se data for array vazio ou null (não deveria com return=representation)
+    const conv = (data && data.length > 0) ? data[0] : payload;
 
     state.conversationId = conv.id;
     state.messages = [];
@@ -242,13 +254,14 @@ async function createNewConversation() {
 
     state.conversations.unshift(conv);
     renderConversationsList();
-    renderMessages();
+    renderMessages(); // Limpa a tela
     switchToChat();
-    addMessage("assistant", "👋 Nova conversa! Como posso ajudar?");
+    addMessage("assistant", "👋 Nova conversa iniciada!");
 
   } catch (error) {
     console.error("❌ [CONV] Create error:", error);
     addMessage("assistant", `❌ Erro ao criar chat: ${error.message}`);
+    throw error; // Re-throw para parar sendMessage se chamado dali
   }
 }
 
@@ -258,7 +271,16 @@ async function loadConversation(id) {
     const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/ChatMessage?conversationId=eq.${id}&order=createdAt.asc`, {
       headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: `Bearer ${state.accessToken}` }
     });
-    if (!res.ok) throw new Error("Erro ao buscar mensagens");
+
+    if (!res.ok) {
+      if (res.status === 400 || res.status === 404) {
+        console.warn("Conversation not found or invalid, clearing state.");
+        state.conversationId = null;
+        await chrome.storage.local.remove("conversationId");
+        return;
+      }
+      throw new Error("Erro ao buscar mensagens");
+    }
 
     const msgs = await res.json();
     state.conversationId = id;
@@ -274,6 +296,8 @@ async function loadConversation(id) {
     switchToChat();
   } catch (e) {
     console.error("Load conv error:", e);
+    // Falha crítica no load: limpar ID para não travar o usuário
+    state.conversationId = null;
   }
 }
 
@@ -316,6 +340,9 @@ async function deleteConversation(id) {
 async function sendMessage() {
   const txt = elements.messageInput.value.trim();
   if (!txt) return;
+
+  // Garantir que a tela de chat está visível
+  switchToChat();
 
   // UI Updates
   addMessage("user", txt);

@@ -360,7 +360,8 @@ async function sendHeartbeat() {
   }
 
   try {
-    // Atualizar last_seen e status no banco
+    // Tentar atualizar heartbeat (PATCH)
+    // Se dispositivo não existir, isso vai falhar (404/PGRST116 ou '[]' dependendo do retorno)
     const response = await fetch(
       `${CONFIG.restUrl}/extension_devices?device_id=eq.${state.deviceId}`,
       {
@@ -369,7 +370,7 @@ async function sendHeartbeat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${state.accessToken}`,
           apikey: CONFIG.supabaseAnonKey,
-          Prefer: "return=minimal",
+          Prefer: "return=representation", // Para saber se atualizou algo
         },
         body: JSON.stringify({
           status: "online",
@@ -379,45 +380,38 @@ async function sendHeartbeat() {
     );
 
     if (response.ok) {
-      Logger.debug("💓 Heartbeat OK");
-      state.lastActivity = Date.now();
-
-      // Atualizar storage para sincronizar com popup
-      await chrome.storage.local.set({
-        lastActivity: state.lastActivity,
-        isConnected: true,
-      });
-
-      // Notificar popup sobre status
-      notifyPopup({
-        action: "STATUS_UPDATE",
-        connected: true,
-        lastActivity: state.lastActivity,
-      });
+      const data = await response.json();
+      if (data && data.length > 0) {
+        Logger.debug("💓 Heartbeat OK");
+        state.lastActivity = Date.now();
+        await chrome.storage.local.set({
+          lastActivity: state.lastActivity,
+          isConnected: true,
+        });
+        return; // Sucesso
+      } else {
+        Logger.warn("Heartbeat updated 0 rows (device not found?)");
+      }
     } else {
-      Logger.warn("Heartbeat failed", { status: response.status });
+      Logger.warn("Heartbeat PATCH failed", { status: response.status });
     }
+
+    // Se chegou aqui, falhou a atualização. Tentar registrar novamente.
+    Logger.info("Heartbeat failed or device missing. Attempting re-registration...");
+    await registerDevice();
+
   } catch (error) {
     Logger.error("Heartbeat error", error);
   }
 }
 
-// Iniciar heartbeat a cada 30 segundos (menos agressivo)
+// Iniciar heartbeat
 let heartbeatInterval = null;
 
 function startHeartbeat() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-  }
-
-  // Enviar imediatamente
-  sendHeartbeat();
-
-  // Depois a cada 30 segundos
-  heartbeatInterval = setInterval(() => {
-    sendHeartbeat();
-  }, 30000); // 30 segundos - mais estável
-
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  sendHeartbeat(); // Executar imediatamente
+  heartbeatInterval = setInterval(sendHeartbeat, 30000);
   Logger.info("Heartbeat started (30s interval)");
 }
 
@@ -429,10 +423,11 @@ function stopHeartbeat() {
   }
 }
 
-// Heartbeat a cada 30 segundos
+// Inicializar se já estiver rodando
 if (heartbeatInterval) clearInterval(heartbeatInterval);
 heartbeatInterval = setInterval(sendHeartbeat, 30000);
-sendHeartbeat(); // Enviar imediatamente ao iniciar
+// sendHeartbeat(); // Removido chamada imediata global para evitar race condition na inicialização
+
 
 // ============================================
 // WAIT FOR SERVICE WORKER
