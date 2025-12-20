@@ -422,6 +422,13 @@ export default function GlobalAiPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                    onPaste={(e) => {
+                      e.stopPropagation();
+                      const pastedText = e.clipboardData.getData('text');
+                      if (pastedText) {
+                        setFormData({ ...formData, name: pastedText });
+                      }
+                    }}
                   />
                 </div>
                 <div className="grid gap-2">
