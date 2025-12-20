@@ -198,8 +198,8 @@ async function processCommand(cmd) {
       chrome.tabs.sendMessage(
         activeTab.id,
         {
-          type: "EXECUTE_COMMAND",
-          command: cmd.command,
+          type: "EXECUTE_DOM_ACTION",
+          action: cmd.command,
           params: cmd.data || cmd.params,
         },
         (response) => {

@@ -214,8 +214,11 @@ async function createNewConversation() {
       userId: state.userId,
       title: `Chat ${new Date().toLocaleDateString("pt-BR")}`,
       context: "extension",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+
+    console.log("Creating conversation with payload:", payload);
 
     const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/ChatConversation`, {
       method: "POST",
