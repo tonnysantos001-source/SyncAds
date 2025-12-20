@@ -91,7 +91,10 @@ serve(async (req) => {
       .maybeSingle();
 
     // Fallback: If no roles specified, use first active AI
-    if ((!reasoningAI || !executorAI)) {
+    let thinkerAi;
+    let mainAi;
+
+    if (!reasoningAI || !executorAI) {
       const { data: fallbackAIs } = await supabase
         .from("GlobalAiConnection")
         .select("*")
@@ -100,12 +103,12 @@ serve(async (req) => {
 
       if (!fallbackAIs?.length) throw new Error("No AI configured");
 
-      const thinkerAi = reasoningAI || fallbackAIs[0];
-      const mainAi = executorAI || fallbackAIs[fallbackAIs.length > 1 ? 1 : 0];
+      thinkerAi = reasoningAI || fallbackAIs[0];
+      mainAi = executorAI || (fallbackAIs.length > 1 ? fallbackAIs[1] : fallbackAIs[0]);
     } else {
       // Use role-specific AIs
-      var thinkerAi = reasoningAI;
-      var mainAi = executorAI;
+      thinkerAi = reasoningAI;
+      mainAi = executorAI;
     }
 
     // Intent
