@@ -192,10 +192,14 @@ async function loadConversations() {
     state.conversations = await response.json();
     renderConversationsList();
 
-    // Auto-load last conversation if exists, else create
+    // Auto-load ONLY if we have a stored conversationId
     if (state.conversationId) {
+      console.log("📂 [CONV] Auto-loading last conversation:", state.conversationId);
       await loadConversation(state.conversationId);
-    } // else user can create new
+    } else {
+      console.log("📝 [CONV] No previous conversation. User can start a new chat.");
+      switchToChat(); // Show chat interface but empty
+    }
   } catch (error) {
     console.error("❌ [CONV] Load error:", error);
   }
@@ -395,6 +399,15 @@ async function sendMessage() {
 // ============================================
 // RENDERING
 // ============================================
+/**
+ * Render all messages in the messages area
+ * Clears and re-renders the entire message list
+ */
+function renderMessages() {
+  elements.messagesArea.innerHTML = "";
+  state.messages.forEach(msg => appendMessage(msg));
+}
+
 function addMessage(role, text) {
   state.messages.push({ role, content: text, createdAt: new Date().toISOString() });
   appendMessage(state.messages[state.messages.length - 1]);

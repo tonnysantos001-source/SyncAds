@@ -73,10 +73,40 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (!user) throw new Error("Unauthorized");
 
-    const { data: aiConfigs } = await supabase.from("GlobalAiConnection").select("*").eq("isActive", true).limit(2);
-    if (!aiConfigs?.length) throw new Error("No AI");
-    const mainAi = aiConfigs[0];
-    const thinkerAi = aiConfigs.length > 1 ? aiConfigs[1] : aiConfigs[0];
+    // Query for specific AI roles
+    const { data: reasoningAI } = await supabase
+      .from("GlobalAiConnection")
+      .select("*")
+      .eq("isActive", true)
+      .eq("aiRole", "REASONING")
+      .limit(1)
+      .maybeSingle();
+
+    const { data: executorAI } = await supabase
+      .from("GlobalAiConnection")
+      .select("*")
+      .eq("isActive", true)
+      .in("aiRole", ["EXECUTOR", "GENERAL"]) // Fallback to GENERAL if no EXECUTOR
+      .limit(1)
+      .maybeSingle();
+
+    // Fallback: If no roles specified, use first active AI
+    if ((!reasoningAI || !executorAI)) {
+      const { data: fallbackAIs } = await supabase
+        .from("GlobalAiConnection")
+        .select("*")
+        .eq("isActive", true)
+        .limit(2);
+
+      if (!fallbackAIs?.length) throw new Error("No AI configured");
+
+      const thinkerAi = reasoningAI || fallbackAIs[0];
+      const mainAi = executorAI || fallbackAIs[fallbackAIs.length > 1 ? 1 : 0];
+    } else {
+      // Use role-specific AIs
+      var thinkerAi = reasoningAI;
+      var mainAi = executorAI;
+    }
 
     // Intent
     const intent = detectIntent(message);
