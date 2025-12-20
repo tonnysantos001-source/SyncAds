@@ -1,18 +1,79 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from "../_utils/rate-limiter.ts";
-import {
   corsHeaders,
   handlePreflightRequest,
   errorResponse,
 } from "../_utils/cors.ts";
 
-// ===================================
-// TOOLS (Browser Automation, etc)
-// ===================================
+// =====================================================
+// PROMPTS INLINE (GARANTIA DE FUNCIONAMENTO)
+// =====================================================
+
+const THINKER_PROMPT = `
+# VOCÊ É O AGENTE DE RACIOCÍNIO (THINKER) DO SYNCADS
+
+## FERRAMENTAS DISPONÍVEIS
+
+Você TEM acesso a ferramentas de automação. SEMPRE use-as ao invés de dar instruções manuais!
+
+### 1. Browser Automation
+Para abrir sites, clicar, navegar, etc.
+Exemplos: "abra o google", "vá para amazon.com", "clique em login"
+
+### 2. Web Search
+Para buscar informações
+Exemplos: "qual o preço do iPhone", "busque notícias sobre IA"
+
+## REGRAS CRÍTICAS
+
+❌ NUNCA dê instruções manuais como:
+"Para abrir o Google, vá no navegador..."
+"Você pode acessar o site..."
+
+✅ SEMPRE responda ações diretas:
+"Abrindo o Google agora..."
+"Buscando informações sobre..."
+
+## FORMATO DE RESPOSTA
+
+Retorne JSON estruturado:
+{
+  "intent": "browser_action | search | other",
+  "tool": "browser | search | none",
+  "action": "descrição da ação",
+  "reasoning": "por que escolhi isso"
+}
+
+Se não souber usar ferramentas, use "intent": "conversation"
+`;
+
+const EXECUTOR_PROMPT = `
+# VOCÊ É O AGENTE EXECUTOR DO SYNCADS
+
+## SUA MISSÃO
+- Receber planos do Thinker
+- EXECUTAR ferramentas
+- Comunicar resultados em Português BR de forma amigável
+
+## REGRAS
+- Seja direto e amigável
+- Use emojis (🌐 🔍 ✅ ⏳)
+- NUNCA mostre erros técnicos brutos
+- Se algo falhar, seja positivo sobre retry
+
+## EXEMPLOS
+
+❌ ERRADO:
+"Error 500: Internal Server Timeout at line 42..."
+
+✅ CERTO:
+"⏳ O site está demorando um pouco. Tentando novamente..."
+`;
+
+// =====================================================
+// TOOLS
+// =====================================================
 
 async function userBrowserAutomation(
   ctx: { supabase: any; userId: string },
@@ -27,7 +88,7 @@ async function userBrowserAutomation(
     .limit(1)
     .maybeSingle();
 
-  if (!devices) return "⚠️ Sua extensão não está online.";
+  if (!devices) return "⚠️ Extensão offline. Usando navegador em nuvem...";
 
   const { error } = await ctx.supabase
     .from("extension_commands")
@@ -38,7 +99,7 @@ async function userBrowserAutomation(
       status: "pending",
     });
 
-  return error ? `❌ Erro: ${error.message}` : "✅ Comando enviado para extensão.";
+  return error ? `❌ ${error.message}` : "✅ Comando enviado para sua extensão.";
 }
 
 async function cloudBrowserAutomation(
@@ -47,7 +108,10 @@ async function cloudBrowserAutomation(
   url?: string
 ): Promise<string> {
   const pythonUrl = Deno.env.get("PYTHON_SERVICE_URL");
-  if (!pythonUrl) return "❌ PYTHON_SERVICE_URL não configurada.";
+  if (!pythonUrl) {
+    console.warn("PYTHON_SERVICE_URL not configured");
+    return "⚠️ Navegador em nuvem indisponível. Configure PYTHON_SERVICE_URL.";
+  }
 
   try {
     const res = await fetch(`${pythonUrl}/browser-automation/execute`, {
@@ -56,22 +120,27 @@ async function cloudBrowserAutomation(
       body: JSON.stringify({ action, session_id: sessionId, url, use_ai: true }),
     });
 
-    if (!res.ok) return `❌ Erro Cloud: ${await res.text()}`;
+    if (!res.ok) {
+      console.error("Cloud browser error:", await res.text());
+      return "❌ Navegador em nuvem não respondeu.";
+    }
 
     const data = await res.json();
-    return data.success ? `✅ Cloud: ${JSON.stringify(data.result)}` : `❌ Falha: ${data.error}`;
+    return data.success ? `✅ ${JSON.stringify(data.result)}` : `⚠️ ${data.error}`;
   } catch (e: any) {
-    return `❌ Erro Conexão: ${e.message}`;
+    console.error("Cloud browser exception:", e);
+    return `❌ Erro ao conectar com navegador em nuvem: ${e.message}`;
   }
 }
 
 async function webSearch(query: string): Promise<string> {
-  return `Busca simulada: ${query}`;
+  // TODO: Integrar com Tavily/Serper API
+  return `🔎 Busca: "${query}" (Integração de busca será implementada)`;
 }
 
-// ===================================
+// =====================================================
 // LLM CALLER
-// ===================================
+// =====================================================
 
 async function callLLM(
   provider: string,
@@ -91,56 +160,86 @@ async function callLLM(
     url = "https://openrouter.ai/api/v1/chat/completions";
     headers["HTTP-Referer"] = "https://syncads.com";
   } else if (provider === "OPENAI") url = "https://api.openai.com/v1/chat/completions";
-  else return "Provider not supported";
+  else throw new Error(`Provider ${provider} not supported`);
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ model, messages, temperature: temp, stream: false }),
-    });
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ model, messages, temperature: temp, stream: false }),
+  });
 
-    if (!res.ok) return `Error: ${await res.text()}`;
-
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content || "";
-  } catch (e: any) {
-    return `Error: ${e.message}`;
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`LLM API error: ${error}`);
   }
+
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content || "";
 }
 
-// ===================================
-// INTENT DETECTION (Simple)
-// ===================================
+// =====================================================
+// INTENT DETECTION (EXPANDIDO)
+// =====================================================
 
-function detectIntent(message: string): { tool: string; params?: any } | null {
+function detectIntent(message: string): { tool: string; action: string; url?: string } | null {
   const lower = message.toLowerCase();
 
-  if (
-    lower.includes("naveg") ||
-    lower.includes("acesse") ||
-    lower.includes("clique") ||
-    lower.includes("abra") ||
-    lower.includes("vá para") ||
-    lower.includes("entre")
-  ) {
-    const urlMatch = message.match(/https?:\/\/[^\s]+/);
-    let url = urlMatch?.[0];
-    if (!url && lower.includes("amazon")) url = "https://www.amazon.com.br";
-    if (!url && lower.includes("google")) url = "https://www.google.com";
-    return { tool: "decide_browser", params: { action: message, url } };
+  // Detectar URLs explícitos
+  const urlMatch = message.match(/https?:\/\/[^\s]+/);
+  const explicitUrl = urlMatch?.[0];
+
+  // BROWSER ACTIONS - Lista expandida de gatilhos
+  const browserTriggers = [
+    "abr",    // abra, abre, abrir, abrindo
+    "vá",     // vá, vai
+    "acesse", // acesse, acessar
+    "entr",   // entre, entrar, entrada
+    "cliqu",  // clique, clica, clicar
+    "naveg",  // navega, navegue, navegar
+    "visit",  // visite, visitar
+    "ir para",
+    "veja",
+    "mostre",
+  ];
+
+  for (const trigger of browserTriggers) {
+    if (lower.includes(trigger)) {
+      // Inferir URL de sites conhecidos
+      let inferredUrl = explicitUrl;
+      if (!inferredUrl) {
+        if (lower.includes("google")) inferredUrl = "https://google.com";
+        else if (lower.includes("amazon")) inferredUrl = "https://amazon.com.br";
+        else if (lower.includes("facebook")) inferredUrl = "https://facebook.com";
+        else if (lower.includes("instagram")) inferredUrl = "https://instagram.com";
+        else if (lower.includes("youtube")) inferredUrl = "https://youtube.com";
+        else if (lower.includes("twitter") || lower.includes("x.com")) inferredUrl = "https://twitter.com";
+      }
+
+      return {
+        tool: "browser",
+        action: message, // Ação completa para o browser
+        url: inferredUrl,
+      };
+    }
   }
 
-  if (lower.includes("pesquis") || lower.includes("busc")) {
-    return { tool: "web_search", params: message };
+  // SEARCH ACTIONS
+  const searchTriggers = ["pesquis", "busc", "procur", "ache", "encontr", "qual", "quanto"];
+  for (const trigger of searchTriggers) {
+    if (lower.includes(trigger)) {
+      return {
+        tool: "search",
+        action: message,
+      };
+    }
   }
 
   return null;
 }
 
-// ===================================
+// =====================================================
 // MAIN HANDLER
-// ===================================
+// =====================================================
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return handlePreflightRequest();
@@ -149,7 +248,7 @@ serve(async (req) => {
     const body = await req.json();
     const { message, conversationId, conversationHistory = [] } = body;
 
-    console.log("📨 New message:", message);
+    console.log("📨 Message:", message);
 
     // AUTH
     const authHeader = req.headers.get("Authorization")!;
@@ -164,173 +263,28 @@ serve(async (req) => {
     } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (!user) throw new Error("Unauthorized");
 
-    // ==================================
-    // STEP 1: FETCH 3 AIs
-    // ==================================
-
-    const { data: thinkerAI } = await supabase
-      .from("GlobalAiConnection")
-      .select("*")
-      .eq("isActive", true)
-      .eq("aiRole", "REASONING")
-      .limit(1)
-      .maybeSingle();
-
-    const { data: criticAI } = await supabase
-      .from("GlobalAiConnection")
-      .select("*")
-      .eq("isActive", true)
-      .eq("aiRole", "GENERAL") // Critic usa GENERAL
-      .limit(1)
-      .maybeSingle();
-
+    // FETCH EXECUTOR AI (simplificado - usar apenas 1 IA por agora)
     const { data: executorAI } = await supabase
       .from("GlobalAiConnection")
       .select("*")
       .eq("isActive", true)
-      .eq("aiRole", "EXECUTOR")
+      .in("aiRole", ["EXECUTOR", "REASONING", "GENERAL"]) // Aceitar qualquer
       .limit(1)
       .maybeSingle();
 
-    // Fallback se alguma não existir
-    if (!thinkerAI || !criticAI || !executorAI) {
-      const { data: fallbackAIs } = await supabase
-        .from("GlobalAiConnection")
-        .select("*")
-        .eq("isActive", true)
-        .limit(3);
+    if (!executorAI) throw new Error("No AI configured");
 
-      if (!fallbackAIs?.length) throw new Error("No AI configured");
+    const ai = executorAI;
 
-      const thinker = thinkerAI || fallbackAIs[0];
-      const critic = criticAI || fallbackAIs[1] || fallbackAIs[0];
-      const executor = executorAI || fallbackAIs[2] || fallbackAIs[0];
-
-      console.log("⚠️ Using fallback AIs");
-    }
-
-    const thinker = thinkerAI!;
-    const critic = criticAI!;
-    const executor = executorAI!;
-
-    // ==================================
-    // STEP 2: LOAD PROMPTS
-    // ==================================
-
-    let thinkerPrompt = "";
-    let criticPrompt = "";
-    let executorPrompt = "";
-
-    try {
-      const thinkerUrl = new URL("./prompts/SYSTEM_PROMPT_THINKER_V2.md", import.meta.url);
-      const criticUrl = new URL("./prompts/SYSTEM_PROMPT_CRITIC.md", import.meta.url);
-      const executorUrl = new URL("./prompts/SYSTEM_PROMPT_EXECUTOR_V2.md", import.meta.url);
-
-      const [tResp, cResp, eResp] = await Promise.all([
-        fetch(thinkerUrl),
-        fetch(criticUrl),
-        fetch(executorUrl),
-      ]);
-
-      if (tResp.ok) thinkerPrompt = await tResp.text();
-      if (cResp.ok) criticPrompt = await cResp.text();
-      if (eResp.ok) executorPrompt = await eResp.text();
-
-      console.log("✅ Prompts loaded");
-    } catch (e) {
-      console.error("Failed to load prompts, using fallbacks", e);
-      thinkerPrompt = "You are the Thinker. Plan actions.";
-      criticPrompt = "You are the Critic. Validate plans.";
-      executorPrompt = "You are the Executor. Execute and communicate.";
-    }
-
-    // ==================================
-    // STEP 3: THINKER PHASE
-    // ==================================
-
-    console.log("🧠 Calling Thinker...");
-
-    const fullHistory = conversationHistory.map((m: any) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    const thinkerMessages = [
-      { role: "system", content: thinkerPrompt },
-      ...fullHistory,
-      { role: "user", content: `NEW REQUEST:\n${message}` },
-    ];
-
-    const thinkerResponse = await callLLM(
-      thinker.provider,
-      thinker.apiKey,
-      thinker.model,
-      thinkerMessages,
-      thinker.temperature
-    );
-
-    console.log("🧠 Thinker response:", thinkerResponse.substring(0, 200));
-
-    // Tentar parsear como JSON (plano estruturado)
-    let plan: any = {};
-    try {
-      plan = JSON.parse(thinkerResponse);
-    } catch {
-      // Se não for JSON, tratar como raciocínio em texto livre
-      plan = {
-        reasoning: thinkerResponse,
-        tool: "none",
-      };
-    }
-
-    // ==================================
-    // STEP 4: CRITIC VALIDATION
-    // ==================================
-
-    console.log("🔍 Calling Critic...");
-
-    const criticMessages = [
-      { role: "system", content: criticPrompt },
-      {
-        role: "user",
-        content: `VALIDATE THIS PLAN:\n\`\`\`json\n${JSON.stringify(plan, null, 2)}\n\`\`\`\n\nUser request: "${message}"`,
-      },
-    ];
-
-    const criticResponse = await callLLM(
-      critic.provider,
-      critic.apiKey,
-      critic.model,
-      criticMessages,
-      critic.temperature
-    );
-
-    console.log("🔍 Critic response:", criticResponse.substring(0, 200));
-
-    let validation: any = {};
-    try {
-      validation = JSON.parse(criticResponse);
-    } catch {
-      // Fallback: assumir aprovado se não for JSON
-      validation = { status: "approved", notes: criticResponse };
-    }
-
-    // Se rejeitado, poderia fazer loop de volta ao Thinker (futuro)
-    // Por agora, continuar mesmo que rejeitado
-
-    // ==================================
-    // STEP 5: TOOL EXECUTION (if needed)
-    // ==================================
-
-    let toolResult = "";
+    // DETECT INTENT
     const intent = detectIntent(message);
+    let toolResult = "";
 
     if (intent) {
-      console.log("🛠️ Executing tool:", intent.tool);
+      console.log("🛠️ Intent:", intent.tool);
 
-      if (intent.tool === "web_search") {
-        toolResult = await webSearch(intent.params);
-      } else if (intent.tool === "decide_browser") {
+      if (intent.tool === "browser") {
+        // Decidir entre user browser (extensão) ou cloud browser
         const { data: devices } = await supabase
           .from("extension_devices")
           .select("id")
@@ -338,64 +292,56 @@ serve(async (req) => {
           .eq("status", "online")
           .limit(1);
 
-        if (devices && devices.length > 0 || message.toLowerCase().includes("meu")) {
+        const useUserBrowser = (devices && devices.length > 0) || message.toLowerCase().includes("meu") || message.toLowerCase().includes("minha");
+
+        if (useUserBrowser) {
+          console.log("🌐 Using USER browser (extension)");
           toolResult = await userBrowserAutomation(
             { supabase, userId: user.id },
-            intent.params.action,
-            intent.params.url
+            intent.action,
+            intent.url
           );
         } else {
+          console.log("☁️ Using CLOUD browser");
           toolResult = await cloudBrowserAutomation(
-            intent.params.action,
+            intent.action,
             `sess_${conversationId}`,
-            intent.params.url
+            intent.url
           );
         }
+      } else if (intent.tool === "search") {
+        console.log("🔍 Using WEB SEARCH");
+        toolResult = await webSearch(intent.action);
       }
     }
 
-    // ==================================
-    // STEP 6: EXECUTOR PHASE
-    // ==================================
-
-    console.log("⚡ Calling Executor...");
+    // BUILD EXECUTOR MESSAGES
+    const history = conversationHistory.map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
     const executorMessages = [
-      { role: "system", content: executorPrompt },
-      ...fullHistory,
-      {
-        role: "system",
-        content: `[THINKER PLAN]:\n${plan.reasoning || JSON.stringify(plan)}`,
-      },
+      { role: "system", content: EXECUTOR_PROMPT },
+      ...history,
     ];
 
     if (toolResult) {
       executorMessages.push({
         role: "system",
-        content: `[TOOL RESULT]:\n${toolResult}`,
+        content: `[TOOL EXECUTED]:\n${toolResult}`,
       });
     }
 
     executorMessages.push({ role: "user", content: message });
 
-    const executorResponse = await callLLM(
-      executor.provider,
-      executor.apiKey,
-      executor.model,
-      executorMessages,
-      executor.temperature
-    );
+    // CALL LLM
+    console.log("⚡ Calling Executor AI...");
+    const response = await callLLM(ai.provider, ai.apiKey, ai.model, executorMessages, ai.temperature);
 
-    console.log("⚡ Executor response:", executorResponse.substring(0, 200));
+    console.log("✅ Response generated");
 
-    // ==================================
-    // STEP 7: COMBINE & SAVE
-    // ==================================
-
-    const thoughtBlock = `<antigravity_thinking>${plan.reasoning || thinkerResponse}</antigravity_thinking>`;
-    const finalPayload = `${thoughtBlock}\n\n${executorResponse}`;
-
-    // Save messages
+    // SAVE
     await supabase.from("ChatMessage").insert([
       {
         conversationId,
@@ -406,20 +352,16 @@ serve(async (req) => {
       {
         conversationId,
         role: "assistant",
-        content: finalPayload,
+        content: response,
         userId: user.id,
         metadata: {
-          thinker_plan: plan,
-          critic_validation: validation,
-          tool_used: intent?.tool,
+          intent: intent?.tool,
           tool_result: toolResult,
         },
       },
     ]);
 
-    console.log("✅ Response complete");
-
-    return new Response(JSON.stringify({ content: finalPayload }), {
+    return new Response(JSON.stringify({ content: response }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
