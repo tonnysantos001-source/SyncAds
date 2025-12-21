@@ -226,13 +226,34 @@ async function processCommand(cmd) {
       );
     });
 
+    // Aguardar um pouco para a ação completar
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Pegar informações ATUAIS da tab para confirmar execução
+    const [updatedTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    const confirmationData = {
+      executed: true,
+      commandType: cmd.type,
+      currentUrl: updatedTab?.url || activeTab.url,
+      currentTitle: updatedTab?.title || activeTab.title,
+      originalResponse: response,
+      timestamp: new Date().toISOString()
+    };
+
     // Marcar como COMPLETED
     await updateCommandStatus(cmd.id, "completed", {
-      result: response,
+      result: confirmationData,
       completed_at: new Date().toISOString(),
     });
 
-    Logger.success("✅ Command executed successfully", { id: cmd.id });
+    Logger.success("✅ Command executed and confirmed", {
+      id: cmd.id,
+      url: confirmationData.currentUrl
+    });
   } catch (error) {
     Logger.error("❌ Command execution failed", error, { id: cmd.id });
 

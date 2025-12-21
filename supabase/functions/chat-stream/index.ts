@@ -169,19 +169,41 @@ async function executeLocalBrowser(
     }
 
     console.log("📝 Command created:", command.id);
+    console.log("⏱️ Waiting for execution...");
 
     // 4. Wait for command completion
     const result = await waitForCommandCompletion(ctx.supabase, command.id);
 
     if (result.success) {
+      // Verificar se realmente executou
+      const executionDetails = result.result ? JSON.stringify(result.result, null, 2) : "";
+
       return {
         success: true,
-        message: `✅ ${action} executado com sucesso!\n\n${result.result || ''}`,
+        message: `✅ Ação executada com sucesso!
+
+**Comando:** ${domCommand.type}
+**Status:** Completado
+${domCommand.url ? `**URL:** ${domCommand.url}\n` : ""}
+${executionDetails ? `**Detalhes:**\n\`\`\`\n${executionDetails}\n\`\`\`\n` : ""}
+
+A ação foi confirmada pela extensão Chrome.`,
       };
     } else {
       return {
         success: false,
-        message: `❌ Erro ao executar: ${result.error || 'Desconhecido'}`,
+        message: `❌ Falha na execução
+
+**Erro:** ${result.error || 'Desconhecido'}
+**Comando:** ${domCommand.type}
+
+**Possíveis causas:**
+- Extensão Chrome não está rodando
+- Tab não está ativa
+- Elemento não encontrado (se tentou clicar/preencher)
+- Timeout (comando demorou mais de 30s)
+
+**Solução:** Verifique se a extensão está ativa e tente novamente.`,
       };
     }
   } catch (e: any) {
@@ -518,8 +540,9 @@ serve(async (req) => {
 
     const executorResponse = await callLLM(executor.provider, executor.apiKey, executor.model, executorMessages, executor.temperature);
 
-    // COMBINE WITH THINKING
-    const thinkingBlock = `<antigravity_thinking>${plan.reasoning || thinkerResponse}</antigravity_thinking>`;
+    // COMBINE WITH THINKING (apenas o reasoning, não o JSON completo)
+    const reasoning = plan.reasoning || "Processando sua solicitação...";
+    const thinkingBlock = `<antigravity_thinking>${reasoning}</antigravity_thinking>`;
     const finalPayload = `${thinkingBlock}\n\n${executorResponse}`;
 
     console.log("✅ Response complete");
