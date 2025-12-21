@@ -135,7 +135,7 @@ async function checkPendingCommands() {
   try {
     // Buscar comandos PENDING para este dispositivo
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?deviceId=eq.${state.deviceId}&status=eq.PENDING&order=createdAt.asc&limit=10`,
+      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`,
       {
         method: "GET",
         headers: {
@@ -170,12 +170,12 @@ async function checkPendingCommands() {
 }
 
 async function processCommand(cmd) {
-  Logger.info("Processing command", { id: cmd.id, command: cmd.command });
+  Logger.info("Processing command", { id: cmd.id, type: cmd.type });
 
   try {
-    // Marcar como EXECUTING
-    await updateCommandStatus(cmd.id, "EXECUTING", {
-      executedAt: new Date().toISOString(),
+    // Marcar como PROCESSING
+    await updateCommandStatus(cmd.id, "processing", {
+      started_at: new Date().toISOString(),
     });
 
     // Obter tab ativa
@@ -193,14 +193,28 @@ async function processCommand(cmd) {
       throw new Error("Tab is not ready");
     }
 
+    // Montar parâmetros do comando baseado no tipo
+    let params = {};
+    if (cmd.type === "NAVIGATE") {
+      params = { url: cmd.options?.url || cmd.value };
+    } else if (cmd.type === "DOM_CLICK") {
+      params = { selector: cmd.selector };
+    } else if (cmd.type === "DOM_FILL") {
+      params = { selector: cmd.selector, value: cmd.value };
+    } else if (cmd.type === "DOM_SCROLL") {
+      params = { y: cmd.value || 500 };
+    } else {
+      params = cmd.options || {};
+    }
+
     // Enviar comando para content-script
     const response = await new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(
         activeTab.id,
         {
           type: "EXECUTE_DOM_ACTION",
-          action: cmd.command,
-          params: cmd.data || cmd.params,
+          action: cmd.type.replace("DOM_", ""), // DOM_CLICK -> CLICK
+          params: params,
         },
         (response) => {
           if (chrome.runtime.lastError) {
@@ -213,9 +227,9 @@ async function processCommand(cmd) {
     });
 
     // Marcar como COMPLETED
-    await updateCommandStatus(cmd.id, "COMPLETED", {
+    await updateCommandStatus(cmd.id, "completed", {
       result: response,
-      completedAt: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
     });
 
     Logger.success("✅ Command executed successfully", { id: cmd.id });
@@ -223,9 +237,9 @@ async function processCommand(cmd) {
     Logger.error("❌ Command execution failed", error, { id: cmd.id });
 
     // Marcar como FAILED
-    await updateCommandStatus(cmd.id, "FAILED", {
-      error: error.message,
-      completedAt: new Date().toISOString(),
+    await updateCommandStatus(cmd.id, "failed", {
+      error_message: error.message,
+      completed_at: new Date().toISOString(),
     });
   }
 }
@@ -233,7 +247,7 @@ async function processCommand(cmd) {
 async function updateCommandStatus(commandId, status, extraData = {}) {
   try {
     const response = await fetch(
-      `${CONFIG.restUrl}/ExtensionCommand?id=eq.${commandId}`,
+      `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
       {
         method: "PATCH",
         headers: {

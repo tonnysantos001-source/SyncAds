@@ -111,89 +111,217 @@ async function userBrowserAutomation(
   }
 }
 
-async function cloudBrowserAutomation(
+// =====================================================
+// LOCAL BROWSER AUTOMATION (Chrome Extension)
+// =====================================================
+
+async function executeLocalBrowser(
+  ctx: { supabase: any; userId: string },
   action: string,
-  sessionId: string,
   url?: string
 ): Promise<{ success: boolean; message: string }> {
-  const pythonUrl = Deno.env.get("PYTHON_SERVICE_URL");
-
-  if (!pythonUrl) {
-    return {
-      success: false,
-      message: `❌ Navegador em nuvem NÃO CONFIGURADO.
-
-**Problema**: Variável PYTHON_SERVICE_URL não está definida no Supabase.
-
-**Como resolver**:
-1. Acesse Supabase Dashboard → Settings → Edge Functions
-2. Adicione variável: PYTHON_SERVICE_URL = [URL do Railway]
-3. Faça redeploy da função
-
-**Ou**: Use a extensão Chrome para automação local.`,
-    };
-  }
+  console.log("🌐 Starting LOCAL browser automation", { action, url });
 
   try {
-    console.log("🌐 Calling Python service:", pythonUrl);
+    // 1. Check if extension is online
+    const { data: device } = await ctx.supabase
+      .from("extension_devices")
+      .select("device_id, id")
+      .eq("user_id", ctx.userId)
+      .eq("status", "online")
+      .limit(1)
+      .maybeSingle();
 
-    const res = await fetch(`${pythonUrl}/browser-automation/execute`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, session_id: sessionId, url, use_ai: true }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Python service error:", errorText);
-
+    if (!device) {
       return {
         success: false,
-        message: `❌ Navegador em nuvem falhou (HTTP ${res.status}).
-
-**Erro**: ${errorText}
-
-**Possível causa**: Railway offline ou bibliotecas (Playwright) não instaladas.
-
-**Como resolver**:
-1. Verifique se Railway está rodando
-2. Verifique logs do Railway
-3. Reinstale dependências: \`pip install browser-use playwright\``,
+        message: "❌ Extensão Chrome não conectada.\n\n**Como resolver**: Abra a extensão Chrome e faça login no SyncAds.",
       };
     }
 
-    const data = await res.json();
+    console.log("✅ Extension online:", device.device_id);
 
-    if (!data.success) {
+    // 2. Parse action to DOM command
+    const domCommand = parseActionToDomCommand(action, url);
+    console.log("🔧 Parsed command:", domCommand);
+
+    // 3. Create command in database
+    const { data: command, error: insertError } = await ctx.supabase
+      .from("extension_commands")
+      .insert({
+        device_id: device.device_id,
+        user_id: ctx.userId,
+        type: domCommand.type,
+        selector: domCommand.selector || null,
+        value: domCommand.value || null,
+        options: { url: domCommand.url, ...domCommand },
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("❌ Failed to create command:", insertError);
       return {
         success: false,
-        message: `❌ Navegador retornou erro: ${data.error}
-
-**Próximos passos**: Verifique logs do Railway para mais detalhes.`,
+        message: `❌ Erro ao criar comando: ${insertError.message}`,
       };
     }
 
-    return {
-      success: true,
-      message: `✅ Ação executada no navegador em nuvem.\n\nResultado: ${JSON.stringify(data.result)}`,
-    };
+    console.log("📝 Command created:", command.id);
+
+    // 4. Wait for command completion
+    const result = await waitForCommandCompletion(ctx.supabase, command.id);
+
+    if (result.success) {
+      return {
+        success: true,
+        message: `✅ ${action} executado com sucesso!\n\n${result.result || ''}`,
+      };
+    } else {
+      return {
+        success: false,
+        message: `❌ Erro ao executar: ${result.error || 'Desconhecido'}`,
+      };
+    }
   } catch (e: any) {
-    console.error("Cloud browser exception:", e);
-
+    console.error("❌ Local browser automation error:", e);
     return {
       success: false,
-      message: `❌ Não foi possível conectar ao navegador em nuvem.
-
-**Erro**: ${e.message}
-
-**Causas comuns**:
-- Railway está offline
-- URL incorreta: ${pythonUrl}
-- Firewall bloqueando conexão
-
-**Como resolver**: Verifique status no Railway Dashboard.`,
+      message: `❌ Erro inesperado: ${e.message}`,
     };
   }
+}
+
+// Helper: Parse natural language action to DOM command
+function parseActionToDomCommand(action: string, url?: string): any {
+  const lower = action.toLowerCase();
+
+  // NAVIGATE: "abrir", "vá para", "acesse"
+  if (lower.includes("abr") || lower.includes("vá") || lower.includes("acesse") || lower.includes("naveg")) {
+    const targetUrl =
+      url ||
+      extractUrl(action) ||
+      inferUrlFromAction(lower);
+
+    return {
+      type: "NAVIGATE",
+      url: targetUrl,
+    };
+  }
+
+  // CLICK: "clicar", "clique"
+  if (lower.includes("clic")) {
+    return {
+      type: "CLICK",
+      selector: extractSelector(action) || "button",
+    };
+  }
+
+  // FILL: "preencher", "digite", "escreva"
+  if (lower.includes("preenche") || lower.includes("digite") || lower.includes("escrev")) {
+    return {
+      type: "FILL",
+      selector: "input",
+      value: extractValue(action) || "",
+    };
+  }
+
+  // SCROLL: "rolar", "scroll"
+  if (lower.includes("rola") || lower.includes("scroll")) {
+    return {
+      type: "SCROLL",
+      y: 500,
+    };
+  }
+
+  // Default: try to navigate if there's a URL
+  if (url) {
+    return {
+      type: "NAVIGATE",
+      url: url,
+    };
+  }
+
+  return {
+    type: "UNKNOWN",
+    raw: action,
+  };
+}
+
+// Helper: Infer URL from action text
+function inferUrlFromAction(action: string): string {
+  if (action.includes("google")) return "https://google.com";
+  if (action.includes("facebook")) return "https://facebook.com";
+  if (action.includes("instagram")) return "https://instagram.com";
+  if (action.includes("youtube")) return "https://youtube.com";
+  if (action.includes("twitter") || action.includes("x.com")) return "https://x.com";
+  return "";
+}
+
+// Helper: Extract URL from text
+function extractUrl(text: string): string | null {
+  const urlMatch = text.match(/https?:\/\/[^\s]+/);
+  return urlMatch ? urlMatch[0] : null;
+}
+
+// Helper: Extract selector (placeholder - could be improved with AI)
+function extractSelector(text: string): string {
+  // Simple extraction - in production, use AI to identify selector
+  if (text.includes("botão")) return "button";
+  if (text.includes("link")) return "a";
+  if (text.includes("campo")) return "input";
+  return "*";
+}
+
+// Helper: Extract value to fill
+function extractValue(text: string): string {
+  // Extract quoted text or text after "com"
+  const quotedMatch = text.match(/"([^"]+)"/);
+  if (quotedMatch) return quotedMatch[1];
+
+  const comMatch = text.match(/com\s+(.+)/);
+  if (comMatch) return comMatch[1].trim();
+
+  return "";
+}
+
+// Helper: Wait for command completion (polling)
+async function waitForCommandCompletion(
+  supabase: any,
+  commandId: string,
+  timeout = 30000
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  const startTime = Date.now();
+  const pollInterval = 500; // Check every 500ms
+
+  while (Date.now() - startTime < timeout) {
+    const { data: command } = await supabase
+      .from("extension_commands")
+      .select("status, result, error")
+      .eq("id", commandId)
+      .single();
+
+    if (!command) {
+      return { success: false, error: "Comando não encontrado" };
+    }
+
+    if (command.status === "completed") {
+      console.log("✅ Command completed successfully");
+      return { success: true, result: command.result };
+    }
+
+    if (command.status === "failed") {
+      console.log("❌ Command failed:", command.error);
+      return { success: false, error: command.error };
+    }
+
+    // Wait before next poll
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  console.log("⏱️ Command timeout");
+  return { success: false, error: "Timeout: comando não foi executado a tempo" };
 }
 
 async function webSearch(query: string): Promise<{ success: boolean; message: string }> {
@@ -358,22 +486,13 @@ serve(async (req) => {
       console.log("🛠️ Executing:", intent.tool);
 
       if (intent.tool === "browser") {
-        const { data: devices } = await supabase
-          .from("extension_devices")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("status", "online")
-          .limit(1);
-
-        const useUserBrowser = (devices && devices.length > 0) || message.toLowerCase().includes("meu");
-
-        if (useUserBrowser) {
-          console.log("🌐 Using USER browser");
-          toolResultObj = await userBrowserAutomation({ supabase, userId: user.id }, intent.action, intent.url);
-        } else {
-          console.log("☁️ Using CLOUD browser");
-          toolResultObj = await cloudBrowserAutomation(intent.action, `sess_${conversationId}`, intent.url);
-        }
+        // SEMPRE usar automação local (via extensão Chrome)
+        console.log("🌐 Using LOCAL browser (Chrome Extension)");
+        toolResultObj = await executeLocalBrowser(
+          { supabase, userId: user.id },
+          intent.action,
+          intent.url
+        );
       } else if (intent.tool === "search") {
         console.log("🔍 Using SEARCH");
         toolResultObj = await webSearch(intent.action);
