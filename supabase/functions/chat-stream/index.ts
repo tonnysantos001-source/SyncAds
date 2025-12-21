@@ -446,6 +446,7 @@ serve(async (req) => {
     const { message, conversationId, conversationHistory = [] } = body;
 
     console.log("📨 Message:", message);
+    console.log("🚀 SyncAds Chat Stream v5.1 - Local Automation Ready");
 
     // AUTH
     const authHeader = req.headers.get("Authorization")!;
