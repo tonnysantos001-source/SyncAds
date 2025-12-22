@@ -145,33 +145,81 @@ async function executeLocalBrowser(
   ctx: { supabase: any; userId: string },
   action: string,
   url?: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; executionLog?: string[] }> {
+  const executionLog: string[] = [];
+
+  executionLog.push(`🌐 [INÍCIO] Iniciando automação local`);
+  executionLog.push(`📋 [AÇÃO] ${action}`);
+  if (url) executionLog.push(`🔗 [URL] ${url}`);
+
   console.log("🌐 Starting LOCAL browser automation", { action, url });
 
   try {
-    // 1. Check if extension is online
-    const { data: device } = await ctx.supabase
+    // 1. Check if extension is online (tentar ambos os schemas)
+    executionLog.push(`🔍 [BUSCA] Procurando dispositivo online...`);
+
+    // Primeiro tentar com campo 'status'
+    let { data: device } = await ctx.supabase
       .from("extension_devices")
-      .select("device_id, id")
+      .select("device_id, id, status")
       .eq("user_id", ctx.userId)
       .eq("status", "online")
       .limit(1)
       .maybeSingle();
 
+    // Se não encontrou, tentar com campo 'isOnline' (boolean)
     if (!device) {
+      executionLog.push(`⚠️ [BUSCA] Nenhum dispositivo com status='online', tentando isOnline=true...`);
+      const result = await ctx.supabase
+        .from("extension_devices")
+        .select("device_id, id, isOnline")
+        .eq("user_id", ctx.userId)
+        .eq("isOnline", true)
+        .limit(1)
+        .maybeSingle();
+      device = result.data;
+    }
+
+    if (!device) {
+      executionLog.push(`❌ [ERRO] Nenhum dispositivo online encontrado`);
+
+      // Verificar se existe algum dispositivo (mesmo offline)
+      const { data: anyDevice } = await ctx.supabase
+        .from("extension_devices")
+        .select("device_id, status, isOnline")
+        .eq("user_id", ctx.userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (anyDevice) {
+        const deviceStatus = anyDevice.status || (anyDevice.isOnline ? 'online' : 'offline');
+        executionLog.push(`📱 [INFO] Dispositivo encontrado mas está: ${deviceStatus}`);
+        return {
+          success: false,
+          message: `❌ Extensão Chrome encontrada mas está **${deviceStatus}**.\n\n**Como resolver**: Reabra a extensão Chrome e faça login novamente no SyncAds.`,
+          executionLog,
+        };
+      }
+
+      executionLog.push(`📱 [INFO] Nenhum dispositivo registrado no banco`);
       return {
         success: false,
-        message: "❌ Extensão Chrome não conectada.\n\n**Como resolver**: Abra a extensão Chrome e faça login no SyncAds.",
+        message: "❌ Extensão Chrome não registrada.\n\n**Como resolver**: Abra a extensão Chrome e faça login no SyncAds pela primeira vez.",
+        executionLog,
       };
     }
 
+    executionLog.push(`✅ [DISPOSITIVO] Encontrado: ${device.device_id}`);
     console.log("✅ Extension online:", device.device_id);
 
     // 2. Parse action to DOM command
     const domCommand = parseActionToDomCommand(action, url);
+    executionLog.push(`🔧 [COMANDO] Tipo: ${domCommand.type}`);
+    if (domCommand.url) executionLog.push(`🔗 [DESTINO] ${domCommand.url}`);
     console.log("🔧 Parsed command:", domCommand);
 
     // 3. Create command in database
+    executionLog.push(`💾 [DB] Criando comando no banco...`);
     const { data: command, error: insertError } = await ctx.supabase
       .from("extension_commands")
       .insert({
@@ -187,21 +235,25 @@ async function executeLocalBrowser(
       .single();
 
     if (insertError) {
+      executionLog.push(`❌ [ERRO DB] ${insertError.message}`);
       console.error("❌ Failed to create command:", insertError);
       return {
         success: false,
         message: `❌ Erro ao criar comando: ${insertError.message}`,
+        executionLog,
       };
     }
 
+    executionLog.push(`✅ [DB] Comando criado: ID ${command.id}`);
+    executionLog.push(`⏱️ [ESPERA] Aguardando extensão executar (timeout: 30s)...`);
     console.log("📝 Command created:", command.id);
     console.log("⏱️ Waiting for execution...");
 
     // 4. Wait for command completion
-    const result = await waitForCommandCompletion(ctx.supabase, command.id);
+    const result = await waitForCommandCompletion(ctx.supabase, command.id, executionLog);
 
     if (result.success) {
-      // Verificar se realmente executou
+      executionLog.push(`✅ [SUCESSO] Comando executado com sucesso!`);
       const executionDetails = result.result ? JSON.stringify(result.result, null, 2) : "";
 
       return {
@@ -214,8 +266,10 @@ ${domCommand.url ? `**URL:** ${domCommand.url}\n` : ""}
 ${executionDetails ? `**Detalhes:**\n\`\`\`\n${executionDetails}\n\`\`\`\n` : ""}
 
 A ação foi confirmada pela extensão Chrome.`,
+        executionLog,
       };
     } else {
+      executionLog.push(`❌ [FALHA] ${result.error}`);
       return {
         success: false,
         message: `❌ Falha na execução
@@ -230,13 +284,16 @@ A ação foi confirmada pela extensão Chrome.`,
 - Timeout (comando demorou mais de 30s)
 
 **Solução:** Verifique se a extensão está ativa e tente novamente.`,
+        executionLog,
       };
     }
   } catch (e: any) {
+    executionLog.push(`❌ [EXCEÇÃO] ${e.message}`);
     console.error("❌ Local browser automation error:", e);
     return {
       success: false,
       message: `❌ Erro inesperado: ${e.message}`,
+      executionLog,
     };
   }
 }
@@ -338,10 +395,12 @@ function extractValue(text: string): string {
 async function waitForCommandCompletion(
   supabase: any,
   commandId: string,
+  executionLog?: string[],
   timeout = 30000
 ): Promise<{ success: boolean; result?: any; error?: string }> {
   const startTime = Date.now();
   const pollInterval = 500; // Check every 500ms
+  let lastStatus = "pending";
 
   while (Date.now() - startTime < timeout) {
     const { data: command } = await supabase
@@ -351,28 +410,42 @@ async function waitForCommandCompletion(
       .single();
 
     if (!command) {
-      return { success: false, error: "Comando não encontrado" };
+      const errorMsg = "Comando não encontrado no banco de dados";
+      executionLog?.push(`❌ [ERRO] ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+
+    // Log mudança de status
+    if (command.status !== lastStatus) {
+      executionLog?.push(`📊 [STATUS] ${lastStatus} → ${command.status}`);
+      console.log(`📊 Command status changed: ${lastStatus} → ${command.status}`);
+      lastStatus = command.status;
     }
 
     if (command.status === "completed") {
+      executionLog?.push(`✅ [COMPLETO] Comando executado pela extensão`);
       console.log("✅ Command completed successfully");
       return { success: true, result: command.result };
     }
 
     if (command.status === "failed") {
-      console.log("❌ Command failed:", command.error);
-      return { success: false, error: command.error };
+      const errorMsg = command.error || "Erro desconhecido";
+      executionLog?.push(`❌ [FALHOU] ${errorMsg}`);
+      console.log("❌ Command failed:", errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     // Wait before next poll
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 
+  const timeoutMsg = `Timeout: Extensão não executou o comando em ${timeout / 1000}s. Verifique se a extensão está ativa.`;
+  executionLog?.push(`⏱️ [TIMEOUT] ${timeoutMsg}`);
   console.log("⏱️ Command timeout");
-  return { success: false, error: "Timeout: comando não foi executado a tempo" };
+  return { success: false, error: timeoutMsg };
 }
 
-async function webSearch(query: string): Promise<{ success: boolean; message: string }> {
+async function webSearch(query: string): Promise<{ success: boolean; message: string; executionLog?: string[] }> {
   // TODO: Integrar API real
   return {
     success: false,
@@ -383,6 +456,7 @@ async function webSearch(query: string): Promise<{ success: boolean; message: st
 **Status**: Integração com Tavily/Serper será adicionada em breve.
 
 **Alternativa**: Use "pesquise [termo] no google" para abrir busca no navegador.`,
+    executionLog: [`⚠️ Busca web não implementada ainda`],
   };
 }
 
@@ -552,6 +626,9 @@ serve(async (req) => {
       }
     }
 
+    // Preparar logs de execução para o THINKER ver
+    const executionLogs = toolResultObj.executionLog?.join("\n") || "Sem logs de execução";
+
     // EXECUTOR PHASE
     console.log("⚡ Calling Executor...");
 
@@ -561,9 +638,12 @@ serve(async (req) => {
     ];
 
     if (toolResultObj.message) {
+      // Incluir logs de execução para contexto
+      const feedbackMessage = `[RESULTADO DA FERRAMENTA]:\n${toolResultObj.message}\n\n**Status**: ${toolResultObj.success ? "✅ Sucesso" : "❌ Falha"}\n\n**Logs de Execução**:\n${executionLogs}\n\nIMPORTANTE: Seja HONESTO com o usuário sobre este resultado!`;
+
       executorMessages.push({
         role: "system",
-        content: `[RESULTADO DA FERRAMENTA]:\n${toolResultObj.message}\n\n**Status**: ${toolResultObj.success ? "✅ Sucesso" : "❌ Falha"}\n\nIMPORTANTE: Seja HONESTO com o usuário sobre este resultado!`,
+        content: feedbackMessage,
       });
     }
 
@@ -578,7 +658,7 @@ serve(async (req) => {
 
     console.log("✅ Response complete");
 
-    // SAVE
+    // SAVE (incluir logs de execução no metadata para memória)
     await supabase.from("ChatMessage").insert([
       { conversationId, role: "user", content: message, userId: user.id },
       {
@@ -590,6 +670,8 @@ serve(async (req) => {
           plan,
           tool_success: toolResultObj.success,
           tool_message: toolResultObj.message,
+          execution_logs: toolResultObj.executionLog || [],
+          timestamp: new Date().toISOString(),
         },
       },
     ]);

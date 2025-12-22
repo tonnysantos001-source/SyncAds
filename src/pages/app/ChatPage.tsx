@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { ChatModalManager } from '@/components/chat/modals';
 import { ConversationSidebar, MenuToggleButton } from '@/components/chat/ConversationSidebar';
+import { ToolExecutionIndicator, ToolExecutionStatus } from '@/components/chat/ToolExecutionIndicator';
 import chatService from '@/lib/api/chatService';
 import type { ModalContext } from '@/lib/ai/modalContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -43,6 +44,12 @@ export default function ChatPage() {
     typeof window !== 'undefined' && window.innerWidth >= 768
   );
 
+  // Tool execution indicator state
+  const [toolStatus, setToolStatus] = useState<ToolExecutionStatus>('idle');
+  const [toolAction, setToolAction] = useState<string>('');
+  const [toolError, setToolError] = useState<string>('');
+  const [toolLogs, setToolLogs] = useState<string[]>([]);
+
   // Auth check
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -72,16 +79,68 @@ export default function ChatPage() {
     // Auto-hide sidebar when sending message (ChatGPT behavior)
     setSidebarOpen(false);
 
+    // Detectar se é comando de browser automation
+    const browserTriggers = ['abr', 'vá', 'acesse', 'entr', 'cliqu', 'naveg', 'visit'];
+    const isBrowserCommand = browserTriggers.some(trigger => message.toLowerCase().includes(trigger));
+
+    if (isBrowserCommand) {
+      // Extrair ação
+      let action = 'Processando comando';
+      if (message.toLowerCase().includes('google')) action = 'Abrindo Google';
+      else if (message.toLowerCase().includes('facebook')) action = 'Abrindo Facebook';
+      else if (message.toLowerCase().includes('instagram')) action = 'Abrindo Instagram';
+      else action = 'Executando navegação';
+
+      setToolAction(action);
+      setToolStatus('executing');
+      setToolLogs([]);
+    }
+
     try {
-      await chatService.sendMessage(message, {
-        modalType: context.type,
-        confidence: context.confidence,
-        params: context.params,
-        metadata: context.metadata,
-        conversationId: activeConversationId,
-      });
+      const response = await chatService.sendMessage(
+        message,
+        activeConversationId || 'temp',
+      );
+
+      // Extrair metadata da última mensagem para ver se houve execução de ferramenta
+      if (activeConversationId) {
+        const { data: messages } = await supabase
+          .from('ChatMessage')
+          .select('metadata')
+          .eq('conversationId', activeConversationId)
+          .eq('role', 'ASSISTANT')
+          .order('createdAt', { ascending: false })
+          .limit(1);
+
+        if (messages && messages.length > 0 && messages[0].metadata) {
+          const metadata = messages[0].metadata as any;
+
+          // Se houve execução de ferramenta
+          if (metadata.tool_success !== undefined) {
+            const logs = metadata.execution_logs || [];
+            setToolLogs(logs);
+
+            if (metadata.tool_success) {
+              setToolStatus('success');
+            } else {
+              setToolStatus('error');
+              setToolError(metadata.tool_message || 'Erro desconhecido');
+            }
+          } else {
+            // Não houve execução de ferramenta, resetar
+            setToolStatus('idle');
+          }
+        }
+      }
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
+
+      // Atualizar indicador para erro
+      if (toolStatus === 'executing') {
+        setToolStatus('error');
+        setToolError(error instanceof Error ? error.message : 'Erro ao enviar mensagem');
+      }
+
       toast({
         title: 'Erro',
         description: 'Não foi possível enviar a mensagem.',
@@ -197,6 +256,15 @@ export default function ChatPage() {
           className="h-full w-full"
         />
       </div>
+
+      {/* Tool Execution Indicator */}
+      <ToolExecutionIndicator
+        status={toolStatus}
+        action={toolAction}
+        errorMessage={toolError}
+        logs={toolLogs}
+        onDismiss={() => setToolStatus('idle')}
+      />
     </div>
   );
 }

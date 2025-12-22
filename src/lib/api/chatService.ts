@@ -43,7 +43,7 @@ export interface SendMessageResponse {
 // ============================================
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const CHAT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/chat-enhanced`;
+const CHAT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/chat-stream`;
 
 // ============================================
 // MAIN SERVICE CLASS
