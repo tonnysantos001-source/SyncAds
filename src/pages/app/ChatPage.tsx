@@ -80,6 +80,9 @@ export default function ChatPage() {
     // Auto-hide sidebar when sending message (ChatGPT behavior)
     setSidebarOpen(false);
 
+    // ✅ CRÍTICO: Setar loading IMEDIATAMENTE (antes de qualquer await)
+    chatStore.setIsAssistantTyping(true);
+
     // Detectar se é comando de browser automation
     const browserTriggers = ['abr', 'vá', 'acesse', 'entr', 'cliqu', 'naveg', 'visit'];
     const isBrowserCommand = browserTriggers.some(trigger => message.toLowerCase().includes(trigger));
