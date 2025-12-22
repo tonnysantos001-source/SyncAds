@@ -503,6 +503,104 @@ async function webSearch(query: string): Promise<{ success: boolean; message: st
 }
 
 // =====================================================
+// ADMIN TOOLS
+// =====================================================
+
+function detectAdminIntent(message: string): string | null {
+  const lower = message.toLowerCase();
+
+  const adminKeywords = [
+    'auditoria', 'auditar', 'verificar sistema', 'diagnosticar',
+    'ver logs', 'corrigir banco', 'executar sql', 'deploy',
+    'restart', 'reiniciar serviço', 'limpar comandos'
+  ];
+
+  for (const keyword of adminKeywords) {
+    if (lower.includes(keyword)) {
+      if (lower.includes('auditoria') || lower.includes('auditar')) return 'audit';
+      if (lower.includes('log')) return 'logs';
+      if (lower.includes('sql')) return 'sql';
+      if (lower.includes('deploy') || lower.includes('restart')) return 'deploy';
+      return 'general';
+    }
+  }
+
+  return null;
+}
+
+async function executeAdminTool(
+  ctx: { supabase: any; userId: string },
+  action: string,
+  adminAction?: string
+): Promise<{ success: boolean; message: string; data?: any }> {
+
+  const { data: profile, error: profileError } = await ctx.supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', ctx.userId)
+    .single();
+
+  if (profileError || !profile) {
+    return {
+      success: false,
+      message: '[ADMIN ERROR]: Não foi possível verificar seu perfil.'
+    };
+  }
+
+  const userRole = profile.role;
+
+  if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    return {
+      success: false,
+      message: `[ADMIN ERROR]: User role '${userRole}' não tem permissão. Apenas ADMIN ou SUPER_ADMIN.`
+    };
+  }
+
+  try {
+    const adminToolsUrl = Deno.env.get('VITE_ADMIN_TOOLS_URL');
+    if (!adminToolsUrl) {
+      return {
+        success: false,
+        message: '[ADMIN ERROR]: URL admin-tools não configurada.'
+      };
+    }
+
+    const response = await fetch(adminToolsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({
+        action: adminAction || action,
+        userId: ctx.userId
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: `[ADMIN ERROR]: ${result.error || 'Falha ao executar'}`
+      };
+    }
+
+    return {
+      success: true,
+      message: `[ADMIN RESULT]: ${result.message || 'Sucesso'}`,
+      data: result.data
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      message: `[ADMIN ERROR]: ${error.message}`
+    };
+  }
+}
+
+// =====================================================
 // LLM CALLER
 // =====================================================
 
@@ -545,10 +643,20 @@ async function callLLM(
 // INTENT DETECTION
 // =====================================================
 
-function detectIntent(message: string): { tool: string; action: string; url?: string } | null {
+function detectIntent(message: string): { tool: string; action: string; url?: string; adminAction?: string } | null {
   const lower = message.toLowerCase();
   const urlMatch = message.match(/https?:\/\/[^\s]+/);
   const explicitUrl = urlMatch?.[0];
+
+  // Admin intent (PRIMEIRO)
+  const adminAction = detectAdminIntent(message);
+  if (adminAction) {
+    return {
+      tool: 'admin',
+      action: message,
+      adminAction
+    };
+  }
 
   const browserTriggers = ["abr", "vá", "acesse", "entr", "cliqu", "naveg", "visit", "ir para", "veja", "mostre"];
   for (const trigger of browserTriggers) {
@@ -665,6 +773,14 @@ serve(async (req) => {
       } else if (intent.tool === "search") {
         console.log("🔍 Using SEARCH");
         toolResultObj = await webSearch(intent.action);
+      } else if (intent.tool === "admin") {
+        // NOVO: Executar ferramenta admin
+        console.log("🔐 Using ADMIN tools");
+        toolResultObj = await executeAdminTool(
+          { supabase, userId: user.id },
+          intent.action,
+          intent.adminAction
+        );
       }
     }
 
