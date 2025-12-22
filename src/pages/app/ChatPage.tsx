@@ -214,7 +214,36 @@ export default function ChatPage() {
   // Load conversation messages
   const loadConversationMessages = async (conversationId: string) => {
     setActiveConversationId(conversationId);
-    // Messages will be loaded by ChatModalManager
+
+    // Carregar mensagens do banco
+    try {
+      const { data: messages } = await supabase
+        .from('ChatMessage')
+        .select('*')
+        .eq('conversationId', conversationId)
+        .order('createdAt', { ascending: true });
+
+      if (messages && messages.length > 0) {
+        // Converter para formato do store
+        const formattedMessages = messages.map(msg => ({
+          id: msg.id,
+          role: msg.role.toLowerCase() as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+        }));
+
+        // Atualizar store com mensagens
+        const { setConversationMessages } = useChatStore.getState();
+        setConversationMessages(conversationId, formattedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading conversation messages:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as mensagens.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Don't render until authenticated
