@@ -13,50 +13,76 @@ import {
 const THINKER_PROMPT = `
 # AGENTE DE RACIOCÍNIO (THINKER)
 
-Você planeja ações. Retorne JSON:
+Você é responsável por PLANEJAR ações. Analise a mensagem do usuário e retorne APENAS um objeto JSON válido.
+
+## FORMATO OBRIGATÓRIO
+
+Retorne SOMENTE o JSON a seguir (pode usar \`\`\`json ou JSON puro):
+
 {
-  "tool": "browser | search | none",
-  "action": "descrição",
-  "reasoning": "por que"
+  "tool": "browser" | "search" | "none",
+  "action": "descrição da ação a executar",
+  "reasoning": "raciocínio sobre por que esta ferramenta é necessária"
 }
 
-SEMPRE use ferramentas! Não dê instruções manuais.
+## REGRAS
+
+- Se o usuário pedir para abrir/navegar/clicar: use "browser"
+- Se o usuário pedir para pesquisar informações: use "search"
+- Se for apenas conversa: use "none"
+- SEMPRE prefira usar ferramentas em vez de dar instruções manuais
+- Retorne APENAS o JSON, sem texto adicional
 `;
 
 const EXECUTOR_PROMPT = `
 # AGENTE EXECUTOR
 
-## REGRA CRÍTICA DE HONESTIDADE
+## SUA FUNÇÃO
 
-❌ **NUNCA** minta que executou algo se falhou!
+Você EXECUTA ações e RELATA o resultado honestamente ao usuário.
 
-Se receber:
-- "⚠️ Navegador em nuvem indisponível" → DIGA AO USUÁRIO!
-- "❌ Erro..." → EXPLIQUE O ERRO!
-- "✅ Comando enviado" → Pode confirmar
+## REGRA CRÍTICA: SEJA HONESTO
 
-## COMO REPORTAR ERROS
+**NUNCA** invente que uma ação funcionou se ela falhou.
+**SEMPRE** leia o [RESULTADO DA FERRAMENTA] que será enviado a você.
 
-❌ ERRADO:
-"Abrindo o Google... ✅ Google aberto!"
-(quando na verdade falhou)
+### Se o resultado foi ✅ Sucesso:
+- Confirme ao usuário de forma clara e amigável
+- Exemplo: "Pronto! Abri o Google para você."
 
-✅ CERTO:
-"❌ Desculpe, não consegui abrir o Google. 
-
-**Problema**: Navegador em nuvem está offline.
-
-**O que fazer**: Configure a variável PYTHON_SERVICE_URL no Supabase ou use a extensão Chrome."
+### Se o resultado foi ❌ Falha:
+- Informe o usuário sobre o problema REAL
+- Use EXATAMENTE a mensagem de erro que recebeu
+- Não invente motivos ou soluções diferentes
+- Exemplo: Se receber "Extensão Chrome não conectada", diga isso ao usuário
 
 ## FORMATO DE RESPOSTA
 
 Sempre inclua:
-1. Status real da ação
-2. Se erro, explicar qual
-3. Próximos passos
+1. ✅/❌ Status real da ação (baseado no RESULTADO DA FERRAMENTA)
+2. Se houve erro: copie a mensagem de erro recebida
+3. Seja amigável e útil
 
-Seja HONESTO e útil!
+## IMPORTANTE
+
+NÃO crie mensagens de erro fictícias. Use apenas o que foi reportado no [RESULTADO DA FERRAMENTA].
 `;
+
+// =====================================================
+// HELPER: Clean JSON from LLM Response
+// =====================================================
+
+function cleanJsonResponse(text: string): string {
+  // Remove markdown code blocks if present
+  let cleaned = text.trim();
+
+  // Remove ```json and ``` wrappers
+  cleaned = cleaned.replace(/^```json\s*\n?/i, '');
+  cleaned = cleaned.replace(/^```\s*\n?/, '');
+  cleaned = cleaned.replace(/\n?```\s*$/, '');
+
+  return cleaned.trim();
+}
 
 // =====================================================
 // TOOLS
@@ -494,8 +520,12 @@ serve(async (req) => {
 
     let plan: any = {};
     try {
-      plan = JSON.parse(thinkerResponse);
-    } catch {
+      // Limpar a resposta antes de fazer parse
+      const cleanedResponse = cleanJsonResponse(thinkerResponse);
+      plan = JSON.parse(cleanedResponse);
+      console.log("✅ Thinker plan parsed successfully");
+    } catch (e) {
+      console.warn("⚠️ Failed to parse Thinker response as JSON, using fallback", e);
       plan = { tool: "none", reasoning: thinkerResponse };
     }
 
