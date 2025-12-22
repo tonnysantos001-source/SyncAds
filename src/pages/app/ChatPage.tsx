@@ -39,6 +39,7 @@ export default function ChatPage() {
   const createNewConversation = useChatStore((state) => state.createNewConversation);
   const deleteConversation = useChatStore((state) => state.deleteConversation);
   const loadConversations = useChatStore((state) => state.loadConversations);
+  const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
 
   // Sidebar state (open by default on desktop, closed on mobile)
   const [sidebarOpen, setSidebarOpen] = useState(
@@ -81,7 +82,7 @@ export default function ChatPage() {
     setSidebarOpen(false);
 
     // ✅ CRÍTICO: Setar loading IMEDIATAMENTE (antes de qualquer await)
-    chatStore.setIsAssistantTyping(true);
+    setAssistantTyping(true);
 
     // Detectar se é comando de browser automation
     const browserTriggers = ['abr', 'vá', 'acesse', 'entr', 'cliqu', 'naveg', 'visit'];
@@ -105,6 +106,9 @@ export default function ChatPage() {
         message,
         activeConversationId || 'temp',
       );
+
+      // ✅ Resetar loading após receber resposta
+      setAssistantTyping(false);
 
       // Extrair metadata da última mensagem para ver se houve execução de ferramenta
       if (activeConversationId) {
@@ -138,6 +142,9 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
+
+      // ✅ Resetar loading em caso de erro também
+      setAssistantTyping(false);
 
       // Atualizar indicador para erro
       if (toolStatus === 'executing') {
