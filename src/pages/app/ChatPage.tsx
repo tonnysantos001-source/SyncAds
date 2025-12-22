@@ -5,6 +5,7 @@ import { useChatStore } from '@/store/chatStore';
 import { ChatModalManager } from '@/components/chat/modals';
 import { ConversationSidebar, MenuToggleButton } from '@/components/chat/ConversationSidebar';
 import { ToolExecutionIndicator, ToolExecutionStatus } from '@/components/chat/ToolExecutionIndicator';
+import { AdminBadge } from '@/components/admin/AdminBadge';
 import chatService from '@/lib/api/chatService';
 import type { ModalContext } from '@/lib/ai/modalContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -265,6 +266,9 @@ export default function ChatPage() {
         logs={toolLogs}
         onDismiss={() => setToolStatus('idle')}
       />
+
+      {/* Admin Badge - mostra se é ADMIN ou SUPER_ADMIN */}
+      <AdminBadge />
     </div>
   );
 }

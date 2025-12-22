@@ -226,6 +226,7 @@ async function executeLocalBrowser(
         device_id: device.device_id,
         user_id: ctx.userId,
         type: domCommand.type,
+        command_type: domCommand.type, // FIX: Adicionar command_type para evitar null constraint
         selector: domCommand.selector || null,
         value: domCommand.value || null,
         options: { url: domCommand.url, ...domCommand },

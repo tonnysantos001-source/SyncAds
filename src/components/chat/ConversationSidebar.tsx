@@ -99,17 +99,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         >
                             <MessageSquare className="h-5 w-5 md:h-4 md:w-4 text-gray-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-baseline w-full">
-                                    <p className={`text-sm md:text-sm font-medium truncate transition-colors flex-1 ${activeConversationId === conv.id ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-gray-200"
-                                        }`}>
-                                        {conv.title}
-                                    </p>
-                                    {conv.createdAt && (
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-2 whitespace-nowrap">
-                                            {new Date(conv.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                        </span>
-                                    )}
-                                </div>
+                                <p className={`text-sm md:text-sm font-medium truncate transition-colors ${activeConversationId === conv.id ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-gray-200"
+                                    }`}>
+                                    {conv.title || 'Nova conversa'}
+                                </p>
                                 {/* Preview da última mensagem (estilo ChatGPT) */}
                                 <p className="text-xs text-gray-500 truncate mt-0.5">
                                     {conv.messages && conv.messages.length > 0
