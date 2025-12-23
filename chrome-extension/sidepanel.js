@@ -64,6 +64,70 @@ const elements = {
 };
 
 // ============================================
+// VISUAL INDICATORS
+// ============================================
+let indicatorElements = {
+  typing: null,
+  spinner: null,
+  navigation: null
+};
+
+function initializeIndicators() {
+  indicatorElements.typing = document.getElementById('typingIndicator');
+  indicatorElements.spinner = document.getElementById('processingSpinner');
+  indicatorElements.navigation = document.getElementById('navigationIndicator');
+  console.log('✅ [INDICATORS] Initialized');
+}
+
+function showTyping() {
+  if (indicatorElements.typing) {
+    indicatorElements.typing.classList.add('active');
+    console.log('💬 [INDICATOR] Typing shown');
+  }
+}
+
+function hideTyping() {
+  if (indicatorElements.typing) {
+    indicatorElements.typing.classList.remove('active');
+    console.log('💬 [INDICATOR] Typing hidden');
+  }
+}
+
+function showProcessing(text = 'Processando...') {
+  if (indicatorElements.spinner) {
+    const textEl = indicatorElements.spinner.querySelector('.spinner-text');
+    if (textEl) textEl.textContent = text;
+    indicatorElements.spinner.classList.add('active');
+    console.log('⏳ [INDICATOR] Processing shown:', text);
+  }
+}
+
+function hideProcessing() {
+  if (indicatorElements.spinner) {
+    indicatorElements.spinner.classList.remove('active');
+    console.log('⏳ [INDICATOR] Processing hidden');
+  }
+}
+
+function showNavigation(action = 'Navegando...') {
+  if (indicatorElements.navigation) {
+    const textEl = indicatorElements.navigation.querySelector('.nav-text');
+    if (textEl) textEl.textContent = action;
+    indicatorElements.navigation.classList.add('active');
+    console.log('🌐 [INDICATOR] Navigation shown:', action);
+  }
+}
+
+function hideNavigation() {
+  if (indicatorElements.navigation) {
+    indicatorElements.navigation.classList.remove('active');
+    console.log('🌐 [INDICATOR] Navigation hidden');
+  }
+}
+
+// ============================================
+
+// ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener("DOMContentLoaded", async () => {
@@ -86,7 +150,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Event Listeners
   setupEventListeners();
 
-  // 3. Load Auth & Initial State
+  // 3. Initialize Indicators
+  initializeIndicators();
+
+  // 4. Load Auth & Initial State
   const auth = await loadAuthData();
   if (auth) {
     // Load tabs interactions
@@ -398,14 +465,32 @@ async function sendMessage() {
   elements.messageInput.value = "";
   elements.messageInput.style.height = "auto";
   disableInput();
+
+  // NOVO: Mostrar typing indicator
   showTyping();
 
   // Ensure Conversation
   if (!state.conversationId) {
     try { await createNewConversation(); }
     catch (e) {
-      hideTyping(); enableInput(); return;
+      hideTyping();
+      hideProcessing();
+      hideNavigation();
+      enableInput();
+      return;
     }
+  }
+
+  // NOVO: Detectar se é comando de navegação
+  const isNavigationCommand = /abr(a|ir|e)|naveg(ar|ue)|v(a|á) para|vou para|ir para/i.test(txt);
+
+  if (isNavigationCommand) {
+    // Extrair o destino da navegação
+    const destination = txt.replace(/.*?(abr(a|ir|e)|naveg(ar|ue)|v(a|á) para|vou para|ir para)\s*/i, '').trim();
+    showNavigation(`Abrindo ${destination || 'página'}...`);
+    showProcessing('Executando navegação...');
+  } else {
+    showProcessing('Aguardando resposta da IA...');
   }
 
   try {
@@ -422,7 +507,11 @@ async function sendMessage() {
     });
 
     const data = await res.json();
+
+    // NOVO: Esconder todos indicadores
     hideTyping();
+    hideProcessing();
+    hideNavigation();
 
     if (data.error) throw new Error(data.error);
 
@@ -432,7 +521,10 @@ async function sendMessage() {
     addMessage("assistant", content);
 
   } catch (e) {
+    // NOVO: Garantir que todos indicadores são escondidos em caso de erro
     hideTyping();
+    hideProcessing();
+    hideNavigation();
     addMessage("assistant", `❌ Erro: ${e.message}`);
   } finally {
     enableInput();
@@ -498,8 +590,6 @@ function appendMessage(msg) {
   elements.messagesArea.scrollTop = elements.messagesArea.scrollHeight;
 }
 
-function showTyping() { state.isTyping = true; /* Add simple typing indicator to DOM */ }
-function hideTyping() { state.isTyping = false; /* Remove indicator */ }
 function switchToChat() {
   elements.welcomeScreen.classList.remove("active");
   elements.chatContainer.classList.add("active");
