@@ -258,30 +258,38 @@ async function executeLocalBrowser(
     executionLog.push(`🔧 [COMANDO] Tipo: ${domCommand.type}`);
     if (domCommand.url) executionLog.push(`🔗 [DESTINO] ${domCommand.url}`);
     console.log("🔧 Parsed command:", domCommand);
+    console.log("🔍 [DEBUG] Full domCommand object:", JSON.stringify(domCommand, null, 2));
 
     // 3. Create command in database
     executionLog.push(`💾 [DB] Criando comando no banco...`);
+
+    const commandToInsert = {
+      device_id: device.device_id,
+      user_id: ctx.userId,
+      type: domCommand.type,
+      command_type: domCommand.type,
+      selector: domCommand.selector || null,
+      value: domCommand.value || null,
+      options: { url: domCommand.url, ...domCommand },
+      status: "pending",
+    };
+
+    console.log("🔍 [DEBUG] About to insert command:", JSON.stringify(commandToInsert, null, 2));
+
     const { data: command, error: insertError } = await ctx.supabase
       .from("extension_commands")
-      .insert({
-        device_id: device.device_id,
-        user_id: ctx.userId,
-        type: domCommand.type,
-        command_type: domCommand.type, // FIX: Adicionar command_type para evitar null constraint
-        selector: domCommand.selector || null,
-        value: domCommand.value || null,
-        options: { url: domCommand.url, ...domCommand },
-        status: "pending",
-      })
+      .insert(commandToInsert)
       .select()
       .single();
 
     if (insertError) {
       executionLog.push(`❌ [ERRO DB] ${insertError.message}`);
       console.error("❌ Failed to create command:", insertError);
+      console.error("❌ [INSERT ERROR DETAILS]:", JSON.stringify(insertError, null, 2));
+      console.error("❌ [COMMAND DATA]:", JSON.stringify(commandToInsert, null, 2));
       return {
         success: false,
-        message: `❌ Erro ao criar comando: ${insertError.message}`,
+        message: `❌ Erro ao criar comando: ${insertError.message}\n\n**Código**: ${insertError.code}\n**Detalhes**: ${insertError.details || 'N/A'}\n**Hint**: ${insertError.hint || 'N/A'}`,
         executionLog,
       };
     }
