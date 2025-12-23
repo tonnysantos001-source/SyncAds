@@ -449,8 +449,8 @@ async function processCommand(cmd) {
     const confirmationData = {
       executed: true,
       commandType: cmd.type,
-      currentUrl: updatedTab?.url || activeTab.url,
-      currentTitle: updatedTab?.title || activeTab.title,
+      currentUrl: updatedTab?.url || activeTab?.url || "unknown",
+      currentTitle: updatedTab?.title || activeTab?.title || "unknown",
       originalResponse: response,
       timestamp: new Date().toISOString(),
     };

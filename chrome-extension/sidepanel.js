@@ -601,15 +601,52 @@ function switchToChat() {
 // ============================================
 async function loadTabsForSelector() {
   try {
-    const tabs = await chrome.tabs.query({});
+    const tabs = await chrome.tabs.query({ currentWindow: true }); // Apenas janela atual
     const sel = elements.activeTabSelector;
+    if (!sel) return;
+
+    // Guardar seleção atual
+    const currentSelection = state.activeTabId;
+
     sel.innerHTML = '<option value="">Selecionar aba...</option>';
+
+    let activeFound = false;
+
     tabs.forEach(t => {
       const opt = document.createElement("option");
       opt.value = t.id;
-      opt.textContent = (t.active ? "📍 " : "") + (t.title.substring(0, 30) || "Sem título");
+      // Mostrar indicador visual de aba ativa
+      opt.textContent = (t.active ? "📍 " : "") + (t.title?.substring(0, 40) || "Sem título");
+
+      // Auto-selecionar se for a aba ativa
+      if (t.active) {
+        opt.selected = true;
+        state.activeTabId = t.id;
+        activeFound = true;
+      }
+
       sel.appendChild(opt);
     });
-    sel.onchange = (e) => state.activeTabId = parseInt(e.target.value);
+
+    // Se usuário tinha selecionado outra aba manualmente, tentar manter (se ainda existir)
+    if (state.activeTabId && !activeFound) {
+      // ... lógica opcional, por enquanto vamos priorizar a aba ativa do navegador
+    }
+
+    sel.onchange = (e) => {
+      state.activeTabId = parseInt(e.target.value);
+      console.log("👆 Tab selected manually:", state.activeTabId);
+    };
+
+    console.log("🔄 Tabs list refreshed, active:", state.activeTabId);
+
   } catch (e) { console.error("Tabs error", e); }
 }
+
+// Ouvir mudanças de aba para atualizar lista
+chrome.tabs.onActivated.addListener(() => loadTabsForSelector());
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' || changeInfo.title) {
+    loadTabsForSelector();
+  }
+});
