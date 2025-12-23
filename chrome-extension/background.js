@@ -292,10 +292,13 @@ async function processCommand(cmd) {
     } else if (cmd.type === "DOM_SCROLL") {
       params = { y: cmd.value || 500 };
       action = "SCROLL";
+    } else if (cmd.type === "SCAN_PAGE") {
+      action = "SCAN_PAGE"; // Special handler
     } else {
       params = cmd.options || {};
       action = cmd.type.replace("DOM_", "");
     }
+
 
     Logger.info("Sending message to content script", {
       action,
@@ -354,6 +357,41 @@ async function processCommand(cmd) {
         ),
       ),
     ]);
+
+    // HANDLER ESPECÍFICO PARA SCAN_PAGE (Backend Side processing)
+    if (cmd.type === "SCAN_PAGE") {
+      Logger.info("📸 Capturing screenshot for SCAN_PAGE...");
+      try {
+        const screenshotBase64 = await chrome.tabs.captureVisibleTab(activeTab.windowId, { format: "png", quality: 80 });
+        const fileName = `${state.userId}/${Date.now()}_scan.png`;
+
+        // Upload to Supabase Storage
+        // Usar fetch direto para evitar problemas com lib
+        const blob = await (await fetch(screenshotBase64)).blob();
+
+        const uploadRes = await fetch(`${CONFIG.supabaseUrl}/storage/v1/object/screenshots/${fileName}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${state.accessToken}`,
+            "apikey": CONFIG.supabaseAnonKey,
+            "Content-Type": "image/png"
+          },
+          body: blob
+        });
+
+        if (!uploadRes.ok) throw new Error("Upload failed: " + await uploadRes.text());
+
+        const screenshotUrl = `${CONFIG.supabaseUrl}/storage/v1/object/public/screenshots/${fileName}`;
+        Logger.success("📸 Screenshot uploaded: " + screenshotUrl);
+
+        // Anexar ao response
+        response.screenshotUrl = screenshotUrl;
+
+      } catch (screenError) {
+        Logger.error("Screenshot capture failed", screenError);
+        response.screenshotError = screenError.message;
+      }
+    }
 
     Logger.success("Command executed successfully", { response });
 
@@ -1759,149 +1797,5 @@ async function pollAndExecuteCommands() {
   }
 }
 
-async function executeCommand(command) {
-  const commandId = command.id;
-  const commandType = command.type || command.command || command.command_type;
-  const options = command.options || {};
+// End of Background Script
 
-  Logger.info(`⚡ Executing command: ${commandType}`, { commandId });
-
-  try {
-    await updateCommandStatus(commandId, 'executing', null, null);
-
-    let result = null;
-    let error = null;
-
-    switch (commandType.toUpperCase()) {
-      case 'NAVIGATE':
-        result = await executeNavigate(options.url);
-        break;
-      case 'CLICK':
-        result = await executeClick(command.selector || options.selector);
-        break;
-      case 'FILL':
-        result = await executeFill(command.selector || options.selector, command.value || options.value);
-        break;
-      case 'SCROLL':
-        result = await executeScroll(options.y || 500);
-        break;
-      default:
-        error = `Unknown command type: ${commandType}`;
-    }
-
-    if (error) {
-      await updateCommandStatus(commandId, 'failed', null, error);
-      Logger.error(`❌ Command ${commandId} failed:`, error);
-    } else {
-      await updateCommandStatus(commandId, 'completed', result, null);
-      Logger.info(`✅ Command ${commandId} completed`);
-    }
-
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    Logger.error(`❌ Error executing command ${commandId}:`, err);
-    await updateCommandStatus(commandId, 'failed', null, errorMessage);
-  }
-}
-
-async function executeNavigate(url) {
-  if (!url) throw new Error('URL is required');
-
-  Logger.info(`🌐 Navigating to: ${url}`);
-  const tab = await chrome.tabs.create({ url: url, active: true });
-
-  return { success: true, tabId: tab.id, url: tab.url };
-}
-
-async function executeClick(selector) {
-  if (!selector) throw new Error('Selector is required');
-
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs.length === 0) throw new Error('No active tab found');
-
-  await chrome.scripting.executeScript({
-    target: { tabId: tabs[0].id },
-    func: (sel) => {
-      const el = document.querySelector(sel);
-      if (!el) throw new Error(`Element not found: ${sel}`);
-      el.click();
-    },
-    args: [selector],
-  });
-
-  return { success: true, selector };
-}
-
-async function executeFill(selector, value) {
-  if (!selector || value === undefined) throw new Error('Selector and value required');
-
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs.length === 0) throw new Error('No active tab found');
-
-  await chrome.scripting.executeScript({
-    target: { tabId: tabs[0].id },
-    func: (sel, val) => {
-      const el = document.querySelector(sel);
-      if (!el) throw new Error(`Element not found: ${sel}`);
-      el.value = val;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    },
-    args: [selector, value],
-  });
-
-  return { success: true, selector, value };
-}
-
-async function executeScroll(y) {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs.length === 0) throw new Error('No active tab found');
-
-  await chrome.scripting.executeScript({
-    target: { tabId: tabs[0].id },
-    func: (scrollY) => window.scrollBy({ top: scrollY, behavior: 'smooth' }),
-    args: [y],
-  });
-
-  return { success: true, y };
-}
-
-async function updateCommandStatus(commandId, status, result, error) {
-  if (!state.accessToken) return;
-
-  try {
-    const payload = {
-      status,
-      executed_at: status === 'executing' ? new Date().toISOString() : undefined,
-      completed_at: (status === 'completed' || status === 'failed') ? new Date().toISOString() : undefined,
-    };
-
-    if (result) payload.result = result;
-    if (error) payload.error = error;
-
-    await fetch(`${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${state.accessToken}`,
-        'apikey': CONFIG.supabaseAnonKey,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify(payload),
-    });
-
-  } catch (err) {
-    Logger.error('Error updating command status', err);
-  }
-}
-
-function startCommandPolling() {
-  if (commandPollingInterval) clearInterval(commandPollingInterval);
-
-  Logger.info(`🔄 Command polling started (${COMMAND_POLL_INTERVAL}ms)`);
-  pollAndExecuteCommands(); // Imediato
-  commandPollingInterval = setInterval(pollAndExecuteCommands, COMMAND_POLL_INTERVAL);
-}
-
-// Iniciar polling ao carregar
-startCommandPolling();
-console.log('✅ Command Polling System initialized');

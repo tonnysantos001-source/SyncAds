@@ -737,11 +737,40 @@ async function callLLM(
 
   if (!res.ok) {
     const error = await res.text();
+    // Fallback gracefully if model doesn't support vision but we sent vision
+    if (error.includes("image_url") || error.includes("multimodal")) {
+      console.warn("⚠️ Model doesn't support vision, retrying with text only...");
+      const textOnlyMessages = messages.map(m => ({
+        role: m.role,
+        content: Array.isArray(m.content) ? m.content.find((c: any) => c.type === "text")?.text || "" : m.content
+      }));
+      return callLLM(provider, apiKey, model, textOnlyMessages, temp);
+    }
     throw new Error(`LLM API error: ${error}`);
   }
 
   const json = await res.json();
   return json.choices?.[0]?.message?.content || "";
+}
+
+// Helper: Format message for Vision if screenshot present
+function formatVisionMessage(role: string, text: string, screenshotUrl?: string): any {
+  if (!screenshotUrl) return { role, content: text };
+
+  // Only OpenAI/OpenRouter generic supports this format usually
+  return {
+    role,
+    content: [
+      { type: "text", text },
+      {
+        type: "image_url",
+        image_url: {
+          url: screenshotUrl,
+          detail: "high"
+        }
+      }
+    ]
+  };
 }
 
 // =====================================================
@@ -1018,13 +1047,23 @@ serve(async (req) => {
     ];
 
     if (toolResultObj.message) {
-      // Incluir logs de execução para contexto
-      const feedbackMessage = `[RESULTADO DA FERRAMENTA]:\n${toolResultObj.message}\n\n**Status**: ${toolResultObj.success ? "✅ Sucesso" : "❌ Falha"}\n\n**Logs de Execução**:\n${executionLogs}\n\nIMPORTANTE: Seja HONESTO com o usuário sobre este resultado!`;
+      // Incluir logs de execução e SCREENSHOT se houver
+      const resultObj = toolResultObj.result || {};
+      const screenshotUrl = resultObj?.originalResponse?.screenshotUrl || resultObj.screenshotUrl; // Fallback paths
 
-      executorMessages.push({
-        role: "system",
-        content: feedbackMessage,
-      });
+      let feedbackText = `[RESULTADO DA FERRAMENTA]:\n${toolResultObj.message}\n\n**Status**: ${toolResultObj.success ? "✅ Sucesso" : "❌ Falha"}\n\n**Logs de Execução**:\n${executionLogs}`;
+
+      if (screenshotUrl) {
+        feedbackText += `\n\n📸 **Screenshot Capturado**: ${screenshotUrl}`;
+        console.log("📸 Attaching screenshot to Executor context:", screenshotUrl);
+
+        executorMessages.push(formatVisionMessage("system", feedbackText, screenshotUrl));
+      } else {
+        executorMessages.push({
+          role: "system",
+          content: feedbackText,
+        });
+      }
     }
 
     executorMessages.push({ role: "user", content: message });
