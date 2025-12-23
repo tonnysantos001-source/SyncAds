@@ -1,0 +1,5 @@
+WARNING: Docker is not running
+Uploading asset (chat-stream): supabase/functions/chat-stream/index.ts
+Uploading asset (chat-stream): supabase/functions/_utils/cors.ts
+unexpected deploy status 401: {"message":"Unauthorized"}
+Try rerunning the command with --debug to troubleshoot the error.
