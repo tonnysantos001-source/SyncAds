@@ -205,6 +205,7 @@ async function executeLocalBrowser(
       .select("device_id, id, status, last_seen")
       .eq("user_id", ctx.userId)
       .eq("status", "online")
+      .order("last_seen", { ascending: false }) // FIX CRÍTICO: Pegar sempre o mais recente
       .limit(1)
       .maybeSingle();
 
