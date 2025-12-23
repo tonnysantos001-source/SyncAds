@@ -111,15 +111,25 @@ async function executeNavigate(url) {
 
     Logger.info(`🌐 Navigating to: ${url}`);
 
-    // SEMPRE criar nova aba (fix para o problema de "no active tab")
-    const tab = await chrome.tabs.create({ url: url, active: true });
+    try {
+        // SEMPRE criar nova aba (fix para o problema de "no active tab")
+        const tab = await chrome.tabs.create({ url: url, active: true });
 
-    return {
-        success: true,
-        tabId: tab.id,
-        url: tab.url,
-        message: `Opened ${url} in new tab`,
-    };
+        // VERIFICAR SE CARREGOU (Fix para "mentir que abriu")
+        Logger.info(`⏳ Waiting for tab ${tab.id} to complete loading...`);
+        const loadedTab = await waitForTabComplete(tab.id, 15000); // 15s timeout
+
+        return {
+            success: true,
+            tabId: loadedTab.id,
+            url: loadedTab.url,
+            title: loadedTab.title,
+            message: `✅ Site opened and verified: ${loadedTab.title}`,
+        };
+    } catch (error) {
+        Logger.error(`❌ Navigation failed for ${url}:`, error);
+        throw new Error(`Failed to open ${url}: ${error.message}`);
+    }
 }
 
 // Executar CLICK
@@ -274,5 +284,38 @@ function stopCommandPolling() {
 // Iniciar polling ao carregar o background script
 Logger.info('🚀 Initializing command polling system...');
 startCommandPolling();
+
+// Helper: Wait for tab to complete loading
+function waitForTabComplete(tabId, timeoutMs = 15000) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error(`Timeout waiting for tab ${tabId} to load`));
+        }, timeoutMs);
+
+        function onUpdated(tid, changeInfo, tab) {
+            if (tid === tabId && changeInfo.status === 'complete') {
+                cleanup();
+                resolve(tab);
+            }
+        }
+
+        function onRemoved(tid) {
+            if (tid === tabId) {
+                cleanup();
+                reject(new Error(`Tab ${tabId} was closed during loading`));
+            }
+        }
+
+        function cleanup() {
+            clearTimeout(timer);
+            chrome.tabs.onUpdated.removeListener(onUpdated);
+            chrome.tabs.onRemoved.removeListener(onRemoved);
+        }
+
+        chrome.tabs.onUpdated.addListener(onUpdated);
+        chrome.tabs.onRemoved.addListener(onRemoved);
+    });
+}
 
 console.log('✅ Command Polling System initialized');
