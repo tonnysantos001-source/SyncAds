@@ -196,48 +196,37 @@ async function executeLocalBrowser(
   console.log("🌐 Starting LOCAL browser automation", { action, url });
 
   try {
-    // 1. Check if extension is online (tentar ambos os schemas)
+    // 1. Check if extension is online
     executionLog.push(`🔍 [BUSCA] Procurando dispositivo online...`);
 
-    // Primeiro tentar com campo 'status'
-    let { data: device } = await ctx.supabase
+    // Busca simplificada usando apenas colunas existentes
+    const { data: device } = await ctx.supabase
       .from("extension_devices")
-      .select("device_id, id, status")
+      .select("device_id, id, status, last_seen")
       .eq("user_id", ctx.userId)
       .eq("status", "online")
       .limit(1)
       .maybeSingle();
 
-    // Se não encontrou, tentar com campo 'isOnline' (boolean)
-    if (!device) {
-      executionLog.push(`⚠️ [BUSCA] Nenhum dispositivo com status='online', tentando isOnline=true...`);
-      const result = await ctx.supabase
-        .from("extension_devices")
-        .select("device_id, id, isOnline")
-        .eq("user_id", ctx.userId)
-        .eq("isOnline", true)
-        .limit(1)
-        .maybeSingle();
-      device = result.data;
-    }
-
     if (!device) {
       executionLog.push(`❌ [ERRO] Nenhum dispositivo online encontrado`);
 
-      // Verificar se existe algum dispositivo (mesmo offline)
+      // Verificar último status conhecido para debug
       const { data: anyDevice } = await ctx.supabase
         .from("extension_devices")
-        .select("device_id, status, isOnline")
+        .select("device_id, status, last_seen")
         .eq("user_id", ctx.userId)
+        .order("last_seen", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (anyDevice) {
-        const deviceStatus = anyDevice.status || (anyDevice.isOnline ? 'online' : 'offline');
-        executionLog.push(`📱 [INFO] Dispositivo encontrado mas está: ${deviceStatus}`);
+        const lastSeen = anyDevice.last_seen ? new Date(anyDevice.last_seen).toLocaleString() : 'nunca';
+        executionLog.push(`📱 [INFO] Dispositivo encontrado: ${anyDevice.status} (Visto em: ${lastSeen})`);
+
         return {
           success: false,
-          message: `❌ Extensão Chrome encontrada mas está **${deviceStatus}**.\n\n**Como resolver**: Reabra a extensão Chrome e faça login novamente no SyncAds.`,
+          message: `❌ Extensão Chrome encontrada mas está **${anyDevice.status}**.\n\n**Última conexão**: ${lastSeen}\n**Como resolver**: Reabra a extensão Chrome e certifique-se que ela está conectada.`,
           executionLog,
         };
       }
