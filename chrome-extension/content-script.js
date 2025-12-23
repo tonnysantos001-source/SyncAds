@@ -408,6 +408,9 @@ async function handleDomAction(action, params = {}) {
           chrome.runtime.sendMessage({ type: "TAKE_SCREENSHOT" }, resolve);
         });
 
+      case "SCAN_PAGE":
+        return await executeScanPage();
+
       default:
         throw new Error(`Unknown DOM action: ${action}`);
     }
@@ -417,8 +420,110 @@ async function handleDomAction(action, params = {}) {
   }
 }
 
+// ============================================
+// HUMAN INTERACTION LAYER (Ghost Cursor & Typing)
+// ============================================
+
+// Cria e gerencia o cursor fantasma
+function getOrCreateCursor() {
+  let cursor = document.getElementById("syncads-ghost-cursor");
+  if (!cursor) {
+    cursor = document.createElement("div");
+    cursor.id = "syncads-ghost-cursor";
+    cursor.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="#7C3AED" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    `;
+    cursor.style.position = "fixed";
+    cursor.style.top = "0";
+    cursor.style.left = "0";
+    cursor.style.zIndex = "999999999";
+    cursor.style.pointerEvents = "none";
+    cursor.style.transition = "transform 0.1s linear"; // Smooth movement handling by JS
+    cursor.style.transform = "translate(-100px, -100px)"; // Start off-screen
+    document.body.appendChild(cursor);
+  }
+  return cursor;
+}
+
+// Move o cursor suavemente para um elemento
+async function moveCursorTo(element, duration = 1000) {
+  const cursor = getOrCreateCursor();
+  const rect = element.getBoundingClientRect();
+
+  // Destino (centro do elemento com leve aleatoriedade)
+  const targetX = rect.left + (rect.width / 2) + (Math.random() * 10 - 5);
+  const targetY = rect.top + (rect.height / 2) + (Math.random() * 10 - 5);
+
+  // Posição atual (se não tiver, começa do centro da tela)
+  const currentTransform = window.getComputedStyle(cursor).transform;
+  let startX = window.innerWidth / 2;
+  let startY = window.innerHeight / 2;
+
+  if (currentTransform !== 'none') {
+    const matrix = new DOMMatrix(currentTransform);
+    startX = matrix.m41;
+    startY = matrix.m42;
+  }
+
+  // Curva de Bezier simples para movimento mais natural
+  const controlX = startX + (targetX - startX) * 0.5 + (Math.random() * 100 - 50);
+  const controlY = startY + (targetY - startY) * 0.5 + (Math.random() * 100 - 50);
+
+  const startTime = Date.now();
+
+  return new Promise(resolve => {
+    function animate() {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+
+      // Easing: easeOutCubic
+      const t = 1 - Math.pow(1 - progress, 3);
+
+      // Bezier Quadratic Calculation
+      const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * targetX;
+      const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * targetY;
+
+      cursor.style.transform = `translate(${x}px, ${y}px)`;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
+// Simula efeito de clique visual
+function showClickRipple(x, y) {
+  const ripple = document.createElement("div");
+  ripple.style.position = "fixed";
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+  ripple.style.width = "20px";
+  ripple.style.height = "20px";
+  ripple.style.background = "rgba(124, 58, 237, 0.4)";
+  ripple.style.borderRadius = "50%";
+  ripple.style.transform = "translate(-50%, -50%) scale(0)";
+  ripple.style.transition = "transform 0.4s ease-out, opacity 0.4s ease-out";
+  ripple.style.pointerEvents = "none";
+  ripple.style.zIndex = "999999998";
+
+  document.body.appendChild(ripple);
+
+  requestAnimationFrame(() => {
+    ripple.style.transform = "translate(-50%, -50%) scale(2.5)";
+    ripple.style.opacity = "0";
+  });
+
+  setTimeout(() => ripple.remove(), 500);
+}
+
 /**
- * Clica em um elemento
+ * Clica em um elemento (Com movimento Humano)
  */
 async function clickElement(selector) {
   const element = document.querySelector(selector);
@@ -426,21 +531,39 @@ async function clickElement(selector) {
     throw new Error(`Element not found: ${selector}`);
   }
 
-  // Highlight element briefly
+  // 1. Highlight
   const originalOutline = element.style.outline;
-  element.style.outline = "3px solid #10b981";
+  const originalBoxShadow = element.style.boxShadow;
+  element.style.outline = "2px solid #7C3AED";
+  element.style.boxShadow = "0 0 10px rgba(124, 58, 237, 0.5)";
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // 2. Mover Cursor
+  await moveCursorTo(element, 800 + Math.random() * 400);
 
+  // 3. Efeito Visual de Clique
+  const rect = element.getBoundingClientRect();
+  const clickX = rect.left + rect.width / 2;
+  const clickY = rect.top + rect.height / 2;
+  showClickRipple(clickX, clickY);
+
+  // 4. Clique Real
+  await new Promise(resolve => setTimeout(resolve, 100)); // Pequena pausa pre-click
   element.click();
-  element.style.outline = originalOutline;
+  element.focus();
 
-  Logger.success(`Clicked element: ${selector}`);
+  // Cleanup style
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+    element.style.boxShadow = originalBoxShadow;
+  }, 1000);
+
+  Logger.success(`🖱️ Clicked element: ${selector}`);
   return { success: true, selector };
 }
 
 /**
- * Preenche um input
+ * Preenche um input (Com digitação Humana)
  */
 async function fillInput(selector, value) {
   const element = document.querySelector(selector);
@@ -448,24 +571,67 @@ async function fillInput(selector, value) {
     throw new Error(`Input not found: ${selector}`);
   }
 
-  // Highlight element
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // 1. Highlight
   const originalOutline = element.style.outline;
-  element.style.outline = "3px solid #3b82f6";
+  element.style.outline = "2px solid #7C3AED";
 
-  // Simulate typing
+  // 2. Mover Cursor e Clicar
+  await moveCursorTo(element, 800);
+  element.click();
   element.focus();
-  element.value = "";
 
-  for (const char of value) {
-    element.value += char;
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 50));
+
+  // 3. Digitação Realista
+  const isContentEditable = element.isContentEditable || element.getAttribute('contenteditable') === 'true';
+
+  if (!isContentEditable) {
+    element.value = "";
+  } else {
+    // Para contenteditable, limpar pode ser complexo (pode remover formatação), 
+    // mas para "preencher", vamos assumir substituição ou append inteligente.
+    // Por enquanto, limpar.
+    element.innerText = "";
   }
 
+  // Digitar caractere por caractere
+  for (const char of value) {
+    // Variação de velocidade de digitação (humana)
+    const typingSpeed = 30 + Math.random() * 80; // Mais rápido um pouco
+    await new Promise(resolve => setTimeout(resolve, typingSpeed));
+
+    if (isContentEditable) {
+      // Inserir texto e normalizar cursor
+      const textNode = document.createTextNode(char);
+      element.appendChild(textNode);
+
+      // Mover cursor para o final
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(element);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      element.value += char;
+    }
+
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("keydown", { bubbles: true }));
+    element.dispatchEvent(new Event("keypress", { bubbles: true }));
+    element.dispatchEvent(new Event("keyup", { bubbles: true }));
+
+    // Ocasionalmente dar uma "pausa para pensar"
+    if (Math.random() < 0.05) await new Promise(r => setTimeout(r, 400));
+  }
+
+  // Finalizar
   element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.blur();
   element.style.outline = originalOutline;
 
-  Logger.success(`Filled input: ${selector} with: ${value}`);
+  Logger.success(`⌨️ Typed in ${selector}: ${value}`);
   return { success: true, selector, value };
 }
 
@@ -2089,6 +2255,124 @@ if (!document.getElementById("syncads-animations")) {
     }
   `;
   document.head.appendChild(style);
+}
+
+
+// ============================================
+// DOM SCANNER (VISION)
+// ============================================
+
+/**
+ * Gera um seletor CSS único e robusto para um elemento
+ */
+function generateUniqueSelector(element) {
+  if (element.id) return `#${element.id}`;
+
+  // Tentar atributos únicos comuns
+  const uniqueAttrs = ['name', 'data-testid', 'aria-label', 'placeholder', 'title', 'alt'];
+  for (const attr of uniqueAttrs) {
+    if (element.hasAttribute(attr)) {
+      const val = element.getAttribute(attr);
+      if (val && document.querySelectorAll(`[${attr}="${val}"]`).length === 1) {
+        return `${element.tagName.toLowerCase()}[${attr}="${val}"]`;
+      }
+    }
+  }
+
+  // Tentar classes combinadas
+  if (element.className && typeof element.className === 'string') {
+    const classes = element.className.split(/\s+/).filter(c => c && !c.includes(':'));
+    if (classes.length > 0) {
+      const classSelector = '.' + classes.join('.');
+      if (document.querySelectorAll(classSelector).length === 1) {
+        return classSelector;
+      }
+    }
+  }
+
+  // Fallback: Caminho relativo ao pai ou body
+  let path = [];
+  while (element.parentElement) {
+    let tag = element.tagName.toLowerCase();
+    let siblings = Array.from(element.parentElement.children).filter(e => e.tagName.toLowerCase() === tag);
+
+    if (siblings.length > 1) {
+      let index = siblings.indexOf(element) + 1;
+      path.unshift(`${tag}:nth-of-type(${index})`);
+    } else {
+      path.unshift(tag);
+    }
+
+    element = element.parentElement;
+    if (element.id) {
+      path.unshift(`#${element.id}`);
+      return path.join(' > ');
+    }
+  }
+
+  return path.join(' > ');
+}
+
+/**
+ * Escaneia a página e cria um mapa de elementos interativos
+ */
+async function executeScanPage() {
+  Logger.info("Scanning DOM for interactive elements...");
+
+  const interactiveSelector = `
+    a[href], 
+    button, 
+    input:not([type="hidden"]), 
+    textarea, 
+    select, 
+    [role="button"], 
+    [role="textbox"],
+    [contenteditable="true"],
+    [onclick],
+    img
+  `;
+
+  const elements = Array.from(document.querySelectorAll(interactiveSelector));
+
+  // Filtrar visíveis
+  const visibleElements = elements.filter(el => {
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+  });
+
+  // Mapear para formato simples para a IA
+  const map = visibleElements.map((el, index) => {
+    // Tentar pegar texto visível ou label
+    let text = el.innerText || el.textContent || el.value || el.placeholder || el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('alt') || "";
+    text = text.replace(/\s+/g, ' ').trim().substring(0, 50);
+
+    const tagName = el.tagName.toLowerCase();
+    const type = el.getAttribute('type') || '';
+
+    return {
+      index,
+      tag: tagName,
+      type: type,
+      text: text,
+      selector: generateUniqueSelector(el),
+      visible: true
+    };
+  });
+
+  // Limitar tamanho para não estourar contexto da IA
+  // Priorizar elementos com TEXTO e botões relevantes
+  const relevantMap = map.filter(item => {
+    if (item.tag === 'img' && !item.text) return false;
+    if ((item.tag === 'div' || item.tag === 'span') && !item.text) return false;
+    return true;
+  }).slice(0, 100); // Top 100 elementos
+
+  return {
+    success: true,
+    pageTitle: document.title,
+    url: window.location.href,
+    elements: relevantMap
+  };
 }
 
 // ============================================

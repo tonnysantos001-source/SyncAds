@@ -35,6 +35,11 @@ Retorne SOMENTE o JSON a seguir (pode usar \`\`\`json ou JSON puro):
 - Use quando usuário pedir: "pesquise", "procure informações sobre", "busque"
 - Exemplo: "pesquise sobre IA" → tool: "search"
 
+### Scan (Visão/Leitura de Tela) 👁️
+- Use quando: precisar interagir com botões/inputs específicos ou "ver" a página
+- Use quando: usuário pedir "leia a tela", "veja a página", "quais botões tem?"
+- Exemplo: "mapear elementos" → tool: "scan"
+
 ### Admin (Ferramentas Administrativas) 🔐
 - Use quando usuário pedir: "auditoria", "verificar sistema", "diagnosticar", "ver logs", "corrigir banco", "limpar co
 
@@ -98,6 +103,19 @@ Se você receber:
 - \`[ADMIN ERROR]: Função admin-tools não disponível\`
 
 **DIGA ISSO AO USUÁRIO**. Não invente que fez auditoria.
+
+## ⚠️ REGRA CRÍTICA #3: NAVEGAÇÃO WEB (ANTI-ALUCINAÇÃO) ⚠️
+
+Se a ferramenta retornou "Ação executada com sucesso" para navegação ("NAVIGATE"), ISSO SIGNIFICA APENAS QUE A ABA FOI ABERTA.
+**VOCÊ NÃO ESTÁ VENDO O CONTEÚDO DA PÁGINA.**
+
+❌ **NÃO DIGA**: "Encontrei estas TVs...", "Aqui estão os resultados...", "O preço é..."
+(Você NÃO SABE isso ainda, pois não leu a tela)
+
+✅ **DIGA**: "Abri o site [Site] com sua busca. A aba está ativa no seu navegador."
+✅ **DIGA**: "Iniciei a busca por [Nome] no Google. Verifique a nova aba."
+
+Se o usuário pediu "procurar", e você usou a URL de busca direta, confirme apenas que a busca foi INICIADA.
 
 ## FORMATO DE RESPOSTA
 
@@ -372,11 +390,21 @@ function parseActionToDomCommand(action: string, url?: string): any {
     };
   }
 
-  // SCROLL: "rolar", "scroll"
-  if (lower.includes("rola") || lower.includes("scroll")) {
+  // SCROLL: "rolar", "scroll", "desça", "suba"
+  if (lower.includes("rola") || lower.includes("scroll") || lower.includes("desça") || lower.includes("suba")) {
+    let y = 500;
+    if (lower.includes("suba") || lower.includes("cima")) y = -500;
+
     return {
       type: "SCROLL",
-      y: 500,
+      y: y,
+    };
+  }
+
+  // SCAN: "scan", "leia", "veja"
+  if (action === "SCAN_PAGE" || lower.includes("scan") || lower.includes("leia")) {
+    return {
+      type: "SCAN_PAGE"
     };
   }
 
@@ -394,13 +422,48 @@ function parseActionToDomCommand(action: string, url?: string): any {
   };
 }
 
-// Helper: Infer URL from action text
+// Helper: Infer URL from action text (SMART DEEP LINKING)
 function inferUrlFromAction(action: string): string {
-  if (action.includes("google")) return "https://google.com";
-  if (action.includes("facebook")) return "https://facebook.com";
-  if (action.includes("instagram")) return "https://instagram.com";
-  if (action.includes("youtube")) return "https://youtube.com";
-  if (action.includes("twitter") || action.includes("x.com")) return "https://x.com";
+  const lower = action.toLowerCase();
+  const queryMatch = lower.match(/(?:busque|procure|pesquise|sobre|por)\s+(.+)/);
+  const query = queryMatch ? encodeURIComponent(queryMatch[1].trim()) : "";
+
+  // 1. Mercado Livre
+  if (lower.includes("mercado livre") || lower.includes("mercadolivre")) {
+    if (query) return `https://lista.mercadolivre.com.br/${query}`;
+    return "https://www.mercadolivre.com.br";
+  }
+
+  // 2. Amazon BR
+  if (lower.includes("amazon")) {
+    if (query) return `https://www.amazon.com.br/s?k=${query}`;
+    return "https://www.amazon.com.br";
+  }
+
+  // 3. Magalu
+  if (lower.includes("magalu") || lower.includes("magazine luiza")) {
+    if (query) return `https://www.magazineluiza.com.br/busca/${query}/`;
+    return "https://www.magazineluiza.com.br";
+  }
+
+  // 4. Shopee
+  if (lower.includes("shopee")) {
+    if (query) return `https://shopee.com.br/search?keyword=${query}`;
+    return "https://shopee.com.br";
+  }
+
+  // 5. Google (Default Search)
+  if (lower.includes("google") || query) {
+    if (query) return `https://www.google.com/search?q=${query}`;
+    return "https://www.google.com";
+  }
+
+  // Social Media defaults
+  if (lower.includes("facebook")) return "https://facebook.com";
+  if (lower.includes("instagram")) return "https://instagram.com";
+  if (lower.includes("youtube")) return "https://youtube.com";
+  if (lower.includes("twitter") || lower.includes("x.com")) return "https://x.com";
+
   return "";
 }
 
@@ -421,11 +484,11 @@ function extractSelector(text: string): string {
 
 // Helper: Extract value to fill
 function extractValue(text: string): string {
-  // Extract quoted text or text after "com"
+  // Extract quoted text or text after "com" or "digite"
   const quotedMatch = text.match(/"([^"]+)"/);
   if (quotedMatch) return quotedMatch[1];
 
-  const comMatch = text.match(/com\s+(.+)/);
+  const comMatch = text.match(/(?:com|digite|escreva)\s+(.+)/);
   if (comMatch) return comMatch[1].trim();
 
   return "";
@@ -672,6 +735,13 @@ function detectIntent(message: string): { tool: string; action: string; url?: st
     }
   }
 
+  const scanTriggers = ["leia", "veja", "visão", "scan", "mapear", "quais botões", "analise a tela"];
+  for (const trigger of scanTriggers) {
+    if (lower.includes(trigger)) {
+      return { tool: "scan", action: message };
+    }
+  }
+
   const searchTriggers = ["pesquis", "busc", "procur", "ache", "encontr", "qual", "quanto"];
   for (const trigger of searchTriggers) {
     if (lower.includes(trigger)) {
@@ -767,6 +837,12 @@ serve(async (req) => {
           { supabase, userId: user.id },
           intent.action,
           intent.url
+        );
+      } else if (intent.tool === "scan") {
+        console.log("👁️ Using SCAN (Vision)");
+        toolResultObj = await executeLocalBrowser(
+          { supabase, userId: user.id },
+          "SCAN_PAGE"
         );
       } else if (intent.tool === "search") {
         console.log("🔍 Using SEARCH");
