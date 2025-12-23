@@ -411,6 +411,9 @@ async function handleDomAction(action, params = {}) {
       case "SCAN_PAGE":
         return await executeScanPage();
 
+      case "EXTRACT_CONTENT":
+        return extractPageContent();
+
       default:
         throw new Error(`Unknown DOM action: ${action}`);
     }
@@ -633,6 +636,63 @@ async function fillInput(selector, value) {
 
   Logger.success(`⌨️ Typed in ${selector}: ${value}`);
   return { success: true, selector, value };
+}
+
+// ============================================
+// PAGE CONTENT EXTRACTION (READER MODE)
+// ============================================
+function extractPageContent() {
+  Logger.info("📄 extracting page content (Reader Mode)");
+
+  // Heuristic: Find content container
+  const candidates = [
+    document.querySelector("article"),
+    document.querySelector('div[role="main"]'),
+    document.querySelector("main"),
+    document.querySelector("#content"),
+    document.querySelector(".content"),
+    document.querySelector("#main"),
+    document.querySelector(".post-body"),
+    document.body
+  ];
+
+  // Try to find the best candidate that isn't null and has some text
+  const contentEl = candidates.find(el => el && el.innerText.length > 200);
+  const target = contentEl || document.body;
+
+  // Clone to avoid mutation
+  const clone = target.cloneNode(true);
+
+  // Remove clutter
+  const junkSelectors = [
+    "script", "style", "noscript", "svg", "button", "nav",
+    "footer", "header", ".ads", "#ads", ".cookie-banner",
+    ".sidebar", "#sidebar", ".menu"
+  ];
+
+  junkSelectors.forEach(sel => {
+    clone.querySelectorAll(sel).forEach(el => el.remove());
+  });
+
+  let text = clone.innerText || "";
+
+  // Clean whitespace
+  text = text.replace(/\\n\\s*\\n/g, "\n\n").trim();
+
+  // Limit output size
+  const maxLength = 25000;
+  if (text.length > maxLength) {
+    text = text.substring(0, maxLength) + "\n... [Truncated]";
+  }
+
+  Logger.success(`📄 Content Extracted: ${text.length} chars`);
+
+  return {
+    success: true,
+    title: document.title,
+    url: window.location.href,
+    content: text
+  };
 }
 
 // ============================================

@@ -611,18 +611,43 @@ async function waitForCommandCompletion(
   return { success: false, error: timeoutMsg };
 }
 
-async function webSearch(query: string): Promise<{ success: boolean; message: string; executionLog?: string[] }> {
-  // TODO: Integrar API real
+async function webSearch(
+  ctx: { supabase: any; userId: string },
+  query: string
+): Promise<{ success: boolean; message: string; executionLog?: string[] }> {
+  const executionLog: string[] = [];
+  executionLog.push(`🔍 [BUSCA] Iniciando pesquisa: "${query}"`);
+
+  // 1. Tentar API Dedicada (Tavily/Serper) - Futuro
+  const tavilyKey = Deno.env.get("TAVILY_API_KEY");
+  if (tavilyKey) {
+    // TODO: Implementar tavily integration
+  }
+
+  // 2. Fallback: Browser Automation (Google)
+  executionLog.push(`🌐 [FALLBACK] Usando navegação local (Google)`);
+  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+  // Reutilizar a função de automação local
+  const browserResult = await executeLocalBrowser(ctx, "NAVIGATE", googleUrl);
+
+  if (browserResult.success) {
+    return {
+      success: true,
+      message: `✅ Pesquisa iniciada no Google.
+          
+**Query:** "${query}"
+**Ação:** Aba aberta com os resultados.
+
+**Próximo Passo:** O Agente pode usar a ferramenta "scan" ou "leia" para ver os resultados desta página.`,
+      executionLog: [...executionLog, ...browserResult.executionLog || []]
+    };
+  }
+
   return {
     success: false,
-    message: `⚠️ Busca web ainda não implementada.
-
-**Query**: "${query}"
-
-**Status**: Integração com Tavily/Serper será adicionada em breve.
-
-**Alternativa**: Use "pesquise [termo] no google" para abrir busca no navegador.`,
-    executionLog: [`⚠️ Busca web não implementada ainda`],
+    message: `❌ Falha ao abrir pesquisa: ${browserResult.message}`,
+    executionLog: [...executionLog, ...browserResult.executionLog || []],
   };
 }
 
@@ -1036,7 +1061,10 @@ serve(async (req) => {
         );
       } else if (intent.tool === "search") {
         console.log("🔍 Using SEARCH");
-        toolResultObj = await webSearch(intent.action);
+        toolResultObj = await webSearch(
+          { supabase, userId: user.id },
+          intent.action
+        );
       } else if (intent.tool === "admin") {
         // NOVO: Executar ferramenta admin
         console.log("🔐 Using ADMIN tools");
