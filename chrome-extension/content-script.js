@@ -794,7 +794,87 @@ function createConnectButton() {
   document.body.appendChild(button);
   state.hasShownButton = true;
 
+  // Create Mic Button (Phase 6)
+  createMicButton();
+
   Logger.debug("Connect button created");
+}
+
+function createMicButton() {
+  if (document.getElementById("syncads-mic-btn")) return;
+
+  const micBtn = document.createElement("div");
+  micBtn.id = "syncads-mic-btn";
+  micBtn.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background: #ef4444; 
+    color: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 24px;
+  `;
+  micBtn.innerHTML = "🎤";
+  micBtn.title = "Falar com SyncAds (Hold to Speak)";
+
+  // Events
+  let recognition = null;
+
+  micBtn.addEventListener("mousedown", () => {
+    micBtn.style.transform = "scale(1.1)";
+    micBtn.style.background = "#22c55e"; // Green on active
+    startVoiceRecognition();
+  });
+
+  micBtn.addEventListener("mouseup", () => {
+    micBtn.style.transform = "scale(1)";
+    micBtn.style.background = "#ef4444";
+    // stopRecognition handled by silence or manual stop
+  });
+
+  document.body.appendChild(micBtn);
+}
+
+function startVoiceRecognition() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Seu navegador não suporta reconhecimento de voz.");
+    return;
+  }
+
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "pt-BR";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    Logger.info("🎤 Voice Recognition Started");
+    showNotification("Ouvindo...", "info");
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    Logger.success(`🎤 Heard: "${text}"`);
+    showNotification(`Você disse: "${text}"`, "success");
+
+    // TODO: Send to Backend
+    // sendMessageToBackground({ type: "VOICE_INPUT", text });
+  };
+
+  recognition.onerror = (event) => {
+    Logger.error("Voice Error", event);
+    showNotification("Erro no microfone.", "error");
+  };
+
+  recognition.start();
 }
 
 function removeConnectButton() {
@@ -1489,16 +1569,7 @@ async function executeRead(selector) {
   };
 }
 
-async function executeScreenshot() {
-  Logger.debug("Executing SCREENSHOT");
 
-  // Enviar mensagem para background para capturar screenshot
-  const response = await chrome.runtime.sendMessage({
-    type: "CAPTURE_SCREENSHOT",
-  });
-
-  return response;
-}
 
 async function executeNavigation(url, newTab = true) {
   Logger.debug("Executing NAVIGATE", { url, newTab });

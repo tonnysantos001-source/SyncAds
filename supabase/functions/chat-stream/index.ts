@@ -521,6 +521,11 @@ function inferUrlFromAction(action: string): string {
   if (lower.includes("docs") || lower.includes("documento")) return "https://docs.google.com/create";
   if (lower.includes("sheets") || lower.includes("planilha")) return "https://sheets.google.com/create";
 
+  // Documentation Shortcuts (Phase 7 - Ad Expert)
+  if (lower.includes("meta ads") || lower.includes("facebook ads")) return "https://www.facebook.com/business/help/744354708981227"; // Guide: Create Campaign
+  if (lower.includes("google ads")) return "https://support.google.com/google-ads/answer/6451500"; // Guide: Create Campaign
+  if (lower.includes("tiktok ads")) return "https://ads.tiktok.com/help/article/getting-started-create-campaign";
+
   // Social Media defaults
   if (lower.includes("facebook")) return "https://facebook.com";
   if (lower.includes("instagram")) return "https://instagram.com";

@@ -1605,11 +1605,20 @@ async function handleAsyncInternal(request) {
         return { success: true, message: "Disconnected" };
 
       case "REFRESH_TOKEN":
-        const refreshed = await refreshAccessToken();
+        const tokenRefreshed = await refreshAccessToken();
         return {
-          success: refreshed,
-          message: refreshed ? "Token refreshed" : "Refresh failed",
+          success: tokenRefreshed,
+          message: tokenRefreshed ? "Token refreshed" : "Refresh failed",
         };
+
+      case "CAPTURE_SCREENSHOT":
+        captureScreenshot(message.data).then(sendResponse);
+        return true;
+
+      case "VOICE_INPUT":
+        handleVoiceInput(message.text);
+        sendResponse({ success: true });
+        return true;
 
       case "PING":
         return { success: true, message: "pong", timestamp: Date.now() };
