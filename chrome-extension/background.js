@@ -254,25 +254,34 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // Obter tab ativa
-    const [activeTab] = await chrome.tabs.query({
+    // Obter tab ativa (tenta encontrar uma)
+    let [activeTab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    if (!activeTab) {
+    // Se não achou tab ativa, e comando é NAVIGATE, vamos criar uma nova.
+    // Para outros comandos, precisamos de uma tab ativa.
+    if (!activeTab && cmd.type !== "NAVIGATE") {
       throw new Error("No active tab found");
     }
 
-    Logger.info("Active tab found", {
-      tabId: activeTab.id,
-      url: activeTab.url,
-      title: activeTab.title,
-    });
+    if (activeTab) {
+      Logger.info("Active tab found", {
+        tabId: activeTab.id,
+        url: activeTab.url,
+        title: activeTab.title,
+      });
 
-    // Verificar se a tab está pronta
-    if (!activeTab.id || activeTab.discarded) {
-      throw new Error("Tab is not ready");
+      // Verificar se a tab está pronta
+      if (!activeTab.id || activeTab.discarded) {
+        // Se comando for NAVIGATE, não tem problema, vamos criar/atualizar
+        if (cmd.type !== "NAVIGATE") {
+          throw new Error("Tab is not ready");
+        }
+      }
+    } else {
+      Logger.warn("No active tab found, but proceeding for NAVIGATE command");
     }
 
     // Montar parâmetros baseado no tipo
@@ -300,75 +309,91 @@ async function processCommand(cmd) {
     }
 
 
-    Logger.info("Sending message to content script", {
-      action,
-      params,
-      tabId: activeTab.id,
-    });
-
-    // CRITICAL FIX: Se for NAVIGATE, aguardar carregamento da aba ANTES de enviar mensagem
-    if (action === "NAVIGATE") {
-      Logger.info("⏳ Waiting for navigation to complete...");
-      await waitForNavigation(activeTab.id, 15000); // 15s timeout
-    }
-
-    // CRITICAL FIX: Se for NAVIGATE, aguardar carregamento da aba ANTES de enviar mensagem
+    // 3A. Se for NAVIGATE, executar NATIVAMENTE no background (evita erro de conexão)
     if (cmd.type === "NAVIGATE") {
-      Logger.info("⏳ Waiting for navigation to complete...");
-      await waitForNavigation(activeTab.id, 15000); // 15s timeout
+      Logger.info("🌐 Executing NAVIGATE natively in background...", { url: params.url });
+
+      let targetTabId;
+
+      if (activeTab?.id) {
+        // Atualizar tab existente
+        await chrome.tabs.update(activeTab.id, { url: params.url });
+        targetTabId = activeTab.id;
+      } else {
+        // Criar nova tab se não existir
+        const newTab = await chrome.tabs.create({ url: params.url, active: true });
+        targetTabId = newTab.id;
+      }
+
+      Logger.info("⏳ Waiting for navigation to complete...", { targetTabId });
+      await waitForNavigation(targetTabId, 30000); // 30s timeout
+
+      // Pular o envio de mensagem para content script pois já navegamos
+      Logger.success("✅ Navigation completed natively");
+
+      // Mock response para o restante do fluxo
+      response = { success: true, native: true };
     }
+    else {
+      if (!activeTab) throw new Error("Need active tab for this command");
 
-    // NOVO: Timeout explícito de 10 segundos
-    const COMMAND_TIMEOUT = 10000;
+      // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
 
-    // Enviar comando para content-script com timeout
-    const response = await Promise.race([
-      new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          {
-            type: "EXECUTE_DOM_ACTION",
-            action: action,
-            params: params,
-          },
-          async (response) => {
-            if (chrome.runtime.lastError) {
-              const error = chrome.runtime.lastError.message;
-              Logger.error("SendMessage error", null, { error });
+      Logger.info("Sending message to content script", {
+        action,
+        params,
+        tabId: activeTab.id,
+      });
 
-              // NOVO: detectar context invalidated
-              if (error.includes("Extension context invalidated")) {
-                Logger.warn(
-                  "Context invalidated detected, attempting reconnection...",
-                );
-                const reconnected = await handleContextInvalidation();
+      // Enviar comando para content-script com timeout
+      response = await Promise.race([
+        new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(
+            activeTab.id,
+            {
+              type: "EXECUTE_DOM_ACTION",
+              action: action,
+              params: params,
+            },
+            async (response) => {
+              if (chrome.runtime.lastError) {
+                const error = chrome.runtime.lastError.message;
+                Logger.error("SendMessage error", null, { error });
 
-                if (reconnected) {
-                  // Retry comando após reconexão
-                  return reject(new Error("RETRY_AFTER_RECONNECT"));
+                // NOVO: detectar context invalidated
+                if (error.includes("Extension context invalidated")) {
+                  Logger.warn(
+                    "Context invalidated detected, attempting reconnection...",
+                  );
+                  const reconnected = await handleContextInvalidation();
+
+                  if (reconnected) {
+                    // Retry comando após reconexão
+                    return reject(new Error("RETRY_AFTER_RECONNECT"));
+                  }
                 }
-              }
 
-              reject(new Error(error));
-            } else {
-              Logger.success("Response received from content script", {
-                response,
-              });
-              resolve(response);
-            }
-          },
-        );
-      }),
-      new Promise((_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new Error(`Command timeout after ${COMMAND_TIMEOUT / 1000}s`),
-            ),
-          COMMAND_TIMEOUT,
+                reject(new Error(error));
+              } else {
+                Logger.success("Response received from content script", {
+                  response,
+                });
+                resolve(response);
+              }
+            },
+          );
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(`Command timeout after ${COMMAND_TIMEOUT / 1000}s`),
+              ),
+            COMMAND_TIMEOUT,
+          ),
         ),
-      ),
-    ]);
+      ]);
+    }
 
     // HANDLER ESPECÍFICO PARA SCAN_PAGE (Backend Side processing)
     if (cmd.type === "SCAN_PAGE") {
