@@ -147,6 +147,50 @@ function cleanJsonResponse(text: string): string {
 // TOOLS
 // =====================================================
 
+async function executeMemorize(
+  ctx: { supabase: any; userId: string; userToken: string },
+  content: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Extrair o conteúdo real (remover "aprenda isso:" do começo)
+    const cleanContent = content.replace(/^(aprenda|memorize|leia|estude)\s+(isso|isto|este texto|o seguinte)?[:\s]*/i, "").trim();
+
+    if (cleanContent.length < 10) {
+      return { success: false, message: "O texto é muito curto para memorizar." };
+    }
+
+    const functionsUrl = Deno.env.get("SUPABASE_URL")?.replace(".co", ".co/functions/v1/embed-documents")!;
+
+    // Call embed-documents
+    const res = await fetch(functionsUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${ctx.userToken}`
+      },
+      body: JSON.stringify({
+        title: `Nota Rápida via Chat - ${new Date().toLocaleString()}`,
+        content: cleanContent,
+        type: "text/plain"
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      return { success: false, message: `Erro ao memorizar: ${err}` };
+    }
+
+    const data = await res.json();
+    return {
+      success: true,
+      message: `🧠 Memória atualizada! O conhecimento foi salvo e fragmentado em ${data.chunksProcessed} partes.`
+    };
+
+  } catch (e: any) {
+    return { success: false, message: `Erro: ${e.message}` };
+  }
+}
+
 async function userBrowserAutomation(
   ctx: { supabase: any; userId: string },
   action: string,
@@ -823,7 +867,14 @@ function detectIntent(message: string): { tool: string; action: string; url?: st
   const searchTriggers = ["pesquis", "busc", "procur", "ache", "encontr", "qual", "quanto"];
   for (const trigger of searchTriggers) {
     if (lower.includes(trigger)) {
-      return { tool: "search", action: message };
+      return null;
+    }
+  }
+
+  const memorizeTriggers = ["aprenda", "memorize", "estude", "leia isso", "guarde esta informação"];
+  for (const trigger of memorizeTriggers) {
+    if (lower.startsWith(trigger)) { // StartsWith para pegar comandos diretos
+      return { tool: "memorize", action: message };
     }
   }
 
@@ -945,6 +996,12 @@ serve(async (req) => {
           { supabase, userId: user.id },
           intent.action,
           intent.adminAction
+        );
+      } else if (intent.tool === "memorize") {
+        console.log("🧠 Using MEMORIZE tool");
+        toolResultObj = await executeMemorize(
+          { supabase, userId: user.id, userToken: authHeader.replace("Bearer ", "") },
+          intent.action
         );
       }
     }
