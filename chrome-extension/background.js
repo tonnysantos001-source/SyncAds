@@ -461,8 +461,20 @@ async function processCommand(cmd) {
 }
 
 // Helper: Wait for tab to complete loading
-function waitForNavigation(tabId, timeoutMs = 15000) {
+// Helper: Wait for tab to complete loading
+function waitForNavigation(tabId, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
+    // 1. Check if already complete
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        return reject(new Error(chrome.runtime.lastError.message));
+      }
+      if (tab && tab.status === 'complete') {
+        return resolve(tab);
+      }
+    });
+
+    // 2. Setup listener for future updates
     const timer = setTimeout(() => {
       cleanup();
       reject(new Error(`Timeout waiting for tab ${tabId} to load`));
@@ -484,8 +496,10 @@ function waitForNavigation(tabId, timeoutMs = 15000) {
 
     function cleanup() {
       clearTimeout(timer);
-      chrome.tabs.onUpdated.removeListener(onUpdated);
-      chrome.tabs.onRemoved.removeListener(onRemoved);
+      try {
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        chrome.tabs.onRemoved.removeListener(onRemoved);
+      } catch (e) { /* ignore */ }
     }
 
     chrome.tabs.onUpdated.addListener(onUpdated);
