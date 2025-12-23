@@ -306,6 +306,18 @@ async function processCommand(cmd) {
       tabId: activeTab.id,
     });
 
+    // CRITICAL FIX: Se for NAVIGATE, aguardar carregamento da aba ANTES de enviar mensagem
+    if (action === "NAVIGATE") {
+      Logger.info("⏳ Waiting for navigation to complete...");
+      await waitForNavigation(activeTab.id, 15000); // 15s timeout
+    }
+
+    // CRITICAL FIX: Se for NAVIGATE, aguardar carregamento da aba ANTES de enviar mensagem
+    if (cmd.type === "NAVIGATE") {
+      Logger.info("⏳ Waiting for navigation to complete...");
+      await waitForNavigation(activeTab.id, 15000); // 15s timeout
+    }
+
     // NOVO: Timeout explícito de 10 segundos
     const COMMAND_TIMEOUT = 10000;
 
@@ -443,12 +455,42 @@ async function processCommand(cmd) {
       errorMessage: error.message,
     });
 
-    // Marcar como FAILED
-    await updateCommandStatus(cmd.id, "failed", {
-      error_message: error.message,
-      completed_at: new Date().toISOString(),
-    });
+    // Marcar como falha
+    await updateCommandStatus(cmd.id, "failed", null, error.message);
   }
+}
+
+// Helper: Wait for tab to complete loading
+function waitForNavigation(tabId, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timeout waiting for tab ${tabId} to load`));
+    }, timeoutMs);
+
+    function onUpdated(tid, changeInfo, tab) {
+      if (tid === tabId && changeInfo.status === 'complete') {
+        cleanup();
+        resolve(tab);
+      }
+    }
+
+    function onRemoved(tid) {
+      if (tid === tabId) {
+        cleanup();
+        reject(new Error(`Tab ${tabId} was closed during loading`));
+      }
+    }
+
+    function cleanup() {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+    }
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onRemoved.addListener(onRemoved);
+  });
 }
 
 async function updateCommandStatus(commandId, status, extraData = {}) {
