@@ -89,6 +89,10 @@ let state = {
   isProcessingToken: false,
   refreshTimer: null,
   keepAliveTimer: null,
+
+  // Reconnection state
+  reconnectionAttempts: 0,
+  maxReconnectAttempts: 3,
 };
 
 // ============================================
@@ -122,6 +126,55 @@ const Logger = {
     console.log(`🔍 [DEBUG] ${message}`, data);
   },
 };
+
+// ============================================
+// CONTEXT RECONNECTION HANDLER
+// ============================================
+async function handleContextInvalidation() {
+  if (state.reconnectionAttempts >= state.maxReconnectAttempts) {
+    Logger.error("Max reconnection attempts reached");
+    return false;
+  }
+
+  state.reconnectionAttempts++;
+  Logger.info(
+    `Attempting context reconnection (${state.reconnectionAttempts}/${state.maxReconnectAttempts})`,
+  );
+
+  try {
+    // Recarregar estado do storage
+    const stored = await chrome.storage.local.get([
+      "userId",
+      "accessToken",
+      "deviceId",
+      "refreshToken",
+      "tokenExpiresAt",
+    ]);
+
+    if (stored.userId && stored.accessToken) {
+      state.userId = stored.userId;
+      state.accessToken = stored.accessToken;
+      state.deviceId = stored.deviceId;
+      state.refreshToken = stored.refreshToken;
+      state.tokenExpiresAt = stored.tokenExpiresAt;
+      state.isConnected = true;
+
+      // Reiniciar heartbeat e polling
+      startHeartbeat();
+      startKeepAlive();
+
+      Logger.success("Context reconnected successfully");
+      state.reconnectionAttempts = 0;
+      return true;
+    } else {
+      Logger.warn("Cannot reconnect: missing credentials in storage");
+      return false;
+    }
+  } catch (error) {
+    Logger.error("Context reconnection failed", error);
+    return false;
+  }
+}
 
 // ============================================
 // COMMAND POLLING (NEW)
@@ -216,9 +269,24 @@ async function processCommand(cmd) {
           action: cmd.type.replace("DOM_", ""), // DOM_CLICK -> CLICK
           params: params,
         },
-        (response) => {
+        async (response) => {
           if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
+            const error = chrome.runtime.lastError.message;
+
+            // NOVO: detectar context invalidated
+            if (error.includes("Extension context invalidated")) {
+              Logger.warn(
+                "Context invalidated detected, attempting reconnection...",
+              );
+              const reconnected = await handleContextInvalidation();
+
+              if (reconnected) {
+                // Retry comando após reconexão
+                return reject(new Error("RETRY_AFTER_RECONNECT"));
+              }
+            }
+
+            reject(new Error(error));
           } else {
             resolve(response);
           }
@@ -255,6 +323,13 @@ async function processCommand(cmd) {
       url: confirmationData.currentUrl
     });
   } catch (error) {
+    // NOVO: retry logic para RETRY_AFTER_RECONNECT
+    if (error.message === "RETRY_AFTER_RECONNECT") {
+      Logger.info("Retrying command after reconnection...");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return processCommand(cmd); // Recursivo - tentar novamente
+    }
+
     Logger.error("❌ Command execution failed", error, { id: cmd.id });
 
     // Marcar como FAILED

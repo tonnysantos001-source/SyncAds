@@ -271,22 +271,40 @@ async function createNewConversation() {
 
 async function loadConversation(id) {
   try {
-    console.log("Loading chat:", id);
-    const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/ChatMessage?conversationId=eq.${id}&order=createdAt.asc`, {
-      headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: `Bearer ${state.accessToken}` }
-    });
+    console.log("📂 [CONV] Loading conversation:", id);
+
+    // Mostrar loading indicator
+    elements.messagesArea.innerHTML = '<div class="loading-message">⏳ Carregando mensagens...</div>';
+
+    const res = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/ChatMessage?conversationId=eq.${id}&order=createdAt.asc`,
+      {
+        headers: {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${state.accessToken}`
+        }
+      }
+    );
 
     if (!res.ok) {
       if (res.status === 400 || res.status === 404) {
-        console.warn("Conversation not found or invalid, clearing state.");
+        console.warn("⚠️ Conversation not found or invalid");
         state.conversationId = null;
         await chrome.storage.local.remove("conversationId");
+
+        // NOVO: Mostrar mensagem ao usuário
+        elements.messagesArea.innerHTML = '';
+        addMessage("assistant", "❌ Esta conversa não foi encontrada. Por favor, inicie uma nova conversa.");
         return;
       }
-      throw new Error("Erro ao buscar mensagens");
+
+      throw new Error(`Erro ao buscar mensagens: ${res.status}`);
     }
 
     const msgs = await res.json();
+    console.log(`✅ [CONV] Loaded ${msgs.length} messages`);
+
+    // Atualizar estado
     state.conversationId = id;
     state.messages = msgs.map(m => ({
       id: m.id,
@@ -294,14 +312,32 @@ async function loadConversation(id) {
       content: m.content,
       createdAt: m.createdAt
     }));
+
     await chrome.storage.local.set({ conversationId: id });
 
-    renderMessages();
+    // NOVO: Se não há mensagens, mostrar aviso
+    if (state.messages.length === 0) {
+      console.log("📝 [CONV] No messages in this conversation");
+      renderMessages(); // Limpar tela
+      addMessage("assistant", "👋 Esta conversa está vazia. Digite algo para começar!");
+    } else {
+      renderMessages();
+    }
+
     switchToChat();
+
   } catch (e) {
-    console.error("Load conv error:", e);
-    // Falha crítica no load: limpar ID para não travar o usuário
-    state.conversationId = null;
+    console.error("❌ [CONV] Load error:", e);
+
+    // NOVO: Feedback visual de erro
+    elements.messagesArea.innerHTML = '';
+    addMessage("assistant", `❌ Erro ao carregar conversa: ${e.message}`);
+
+    // Não limpar o ID se for erro temporário de rede
+    if (e.message.includes("404") || e.message.includes("400")) {
+      state.conversationId = null;
+      await chrome.storage.local.remove("conversationId");
+    }
   }
 }
 
@@ -317,7 +353,16 @@ function renderConversationsList() {
             </div>
             <button class="delete-chat-btn" title="Excluir">🗑️</button>
         `;
-    div.addEventListener("click", () => { loadConversation(c.id); closeHistoryPanel(); });
+    div.addEventListener("click", async () => {
+      // NOVO: Feedback visual
+      div.style.opacity = "0.5";
+
+      await loadConversation(c.id);
+      closeHistoryPanel();
+
+      // Restaurar opacity
+      setTimeout(() => div.style.opacity = "1", 300);
+    });
     div.querySelector(".delete-chat-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       if (confirm("Excluir?")) deleteConversation(c.id);
