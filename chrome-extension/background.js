@@ -3,6 +3,14 @@
 // Side Panel Architecture + Token Management
 // ============================================
 
+try {
+  importScripts('supabase.js', 'realtime-client.js');
+  console.log("✅ [IMPORTS] Supabase & Realtime scripts imported");
+} catch (e) {
+  console.error("❌ [IMPORTS] Failed to import scripts:", e);
+}
+
+
 console.log(
   "🚀 SyncAds Extension v5.0 - Background Service Worker Initializing...",
 );
@@ -161,7 +169,16 @@ async function handleContextInvalidation() {
 
       // Reiniciar heartbeat e polling
       startHeartbeat();
+      // Reiniciar heartbeat e polling
+      startHeartbeat();
       startKeepAlive();
+
+      // REALTIME INIT
+      setTimeout(() => initRealtimeConnection(), 1000); // Delay safe
+
+
+      // REALTIME RECONNECT
+      setTimeout(() => initRealtimeConnection(), 1000);
 
       Logger.success("Context reconnected successfully");
       state.reconnectionAttempts = 0;
@@ -499,7 +516,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // SERVICE WORKER KEEP-ALIVE
 // ============================================
 function startKeepAlive() {
-  Logger.debug("Starting keep-alive and command polling...");
+  Logger.debug("Starting keep-alive, polling, and REALTIME...");
+
+  // REALTIME START
+  initRealtimeConnection();
+
 
   // Main keep-alive interval (ping to stay awake)
   state.keepAliveTimer = setInterval(() => {
@@ -797,6 +818,9 @@ async function refreshAccessToken() {
 
       return true;
     }
+
+    // Restart Realtime with new token
+    restartRealtime().catch(e => console.error("Realtime restart failed", e));
 
     return false;
   } catch (error) {
