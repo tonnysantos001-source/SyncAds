@@ -701,6 +701,84 @@ async function callLLM(
 }
 
 // =====================================================
+// RAG / MEMORY SYSTEM
+// =====================================================
+
+async function generateEmbedding(text: string, apiKey: string, provider: string): Promise<number[] | null> {
+  // Por enquanto, suporte primário a OpenAI para embeddings
+  // Se usar outro provider para chat, tentaremos usar a mesma key se for compatível, ou falhar silenciosamente
+  let url = "https://api.openai.com/v1/embeddings";
+
+  // Ajuste se necessário para outros providers
+  if (provider === "OPENROUTER") {
+    // OpenRouter geralmente não tem endpoint de embeddings padronizado igual chat, 
+    // mas alguns modelos suportam. Vamos assumir OpenAI por enquanto para estabilidade.
+    // Se a chave for OpenRouter, isso vai falhar se não rotear.
+    // TODO: Adicionar suporte explícito a outros providers de embedding.
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        input: text.replace(/\n/g, " "),
+        model: "text-embedding-3-small"
+      })
+    });
+
+    if (!res.ok) {
+      console.warn("⚠️ Embedding API failed:", await res.text());
+      return null;
+    }
+
+    const json = await res.json();
+    return json.data?.[0]?.embedding || null;
+  } catch (e) {
+    console.error("❌ Embedding generation error:", e);
+    return null;
+  }
+}
+
+async function searchMemory(
+  ctx: { supabase: any; userId: string },
+  query: string,
+  apiKey: string,
+  provider: string
+): Promise<string> {
+  console.log("🧠 Searching memory for:", query.substring(0, 50) + "...");
+
+  const embedding = await generateEmbedding(query, apiKey, provider);
+  if (!embedding) {
+    console.log("⚠️ No embedding generated, skipping memory search.");
+    return "";
+  }
+
+  const { data: chunks, error } = await ctx.supabase.rpc('match_memory_chunks', {
+    query_embedding: embedding,
+    match_threshold: 0.5, // Similaridade mínima
+    match_count: 3,       // Top 3 chunks
+    p_user_id: ctx.userId
+  });
+
+  if (error) {
+    console.error("❌ Memory search DB error:", error);
+    return "";
+  }
+
+  if (!chunks || chunks.length === 0) {
+    console.log("🧠 No relevant memories found.");
+    return "";
+  }
+
+  console.log(`🧠 Found ${chunks.length} relevant memories.`);
+  return chunks.map((c: any) => `[Conteúdo Recuperado da Memória: ${c.document_filename}]\n${c.content}`).join("\n\n");
+}
+
+// =====================================================
 // INTENT DETECTION
 // =====================================================
 
@@ -802,8 +880,21 @@ serve(async (req) => {
     // THINKER PHASE
     console.log("🧠 Calling Thinker...");
 
+    // 1. Search Memory (RAG)
+    const memoryContext = await searchMemory(
+      { supabase, userId: user.id },
+      message,
+      thinker.apiKey,
+      thinker.provider
+    );
+
+    // 2. Add Context to Prompt
+    const thinkerPromptWithMemory = memoryContext
+      ? `${THINKER_PROMPT}\n\n## 🧠 MEMÓRIA DE LONGO PRAZO RECUPERADA\nO usuário tem documentos salvos que podem ser relevantes:\n\n${memoryContext}\n\nUse essas informações se fizerem sentido para a pergunta.`
+      : THINKER_PROMPT;
+
     const thinkerMessages = [
-      { role: "system", content: THINKER_PROMPT },
+      { role: "system", content: thinkerPromptWithMemory },
       ...conversationHistory.map((m: any) => ({ role: m.role, content: m.content })),
       { role: "user", content: message },
     ];
