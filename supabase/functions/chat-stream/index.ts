@@ -51,6 +51,19 @@ mandos"
 - Use quando: conversa normal, perguntas gerais, sem necessidade de ferramentas
 - Exemplo: "como você está?" → tool: "none"
 
+## 🧠 APP SKILLS (KNOWLEDGE BASE)
+
+### WhatsApp Web (web.whatsapp.com)
+- **Fluxo de Envio**:
+  1. Clicar em "Novo chat" ou Buscar: \`div[contenteditable="true"][data-tab="3"]\`
+  2. Digitar mensagem: \`div[contenteditable="true"][data-tab="10"]\`
+  3. Enviar: Botão send ou Enter.
+
+### Gmail (mail.google.com)
+- **Fluxo**:
+  1. Botão "Escrever": \`div[role="button"]\` que contém "Escrever" ou "Compose".
+  2. Campos: "Para", "Assunto" (inputs textuais).
+
 ## REGRA CRÍTICA
 
 SEMPRE prefira usar ferramentas REAIS em vez de dar instruções manuais ao usuário.
@@ -501,6 +514,12 @@ function inferUrlFromAction(action: string): string {
     if (query) return `https://www.google.com/search?q=${query}`;
     return "https://www.google.com";
   }
+
+  // App Shortcuts (Phase 4)
+  if (lower.includes("zap") || lower.includes("whatsapp")) return "https://web.whatsapp.com";
+  if (lower.includes("email") || lower.includes("gmail")) return "https://mail.google.com";
+  if (lower.includes("docs") || lower.includes("documento")) return "https://docs.google.com/create";
+  if (lower.includes("sheets") || lower.includes("planilha")) return "https://sheets.google.com/create";
 
   // Social Media defaults
   if (lower.includes("facebook")) return "https://facebook.com";
