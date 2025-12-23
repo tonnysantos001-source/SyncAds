@@ -223,7 +223,13 @@ async function checkPendingCommands() {
 }
 
 async function processCommand(cmd) {
-  Logger.info("Processing command", { id: cmd.id, type: cmd.type });
+  Logger.info("Processing command", {
+    id: cmd.id,
+    type: cmd.type,
+    value: cmd.value,
+    options: cmd.options,
+    selector: cmd.selector,
+  });
 
   try {
     // Marcar como PROCESSING
@@ -241,61 +247,106 @@ async function processCommand(cmd) {
       throw new Error("No active tab found");
     }
 
+    Logger.info("Active tab found", {
+      tabId: activeTab.id,
+      url: activeTab.url,
+      title: activeTab.title,
+    });
+
     // Verificar se a tab está pronta
     if (!activeTab.id || activeTab.discarded) {
       throw new Error("Tab is not ready");
     }
 
-    // Montar parâmetros do comando baseado no tipo
+    // Montar parâmetros baseado no tipo
     let params = {};
+    let action = cmd.type;
+
     if (cmd.type === "NAVIGATE") {
       params = { url: cmd.options?.url || cmd.value };
+      action = "NAVIGATE";
+      Logger.info("NAVIGATE command detected", { url: params.url });
     } else if (cmd.type === "DOM_CLICK") {
       params = { selector: cmd.selector };
+      action = "CLICK";
     } else if (cmd.type === "DOM_FILL") {
       params = { selector: cmd.selector, value: cmd.value };
+      action = "FILL";
     } else if (cmd.type === "DOM_SCROLL") {
       params = { y: cmd.value || 500 };
+      action = "SCROLL";
     } else {
       params = cmd.options || {};
+      action = cmd.type.replace("DOM_", "");
     }
 
-    // Enviar comando para content-script
-    const response = await new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(
-        activeTab.id,
-        {
-          type: "EXECUTE_DOM_ACTION",
-          action: cmd.type.replace("DOM_", ""), // DOM_CLICK -> CLICK
-          params: params,
-        },
-        async (response) => {
-          if (chrome.runtime.lastError) {
-            const error = chrome.runtime.lastError.message;
-
-            // NOVO: detectar context invalidated
-            if (error.includes("Extension context invalidated")) {
-              Logger.warn(
-                "Context invalidated detected, attempting reconnection...",
-              );
-              const reconnected = await handleContextInvalidation();
-
-              if (reconnected) {
-                // Retry comando após reconexão
-                return reject(new Error("RETRY_AFTER_RECONNECT"));
-              }
-            }
-
-            reject(new Error(error));
-          } else {
-            resolve(response);
-          }
-        },
-      );
+    Logger.info("Sending message to content script", {
+      action,
+      params,
+      tabId: activeTab.id,
     });
 
-    // Aguardar um pouco para a ação completar
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // NOVO: Timeout explícito de 10 segundos
+    const COMMAND_TIMEOUT = 10000;
+
+    // Enviar comando para content-script com timeout
+    const response = await Promise.race([
+      new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(
+          activeTab.id,
+          {
+            type: "EXECUTE_DOM_ACTION",
+            action: action,
+            params: params,
+          },
+          async (response) => {
+            if (chrome.runtime.lastError) {
+              const error = chrome.runtime.lastError.message;
+              Logger.error("SendMessage error", null, { error });
+
+              // NOVO: detectar context invalidated
+              if (error.includes("Extension context invalidated")) {
+                Logger.warn(
+                  "Context invalidated detected, attempting reconnection...",
+                );
+                const reconnected = await handleContextInvalidation();
+
+                if (reconnected) {
+                  // Retry comando após reconexão
+                  return reject(new Error("RETRY_AFTER_RECONNECT"));
+                }
+              }
+
+              reject(new Error(error));
+            } else {
+              Logger.success("Response received from content script", {
+                response,
+              });
+              resolve(response);
+            }
+          },
+        );
+      }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(`Command timeout after ${COMMAND_TIMEOUT / 1000}s`),
+            ),
+          COMMAND_TIMEOUT,
+        ),
+      ),
+    ]);
+
+    Logger.success("Command executed successfully", { response });
+
+    // Aguardar navegação completar (mais tempo para NAVIGATE)
+    if (cmd.type === "NAVIGATE") {
+      Logger.info("Waiting for navigation to complete...");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
     // Pegar informações ATUAIS da tab para confirmar execução
     const [updatedTab] = await chrome.tabs.query({
@@ -309,7 +360,7 @@ async function processCommand(cmd) {
       currentUrl: updatedTab?.url || activeTab.url,
       currentTitle: updatedTab?.title || activeTab.title,
       originalResponse: response,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Marcar como COMPLETED
@@ -320,7 +371,8 @@ async function processCommand(cmd) {
 
     Logger.success("✅ Command executed and confirmed", {
       id: cmd.id,
-      url: confirmationData.currentUrl
+      type: cmd.type,
+      url: confirmationData.currentUrl,
     });
   } catch (error) {
     // NOVO: retry logic para RETRY_AFTER_RECONNECT
@@ -330,7 +382,11 @@ async function processCommand(cmd) {
       return processCommand(cmd); // Recursivo - tentar novamente
     }
 
-    Logger.error("❌ Command execution failed", error, { id: cmd.id });
+    Logger.error("❌ Command execution failed", error, {
+      id: cmd.id,
+      type: cmd.type,
+      errorMessage: error.message,
+    });
 
     // Marcar como FAILED
     await updateCommandStatus(cmd.id, "failed", {
