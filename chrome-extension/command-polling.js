@@ -176,7 +176,19 @@ async function executeFill(selector, value) {
         target: { tabId },
         func: (sel, val) => {
             const element = document.querySelector(sel);
-            if (!element) throw new Error(`Element not found: ${sel}`);
+            if (!element) {
+                // Tentar encontrar qualquer input visível como fallback se o seletor for genérico
+                if (sel === "input" || sel.includes("input")) {
+                    const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']), textarea, [contenteditable='true']"));
+                    const visibleInput = inputs.find(i => i.offsetParent !== null); // Check visibility
+                    if (visibleInput) {
+                        visibleInput.value = val;
+                        visibleInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        return { filled: "fallback-input", value: val };
+                    }
+                }
+                throw new Error(`Element not found: ${sel}. Page title: ${document.title}`);
+            }
             element.value = val;
             const event = new Event('input', { bubbles: true });
             element.dispatchEvent(event);

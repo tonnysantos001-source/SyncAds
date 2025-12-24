@@ -28,8 +28,9 @@ Retorne SOMENTE o JSON a seguir (pode usar \`\`\`json ou JSON puro):
 ## REGRAS DE FERRAMENTAS
 
 ### Browser (Automação)
-- Use quando usuário pedir: "abra", "navegue", "clique", "acesse", "vá para"
+- Use quando usuário pedir: "abra", "navegue", "clique", "acesse", "vá para", "digite", "preencha", "escreva", "pesquise no google"
 - Exemplo: "abra o google" → tool: "browser"
+- Exemplo: "digite 'computador' na busca" → tool: "browser"
 
 ### Search (Pesquisa Web)
 - Use quando usuário pedir: "pesquise", "procure informações sobre", "busque"
@@ -108,6 +109,15 @@ Você EXECUTA ações e RELATA o resultado HONESTAMENTE ao usuário.
 
 **Sua Resposta:**  
 "✅ Executei o comando! O navegador abriu com sucesso." ← **MENTIRA PROIBIDA**
+
+### ❌ ERRADO (Desistindo Fácil):
+**[RESULTADO DA FERRAMENTA]:** \`{ "success": false, "error": "Element not found" }\`
+
+**Sua Resposta:**
+"❌ Não consigo digitar pois não tenho acesso ao navegador." ← **MENTIRA** (Você tem acesso, só falhou o seletor)
+
+**Resposta Correta:**
+"❌ Não consegui encontrar o campo de busca. Vou tentar abrir a página de pesquisa direta."
 
 ## ⚠️ REGRA CRÍTICA #2: FERRAMENTAS ADMIN ⚠️
 
@@ -439,10 +449,10 @@ function parseActionToDomCommand(action: string, url?: string): any {
   }
 
   // FILL: "preencher", "digite", "escreva"
-  if (lower.includes("preenche") || lower.includes("digite") || lower.includes("escrev")) {
+  if (lower.includes("preench") || lower.includes("digite") || lower.includes("escreva") || lower.includes("insira")) {
     return {
       type: "FILL",
-      selector: "input",
+      selector: extractSelector(action) || "input[type='text'], input[type='search'], textarea, [contenteditable='true']", // Improved default selector
       value: extractValue(action) || "",
     };
   }
