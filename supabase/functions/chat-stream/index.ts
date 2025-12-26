@@ -12,11 +12,27 @@ import { corsHeaders } from "../_utils/cors.ts";
 console.log("🚀 Chat Stream V2 - Clean Architecture");
 
 // =====================================================
-// GROQ LLM CONFIGS
+// GROQ LLM CONFIGS (loaded from database)
 // =====================================================
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
 const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile"; // Raciocínio
 const GROQ_EXECUTOR_MODEL = "llama-3.1-70b-versatile"; // Execução
+
+// ✅ NEW: Load Groq API keys from database (ai_providers table)
+async function getGroqApiKey(supabase: any): Promise<string> {
+  const { data, error } = await supabase
+    .from("ai_providers")
+    .select("api_key")
+    .eq("provider", "groq")
+    .eq("is_active", true)
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    throw new Error("No active Groq API key found in database");
+  }
+
+  return data.api_key;
+}
 
 // Railway Playwright Service
 const RAILWAY_PLAYWRIGHT_URL = Deno.env.get("RAILWAY_PLAYWRIGHT_URL") || "https://your-railway-service.railway.app";
@@ -51,6 +67,7 @@ Use linguagem natural e amigável.`;
 // HELPER: Call Groq LLM
 // =====================================================
 async function callGroq(
+  apiKey: string,
   model: string,
   messages: Array<{ role: string; content: string }>,
   temperature = 0.7
@@ -59,7 +76,7 @@ async function callGroq(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -166,13 +183,16 @@ serve(async (req) => {
     // =====================================================
     console.log("🧠 Calling Thinker...");
 
+    // Load Groq API key from database
+    const groqApiKey = await getGroqApiKey(supabase);
+
     const thinkerMessages = [
       { role: "system", content: THINKER_PROMPT },
       ...conversationHistory,
       { role: "user", content: message },
     ];
 
-    const thinkerResponse = await callGroq(GROQ_REASONING_MODEL, thinkerMessages, 0.3);
+    const thinkerResponse = await callGroq(groqApiKey, GROQ_REASONING_MODEL, thinkerMessages, 0.3);
 
     let plan: any = {};
     try {
@@ -227,7 +247,7 @@ serve(async (req) => {
       },
     ];
 
-    const executorResponse = await callGroq(GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
+    const executorResponse = await callGroq(groqApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
 
     // =====================================================
     // FINAL RESPONSE (com raciocínio visível)
