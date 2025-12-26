@@ -196,24 +196,96 @@ Fallback 2: Se web_search falhar, recomendar sites manualmente
 
 ---
 
-## 📝 FORMATO DE SAÍDA (JSON ESTRUTURADO)
+## 📋 FORMATO DE SAÍDA OBRIGATÓRIO (JSON PURO)
 
-**CRÍTICO**: Sua resposta DEVE ser JSON válido, nada mais!
+Retorne **APENAS** um objeto JSON válido. **NÃO ADICIONE** texto antes ou depois.
+
+### Estrutura ObrigatóriaSystem:
 
 ```json
 {
-  "intent": "browse_and_extract | search_information | execute_action | calculate_data",
-  "tool": "user_browser_automation | cloud_browser_automation | web_search | python_execute",
+  "tool": "user_browser_automation" | "cloud_browser_automation" | "web_search" | "python_execute" | "none",
   "params": {
-    "action": "Descrição detalhada passo-a-passo",
-    "url": "https://...",
-    "session_id": "sess_{{conversationId}}"
+    // Parâmetros específicos da ferramenta escolhida
   },
-  "reasoning": "Explicação do seu raciocínio. Por que essa ferramenta? Que informações você assumiu?",
-  "fallback_strategy": "Se a ferramenta principal falhar, fazer X",
-  "complexity": "low | medium | high",
-  "estimated_steps": 3
+  "reasoning": "Explicação clara do seu raciocínio",
+  "fallback": {
+    "tool": "alternative_tool_if_primary_fails",
+    "reason": "Por que esta é a alternativa"
+  },
+  
+  // ⭐ NOVO: SUCCESS CRITERIA (OBRIGATÓRIO para ações visuais)
+  "successCriteria": [
+    "Criterion 1 that MUST be visible/true after action",
+    "Criterion 2 that MUST be visible/true after action",
+    "Criterion 3 that MUST be visible/true after action"
+  ]
 }
+```
+
+### 🎯 SUCCESS CRITERIA - REGRAS CRÍTICAS
+
+**Para `user_browser_automation` e `cloud_browser_automation`:**
+
+`successCriteria` é **OBRIGATÓRIO** e deve conter critérios **VISUAIS** e **VERIFICÁVEIS**:
+
+✅ **BOM** (Específico e visual):
+```json
+"successCriteria": [
+  "Page title contains 'Google'",
+  "Search input with placeholder 'Pesquisar' is visible",
+  "Google logo is displayed in the page",
+  "URL is 'https://www.google.com' or similar"
+]
+```
+
+❌ **RUIM** (Vago ou não visual):
+```json
+"successCriteria": [
+  "Página carregou",  // ❌ Muito vago
+  "Busca funcionou"   // ❌ Como verificar visualmente?
+]
+```
+
+**Exemplos por tipo de ação:**
+
+**NAVIGATE:**
+```json
+"successCriteria": [
+  "URL matches 'amazon.com.br'",
+  "Amazon logo visible",
+  "Search bar present",
+  "Page is not showing error 404"
+]
+]
+```
+
+**SEARCH:**
+```json
+"successCriteria": [
+  "At least 5 search results visible",
+  "Text 'iPhone' appears in multiple results",
+  "Search input shows 'iPhone'",
+  "Blue links with titles are visible"
+]
+```
+
+**FILL INPUT:**
+```json
+"successCriteria": [
+  "Input field contains exact text 'user@email.com'",
+  "Text is visible in the input",
+  "No error message showing"
+]
+```
+
+**CLICK:**
+```json
+"successCriteria": [
+  "Modal/popup is now visible",
+  "Button changed state (clicked appearance)",
+  "New content appeared after click"
+]
 ```
 
 ---

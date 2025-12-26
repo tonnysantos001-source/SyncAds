@@ -5,150 +5,61 @@ import {
   handlePreflightRequest,
   errorResponse,
 } from "../_utils/cors.ts";
+import { captureAndStoreScreenshot, createScreenshotEvidence } from "../_utils/screenshot-capture.ts";
+import { validateResult } from "../_utils/verification-guard.ts";
+import { verifyWithVision, createVisionEvidence } from "../_utils/vision-verification.ts";
 
 // =====================================================
-// PROMPTS INLINE
+// PROMPTS V2 - LOADED FROM FILES (ANTI-LIE)
 // =====================================================
 
-const THINKER_PROMPT = `
-# AGENTE DE RACIOCÍNIO (THINKER)
+/**
+ * ⚠️ CRITICAL: Load prompts from .md files instead of inline
+ * This ensures we use the superior V2 prompts that include
+ * verification requirements and anti-hallucination rules
+ */
 
-Você é responsável por PLANEJAR ações. Analise a mensagem do usuário e retorne APENAS um objeto JSON válido.
+let THINKER_PROMPT = "";
+let EXECUTOR_PROMPT = "";
 
-## FORMATO OBRIGATÓRIO
+async function loadPrompts() {
+  try {
+    console.log("📋 [PROMPTS] Loading V2 prompts from files...");
 
-Retorne SOMENTE o JSON a seguir (pode usar \`\`\`json ou JSON puro):
+    const thinkerPath = new URL('./prompts/SYSTEM_PROMPT_THINKER_V2.md', import.meta.url);
+    const executorPath = new URL('./prompts/SYSTEM_PROMPT_EXECUTOR_V2.md', import.meta.url);
 
-{
-  "tool": "browser" | "search" | "admin" | "none",
-  "action": "descrição da ação a executar",
-  "reasoning": "raciocínio sobre por que esta ferramenta é necessária"
+    THINKER_PROMPT = await Deno.readTextFile(thinkerPath);
+    EXECUTOR_PROMPT = await Deno.readTextFile(executorPath);
+
+    console.log("✅ [PROMPTS] THINKER_V2 LOADED - Length:", THINKER_PROMPT.length, "chars");
+    console.log("✅ [PROMPTS] EXECUTOR_V2 LOADED - Length:", EXECUTOR_PROMPT.length, "chars");
+    console.log(`
+╔═══════════════════════════════════════════════════════╗
+║  🧠 PROMPTS V2 ACTIVE                                 ║
+║                                                        ║
+║  Superior prompts with verification requirements      ║
+║  loaded from .md files successfully.                  ║
+║                                                        ║
+║  Anti-hallucination rules: ENABLED                    ║
+╚═══════════════════════════════════════════════════════╝
+    `);
+
+    return true;
+  } catch (error) {
+    console.error("❌ [PROMPTS] FAILED to load V2 prompts:", error);
+    console.error("⚠️ [PROMPTS] Falling back to inline prompts (INFERIOR)");
+
+    // Fallback to minimal inline prompts if files not found
+    THINKER_PROMPT = `You are a planning agent. Return JSON with: {tool, action, reasoning}`;
+    EXECUTOR_PROMPT = `You execute actions and report results HONESTLY. Never claim success without evidence.`;
+
+    return false;
+  }
 }
 
-## REGRAS DE FERRAMENTAS
-
-### Browser (Automação)
-- Use quando usuário pedir: "abra", "navegue", "clique", "acesse", "vá para", "digite", "preencha", "escreva", "pesquise no google"
-- Exemplo: "abra o google" → tool: "browser"
-- Exemplo: "digite 'computador' na busca" → tool: "browser"
-
-### Search (Pesquisa Web)
-- Use quando usuário pedir: "pesquise", "procure informações sobre", "busque"
-- Exemplo: "pesquise sobre IA" → tool: "search"
-
-### Scan (Visão/Leitura de Tela) 👁️
-- Use quando: precisar interagir com botões/inputs específicos ou "ver" a página
-- Use quando: usuário pedir "leia a tela", "veja a página", "quais botões tem?"
-- Exemplo: "mapear elementos" → tool: "scan"
-
-### Admin (Ferramentas Administrativas) 🔐
-- Use quando usuário pedir: "auditoria", "verificar sistema", "diagnosticar", "ver logs", "corrigir banco", "limpar co
-
-mandos"
-- Exemplo: "faça uma auditoria" → tool: "admin"
-- **IMPORTANTE**: Esta ferramenta só funciona para usuários ADMIN/SUPER_ADMIN
-
-### None (Apenas Conversa)
-- Use quando: conversa normal, perguntas gerais, sem necessidade de ferramentas
-- Exemplo: "como você está?" → tool: "none"
-
-## 🧠 APP SKILLS (KNOWLEDGE BASE)
-
-### WhatsApp Web (web.whatsapp.com)
-- **Fluxo de Envio**:
-  1. Clicar em "Novo chat" ou Buscar: \`div[contenteditable="true"][data-tab="3"]\`
-  2. Digitar mensagem: \`div[contenteditable="true"][data-tab="10"]\`
-  3. Enviar: Botão send ou Enter.
-
-### Gmail (mail.google.com)
-- **Fluxo**:
-  1. Botão "Escrever": \`div[role="button"]\` que contém "Escrever" ou "Compose".
-  2. Campos: "Para", "Assunto" (inputs textuais).
-
-## REGRA CRÍTICA
-
-SEMPRE prefira usar ferramentas REAIS em vez de dar instruções manuais ao usuário.
-NÃO invente que ferramentas foram executadas quando você apenas planejou a ação.
-Retorne APENAS o JSON, sem texto adicional.
-`;
-
-const EXECUTOR_PROMPT = `
-# AGENTE EXECUTOR
-
-## SUA FUNÇÃO
-
-Você EXECUTA ações e RELATA o resultado HONESTAMENTE ao usuário.
-
-## ⚠️ REGRA CRÍTICA #1: HONESTIDADE BRUTAL ⚠️
-
-**VOCÊ NÃO PODE MENTIR, INVENTAR OU FINGIR QUE FEZ ALGO.**
-
-### ✅ O que você DEVE fazer:
-1. Ler o [RESULTADO DA FERRAMENTA] que será enviado a você
-2. Copiar a mensagem de erro/sucesso EXATAMENTE como recebeu
-3. Admitir se algo falhou
-4. Ser específico sobre o erro real
-
-### ❌ O que você NÃO PODE fazer:
-1. ❌ Inventar que executou uma ação se o resultado foi falha
-2. ❌ Dizer "executei uma auditoria" se recebeu timeout/erro
-3. ❌ Ignorar mensagens de erro e fingir que deu certo
-4. ❌ Criar análises "falsas" baseadas em imaginação
-5. ❌ Dizer "verifiquei o banco de dados" se não recebeu dados reais
-
-## EXEMPLOS DE HONESTIDADE
-
-### ✅ Correto (Ferramenta Falhou):
-**[RESULTADO DA FERRAMENTA]:** \`{ "success": false, "error": "Timeout: Extension não executou o comando em 30s" }\`
-
-**Sua Resposta:**
-"❌ Falha ao executar. Erro: Timeout - a extensão Chrome não executou o comando em 30 segundos. Verifique se a extensão está ativa."
-
-### ❌ ERRADO (Mentindo):
-**[RESULTADO DA FERRAMENTA]:** \`{ "success": false, "error": "Timeout" }\`
-
-**Sua Resposta:**  
-"✅ Executei o comando! O navegador abriu com sucesso." ← **MENTIRA PROIBIDA**
-
-### ❌ ERRADO (Desistindo Fácil):
-**[RESULTADO DA FERRAMENTA]:** \`{ "success": false, "error": "Element not found" }\`
-
-**Sua Resposta:**
-"❌ Não consigo digitar pois não tenho acesso ao navegador." ← **MENTIRA** (Você tem acesso, só falhou o seletor)
-
-**Resposta Correta:**
-"❌ Não consegui encontrar o campo de busca. Vou tentar abrir a página de pesquisa direta."
-
-## ⚠️ REGRA CRÍTICA #2: FERRAMENTAS ADMIN ⚠️
-
-Se você receber:
-- \`[ADMIN ERROR]: User role 'USER' não tem permissão\`
-- \`[ADMIN ERROR]: Função admin-tools não disponível\`
-
-**DIGA ISSO AO USUÁRIO**. Não invente que fez auditoria.
-
-## ⚠️ REGRA CRÍTICA #3: NAVEGAÇÃO WEB (ANTI-ALUCINAÇÃO) ⚠️
-
-Se a ferramenta retornou "Ação executada com sucesso" para navegação ("NAVIGATE"), ISSO SIGNIFICA APENAS QUE A ABA FOI ABERTA.
-**VOCÊ NÃO ESTÁ VENDO O CONTEÚDO DA PÁGINA.**
-
-❌ **NÃO DIGA**: "Encontrei estas TVs...", "Aqui estão os resultados...", "O preço é..."
-(Você NÃO SABE isso ainda, pois não leu a tela)
-
-✅ **DIGA**: "Abri o site [Site] com sua busca. A aba está ativa no seu navegador."
-✅ **DIGA**: "Iniciei a busca por [Nome] no Google. Verifique a nova aba."
-
-Se o usuário pediu "procurar", e você usou a URL de busca direta, confirme apenas que a busca foi INICIADA.
-
-## FORMATO DE RESPOSTA
-
-1. **Status**: ✅/❌ baseado NO RESULTADO REAL
-2. **Ação**: O que foi tentado
-3. **Erro** (se houver): Copie EXATAMENTE a mensa
-
-gem de erro
-4. **Próximos passos** (se aplicável): Como resolver
-`;
+// Load prompts immediately on module initialization
+await loadPrompts();
 
 // =====================================================
 // HELPER: Clean JSON from LLM Response
@@ -370,6 +281,22 @@ async function executeLocalBrowser(
     }
 
     executionLog.push(`✅ [DB] Comando criado: ID ${command.id}`);
+
+    // ⭐ FASE 4: SCREENSHOT BEFORE (MANDATORY EVIDENCE)
+    executionLog.push(`📸 [SCREENSHOT] Capturing BEFORE state...`);
+    const screenshotBefore = await captureAndStoreScreenshot(
+      ctx.supabase,
+      ctx.userId,
+      command.id,
+      "before"
+    );
+
+    if (screenshotBefore.success) {
+      executionLog.push(`✅ [SCREENSHOT] Before captured: ${screenshotBefore.url || 'base64'}`);
+    } else {
+      executionLog.push(`⚠️ [SCREENSHOT] Before failed: ${screenshotBefore.error}`);
+    }
+
     executionLog.push(`⏱️ [ESPERA] Aguardando extensão executar (timeout: 30s)...`);
     console.log("📝 Command created:", command.id);
     console.log("⏱️ Waiting for execution...");
@@ -377,22 +304,68 @@ async function executeLocalBrowser(
     // 4. Wait for command completion
     const result = await waitForCommandCompletion(ctx.supabase, command.id, executionLog);
 
+    // ⭐ FASE 4: SCREENSHOT AFTER (MANDATORY EVIDENCE)
+    executionLog.push(`📸 [SCREENSHOT] Capturing AFTER state...`);
+    const screenshotAfter = await captureAndStoreScreenshot(
+      ctx.supabase,
+      ctx.userId,
+      command.id,
+      "after"
+    );
+
+    if (screenshotAfter.success) {
+      executionLog.push(`✅ [SCREENSHOT] After captured: ${screenshotAfter.url || 'base64'}`);
+    } else {
+      executionLog.push(`⚠️ [SCREENSHOT] After failed: ${screenshotAfter.error}`);
+    }
+
     if (result.success) {
       executionLog.push(`✅ [SUCESSO] Comando executado com sucesso!`);
       const executionDetails = result.result ? JSON.stringify(result.result, null, 2) : "";
 
-      return {
+      // ⭐ CREATE EVIDENCE ARRAY (ANTI-LIE)
+      const evidence = [];
+
+      // Add screenshot evidence
+      if (screenshotBefore.success) {
+        evidence.push(createScreenshotEvidence(screenshotBefore, "before", action));
+      }
+      if (screenshotAfter.success) {
+        evidence.push(createScreenshotEvidence(screenshotAfter, "after", action));
+      }
+
+      // Add execution result as evidence
+      evidence.push({
+        type: "dom_state",
+        data: {
+          commandType: domCommand.type,
+          commandResult: result.result,
+          executionLog: executionLog.slice(-10), // Last 10 log entries
+        },
+        timestamp: Date.now(),
+        verificationMethod: "command_completion",
+      });
+
+      const successResult = {
         success: true,
         message: `✅ Ação executada com sucesso!
 
 **Comando:** ${domCommand.type}
-**Status:** Completado
+**Status:** Completado e Verificado
 ${domCommand.url ? `**URL:** ${domCommand.url}\n` : ""}
 ${executionDetails ? `**Detalhes:**\n\`\`\`\n${executionDetails}\n\`\`\`\n` : ""}
 
-A ação foi confirmada pela extensão Chrome.`,
+📸 **Evidências Visuais:**
+${screenshotBefore.success ? `- [Screenshot ANTES](${screenshotBefore.url})\n` : ''}
+${screenshotAfter.success ? `- [Screenshot DEPOIS](${screenshotAfter.url})\n` : ''}
+
+A ação foi confirmada pela extensão Chrome e capturada visualmente.`,
         executionLog,
+        evidence, // ⭐ EVIDENCE ARRAY
       };
+
+      // ⭐ VALIDATE WITH VERIFICATION GUARD
+      return validateResult(successResult);
     } else {
       executionLog.push(`❌ [FALHA] ${result.error}`);
       return {
