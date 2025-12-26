@@ -381,8 +381,7 @@ async function handleDomAction(action, params = {}) {
         return await fillInput(params.selector, params.value);
 
       case "NAVIGATE":
-        window.location.href = params.url;
-        return { success: true, url: params.url };
+        return await executeNavigateWithVerification(params.url, params.timeout || 30000);
 
       case "SCROLL":
         window.scrollBy({
@@ -421,6 +420,105 @@ async function handleDomAction(action, params = {}) {
     Logger.error(`DOM action failed: ${action}`, error);
     throw error;
   }
+}
+
+// ============================================
+// VERIFIED NAVIGATION (ANTI-LIE)
+// ============================================
+
+/**
+ * Executa navegação e AGUARDA confirmação real de carregamento
+ * 
+ * REGRAS ANTI-MENTIRA:
+ * - NÃO retorna até window.onload disparar
+ * - Timeout configurável (padrão 30s)
+ * - Retorna evidência verificável: title, readyState, finalUrl
+ * - Se timeout → erro explícito
+ * 
+ * @param {string} url - URL de destino
+ * @param {number} timeout - Timeout em ms (padrão 30000)
+ * @returns {Promise<Object>} Evidência do carregamento
+ */
+async function executeNavigateWithVerification(url, timeout = 30000) {
+  Logger.info(`🚀 [NAVIGATE] Starting verified navigation to: ${url}`);
+
+  const startTime = Date.now();
+  const urlBefore = window.location.href;
+
+  return new Promise((resolve, reject) => {
+    // 1. Setup timeout guard
+    const timeoutId = setTimeout(() => {
+      Logger.error(`⏱️ [NAVIGATE] Timeout after ${timeout}ms waiting for page load`);
+      reject(new Error(`Navigation timeout: Page did not load within ${timeout / 1000}s`));
+    }, timeout);
+
+    // 2. Setup load listener
+    const onLoadComplete = () => {
+      clearTimeout(timeoutId);
+
+      const loadTime = Date.now() - startTime;
+      const evidence = {
+        success: true,
+        urlBefore: urlBefore,
+        urlAfter: window.location.href,
+        title: document.title,
+        readyState: document.readyState,
+        loadTime: loadTime,
+        timestamp: Date.now(),
+        verification: {
+          method: "window.onload",
+          urlMatches: window.location.href.includes(new URL(url).hostname),
+          pageTitle: document.title,
+          documentReady: document.readyState === "complete"
+        }
+      };
+
+      Logger.success(`✅ [NAVIGATE] Page loaded successfully in ${loadTime}ms`);
+      Logger.debug(`[NAVIGATE] Evidence:`, evidence);
+
+      resolve(evidence);
+    };
+
+    // 3. Check if already on target URL (optimization)
+    if (window.location.href === url) {
+      Logger.info(`[NAVIGATE] Already on target URL, confirming page state`);
+
+      if (document.readyState === "complete") {
+        clearTimeout(timeoutId);
+        resolve({
+          success: true,
+          urlBefore: urlBefore,
+          urlAfter: window.location.href,
+          title: document.title,
+          readyState: document.readyState,
+          loadTime: 0,
+          timestamp: Date.now(),
+          verification: {
+            method: "already_loaded",
+            urlMatches: true,
+            pageTitle: document.title,
+            documentReady: true
+          }
+        });
+        return;
+      }
+    }
+
+    // 4. Execute navigation
+    try {
+      // Listen for load event
+      window.addEventListener('load', onLoadComplete, { once: true });
+
+      // Navigate!
+      Logger.info(`[NAVIGATE] Executing: window.location.href = "${url}"`);
+      window.location.href = url;
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      Logger.error(`[NAVIGATE] Navigation failed`, error);
+      reject(error);
+    }
+  });
 }
 
 // ============================================
@@ -629,14 +727,106 @@ async function fillInput(selector, value) {
     if (Math.random() < 0.05) await new Promise(r => setTimeout(r, 400));
   }
 
-  // Finalizar
+  // ⭐ READ-AFTER-WRITE VERIFICATION (ANTI-LIE)
+  // Aguardar React/Vue atualizar virtual DOM
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Finalizar eventos
   element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new Event("blur", { bubbles: true }));
   element.blur();
   element.style.outline = originalOutline;
 
-  Logger.success(`⌨️ Typed in ${selector}: ${value}`);
-  return { success: true, selector, value };
+  // ⭐ VERIFICAR SE DIGITAÇÃO FOI BEM-SUCEDIDA
+  const maxRetries = 2;
+  let verified = false;
+  let actualValue = "";
+
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    // Ler valor atual do elemento
+    if (isContentEditable) {
+      actualValue = element.innerText || element.textContent || "";
+    } else {
+      actualValue = element.value || "";
+    }
+
+    // Comparar
+    const matches = actualValue.trim() === value.trim();
+
+    if (matches) {
+      verified = true;
+      Logger.success(`✅ [FILL] Verification passed on attempt ${attempt}: "${actualValue}"`);
+      break;
+    } else {
+      Logger.warn(`⚠️ [FILL] Attempt ${attempt}/${maxRetries + 1} - Value mismatch!`);
+      Logger.warn(`   Expected: "${value}"`);
+      Logger.warn(`   Actual: "${actualValue}"`);
+
+      if (attempt <= maxRetries) {
+        // Retry: Limpar e digitar novamente
+        Logger.info(`🔄 [FILL] Retrying... (${attempt}/${maxRetries})`);
+
+        if (isContentEditable) {
+          element.innerText = "";
+        } else {
+          element.value = "";
+        }
+
+        element.focus();
+
+        // Redigitar mais devagar
+        for (const char of value) {
+          const typingSpeed = 50 + Math.random() * 100;
+          await new Promise(resolve => setTimeout(resolve, typingSpeed));
+
+          if (isContentEditable) {
+            const textNode = document.createTextNode(char);
+            element.appendChild(textNode);
+          } else {
+            element.value += char;
+          }
+
+          element.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 700)); // Mais tempo para React
+      }
+    }
+  }
+
+  if (!verified) {
+    const error = new Error(
+      `Fill verification FAILED after ${maxRetries + 1} attempts.\n` +
+      `Expected: "${value}"\n` +
+      `Actual: "${actualValue}"\n` +
+      `Selector: ${selector}\n\n` +
+      `This usually means:\n` +
+      `- React/Vue did not recognize the input events\n` +
+      `- Element is read-only or disabled\n` +
+      `- Custom input handler is overriding values`
+    );
+    Logger.error(`❌ [FILL] Verification failed definitively`, error);
+    throw error;
+  }
+
+  Logger.success(`⌨️ Typed and VERIFIED in ${selector}: ${value}`);
+
+  return {
+    success: true,
+    selector,
+    value,
+    verified: true,
+    actualValue,
+    attempts: verified ? 1 : maxRetries + 1,
+    verification: {
+      method: "read_after_write",
+      valueMatches: true,
+      timestamp: Date.now()
+    }
+  };
 }
+
 
 // ============================================
 // PAGE CONTENT EXTRACTION (READER MODE)
