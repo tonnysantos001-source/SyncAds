@@ -1,36 +1,17 @@
 """
-============================================
-SYNCADS PYTHON MICROSERVICE - FULL
-IA + Supabase + Streaming + AI Tools
-============================================
+🎭 PLAYWRIGHT AUTOMATION SERVICE V2
+Arquitetura limpa e simples para automação web
 """
-
-# ==========================================
-# IMPORTS PRINCIPAIS
-# ==========================================
-import time
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from playwright.async_api import async_playwright
+import asyncio
+from typing import Optional
 
-# ==========================================
-# IMPORTS DE ROUTERS
-# ==========================================
-from app.routers.automation import router as automation_router
+app = FastAPI(title="SyncAds Playwright Service V2")
 
-# ==========================================
-# CRIAR APP FASTAPI
-# ==========================================
-app = FastAPI(
-    title="SyncAds Python Microservice",
-    description="IA Service - Claude, OpenAI, Groq",
-    version="1.0.0-minimal",
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
-
-# ==========================================
 # CORS
-# ==========================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,47 +20,133 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==========================================
-# INCLUDE ROUTERS
-# ==========================================
-app.include_router(automation_router, prefix="/api", tags=["Automation"])
+# =====================================================
+# MODELS
+# =====================================================
+class AutomationRequest(BaseModel):
+    action: str  # "navigate", "type", "click"
+    url: Optional[str] = None
+    text: Optional[str] = None
+    selector: Optional[str] = None
 
-# ==========================================
-# HEALTH CHECK
-# ==========================================
+# =====================================================
+# GLOBAL BROWSER (reuso para performance)
+# =====================================================
+browser = None
+context = None
+page = None
+
+async def get_browser():
+    """Inicializa ou retorna browser existente"""
+    global browser, context, page
+    
+    if browser is None or not browser.is_connected():
+        print("🚀 Iniciando Playwright...")
+        playwright = await async_playwright().start()
+        browser = await playwright.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
+        print("✅ Browser pronto")
+    
+    return page
+
+# =====================================================
+# ENDPOINTS
+# =====================================================
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "Playwright Automation V2"}
+
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
+async def health():
+    """Health check"""
+    is_alive = browser is not None and browser.is_connected()
     return {
-        "status": "healthy",
-        "service": "syncads-python-microservice",
-        "version": "1.0.0-minimal",
-        "timestamp": time.time(),
-}
+        "status": "healthy" if is_alive else "initializing",
+        "browser_active": is_alive
+    }
 
+@app.post("/automation")
+async def automation(request: AutomationRequest):
+    """
+    Executa ação de automação
+    
+    Ações suportadas:
+    - navigate: Navega para URL
+    - type: Digita texto
+    - click: Clica em elemento
+    """
+    try:
+        page = await get_browser()
+        action = request.action.lower()
+        
+        print(f"📋 Executando: {action}")
+        
+        # NAVIGATE
+        if action == "navigate":
+            if not request.url:
+                raise HTTPException(400, "URL required for navigate")
+            
+            print(f"🌐 Navegando para: {request.url}")
+            await page.goto(request.url, wait_until="domcontentloaded", timeout=15000)
+            
+            title = await page.title()
+            url = page.url
+            
+            return {
+                "success": True,
+                "message": f"✅ Página aberta: {title}",
+                "data": {
+                    "title": title,
+                    "url": url
+                }
+            }
+        
+        # TYPE
+        elif action == "type":
+            if not request.text or not request.selector:
+                raise HTTPException(400, "text and selector required for type")
+            
+            print(f"⌨️  Digitando '{request.text}' em {request.selector}")
+            await page.fill(request.selector, request.text)
+            
+            return {
+                "success": True,
+                "message": f"✅ Texto digitado: {request.text[:50]}..."
+            }
+        
+        # CLICK
+        elif action == "click":
+            if not request.selector:
+                raise HTTPException(400, "selector required for click")
+            
+            print(f"👆 Clicando em: {request.selector}")
+            await page.click(request.selector)
+            
+            return {
+                "success": True,
+                "message": f"✅ Clicado em: {request.selector}"
+            }
+        
+        else:
+            raise HTTPException(400, f"Ação desconhecida: {action}")
+    
+    except Exception as e:
+        print(f"❌ Erro: {str(e)}")
+        return {
+            "success": False,
+            "message": f"❌ Erro: {str(e)}"
+        }
 
-# ==========================================
-# RAILWAY: Run directly via Python
-# ==========================================
+@app.on_event("shutdown")
+async def shutdown():
+    """Cleanup ao desligar"""
+    global browser
+    if browser:
+        await browser.close()
+        print("🛑 Browser fechado")
+
+# Run
 if __name__ == "__main__":
     import uvicorn
-    import os
-    
-    # Ler PORT do environment (Railway injeta isso)
-    port = int(os.getenv("PORT", "8000"))
-    
-    print("=" * 50)
-    print(f"🚀 Starting SyncAds Python Microservice")
-    print(f"📍 Host: 0.0.0.0")
-    print(f"🔌 Port: {port}")
-    print(f"⚙️  Workers: 1")
-    print("=" * 50)
-    
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=port,
-        workers=1,
-        log_level="info",
-        access_log=True
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)
