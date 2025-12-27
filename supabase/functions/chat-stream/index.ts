@@ -6,43 +6,46 @@ import { corsHeaders } from "../_utils/cors.ts";
 // ARCHITECTURE: CLEAN & SIMPLE
 // =====================================================
 // 1. THINKER: Interpreta pedido → Plano JSON
-// 2. EXECUTOR: Chama Railway Playwright → Resultado real
+// 2. EXECUTOR: Chama Hugging Face Playwright → Resultado real
 // 3. RESPONSE: Mostra raciocínio + resultado ao usuário
 
-console.log("🚀 Chat Stream V2 - Clean Architecture");
+console.log("🚀 Chat Stream V2 - Professional with GlobalAiConnection");
 
 // =====================================================
-// GROQ LLM CONFIGS (loaded from database)
+// GROQ LLM CONFIGS (loaded from GlobalAiConnection)
 // =====================================================
 const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile"; // Raciocínio
 const GROQ_EXECUTOR_MODEL = "llama-3.1-70b-versatile"; // Execução
 
-// ✅ Load Groq API keys from database (ai_providers table)
-async function getGroqApiKey(supabase: any): Promise<string> {
-  console.log("🔍 Buscando Groq API key no banco...");
+// ✅ PROFESSIONAL: Load Groq API keys from GlobalAiConnection
+async function getGroqApiKey(supabase: any, role?: string): Promise<string> {
+  console.log(`🔍 Loading Groq key for role: ${role || 'any'}`);
 
-  // Tentar busca case-insensitive
-  const { data, error } = await supabase
-    .from("ai_providers")
-    .select("api_key, provider, is_active")
-    .ilike("provider", "%groq%")
-    .eq("is_active", true)
-    .limit(1);
+  const query = supabase
+    .from("GlobalAiConnection")
+    .select("apiKey, aiRole, name, model")
+    .eq("provider", "GROQ")  // Uppercase
+    .eq("isActive", true);
 
-  console.log("📊 Query result:", { data, error });
+  // Filter by specific AI role if provided
+  if (role) {
+    query.eq("aiRole", role);
+  }
+
+  const { data, error } = await query.limit(1);
 
   if (error) {
-    console.error("❌ Error querying ai_providers:", error);
-    throw new Error(`Database error: ${error.message}`);
+    console.error("❌ Database error:", error.message);
+    throw new Error(`Failed to load Groq key: ${error.message}`);
   }
 
   if (!data || data.length === 0) {
-    console.error("❌ No Groq keys found. Available providers:", data);
-    throw new Error("No active Groq API key found in database. Check ai_providers table.");
+    throw new Error(`No active Groq AI found for role: ${role || 'any'}`);
   }
 
-  console.log("✅ Groq API key found:", data[0].provider);
-  return data[0].api_key;
+  const ai = data[0];
+  console.log(`✅ Using: ${ai.name} (${ai.aiRole}) - ${ai.model}`);
+  return ai.apiKey;
 }
 
 // Hugging Face Playwright Service
@@ -107,7 +110,7 @@ async function callGroq(
 }
 
 // =====================================================
-// HELPER: Call Railway Playwright
+// HELPER: Call Hugging Face Playwright
 // =====================================================
 async function callPlaywright(action: string, params: any) {
   console.log(`🎭 Calling Playwright: ${action}`, params);
@@ -194,8 +197,8 @@ serve(async (req) => {
     // =====================================================
     console.log("🧠 Calling Thinker...");
 
-    // Load Groq API key from database
-    const groqApiKey = await getGroqApiKey(supabase);
+    // Load Groq API key from GlobalAiConnection for REASONING role
+    const thinkerApiKey = await getGroqApiKey(supabase, 'REASONING');
 
     const thinkerMessages = [
       { role: "system", content: THINKER_PROMPT },
@@ -203,7 +206,7 @@ serve(async (req) => {
       { role: "user", content: message },
     ];
 
-    const thinkerResponse = await callGroq(groqApiKey, GROQ_REASONING_MODEL, thinkerMessages, 0.3);
+    const thinkerResponse = await callGroq(thinkerApiKey, GROQ_REASONING_MODEL, thinkerMessages, 0.3);
 
     let plan: any = {};
     try {
@@ -235,7 +238,6 @@ serve(async (req) => {
     }
     else if (plan.action === "search") {
       console.log(`🔍 Searching: ${plan.query}`);
-      // Call web search or similar
       toolResult = { success: true, message: `Busca por "${plan.query}" realizada` };
     }
     else {
@@ -248,6 +250,9 @@ serve(async (req) => {
     // =====================================================
     console.log("⚡ Calling Executor...");
 
+    // Load Groq API key for EXECUTOR role
+    const executorApiKey = await getGroqApiKey(supabase, 'EXECUTOR');
+
     const executorMessages = [
       { role: "system", content: EXECUTOR_PROMPT },
       ...conversationHistory,
@@ -258,7 +263,7 @@ serve(async (req) => {
       },
     ];
 
-    const executorResponse = await callGroq(groqApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
+    const executorResponse = await callGroq(executorApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
 
     // =====================================================
     // FINAL RESPONSE (com raciocínio visível)
