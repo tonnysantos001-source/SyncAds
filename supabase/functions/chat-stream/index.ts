@@ -2,14 +2,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
 
-//=====================================================
+// =====================================================
 // ARCHITECTURE: CLEAN & SIMPLE
 // =====================================================
 // 1. THINKER: Interpreta pedido → Plano JSON
 // 2. EXECUTOR: Chama Hugging Face Playwright → Resultado real
-// 3. RESPONSE: Mostra raciocínio +resultado ao usuário
+// 3. RESPONSE: Mostra raciocínio + resultado ao usuário
 
-console.log("🚀 Chat Stream V3 - FIXED with Error Handling");
+console.log("🚀 Chat Stream V4 - Antigravity-style Thinking");
 
 // =====================================================
 // GROQ LLM CONFIGS (loaded from GlobalAiConnection)
@@ -53,28 +53,49 @@ const HUGGINGFACE_PLAYWRIGHT_URL = Deno.env.get("HUGGINGFACE_PLAYWRIGHT_URL") ||
 // =====================================================
 // PROMPTS
 // =====================================================
-const THINKER_PROMPT = `Você é o CÉREBRO do SyncAds. Sua função é PLANEJAR ações.
+const THINKER_PROMPT = `Você é o CÉREBRO do SyncAds. Sua função é PLANEJAR ações usando Playwright Automation.
+
+**FERRAMENTAS DISPONÍVEIS:**
+- Playwright Automation (para controle do navegador)
 
 **REGRAS:**
-1. Sempre retorne JSON no formato: {"action": "...", "reasoning": "..."}
+1. Sempre retorne JSON no formato: {"action": "...", "url": "...", "reasoning": "..."}
 2. Ações disponíveis: "navigate", "type", "click", "search"
-3. Seja específico e objetivo
+3. Seja ESPECÍFICO sobre qual ferramenta usar
+4. Explique CLARAMENTE o que vai fazer
 
 **EXEMPLOS:**
 User: "abra o google"
-Response: {"action": "navigate", "url": "https://google.com", "reasoning": "Usuário quer acessar o Google"}
+Response: {
+  "action": "navigate", 
+  "url": "https://google.com", 
+  "reasoning": "Vou usar Playwright Automation para abrir https://google.com"
+}
 
-User: "crie um documento no google docs com receita de pão"
-Response: {"action": "navigate", "url": "https://docs.new", "reasoning": "Primeiro passo: abrir novo documento Google Docs"}`;
+User: "pesquise por receita de pão"
+Response: {
+  "action": "search", 
+  "query": "receita de pão",
+  "reasoning": "Vou usar Playwright Automation para pesquisar no Google"
+}`;
 
-const EXECUTOR_PROMPT = `Você é o EXECUTOR do SyncAds. Relate resultados HONESTOS.
+const EXECUTOR_PROMPT = `Você é o EXECUTOR do SyncAds. Sua função é CONFIRMAR resultados e SUGERIR próximos passos.
 
 **REGRAS:**
-1. Se a ação teve sucesso, diga claramente
-2. Se falhou, explique o erro
-3. NUNCA invente sucesso
+1. SEMPRE confirme o que foi feito (baseado no RESULTADO DA AÇÃO)
+2. Se sucesso: Confirme + Pergunte próximo passo
+3. Se falhou: Explique erro honestamente
+4. Use linguagem amigável e clara
 
-Use linguagem natural e amigável.`;
+**EXEMPLOS:**
+
+RESULTADO: { success: true, message: "Navegado para https://google.com", title: "Google" }
+Resposta: "✅ Página do Google aberta com sucesso! O que você gostaria de fazer agora? Posso pesquisar algo para você."
+
+RESULTADO: { success: false, message: "Timeout" }
+Resposta: "❌ Não consegui abrir a página (timeout). Quer tentar novamente?"
+
+Use tom conversacional e sempre sugira o próximo passo lógico.`;
 
 // =====================================================
 // HELPER: Call Groq LLM
@@ -275,16 +296,16 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // FINAL RESPONSE (Raciocínio visual + Resultado)
+    // FINAL RESPONSE (Antigravity-style thinking + Result)
     // =====================================================
     let finalResponse = "";
 
-    // Se teve raciocínio do Thinker para ação, mostrar
-    if (plan.reasoning && plan.action !== "conversation") {
-      finalResponse = `<antigravity_thinking>`n$plan.reasoning`n</antigravity_thinking>`n`n`;
+    // ALWAYS show thinking (like Antigravity)
+    if (plan.reasoning) {
+      finalResponse = `<antigravity_thinking>\n${plan.reasoning}\n</antigravity_thinking>\n\n`;
     }
 
-    // Resultado do Executor (SEMPRE incluir)
+    // Executor response (ALWAYS include)
     if (executorResponse && executorResponse.trim()) {
       finalResponse += executorResponse;
     } else {
@@ -319,4 +340,3 @@ serve(async (req) => {
     );
   }
 });
-
