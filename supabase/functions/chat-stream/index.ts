@@ -15,7 +15,7 @@ console.log("🚀 Chat Stream V2 - Professional with GlobalAiConnection");
 // GROQ LLM CONFIGS (loaded from GlobalAiConnection)
 // =====================================================
 const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile"; // Raciocínio
-const GROQ_EXECUTOR_MODEL = "llama-3.1-70b-versatile"; // Execução
+const GROQ_EXECUTOR_MODEL = "llama-3.3-70b-versatile"; // Execução (UPDATED: 3.1 deprecated)
 
 // ✅ PROFESSIONAL: Load Groq API keys from GlobalAiConnection
 async function getGroqApiKey(supabase: any, role?: string): Promise<string> {
