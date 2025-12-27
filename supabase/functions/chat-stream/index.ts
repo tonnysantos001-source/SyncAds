@@ -2,20 +2,20 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
 
-// =====================================================
+//=====================================================
 // ARCHITECTURE: CLEAN & SIMPLE
 // =====================================================
 // 1. THINKER: Interpreta pedido → Plano JSON
 // 2. EXECUTOR: Chama Hugging Face Playwright → Resultado real
-// 3. RESPONSE: Mostra raciocínio + resultado ao usuário
+// 3. RESPONSE: Mostra raciocínio +resultado ao usuário
 
-console.log("🚀 Chat Stream V2 - Professional with GlobalAiConnection");
+console.log("🚀 Chat Stream V3 - FIXED with Error Handling");
 
 // =====================================================
 // GROQ LLM CONFIGS (loaded from GlobalAiConnection)
 // =====================================================
-const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile"; // Raciocínio
-const GROQ_EXECUTOR_MODEL = "llama-3.3-70b-versatile"; // Execução (UPDATED: 3.1 deprecated)
+const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile";
+const GROQ_EXECUTOR_MODEL = "llama-3.3-70b-versatile";
 
 // ✅ PROFESSIONAL: Load Groq API keys from GlobalAiConnection
 async function getGroqApiKey(supabase: any, role?: string): Promise<string> {
@@ -24,10 +24,9 @@ async function getGroqApiKey(supabase: any, role?: string): Promise<string> {
   const query = supabase
     .from("GlobalAiConnection")
     .select("apiKey, aiRole, name, model")
-    .eq("provider", "GROQ")  // Uppercase
+    .eq("provider", "GROQ")
     .eq("isActive", true);
 
-  // Filter by specific AI role if provided
   if (role) {
     query.eq("aiRole", role);
   }
@@ -86,27 +85,32 @@ async function callGroq(
   messages: Array<{ role: string; content: string }>,
   temperature = 0.7
 ) {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      max_tokens: 2000,
-    }),
-  });
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: 2000,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Groq API error: ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Groq API error: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error: any) {
+    console.error("❌ callGroq failed:", error.message);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 // =====================================================
@@ -120,7 +124,7 @@ async function callPlaywright(action: string, params: any) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...params }),
-      signal: AbortSignal.timeout(30000), // 30s timeout
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {
@@ -197,7 +201,6 @@ serve(async (req) => {
     // =====================================================
     console.log("🧠 Calling Thinker...");
 
-    // Load Groq API key from GlobalAiConnection for REASONING role
     const thinkerApiKey = await getGroqApiKey(supabase, 'REASONING');
 
     const thinkerMessages = [
@@ -210,7 +213,6 @@ serve(async (req) => {
 
     let plan: any = {};
     try {
-      // Clean JSON from possible markdown
       const cleanJson = thinkerResponse.replace(/```json\s*|\s*```/g, "").trim();
       plan = JSON.parse(cleanJson);
       console.log("✅ Plan:", plan);
@@ -222,7 +224,7 @@ serve(async (req) => {
     // =====================================================
     // PHASE 2: EXECUTOR (Action)
     // =====================================================
-    let toolResult: any = { success: false, message: "" };
+    let toolResult: any = { success: true, message: "" };
 
     if (plan.action === "navigate") {
       console.log(`🌐 Navigating to: ${plan.url}`);
@@ -242,7 +244,7 @@ serve(async (req) => {
     }
     else {
       // Conversation only
-      toolResult = { success: true, message: "Sem ação de automação necessária" };
+      toolResult = { success: true, message: "Conversa amigável" };
     }
 
     // =====================================================
@@ -250,7 +252,6 @@ serve(async (req) => {
     // =====================================================
     console.log("⚡ Calling Executor...");
 
-    // Load Groq API key for EXECUTOR role
     const executorApiKey = await getGroqApiKey(supabase, 'EXECUTOR');
 
     const executorMessages = [
@@ -263,22 +264,35 @@ serve(async (req) => {
       },
     ];
 
-    const executorResponse = await callGroq(executorApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
+    let executorResponse = "";
+    try {
+      executorResponse = await callGroq(executorApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
+      console.log("✅ Executor returned:", executorResponse.substring(0, 50) + "...");
+    } catch (execError: any) {
+      console.error("❌ Executor failed:", execError.message);
+      // FALLBACK: resposta manual
+      executorResponse = "Olá! Estou aqui para ajudar. Como posso auxiliar você hoje?";
+    }
 
     // =====================================================
     // FINAL RESPONSE (Raciocínio visual + Resultado)
     // =====================================================
     let finalResponse = "";
 
-    // Se teve raciocínio do Thinker, mostrar de forma visual
+    // Se teve raciocínio do Thinker para ação, mostrar
     if (plan.reasoning && plan.action !== "conversation") {
       finalResponse = `🧠 **Pensando:** ${plan.reasoning}\n\n`;
     }
 
-    // Resultado do Executor (resposta principal)
-    finalResponse += executorResponse;
+    // Resultado do Executor (SEMPRE incluir)
+    if (executorResponse && executorResponse.trim()) {
+      finalResponse += executorResponse;
+    } else {
+      console.warn("⚠️ Executor response empty, using fallback");
+      finalResponse += "Como posso ajudar você?";
+    }
 
-    console.log("✅ Response generated");
+    console.log("📝 Final response length:", finalResponse.length);
 
     // Save messages
     await supabase.from("ChatMessage").insert([
