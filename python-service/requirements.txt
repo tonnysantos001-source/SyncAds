@@ -1,4 +1,5 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-playwright==1.40.0
-pydantic==2.5.0
+# Use requirements-backup.txt completo com todas as bibliotecas
+-r requirements-backup.txt
+
+# Adicionar Playwright (se não estiver no backup)
+playwright==1.41.2

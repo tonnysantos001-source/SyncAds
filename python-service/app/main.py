@@ -1,15 +1,18 @@
 """
-🎭 PLAYWRIGHT AUTOMATION SERVICE V2
-Arquitetura limpa e simples para automação web
+SyncAds Playwright Service - MINIMAL (apenas automação)
+Versão simplificada para funcionar no Hugging Face
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
-import asyncio
 from typing import Optional
 
-app = FastAPI(title="SyncAds Playwright Service V2")
+app = FastAPI(
+    title="SyncAds Playwright Service",
+    description="Serviço de automação web com Playwright",
+    version="1.0.0"
+)
 
 # CORS
 app.add_middleware(
@@ -30,7 +33,7 @@ class AutomationRequest(BaseModel):
     selector: Optional[str] = None
 
 # =====================================================
-# GLOBAL BROWSER (reuso para performance)
+# GLOBAL BROWSER
 # =====================================================
 browser = None
 context = None
@@ -55,7 +58,15 @@ async def get_browser():
 # =====================================================
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "Playwright Automation V2"}
+    return {
+        "status": "ok",
+        "service": "SyncAds Playwright Automation",
+        "version": "1.0.0",
+        "endpoints": {
+            "/automation": "Browser automation (navigate, type, click)",
+            "/health": "Health check"
+        }
+    }
 
 @app.get("/health")
 async def health():
@@ -69,12 +80,7 @@ async def health():
 @app.post("/automation")
 async def automation(request: AutomationRequest):
     """
-    Executa ação de automação
-    
-    Ações suportadas:
-    - navigate: Navega para URL
-    - type: Digita texto
-    - click: Clica em elemento
+    Executa ação de automação no navegador
     """
     try:
         page = await get_browser()
@@ -85,7 +91,7 @@ async def automation(request: AutomationRequest):
         # NAVIGATE
         if action == "navigate":
             if not request.url:
-                raise HTTPException(400, "URL required for navigate")
+                return {"success": False, "message": "URL required"}
             
             print(f"🌐 Navegando para: {request.url}")
             await page.goto(request.url, wait_until="domcontentloaded", timeout=15000)
@@ -96,40 +102,37 @@ async def automation(request: AutomationRequest):
             return {
                 "success": True,
                 "message": f"✅ Página aberta: {title}",
-                "data": {
-                    "title": title,
-                    "url": url
-                }
+                "data": {"title": title, "url": url}
             }
         
         # TYPE
         elif action == "type":
             if not request.text or not request.selector:
-                raise HTTPException(400, "text and selector required for type")
+                return {"success": False, "message": "text and selector required"}
             
-            print(f"⌨️  Digitando '{request.text}' em {request.selector}")
+            print(f"⌨️  Digitando em {request.selector}")
             await page.fill(request.selector, request.text)
             
             return {
                 "success": True,
-                "message": f"✅ Texto digitado: {request.text[:50]}..."
+                "message": f"✅ Texto digitado"
             }
         
         # CLICK
         elif action == "click":
             if not request.selector:
-                raise HTTPException(400, "selector required for click")
+                return {"success": False, "message": "selector required"}
             
             print(f"👆 Clicando em: {request.selector}")
             await page.click(request.selector)
             
             return {
                 "success": True,
-                "message": f"✅ Clicado em: {request.selector}"
+                "message": f"✅ Clicado"
             }
         
         else:
-            raise HTTPException(400, f"Ação desconhecida: {action}")
+            return {"success": False, "message": f"Ação desconhecida: {action}"}
     
     except Exception as e:
         print(f"❌ Erro: {str(e)}")
@@ -140,13 +143,8 @@ async def automation(request: AutomationRequest):
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Cleanup ao desligar"""
+    """Cleanup"""
     global browser
     if browser:
         await browser.close()
         print("🛑 Browser fechado")
-
-# Run
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

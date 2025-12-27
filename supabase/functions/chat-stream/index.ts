@@ -17,25 +17,36 @@ console.log("🚀 Chat Stream V2 - Clean Architecture");
 const GROQ_REASONING_MODEL = "llama-3.3-70b-versatile"; // Raciocínio
 const GROQ_EXECUTOR_MODEL = "llama-3.1-70b-versatile"; // Execução
 
-// ✅ NEW: Load Groq API keys from database (ai_providers table)
+// ✅ Load Groq API keys from database (ai_providers table)
 async function getGroqApiKey(supabase: any): Promise<string> {
+  console.log("🔍 Buscando Groq API key no banco...");
+
+  // Tentar busca case-insensitive
   const { data, error } = await supabase
     .from("ai_providers")
-    .select("api_key")
-    .eq("provider", "groq")
+    .select("api_key, provider, is_active")
+    .ilike("provider", "%groq%")
     .eq("is_active", true)
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error || !data) {
-    throw new Error("No active Groq API key found in database");
+  console.log("📊 Query result:", { data, error });
+
+  if (error) {
+    console.error("❌ Error querying ai_providers:", error);
+    throw new Error(`Database error: ${error.message}`);
   }
 
-  return data.api_key;
+  if (!data || data.length === 0) {
+    console.error("❌ No Groq keys found. Available providers:", data);
+    throw new Error("No active Groq API key found in database. Check ai_providers table.");
+  }
+
+  console.log("✅ Groq API key found:", data[0].provider);
+  return data[0].api_key;
 }
 
-// Railway Playwright Service
-const RAILWAY_PLAYWRIGHT_URL = Deno.env.get("RAILWAY_PLAYWRIGHT_URL") || "https://your-railway-service.railway.app";
+// Hugging Face Playwright Service
+const HUGGINGFACE_PLAYWRIGHT_URL = Deno.env.get("HUGGINGFACE_PLAYWRIGHT_URL") || "https://bigodetonton-syncads.hf.space";
 
 // =====================================================
 // PROMPTS
@@ -102,7 +113,7 @@ async function callPlaywright(action: string, params: any) {
   console.log(`🎭 Calling Playwright: ${action}`, params);
 
   try {
-    const response = await fetch(`${RAILWAY_PLAYWRIGHT_URL}/automation`, {
+    const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...params }),

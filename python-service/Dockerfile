@@ -1,37 +1,60 @@
+# Dockerfile otimizado para Hugging Face Spaces - V3 (FINAL)
 FROM python:3.11-slim
 
-WORKDIR /app
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
-# build-essential: for compiling python packages
-# libgl1/libglib2.0: for opencv (even headless sometimes needs glib)
-# libpango/libcairo/libgdk-pixbuf: for weasyprint
+# Instalar TODAS as dependências necessárias (uma vez só)
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libcairo2 \
-    libgdk-pixbuf2.0-0 \
-    libffi-dev \
-    shared-mime-info \
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libwayland-client0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xdg-utils \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Criar diretório da app
+WORKDIR /app
 
-# Install Playwright browsers (Chromium only for Railway)
-# This is required for browser automation to work
-RUN playwright install --with-deps chromium
+# Copiar requirements limpo
+COPY requirements-hf.txt ./
+RUN pip install --no-cache-dir -r requirements-hf.txt
 
-COPY . .
+# Instalar APENAS Playwright (sem install-deps que causa problema)
+RUN playwright install chromium
 
-# Set python path
-ENV PYTHONPATH=/app
+# Copiar código
+COPY app/ ./app/
 
-# Railway provides PORT
-ENV PORT=8000
+# Porta padrão do Hugging Face
+EXPOSE 7860
 
-# Start command (shell form para expandir variável corretamente)
-CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"
+# Comando de inicialização
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
