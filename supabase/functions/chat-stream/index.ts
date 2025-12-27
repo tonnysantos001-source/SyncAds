@@ -281,7 +281,7 @@ serve(async (req) => {
 
     // Se teve raciocínio do Thinker para ação, mostrar
     if (plan.reasoning && plan.action !== "conversation") {
-      finalResponse = `🧠 **Pensando:** ${plan.reasoning}\n\n`;
+      finalResponse = `<antigravity_thinking>`n$plan.reasoning`n</antigravity_thinking>`n`n`;
     }
 
     // Resultado do Executor (SEMPRE incluir)
@@ -319,3 +319,4 @@ serve(async (req) => {
     );
   }
 });
+
