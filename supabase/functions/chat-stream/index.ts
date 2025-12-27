@@ -243,25 +243,241 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // PHASE 2: EXECUTOR (Action)
+    // PHASE 2: CREATE COMMAND FOR CHROME EXTENSION
     // =====================================================
     let toolResult: any = { success: true, message: "" };
 
-    if (plan.action === "navigate") {
-      console.log(`🌐 Navigating to: ${plan.url}`);
-      toolResult = await callPlaywright("navigate", { url: plan.url });
+    // Get user's device_id from extension_devices
+    const { data: devices } = await supabase
+      .from("extension_devices")
+      .select("device_id")
+      .eq("user_id", user.id)
+      .eq("status", "online")
+      .limit(1);
+
+    const deviceId = devices?.[0]?.device_id;
+
+    if (!deviceId) {
+      console.warn("⚠️ No active device found for user");
+      toolResult = {
+        success: false,
+        message: "Nenhum dispositivo ativo encontrado. Certifique-se de que a extensão está instalada e conectada."
+      };
+    }
+    else if (plan.action === "navigate") {
+      console.log(`🌐 Creating NAVIGATE command for device: ${deviceId}`);
+      console.log(`   URL: ${plan.url}`);
+
+      try {
+        // Create command in extension_commands table
+        const { data: command, error: cmdError } = await supabase
+          .from("ExtensionCommand")
+          .insert({
+            deviceId: deviceId,
+            userId: user.id,
+            command: "NAVIGATE",
+            params: { url: plan.url },
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (cmdError) {
+          console.error("❌ Failed to create command:", cmdError);
+          throw cmdError;
+        }
+
+        console.log(`✅ Command created: ${command.id}`);
+        console.log(`   Waiting for extension to execute...`);
+
+        // Wait for command to be executed (poll for up to 30s)
+        const maxWait = 30000; // 30 seconds
+        const pollInterval = 500; // 500ms
+        const startTime = Date.now();
+        let executed = false;
+
+        while (Date.now() - startTime < maxWait) {
+          const { data: updatedCmd } = await supabase
+            .from("ExtensionCommand")
+            .select("status, result, error")
+            .eq("id", command.id)
+            .single();
+
+          if (updatedCmd?.status === "completed") {
+            executed = true;
+            console.log("✅ Command executed successfully!");
+            console.log("   Result:", updatedCmd.result);
+
+            toolResult = {
+              success: true,
+              message: `Navegado para ${plan.url}`,
+              result: updatedCmd.result,
+              timestamp: new Date().toISOString(),
+            };
+            break;
+          } else if (updatedCmd?.status === "failed") {
+            console.error("❌ Command execution failed:", updatedCmd.error);
+            toolResult = {
+              success: false,
+              message: `Falha ao navegar: ${updatedCmd.error}`,
+            };
+            break;
+          }
+
+          // Wait before next poll
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+
+        if (!executed) {
+          console.warn("⏱️ Command timeout - extension did not respond");
+          toolResult = {
+            success: false,
+            message: "Timeout: a extensão não respondeu em 30 segundos. Verifique se está ativa.",
+          };
+        }
+
+      } catch (error: any) {
+        console.error("❌ Error creating/executing command:", error);
+        toolResult = {
+          success: false,
+          message: `Erro ao criar comando: ${error.message}`,
+        };
+      }
     }
     else if (plan.action === "type") {
-      console.log(`⌨️  Typing: ${plan.text}`);
-      toolResult = await callPlaywright("type", { text: plan.text, selector: plan.selector });
+      console.log(`⌨️  Creating TYPE command for device: ${deviceId}`);
+
+      // Similar logic for TYPE command
+      try {
+        const { data: command, error: cmdError } = await supabase
+          .from("ExtensionCommand")
+          .insert({
+            deviceId: deviceId,
+            userId: user.id,
+            command: "DOM_FILL",
+            params: { selector: plan.selector, value: plan.text },
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (cmdError) throw cmdError;
+
+        // Wait for execution (same polling logic as navigate)
+        const maxWait = 30000;
+        const pollInterval = 500;
+        const startTime = Date.now();
+        let executed = false;
+
+        while (Date.now() - startTime < maxWait) {
+          const { data: updatedCmd } = await supabase
+            .from("ExtensionCommand")
+            .select("status, result, error")
+            .eq("id", command.id)
+            .single();
+
+          if (updatedCmd?.status === "completed") {
+            executed = true;
+            toolResult = {
+              success: true,
+              message: `Digitado "${plan.text}" no campo ${plan.selector}`,
+              result: updatedCmd.result,
+            };
+            break;
+          } else if (updatedCmd?.status === "failed") {
+            toolResult = {
+              success: false,
+              message: `Falha ao digitar: ${updatedCmd.error}`,
+            };
+            break;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+
+        if (!executed) {
+          toolResult = {
+            success: false,
+            message: "Timeout: extensão não respondeu.",
+          };
+        }
+
+      } catch (error: any) {
+        toolResult = {
+          success: false,
+          message: `Erro: ${error.message}`,
+        };
+      }
     }
     else if (plan.action === "click") {
-      console.log(`👆 Clicking: ${plan.selector}`);
-      toolResult = await callPlaywright("click", { selector: plan.selector });
+      console.log(`👆 Creating CLICK command for device: ${deviceId}`);
+
+      try {
+        const { data: command, error: cmdError } = await supabase
+          .from("ExtensionCommand")
+          .insert({
+            deviceId: deviceId,
+            userId: user.id,
+            command: "DOM_CLICK",
+            params: { selector: plan.selector },
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (cmdError) throw cmdError;
+
+        // Wait for execution
+        const maxWait = 30000;
+        const pollInterval = 500;
+        const startTime = Date.now();
+        let executed = false;
+
+        while (Date.now() - startTime < maxWait) {
+          const { data: updatedCmd } = await supabase
+            .from("ExtensionCommand")
+            .select("status, result, error")
+            .eq("id", command.id)
+            .single();
+
+          if (updatedCmd?.status === "completed") {
+            executed = true;
+            toolResult = {
+              success: true,
+              message: `Clicado em ${plan.selector}`,
+              result: updatedCmd.result,
+            };
+            break;
+          } else if (updatedCmd?.status === "failed") {
+            toolResult = {
+              success: false,
+              message: `Falha ao clicar: ${updatedCmd.error}`,
+            };
+            break;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+
+        if (!executed) {
+          toolResult = {
+            success: false,
+            message: "Timeout: extensão não respondeu.",
+          };
+        }
+
+      } catch (error: any) {
+        toolResult = {
+          success: false,
+          message: `Erro: ${error.message}`,
+        };
+      }
     }
     else if (plan.action === "search") {
-      console.log(`🔍 Searching: ${plan.query}`);
-      toolResult = { success: true, message: `Busca por "${plan.query}" realizada` };
+      console.log(`🔍 Search command: ${plan.query}`);
+      // For search, we could navigate to Google + type + click search
+      // For now, just acknowledge
+      toolResult = { success: true, message: `Busca por "${plan.query}" iniciada` };
     }
     else {
       // Conversation only
