@@ -266,9 +266,17 @@ serve(async (req) => {
     const executorResponse = await callGroq(executorApiKey, GROQ_EXECUTOR_MODEL, executorMessages, 0.7);
 
     // =====================================================
-    // FINAL RESPONSE (com raciocínio visível)
+    // FINAL RESPONSE (Raciocínio visual + Resultado)
     // =====================================================
-    const finalResponse = `💭 **Raciocínio:** ${plan.reasoning || "Analisando..."}\n\n${executorResponse}`;
+    let finalResponse = "";
+
+    // Se teve raciocínio do Thinker, mostrar de forma visual
+    if (plan.reasoning && plan.action !== "conversation") {
+      finalResponse = `🧠 **Pensando:** ${plan.reasoning}\n\n`;
+    }
+
+    // Resultado do Executor (resposta principal)
+    finalResponse += executorResponse;
 
     console.log("✅ Response generated");
 
