@@ -1,61 +1,27 @@
 ---
-title: SyncAds Playwright Service
+title: SyncAds Playwright Automation
 emoji: 🎭
 colorFrom: blue
 colorTo: purple
 sdk: docker
 pinned: false
-license: mit
+app_port: 7860
 ---
 
-# 🎭 SyncAds Playwright Automation Service
+# SyncAds Playwright Automation Service
 
-Serviço de automação web usando Playwright para o SyncAds.
+Browser automation service using Playwright for SyncAds.
 
-## 🚀 Funcionalidades
+## Endpoints
 
-- **Navigate**: Navega para URLs
-- **Type**: Digita texto em campos
-- **Click**: Clica em elementos
+- `GET /` - Service info
+- `GET /health` - Health check
+- `POST /automation` - Execute browser actions
 
-## 📡 API Endpoints
+## Usage
 
-### GET /
-Status do serviço
-
-### GET /health
-Health check do navegador
-
-### POST /automation
-Executa ações de automação
-
-**Exemplo:**
-```json
-{
-  "action": "navigate",
-  "url": "https://google.com"
-}
+```bash
+curl -X POST https://bigodetonton-syncads.hf.space/automation \
+  -H "Content-Type: application/json" \
+  -d '{"action":"navigate","url":"https://google.com"}'
 ```
-
-**Resposta:**
-```json
-{
-  "success": true,
-  "message": "✅ Página aberta: Google",
-  "data": {
-    "title": "Google",
-    "url": "https://google.com"
-  }
-}
-```
-
-## 🛠️ Stack
-
-- Python 3.11
-- FastAPI
-- Playwright
-- Chromium headless
-
-## 📝 Licença
-
-MIT
