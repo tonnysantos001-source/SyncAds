@@ -205,28 +205,39 @@ async function checkPendingCommands() {
   }
 
   try {
+    const url = `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`;
+
+    // ✅ AUDIT LOGS
+    console.log(`🔍 [AUDIT] Checking commands for deviceId: ${state.deviceId}`);
+    console.log(`🔍 [AUDIT] Query URL: ${url}`);
+
     // Buscar comandos PENDING para este dispositivo
-    const response = await fetch(
-      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${state.accessToken}`,
-          apikey: CONFIG.supabaseAnonKey,
-          "Content-Type": "application/json",
-        },
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
+        "Content-Type": "application/json",
       },
-    );
+    });
+
+    // ✅ AUDIT LOGS
+    console.log(`🔍 [AUDIT] Response status: ${response.status}`);
 
     if (!response.ok) {
-      Logger.warn("Failed to fetch commands", { status: response.status });
+      const errorText = await response.text();
+      Logger.error(`Failed to fetch commands: ${response.status}`, null, { errorText });
       return;
     }
 
     const commands = await response.json();
 
+    // ✅ AUDIT LOGS
+    console.log(`🔍 [AUDIT] Commands returned:`, commands);
+    console.log(`🔍 [AUDIT] Commands count: ${commands.length}`);
+
     if (commands.length === 0) {
-      Logger.debug("No pending commands");
+      console.warn(`⚠️ No pending commands found for deviceId: ${state.deviceId}`);
       return;
     }
 

@@ -257,6 +257,11 @@ serve(async (req) => {
 
     const deviceId = devices?.[0]?.device_id;
 
+    // ✅ AUDIT LOGS
+    console.log(`🔍 [AUDIT] User: ${user.id}`);
+    console.log(`🔍 [AUDIT] Device query result:`, devices);
+    console.log(`🔍 [AUDIT] DeviceId found: ${deviceId}`);
+
     if (!deviceId) {
       console.warn("⚠️ No active device found for user");
       toolResult = {
@@ -286,6 +291,13 @@ serve(async (req) => {
           console.error("❌ Failed to create command:", cmdError);
           throw cmdError;
         }
+
+        // ✅ AUDIT LOGS
+        console.log(`🔍 [AUDIT] Command INSERT successful`);
+        console.log(`🔍 [AUDIT] Command created:`, command);
+        console.log(`🔍 [AUDIT] Command ID: ${command.id}`);
+        console.log(`🔍 [AUDIT] Command deviceId: ${command.deviceId}`);
+        console.log(`🔍 [AUDIT] Command status: ${command.status}`);
 
         console.log(`✅ Command created: ${command.id}`);
         console.log(`   Waiting for extension to execute...`);
