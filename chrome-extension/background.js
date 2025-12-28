@@ -205,6 +205,11 @@ async function checkPendingCommands() {
   }
 
   try {
+    // ✅ AUDIT LOGS - AUTH CHECK
+    const userId = state.user?.id || "N/A";
+    const hasToken = !!state.accessToken;
+    console.log(`🔍 [AUDIT] Auth: HasToken=${hasToken}, UserId=${userId}`);
+
     const url = `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`;
 
     // ✅ AUDIT LOGS

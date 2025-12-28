@@ -75,8 +75,10 @@ async function initRealtimeConnection() {
                 console.log(`📶 [REALTIME] Status: ${status}`);
                 if (status === 'SUBSCRIBED') {
                     console.log("✅ [REALTIME] Connected and listening!");
-                    // Notificar que estamos realtime
-                    sendMessageToSidePanel({ type: "REALTIME_STATUS", status: "connected" });
+                    // Notificar que estamos realtime (usando runtime.sendMessage seguro)
+                    try {
+                        chrome.runtime.sendMessage({ type: "REALTIME_STATUS", status: "connected" }).catch(() => { });
+                    } catch (e) { /* ignore */ }
                 }
                 if (status === 'CHANNEL_ERROR') {
                     console.error("❌ [REALTIME] Channel Error:", err);
