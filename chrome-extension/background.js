@@ -105,6 +105,25 @@ let state = {
   maxReconnectAttempts: 3,
 };
 
+// HELPER: Recover User Info from Token if missing
+async function ensureUserInfo() {
+  if (state.userId || !state.accessToken) return;
+  try {
+    const res = await fetch(`${CONFIG.supabaseUrl}/auth/v1/user`, {
+      headers: { "Authorization": `Bearer ${state.accessToken}`, "apikey": CONFIG.supabaseAnonKey }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.id) {
+        state.userId = data.id;
+        state.userEmail = data.email;
+        state.user = data; // Backward compat
+        Logger.success("👤 User info recovered:", { id: state.userId });
+      }
+    }
+  } catch (e) { console.warn("Failed to ensure user info", e); }
+}
+
 // ============================================
 // LOGGING UTILITIES
 // ============================================
@@ -205,8 +224,11 @@ async function checkPendingCommands() {
   }
 
   try {
+    // Tentar recuperar user info se faltar
+    await ensureUserInfo();
+
     // ✅ AUDIT LOGS - AUTH CHECK
-    const userId = state.user?.id || "N/A";
+    const userId = state.user?.id || state.userId || "N/A";
     const hasToken = !!state.accessToken;
     console.log(`🔍 [AUDIT] Auth: HasToken=${hasToken}, UserId=${userId}`);
 
