@@ -195,7 +195,7 @@ serve(async (req) => {
         }
 
         // =====================================================
-        // PHASE 2: CALL ACTION ROUTER (like RTVR)
+        // PHASE 2: CALL ACTION ROUTER (Playwright Automation)
         // =====================================================
         let toolResult: any = { success: true, message: "" };
 

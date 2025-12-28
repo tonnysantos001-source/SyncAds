@@ -79,7 +79,7 @@ const HUGGINGFACE_PLAYWRIGHT_URL =
     Deno.env.get("HUGGINGFACE_PLAYWRIGHT_URL") ||
     "https://bigodetonton-syncads.hf.space";
 
-const CHROME_EXTENSION_ENABLED = true; // Toggle para usar extensão vs Playwright
+const CHROME_EXTENSION_ENABLED = false; // Toggle para usar extensão vs Playwright (Force Playwright)
 
 // =====================================================
 // LOGGER
