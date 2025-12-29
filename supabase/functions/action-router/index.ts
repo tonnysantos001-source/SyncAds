@@ -184,15 +184,20 @@ class BrowserExecutor {
         const startTime = Date.now();
         const logs: string[] = [];
 
-        // ✅ AUTO-FIX URL
-        let finalUrl = url;
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            finalUrl = `https://${url}`;
-            this.logger.log("warn", "URL sem protocolo detectada. Corrigindo para:", finalUrl);
+        // ✅ AUTO-FIX URL (ROBUST)
+        // 1. Remove whitespace
+        let finalUrl = url ? url.trim() : "";
+
+        // 2. Add protocol if missing
+        if (finalUrl && !finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
+            finalUrl = `https://${finalUrl}`;
+            this.logger.log("warn", "URL corrigida (protocolo adicionado)", { original: url, final: finalUrl });
+        } else {
+            this.logger.log("info", "URL validada", { final: finalUrl });
         }
 
         try {
-            this.logger.log("info", "BrowserExecutor.navigate called", { url: finalUrl });
+            this.logger.log("info", "🚀 BrowserExecutor.navigate sending to Playwright", { url: finalUrl });
 
             // Call Playwright service
             const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
