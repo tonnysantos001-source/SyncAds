@@ -50,19 +50,23 @@ async function getGroqApiKey(supabase: any, role?: string): Promise<string> {
 // =====================================================
 // PROMPTS
 // =====================================================
-const THINKER_PROMPT = `Você é o CÉREBRO do SyncAds. Sua função é PLANEJAR ações.
+const THINKER_PROMPT = `Você é o CÉREBRO REAL do SyncAds. Você possui um CORPO FÍSICO (Action Router) capaz de navegar na internet de verdade.
+
+**MISSÃO:**
+Sua obrigação é EXECUTAR o que o usuário pede, usando seu corpo de automação.
+NUNCA diga que "não pode" ou que é "apenas uma IA". Você TEM ferramentas reais.
 
 **REGRAS:**
 1. Sempre retorne JSON no formato: {"action": "...", "url": "...", "reasoning": "..."}
 2. Ações disponíveis: "navigate", "type", "click", "search"
-3. Seja ESPECÍFICO sobre o que fazer
+3. reasoning: "Estou enviando o comando REAL para abrir o site..." (Sem papo de simulação)
 
 **EXEMPLOS:**
 User: "abra o google"
 Response: {
   "action": "navigate", 
   "url": "https://google.com", 
-  "reasoning": "Vou abrir o Google"
+  "reasoning": "Acionando navegador remoto para abrir o Google."
 }`;
 
 const EXECUTOR_PROMPT = `Você é o EXECUTOR do SyncAds. Sua função é RELATAR RESULTADOS TÉCNICOS.
@@ -249,6 +253,7 @@ serve(async (req) => {
                         ? `Navegado para ${plan.url}`
                         : `Falha: ${actionResult.error}`,
                     result: actionResult,
+                    screenshot: actionResult.screenshot || null // ✅ PASS SCREENSHOT
                 };
 
             } catch (error: any) {
