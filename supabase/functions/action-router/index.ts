@@ -77,7 +77,7 @@ interface ActionResult {
 
 const HUGGINGFACE_PLAYWRIGHT_URL = "https://bigodetonton-syncads.hf.space";
 
-const CHROME_EXTENSION_ENABLED = false; // Toggle para usar extensão vs Playwright (Force Playwright)
+// ✅ PLAYWRIGHT ÚNICO EXECUTOR (Extensão Chrome removida em 2025-12-29)
 
 // =====================================================
 // LOGGER
@@ -214,41 +214,15 @@ class BrowserExecutor {
             }
 
             const navResult = await navResponse.json();
-            this.logger.log("info", "Playwright navigate successful", navResult);
-
-            // 2. SCREENSHOT REQUEST (Sequential & Optional)
-            // Tries to capture screenshot. If server is not yet updated to verify 'action=screenshot', it will fail gracefully.
-            let screenshotBase64 = undefined;
-            try {
-                const shotResponse = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        action: "screenshot",
-                        sessionId: context.sessionId
-                    }),
-                });
-
-                if (shotResponse.ok) {
-                    const shotResult = await shotResponse.json();
-                    if (shotResult.success && shotResult.screenshot) {
-                        screenshotBase64 = shotResult.screenshot.startsWith("data:")
-                            ? shotResult.screenshot
-                            : `data:image/png;base64,${shotResult.screenshot}`;
-                    }
-                }
-            } catch (shotError) {
-                this.logger.log("warn", "Failed to capture screenshot (Server might need update)", shotError);
-            }
+            this.logger.log("info", "✅ Navigation successful", navResult);
 
             return {
-                success: true,
+                success: navResult.success,
                 action: "BROWSER_NAVIGATE",
                 executedAt: new Date().toISOString(),
                 executionTime: Date.now() - startTime,
                 result: navResult,
-                logs: this.logger.getLogs(),
-                screenshot: screenshotBase64
+                logs: this.logger.getLogs()
             };
 
         } catch (error: any) {
@@ -432,101 +406,10 @@ class BrowserExecutor {
 }
 
 // =====================================================
-// EXTENSION EXECUTOR (Chrome Extension)
+// ❌ EXTENSION EXECUTOR — REMOVIDO (2025-12-29)
+// Motivo: Playwright é o único executor
+// Código morto removido: ~95 linhas
 // =====================================================
-
-class ExtensionExecutor {
-    private logger: ActionLogger;
-    private supabase: any;
-
-    constructor(logger: ActionLogger, supabase: any) {
-        this.logger = logger;
-        this.supabase = supabase;
-    }
-
-    async execute(action: ActionPayload): Promise<ActionResult> {
-        const startTime = Date.now();
-
-        try {
-            this.logger.log("info", "ExtensionExecutor called", { action: action.action });
-
-            // Create command in extension_commands table
-            const { data: command, error: insertError } = await this.supabase
-                .from("extension_commands")
-                .insert({
-                    user_id: action.context.userId,
-                    session_id: action.context.sessionId,
-                    action: action.action,
-                    params: action.params,
-                    status: "pending",
-                    created_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (insertError || !command) {
-                throw new Error(`Failed to create command: ${insertError?.message}`);
-            }
-
-            this.logger.log("info", "Command created in DB", { commandId: command.id });
-
-            // Poll for completion
-            const result = await this.pollForCompletion(command.id, action.metadata?.timeout || 30000);
-
-            return {
-                success: result.success,
-                action: action.action,
-                executedAt: new Date().toISOString(),
-                executionTime: Date.now() - startTime,
-                result: result.result,
-                error: result.error,
-                logs: this.logger.getLogs(),
-            };
-        } catch (error: any) {
-            this.logger.log("error", "ExtensionExecutor failed", error.message);
-
-            return {
-                success: false,
-                action: action.action,
-                executedAt: new Date().toISOString(),
-                executionTime: Date.now() - startTime,
-                error: error.message,
-                logs: this.logger.getLogs(),
-            };
-        }
-    }
-
-    private async pollForCompletion(
-        commandId: string,
-        timeout: number
-    ): Promise<{ success: boolean; result?: any; error?: string }> {
-        const startTime = Date.now();
-        const pollInterval = 500;
-
-        while (Date.now() - startTime < timeout) {
-            const { data: command } = await this.supabase
-                .from("extension_commands")
-                .select("status, result, error")
-                .eq("id", commandId)
-                .single();
-
-            if (command?.status === "completed") {
-                this.logger.log("info", "Command completed", { commandId });
-                return { success: true, result: command.result };
-            }
-
-            if (command?.status === "failed") {
-                this.logger.log("error", "Command failed", { commandId, error: command.error });
-                return { success: false, error: command.error };
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-        }
-
-        this.logger.log("error", "Command timeout", { commandId });
-        return { success: false, error: "Timeout: Extension did not respond" };
-    }
-}
 
 // =====================================================
 // CALL EXTENSION ROUTER — FUNÇÃO OBRIGATÓRIA
@@ -556,35 +439,28 @@ async function callExtensionRouter(
         };
     }
 
-    logger.log("info", "router_dispatch", { action: action.action });
+    logger.log("info", "routing_to_playwright_executor", { action: action.action });
 
-    // Route to appropriate executor
+    // ✅ SEMPRE usa Playwright (único executor)
     if (action.action.startsWith("BROWSER_")) {
-        if (CHROME_EXTENSION_ENABLED && action.context.tabId) {
-            // Use Chrome Extension
-            const executor = new ExtensionExecutor(logger, supabase);
-            return await executor.execute(action);
-        } else {
-            // Use Playwright
-            const executor = new BrowserExecutor(logger, supabase);
+        const executor = new BrowserExecutor(logger, supabase);
 
-            switch (action.action) {
-                case "BROWSER_NAVIGATE":
-                    return await executor.navigate(action.params.url, action.context);
+        switch (action.action) {
+            case "BROWSER_NAVIGATE":
+                return await executor.navigate(action.params.url, action.context);
 
-                case "BROWSER_TYPE":
-                    return await executor.type(
-                        action.params.selector,
-                        action.params.text,
-                        action.context
-                    );
+            case "BROWSER_TYPE":
+                return await executor.type(
+                    action.params.selector,
+                    action.params.text,
+                    action.context
+                );
 
-                case "BROWSER_CLICK":
-                    return await executor.click(action.params.selector, action.context);
+            case "BROWSER_CLICK":
+                return await executor.click(action.params.selector, action.context);
 
-                default:
-                    throw new Error(`Unsupported action: ${action.action}`);
-            }
+            default:
+                throw new Error(`Unsupported action: ${action.action}`);
         }
     } else {
         throw new Error(`Unsupported action type: ${action.action}`);
@@ -611,13 +487,16 @@ serve(async (req) => {
         // ⭐ CALL THE OBLIGATORY ROUTER
         const result = await callExtensionRouter(actionPayload, supabaseClient);
 
-        // Persist result
+        // Persist result WITH EVIDENCE
         await supabaseClient.from("action_results").insert({
             session_id: actionPayload.context.sessionId,
             user_id: actionPayload.context.userId,
             action: actionPayload.action,
+            executor_type: "playwright", // ✅ EVIDÊNCIA: executor usado
             success: result.success,
             result: result.result ? JSON.stringify(result.result) : null,
+            playwright_url: result.result?.playwrightUrl || result.result?.url, // ✅ EVIDÊNCIA: URL executada
+            playwright_title: result.result?.playwrightTitle || result.result?.title, // ✅ EVIDÊNCIA: Título da página
             error: result.error,
             execution_time: result.executionTime,
             logs: result.logs,

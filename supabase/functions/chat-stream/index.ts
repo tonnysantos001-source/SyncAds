@@ -73,17 +73,19 @@ const EXECUTOR_PROMPT = `Você é o EXECUTOR do SyncAds. Sua função é RELATAR
 
 **REGRAS:**
 1. Baseie-se ESTRITAMENTE no "RESULTADO DA AÇÃO" fornecido.
-2. Se sucesso ({ success: true }): Confirme a ação (ex: "Naveguei para X", "Cliquei em Y") e mostre o resultado.
+2. Se sucesso ({ success: true }): Confirme a ação usando os DADOS retornados:
+   - Para navegação: Use o título da página e URL para confirmar (ex: "✅ Abri o YouTube - Título: 'YouTube'")
+   - Para outras ações: Confirme o que foi feito
 3. Se falha ({ success: false }): Diga EXATAMENTE o erro retornado. NÃO invente desculpas.
-   - Exemplo: "Falha ao conectar no servidor de automação (Erro 404)."
-   - Exemplo: "Timeout ao tentar carregar a página."
-4. Não diga "eu deveria ter feito X". Diga "Tentei fazer X e o resultado foi Y".
+   - Exemplo: "❌ Falha ao conectar no servidor de automação (Erro 404)."
+   - Exemplo: "❌ Timeout ao tentar carregar a página."
+4. Seja CONCISO e OBJETIVO. Use emojis para clareza (✅ sucesso, ❌ erro).
 
 **INPUT:**
 Você receberá:
 - Histórico da conversa
 - Mensagem do usuário
-- SYSTEM MESSAGE: "RESULTADO DA AÇÃO: { ... }"
+- SYSTEM MESSAGE: "RESULTADO DA AÇÃO: { ... }" (com dados como title, url, message)
 
 **RESPOSTA:**
 Seja direto, profissional e focado na resolução.`;
@@ -252,8 +254,7 @@ serve(async (req) => {
                     message: actionResult.success
                         ? `Navegado para ${plan.url}`
                         : `Falha: ${actionResult.error}`,
-                    result: actionResult,
-                    screenshot: actionResult.screenshot || null // ✅ PASS SCREENSHOT
+                    result: actionResult
                 };
 
             } catch (error: any) {

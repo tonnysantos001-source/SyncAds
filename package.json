@@ -81,6 +81,7 @@
     "mini-svg-data-uri": "^1.4.4",
     "monaco-editor": "^0.55.1",
     "nanoid": "^5.1.6",
+    "node-fetch": "^2.7.0",
     "payment": "^2.4.7",
     "payment-icons": "^1.2.1",
     "pexels": "^1.4.0",
