@@ -130,6 +130,20 @@ async def automation(request: AutomationRequest):
                 "success": True,
                 "message": f"✅ Clicado"
             }
+
+        # SCREENSHOT (Added by Auto-Fix)
+        elif action == "screenshot":
+            import base64
+            # Take screenshot
+            screenshot_bytes = await page.screenshot(full_page=False)
+            # Convert to base64
+            b64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+            
+            return {
+                "success": True, 
+                "message": "📸 Screenshot capturado",
+                "screenshot": b64
+            }
         
         else:
             return {"success": False, "message": f"Ação desconhecida: {action}"}

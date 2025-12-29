@@ -197,44 +197,56 @@ class BrowserExecutor {
         try {
             this.logger.log("info", "🚀 BrowserExecutor.navigate sending to Playwright", { url: finalUrl });
 
-            // ✅ CORRECT API CALL: /browser-automation/execute
-            // We combine navigation AND screenshot in one atomic request to supported endpoint
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/browser-automation/execute`, {
+            // 1. NAVIGATE REQUEST (To existing /automation endpoint)
+            const navResponse = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    action: `Navigate to ${finalUrl}`,
-                    session_id: context.sessionId,
-                    actions: [
-                        { type: "navigate", url: finalUrl, timeout: 30000 },
-                        { type: "screenshot" } // Request screenshot immediately after nav
-                    ]
+                    action: "navigate",
+                    url: finalUrl,
+                    sessionId: context.sessionId // Sent for context
                 }),
             });
 
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Playwright service error (${response.status}): ${errText}`);
+            if (!navResponse.ok) {
+                const errText = await navResponse.text();
+                throw new Error(`Playwright Navigation error (${navResponse.status}): ${errText}`);
             }
 
-            const result = await response.json();
+            const navResult = await navResponse.json();
+            this.logger.log("info", "Playwright navigate successful", navResult);
 
-            // Extract screenshot from response (result.screenshot is base64 string)
-            const screenshotBase64 = result.screenshot ?
-                (result.screenshot.startsWith("data:") ? result.screenshot : `data:image/png;base64,${result.screenshot}`)
-                : undefined;
+            // 2. SCREENSHOT REQUEST (Sequential & Optional)
+            // Tries to capture screenshot. If server is not yet updated to verify 'action=screenshot', it will fail gracefully.
+            let screenshotBase64 = undefined;
+            try {
+                const shotResponse = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "screenshot",
+                        sessionId: context.sessionId
+                    }),
+                });
 
-            this.logger.log("info", "Playwright navigate successful", { success: result.success });
+                if (shotResponse.ok) {
+                    const shotResult = await shotResponse.json();
+                    if (shotResult.success && shotResult.screenshot) {
+                        screenshotBase64 = shotResult.screenshot.startsWith("data:")
+                            ? shotResult.screenshot
+                            : `data:image/png;base64,${shotResult.screenshot}`;
+                    }
+                }
+            } catch (shotError) {
+                this.logger.log("warn", "Failed to capture screenshot (Server might need update)", shotError);
+            }
 
             return {
-                success: result.success,
+                success: true,
                 action: "BROWSER_NAVIGATE",
                 executedAt: new Date().toISOString(),
                 executionTime: Date.now() - startTime,
-                result: {
-                    url: finalUrl,
-                    server_response: result
-                },
+                result: navResult,
                 logs: this.logger.getLogs(),
                 screenshot: screenshotBase64
             };
