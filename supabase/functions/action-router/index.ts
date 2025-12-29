@@ -197,54 +197,57 @@ class BrowserExecutor {
         try {
             this.logger.log("info", "🚀 BrowserExecutor.navigate sending to Playwright", { url: finalUrl });
 
-            // Call Playwright service
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
+            // ✅ CORRECT API CALL: /browser-automation/execute
+            // We combine navigation AND screenshot in one atomic request to supported endpoint
+            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/browser-automation/execute`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    action: "navigate",
-                    url: finalUrl,
-                    sessionId: context.sessionId
+                    action: `Navigate to ${finalUrl}`,
+                    session_id: context.sessionId,
+                    actions: [
+                        { type: "navigate", url: finalUrl, timeout: 30000 },
+                        { type: "screenshot" } // Request screenshot immediately after nav
+                    ]
                 }),
             });
 
             if (!response.ok) {
-                throw new Error(`Playwright service error: ${response.statusText}`);
+                const errText = await response.text();
+                throw new Error(`Playwright service error (${response.status}): ${errText}`);
             }
 
             const result = await response.json();
 
-            this.logger.log("info", "Playwright navigate successful", result);
+            // Extract screenshot from response (result.screenshot is base64 string)
+            const screenshotBase64 = result.screenshot ?
+                (result.screenshot.startsWith("data:") ? result.screenshot : `data:image/png;base64,${result.screenshot}`)
+                : undefined;
 
-            // ⭐ CRITICAL: Wait for page load verification
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            // ⭐ Capture screenshot for verification
-            const screenshot = await this.captureScreenshot(context);
+            this.logger.log("info", "Playwright navigate successful", { success: result.success });
 
             return {
-                success: true,
+                success: result.success,
                 action: "BROWSER_NAVIGATE",
                 executedAt: new Date().toISOString(),
                 executionTime: Date.now() - startTime,
                 result: {
-                    url: result.url || url,
-                    title: result.title || "",
-                    status: result.status || "unknown",
+                    url: finalUrl,
+                    server_response: result
                 },
                 logs: this.logger.getLogs(),
-                screenshot,
+                screenshot: screenshotBase64
             };
-        } catch (error: any) {
-            this.logger.log("error", "BrowserExecutor.navigate failed", error.message);
 
+        } catch (error: any) {
+            this.logger.log("error", "Playwright navigate failed", error.message);
             return {
                 success: false,
                 action: "BROWSER_NAVIGATE",
                 executedAt: new Date().toISOString(),
                 executionTime: Date.now() - startTime,
                 error: error.message,
-                logs: this.logger.getLogs(),
+                logs: this.logger.getLogs()
             };
         }
     }
