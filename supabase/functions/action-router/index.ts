@@ -188,10 +188,14 @@ class BrowserExecutor {
             this.logger.log("info", "BrowserExecutor.navigate called", { url });
 
             // Call Playwright service
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/navigate`, {
+            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url, sessionId: context.sessionId }),
+                body: JSON.stringify({
+                    action: "navigate",
+                    url,
+                    sessionId: context.sessionId
+                }),
             });
 
             if (!response.ok) {
@@ -241,10 +245,11 @@ class BrowserExecutor {
         try {
             this.logger.log("info", "BrowserExecutor.type called", { selector, text });
 
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/type`, {
+            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    action: "type",
                     selector,
                     text,
                     sessionId: context.sessionId,
@@ -289,10 +294,11 @@ class BrowserExecutor {
         try {
             this.logger.log("info", "BrowserExecutor.click called", { selector });
 
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/click`, {
+            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    action: "click",
                     selector,
                     sessionId: context.sessionId,
                 }),
