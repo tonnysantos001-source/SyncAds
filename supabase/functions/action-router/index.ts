@@ -184,8 +184,15 @@ class BrowserExecutor {
         const startTime = Date.now();
         const logs: string[] = [];
 
+        // ✅ AUTO-FIX URL
+        let finalUrl = url;
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            finalUrl = `https://${url}`;
+            this.logger.log("warn", "URL sem protocolo detectada. Corrigindo para:", finalUrl);
+        }
+
         try {
-            this.logger.log("info", "BrowserExecutor.navigate called", { url });
+            this.logger.log("info", "BrowserExecutor.navigate called", { url: finalUrl });
 
             // Call Playwright service
             const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
@@ -193,7 +200,7 @@ class BrowserExecutor {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "navigate",
-                    url,
+                    url: finalUrl,
                     sessionId: context.sessionId
                 }),
             });
