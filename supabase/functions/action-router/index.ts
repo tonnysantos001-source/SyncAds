@@ -348,10 +348,13 @@ class BrowserExecutor {
 
     async captureScreenshot(context: ActionPayload["context"]): Promise<string | undefined> {
         try {
-            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/screenshot`, {
+            const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId: context.sessionId }),
+                body: JSON.stringify({
+                    action: "screenshot",
+                    sessionId: context.sessionId
+                }),
             });
 
             if (!response.ok) {
