@@ -566,27 +566,26 @@ async function sendMessage() {
 
 function createThinkingBlock(msgDiv) {
   // Helper if needed, but for now we append to bubble
-  ```
   return null;
 }
 
 // LISTEN FOR STATUS UPDATES
 chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'COMMAND_STATUS') {
-        const { status, commandType, error } = message;
-        
-        if (status === 'processing' || status === 'executing') {
-             showProcessing(`Executando...`); // Clean UI
-        } 
-        else if (status === 'done' || status === 'completed') {
-             showProcessing(`Concluído`);
-             setTimeout(() => hideProcessing(), 1500);
-        } 
-        else if (status === 'error' || status === 'failed') {
-             showProcessing(`Erro na execução`);
-             addMessage("assistant", `❌ Erro: ${ error || 'Falha desconhecida' } `);
-        }
+  if (message.type === 'COMMAND_STATUS') {
+    const { status, commandType, error } = message;
+
+    if (status === 'processing' || status === 'executing') {
+      showProcessing(`Executando...`); // Clean UI
     }
+    else if (status === 'done' || status === 'completed') {
+      showProcessing(`Concluído`);
+      setTimeout(() => hideProcessing(), 1500);
+    }
+    else if (status === 'error' || status === 'failed') {
+      showProcessing(`Erro na execução`);
+      addMessage("assistant", `❌ Erro: ${error || 'Falha desconhecida'} `);
+    }
+  }
 });
 
 
@@ -609,7 +608,7 @@ function addMessage(role, text) {
 
 function appendMessage(msg) {
   const div = document.createElement("div");
-  div.className = `message ${ msg.role } `;
+  div.className = `message ${msg.role} `;
 
   // Parse Thinking
   let contentHtml = msg.content;
@@ -631,12 +630,12 @@ function appendMessage(msg) {
   if (contentHtml.trim().startsWith("{") && contentHtml.trim().endsWith("}")) {
     try {
       const j = JSON.parse(contentHtml);
-      if (j.success) contentHtml = `✅ Ação: ${ j.message || "Concluída" } `;
+      if (j.success) contentHtml = `✅ Ação: ${j.message || "Concluída"} `;
     } catch (e) { }
   }
 
   div.innerHTML = `
-    < div class="message-avatar" > ${ msg.role === 'user' ? '👤' : '🤖' }</div >
+    <div class="message-avatar">${msg.role === 'user' ? '👤' : '🤖'}</div>
       <div class="message-content">
         ${thinkBlock}
         <div class="message-bubble">${contentHtml}</div>

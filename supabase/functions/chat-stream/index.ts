@@ -114,7 +114,7 @@ serve(async (req) => {
 
             const commandsToInsert = plan.commands.map(cmd => ({
                 device_id: targetDeviceId,
-                type: cmd.type,
+                command_type: cmd.type,
                 payload: cmd.payload, // STRICT: Use payload column
                 status: 'pending',
                 user_id: user.id
