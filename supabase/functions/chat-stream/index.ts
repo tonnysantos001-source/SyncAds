@@ -3,16 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
 import { PLANNER_PROMPT, PlannerOutput } from "./planner.ts";
 
-console.log("🚀 Agentic Chat Stream - Strict Orchestrator Loaded");
+console.log("🚀 Agentic Chat Stream - Strict Payload Orchestrator Loaded");
 
-// ==========================================
 // CONFIG
-// ==========================================
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
-// ==========================================
 // HELPERS
-// ==========================================
 function createStream(
     callback: (writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void>
 ) {
@@ -59,9 +55,7 @@ async function callGroqJSON(apiKey: string, messages: any[]): Promise<PlannerOut
     return JSON.parse(data.choices[0].message.content);
 }
 
-// ==========================================
 // MAIN HANDLER
-// ==========================================
 serve(async (req) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -69,7 +63,6 @@ serve(async (req) => {
         const { message, conversationId, deviceId } = await req.json();
 
         if (!message) throw new Error("Message required");
-
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) throw new Error("Missing Authorization header");
 
@@ -94,45 +87,35 @@ serve(async (req) => {
         if (!keyData?.apiKey) throw new Error("No Groq API Key found");
         const groqKey = keyData.apiKey;
 
-        // ==========================================
-        // ORCHESTRATOR LOGIC
-        // ==========================================
         const readable = createStream(async (writer) => {
 
-            // 1. STATE: PLANNING
-            await writeToStream(writer, "state", "planejando");
+            // 1. STATE: ANALYZING
+            await writeToStream(writer, "state", "ANALYZING_PAGE");
 
             const messages = [
                 { role: "system", content: PLANNER_PROMPT },
-                { role: "user", content: message }
+                { role: "user", content: `Contexto: device_id="${deviceId}"\nPedido: ${message}` }
             ];
+
+            await writeToStream(writer, "state", "PLANEJANDO");
 
             const plan = await callGroqJSON(groqKey, messages);
 
-            // Emit Plan Info (Ticking)
-            await writeToStream(writer, "plan", plan);
-            await writeToStream(writer, "state", `Plano gerado: ${plan.steps.length} passos`);
-
-            if (!plan.steps || plan.steps.length === 0) {
-                await writeToStream(writer, "content", plan.reasoning || "Não consegui gerar um plano.");
+            if (!plan.commands || plan.commands.length === 0) {
+                await writeToStream(writer, "content", "Nenhuma ação necessária.");
                 return;
             }
 
-            if (!deviceId) throw new Error("Dispositivo não conectado.");
+            const targetDeviceId = plan.device_id || deviceId;
+            if (!targetDeviceId) throw new Error("Device ID missing in execution plan.");
 
             // 2. INSERT COMMANDS (Pending)
-            await writeToStream(writer, "state", "persistindo comandos");
+            await writeToStream(writer, "state", "PERSISTINDO_COMANDOS");
 
-            const commandsToInsert = plan.steps.map(step => ({
-                device_id: deviceId,
-                type: step.action,
-                data: {
-                    url: step.url,
-                    selector: step.selector,
-                    text: step.text,
-                    key: step.key,
-                    description: step.description
-                },
+            const commandsToInsert = plan.commands.map(cmd => ({
+                device_id: targetDeviceId,
+                type: cmd.type,
+                payload: cmd.payload, // STRICT: Use payload column
                 status: 'pending',
                 user_id: user.id
             }));
@@ -142,62 +125,53 @@ serve(async (req) => {
                 .insert(commandsToInsert)
                 .select();
 
-            if (dbError) throw new Error(`Erro BD: ${dbError.message}`);
+            if (dbError) {
+                console.error("DB Error:", dbError);
+                await writeToStream(writer, "state", "ERROR");
+                throw new Error(`Erro ao persistir comandos: ${dbError.message}`);
+            }
 
-            // 3. EXECUTION MONITORING (Strict No-Lie)
-            // We will loop through the inserted commands and monitor their status
-            // We DO NOT write success. We wait for the extension to write success.
-
-            await writeToStream(writer, "state", "executando");
+            // 3. EXECUTION MONITORING
+            await writeToStream(writer, "state", "EXECUTING");
 
             for (const cmd of insertedCommands) {
-                await writeToStream(writer, "state", `executando: ${cmd.data.description}`);
-
                 let finalStatus = 'pending';
-                let evidence = null;
-                let attempts = 0;
-                const MAX_WAIT_SECONDS = 45;
+                const MAX_WAIT_SECONDS = 60;
 
-                while (attempts < MAX_WAIT_SECONDS) {
+                for (let i = 0; i < MAX_WAIT_SECONDS; i++) {
                     await new Promise(r => setTimeout(r, 1000));
 
-                    const { data: currentCmd } = await supabase
+                    const { data: currentCmd, error: pollError } = await supabase
                         .from("extension_commands")
-                        .select("status, result, error, evidence") // evidence must be a column
+                        .select("status, error")
                         .eq("id", cmd.id)
                         .single();
 
-                    if (currentCmd.status === 'completed') {
-                        finalStatus = 'completed';
-                        evidence = currentCmd.evidence || currentCmd.result;
+                    if (pollError) continue;
+
+                    if (currentCmd.status === 'done' || currentCmd.status === 'completed') {
+                        finalStatus = 'done';
                         break;
                     }
-                    if (currentCmd.status === 'failed') {
-                        finalStatus = 'failed';
+                    if (currentCmd.status === 'error' || currentCmd.status === 'failed') {
+                        finalStatus = 'error';
                         break;
                     }
-                    // Reflect Extension States like "processing", "validating"
-                    if (currentCmd.status !== 'pending' && currentCmd.status !== 'processing') {
-                        // If extension adds new intermediate states
-                        // await writeToStream(writer, "state", currentCmd.status);
-                    }
-                    attempts++;
                 }
 
-                if (finalStatus === 'completed') {
-                    // Validated success
-                    await writeToStream(writer, "content", `✅ **${cmd.data.description}**\n`);
-                } else if (finalStatus === 'failed') {
-                    await writeToStream(writer, "content", `❌ **${cmd.data.description}**: Falhou.\n`);
-                    await writeToStream(writer, "error", "Execução interrompida pela extensão.");
-                    break; // Stop chain
+                if (finalStatus === 'done') {
+                    // Executed
+                } else if (finalStatus === 'error') {
+                    await writeToStream(writer, "state", "ERROR");
+                    await writeToStream(writer, "content", `❌ Falha na ação: ${cmd.type}`);
+                    return;
                 } else {
-                    await writeToStream(writer, "content", `⚠️ **${cmd.data.description}**: Timeout (sem confirmação visual).\n`);
-                    break;
+                    await writeToStream(writer, "state", "TIMEOUT");
+                    return;
                 }
             }
 
-            await writeToStream(writer, "state", "concluído");
+            await writeToStream(writer, "state", "DONE");
 
             // Save History
             await supabase.from("ChatMessage").insert([

@@ -1927,43 +1927,121 @@ Logger.info("✅ Background script loaded and ready");
 // Poll for pending commands and execute them
 // ============================================
 
-let commandPollingInterval = null;
-const COMMAND_POLL_INTERVAL = 2000; // 2 segundos (reduzido de 5s)
-
-async function pollAndExecuteCommands() {
-  // Só executar se tiver token válido
-  if (!state.accessToken || !state.deviceId) {
-    return;
-  }
+// ============================================
+// COMMAND POLLING (STRICT)
+// ============================================
+async function checkPendingCommands() {
+  if (!state.accessToken || !state.deviceId) return;
 
   try {
-    // Buscar comandos pendentes para este dispositivo
-    const response = await fetch(
-      `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=5`,
-      {
-        headers: {
-          'Authorization': `Bearer ${state.accessToken}`,
-          'apikey': CONFIG.supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    await ensureUserInfo();
+
+    // Select PAYLOAD explicitly
+    const url = `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=1`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${state.accessToken}`,
+        apikey: CONFIG.supabaseAnonKey,
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) return;
 
     const commands = await response.json();
-    if (!commands || commands.length === 0) return;
+    if (commands.length === 0) return;
 
-    Logger.info(`📥 Found ${commands.length} pending command(s)`);
-
-    for (const command of commands) {
-      await executeCommand(command);
-    }
+    Logger.info(`📦 Pending command found: ${commands[0].type}`);
+    await processCommand(commands[0]);
 
   } catch (error) {
-    Logger.error('Error polling commands', error);
+    Logger.error("Error checking commands", error);
+  }
+}
+
+async function processCommand(cmd) {
+  // STRICT VALIDATION
+  if (!cmd.payload) {
+    Logger.error("Command missing payload", { id: cmd.id });
+    await updateCommandStatus(cmd.id, "error", { error: "Payload missing" });
+    return;
+  }
+
+  Logger.info("Processing command", { id: cmd.id, type: cmd.type });
+
+  try {
+    // 1. Mark PROCESSING
+    await updateCommandStatus(cmd.id, "processing", { started_at: new Date().toISOString() });
+
+    // 2. Get Active Tab
+    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Map 'navigate' (Planner) to 'OPEN_URL' (Internal Logic) or keep 'navigate'
+    // User requested: type="navigate", payload={url}
+    const actionType = cmd.type.toLowerCase();
+
+    if (actionType === "navigate") {
+      const url = cmd.payload.url;
+      if (!url) throw new Error("URL missing in payload");
+
+      if (activeTab) {
+        await chrome.tabs.update(activeTab.id, { url });
+      } else {
+        const newTab = await chrome.tabs.create({ url, active: true });
+        activeTab = newTab;
+      }
+
+      // VISUAL VERIFICATION
+      await waitForNavigation(activeTab.id, 30000);
+
+      // STRICT SUCCESS
+      await updateCommandStatus(cmd.id, "done", {
+        completed_at: new Date().toISOString()
+      });
+      return;
+    }
+
+    if (!activeTab) throw new Error("No active tab for interaction");
+
+    // 3. Dispatch to Content Script (type, click, press_key)
+    // Map Planner types to Content Script actions
+    let contentAction = "";
+    if (actionType === "type") contentAction = "TYPE";
+    else if (actionType === "click") contentAction = "CLICK";
+    else if (actionType === "press_key") contentAction = "PRESS_KEY";
+    else if (actionType === "open_url") contentAction = "OPEN_URL"; // fallback
+    else contentAction = cmd.type; // optimistic fallback
+
+    const response = await Promise.race([
+      new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(activeTab.id, {
+          type: "EXECUTE_STRICT_ACTION",
+          action: contentAction,
+          params: cmd.payload // Pass payload directly
+        }, (resp) => {
+          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+          else resolve(resp);
+        });
+      }),
+      new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 30000))
+    ]);
+
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Validation failed");
+    }
+
+    // 4. Mark DONE
+    await updateCommandStatus(cmd.id, "done", {
+      completed_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    Logger.error("Execution error", error);
+    await updateCommandStatus(cmd.id, "error", { error: error.message });
   }
 }
 
 // End of Background Script
-
+```

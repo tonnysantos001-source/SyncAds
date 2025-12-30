@@ -566,33 +566,27 @@ async function sendMessage() {
 
 function createThinkingBlock(msgDiv) {
   // Helper if needed, but for now we append to bubble
+  ```
   return null;
 }
 
 // LISTEN FOR STATUS UPDATES
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'COMMAND_STATUS') {
-    const { status, commandType, error } = message;
-    console.log("📥 [SIDEPANEL] Status Update:", status, commandType);
-
-    if (status === 'processing') {
-      showProcessing(`⏳ Processando: ${commandType || 'Ação'}...`);
-      showNavigation(`Executando: ${commandType}...`);
+    if (message.type === 'COMMAND_STATUS') {
+        const { status, commandType, error } = message;
+        
+        if (status === 'processing' || status === 'executing') {
+             showProcessing(`Executando...`); // Clean UI
+        } 
+        else if (status === 'done' || status === 'completed') {
+             showProcessing(`Concluído`);
+             setTimeout(() => hideProcessing(), 1500);
+        } 
+        else if (status === 'error' || status === 'failed') {
+             showProcessing(`Erro na execução`);
+             addMessage("assistant", `❌ Erro: ${ error || 'Falha desconhecida' } `);
+        }
     }
-    else if (status === 'completed') {
-      // Ticking effect: Show success briefly then clear or show next
-      showProcessing(`✅ Concluído: ${commandType || 'Ação'}`);
-      setTimeout(() => {
-        // Only hide if no new command came in (simple logic)
-        // Ideally we'd manage a queue, but for MVP this gives feedback
-      }, 1000);
-    }
-    else if (status === 'failed') {
-      showProcessing(`❌ Falha: ${commandType}`);
-      addMessage("assistant", `❌ Erro na execução de ${commandType}: ${error}`);
-      hideNavigation();
-    }
-  }
 });
 
 
@@ -615,7 +609,7 @@ function addMessage(role, text) {
 
 function appendMessage(msg) {
   const div = document.createElement("div");
-  div.className = `message ${msg.role}`;
+  div.className = `message ${ msg.role } `;
 
   // Parse Thinking
   let contentHtml = msg.content;
@@ -626,29 +620,29 @@ function appendMessage(msg) {
     const thoughtText = thinkMatch[1].trim();
     contentHtml = msg.content.replace(thinkMatch[0], "").trim();
     thinkBlock = `
-            <details class="thinking-block">
+    < details class="thinking-block" >
                 <summary>🧠 Raciocínio (Expandir)</summary>
                 <div class="thinking-content">${thoughtText}</div>
-            </details>
-        `;
+            </details >
+    `;
   }
 
   // Clean JSON if needed
   if (contentHtml.trim().startsWith("{") && contentHtml.trim().endsWith("}")) {
     try {
       const j = JSON.parse(contentHtml);
-      if (j.success) contentHtml = `✅ Ação: ${j.message || "Concluída"}`;
+      if (j.success) contentHtml = `✅ Ação: ${ j.message || "Concluída" } `;
     } catch (e) { }
   }
 
   div.innerHTML = `
-        <div class="message-avatar">${msg.role === 'user' ? '👤' : '🤖'}</div>
-        <div class="message-content">
-            ${thinkBlock}
-            <div class="message-bubble">${contentHtml}</div>
-            <div class="message-time">${new Date().toLocaleTimeString()}</div>
-        </div>
-    `;
+    < div class="message-avatar" > ${ msg.role === 'user' ? '👤' : '🤖' }</div >
+      <div class="message-content">
+        ${thinkBlock}
+        <div class="message-bubble">${contentHtml}</div>
+        <div class="message-time">${new Date().toLocaleTimeString()}</div>
+      </div>
+  `;
   elements.messagesArea.appendChild(div);
   elements.messagesArea.scrollTop = elements.messagesArea.scrollHeight;
 }

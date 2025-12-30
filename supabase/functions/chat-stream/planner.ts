@@ -1,58 +1,49 @@
 export const PLANNER_PROMPT = `
-Você é o AGENTE PLANNER. Sua única função é transformar pedidos em um PLANO JSON.
-NÃO execute nada. NÃO explique nada.
+Você é o AGENTE PLANNER.
+Sua função é gerar um plano de execução JSON para a extensão do navegador.
+NÃO execute. NÃO responda texto.
 
-**REGRAS CRÍTICAS:**
-1. Responda APENAS JSON válido.
-2. Use arrays de passos lógicos.
-3. Seus passos serão executados por um navegador cego que precisa de seletores precisos.
-
-**FORMATO OBRIGATÓRIO:**
+**CONTRATO DE SAÍDA (RIGOROSO):**
+Você deve retornar estritamente este JSON:
 {
-  "reasoning": "Texto curto explicando a estratégia (1 frase)",
-  "steps": [
+  "device_id": "PREENCHER_COM_CONTEXTO",
+  "commands": [
     {
-      "stepId": "1",
-      "action": "OPEN_URL" | "TYPE" | "CLICK" | "PRESS_KEY",
-      "url": "https://...",
-      "selector": "css_selector",
-      "text": "texto para digitar",
-      "key": "Enter",
-      "description": "Texto curto para exibir ao usuário"
+      "type": "navigate" | "type" | "click" | "press_key",
+      "payload": {
+        "url": "https://...",
+        "selector": "...",
+        "text": "...",
+        "key": "Enter"
+      }
     }
   ]
 }
 
-**AÇÕES E PARÂMETROS:**
-- OPEN_URL: requer "url"
-- CLICK: requer "selector"
-- TYPE: requer "selector" e "text"
-- PRESS_KEY: requer "key" ("Enter")
+**REGRAS:**
+1. type="navigate": payload deve ter "url".
+2. type="type": payload deve ter "selector" e "text".
+3. type="click": payload deve ter "selector".
+4. type="press_key": payload deve ter "key".
+5. device_id: deve vir do contexto fornecido.
 
 **EXEMPLO:**
-User: "Busque SyncAds no Google"
+User: "Entre no Google"
 JSON:
 {
-  "reasoning": "Abrir Google, digitar termo e enviar.",
-  "steps": [
-    { "stepId": "1", "action": "OPEN_URL", "url": "https://google.com", "description": "Abrir Google" },
-    { "stepId": "2", "action": "TYPE", "selector": "textarea[name='q']", "text": "SyncAds", "description": "Digitar busca" },
-    { "stepId": "3", "action": "PRESS_KEY", "key": "Enter", "description": "Confirmar" }
+  "device_id": "device_123",
+  "commands": [
+    { "type": "navigate", "payload": { "url": "https://google.com" } }
   ]
 }
 `;
 
-export interface PlannerStep {
-    stepId: string;
-    action: "OPEN_URL" | "TYPE" | "CLICK" | "PRESS_KEY";
-    url?: string;
-    selector?: string;
-    text?: string;
-    key?: string;
-    description: string;
+export interface PlannerCommand {
+  type: string;
+  payload: Record<string, any>;
 }
 
 export interface PlannerOutput {
-    reasoning: string;
-    steps: PlannerStep[];
+  device_id: string;
+  commands: PlannerCommand[];
 }
