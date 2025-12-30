@@ -485,12 +485,11 @@ async function sendMessage() {
   const isNavigationCommand = /abr(a|ir|e)|naveg(ar|ue)|v(a|á) para|vou para|ir para/i.test(txt);
 
   if (isNavigationCommand) {
-    // Extrair o destino da navegação
     const destination = txt.replace(/.*?(abr(a|ir|e)|naveg(ar|ue)|v(a|á) para|vou para|ir para)\s*/i, '').trim();
     showNavigation(`Abrindo ${destination || 'página'}...`);
-    showProcessing('Executando navegação...');
+    showProcessing('Planejando navegação...');
   } else {
-    showProcessing('Aguardando resposta da IA...');
+    showProcessing('Analisando solicitação...');
   }
 
   try {
@@ -501,27 +500,60 @@ async function sendMessage() {
         message: txt,
         conversationId: state.conversationId,
         extensionConnected: true,
-        // Pass extra context about tabs if needed?
+        deviceId: state.deviceId, // CRITICAL: Send deviceId for command routing
         activeTabId: state.activeTabId
       })
     });
 
-    const data = await res.json();
+    if (!res.ok) throw new Error(`Erro API: ${res.statusText}`);
 
-    // NOVO: Esconder todos indicadores
+    // STREAMING READER
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    // Create assistant message bubble immediately
+    addMessage("assistant", "");
+    const msgs = elements.messagesArea.querySelectorAll('.message.assistant');
+    const bubble = msgs[msgs.length - 1].querySelector('.message-bubble');
+    const thinkingContainer = msgs[msgs.length - 1].querySelector('.thinking-content') || createThinkingBlock(msgs[msgs.length - 1]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line);
+
+          if (data.type === 'state') {
+            showProcessing(`🤖 ${data.content}`);
+          } else if (data.type === 'plan') {
+            // console.log("Plan received:", data.content);
+          } else if (data.type === 'content') {
+            bubble.innerHTML += data.content;
+            elements.messagesArea.scrollTop = elements.messagesArea.scrollHeight;
+          } else if (data.type === 'error') {
+            bubble.innerHTML += `<br>❌ ${data.content}`;
+          }
+        } catch (e) {
+          // If text only
+          if (line.trim().startsWith("{")) continue;
+          bubble.innerHTML += line;
+        }
+      }
+    }
+
     hideTyping();
     hideProcessing();
     hideNavigation();
 
-    if (data.error) throw new Error(data.error);
-
-    let content = data.content || data.response || "Sem resposta.";
-    if (typeof content === 'object') content = JSON.stringify(content);
-
-    addMessage("assistant", content);
-
   } catch (e) {
-    // NOVO: Garantir que todos indicadores são escondidos em caso de erro
     hideTyping();
     hideProcessing();
     hideNavigation();
@@ -531,6 +563,37 @@ async function sendMessage() {
     elements.messageInput.focus();
   }
 }
+
+function createThinkingBlock(msgDiv) {
+  // Helper if needed, but for now we append to bubble
+  return null;
+}
+
+// LISTEN FOR STATUS UPDATES
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'COMMAND_STATUS') {
+    const { status, commandType, error } = message;
+    console.log("📥 [SIDEPANEL] Status Update:", status, commandType);
+
+    if (status === 'processing') {
+      showProcessing(`⏳ Processando: ${commandType || 'Ação'}...`);
+      showNavigation(`Executando: ${commandType}...`);
+    }
+    else if (status === 'completed') {
+      // Ticking effect: Show success briefly then clear or show next
+      showProcessing(`✅ Concluído: ${commandType || 'Ação'}`);
+      setTimeout(() => {
+        // Only hide if no new command came in (simple logic)
+        // Ideally we'd manage a queue, but for MVP this gives feedback
+      }, 1000);
+    }
+    else if (status === 'failed') {
+      showProcessing(`❌ Falha: ${commandType}`);
+      addMessage("assistant", `❌ Erro na execução de ${commandType}: ${error}`);
+      hideNavigation();
+    }
+  }
+});
 
 
 // ============================================

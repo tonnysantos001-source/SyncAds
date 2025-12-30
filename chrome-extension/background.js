@@ -283,10 +283,18 @@ async function processCommand(cmd) {
   Logger.info("Processing command", {
     id: cmd.id,
     type: cmd.type,
-    value: cmd.value,
-    options: cmd.options,
-    selector: cmd.selector,
+    // data: cmd.data
   });
+
+  // Fallback for data source
+  const cmdData = cmd.data || cmd.options || {};
+  const cmdValue = cmd.value || cmdData.value;
+  const cmdSelector = cmd.selector || cmdData.selector;
+
+  // Patch cmd object so downstream logic works with 'cmd.value', 'cmd.options' expectations
+  cmd.options = cmdData;
+  cmd.value = cmdValue;
+  cmd.selector = cmdSelector;
 
   try {
     // Marcar como PROCESSING
@@ -590,7 +598,7 @@ function waitForNavigation(tabId, timeoutMs = 30000) {
   });
 }
 
-async function updateCommandStatus(commandId, status, extraData = {}) {
+async function updateCommandStatus(commandId, status, extraData = {}, commandType = null) {
   try {
     const response = await fetch(
       `${CONFIG.restUrl}/extension_commands?id=eq.${commandId}`,
@@ -617,6 +625,18 @@ async function updateCommandStatus(commandId, status, extraData = {}) {
         status: response.status,
       });
     }
+
+    // BROADCAST TO SIDEPANEL
+    try {
+      chrome.runtime.sendMessage({
+        type: 'COMMAND_STATUS',
+        commandId,
+        status,
+        commandType,
+        error: extraData.error
+      });
+    } catch (e) { /* Ignore */ }
+
   } catch (error) {
     Logger.error("Failed to update command status", error);
   }

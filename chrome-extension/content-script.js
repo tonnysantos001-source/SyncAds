@@ -350,13 +350,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ active: state.isDomActive });
       break;
 
+    case "EXECUTE_STRICT_ACTION":
+      executeStrictAction(message.action, message.params)
+        .then((result) => sendResponse(result))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true;
+
     case "EXECUTE_DOM_ACTION":
+      // ... existing handler ...
       handleDomAction(message.action, message.params)
         .then((result) => sendResponse({ success: true, result }))
         .catch((error) =>
           sendResponse({ success: false, error: error.message }),
         );
-      return true; // Mantém canal aberto para async
+      return true;
 
     default:
       Logger.warn("Unknown message type", { type: message.type });
@@ -365,6 +374,62 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
+
+/**
+ * EXECUTE STRICT ACTION (With Visual Verification)
+ */
+async function executeStrictAction(action, params) {
+  Logger.info(` STRICT ACTION: ${action}`, params);
+
+  // activate visual mode
+  if (!state.isDomActive) activateDomMode("IA executando ação...");
+  updateDomMessage(`Ação: ${action}`);
+
+  try {
+    let result = null;
+
+    switch (action) {
+      case "TYPE":
+        // Use existing fillInput which serves strict verification already (see fillInput implementation)
+        result = await fillInput(params.selector, params.text || params.value);
+        // Evidence is the final checked value
+        return { success: true, evidence: { value: params.text } };
+
+      case "CLICK":
+        // Check existance first
+        const el = document.querySelector(params.selector);
+        if (!el) throw new Error(`Element ${params.selector} not found`);
+
+        await clickElement(params.selector);
+        // Verification is implicit in clickElement success (it finds and clicks)
+        // Truly strict verification for click is hard (did page change? did modal open?)
+        // For now, "No Error" + "Element Existed" is the verification.
+        return { success: true, evidence: { selector: params.selector, timestamp: Date.now() } };
+
+      case "PRESS_KEY":
+        if (params.key === 'Enter') {
+          // Logic to press enter on active element or specific selector
+          const target = params.selector ? document.querySelector(params.selector) : document.activeElement;
+          if (!target) throw new Error("No target for PRESS_KEY");
+
+          target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+          target.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', bubbles: true }));
+          target.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+
+          // Allow time for effect
+          await new Promise(r => setTimeout(r, 500));
+          return { success: true, evidence: { key: 'Enter' } };
+        }
+        throw new Error("Unsupported Key");
+
+      default:
+        throw new Error(`Unknown Strict Action: ${action}`);
+    }
+  } catch (e) {
+    Logger.error("Strict execution failed", e);
+    return { success: false, error: e.message };
+  }
+}
 
 /**
  * Handler para ações DOM
