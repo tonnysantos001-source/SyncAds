@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
 import { PLANNER_PROMPT, PlannerOutput } from "./planner.ts";
 
-console.log("🚀 Agentic Chat Stream - Strict Payload Orchestrator Loaded");
+console.log("🚀 Agentic Chat Stream - Hybrid Orchestrator Loaded");
 
 // CONFIG
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -101,8 +101,15 @@ serve(async (req) => {
 
             const plan = await callGroqJSON(groqKey, messages);
 
+            // STREAM OPTIONAL MESSAGE FIRST
+            if (plan.message) {
+                await writeToStream(writer, "content", plan.message);
+            }
+
+            // CHECK IF COMMANDS EXIST
             if (!plan.commands || plan.commands.length === 0) {
-                await writeToStream(writer, "content", "Nenhuma ação necessária.");
+                // Only chat, done.
+                await writeToStream(writer, "state", "DONE");
                 return;
             }
 
@@ -114,8 +121,9 @@ serve(async (req) => {
 
             const commandsToInsert = plan.commands.map(cmd => ({
                 device_id: targetDeviceId,
+                type: cmd.type,
                 command_type: cmd.type,
-                payload: cmd.payload, // STRICT: Use payload column
+                payload: cmd.payload,
                 status: 'pending',
                 user_id: user.id
             }));
@@ -163,7 +171,7 @@ serve(async (req) => {
                     // Executed
                 } else if (finalStatus === 'error') {
                     await writeToStream(writer, "state", "ERROR");
-                    await writeToStream(writer, "content", `❌ Falha na ação: ${cmd.type}`);
+                    await writeToStream(writer, "content", `\n❌ Falha na ação: ${cmd.type}`);
                     return;
                 } else {
                     await writeToStream(writer, "state", "TIMEOUT");
