@@ -359,7 +359,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case "EXECUTE_DOM_ACTION":
-      // ... existing handler ...
       handleDomAction(message.action, message.params)
         .then((result) => sendResponse({ success: true, result }))
         .catch((error) =>
@@ -368,12 +367,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     default:
-      Logger.warn("Unknown message type", { type: message.type });
-      sendResponse({ success: false, error: "Unknown message type" });
+      // Ignore unknown messages (don't send error response to avoid breaking Promise.race)
+      return false;
   }
 
   return true;
 });
+
+/**
+ * HELPER: Wait for element to appear
+ */
+async function waitForElement(selector, timeout = 5000) {
+  const startTime = Date.now();
+
+  // Check immediately
+  if (document.querySelector(selector)) return document.querySelector(selector);
+
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        observer.disconnect();
+        resolve(el);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Element not found after ${timeout}ms: ${selector}`));
+    }, timeout);
+  });
+}
 
 /**
  * EXECUTE STRICT ACTION (With Visual Verification)
