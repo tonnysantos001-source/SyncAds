@@ -237,85 +237,26 @@ function injectDomStyles() {
 }
 
 /**
- * Ativa o modo DOM - mostra feedback visual
+ * Ativa o modo DOM - (DISABLED VISUAL OVERLAY per user request)
  */
-function activateDomMode(
-  message = "Aguarde enquanto a IA controla o navegador...",
-) {
-  if (state.isDomActive) {
-    Logger.warn("DOM mode already active");
-    return;
-  }
-
-  Logger.info("Activating DOM mode with visual feedback");
-
-  // Injetar estilos
-  injectDomStyles();
-
-  // Criar borda piscando
-  state.domBorder = document.createElement("div");
-  state.domBorder.className = "syncads-dom-border";
-  document.body.appendChild(state.domBorder);
-
-  // Criar overlay de bloqueio
-  state.domOverlay = document.createElement("div");
-  state.domOverlay.className = "syncads-dom-overlay";
-  state.domOverlay.innerHTML = `
-    <div class="syncads-dom-content">
-      <div class="syncads-dom-icon">🤖</div>
-      <h2 class="syncads-dom-title">IA Controlando Navegador</h2>
-      <p class="syncads-dom-message">${message}</p>
-      <div class="syncads-dom-status">
-        <div class="syncads-dom-pulse"></div>
-        <span>Processando...</span>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(state.domOverlay);
-
+function activateDomMode(message = "Aguarde enquanto a IA controla o navegador...") {
   state.isDomActive = true;
-
-  Logger.success("DOM mode activated - visual feedback shown");
+  Logger.info("DOM mode activated (Silent)");
 }
 
 /**
- * Desativa o modo DOM - remove feedback visual
+ * Desativa o modo DOM
  */
 function deactivateDomMode() {
-  if (!state.isDomActive) {
-    Logger.warn("DOM mode not active");
-    return;
-  }
-
-  Logger.info("Deactivating DOM mode");
-
-  // Remover borda
-  if (state.domBorder) {
-    state.domBorder.remove();
-    state.domBorder = null;
-  }
-
-  // Remover overlay
-  if (state.domOverlay) {
-    state.domOverlay.remove();
-    state.domOverlay = null;
-  }
-
   state.isDomActive = false;
-
-  Logger.success("DOM mode deactivated - visual feedback removed");
+  Logger.info("DOM mode deactivated");
 }
 
 /**
  * Atualiza mensagem do DOM overlay
  */
 function updateDomMessage(message) {
-  if (!state.isDomActive || !state.domOverlay) return;
-
-  const messageEl = state.domOverlay.querySelector(".syncads-dom-message");
-  if (messageEl) {
-    messageEl.textContent = message;
-  }
+  // Disabled
 }
 
 // ============================================
@@ -330,9 +271,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   switch (message.type) {
     case "DOM_ACTIVATE":
-      activateDomMode(
-        message.message || "A IA está controlando o navegador...",
-      );
+      activateDomMode(message.message);
       sendResponse({ success: true, active: true });
       break;
 
@@ -367,7 +306,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     default:
-      // Ignore unknown messages (don't send error response to avoid breaking Promise.race)
+      // Ignore unknown messages to prevent "Unknown message type" error
       return false;
   }
 
