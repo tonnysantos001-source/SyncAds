@@ -570,20 +570,44 @@ function createThinkingBlock(msgDiv) {
 }
 
 // LISTEN FOR STATUS UPDATES
+// LISTEN FOR STATUS UPDATES
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'COMMAND_STATUS') {
     const { status, commandType, error } = message;
 
+    // MAPA DE STATUS VISUAL (Ticking Effect)
+    const STATUS_MAP = {
+      'pending': 'Aguardando...',
+      'processing': 'Processando...',
+      'executing': 'Executando...',
+      'DONE': '✅ Concluído',
+      'completed': '✅ Concluído',
+      'ERROR': '❌ Erro',
+      'failed': '❌ Falha'
+    };
+
+    let displayText = STATUS_MAP[status] || STATUS_MAP['executing'];
+
+    // Refinar status baseado no tipo de comando se estiver processando
     if (status === 'processing' || status === 'executing') {
-      showProcessing(`Executando...`); // Clean UI
+      const type = (commandType || '').toUpperCase();
+      if (type === 'NAVIGATE') displayText = '🌐 Navegando...';
+      else if (type === 'DOM_WAIT') displayText = '🔍 Analisando página...';
+      else if (type.includes('CLICK') || type.includes('TYPE') || type.includes('SCROLL')) displayText = '🖱️ Interagindo com elementos...';
+      else if (type === 'SCAN_PAGE') displayText = '👀 Lendo tela...';
     }
-    else if (status === 'done' || status === 'completed') {
-      showProcessing(`Concluído`);
-      setTimeout(() => hideProcessing(), 1500);
+
+    if (status === 'done' || status === 'completed') {
+      showProcessing(displayText); // Shows "Concluído" or generic
+      setTimeout(() => hideProcessing(), 2000);
     }
     else if (status === 'error' || status === 'failed') {
-      showProcessing(`Erro na execução`);
+      showProcessing(displayText);
       addMessage("assistant", `❌ Erro: ${error || 'Falha desconhecida'} `);
+    }
+    else {
+      // Estado intermediário (ticking)
+      showProcessing(displayText);
     }
   }
 });

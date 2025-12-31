@@ -119,14 +119,30 @@ serve(async (req) => {
             // 2. INSERT COMMANDS (Pending)
             await writeToStream(writer, "state", "PERSISTINDO_COMANDOS");
 
-            const commandsToInsert = plan.commands.map(cmd => ({
-                device_id: targetDeviceId,
-                type: cmd.type,
-                command_type: cmd.type,
-                payload: cmd.payload,
-                status: 'pending',
-                user_id: user.id
-            }));
+            // VALIDATION: CANONICAL COMMANDS ONLY
+            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "scroll"];
+
+            const commandsToInsert = [];
+            for (const cmd of plan.commands) {
+                if (!ALLOWED_TYPES.includes(cmd.type)) {
+                    throw new Error(`CRITICAL: Planner generated illegal command type: '${cmd.type}'. Allowed: ${ALLOWED_TYPES.join(", ")}`);
+                }
+
+                // Validate strict payloads
+                if (cmd.type === "wait" && !cmd.payload.selector) {
+                    // Auto-fix or unknown? For now strict error.
+                    throw new Error(`CRITICAL: Command 'wait' missing required 'selector' payload.`);
+                }
+
+                commandsToInsert.push({
+                    device_id: targetDeviceId,
+                    type: cmd.type,          // Planner Type
+                    command_type: cmd.type,  // DB Column (often redundant but kept for safety)
+                    payload: cmd.payload,
+                    status: 'pending',
+                    user_id: user.id
+                });
+            }
 
             const { data: insertedCommands, error: dbError } = await supabase
                 .from("extension_commands")

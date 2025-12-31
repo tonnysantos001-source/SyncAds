@@ -404,15 +404,31 @@ async function handleDomAction(action, params = {}) {
 
   try {
     switch (action) {
-      case "CLICK":
+      // 1. CLICK
+      case "DOM_CLICK":
+      case "CLICK": // Legacy support
         return await clickElement(params.selector);
 
-      case "FILL":
+      // 2. TYPE (Robust SPA support)
+      case "DOM_TYPE":
+      case "FILL": // Legacy support
         return await fillInput(params.selector, params.value);
 
-      case "NAVIGATE":
-        return await executeNavigateWithVerification(params.url, params.timeout || 30000);
+      // 3. WAIT (Robust Selector Wait)
+      case "DOM_WAIT":
+      case "WAIT":
+        if (params.selector) {
+          Logger.info(`⏳ Waiting for selector: ${params.selector} (Timeout: ${params.timeout}ms)`);
+          await waitForElement(params.selector, params.timeout || 10000);
+          return { success: true, verified: true };
+        } else {
+          // Internal pause (fallback)
+          await new Promise((resolve) => setTimeout(resolve, params.duration || 1000));
+          return { success: true, type: "pause" };
+        }
 
+      // 4. SCROLL
+      case "DOM_SCROLL":
       case "SCROLL":
         window.scrollBy({
           top: params.y || 0,
@@ -421,18 +437,16 @@ async function handleDomAction(action, params = {}) {
         });
         return { success: true };
 
-      case "WAIT":
-        await new Promise((resolve) =>
-          setTimeout(resolve, params.duration || 1000),
-        );
-        return { success: true };
+      // 5. NAVIGATE (Content Script verification if needed, usually handled by BG)
+      case "NAVIGATE":
+        return await executeNavigateWithVerification(params.url, params.timeout || 30000);
 
+      // OTHERS
       case "GET_TEXT":
         const el = document.querySelector(params.selector);
         return { success: true, text: el?.textContent || null };
 
       case "SCREENSHOT":
-        // Request screenshot from background
         return new Promise((resolve) => {
           chrome.runtime.sendMessage({ type: "TAKE_SCREENSHOT" }, resolve);
         });
@@ -2149,49 +2163,6 @@ async function fillForm(data) {
   };
 }
 
-/**
- * Aguarda elemento aparecer
- */
-async function waitForElement(data) {
-  Logger.debug("Waiting for ELEMENT", { data });
-
-  const { selector, timeout = 10000 } = data;
-
-  return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-
-    // Verificar se já existe
-    const existing = document.querySelector(selector);
-    if (existing) {
-      resolve({ success: true, found: true, waitTime: 0 });
-      return;
-    }
-
-    // Observer para mudanças no DOM
-    const observer = new MutationObserver((mutations) => {
-      const element = document.querySelector(selector);
-      if (element) {
-        observer.disconnect();
-        resolve({
-          success: true,
-          found: true,
-          waitTime: Date.now() - startTime,
-        });
-      }
-
-      // Timeout
-      if (Date.now() - startTime > timeout) {
-        observer.disconnect();
-        reject(new Error(`Timeout: elemento não encontrado após ${timeout}ms`));
-      }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-  });
-}
 
 async function executeScroll(data) {
   Logger.debug("Executing SCROLL", { data });

@@ -332,40 +332,56 @@ async function processCommand(cmd) {
       Logger.warn("No active tab found, but proceeding for NAVIGATE command");
     }
 
-    // Montar parâmetros baseado no tipo
+    // MAPPING CANONICAL COMMANDS -> EXECUTOR ACTIONS
     let params = {};
     let action = cmd.type;
 
-    if (cmd.type === "NAVIGATE") {
+    // 1. NAVIGATE
+    if (cmd.type === "navigate") {
+      params = { url: cmd.payload?.url || cmd.options?.url };
+      action = "NAVIGATE";
+      Logger.info("COORD: Mapping 'navigate' -> NAVIGATE", params);
+
+      // 2. WAIT (New Robust Wait)
+    } else if (cmd.type === "wait") {
+      params = {
+        selector: cmd.payload?.selector || cmd.selector,
+        timeout: cmd.payload?.timeout || 10000
+      };
+      action = "DOM_WAIT";
+      Logger.info("COORD: Mapping 'wait' -> DOM_WAIT", params);
+
+      // 3. CLICK
+    } else if (cmd.type === "click") {
+      params = { selector: cmd.payload?.selector || cmd.selector };
+      action = "DOM_CLICK"; // Maps to clickElement in content-script
+      Logger.info("COORD: Mapping 'click' -> DOM_CLICK", params);
+
+      // 4. TYPE
+    } else if (cmd.type === "type") {
+      params = {
+        selector: cmd.payload?.selector || cmd.selector,
+        value: cmd.payload?.text || cmd.payload?.value || cmd.value
+      };
+      action = "DOM_TYPE"; // Maps to fillInput in content-script
+      Logger.info("COORD: Mapping 'type' -> DOM_TYPE", params);
+
+      // 5. SCROLL
+    } else if (cmd.type === "scroll") {
+      params = {
+        y: cmd.payload?.amount || 500,
+        x: 0
+      };
+      action = "DOM_SCROLL";
+      Logger.info("COORD: Mapping 'scroll' -> DOM_SCROLL", params);
+
+      // LEGACY FALLBACK (Should rarely be used if Planner is strict)
+    } else if (cmd.type === "NAVIGATE") {
       params = { url: cmd.options?.url || cmd.value };
       action = "NAVIGATE";
-      Logger.info("NAVIGATE command detected", { url: params.url });
-    } else if (cmd.type === "DOM_CLICK") {
-      params = { selector: cmd.selector };
-      action = "CLICK";
-    } else if (cmd.type === "DOM_FILL") {
-      params = { selector: cmd.selector, value: cmd.value };
-      action = "FILL";
-    } else if (cmd.type === "DOM_SCROLL") {
-      params = { y: cmd.value || 500 };
-      action = "SCROLL";
-    } else if (cmd.type === "SCAN_PAGE") {
-      action = "SCAN_PAGE"; // Special handler
-    } else if (cmd.type === "SCREENSHOT") {
-      // 3C. Implementação Nativa de Screenshot
-      Logger.info("📸 Executing SCREENSHOT natively in background...");
-      try {
-        const screenshotBase64 = await chrome.tabs.captureVisibleTab(activeTab.windowId, { format: "png", quality: 80 });
-        response = { success: true, base64: screenshotBase64 };
-        // Evitar envio ao content script
-        action = "SCREENSHOT_NATIVE";
-      } catch (err) {
-        Logger.error("Native screenshot failed", err);
-        throw new Error("Screenshot capture failed: " + err.message);
-      }
     } else {
-      params = cmd.options || {};
-      action = cmd.type.replace("DOM_", "");
+      // REJECT UNKNOWN TYPES
+      throw new Error(`CRITICAL: Executor received unknown command type: ${cmd.type}`);
     }
 
 
@@ -1922,126 +1938,4 @@ initialize();
 
 Logger.info("✅ Background script loaded and ready");
 
-// ============================================
-// COMMAND POLLING SYSTEM
-// Poll for pending commands and execute them
-// ============================================
-
-// ============================================
-// COMMAND POLLING (STRICT)
-// ============================================
-async function checkPendingCommands() {
-  if (!state.accessToken || !state.deviceId) return;
-
-  try {
-    await ensureUserInfo();
-
-    // Select PAYLOAD explicitly
-    const url = `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=1`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${state.accessToken}`,
-        apikey: CONFIG.supabaseAnonKey,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) return;
-
-    const commands = await response.json();
-    if (commands.length === 0) return;
-
-    Logger.info(`📦 Pending command found: ${commands[0].type}`);
-    await processCommand(commands[0]);
-
-  } catch (error) {
-    Logger.error("Error checking commands", error);
-  }
-}
-
-async function processCommand(cmd) {
-  // STRICT VALIDATION
-  if (!cmd.payload) {
-    Logger.error("Command missing payload", { id: cmd.id });
-    await updateCommandStatus(cmd.id, "error", { error: "Payload missing" });
-    return;
-  }
-
-  Logger.info("Processing command", { id: cmd.id, type: cmd.type });
-
-  try {
-    // 1. Mark PROCESSING
-    await updateCommandStatus(cmd.id, "processing", { started_at: new Date().toISOString() });
-
-    // 2. Get Active Tab
-    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    // Map 'navigate' (Planner) to 'OPEN_URL' (Internal Logic) or keep 'navigate'
-    // User requested: type="navigate", payload={url}
-    const actionType = cmd.type.toLowerCase();
-
-    if (actionType === "navigate") {
-      const url = cmd.payload.url;
-      if (!url) throw new Error("URL missing in payload");
-
-      if (activeTab) {
-        await chrome.tabs.update(activeTab.id, { url });
-      } else {
-        const newTab = await chrome.tabs.create({ url, active: true });
-        activeTab = newTab;
-      }
-
-      // VISUAL VERIFICATION
-      await waitForNavigation(activeTab.id, 30000);
-
-      // STRICT SUCCESS
-      await updateCommandStatus(cmd.id, "done", {
-        completed_at: new Date().toISOString()
-      });
-      return;
-    }
-
-    if (!activeTab) throw new Error("No active tab for interaction");
-
-    // 3. Dispatch to Content Script (type, click, press_key)
-    // Map Planner types to Content Script actions
-    let contentAction = "";
-    if (actionType === "type") contentAction = "TYPE";
-    else if (actionType === "click") contentAction = "CLICK";
-    else if (actionType === "press_key") contentAction = "PRESS_KEY";
-    else if (actionType === "open_url") contentAction = "OPEN_URL"; // fallback
-    else contentAction = cmd.type; // optimistic fallback
-
-    const response = await Promise.race([
-      new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(activeTab.id, {
-          type: "EXECUTE_STRICT_ACTION",
-          action: contentAction,
-          params: cmd.payload // Pass payload directly
-        }, (resp) => {
-          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-          else resolve(resp);
-        });
-      }),
-      new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 30000))
-    ]);
-
-    if (!response || !response.success) {
-      throw new Error(response?.error || "Validation failed");
-    }
-
-    // 4. Mark DONE
-    await updateCommandStatus(cmd.id, "done", {
-      completed_at: new Date().toISOString()
-    });
-
-  } catch (error) {
-    Logger.error("Execution error", error);
-    await updateCommandStatus(cmd.id, "error", { error: error.message });
-  }
-}
-
-// End of Background Script
-// End of Background Script
+// End of Background Script// End of Background Script
