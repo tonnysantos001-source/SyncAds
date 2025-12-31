@@ -302,16 +302,18 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // Obter tab ativa (tenta encontrar uma)
-    let [activeTab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    // 2. Get Active Tab (Robust Strategy)
+    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Fallback: Check last focused window (e.g. if user is clicking in Side Panel)
+    if (!activeTab) {
+      [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    }
 
     // Se não achou tab ativa, e comando é NAVIGATE, vamos criar uma nova.
     // Para outros comandos, precisamos de uma tab ativa.
-    if (!activeTab && cmd.type !== "NAVIGATE") {
-      throw new Error("No active tab found");
+    if (!activeTab && actionType !== "navigate") {
+      throw new Error("No active tab found (Open a page first)");
     }
 
     if (activeTab) {
@@ -322,11 +324,8 @@ async function processCommand(cmd) {
       });
 
       // Verificar se a tab está pronta
-      if (!activeTab.id || activeTab.discarded) {
-        // Se comando for NAVIGATE, não tem problema, vamos criar/atualizar
-        if (cmd.type !== "NAVIGATE") {
-          throw new Error("Tab is not ready");
-        }
+      if (!activeTab.id || (activeTab.discarded && actionType !== "navigate")) {
+        throw new Error("Tab is discarded or not ready");
       }
     } else {
       Logger.warn("No active tab found, but proceeding for NAVIGATE command");

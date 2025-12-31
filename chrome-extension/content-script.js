@@ -316,7 +316,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 /**
  * HELPER: Wait for element to appear
  */
-async function waitForElement(selector, timeout = 5000) {
+async function waitForElement(selector, timeout = 15000) {
   const startTime = Date.now();
 
   // Check immediately
