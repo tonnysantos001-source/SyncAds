@@ -386,7 +386,7 @@ async function processCommand(cmd) {
 
 
     // 3A. Se for NAVIGATE, executar NATIVAMENTE no background (evita erro de conexão)
-    if (cmd.type === "NAVIGATE") {
+    if (action === "NAVIGATE") {
       Logger.info("🌐 Executing NAVIGATE natively in background...", { url: params.url });
 
       let targetTabId;
