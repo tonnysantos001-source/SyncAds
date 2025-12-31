@@ -312,7 +312,9 @@ async function processCommand(cmd) {
 
     // Se não achou tab ativa, e comando é NAVIGATE, vamos criar uma nova.
     // Para outros comandos, precisamos de uma tab ativa.
-    if (!activeTab && actionType !== "navigate") {
+    const isNavigate = (cmd.type || "").toLowerCase() === "navigate";
+
+    if (!activeTab && !isNavigate) {
       throw new Error("No active tab found (Open a page first)");
     }
 
@@ -324,7 +326,7 @@ async function processCommand(cmd) {
       });
 
       // Verificar se a tab está pronta
-      if (!activeTab.id || (activeTab.discarded && actionType !== "navigate")) {
+      if (!activeTab.id || (activeTab.discarded && !isNavigate)) {
         throw new Error("Tab is discarded or not ready");
       }
     } else {
