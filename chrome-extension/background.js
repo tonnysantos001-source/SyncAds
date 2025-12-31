@@ -302,12 +302,28 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // 2. Get Active Tab (Robust Strategy)
-    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // 2. Get Active Tab (Robust Strategy with Retry)
+    let activeTab = null;
+    const maxRetries = 3;
 
-    // Fallback: Check last focused window (e.g. if user is clicking in Side Panel)
-    if (!activeTab) {
-      [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    for (let i = 0; i < maxRetries; i++) {
+      // Essential: try current window
+      let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      // Fallback: try last focused window
+      if (!tab) {
+        [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      }
+
+      if (tab) {
+        activeTab = tab;
+        break;
+      }
+
+      // Wait before retry if not found
+      if (i < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
 
     // Se não achou tab ativa, e comando é NAVIGATE, vamos criar uma nova.
