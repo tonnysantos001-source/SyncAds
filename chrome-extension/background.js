@@ -302,26 +302,42 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // 2. Get Active Tab (Robust Strategy with Retry)
+    // 2. Get Active Tab (NUCLEAR STRATEGY)
+    // We need to be absolutely sure we have a tab, even if SidePanel takes focus
     let activeTab = null;
-    const maxRetries = 3;
+    const maxRetries = 10; // 5 seconds total
 
     for (let i = 0; i < maxRetries; i++) {
-      // Essential: try current window
+      // Strategy A: Current Window
       let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      // Fallback: try last focused window
+      // Strategy B: Last Focused Window
       if (!tab) {
         [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       }
 
-      if (tab) {
+      // Strategy C: Scan ALL "normal" windows (The Nuclear Option)
+      // This handles cases where SidePanel/DevTools might be considered "current" but have no tabs
+      if (!tab) {
+        const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+        for (const win of windows) {
+          const active = win.tabs.find(t => t.active);
+          if (active) {
+            tab = active;
+            Logger.info("⚠️ Found active tab in background window (Strategy C)", { tabId: tab.id });
+            break;
+          }
+        }
+      }
+
+      if (tab && tab.id && tab.status !== 'unloaded') {
         activeTab = tab;
         break;
       }
 
-      // Wait before retry if not found
+      // Wait before retry
       if (i < maxRetries - 1) {
+        Logger.debug(`⏳ Tab search retry ${i + 1}/${maxRetries}...`);
         await new Promise(r => setTimeout(r, 500));
       }
     }
