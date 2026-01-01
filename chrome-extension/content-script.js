@@ -1567,8 +1567,10 @@ async function executeDomCommand(command) {
         result = await executeClick(data.selector);
         break;
 
+      // Unify all FILL/TYPE commands to the ROBUST fillInput (Docs compatible)
+      case "DOM_TYPE":
       case "DOM_FILL":
-        result = await executeFill(data.selector, data.value);
+        result = await fillInput(data.selector, data.value);
         break;
 
       case "DOM_READ":
@@ -1580,16 +1582,23 @@ async function executeDomCommand(command) {
         break;
 
       case "NAVIGATE":
-        // SEMPRE abrir em nova aba (nunca sair do chat)
         result = await executeNavigation(data.url, true);
         break;
 
       case "SCROLL":
+      case "DOM_SCROLL":
         result = await executeScroll(data);
         break;
 
+      // Unify WAIT commands to ROBUST waitForElement
+      case "DOM_WAIT":
       case "WAIT":
-        result = await executeWait(data.ms || 1000);
+      case "WAIT_ELEMENT":
+        if (data.selector) {
+          result = await waitForElement(data.selector, data.timeout || 15000);
+        } else {
+          result = await executeWait(data.ms || 1000);
+        }
         break;
 
       case "DOM_HOVER":
