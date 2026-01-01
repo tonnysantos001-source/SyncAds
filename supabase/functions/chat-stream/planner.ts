@@ -26,7 +26,7 @@ Se a ação for "Criar documento" SEM conteúdo específico:
 {
   "commands": [
     { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
-    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 15000 } }
+    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } }
   ]
 }
 \`\`\`
