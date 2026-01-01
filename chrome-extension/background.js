@@ -472,26 +472,58 @@ async function processCommand(cmd) {
             // 1. Attach Debugger
             await chrome.debugger.attach(target, "1.3");
 
-            // 2. Type characters
-            const text = params.value || "";
-            for (const char of text) {
-              // Simulate KeyDown + KeyUp (Hardware level)
-              await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                type: "keyDown",
-                text: char,
-                unmodifiedText: char,
-                key: char,
-                code: `Key${char.toUpperCase()}`
-              });
+            // 2. Type characters (Smart Markdown Parsing)
+            const content = params.value || "";
+            const lines = content.split('\n');
 
-              await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                type: "keyUp",
-                key: char,
-                code: `Key${char.toUpperCase()}`
-              });
+            for (const line of lines) {
+              let textToType = line;
+              let shortcut = null;
 
-              // Human delay (Optimized for "Magic" speed - near instant)
-              await new Promise(r => setTimeout(r, 1));
+              // Detect Markdown Headers & Lists
+              if (line.startsWith("# ")) {
+                shortcut = { code: "Digit1", modifiers: 6 }; // Ctrl(2) + Alt(4) = 6
+                textToType = line.substring(2);
+              } else if (line.startsWith("## ")) {
+                shortcut = { code: "Digit2", modifiers: 6 };
+                textToType = line.substring(3);
+              } else if (line.startsWith("### ")) {
+                shortcut = { code: "Digit3", modifiers: 6 };
+                textToType = line.substring(4);
+              } else if (line.startsWith("- ") || line.startsWith("* ")) {
+                shortcut = { code: "Digit8", modifiers: 10 }; // Ctrl(2) + Shift(8) = 10
+                textToType = line.substring(2);
+              }
+
+              // Execute Shortcut if needed
+              if (shortcut) {
+                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                  type: "keyDown", modifiers: shortcut.modifiers, code: shortcut.code, key: "Symbol"
+                });
+                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                  type: "keyUp", modifiers: shortcut.modifiers, code: shortcut.code, key: "Symbol"
+                });
+                await new Promise(r => setTimeout(r, 10)); // Small delay for shortcut
+              }
+
+              // Type the text
+              for (const char of textToType) {
+                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                  type: "keyDown", text: char, unmodifiedText: char, key: char, code: `Key${char.toUpperCase()}`
+                });
+                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                  type: "keyUp", key: char, code: `Key${char.toUpperCase()}`
+                });
+                await new Promise(r => setTimeout(r, 1));
+              }
+
+              // Send Enter (New Line)
+              await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                type: "keyDown", code: "Enter", key: "Enter"
+              });
+              await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+                type: "keyUp", code: "Enter", key: "Enter"
+              });
             }
 
             // 3. Detach
