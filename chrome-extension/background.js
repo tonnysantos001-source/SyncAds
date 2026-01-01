@@ -458,6 +458,7 @@ async function processCommand(cmd) {
         if (!activeTab) throw new Error("Need active tab for this command");
 
         // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
+        // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
         if (activeTab && action === "DOM_TYPE" && activeTab.url && activeTab.url.includes("docs.google.com")) {
           Logger.info("⌨️ Google Docs detected: Switching to NATIVE DEBUGGER typing");
 
@@ -485,15 +486,20 @@ async function processCommand(cmd) {
                 code: `Key${char.toUpperCase()}`
               });
 
-              // Human delay
-              await new Promise(r => setTimeout(r, 50));
+              // Human delay (Optimized for "Magic" speed - near instant)
+              await new Promise(r => setTimeout(r, 1));
             }
 
             // 3. Detach
             await chrome.debugger.detach(target);
 
-            response = { success: true, native: true };
-            Logger.success("✅ Typed natively via Debugger API");
+            response = {
+              success: true,
+              native: true,
+              url: activeTab.url,
+              title: activeTab.title
+            };
+            Logger.success("✅ Typed natively via Debugger API", { url: activeTab.url });
 
           } catch (dbgError) {
             Logger.error("Debugger typing failed", dbgError);
