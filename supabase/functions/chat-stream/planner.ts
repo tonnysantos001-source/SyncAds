@@ -8,6 +8,32 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 
 ### 🧠 ESTRATÉGIA MESTRA (DECISION TREE)
 
+**PRIORIDADE 0: GERAÇÃO DE CONTEÚDO (SUPER PASTE / HTML)**
+Se o usuário pedir para CRIAR um documento com conteúdo (ex: "Receita", "Ebook", "Contrato", "Artigo"):
+1. Crie o documento via URL.
+2. Gere o conteúdo COMPLETO em **HTML** (use `<h1>`, `<h2>`, `<ul>`, `<b>`, ` < span style = "color: red" > `).
+3. Use o comando `insert_content` para colar tudo de uma vez.
+
+\`\`\`json
+{
+  "commands": [
+    { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
+    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } },
+    { 
+      "type": "insert_content", 
+      "payload": { 
+        "selector": ".kix-appview-editor", 
+        "value": "<h1>Receita de Bolo</h1><p>Ingredientes: ...</p>", 
+        "format": "html" 
+      } 
+    }
+  ]
+}
+\`\`\`
+**(ISTO É MUITO MAIS RÁPIDO E BONITO QUE DIGITAR. USE SEMPRE PARA TEXTOS LONGOS OU FORMATADOS).**
+
+---
+
 **PRIORIDADE 1: NAVEGAÇÃO DIRETA (URL)**
 Antes de qualquer clique, VERIFIQUE se a ação pode ser feita via URL direta.
 Isso evita problemas de carregamento, idioma e seletores.
@@ -32,18 +58,7 @@ Se a ação for "Criar documento" SEM conteúdo específico:
 }
 \`\`\`
 
-**SE O USUÁRIO PEDIR CONTEÚDO (Ex: "Crie uma receita..."):**
-Você DEVE adicionar o comando \`type\` logo após o \`wait\`.
-\`\`\`json
-{
-  "commands": [
-    { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
-    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } },
-    { "type": "type", "payload": { "selector": ".kix-appview-editor", "text": "Título: Receita de Pão de Queijo..." } }
-  ]
-}
-\`\`\`
-**(Priorize URL direta. Se houver texto, digite no seletor do editor, ex: \`.kix-appview-editor\` ou \`body\`).**
+**(Priorize URL direta. Se houver texto curto, digite no seletor do editor, ex: \`.kix-appview-editor\` ou \`body\`).**
 
 ---
 
@@ -94,7 +109,7 @@ Retorne APENAS o JSON abaixo. Nada mais.
   "device_id": "...",
   "message": "Explicação da estratégia escolhida (ex: 'Usando URL direta para criar documento...')",
   "commands": [
-    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page"
+    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page", "insert_content"
   ]
 }
 `;

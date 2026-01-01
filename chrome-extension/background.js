@@ -414,6 +414,16 @@ async function processCommand(cmd) {
       action = "DOM_SCROLL";
       Logger.info("COORD: Mapping 'scroll' -> DOM_SCROLL", params);
 
+      // 6. INSERT CONTENT (Super Paste)
+    } else if (cmd.type === "insert_content") {
+      params = {
+        value: cmd.payload?.value || cmd.value,
+        format: cmd.payload?.format || 'html',
+        selector: cmd.payload?.selector || cmd.selector
+      };
+      action = "DOM_INSERT";
+      Logger.info("COORD: Mapping 'insert_content' -> DOM_INSERT", params);
+
       // LEGACY FALLBACK (Should rarely be used if Planner is strict)
     } else if (cmd.type === "NAVIGATE") {
       params = { url: cmd.options?.url || cmd.value };
@@ -544,6 +554,54 @@ async function processCommand(cmd) {
             Logger.error("Debugger typing failed", dbgError);
             // Fallback to content-script if debugger fails
             // (Code continues below to normal content-script injection)
+          }
+        }
+
+        // 3C. SUPER PASTE (DOM_INSERT) handler
+        if (!response && action === "DOM_INSERT") {
+          Logger.info("📋 Executing DOM_INSERT (Super Paste)...");
+          try {
+            const target = { tabId: activeTab.id };
+
+            // 1. Write to Clipboard (using Scripting API)
+            await chrome.scripting.executeScript({
+              target: target,
+              func: (htmlContent) => {
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const item = new ClipboardItem({ 'text/html': blob });
+                navigator.clipboard.write([item]);
+              },
+              args: [params.value]
+            });
+
+            // 2. Attach Debugger & Send Paste (Ctrl+V)
+            // Note: We need debugger to force Paste event if site blocks it
+            try {
+              await chrome.debugger.attach(target, "1.3");
+            } catch (e) { /* Ignore if already attached */ }
+
+            Logger.info("⌨️ Sending Ctrl+V...");
+            await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+              type: "keyDown", modifiers: 2, code: "KeyV", key: "v" // 2 = Ctrl
+            });
+            await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+              type: "keyUp", modifiers: 2, code: "KeyV", key: "v"
+            });
+
+            await new Promise(r => setTimeout(r, 500)); // Wait for paste
+            await chrome.debugger.detach(target);
+
+            response = {
+              success: true,
+              native: true,
+              url: activeTab.url,
+              title: activeTab.title
+            };
+            Logger.success("✅ Pasted via Clipboard + Debugger", { url: activeTab.url });
+
+          } catch (pasteError) {
+            Logger.error("Super Paste failed", pasteError);
+            throw pasteError;
           }
         }
 

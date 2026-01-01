@@ -120,7 +120,7 @@ serve(async (req) => {
             await writeToStream(writer, "state", "PERSISTINDO_COMANDOS");
 
             // VALIDATION: CANONICAL COMMANDS ONLY
-            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "scroll"];
+            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "scroll", "insert_content"];
 
             const commandsToInsert = [];
             for (const cmd of plan.commands) {
