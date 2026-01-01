@@ -37,7 +37,7 @@ Você DEVE adicionar o comando \`type\` logo após o \`wait\`.
 {
   "commands": [
     { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
-    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 15000 } },
+    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } },
     { "type": "type", "payload": { "selector": ".kix-appview-editor", "text": "Título: Receita de Pão de Queijo..." } }
   ]
 }

@@ -302,8 +302,7 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // 2. Get Active Tab (NUCLEAR STRATEGY)
-    // We need to be absolutely sure we have a tab, even if SidePanel takes focus
+    // 2. Get Active Tab (NUCLEAR STRATEGY + TARGET URL FALLBACK)
     let activeTab = null;
     const maxRetries = 10; // 5 seconds total
 
@@ -316,8 +315,7 @@ async function processCommand(cmd) {
         [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       }
 
-      // Strategy C: Scan ALL "normal" windows (The Nuclear Option)
-      // This handles cases where SidePanel/DevTools might be considered "current" but have no tabs
+      // Strategy C: Scan ALL "normal" windows
       if (!tab) {
         const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
         for (const win of windows) {
@@ -330,14 +328,22 @@ async function processCommand(cmd) {
         }
       }
 
+      // Strategy D: Target URL Heuristic (The "Plan B" for Google Docs)
+      // If we still have no tab, search for the tab we likely just opened (Google Docs)
+      if (!tab) {
+        const [docTab] = await chrome.tabs.query({ url: "*://docs.google.com/*" });
+        if (docTab) {
+          tab = docTab;
+          Logger.info("🎯 Found Google Docs tab via URL match (Strategy D)", { tabId: tab.id });
+        }
+      }
+
       if (tab && tab.id && tab.status !== 'unloaded') {
         activeTab = tab;
         break;
       }
 
-      // Wait before retry
       if (i < maxRetries - 1) {
-        Logger.debug(`⏳ Tab search retry ${i + 1}/${maxRetries}...`);
         await new Promise(r => setTimeout(r, 500));
       }
     }
@@ -460,53 +466,56 @@ async function processCommand(cmd) {
         });
 
         // Enviar comando para content-script com timeout
-        response = await Promise.race([
-          new Promise((resolve, reject) => {
-            chrome.tabs.sendMessage(
-              activeTab.id,
-              {
-                type: "EXECUTE_DOM_ACTION",
-                action: action,
-                params: params,
-              },
-              async (response) => {
-                if (chrome.runtime.lastError) {
-                  const error = chrome.runtime.lastError.message;
-                  Logger.error("SendMessage error", null, { error });
+        // Enviar comando para content-script com RETRY INTELIGENTE
+        // Google Docs demora a carregar o script, então "Receiving end does not exist" é comum no início.
+        let msgRetries = 5;
 
-                  // NOVO: detectar context invalidated
-                  if (error.includes("Extension context invalidated")) {
-                    Logger.warn(
-                      "Context invalidated detected, attempting reconnection...",
-                    );
-                    const reconnected = await handleContextInvalidation();
+        while (msgRetries > 0) {
+          try {
+            response = await new Promise((resolve, reject) => {
+              chrome.tabs.sendMessage(
+                activeTab.id,
+                {
+                  type: "EXECUTE_COMMAND", // Normalizando messagem para o content-script
+                  command: action,
+                  params: params,
+                },
+                async (resp) => {
+                  if (chrome.runtime.lastError) {
+                    const error = chrome.runtime.lastError.message;
 
-                    if (reconnected) {
-                      // Retry comando após reconexão
-                      return reject(new Error("RETRY_AFTER_RECONNECT"));
+                    // Se for erro de conexão, rejeita com tipo específico para triggerar o retry
+                    if (error.includes("Receiving end does not exist") || error.includes("Could not establish connection")) {
+                      reject(new Error("CONNECTION_RETRY"));
+                    } else {
+                      // Outros erros são fatais
+                      reject(new Error(error));
                     }
+                  } else {
+                    resolve(resp);
                   }
-
-                  reject(new Error(error));
-                } else {
-                  Logger.success("Response received from content script", {
-                    response,
-                  });
-                  resolve(response);
                 }
-              },
-            );
-          }),
-          new Promise((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(`Command timeout after ${COMMAND_TIMEOUT / 1000}s`),
-                ),
-              COMMAND_TIMEOUT,
-            ),
-          ),
-        ]);
+              );
+            });
+
+            // Se chegou aqui, sucesso!
+            break;
+
+          } catch (err) {
+            if (err.message === "CONNECTION_RETRY" && msgRetries > 1) {
+              msgRetries--;
+              Logger.warn(`⏳ Content Script not ready yet (Docs loading?)... Retrying in 2s. (${msgRetries} attempts left)`);
+
+              // Tentar injetar script se necessário? Não, o browser cuida disso.
+              // Apenas esperar o script carregar.
+              await new Promise(r => setTimeout(r, 2000));
+            } else {
+              throw err; // Erro fatal ou esgotou tentativas
+            }
+          }
+        }
+        // Timeout implícito pela quantidade de retries do loop acima
+
       }
     }
 
