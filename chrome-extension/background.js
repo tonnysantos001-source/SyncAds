@@ -424,6 +424,10 @@ async function processCommand(cmd) {
     }
 
 
+
+    // 3. EXECUTE ACTION
+    let response = null;
+
     // 3A. Se for NAVIGATE, executar NATIVAMENTE no background (evita erro de conexão)
     if (action === "NAVIGATE") {
       Logger.info("🌐 Executing NAVIGATE natively in background...", { url: params.url });
