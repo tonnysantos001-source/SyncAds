@@ -219,6 +219,13 @@ async function loadAuthData() {
     if (state.isAuthenticated) {
       console.log("✅ [AUTH] Authenticated");
       await loadConversations();
+
+      // RESTORE LAST SESSION
+      if (state.conversationId) {
+        console.log("🔄 Restoring last conversation:", state.conversationId);
+        await loadConversation(state.conversationId);
+      }
+
       enableInput();
     } else {
       console.log("⚠️ [AUTH] Not authenticated");
@@ -651,10 +658,24 @@ function appendMessage(msg) {
   }
 
   // Clean JSON if needed
+  // Clean JSON if needed
   if (contentHtml.trim().startsWith("{") && contentHtml.trim().endsWith("}")) {
     try {
       const j = JSON.parse(contentHtml);
-      if (j.success) contentHtml = `✅ Ação: ${j.message || "Concluída"} `;
+
+      // Planner Output Handling (Prioritize 'message' field)
+      if (j.message) {
+        contentHtml = j.message;
+      }
+      // Executor Result Handling
+      else if (j.success) {
+        contentHtml = `✅ Ação: ${j.message || "Concluída"}`;
+      }
+      // Fallback: If it's valid JSON but unknown schema, show as code block
+      else {
+        contentHtml = `<pre>${JSON.stringify(j, null, 2)}</pre>`;
+      }
+
     } catch (e) { }
   }
 

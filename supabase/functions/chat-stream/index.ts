@@ -184,7 +184,21 @@ serve(async (req) => {
                 }
 
                 if (finalStatus === 'done') {
-                    // Executed
+                    // Fetch the RESULT data (where the URL lives)
+                    const { data: completedCmd } = await supabase
+                        .from("extension_commands")
+                        .select("result")
+                        .eq("id", cmd.id)
+                        .single();
+
+                    if (completedCmd?.result?.url) {
+                        const url = completedCmd.result.url;
+                        const title = completedCmd.result.title || "Documento";
+
+                        // Stream the link back to the user!
+                        await writeToStream(writer, "content", `\n\n📄 **Documento Criado:** [${title}](${url})`);
+                    }
+
                 } else if (finalStatus === 'error') {
                     await writeToStream(writer, "state", "ERROR");
                     await writeToStream(writer, "content", `\n❌ Falha na ação: ${cmd.type}`);

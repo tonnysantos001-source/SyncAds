@@ -14,7 +14,9 @@
     "debugger",
     "history",
     "bookmarks",
-    "sidePanel"
+    "sidePanel",
+    "clipboardRead",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://*/*",

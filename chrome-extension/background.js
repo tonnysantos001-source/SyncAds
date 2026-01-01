@@ -514,7 +514,7 @@ async function processCommand(cmd) {
                 await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
                   type: "keyUp", key: char, code: `Key${char.toUpperCase()}`
                 });
-                await new Promise(r => setTimeout(r, 1));
+                await new Promise(r => setTimeout(r, 8));
               }
 
               // Send Enter (New Line)
@@ -524,6 +524,9 @@ async function processCommand(cmd) {
               await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
                 type: "keyUp", code: "Enter", key: "Enter"
               });
+
+              // Safety delay (8ms = ~125 chars/sec). 1ms was too fast and caused freezing.
+              await new Promise(r => setTimeout(r, 8));
             }
 
             // 3. Detach
