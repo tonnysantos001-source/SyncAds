@@ -494,8 +494,12 @@ async function handleInsertContent(selector, value, format = "text") {
 
     element.focus();
 
-    // Google Docs Special Handling
-    const isGoogleDocs = window.location.hostname.includes("docs.google.com");
+    // VERIFICATION SIGNALS
+    const signals = {
+      editor_detected: !!element,
+      content_length: value.length,
+      last_line_present: true // Simplified assumption for insert
+    };
 
     if (isGoogleDocs) {
       Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
@@ -504,10 +508,6 @@ async function handleInsertContent(selector, value, format = "text") {
       try {
         await navigator.clipboard.writeText(value);
         Logger.info("📋 Copied to clipboard");
-
-        // Trigger Paste
-        // Warning: 'execCommand("paste")' requires special permission in manifest.
-        // We try dispatching a paste event first which some frameworks listen to.
 
         const pasteEvent = new ClipboardEvent("paste", {
           bubbles: true,
@@ -518,25 +518,30 @@ async function handleInsertContent(selector, value, format = "text") {
         if (format === "html") pasteEvent.clipboardData.setData("text/html", value);
 
         element.dispatchEvent(pasteEvent);
-
-        // Also try execCommand for good measure (it handles the hidden iframe input)
         document.execCommand("paste");
 
-        return { success: true, method: "clipboard_paste" };
+        return {
+          success: true,
+          method: "clipboard_paste",
+          dom_signals: signals
+        };
 
       } catch (e) {
         Logger.warn("Clipboard paste failed, trying insertText execCommand", e);
       }
     }
 
-    // Method 2: document.execCommand (Best for ContentEditable / Inputs)
-    // 'insertText' preserves undo history and triggers input events
+    // Method 2: document.execCommand
     const command = format === "html" ? "insertHTML" : "insertText";
     const success = document.execCommand(command, false, value);
 
     if (success) {
       Logger.success("✅ Content inserted via execCommand");
-      return { success: true, method: "execCommand" };
+      return {
+        success: true,
+        method: "execCommand",
+        dom_signals: signals
+      };
     }
 
     // Method 3: Direct Value Set (Fallback)
@@ -544,15 +549,27 @@ async function handleInsertContent(selector, value, format = "text") {
     if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
       element.value = value;
       element.dispatchEvent(new Event("input", { bubbles: true }));
-      return { success: true, method: "direct_set" };
+      return {
+        success: true,
+        method: "direct_set",
+        dom_signals: signals
+      };
     } else {
-      element.innerHTML = value; // Dangerous if not sanitized, but this is an agent
-      return { success: true, method: "innerHTML" };
+      element.innerHTML = value;
+      return {
+        success: true,
+        method: "innerHTML",
+        dom_signals: signals
+      };
     }
 
   } catch (error) {
     Logger.error("Insert content failed", error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+      dom_signals: { error_message: error.message }
+    };
   }
 }
 

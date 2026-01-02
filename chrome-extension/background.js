@@ -724,11 +724,15 @@ async function processCommand(cmd) {
     });
 
     const confirmationData = {
-      executed: true,
-      commandType: cmd.type,
-      currentUrl: updatedTab?.url || activeTab?.url || "unknown",
-      currentTitle: updatedTab?.title || activeTab?.title || "unknown",
+      success: true,
+      command_id: cmd.id,
+      command_type: cmd.type,
+      url_before: activeTab?.url || "unknown",
+      url_after: updatedTab?.url || activeTab?.url || "unknown",
+      title_after: updatedTab?.title || activeTab?.title || "unknown",
+      dom_signals: response?.dom_signals || {}, // Lift signals to top level
       originalResponse: response,
+      retryable: false, // Default to false for success
       timestamp: new Date().toISOString(),
     };
 

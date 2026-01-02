@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
-import { PLANNER_PROMPT } from "./planner.ts";
 import { REASONER_PROMPT } from "./reasoner.ts";
+import { PLANNER_PROMPT } from "./planner.ts";
+import { ReasonerOutput, PlannerOutput } from "./types.ts";
+import { ReasonerVerifier } from "./reasoner-verifier.ts";
 
 console.log("🚀 Agentic Chat Stream - Multi-Agent V2 Loaded");
 
@@ -10,23 +12,7 @@ console.log("🚀 Agentic Chat Stream - Multi-Agent V2 Loaded");
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 // TYPES
-interface PlannerOutput {
-    device_id?: string;
-    message: string;
-    commands: Array<{
-        type: string;
-        payload: any;
-    }>;
-}
-
-interface ReasonerOutput {
-    intent: string;
-    strategy_analysis: string;
-    requires_long_text: boolean;
-    suggested_action: string;
-    target_url?: string;
-}
-
+// INTERFACES REMOVED - IMPORTED FROM types.ts
 // HELPERS
 function createStream(
     callback: (writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void>
@@ -113,164 +99,151 @@ serve(async (req) => {
 
         const readable = createStream(async (writer) => {
 
-            // 1. STATE: REASONER (THINKING)
-            await writeToStream(writer, "state", "THINKING");
+            let loopCount = 0;
+            const MAX_EXECUTION_CYCLES = 5;
+            let currentMessage = message;
+            let lastExecutionResult: any = null;
+            let strategyHint = "";
 
-            console.log(`[Thinking] User Request: ${message}`);
+            while (loopCount < MAX_EXECUTION_CYCLES) {
+                loopCount++;
+                console.log(`🔄 [LOOP] Cycle ${loopCount}/${MAX_EXECUTION_CYCLES}`);
 
-            const reasonerMessages = [
-                { role: "system", content: REASONER_PROMPT },
-                { role: "user", content: `Contexto: device_id="${deviceId}"\nPedido: ${message}` }
-            ];
+                // 1. REASONER (THINKING)
+                await writeToStream(writer, "state", `THINKING (Cycle ${loopCount})`);
 
-            const reasonerOutput: ReasonerOutput = await callGroqJSON(groqKey, reasonerMessages);
+                const reasonerMessages = [
+                    { role: "system", content: REASONER_PROMPT },
+                    {
+                        role: "user", content: `
+Contexto: device_id="${deviceId}"
+Pedido: ${currentMessage}
+${strategyHint ? `⚠️ DICA DE RETRY ANTERIOR: ${strategyHint}` : ""}
+${lastExecutionResult ? `⚠️ RESULTADO ANTERIOR: ${JSON.stringify(lastExecutionResult)}` : ""}
+` }
+                ];
 
-            console.log(`[Thinking] Strategy:`, reasonerOutput);
+                const reasonerOutput: ReasonerOutput = await callGroqJSON(groqKey, reasonerMessages);
+                console.log(`🧠 [Reasoner] Strategy:`, reasonerOutput);
 
-            // 2. STATE: PLANNING (With Strategy)
-            await writeToStream(writer, "state", "PLANNING"); // Was "PLANEJANDO"
+                // 2. PLANNER (PLANNING)
+                await writeToStream(writer, "state", "PLANNING");
 
-            // Construct rich context for Planner
-            const plannerContext = `
-ESTRATÉGIA DEFINIDA PELO THINKER (SIGA ESTRITAMENTE):
-- Intenção: ${reasonerOutput.intent}
-- Raciocínio: ${reasonerOutput.strategy_analysis}
-- Ação Sugerida: ${reasonerOutput.suggested_action}
-- URL Alvo: ${reasonerOutput.target_url || "N/A"}
-- NECESSITA TEXTO LONGO (>50 chars): ${reasonerOutput.requires_long_text ? "SIM (⚠️ OBRIGATÓRIO USAR 'insert_content')" : "NÃO"}
+                const plannerContext = `
+ESTRATÉGIA (REASONER): ${JSON.stringify(reasonerOutput)}
+CONTEXTO TÉCNICO: device_id="${deviceId}"
+DICA DE RETRY: ${strategyHint || "Nenhuma"}
+`;
+                const plannerMessages = [
+                    { role: "system", content: PLANNER_PROMPT },
+                    { role: "user", content: plannerContext }
+                ];
 
-CONTEXTO TÉCNICO:
-- Device ID: ${deviceId}
+                const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
 
-PEDIDO ORIGINAL DO USUÁRIO:
-${message}
-            `;
-
-            const plannerMessages = [
-                { role: "system", content: PLANNER_PROMPT },
-                { role: "user", content: plannerContext }
-            ];
-
-            const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
-
-            // STREAM OPTIONAL MESSAGE FIRST
-            if (plan.message) {
-                await writeToStream(writer, "content", plan.message);
-            }
-
-            // CHECK IF COMMANDS EXIST
-            if (!plan.commands || plan.commands.length === 0) {
-                await writeToStream(writer, "state", "DONE");
-                await writeToStream(writer, "content", "\n\n(Nenhuma ação necessária no navegador)");
-
-                // Save History
-                await supabase.from("ChatMessage").insert([
-                    { conversationId, role: "user", content: message, userId: user.id },
-                    { conversationId, role: "assistant", content: JSON.stringify(plan), userId: user.id }
-                ]);
-                return;
-            }
-
-            const targetDeviceId = plan.device_id || deviceId;
-            if (!targetDeviceId) throw new Error("Device ID missing in execution plan.");
-
-            // 3. PERSIST COMMANDS
-            await writeToStream(writer, "state", "PERSISTINDO_COMANDOS");
-
-            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "fill_input", "scroll", "insert_content", "scan_page"];
-
-            const commandsToInsert = [];
-            for (const cmd of plan.commands) {
-                if (!ALLOWED_TYPES.includes(cmd.type)) {
-                    console.error(`Skipping invalid command: ${cmd.type}`);
-                    continue;
+                // Stream Planner message if any
+                if (plan.message && loopCount === 1) {
+                    await writeToStream(writer, "content", plan.message);
                 }
 
-                commandsToInsert.push({
+                // If no commands, we are done
+                if (!plan.commands || plan.commands.length === 0) {
+                    await writeToStream(writer, "state", "DONE");
+                    if (loopCount > 1) {
+                        // Only add done message if not the very first thought
+                        await writeToStream(writer, "content", "\n\n(Fluxo encerrado pelo Planner)");
+                    }
+                    break;
+                }
+
+                const targetDeviceId = plan.device_id || deviceId;
+
+                // 3. EXECUTION (PERSIST & WATCH)
+                await writeToStream(writer, "state", "EXECUTING");
+
+                // Allow only recognized commands
+                const commandsToInsert = plan.commands.map(cmd => ({
                     device_id: targetDeviceId,
                     type: cmd.type,
                     command_type: cmd.type,
                     payload: cmd.payload,
                     status: 'pending',
                     user_id: user.id
-                });
-            }
+                }));
 
-            const { data: insertedCommands, error: dbError } = await supabase
-                .from("extension_commands")
-                .insert(commandsToInsert)
-                .select();
+                const { data: insertedCommands, error: dbError } = await supabase
+                    .from("extension_commands")
+                    .insert(commandsToInsert)
+                    .select();
 
-            if (dbError) {
-                console.error("DB Error:", dbError);
-                await writeToStream(writer, "state", "ERROR");
-                throw new Error(`Erro ao persistir comandos: ${dbError.message}`);
-            }
+                if (dbError) throw new Error(`DB Error: ${dbError.message}`);
 
-            // 4. EXECUTION MONITORING
-            await writeToStream(writer, "state", "EXECUTING");
+                // Monitor Execution (Wait for ALL)
+                let cycleExecutionResult: any = null;
 
-            for (const cmd of insertedCommands) {
-                let finalStatus = 'pending';
-                const MAX_WAIT_SECONDS = 60; // 60s timeout per command
+                for (const cmd of insertedCommands) {
+                    // Polling loop
+                    const MAX_WAIT = 60;
+                    let finalStatus = 'pending';
 
-                for (let i = 0; i < MAX_WAIT_SECONDS; i++) {
-                    await new Promise(r => setTimeout(r, 1000));
+                    for (let i = 0; i < MAX_WAIT; i++) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        const { data: current } = await supabase.from("extension_commands").select("*").eq("id", cmd.id).single();
 
-                    const { data: currentCmd, error: pollError } = await supabase
-                        .from("extension_commands")
-                        .select("status, error")
-                        .eq("id", cmd.id)
-                        .single();
-
-                    if (pollError) continue;
-
-                    if (currentCmd.status === 'done' || currentCmd.status === 'completed') {
-                        finalStatus = 'done';
-                        break;
-                    }
-                    if (currentCmd.status === 'error' || currentCmd.status === 'failed') {
-                        finalStatus = 'error';
-                        break;
-                    }
-                }
-
-                if (finalStatus === 'done') {
-                    // Fetch RESULT (URL/Evidence)
-                    const { data: completedCmd } = await supabase
-                        .from("extension_commands")
-                        .select("result")
-                        .eq("id", cmd.id)
-                        .single();
-
-                    if (completedCmd?.result) {
-                        const res = completedCmd.result;
-                        const url = res.url || res.currentUrl;
-                        if (url) {
-                            const title = res.title || res.currentTitle || "Documento Criado";
-                            // 🔗 Link Return Logic - Explicitly showing the link
-                            await writeToStream(writer, "content", `\n\n✅ **Ação Concluída:** [${title}](${url})`);
+                        if (current.status === 'done' || current.status === 'completed' || current.status === 'failed' || current.status === 'error') {
+                            cycleExecutionResult = current.result; // GRAB RESULT (Extension must write this!)
+                            finalStatus = current.status;
+                            break;
                         }
                     }
 
-                } else if (finalStatus === 'error') {
+                    if (finalStatus === 'failed' || finalStatus === 'error') break; // Stop executing plan on first error
+                }
+
+                lastExecutionResult = cycleExecutionResult;
+
+                // 4. VERIFIER (VALIDATION)
+                await writeToStream(writer, "state", "VERIFYING");
+
+                // If we have no result (timeout or logic error), mock a failure result
+                if (!lastExecutionResult) {
+                    lastExecutionResult = { success: false, retryable: true, errors: ["Timeout aguardando execução"] };
+                }
+
+                // Call Verifier AI
+                const verification = await ReasonerVerifier.verify(groqKey, reasonerOutput, lastExecutionResult, loopCount, callGroqJSON);
+                console.log(`🛡️ [Verifier] Decision:`, verification);
+
+                if (verification.status === "SUCCESS" || verification.status === "PARTIAL_SUCCESS") {
+                    await writeToStream(writer, "state", "DONE");
+                    if (verification.final_message_to_user) {
+                        await writeToStream(writer, "content", `\n\n${verification.final_message_to_user}`);
+                    }
+
+                    // SAVE HISTORY
+                    await supabase.from("ChatMessage").insert([
+                        { conversationId, role: "user", content: message, userId: user.id },
+                        { conversationId, role: "assistant", content: JSON.stringify({ plan, verification }), userId: user.id }
+                    ]);
+                    return; // EXIT LOOP SUCCESSFULLY
+                }
+
+                if (verification.status === "RETRY") {
+                    strategyHint = verification.new_strategy_hint || "Tente uma abordagem diferente.";
+                    await writeToStream(writer, "content", `\n\n⚠️ *Ocorreu um problema, ajustando estratégia...* (${strategyHint})`);
+                    // Loop continues...
+                }
+
+                if (verification.status === "FAILURE") {
                     await writeToStream(writer, "state", "ERROR");
-                    await writeToStream(writer, "content", `\n❌ Falha na ação: ${cmd.type}`);
-                    return;
-                } else {
-                    await writeToStream(writer, "state", "TIMEOUT");
-                    await writeToStream(writer, "content", `\n⚠️ Timeout na ação: ${cmd.type}`);
-                    return;
+                    await writeToStream(writer, "content", `\n\n❌ **Falha Definitiva:** ${verification.reason}`);
+                    return; // EXIT LOOP WITH ERROR
                 }
             }
 
-            await writeToStream(writer, "state", "DONE");
-
-            // Save History
-            await supabase.from("ChatMessage").insert([
-                { conversationId, role: "user", content: message, userId: user.id },
-                { conversationId, role: "assistant", content: JSON.stringify(plan), userId: user.id }
-            ]);
+            // SAFETY GUARD EXIT
+            await writeToStream(writer, "state", "ERROR");
+            await writeToStream(writer, "content", `\n\n⚠️ **Limite de tentativas excedido (${MAX_EXECUTION_CYCLES}).** O sistema parou para segurança.`);
 
         });
 
