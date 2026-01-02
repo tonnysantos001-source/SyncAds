@@ -48,9 +48,9 @@ Use para abrir os apps.
 - **Google Docs**: \`https://docs.google.com/document/create\`
 - **Google Sheets**: \`https://docs.google.com/spreadsheets/create\`
 
-**USO DO COMANDO `type` (RESTRIÇÃO):**
-- Use `type` **APENAS** para: Barra de pesquisa, Formulários de Login, Inputs pequenos.
-- **NUNCA** use `type` para escrever o conteúdo de um documento. USE `insert_content`.
+**USO DO COMANDO \`type\` (RESTRIÇÃO):**
+- Use \`type\` **APENAS** para: Barra de pesquisa, Formulários de Login, Inputs pequenos.
+- **NUNCA** use \`type\` para escrever o conteúdo de um documento. USE \`insert_content\`.
 
 ---
 
