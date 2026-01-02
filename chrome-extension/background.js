@@ -615,9 +615,9 @@ async function processCommand(cmd) {
           });
 
           // Enviar comando para content-script com timeout
-          // Enviar comando para content-script com RETRY INTELIGENTE
           // Google Docs demora a carregar o script, então "Receiving end does not exist" é comum no início.
-          let msgRetries = 5;
+          // RETRY ROBUSTO (20 tentativas x 1s = 20s de paciência)
+          let msgRetries = 20;
 
           while (msgRetries > 0) {
             try {
@@ -653,11 +653,11 @@ async function processCommand(cmd) {
             } catch (err) {
               if (err.message === "CONNECTION_RETRY" && msgRetries > 1) {
                 msgRetries--;
-                Logger.warn(`⏳ Content Script not ready yet (Docs loading?)... Retrying in 2s. (${msgRetries} attempts left)`);
+                Logger.warn(`⏳ Content Script not ready yet (Docs loading?)... Retrying in 1s. (${msgRetries} attempts left)`);
 
                 // Tentar injetar script se necessário? Não, o browser cuida disso.
                 // Apenas esperar o script carregar.
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, 1000));
               } else {
                 throw err; // Erro fatal ou esgotou tentativas
               }
