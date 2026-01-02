@@ -10,26 +10,31 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 
 **PRIORIDADE 0: CRIAÇÃO DE DOCUMENTOS (OBRIGATÓRIO USAR INSERT_CONTENT)**
 SEMPRE que for criar um documento com texto (Receita, Ebook, Artigo, Planilha Preenchida):
-❌ **PROIBIDO USAR `type`** para o corpo do documento (é lento e falha).
-✅ **OBRIGATÓRIO USAR `insert_content`** (Gera HTML e cola instantaneamente).
+❌ **COMANDOS DISPONÍVEIS (USE APENAS ESTES):**
 
-1. Navegue para o Docs/Sheets.
-2. Espere carregar.
-3. **Use `insert_content`**.
+1.  \`navigate\` { url: string }
+    - Ir para uma URL.
+2.  \`click\` { selector: string }
+    - Clicar em um elemento.
+3.  \`fill_input\` { selector: string, value: string }
+    - ⚠️ **USAR APENAS PARA INPUTS DE FORMULÁRIO (Login, Pesquisa, etc).**
+    - **NUNCA** usar para escrever textos longos ou documentos.
+4.  \`wait\` { selector: string, timeout: number }
+    - Esperar um elemento aparecer.
+5.  \`scroll\` { amount: number }
+    - Rolar a página.
+6.  \`insert_content\` { selector: string, value: string, format: "html" | "text" }
+    - 🏆 **COMANDO SUPREMO PARA CRIAÇÃO DE DOCUMENTOS.**
+    - Gera HTML completo e cola instantaneamente.
+    - Use para: Ebooks, Receitas, Cartas, Relatórios.
 
+**EXEMPLO DE RESPOSTA (JSON):**
 \`\`\`json
 {
   "commands": [
-    { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
-    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } },
-    { 
-      "type": "insert_content", 
-      "payload": { 
-        "selector": ".kix-appview-editor", 
-        "value": "<h1>Título</h1><p>Conteúdo...</p>", 
-        "format": "html" 
-      } 
-    }
+    { "type": "navigate", "payload": { "url": "https://www.google.com" } },
+    { "type": "fill_input", "payload": { "selector": "textarea[name='q']", "value": "SyncAds AI" } },
+    { "type": "click", "payload": { "selector": "input[name='btnK']" } }
   ]
 }
 \`\`\`
