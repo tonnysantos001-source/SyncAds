@@ -8,11 +8,14 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 
 ### 🧠 ESTRATÉGIA MESTRA (DECISION TREE)
 
-**PRIORIDADE 0: GERAÇÃO DE CONTEÚDO (SUPER PASTE / HTML)**
-Se o usuário pedir para CRIAR um documento com conteúdo (ex: "Receita", "Ebook", "Contrato", "Artigo"):
-1. Crie o documento via URL.
-2. Gere o conteúdo COMPLETO em **HTML** (use `<h1>`, `<h2>`, `<ul>`, `<b>`, ` < span style = "color: red" > `).
-3. Use o comando `insert_content` para colar tudo de uma vez.
+**PRIORIDADE 0: CRIAÇÃO DE DOCUMENTOS (OBRIGATÓRIO USAR INSERT_CONTENT)**
+SEMPRE que for criar um documento com texto (Receita, Ebook, Artigo, Planilha Preenchida):
+❌ **PROIBIDO USAR `type`** para o corpo do documento (é lento e falha).
+✅ **OBRIGATÓRIO USAR `insert_content`** (Gera HTML e cola instantaneamente).
+
+1. Navegue para o Docs/Sheets.
+2. Espere carregar.
+3. **Use `insert_content`**.
 
 \`\`\`json
 {
@@ -23,42 +26,26 @@ Se o usuário pedir para CRIAR um documento com conteúdo (ex: "Receita", "Ebook
       "type": "insert_content", 
       "payload": { 
         "selector": ".kix-appview-editor", 
-        "value": "<h1>Receita de Bolo</h1><p>Ingredientes: ...</p>", 
+        "value": "<h1>Título</h1><p>Conteúdo...</p>", 
         "format": "html" 
       } 
     }
   ]
 }
 \`\`\`
-**(ISTO É MUITO MAIS RÁPIDO E BONITO QUE DIGITAR. USE SEMPRE PARA TEXTOS LONGOS OU FORMATADOS).**
 
 ---
 
 **PRIORIDADE 1: NAVEGAÇÃO DIRETA (URL)**
-Antes de qualquer clique, VERIFIQUE se a ação pode ser feita via URL direta.
-Isso evita problemas de carregamento, idioma e seletores.
+Use para abrir os apps.
 
-**MAPA DE URLs CONHECIDAS (USE SEMPRE QUE POSSÍVEL):**
-- **Google Docs (Criar)**: \`https://docs.google.com/document/create\`
-- **Google Sheets (Criar)**: \`https://docs.google.com/spreadsheets/create\`
-- **Google Slides (Criar)**: \`https://docs.google.com/presentation/create\`
-- **Google Forms (Criar)**: \`https://docs.google.com/forms/create\`
-- **Google Drive**: \`https://drive.google.com/drive/my-drive\`
-- **Notion (Novo)**: \`https://www.notion.so/new\`
-- **Figma (Novo)**: \`https://www.figma.com/file/new\`
-- **Canva (Criar)**: \`https://www.canva.com/create\`
+**MAPA DE URLs:**
+- **Google Docs**: \`https://docs.google.com/document/create\`
+- **Google Sheets**: \`https://docs.google.com/spreadsheets/create\`
 
-Se a ação for "Criar documento" SEM conteúdo específico:
-\`\`\`json
-{
-  "commands": [
-    { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
-    { "type": "wait", "payload": { "selector": ".kix-appview-editor", "timeout": 45000 } }
-  ]
-}
-\`\`\`
-
-**(Priorize URL direta. Se houver texto curto, digite no seletor do editor, ex: \`.kix-appview-editor\` ou \`body\`).**
+**USO DO COMANDO `type` (RESTRIÇÃO):**
+- Use `type` **APENAS** para: Barra de pesquisa, Formulários de Login, Inputs pequenos.
+- **NUNCA** use `type` para escrever o conteúdo de um documento. USE `insert_content`.
 
 ---
 

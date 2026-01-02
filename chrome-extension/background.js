@@ -473,14 +473,13 @@ async function processCommand(cmd) {
 
         // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
         // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
+        // 3B. NATIVE DEBUGGER TYPING (Google Docs)
         if (activeTab && action === "DOM_TYPE" && activeTab.url && activeTab.url.includes("docs.google.com")) {
           Logger.info("⌨️ Google Docs detected: Switching to NATIVE DEBUGGER typing");
-
+          const target = { tabId: activeTab.id };
           try {
-            const target = { tabId: activeTab.id };
-
-            // 1. Attach Debugger
-            await chrome.debugger.attach(target, "1.3");
+            // 1. Attach Debugger (Safely)
+            try { await chrome.debugger.attach(target, "1.3"); } catch (e) { /* Ignore if attached */ }
 
             // 2. Type characters (Smart Markdown Parsing)
             const content = params.value || "";
@@ -535,12 +534,9 @@ async function processCommand(cmd) {
                 type: "keyUp", code: "Enter", key: "Enter"
               });
 
-              // Safety delay (8ms = ~125 chars/sec). 1ms was too fast and caused freezing.
+              // Safety delay
               await new Promise(r => setTimeout(r, 8));
             }
-
-            // 3. Detach
-            await chrome.debugger.detach(target);
 
             response = {
               success: true,
@@ -552,16 +548,17 @@ async function processCommand(cmd) {
 
           } catch (dbgError) {
             Logger.error("Debugger typing failed", dbgError);
-            // Fallback to content-script if debugger fails
-            // (Code continues below to normal content-script injection)
+          } finally {
+            // 3. Detach (Always)
+            try { await chrome.debugger.detach(target); } catch (e) { /* Ignore */ }
           }
         }
 
         // 3C. SUPER PASTE (DOM_INSERT) handler
         if (!response && action === "DOM_INSERT") {
           Logger.info("📋 Executing DOM_INSERT (Super Paste)...");
+          const target = { tabId: activeTab.id };
           try {
-            const target = { tabId: activeTab.id };
 
             // 1. Write to Clipboard (using Scripting API)
             await chrome.scripting.executeScript({
@@ -575,10 +572,7 @@ async function processCommand(cmd) {
             });
 
             // 2. Attach Debugger & Send Paste (Ctrl+V)
-            // Note: We need debugger to force Paste event if site blocks it
-            try {
-              await chrome.debugger.attach(target, "1.3");
-            } catch (e) { /* Ignore if already attached */ }
+            try { await chrome.debugger.attach(target, "1.3"); } catch (e) { /* Ignore if attached */ }
 
             Logger.info("⌨️ Sending Ctrl+V...");
             await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
@@ -589,7 +583,6 @@ async function processCommand(cmd) {
             });
 
             await new Promise(r => setTimeout(r, 500)); // Wait for paste
-            await chrome.debugger.detach(target);
 
             response = {
               success: true,
@@ -602,6 +595,9 @@ async function processCommand(cmd) {
           } catch (pasteError) {
             Logger.error("Super Paste failed", pasteError);
             throw pasteError;
+          } finally {
+            // 3. Detach (Always)
+            try { await chrome.debugger.detach(target); } catch (e) { /* Ignore */ }
           }
         }
 
