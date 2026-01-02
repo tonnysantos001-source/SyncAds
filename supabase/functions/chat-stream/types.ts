@@ -33,6 +33,8 @@ export interface ReasonerOutput {
     suggested_action: string;
     target_url?: string;
     success_criteria?: string[]; // What Verifier should look for
+    action_required: boolean;   // Gate: true if needs browser, false if chat only
+    direct_response?: string;   // Chat response if action_required is false
 }
 
 export interface VerifierOutput {
