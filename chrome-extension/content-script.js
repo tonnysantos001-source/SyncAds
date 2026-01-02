@@ -457,12 +457,102 @@ async function handleDomAction(action, params = {}) {
       case "EXTRACT_CONTENT":
         return extractPageContent();
 
+      // 6. INSERT_CONTENT (Simulate Paste/Clipboard for long text)
+      case "DOM_INSERT":
+      case "INSERT_CONTENT":
+        return await handleInsertContent(params.selector, params.value, params.format);
+
       default:
         throw new Error(`Unknown DOM action: ${action}`);
     }
   } catch (error) {
     Logger.error(`DOM action failed: ${action}`, error);
     throw error;
+  }
+}
+
+
+/**
+ * ROBUST CONTENT INSERTION (Clipboard/ExecCommand)
+ * Best for long text, rich text, and Google Docs
+ */
+async function handleInsertContent(selector, value, format = "text") {
+  Logger.info(`📋 [INSERT] Injecting content (${value.length} chars) into ${selector || "activeElement"}`);
+
+  try {
+    let element = null;
+    if (selector) {
+      element = await waitForElement(selector, 5000).catch(() => null);
+    }
+
+    // Fallback to active element requires valid focus
+    if (!element) {
+      element = document.activeElement;
+    }
+
+    if (!element) throw new Error("Target element for insertion not found");
+
+    element.focus();
+
+    // Google Docs Special Handling
+    const isGoogleDocs = window.location.hostname.includes("docs.google.com");
+
+    if (isGoogleDocs) {
+      Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
+
+      // Method 1: Clipboard API (Modern)
+      try {
+        await navigator.clipboard.writeText(value);
+        Logger.info("📋 Copied to clipboard");
+
+        // Trigger Paste
+        // Warning: 'execCommand("paste")' requires special permission in manifest.
+        // We try dispatching a paste event first which some frameworks listen to.
+
+        const pasteEvent = new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: new DataTransfer()
+        });
+        pasteEvent.clipboardData.setData("text/plain", value);
+        if (format === "html") pasteEvent.clipboardData.setData("text/html", value);
+
+        element.dispatchEvent(pasteEvent);
+
+        // Also try execCommand for good measure (it handles the hidden iframe input)
+        document.execCommand("paste");
+
+        return { success: true, method: "clipboard_paste" };
+
+      } catch (e) {
+        Logger.warn("Clipboard paste failed, trying insertText execCommand", e);
+      }
+    }
+
+    // Method 2: document.execCommand (Best for ContentEditable / Inputs)
+    // 'insertText' preserves undo history and triggers input events
+    const command = format === "html" ? "insertHTML" : "insertText";
+    const success = document.execCommand(command, false, value);
+
+    if (success) {
+      Logger.success("✅ Content inserted via execCommand");
+      return { success: true, method: "execCommand" };
+    }
+
+    // Method 3: Direct Value Set (Fallback)
+    Logger.warn("⚠️ execCommand failed, falling back to direct value set");
+    if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+      element.value = value;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      return { success: true, method: "direct_set" };
+    } else {
+      element.innerHTML = value; // Dangerous if not sanitized, but this is an agent
+      return { success: true, method: "innerHTML" };
+    }
+
+  } catch (error) {
+    Logger.error("Insert content failed", error);
+    return { success: false, error: error.message };
   }
 }
 

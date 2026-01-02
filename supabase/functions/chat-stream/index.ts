@@ -1,12 +1,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_utils/cors.ts";
-import { PLANNER_PROMPT, PlannerOutput } from "./planner.ts";
+import { PLANNER_PROMPT } from "./planner.ts";
+import { REASONER_PROMPT } from "./reasoner.ts";
 
-console.log("🚀 Agentic Chat Stream - Hybrid Orchestrator Loaded");
+console.log("🚀 Agentic Chat Stream - Multi-Agent V2 Loaded");
 
 // CONFIG
 const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+// TYPES
+interface PlannerOutput {
+    device_id?: string;
+    message: string;
+    commands: Array<{
+        type: string;
+        payload: any;
+    }>;
+}
+
+interface ReasonerOutput {
+    intent: string;
+    strategy_analysis: string;
+    requires_long_text: boolean;
+    suggested_action: string;
+    target_url?: string;
+}
 
 // HELPERS
 function createStream(
@@ -35,7 +54,7 @@ async function writeToStream(writer: WritableStreamDefaultWriter<any>, type: str
     await writer.write(encoder.encode(JSON.stringify({ type, content }) + "\n"));
 }
 
-async function callGroqJSON(apiKey: string, messages: any[]): Promise<PlannerOutput> {
+async function callGroqJSON(apiKey: string, messages: any[]): Promise<any> {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -45,14 +64,19 @@ async function callGroqJSON(apiKey: string, messages: any[]): Promise<PlannerOut
         body: JSON.stringify({
             model: GROQ_MODEL,
             messages: messages,
-            temperature: 0.1,
+            temperature: 0.1, // Precision is key
             response_format: { type: "json_object" }
         }),
     });
 
     if (!response.ok) throw new Error(`Groq API Error: ${await response.text()}`);
     const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
+    try {
+        return JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+        console.error("Failed to parse Groq JSON:", data.choices[0].message.content);
+        throw new Error("IA retornou JSON inválido.");
+    }
 }
 
 // MAIN HANDLER
@@ -89,17 +113,45 @@ serve(async (req) => {
 
         const readable = createStream(async (writer) => {
 
-            // 1. STATE: ANALYZING
-            await writeToStream(writer, "state", "ANALYZING_PAGE");
+            // 1. STATE: REASONER (THINKING)
+            await writeToStream(writer, "state", "THINKING");
 
-            const messages = [
-                { role: "system", content: PLANNER_PROMPT },
+            console.log(`[Thinking] User Request: ${message}`);
+
+            const reasonerMessages = [
+                { role: "system", content: REASONER_PROMPT },
                 { role: "user", content: `Contexto: device_id="${deviceId}"\nPedido: ${message}` }
             ];
 
-            await writeToStream(writer, "state", "PLANEJANDO");
+            const reasonerOutput: ReasonerOutput = await callGroqJSON(groqKey, reasonerMessages);
 
-            const plan = await callGroqJSON(groqKey, messages);
+            console.log(`[Thinking] Strategy:`, reasonerOutput);
+
+            // 2. STATE: PLANNING (With Strategy)
+            await writeToStream(writer, "state", "PLANNING"); // Was "PLANEJANDO"
+
+            // Construct rich context for Planner
+            const plannerContext = `
+ESTRATÉGIA DEFINIDA PELO THINKER (SIGA ESTRITAMENTE):
+- Intenção: ${reasonerOutput.intent}
+- Raciocínio: ${reasonerOutput.strategy_analysis}
+- Ação Sugerida: ${reasonerOutput.suggested_action}
+- URL Alvo: ${reasonerOutput.target_url || "N/A"}
+- NECESSITA TEXTO LONGO (>50 chars): ${reasonerOutput.requires_long_text ? "SIM (⚠️ OBRIGATÓRIO USAR 'insert_content')" : "NÃO"}
+
+CONTEXTO TÉCNICO:
+- Device ID: ${deviceId}
+
+PEDIDO ORIGINAL DO USUÁRIO:
+${message}
+            `;
+
+            const plannerMessages = [
+                { role: "system", content: PLANNER_PROMPT },
+                { role: "user", content: plannerContext }
+            ];
+
+            const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
 
             // STREAM OPTIONAL MESSAGE FIRST
             if (plan.message) {
@@ -108,36 +160,36 @@ serve(async (req) => {
 
             // CHECK IF COMMANDS EXIST
             if (!plan.commands || plan.commands.length === 0) {
-                // Only chat, done.
                 await writeToStream(writer, "state", "DONE");
+                await writeToStream(writer, "content", "\n\n(Nenhuma ação necessária no navegador)");
+
+                // Save History
+                await supabase.from("ChatMessage").insert([
+                    { conversationId, role: "user", content: message, userId: user.id },
+                    { conversationId, role: "assistant", content: JSON.stringify(plan), userId: user.id }
+                ]);
                 return;
             }
 
             const targetDeviceId = plan.device_id || deviceId;
             if (!targetDeviceId) throw new Error("Device ID missing in execution plan.");
 
-            // 2. INSERT COMMANDS (Pending)
+            // 3. PERSIST COMMANDS
             await writeToStream(writer, "state", "PERSISTINDO_COMANDOS");
 
-            // VALIDATION: CANONICAL COMMANDS ONLY
-            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "fill_input", "scroll", "insert_content"];
+            const ALLOWED_TYPES = ["navigate", "wait", "click", "type", "fill_input", "scroll", "insert_content", "scan_page"];
 
             const commandsToInsert = [];
             for (const cmd of plan.commands) {
                 if (!ALLOWED_TYPES.includes(cmd.type)) {
-                    throw new Error(`CRITICAL: Planner generated illegal command type: '${cmd.type}'. Allowed: ${ALLOWED_TYPES.join(", ")}`);
-                }
-
-                // Validate strict payloads
-                if (cmd.type === "wait" && !cmd.payload.selector) {
-                    // Auto-fix or unknown? For now strict error.
-                    throw new Error(`CRITICAL: Command 'wait' missing required 'selector' payload.`);
+                    console.error(`Skipping invalid command: ${cmd.type}`);
+                    continue;
                 }
 
                 commandsToInsert.push({
                     device_id: targetDeviceId,
-                    type: cmd.type,          // Planner Type
-                    command_type: cmd.type,  // DB Column (often redundant but kept for safety)
+                    type: cmd.type,
+                    command_type: cmd.type,
                     payload: cmd.payload,
                     status: 'pending',
                     user_id: user.id
@@ -155,12 +207,12 @@ serve(async (req) => {
                 throw new Error(`Erro ao persistir comandos: ${dbError.message}`);
             }
 
-            // 3. EXECUTION MONITORING
+            // 4. EXECUTION MONITORING
             await writeToStream(writer, "state", "EXECUTING");
 
             for (const cmd of insertedCommands) {
                 let finalStatus = 'pending';
-                const MAX_WAIT_SECONDS = 60;
+                const MAX_WAIT_SECONDS = 60; // 60s timeout per command
 
                 for (let i = 0; i < MAX_WAIT_SECONDS; i++) {
                     await new Promise(r => setTimeout(r, 1000));
@@ -184,19 +236,21 @@ serve(async (req) => {
                 }
 
                 if (finalStatus === 'done') {
-                    // Fetch the RESULT data (where the URL lives)
+                    // Fetch RESULT (URL/Evidence)
                     const { data: completedCmd } = await supabase
                         .from("extension_commands")
                         .select("result")
                         .eq("id", cmd.id)
                         .single();
 
-                    if (completedCmd?.result?.url) {
-                        const url = completedCmd.result.url;
-                        const title = completedCmd.result.title || "Documento";
-
-                        // Stream the link back to the user!
-                        await writeToStream(writer, "content", `\n\n📄 **Documento Criado:** [${title}](${url})`);
+                    if (completedCmd?.result) {
+                        const res = completedCmd.result;
+                        const url = res.url || res.currentUrl;
+                        if (url) {
+                            const title = res.title || res.currentTitle || "Documento Criado";
+                            // 🔗 Link Return Logic - Explicitly showing the link
+                            await writeToStream(writer, "content", `\n\n✅ **Ação Concluída:** [${title}](${url})`);
+                        }
                     }
 
                 } else if (finalStatus === 'error') {
@@ -205,6 +259,7 @@ serve(async (req) => {
                     return;
                 } else {
                     await writeToStream(writer, "state", "TIMEOUT");
+                    await writeToStream(writer, "content", `\n⚠️ Timeout na ação: ${cmd.type}`);
                     return;
                 }
             }
