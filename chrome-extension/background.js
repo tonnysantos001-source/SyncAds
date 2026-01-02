@@ -651,14 +651,13 @@ async function processCommand(cmd) {
               break;
 
             } catch (err) {
-              if (err.message === "CONNECTION_RETRY" && msgRetries > 1) {
+              // FORCE RETRY for ANY error during this phase (Docs is unstable during load)
+              if (msgRetries > 1) {
                 msgRetries--;
-                Logger.warn(`⏳ Content Script not ready yet (Docs loading?)... Retrying in 1s. (${msgRetries} attempts left)`);
-
-                // Tentar injetar script se necessário? Não, o browser cuida disso.
-                // Apenas esperar o script carregar.
+                Logger.warn(`⏳ Content Script issue (${err.message})... Retrying in 1s. (${msgRetries} attempts left)`);
                 await new Promise(r => setTimeout(r, 1000));
               } else {
+                Logger.error("❌ Exhausted retries for Content Script connection", err);
                 throw err; // Erro fatal ou esgotou tentativas
               }
             }
