@@ -54,11 +54,10 @@ console.log("✅ [SIDE PANEL] Handlers registered");
 // ============================================
 const CONFIG = {
   supabaseUrl: "https://ovskepqggmxlfckxqgbr.supabase.co",
-  supabaseAnonKey:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
   functionsUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1",
   restUrl: "https://ovskepqggmxlfckxqgbr.supabase.co/rest/v1",
-  version: "4.0.0",
+  version: "5.0.0",
 
   // Retry & Timeout Configuration
   retry: {
@@ -77,6 +76,32 @@ const CONFIG = {
     interval: 25 * 1000, // Keep SW alive every 25 seconds
   },
 };
+
+// GLOBAL DOM SIGNALS REGISTRY (Strict Source of Truth)
+if (!globalThis.domSignals) {
+  globalThis.domSignals = {
+    navigationComplete: false,
+    editorReady: false,
+    contentInserted: false,
+    lastMutation: null,
+    documentUrl: null
+  };
+}
+
+function getDomSignals() {
+  if (!globalThis.domSignals) {
+    globalThis.domSignals = {
+      navigationComplete: false,
+      editorReady: false,
+      contentInserted: false,
+      lastMutation: null,
+      documentUrl: null
+    };
+  }
+  return globalThis.domSignals;
+}
+
+// Orphaned Config Block Deleted
 
 const COMMAND_TIMEOUT = 30000;
 
@@ -397,13 +422,22 @@ async function processCommand(cmd) {
       Logger.info("COORD: Mapping 'click' -> DOM_CLICK", params);
 
       // 4. TYPE / FILL INPUT
-    } else if (cmd.type === "type" || cmd.type === "fill_input") {
       params = {
         selector: cmd.payload?.selector || cmd.selector,
         value: cmd.payload?.text || cmd.payload?.value || cmd.value
       };
-      action = "DOM_TYPE";
-      Logger.info(`COORD: Mapping '${cmd.type}' -> DOM_TYPE`, params);
+
+      // STRICT TYPING ROUTER (Magic Text vs Super Paste)
+      const textVal = params.value || "";
+      const isDocs = activeTab?.url?.includes("docs.google.com");
+
+      if (isDocs && textVal.length > 50) {
+        action = "DOM_INSERT"; // Force Super Paste for long text
+        Logger.info(`COORD: Routing '${cmd.type}' -> DOM_INSERT (Length: ${textVal.length} > 50)`);
+      } else {
+        action = "DOM_TYPE"; // Magic Text / Native Debugger
+        Logger.info(`COORD: Routing '${cmd.type}' -> DOM_TYPE`, params);
+      }
 
       // 5. SCROLL
     } else if (cmd.type === "scroll") {
@@ -482,6 +516,14 @@ async function processCommand(cmd) {
 
           if (verifyResponse && verifyResponse.success) {
             Logger.success("✅ Google Docs Verified Created!");
+
+            // Correction 3: Update Global State Source of Truth
+            if (globalThis.domSignals) {
+              globalThis.domSignals.editorReady = true;
+              globalThis.domSignals.documentUrl = currentTab.url;
+              globalThis.domSignals.navigationComplete = true;
+            }
+
             response = {
               success: true,
               native: true,
@@ -812,7 +854,7 @@ async function processCommand(cmd) {
       url_before: activeTab?.url || "unknown",
       url_after: updatedTab?.url || activeTab?.url || "unknown",
       title_after: updatedTab?.title || activeTab?.title || "unknown",
-      dom_signals: domSignals,
+      dom_signals: domReport,
       reason: failureReason,
       originalResponse: response,
       retryable: retryable,
