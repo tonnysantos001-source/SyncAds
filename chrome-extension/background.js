@@ -723,16 +723,36 @@ async function processCommand(cmd) {
       currentWindow: true,
     });
 
+    const domSignals = response?.dom_signals || [];
+    let status = "success";
+    let retryable = false;
+    let failureReason = null;
+
+    // STRICT VALIDATION
+    if (Array.isArray(domSignals)) {
+      if (domSignals.some(s => s.signal === "UNEXPECTED_NAVIGATION")) {
+        status = "failed";
+        failureReason = "Executor abortado: navegação inesperada detectada";
+      } else if (cmd.type === "insert_content" && !domSignals.some(s => s.signal === "EDITOR_READY")) {
+        status = "failed";
+        retryable = true;
+        failureReason = "Editor não pronto";
+      }
+    }
+
     const confirmationData = {
-      success: true,
+      success: status === "success",
+      status: status === "success" ? "SUCCESS" : status === "failed" ? "FAILED" : "BLOCKED",
+      verified: false, // Will be set by ReasonerVerifier
       command_id: cmd.id,
       command_type: cmd.type,
       url_before: activeTab?.url || "unknown",
       url_after: updatedTab?.url || activeTab?.url || "unknown",
       title_after: updatedTab?.title || activeTab?.title || "unknown",
-      dom_signals: response?.dom_signals || {}, // Lift signals to top level
+      dom_signals: domSignals,
+      reason: failureReason,
       originalResponse: response,
-      retryable: false, // Default to false for success
+      retryable: retryable,
       timestamp: new Date().toISOString(),
     };
 

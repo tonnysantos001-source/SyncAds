@@ -45,11 +45,33 @@ export class ReasonerVerifier {
     ): Promise<VerifierOutput> {
 
         // 1. Hard Rules Logic (Code-based verification first)
+
+        // A. URL Validation
+        if (result.url_after && result.url_after.endsWith("/u/0")) {
+            return {
+                status: "BLOCKED",
+                reason: "URL inválida retornada (/u/0). O documento não foi criado ou salvo corretamente.",
+                final_message_to_user: "Falha na criação do documento: URL inválida detectada."
+            };
+        }
+
+        // B. Intent Validation vs Signals
+        const intent = originalIntent.intent;
+        const signals = result.dom_signals || [];
+
+        if (intent === "create_document" && !signals.some(s => s.signal === "DOCUMENT_CREATED")) {
+            return {
+                status: "BLOCKED",
+                reason: "Intent falhou: documento não criado (sinal DOCUMENT_CREATED ausente).",
+                final_message_to_user: "Não consegui confirmar a criação do documento. O editor fechou ou não carregou."
+            };
+        }
+
         if (!result.success && !result.retryable) {
             return {
                 status: "FAILURE",
-                reason: `Erro fatal reportado pelo executor: ${result.errors?.join(", ")}`,
-                final_message_to_user: `❌ Falha ao executar ação. Motivo: ${result.errors?.[0] || "Erro desconhecido"}`
+                reason: `Erro fatal reportado pelo executor: ${result.reason || "Erro desconhecido"}`,
+                final_message_to_user: `❌ Falha ao executar ação. Motivo: ${result.reason || "Erro desconhecido"}`
             };
         }
 

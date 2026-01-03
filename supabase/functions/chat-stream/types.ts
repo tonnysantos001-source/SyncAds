@@ -1,18 +1,20 @@
+
+import { DOMSignal } from "./dom_signals.ts";
+
 export interface ExecutionResult {
-    success: boolean;
+    success: boolean;       // Computed from status === 'SUCCESS'
+    status: "SUCCESS" | "FAILED" | "RETRY" | "BLOCKED";
+    verified: boolean;
     command_id: string;
     command_type: string;
     url_before: string;
     url_after: string;
     title_after: string;
-    dom_signals: {
-        editor_detected?: boolean;
-        content_length?: number;
-        last_line_present?: boolean;
-        error_message?: string;
-    };
-    errors?: string[];
-    retryable: boolean;
+    dom_signals: DOMSignal[];
+    reason?: string;
+    originalResponse?: any;
+    retryable?: boolean;
+    timestamp?: string;
 }
 
 export interface PlannerCommand {
@@ -38,8 +40,9 @@ export interface ReasonerOutput {
 }
 
 export interface VerifierOutput {
-    status: "SUCCESS" | "RETRY" | "PARTIAL_SUCCESS" | "FAILURE";
+    status: "SUCCESS" | "RETRY" | "PARTIAL_SUCCESS" | "FAILURE" | "BLOCKED";
     reason: string;
-    final_message_to_user?: string; // Only if SUCCESS or FAILURE
-    new_strategy_hint?: string;     // If RETRY
+    final_message_to_user: string;
+    new_strategy_hint?: string;
+    verification_score?: number; // 0-100 confidence
 }
