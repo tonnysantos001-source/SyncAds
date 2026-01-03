@@ -457,11 +457,65 @@ async function processCommand(cmd) {
       Logger.info("⏳ Waiting for navigation to complete...", { targetTabId });
       await waitForNavigation(targetTabId, 30000); // 30s timeout
 
-      // Pular o envio de mensagem para content script pois já navegamos
-      Logger.success("✅ Navigation completed natively");
+      // STRICT VERIFICATION FOR GOOGLE DOCS
+      // User Req: "Executor NÃO deve marcar sucesso após NAVIGATE... Detectar DOCUMENT_CREATED"
+      const currentTab = await chrome.tabs.get(targetTabId);
 
-      // Mock response para o restante do fluxo
-      response = { success: true, native: true };
+      if (currentTab.url && currentTab.url.includes("docs.google.com/document/")) {
+        Logger.info("🕵️ Google Docs detected (NAVIGATE). Verifying creation...");
+
+        // Give a moment for content-script to init (new page load)
+        await new Promise(r => setTimeout(r, 2000));
+
+        try {
+          // Poll for CHECK_DOC_STATUS
+          const verifyResponse = await new Promise((resolve, reject) => {
+            chrome.tabs.sendMessage(targetTabId, {
+              type: "EXECUTE_COMMAND",
+              command: "CHECK_DOC_STATUS",
+              params: { timeout: 8000 }
+            }, (resp) => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve(resp);
+            });
+          });
+
+          if (verifyResponse && verifyResponse.success) {
+            Logger.success("✅ Google Docs Verified Created!");
+            response = {
+              success: true,
+              native: true,
+              dom_signals: verifyResponse.dom_signals,
+              url: currentTab.url,
+              title: currentTab.title
+            };
+          } else {
+            throw new Error(verifyResponse?.error || "Docs Verification Failed");
+          }
+        } catch (e) {
+          console.warn("Verify failed:", e);
+
+          // Check if blocked by /u/0
+          const freshTab = await chrome.tabs.get(targetTabId);
+          const isHome = freshTab.url.includes("/u/0");
+
+          response = {
+            success: false,
+            native: true,
+            url: freshTab.url,
+            error: isHome ? "Redirected to Docs Home (/u/0)" : "Document not confirmed: " + e.message,
+            dom_signals: {
+              signals: isHome ? [{ type: "UNEXPECTED_NAVIGATION", timestamp: Date.now(), payload: { url: freshTab.url } }] : [],
+              final_url: freshTab.url,
+              editor_detected: false
+            }
+          };
+        }
+      } else {
+        // Regular Navigation
+        Logger.success("✅ Navigation completed natively");
+        response = { success: true, native: true, url: currentTab.url };
+      }
     }
     else {
       // Pular se for ação nativa já resolvida (NAVIGATE ou SCREENSHOT_NATIVE)

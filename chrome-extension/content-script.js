@@ -462,6 +462,10 @@ async function handleDomAction(action, params = {}) {
       case "INSERT_CONTENT":
         return await handleInsertContent(params.selector, params.value, params.format);
 
+      // 7. CHECK_DOC_STATUS (Strict Verification)
+      case "CHECK_DOC_STATUS":
+        return await detectGoogleDocsCreated(params.timeout || 8000);
+
       default:
         throw new Error(`Unknown DOM action: ${action}`);
     }
@@ -469,6 +473,108 @@ async function handleDomAction(action, params = {}) {
     Logger.error(`DOM action failed: ${action}`, error);
     throw error;
   }
+}
+
+/**
+ * STRICT DETECTOR: Google Docs Creation
+ * User Requirement: URL + Title + Editor
+ */
+async function detectGoogleDocsCreated(timeout = 8000) {
+  Logger.info("🕵️ Starting Strict Google Docs Detection...");
+
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    // Immediate check
+    const check = () => {
+      const url = window.location.href;
+      const title = document.title;
+
+      // 1. URL Check (Regex)
+      const urlOk = /^https:\/\/docs\.google\.com\/document\/d\/[a-zA-Z0-9_-]+\/edit/.test(url);
+
+      // 2. Title Check
+      const titleOk = title !== "Google Docs" && !title.includes("Google Docs") && title.trim().length > 0;
+
+      // 3. Editor Check
+      const editorCanvas = document.querySelector('.kix-canvas-tile-content');
+      const contentEditable = document.querySelector('[contenteditable="true"]');
+      const editorOk = !!(editorCanvas || contentEditable);
+
+      if (urlOk && titleOk && editorOk) {
+        Logger.success("✅ Google Docs Created & Verified!", { url, title });
+
+        // Return Signal
+        const signal = {
+          type: "DOCUMENT_CREATED",
+          timestamp: Date.now(),
+          payload: {
+            url,
+            title,
+            docId: url.split("/d/")[1]?.split("/")[0] || "unknown"
+          }
+        };
+
+        // Also check if editor is ready (which it is, by definition of editorOk)
+        const editorSignal = {
+          type: "EDITOR_READY",
+          timestamp: Date.now(),
+          payload: { editor_selector: editorCanvas ? "canavas" : "contenteditable" }
+        };
+
+        resolve({
+          success: true,
+          dom_signals: {
+            signals: [signal, editorSignal],
+            final_url: url,
+            editor_detected: true,
+            content_length: 0
+          }
+        });
+        return true;
+      }
+      return false;
+    };
+
+    if (check()) return;
+
+    // Polling / MutationObserver
+    const observer = new MutationObserver(() => {
+      if (check()) {
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(document, { subtree: true, childList: true, attributes: true }); // Observe everything
+
+    // Timer limit
+    setTimeout(() => {
+      observer.disconnect();
+      const currentUrl = window.location.href;
+      // If failed, check if it was blocked /u/0
+      if (currentUrl.endsWith("/u/0") || currentUrl.includes("/u/0/")) {
+        resolve({
+          success: false,
+          dom_signals: {
+            signals: [{ type: "UNEXPECTED_NAVIGATION", timestamp: Date.now(), payload: { url: currentUrl } }],
+            final_url: currentUrl,
+            editor_detected: false
+          }
+        });
+      } else {
+        Logger.warn("❌ Google Docs Detection Timed Out", { url: currentUrl, title: document.title });
+        resolve({
+          success: false,
+          error: "Google Docs not confirmed (Timeout)",
+          dom_signals: {
+            signals: [],
+            final_url: currentUrl,
+            editor_detected: false
+          }
+        });
+      }
+    }, timeout);
+  });
 }
 
 

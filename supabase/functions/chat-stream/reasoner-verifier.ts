@@ -77,7 +77,17 @@ export class ReasonerVerifier {
                 return {
                     status: "RETRY",
                     reason: "Editor not ready",
-                    new_strategy_hint: "Aguardar mais tempo ou verificar seletores do editor."
+                    new_strategy_hint: "Aguardar mais tempo ou verificar seletores do editor.",
+                    final_message_to_user: "Ainda processando o editor do documento..."
+                };
+            }
+
+            // Rule: Missing CONTENT_INSERTED -> FAILURE (if explicitly inserting content)
+            if (result.command_type === "insert_content" && !signals.some(s => s.type === "CONTENT_INSERTED")) {
+                return {
+                    status: "FAILURE",
+                    reason: "Content not inserted (Missing CONTENT_INSERTED signal)",
+                    final_message_to_user: "Falha: O conteúdo não foi inserido no documento."
                 };
             }
         }

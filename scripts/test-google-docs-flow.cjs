@@ -53,7 +53,8 @@ function runExecutorSimulation(mockDomReport, cmdType) {
         dom_signals: mockDomReport,
         url_after: mockDomReport.final_url,
         reason: failureReason,
-        retryable
+        retryable,
+        command_type: cmdType
     };
 }
 
@@ -75,6 +76,15 @@ function runVerifierSimulation(executionResult, intent) {
         }
         if (!signals.some(s => s.type === "EDITOR_READY")) {
             return { status: "RETRY", reason: "Editor não pronto" };
+        }
+
+        // Rule: Missing CONTENT_INSERTED -> FAILURE (if explicitly inserting content)
+        // Check if executor used insert_content (passed via executionResult usually, here via caller context?)
+        // The test caller passes 'intent' as string but simulation function needs command type?
+        // Let's assume intent "create_document" implies verification of content if signals show it was attempted?
+        // Actually, ReasonerVerifier checks `result.command_type`.
+        if (executionResult.command_type === "insert_content" && !signals.some(s => s.type === "CONTENT_INSERTED")) {
+            return { status: "FAILURE", reason: "Content not inserted" };
         }
     }
 
@@ -171,6 +181,33 @@ try {
     const verifResult = runVerifierSimulation(execResult, "create_document");
 
     assert(verifResult.status === "FAILURE", "Verifier must FAIL if DOCUMENT_CREATED missing for create_document intent");
+
+} catch (e) {
+    console.error(e);
+}
+
+// SCENARIO 5: Document Created But Content Not Inserted
+try {
+    console.log("\n🧪 SCENARIO 5: Document Created but Content Not Inserted -> FAILURE");
+    const mockNoContentReport = {
+        signals: [
+            { type: "DOCUMENT_CREATED", timestamp: Date.now(), payload: { url: MOCK_GOOD_URL } },
+            { type: "EDITOR_READY", timestamp: Date.now(), payload: { editor_selector: "IFRAME" } }
+        ], // Missing CONTENT_INSERTED
+        final_url: MOCK_GOOD_URL,
+        editor_detected: true,
+        content_length: 0
+    };
+
+    const execResult = runExecutorSimulation(mockNoContentReport, "insert_content");
+
+    // Executor succeeds technically (it inserted 'nothing' or failed silently but reported success without signal? No, executor fails if signal missing?)
+    // Wait, Executor logic in simulation checks EDITOR_READY for insert_content.
+    // My verification logic in ReasonerVerifier checks CONTENT_INSERTED.
+
+    const verifResult = runVerifierSimulation(execResult, "create_document");
+
+    assert(verifResult.status === "FAILURE", "Verifier must FAIL if CONTENT_INSERTED missing for insert_content");
 
 } catch (e) {
     console.error(e);
