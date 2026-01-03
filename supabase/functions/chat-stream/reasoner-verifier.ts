@@ -1,7 +1,8 @@
+
 import { ExecutionResult, ReasonerOutput, VerifierOutput } from "./types.ts";
 import { RetryPolicy } from "./retry-policy.ts";
 
-export const VERIFIER_PROMPT = `
+export const VERIFIER_PROMPT = \`
 # SYSTEM PROMPT: THE VERIFIER (Quality Assurance Agent)
 
 Você é o Verificador Técnico do SyncAds.
@@ -16,7 +17,7 @@ Você recebe o \`ExecutionResult\` do comando executado.
 Para marcar como SUCCESS, você precisa de evidência:
 - Navegação: URL mudou para o esperado?
 - Criação Docs: \`title_after\` é válido? \`content_length\` > 0?
-- Digitação: \`dom_signals.editor_detected\` é true?
+- Digitação: \`elements_detected\` é true?
 
 ### 2. RETRY vs PARTIAL_SUCCESS vs FAILURE
 - **RETRY**: Erro técnico transiente (timeout, selector not found, focus lost) E \`retryable\` é true.
@@ -33,7 +34,7 @@ Para marcar como SUCCESS, você precisa de evidência:
   "new_strategy_hint": "Dica para o Planner se RETRY (ex: 'Use insert_content em vez de type')."
 }
 \`\`\`
-`;
+\`;
 
 export class ReasonerVerifier {
     public static async verify(
@@ -45,10 +46,14 @@ export class ReasonerVerifier {
     ): Promise<VerifierOutput> {
 
         // 1. Hard Rules Logic (Code-based verification first)
+        const domReport = result.dom_signals;
+        const signals = domReport?.signals || [];
+        const rawUrl = domReport?.final_url || result.url_after || "";
+        const finalUrl = rawUrl.replace(/\/$/, "");
 
         // A. URL Validation
-        if (result.url_after && result.url_after.endsWith("/u/0")) {
-            return {
+        if (finalUrl.endsWith("/u/0")) {
+             return {
                 status: "BLOCKED",
                 reason: "URL inválida retornada (/u/0). O documento não foi criado ou salvo corretamente.",
                 final_message_to_user: "Falha na criação do documento: URL inválida detectada."
@@ -57,21 +62,31 @@ export class ReasonerVerifier {
 
         // B. Intent Validation vs Signals
         const intent = originalIntent.intent;
-        const signals = result.dom_signals || [];
-
-        if (intent === "create_document" && !signals.some(s => s.signal === "DOCUMENT_CREATED")) {
-            return {
-                status: "BLOCKED",
-                reason: "Intent falhou: documento não criado (sinal DOCUMENT_CREATED ausente).",
-                final_message_to_user: "Não consegui confirmar a criação do documento. O editor fechou ou não carregou."
-            };
+        
+        if (intent === "create_document") {
+             // Rule: Missing DOCUMENT_CREATED -> FAILURE
+             if (!signals.some(s => s.type === "DOCUMENT_CREATED")) {
+                return {
+                    status: "FAILURE",
+                    reason: "Document not confirmed (Missing DOCUMENT_CREATED signal)",
+                    final_message_to_user: "Falha: O documento não foi confirmado como criado."
+                };
+             }
+             // Rule: Missing EDITOR_READY -> RETRY
+             if (!signals.some(s => s.type === "EDITOR_READY")) {
+                 return {
+                     status: "RETRY",
+                     reason: "Editor not ready",
+                     new_strategy_hint: "Aguardar mais tempo ou verificar seletores do editor."
+                 };
+             }
         }
 
         if (!result.success && !result.retryable) {
             return {
                 status: "FAILURE",
-                reason: `Erro fatal reportado pelo executor: ${result.reason || "Erro desconhecido"}`,
-                final_message_to_user: `❌ Falha ao executar ação. Motivo: ${result.reason || "Erro desconhecido"}`
+                reason: `Erro fatal reportado pelo executor: ${ result.reason || "Erro desconhecido" } `,
+                final_message_to_user: `❌ Falha ao executar ação.Motivo: ${ result.reason || "Erro desconhecido" } `
             };
         }
 
@@ -79,16 +94,16 @@ export class ReasonerVerifier {
         const messages = [
             { role: "system", content: VERIFIER_PROMPT },
             {
-                role: "user", content: `
-INTENÇÃO ORIGINAL: ${JSON.stringify(originalIntent)}
+                role: "user", content: \`
+INTENÇÃO ORIGINAL: \${JSON.stringify(originalIntent)}
 
 RESULTADO DA EXECUÇÃO:
-${JSON.stringify(result, null, 2)}
+\${JSON.stringify(result, null, 2)}
 
-TENTATIVAS: ${attemptCount}
+TENTATIVAS: \${attemptCount}
 
 Decida o status.
-` }
+\` }
         ];
 
         try {
@@ -97,7 +112,7 @@ Decida o status.
             // Enrich Retry Strategy from Policy
             if (verification.status === "RETRY") {
                 const policyHint = RetryPolicy.getNewStrategy(result, result.command_type);
-                verification.new_strategy_hint = `${verification.new_strategy_hint || ""} [AUTO-POLICY: ${policyHint}]`;
+                verification.new_strategy_hint = \`\${verification.new_strategy_hint || ""} [AUTO-POLICY: \${policyHint}]\`;
             }
 
             return verification;

@@ -1,21 +1,26 @@
 
-export type DOMSignal = {
-    signal:
-    | "URL_CHANGED"
-    | "DOCUMENT_CREATED"
+export type DomSignalType =
     | "EDITOR_READY"
+    | "DOCUMENT_CREATED"
+    | "URL_CHANGED"
     | "CONTENT_INSERTED"
-    | "TITLE_SET"
     | "UNEXPECTED_NAVIGATION"
-    | "DOM_STALE"
-    | "TAB_RELOADED"
     | "TIMEOUT"
-    | "ERROR";
+    | "DOM_STALE";
 
-    url?: string;
-    documentId?: string;
-    title?: string;
-    editorReady?: boolean;
-    contentLength?: number;
+export interface DomSignal {
+    type: DomSignalType;
     timestamp: number;
-};
+    payload?: {
+        url?: string;
+        content_length?: number;
+        editor_selector?: string;
+    };
+}
+
+export interface DomSignalsReport {
+    signals: DomSignal[];
+    final_url: string;
+    editor_detected: boolean;
+    content_length: number;
+}

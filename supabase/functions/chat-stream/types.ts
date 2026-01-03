@@ -1,5 +1,5 @@
 
-import { DOMSignal } from "./dom_signals.ts";
+import { DomSignalsReport } from "./dom_signals.ts";
 
 export interface ExecutionResult {
     success: boolean;       // Computed from status === 'SUCCESS'
@@ -10,7 +10,7 @@ export interface ExecutionResult {
     url_before: string;
     url_after: string;
     title_after: string;
-    dom_signals: DOMSignal[];
+    dom_signals: DomSignalsReport;
     reason?: string;
     originalResponse?: any;
     retryable?: boolean;

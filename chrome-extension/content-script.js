@@ -495,47 +495,51 @@ async function handleInsertContent(selector, value, format = "text") {
     element.focus();
 
     // STRICT DOM SIGNAL GENERATION
-    const domSignals = [];
+    // STRICT DOM SIGNAL GENERATION
+    const signals = [];
     const timestamp = Date.now();
     const currentUrl = window.location.href;
 
     // 1. SIGNAL: EDITOR_READY
     if (element) {
-      domSignals.push({
-        signal: "EDITOR_READY",
-        editorReady: true,
-        timestamp
+      signals.push({
+        type: "EDITOR_READY",
+        timestamp,
+        payload: { editor_selector: element.tagName }
       });
     }
 
-    // 2. SIGNAL: DOCUMENT_CREATED (Google Docs Specific)
+    // 2. SIGNAL: DOCUMENT_CREATED
     if (currentUrl.includes("/document/d/") && !currentUrl.endsWith("/u/0")) {
-      // Extract ID
-      const match = currentUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      const docId = match ? match[1] : null;
-
-      domSignals.push({
-        signal: "DOCUMENT_CREATED",
-        url: currentUrl,
-        documentId: docId,
-        timestamp
+      signals.push({
+        type: "DOCUMENT_CREATED",
+        timestamp,
+        payload: { url: currentUrl }
       });
     } else if (currentUrl.endsWith("/u/0") || currentUrl.includes("/document/create")) {
-      domSignals.push({
-        signal: "UNEXPECTED_NAVIGATION",
-        url: currentUrl,
-        timestamp
+      signals.push({
+        type: "UNEXPECTED_NAVIGATION",
+        timestamp,
+        payload: { url: currentUrl }
       });
     }
 
     // 3. SIGNAL: CONTENT_INSERTED
     if (value.length > 0) {
-      domSignals.push({
-        signal: "CONTENT_INSERTED",
-        contentLength: value.length,
-        timestamp
+      signals.push({
+        type: "CONTENT_INSERTED",
+        timestamp,
+        payload: { content_length: value.length }
       });
     }
+
+    // CONSTRUCT REPORT
+    const report = {
+      signals: signals,
+      final_url: currentUrl,
+      editor_detected: !!element,
+      content_length: value.length
+    };
 
     if (isGoogleDocs) {
       Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
@@ -559,7 +563,7 @@ async function handleInsertContent(selector, value, format = "text") {
         return {
           success: true,
           method: "clipboard_paste",
-          dom_signals: domSignals
+          dom_signals: report
         };
 
       } catch (e) {
@@ -576,7 +580,7 @@ async function handleInsertContent(selector, value, format = "text") {
       return {
         success: true,
         method: "execCommand",
-        dom_signals: signals
+        dom_signals: report
       };
     }
 
@@ -588,14 +592,14 @@ async function handleInsertContent(selector, value, format = "text") {
       return {
         success: true,
         method: "direct_set",
-        dom_signals: signals
+        dom_signals: report
       };
     } else {
       element.innerHTML = value;
       return {
         success: true,
         method: "innerHTML",
-        dom_signals: signals
+        dom_signals: report
       };
     }
 

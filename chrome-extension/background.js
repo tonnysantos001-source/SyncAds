@@ -723,21 +723,30 @@ async function processCommand(cmd) {
       currentWindow: true,
     });
 
-    const domSignals = response?.dom_signals || [];
+    // STRICT VALIDATION (DomSignalsReport support)
+    const domReport = response?.dom_signals || { signals: [], final_url: updatedTab?.url || "unknown" };
+    const signals = Array.isArray(domReport.signals) ? domReport.signals : [];
+
     let status = "success";
     let retryable = false;
     let failureReason = null;
 
-    // STRICT VALIDATION
-    if (Array.isArray(domSignals)) {
-      if (domSignals.some(s => s.signal === "UNEXPECTED_NAVIGATION")) {
-        status = "failed";
-        failureReason = "Executor abortado: navegação inesperada detectada";
-      } else if (cmd.type === "insert_content" && !domSignals.some(s => s.signal === "EDITOR_READY")) {
-        status = "failed";
-        retryable = true;
-        failureReason = "Editor não pronto";
-      }
+    // 1. URL CHECK
+    const finalUrl = (domReport.final_url || updatedTab?.url || "").replace(/\/$/, "");
+    if (finalUrl.endsWith("/u/0")) {
+      status = "failed";
+      failureReason = "Redirected to Google Docs home (/u/0)";
+      signals.push({ type: "UNEXPECTED_NAVIGATION", timestamp: Date.now(), payload: { url: "/u/0" } });
+    }
+
+    // 2. SIGNAL CHECK
+    if (signals.some(s => s.type === "UNEXPECTED_NAVIGATION")) {
+      status = "failed";
+      failureReason = "Executor abortado: navegação inesperada detectada";
+    } else if (cmd.type === "insert_content" && !signals.some(s => s.type === "EDITOR_READY")) {
+      status = "failed";
+      retryable = true;
+      failureReason = "Editor não pronto";
     }
 
     const confirmationData = {

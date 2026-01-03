@@ -1,3 +1,4 @@
+
 import { ExecutionResult } from "./types.ts";
 
 export class RetryPolicy {
@@ -9,33 +10,37 @@ export class RetryPolicy {
         if (attemptCount >= this.MAX_RETRIES) return false;
 
         // Strict Signal Analysis for Non-Retryable Conditions
-        const signals = result.dom_signals || [];
+        const domReport = result.dom_signals;
+        const signals = domReport?.signals || [];
+        const rawUrl = domReport?.final_url || result.url_after || "";
+        const finalUrl = rawUrl.replace(/\/$/, "");
 
         // 1. NEVER RETRY UNEXPECTED NAVIGATION
-        if (signals.some(s => s.signal === "UNEXPECTED_NAVIGATION")) return false;
+        if (signals.some(s => s.type === "UNEXPECTED_NAVIGATION")) return false;
 
         // 2. NEVER RETRY IF URL INVALID
-        if (result.url_after && result.url_after.endsWith("/u/0")) return false;
+        if (finalUrl.endsWith("/u/0")) return false;
 
         // 3. ALLOW RETRY CONDITIONS
         if (result.retryable) return true; // Explicitly marked by Executor
-        if (signals.some(s => s.signal === "TIMEOUT")) return true;
-        if (signals.some(s => s.signal === "DOM_STALE")) return true;
+        if (signals.some(s => s.type === "TIMEOUT")) return true;
+        if (signals.some(s => s.type === "DOM_STALE")) return true;
 
         // Default to false if no specific retry condition met
         return false;
     }
 
     public static getNewStrategy(result: ExecutionResult, originalCommandType: string): string {
-        const signals = result.dom_signals || [];
+        const domReport = result.dom_signals;
+        const signals = domReport?.signals || [];
 
         // 1. EDITOR NOT READY
-        if (signals.some(s => s.signal === "EDITOR_READY" && s.editorReady === false) || result.reason === "Editor não pronto") {
+        if (signals.some(s => s.type === "EDITOR_READY" && s.payload?.editor_selector === undefined) || result.reason === "Editor não pronto") {
             return "O editor não estava pronto. Tente aumentar o tempo de espera (wait) antes de interagir ou verifique se há popups bloqueando.";
         }
 
         // 2. TIMEOUT
-        if (signals.some(s => s.signal === "TIMEOUT")) {
+        if (signals.some(s => s.type === "TIMEOUT")) {
             return "Ocorreu timeout. A página está lenta. Aumente drasticamente os tempos de espera.";
         }
 
