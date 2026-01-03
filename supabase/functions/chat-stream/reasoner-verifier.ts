@@ -2,7 +2,7 @@
 import { ExecutionResult, ReasonerOutput, VerifierOutput } from "./types.ts";
 import { RetryPolicy } from "./retry-policy.ts";
 
-export const VERIFIER_PROMPT = \`
+export const VERIFIER_PROMPT = `
 # SYSTEM PROMPT: THE VERIFIER (Quality Assurance Agent)
 
 Você é o Verificador Técnico do SyncAds.
@@ -34,7 +34,7 @@ Para marcar como SUCCESS, você precisa de evidência:
   "new_strategy_hint": "Dica para o Planner se RETRY (ex: 'Use insert_content em vez de type')."
 }
 \`\`\`
-\`;
+`;
 
 export class ReasonerVerifier {
     public static async verify(
@@ -53,7 +53,7 @@ export class ReasonerVerifier {
 
         // A. URL Validation
         if (finalUrl.endsWith("/u/0")) {
-             return {
+            return {
                 status: "BLOCKED",
                 reason: "URL inválida retornada (/u/0). O documento não foi criado ou salvo corretamente.",
                 final_message_to_user: "Falha na criação do documento: URL inválida detectada."
@@ -62,31 +62,31 @@ export class ReasonerVerifier {
 
         // B. Intent Validation vs Signals
         const intent = originalIntent.intent;
-        
+
         if (intent === "create_document") {
-             // Rule: Missing DOCUMENT_CREATED -> FAILURE
-             if (!signals.some(s => s.type === "DOCUMENT_CREATED")) {
+            // Rule: Missing DOCUMENT_CREATED -> FAILURE
+            if (!signals.some(s => s.type === "DOCUMENT_CREATED")) {
                 return {
                     status: "FAILURE",
                     reason: "Document not confirmed (Missing DOCUMENT_CREATED signal)",
                     final_message_to_user: "Falha: O documento não foi confirmado como criado."
                 };
-             }
-             // Rule: Missing EDITOR_READY -> RETRY
-             if (!signals.some(s => s.type === "EDITOR_READY")) {
-                 return {
-                     status: "RETRY",
-                     reason: "Editor not ready",
-                     new_strategy_hint: "Aguardar mais tempo ou verificar seletores do editor."
-                 };
-             }
+            }
+            // Rule: Missing EDITOR_READY -> RETRY
+            if (!signals.some(s => s.type === "EDITOR_READY")) {
+                return {
+                    status: "RETRY",
+                    reason: "Editor not ready",
+                    new_strategy_hint: "Aguardar mais tempo ou verificar seletores do editor."
+                };
+            }
         }
 
         if (!result.success && !result.retryable) {
             return {
                 status: "FAILURE",
-                reason: `Erro fatal reportado pelo executor: ${ result.reason || "Erro desconhecido" } `,
-                final_message_to_user: `❌ Falha ao executar ação.Motivo: ${ result.reason || "Erro desconhecido" } `
+                reason: `Erro fatal reportado pelo executor: ${result.reason || "Erro desconhecido"}`,
+                final_message_to_user: `❌ Falha ao executar ação. Motivo: ${result.reason || "Erro desconhecido"}`
             };
         }
 
@@ -94,16 +94,16 @@ export class ReasonerVerifier {
         const messages = [
             { role: "system", content: VERIFIER_PROMPT },
             {
-                role: "user", content: \`
-INTENÇÃO ORIGINAL: \${JSON.stringify(originalIntent)}
+                role: "user", content: `
+INTENÇÃO ORIGINAL: ${JSON.stringify(originalIntent)}
 
 RESULTADO DA EXECUÇÃO:
-\${JSON.stringify(result, null, 2)}
+${JSON.stringify(result, null, 2)}
 
-TENTATIVAS: \${attemptCount}
+TENTATIVAS: ${attemptCount}
 
 Decida o status.
-\` }
+` }
         ];
 
         try {
@@ -112,7 +112,7 @@ Decida o status.
             // Enrich Retry Strategy from Policy
             if (verification.status === "RETRY") {
                 const policyHint = RetryPolicy.getNewStrategy(result, result.command_type);
-                verification.new_strategy_hint = \`\${verification.new_strategy_hint || ""} [AUTO-POLICY: \${policyHint}]\`;
+                verification.new_strategy_hint = `${verification.new_strategy_hint || ""} [AUTO-POLICY: ${policyHint}]`;
             }
 
             return verification;
