@@ -685,7 +685,22 @@ async function processCommand(cmd) {
               args: [params.value]
             });
 
-            // 2. Attach Debugger & Send Paste (Ctrl+V)
+            // 2. Ensure FOCUS on Editor (Critical for Google Docs)
+            await chrome.scripting.executeScript({
+              target: target,
+              func: () => {
+                const editor = document.querySelector('.kix-canvas-tile-content') ||
+                  document.querySelector('[contenteditable="true"]') ||
+                  document.body;
+                if (editor) {
+                  editor.focus();
+                  // Dispatch explicit focus event just in case
+                  editor.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                }
+              }
+            });
+
+            // 3. Attach Debugger & Send Paste (Ctrl+V)
             try { await chrome.debugger.attach(target, "1.3"); } catch (e) { /* Ignore if attached */ }
 
             Logger.info("⌨️ Sending Ctrl+V...");
