@@ -489,103 +489,185 @@ async function handleDomAction(action, params = {}) {
 }
 
 /**
- * STRICT DETECTOR: Google Docs Creation
- * User Requirement: URL + Title + Editor
+ * CANONICAL DETECTOR: Google Docs Creation with DOM Stability
+ * 
+ * CRITICAL REQUIREMENTS:
+ * 1. URL matches /document/d/{docId}/edit
+ * 2. Title !== "Google Docs" (not in loading state)
+ * 3. Editor ready (.kix-canvas-tile-content OR [contenteditable])
+ * 4. DOM STABLE (no mutations for 1 second)
+ * 
+ * Emits: DOCUMENT_CREATED_CONFIRMED signal
  */
-async function detectGoogleDocsCreated(timeout = 8000) {
-  Logger.info("🕵️ Starting Strict Google Docs Detection...");
+async function detectGoogleDocsCreated(timeout = 10000) {
+  Logger.info("🕵️ Starting CANONICAL Google Docs Detection with DOM Stability Check...");
 
   const startTime = Date.now();
 
   return new Promise((resolve) => {
-    // Immediate check
-    const check = () => {
+    let stabilityTimer = null;
+    let lastMutationTime = Date.now();
+    const STABILITY_THRESHOLD = 1000; // 1 second without mutations
+
+    // Check all conditions
+    const checkConditions = () => {
       const url = window.location.href;
       const title = document.title;
 
       // 1. URL Check (Regex)
       const urlOk = /^https:\/\/docs\.google\.com\/document\/d\/[a-zA-Z0-9_-]+\/edit/.test(url);
 
-      // 2. Title Check (Relaxed)
-      // Accept "Untitled document - Google Docs" or "Documento sem nome - Google Docs"
+      // 2. Title Check (Relaxed for i18n)
       // Reject ONLY exact "Google Docs" (Loading state) or empty
       const titleOk = title !== "Google Docs" && title.trim().length > 0;
 
       // 3. Editor Check
       const editorCanvas = document.querySelector('.kix-canvas-tile-content');
       const contentEditable = document.querySelector('[contenteditable="true"]');
-      const editorOk = !!(editorCanvas || contentEditable);
+      const editor = editorCanvas || contentEditable;
+      const editorOk = !!editor;
 
-      if (urlOk && titleOk && editorOk) {
-        Logger.success("✅ Google Docs Created & Verified!", { url, title });
-
-        // Return Signal
-        const signal = {
-          type: "DOCUMENT_CREATED",
-          timestamp: Date.now(),
-          payload: {
-            url,
-            title,
-            docId: url.split("/d/")[1]?.split("/")[0] || "unknown"
-          }
-        };
-
-        // Also check if editor is ready (which it is, by definition of editorOk)
-        const editorSignal = {
-          type: "EDITOR_READY",
-          timestamp: Date.now(),
-          payload: { editor_selector: editorCanvas ? "canavas" : "contenteditable" }
-        };
-
-        resolve({
-          success: true,
-          dom_signals: {
-            signals: [signal, editorSignal],
-            final_url: url,
-            editor_detected: true,
-            content_length: 0
-          }
-        });
-        return true;
-      }
-      return false;
+      return { urlOk, titleOk, editorOk, url, title, editor };
     };
 
-    if (check()) return;
+    // Final confirmation after DOM stability
+    const confirmCreation = (conditions) => {
+      Logger.success("✅ DOCUMENT_CREATED_CONFIRMED! (DOM Stable)", {
+        url: conditions.url,
+        title: conditions.title,
+      });
 
-    // Polling / MutationObserver
-    const observer = new MutationObserver(() => {
-      if (check()) {
-        observer.disconnect();
+      // Extract docId
+      const docId = conditions.url.split("/d/")[1]?.split("/")[0] || "unknown";
+
+      // CANONICAL SIGNAL
+      const confirmedSignal = {
+        type: "DOCUMENT_CREATED_CONFIRMED",
+        timestamp: Date.now(),
+        payload: {
+          url: conditions.url,
+          title: conditions.title,
+          docId: docId,
+          stabilityDuration: STABILITY_THRESHOLD,
+        },
+      };
+
+      // Editor ready signal
+      const editorSignal = {
+        type: "EDITOR_READY",
+        timestamp: Date.now(),
+        payload: {
+          editor_selector: conditions.editor.className || "contenteditable",
+        },
+      };
+
+      // Send signal to background
+      chrome.runtime.sendMessage({
+        type: "DOCUMENT_SIGNAL",
+        signal: confirmedSignal,
+      });
+
+      resolve({
+        success: true,
+        dom_signals: {
+          signals: [confirmedSignal, editorSignal],
+          final_url: conditions.url,
+          editor_detected: true,
+          content_length: 0,
+          stability_verified: true,
+        },
+      });
+    };
+
+    // Mutation observer for stability check
+    const stabilityObserver = new MutationObserver(() => {
+      lastMutationTime = Date.now();
+
+      // Clear existing stability timer
+      if (stabilityTimer) {
+        clearTimeout(stabilityTimer);
+      }
+
+      // Check if basic conditions are met
+      const conditions = checkConditions();
+
+      if (conditions.urlOk && conditions.titleOk && conditions.editorOk) {
+        // Set new stability timer
+        stabilityTimer = setTimeout(() => {
+          // If we reach here, DOM has been stable for STABILITY_THRESHOLD
+          const timeSinceLastMutation = Date.now() - lastMutationTime;
+
+          if (timeSinceLastMutation >= STABILITY_THRESHOLD) {
+            stabilityObserver.disconnect();
+            confirmCreation(conditions);
+          }
+        }, STABILITY_THRESHOLD);
       }
     });
 
-    observer.observe(document, { subtree: true, childList: true, attributes: true }); // Observe everything
+    // Start observing
+    stabilityObserver.observe(document, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeOldValue: false,
+    });
 
-    // Timer limit
+    // Initial check (might already be ready)
+    const initialConditions = checkConditions();
+    if (
+      initialConditions.urlOk &&
+      initialConditions.titleOk &&
+      initialConditions.editorOk
+    ) {
+      // Start stability timer immediately
+      stabilityTimer = setTimeout(() => {
+        stabilityObserver.disconnect();
+        confirmCreation(initialConditions);
+      }, STABILITY_THRESHOLD);
+    }
+
+    // Overall timeout
     setTimeout(() => {
-      observer.disconnect();
+      stabilityObserver.disconnect();
+      if (stabilityTimer) clearTimeout(stabilityTimer);
+
       const currentUrl = window.location.href;
-      // If failed, check if it was blocked /u/0
+      const currentTitle = document.title;
+
+      // Check if redirected to home
       if (currentUrl.endsWith("/u/0") || currentUrl.includes("/u/0/")) {
+        Logger.error("❌ Redirected to Docs Home (/u/0) - Creation Failed");
         resolve({
           success: false,
+          error: "Redirected to Docs Home (/u/0)",
           dom_signals: {
-            signals: [{ type: "UNEXPECTED_NAVIGATION", timestamp: Date.now(), payload: { url: currentUrl } }],
+            signals: [
+              {
+                type: "UNEXPECTED_NAVIGATION",
+                timestamp: Date.now(),
+                payload: { url: currentUrl },
+              },
+            ],
             final_url: currentUrl,
-            editor_detected: false
-          }
+            editor_detected: false,
+          },
         });
       } else {
-        Logger.warn("❌ Google Docs Detection Timed Out", { url: currentUrl, title: document.title });
+        Logger.warn("❌ Google Docs Detection Timed Out (No Stability)", {
+          url: currentUrl,
+          title: currentTitle,
+        });
         resolve({
           success: false,
-          error: "Google Docs not confirmed (Timeout)",
+          error: "Google Docs not confirmed (Timeout - DOM unstable)",
           dom_signals: {
             signals: [],
             final_url: currentUrl,
-            editor_detected: false
-          }
+            editor_detected: !!document.querySelector(
+              '.kix-canvas-tile-content, [contenteditable="true"]'
+            ),
+          },
         });
       }
     }, timeout);

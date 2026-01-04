@@ -4,8 +4,8 @@
 // ============================================
 
 try {
-  importScripts('supabase.js', 'realtime-client.js');
-  console.log("✅ [IMPORTS] Supabase & Realtime scripts imported");
+  importScripts('supabase.js', 'realtime-client.js', 'action-router-client.js');
+  console.log("✅ [IMPORTS] Supabase, Realtime & Action Router Client imported");
 } catch (e) {
   console.error("❌ [IMPORTS] Failed to import scripts:", e);
 }
@@ -149,6 +149,12 @@ async function ensureUserInfo() {
   } catch (e) { console.warn("Failed to ensure user info", e); }
 }
 
+// HELPER: Generate Session ID for actions
+function generateSessionId() {
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+
 // ============================================
 // LOGGING UTILITIES
 // ============================================
@@ -240,6 +246,116 @@ async function handleContextInvalidation() {
 }
 
 // ============================================
+// DOCUMENT SIGNAL LISTENER
+// ============================================
+/**
+ * Listens for DOCUMENT_CREATED_CONFIRMED signal from content script
+ * 
+ * This is the CANONICAL way to know when a Google Docs document
+ * is fully created and stable.
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "DOCUMENT_SIGNAL") {
+    // Handle async processing
+    (async () => {
+      const signal = message.signal;
+
+      Logger.success("📨 [DOCUMENT_SIGNAL] Received canonical signal:", {
+        type: signal.type,
+        url: signal.payload?.url,
+        docId: signal.payload?.docId,
+      });
+
+      // Update global DOM signals state
+      if (globalThis.domSignals) {
+        if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
+          globalThis.domSignals.editorReady = true;
+          globalThis.domSignals.documentUrl = signal.payload.url;
+          globalThis.domSignals.navigationComplete = true;
+          globalThis.domSignals.lastSignal = signal;
+        }
+      }
+
+      // ============================================
+      // PERSIST TO SUPABASE
+      // ============================================
+      if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
+        Logger.info("💾 [DOCUMENT_SIGNAL] Persisting to Supabase...");
+
+        try {
+          // Find the most recent command that's pending or processing
+          // This signal likely corresponds to a NAVIGATE command
+          const commandsResponse = await fetch(
+            `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=in.(pending,processing)&order=created_at.desc&limit=1`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${state.accessToken}`,
+                apikey: CONFIG.supabaseAnonKey,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (commandsResponse.ok) {
+            const commands = await commandsResponse.json();
+
+            if (commands.length > 0) {
+              const command = commands[0];
+
+              Logger.info(`💾 [DOCUMENT_SIGNAL] Updating command ${command.id}...`);
+
+              // Update command metadata with signal
+              const updateResponse = await fetch(
+                `${CONFIG.restUrl}/extension_commands?id=eq.${command.id}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    Authorization: `Bearer ${state.accessToken}`,
+                    apikey: CONFIG.supabaseAnonKey,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=representation",
+                  },
+                  body: JSON.stringify({
+                    metadata: {
+                      ...(command.metadata || {}),
+                      document_signal: signal,
+                      document_confirmed_at: new Date().toISOString(),
+                    },
+                    updated_at: new Date().toISOString(),
+                  }),
+                }
+              );
+
+              if (updateResponse.ok) {
+                Logger.success(`✅ [DOCUMENT_SIGNAL] Signal persisted to command ${command.id}`);
+              } else {
+                const errorText = await updateResponse.text();
+                Logger.error(`❌ [DOCUMENT_SIGNAL] Failed to persist signal:`, null, {
+                  status: updateResponse.status,
+                  error: errorText,
+                });
+              }
+            } else {
+              Logger.warn("⚠️ [DOCUMENT_SIGNAL] No recent command found to attach signal");
+            }
+          }
+        } catch (persistError) {
+          Logger.error("❌ [DOCUMENT_SIGNAL] Error persisting signal:", persistError);
+        }
+      }
+
+      sendResponse({ received: true, timestamp: Date.now() });
+    })();
+
+    return true; // Keep channel open for async response
+  }
+});
+
+Logger.info("✅ [DOCUMENT_SIGNAL] Listener registered");
+
+
+// ============================================
 // COMMAND POLLING (NEW)
 // ============================================
 async function checkPendingCommands() {
@@ -249,60 +365,146 @@ async function checkPendingCommands() {
   }
 
   try {
-    // Tentar recuperar user info se faltar
+    // ============================================
+    // 1. TOKEN VALIDATION & REFRESH
+    // ============================================
+
+    // Check if token is expired or about to expire
+    if (state.tokenExpiresAt) {
+      const expiresAt = new Date(state.tokenExpiresAt).getTime();
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+
+      // If expired or expiring in less than 5 minutes
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        Logger.warn("⏰ Token expired or expiring soon, refreshing...", {
+          expiresAt: state.tokenExpiresAt,
+          timeUntilExpiry: Math.floor(timeUntilExpiry / 1000) + "s",
+        });
+
+        try {
+          await refreshAccessToken();
+          Logger.success("✅ Token refreshed successfully");
+        } catch (refreshError) {
+          Logger.error("❌ Token refresh failed", refreshError);
+          // Continue anyway - might still work
+        }
+      }
+    }
+
+    // ============================================
+    // 2. ENSURE USER INFO
+    // ============================================
     await ensureUserInfo();
 
-    // ✅ AUDIT LOGS - AUTH CHECK
+    // ============================================
+    // 3. AUDIT LOGGING
+    // ============================================
     const userId = state.user?.id || state.userId || "N/A";
     const hasToken = !!state.accessToken;
-    console.log(`🔍 [AUDIT] Auth: HasToken=${hasToken}, UserId=${userId}`);
+
+    console.log(`🔍 [AUDIT] Auth State:`, {
+      hasToken,
+      userId,
+      deviceId: state.deviceId,
+      tokenExpiry: state.tokenExpiresAt,
+    });
 
     const url = `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=eq.pending&order=created_at.asc&limit=10`;
 
-    // ✅ AUDIT LOGS
-    console.log(`🔍 [AUDIT] Checking commands for deviceId: ${state.deviceId}`);
     console.log(`🔍 [AUDIT] Query URL: ${url}`);
 
-    // Buscar comandos PENDING para este dispositivo
+    // ============================================
+    // 4. FETCH PENDING COMMANDS
+    // ============================================
     const response = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${state.accessToken}`,
         apikey: CONFIG.supabaseAnonKey,
         "Content-Type": "application/json",
+        "Prefer": "return=representation", // Force full response
       },
     });
 
-    // ✅ AUDIT LOGS
-    console.log(`🔍 [AUDIT] Response status: ${response.status}`);
+    console.log(`🔍 [AUDIT] Response:`, {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText,
+    });
 
+    // ============================================
+    // 5. RLS & AUTH ERROR DETECTION
+    // ============================================
     if (!response.ok) {
       const errorText = await response.text();
-      Logger.error(`Failed to fetch commands: ${response.status}`, null, { errorText });
+
+      // Check for RLS or Auth issues
+      if (response.status === 401 || response.status === 403) {
+        Logger.error("🚨 RLS or Auth issue detected!", {
+          status: response.status,
+          error: errorText,
+        });
+
+        // Try to refresh token and retry
+        Logger.info("🔄 Attempting token refresh...");
+        try {
+          await refreshAccessToken();
+          Logger.success("✅ Token refreshed, will retry next poll");
+        } catch (e) {
+          Logger.error("❌ Token refresh failed", e);
+        }
+        return;
+      }
+
+      // Other errors
+      Logger.error(`Failed to fetch commands: ${response.status}`, null, {
+        errorText,
+      });
       return;
     }
 
+    // ============================================
+    // 6. PARSE & PROCESS COMMANDS
+    // ============================================
     const commands = await response.json();
 
-    // ✅ AUDIT LOGS
-    console.log(`🔍 [AUDIT] Commands returned:`, commands);
-    console.log(`🔍 [AUDIT] Commands count: ${commands.length}`);
+    console.log(`🔍 [AUDIT] Commands found: ${commands.length}`);
+
+    if (commands.length > 0) {
+      console.log(`🔍 [AUDIT] Command details:`, commands.map(c => ({
+        id: c.id,
+        type: c.type,
+        status: c.status,
+        created_at: c.created_at,
+      })));
+    }
 
     if (commands.length === 0) {
-      console.warn(`⚠️ No pending commands found for deviceId: ${state.deviceId}`);
+      // This is OK - just no commands to process
+      // Don't log as warning to avoid noise
       return;
     }
 
     Logger.info(`📦 Found ${commands.length} pending commands`);
 
-    // Processar cada comando
+    // Process each command
     for (const cmd of commands) {
       await processCommand(cmd);
     }
   } catch (error) {
     Logger.error("Error checking commands", error);
+
+    // If network error, log details
+    if (error.message?.includes("fetch")) {
+      Logger.error("Network error during command polling", error, {
+        accessToken: state.accessToken ? "present" : "missing",
+        deviceId: state.deviceId,
+      });
+    }
   }
 }
+
 
 async function processCommand(cmd) {
   Logger.info("Processing command", {
@@ -479,374 +681,62 @@ async function processCommand(cmd) {
 
 
 
-    // 3. EXECUTE ACTION
-    let response = null;
+    // ============================================
+    // 3. EXECUTE ACTION VIA ACTION ROUTER
+    // ============================================
+    /**
+     * CRITICAL ARCHITECTURAL REQUIREMENT:
+     * ALL actions MUST go through the Action Router.
+     * NO native execution allowed.
+     * 
+     * This enforces the 3-AGENT architecture:
+     * - Planner generates actions
+     * - Action Router executes
+     * - Executor reports
+     */
 
-    // 3A. Se for NAVIGATE, executar NATIVAMENTE no background (evita erro de conexão)
-    if (action === "NAVIGATE") {
-      Logger.info("🌐 Executing NAVIGATE natively in background...", { url: params.url });
+    Logger.info(`🎯 [EXECUTE] Building ActionPayload for: ${cmd.type}`);
 
-      let targetTabId;
-
-      if (activeTab?.id) {
-        // Atualizar tab existente
-        await chrome.tabs.update(activeTab.id, { url: params.url });
-        targetTabId = activeTab.id;
-      } else {
-        // Criar nova tab se não existir
-        const newTab = await chrome.tabs.create({ url: params.url, active: true });
-        targetTabId = newTab.id;
-      }
-
-      Logger.info("⏳ Waiting for navigation to complete...", { targetTabId });
-      await waitForNavigation(targetTabId, 30000); // 30s timeout
-
-      // STRICT VERIFICATION FOR GOOGLE DOCS
-      // User Req: "Executor NÃO deve marcar sucesso após NAVIGATE... Detectar DOCUMENT_CREATED"
-      const currentTab = await chrome.tabs.get(targetTabId);
-
-      if (currentTab.url && currentTab.url.includes("docs.google.com/document/")) {
-        Logger.info("🕵️ Google Docs detected (NAVIGATE). Verifying creation...");
-
-        // Give a moment for content-script to init (new page load)
-        await new Promise(r => setTimeout(r, 2000));
-
-        try {
-          // Poll for CHECK_DOC_STATUS
-          const verifyResponse = await new Promise((resolve, reject) => {
-            chrome.tabs.sendMessage(targetTabId, {
-              type: "EXECUTE_DOM_ACTION",
-              action: "CHECK_DOC_STATUS",
-              params: { timeout: 8000 }
-            }, (resp) => {
-              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-              else resolve(resp);
-            });
-          });
-
-          if (verifyResponse && verifyResponse.success) {
-            Logger.success("✅ Google Docs Verified Created!");
-
-            // Correction 3: Update Global State Source of Truth
-            if (globalThis.domSignals) {
-              globalThis.domSignals.editorReady = true;
-              globalThis.domSignals.documentUrl = currentTab.url;
-              globalThis.domSignals.navigationComplete = true;
-            }
-
-            response = {
-              success: true,
-              native: true,
-              dom_signals: verifyResponse.dom_signals,
-              url: currentTab.url,
-              title: currentTab.title
-            };
-          } else {
-            throw new Error(verifyResponse?.error || "Docs Verification Failed");
-          }
-        } catch (e) {
-          console.warn("Verify failed:", e);
-
-          // Check if blocked by /u/0
-          const freshTab = await chrome.tabs.get(targetTabId);
-          const isHome = freshTab.url.includes("/u/0");
-
-          response = {
-            success: false,
-            native: true,
-            url: freshTab.url,
-            error: isHome ? "Redirected to Docs Home (/u/0)" : "Document not confirmed: " + e.message,
-            dom_signals: {
-              signals: isHome ? [{ type: "UNEXPECTED_NAVIGATION", timestamp: Date.now(), payload: { url: freshTab.url } }] : [],
-              final_url: freshTab.url,
-              editor_detected: false
-            }
-          };
-        }
-      } else {
-        // Regular Navigation
-        Logger.success("✅ Navigation completed natively");
-        response = { success: true, native: true, url: currentTab.url };
-      }
-    }
-    else {
-      // Pular se for ação nativa já resolvida (NAVIGATE ou SCREENSHOT_NATIVE)
-      if (action === "SCREENSHOT_NATIVE") {
-        Logger.success("✅ Screenshot captured natively, skipping content script");
-      }
-      else {
-        if (!activeTab) throw new Error("Need active tab for this command");
-
-        // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
-        // 3B. Outros comandos (CLICK, FILL, SCAN) vão para o content script
-        // 3B. NATIVE DEBUGGER TYPING (Google Docs)
-        if (activeTab && action === "DOM_TYPE" && activeTab.url && activeTab.url.includes("docs.google.com")) {
-
-          // GUARDRAIL: Auto-Upgrade to Super Paste if text is long
-          if (params.value && params.value.length > 50) {
-            Logger.warn(`🚀 Auto-Upgrading 'DOM_TYPE' to 'DOM_INSERT' (Length: ${params.value.length} chars).`);
-            action = "DOM_INSERT";
-            // Fails through to DOM_INSERT block below
-          } else {
-            // Normal Typing (Short text)
-            Logger.info("⌨️ Google Docs detected: Switching to NATIVE DEBUGGER typing");
-            const target = { tabId: activeTab.id };
-            try {
-              // 1. Attach Debugger (Safely)
-              try { await chrome.debugger.attach(target, "1.3"); } catch (e) { /* Ignore */ }
-
-              // 2. Type characters (Smart Markdown Parsing)
-              const content = params.value || "";
-              const lines = content.split('\n');
-
-              for (const line of lines) {
-                let textToType = line;
-                let shortcut = null;
-
-                // Detect Markdown Headers & Lists
-                if (line.startsWith("# ")) {
-                  shortcut = { code: "Digit1", modifiers: 6 };
-                  textToType = line.substring(2);
-                } else if (line.startsWith("## ")) {
-                  shortcut = { code: "Digit2", modifiers: 6 };
-                  textToType = line.substring(3);
-                } else if (line.startsWith("### ")) {
-                  shortcut = { code: "Digit3", modifiers: 6 };
-                  textToType = line.substring(4);
-                } else if (line.startsWith("- ") || line.startsWith("* ")) {
-                  shortcut = { code: "Digit8", modifiers: 10 };
-                  textToType = line.substring(2);
-                }
-
-                // Execute Shortcut
-                if (shortcut) {
-                  await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                    type: "keyDown", modifiers: shortcut.modifiers, code: shortcut.code, key: "Symbol"
-                  });
-                  await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                    type: "keyUp", modifiers: shortcut.modifiers, code: shortcut.code, key: "Symbol"
-                  });
-                  await new Promise(r => setTimeout(r, 10));
-                }
-
-                // Type Text
-                for (const char of textToType) {
-                  await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                    type: "keyDown", text: char, unmodifiedText: char, key: char, code: `Key${char.toUpperCase()}`
-                  });
-                  await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                    type: "keyUp", key: char, code: `Key${char.toUpperCase()}`
-                  });
-                  await new Promise(r => setTimeout(r, 8));
-                }
-
-                // New Line
-                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                  type: "keyDown", code: "Enter", key: "Enter"
-                });
-                await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-                  type: "keyUp", code: "Enter", key: "Enter"
-                });
-
-                await new Promise(r => setTimeout(r, 8));
-              }
-
-              response = {
-                success: true,
-                native: true,
-                url: activeTab.url,
-                title: activeTab.title
-              };
-              Logger.success("✅ Typed natively via Debugger API", { url: activeTab.url });
-
-            } catch (dbgError) {
-              Logger.error("Debugger typing failed", dbgError);
-            } finally {
-              // 3. Detach
-              try { await chrome.debugger.detach(target); } catch (e) { /* Ignore */ }
-            }
-          }
-        }
-
-        // 3C. SUPER PASTE (DOM_INSERT) handler
-        if (!response && action === "DOM_INSERT") {
-          Logger.info("📋 Executing DOM_INSERT (Super Paste)...");
-          const target = { tabId: activeTab.id };
-          try {
-
-            // 1. Write to Clipboard (using Scripting API)
-            await chrome.scripting.executeScript({
-              target: target,
-              func: (htmlContent) => {
-                const blob = new Blob([htmlContent], { type: 'text/html' });
-                const item = new ClipboardItem({ 'text/html': blob });
-                navigator.clipboard.write([item]);
-              },
-              args: [params.value]
-            });
-
-            // 2. Ensure FOCUS on Editor (Critical for Google Docs)
-            await chrome.scripting.executeScript({
-              target: target,
-              func: () => {
-                const editor = document.querySelector('.kix-canvas-tile-content') ||
-                  document.querySelector('[contenteditable="true"]') ||
-                  document.body;
-                if (editor) {
-                  editor.focus();
-                  // Dispatch explicit focus event just in case
-                  editor.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
-                }
-              }
-            });
-
-            // 3. Attach Debugger & Send Paste (Ctrl+V)
-            try { await chrome.debugger.attach(target, "1.3"); } catch (e) { /* Ignore if attached */ }
-
-            Logger.info("⌨️ Sending Ctrl+V...");
-            await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-              type: "keyDown", modifiers: 2, code: "KeyV", key: "v" // 2 = Ctrl
-            });
-            await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
-              type: "keyUp", modifiers: 2, code: "KeyV", key: "v"
-            });
-
-            await new Promise(r => setTimeout(r, 500)); // Wait for paste
-
-            response = {
-              success: true,
-              native: true,
-              url: activeTab.url,
-              title: activeTab.title
-            };
-            Logger.success("✅ Pasted via Clipboard + Debugger", { url: activeTab.url });
-
-          } catch (pasteError) {
-            Logger.error("Super Paste failed", pasteError);
-            throw pasteError;
-          } finally {
-            // 3. Detach (Always)
-            try { await chrome.debugger.detach(target); } catch (e) { /* Ignore */ }
-          }
-        }
-
-        if (!response && !["NAVIGATE", "SCREENSHOT_NATIVE"].includes(action)) { // Only proceed if not handled natively
-          if (!activeTab) throw new Error("Need active tab for this command");
-
-          Logger.info("Sending message to content script", {
-            action,
-            params,
-            tabId: activeTab.id,
-          });
-
-          // Enviar comando para content-script com timeout
-          // Google Docs demora a carregar o script, então "Receiving end does not exist" é comum no início.
-          // RETRY ROBUSTO (20 tentativas x 1s = 20s de paciência)
-          let msgRetries = 20;
-
-          while (msgRetries > 0) {
-            try {
-              response = await new Promise((resolve, reject) => {
-                chrome.tabs.sendMessage(
-                  activeTab.id,
-                  {
-                    type: "EXECUTE_COMMAND", // Normalizando messagem para o content-script
-                    command: action,
-                    params: params,
-                  },
-                  async (resp) => {
-                    if (chrome.runtime.lastError) {
-                      const error = chrome.runtime.lastError.message;
-
-                      // Se for erro de conexão, rejeita com tipo específico para triggerar o retry
-                      if (error.includes("Receiving end does not exist") || error.includes("Could not establish connection")) {
-                        reject(new Error("CONNECTION_RETRY"));
-                      } else {
-                        // Outros erros são fatais
-                        reject(new Error(error));
-                      }
-                    } else {
-                      resolve(resp);
-                    }
-                  }
-                );
-              });
-
-              // Se chegou aqui, sucesso!
-              break;
-
-            } catch (err) {
-              // FORCE RETRY for ANY error during this phase (Docs is unstable during load)
-              if (msgRetries > 1) {
-                msgRetries--;
-                Logger.warn(`⏳ Content Script issue (${err.message})... Retrying in 1s. (${msgRetries} attempts left)`);
-                await new Promise(r => setTimeout(r, 1000));
-              } else {
-                Logger.error("❌ Exhausted retries for Content Script connection", err);
-                throw err; // Erro fatal ou esgotou tentativas
-              }
-            }
-          }
-          // Timeout implícito pela quantidade de retries do loop acima
-
-        }
-      }
-
-      // HANDLER ESPECÍFICO PARA SCAN_PAGE (Backend Side processing)
-      if (cmd.type === "SCAN_PAGE") {
-        Logger.info("📸 Capturing screenshot for SCAN_PAGE...");
-        try {
-          const screenshotBase64 = await chrome.tabs.captureVisibleTab(activeTab.windowId, { format: "png", quality: 80 });
-          const fileName = `${state.userId}/${Date.now()}_scan.png`;
-
-          // Upload to Supabase Storage
-          // Usar fetch direto para evitar problemas com lib
-          const blob = await (await fetch(screenshotBase64)).blob();
-
-          const uploadRes = await fetch(`${CONFIG.supabaseUrl}/storage/v1/object/screenshots/${fileName}`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${state.accessToken}`,
-              "apikey": CONFIG.supabaseAnonKey,
-              "Content-Type": "image/png"
-            },
-            body: blob
-          });
-
-          if (!uploadRes.ok) throw new Error("Upload failed: " + await uploadRes.text());
-
-          const screenshotUrl = `${CONFIG.supabaseUrl}/storage/v1/object/public/screenshots/${fileName}`;
-          Logger.success("📸 Screenshot uploaded: " + screenshotUrl);
-
-          // Anexar ao response
-          response.screenshotUrl = screenshotUrl;
-
-        } catch (screenError) {
-          Logger.error("Screenshot capture failed", screenError);
-          response.screenshotError = screenError.message;
-        }
-      }
-    }
-
-    Logger.success("Command executed successfully", { response });
-
-    // Aguardar navegação completar (mais tempo para NAVIGATE)
-    if (cmd.type === "NAVIGATE") {
-      Logger.info("Waiting for navigation to complete...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-
-    // Pegar informações ATUAIS da tab para confirmar execução
-    const [updatedTab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
+    // Build canonical action payload
+    const actionPayload = buildActionPayload(cmd, {
+      userId: state.userId,
+      sessionId: generateSessionId(),
+      conversationId: cmd.conversationId,
     });
 
-    // STRICT VALIDATION (DomSignalsReport support)
-    const domReport = response?.dom_signals || { signals: [], final_url: updatedTab?.url || "unknown" };
-    const signals = Array.isArray(domReport.signals) ? domReport.signals : [];
+    Logger.info(`🚀 [EXECUTE] Calling Action Router:`, actionPayload);
+
+    let response = null;
+
+    try {
+      // CALL ACTION ROUTER - The ONLY authorized way to execute actions
+      response = await callActionRouter(actionPayload, state.accessToken);
+
+      Logger.success(`✅ [EXECUTE] Action Router returned:`, {
+        action: response.action,
+        success: response.success,
+        verified: response.verification?.verified,
+        executionTime: response.executionTime,
+      });
+
+      // Validation: Response must have success field
+      if (!response.hasOwnProperty("success")) {
+        throw new Error("Invalid response from Action Router: missing 'success' field");
+      }
+
+    } catch (error) {
+      Logger.error(`❌ [EXECUTE] Action Router failed:`, error);
+
+      // Build error response
+      response = {
+        success: false,
+        action: actionPayload.action,
+        error: error.message || "Action Router execution failed",
+        executedAt: new Date().toISOString(),
+        executionTime: 0,
+        logs: [`Action Router error: ${error.message}`],
+      };
+    }
 
     let status = "success";
     let retryable = false;
