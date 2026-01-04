@@ -419,8 +419,21 @@ async function handleDomAction(action, params = {}) {
       case "WAIT":
         if (params.selector) {
           Logger.info(`⏳ Waiting for selector: ${params.selector} (Timeout: ${params.timeout}ms)`);
-          await waitForElement(params.selector, params.timeout || 10000);
-          return { success: true, verified: true };
+          try {
+            await waitForElement(params.selector, params.timeout || 10000);
+            return { success: true, verified: true };
+          } catch (e) {
+            // ROBUST FALLBACK FOR GOOGLE DOCS (I18n Safe)
+            if (window.location.href.includes("docs.google.com/document/")) {
+              Logger.info("⚠️ Selector wait failed in Docs. Trying robust editor check...");
+              const editor = document.querySelector('.kix-canvas-tile-content') || document.querySelector('[contenteditable="true"]');
+              if (editor) {
+                Logger.success("✅ Google Docs Editor confirmed (Robust Fallback)");
+                return { success: true, verified: true, note: "Fallback to Editor detection" };
+              }
+            }
+            throw e; // Rethrow if not docs or fallback failed
+          }
         } else {
           // Internal pause (fallback)
           await new Promise((resolve) => setTimeout(resolve, params.duration || 1000));
