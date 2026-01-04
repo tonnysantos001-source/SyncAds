@@ -432,9 +432,9 @@ async function processCommand(cmd) {
       const textVal = params.value || "";
       const isDocs = activeTab?.url?.includes("docs.google.com");
 
-      if (isDocs && textVal.length > 50) {
-        action = "DOM_INSERT"; // Force Super Paste for long text
-        Logger.info(`COORD: Routing '${cmd.type}' -> DOM_INSERT (Length: ${textVal.length} > 50)`);
+      if (isDocs) {
+        action = "DOM_INSERT"; // Force Super Paste for all Docs inputs (Robustness)
+        Logger.info(`COORD: Routing '${cmd.type}' -> DOM_INSERT (Docs Detected: Enforcing Super Paste)`);
       } else {
         action = "DOM_TYPE"; // Magic Text / Native Debugger
         Logger.info(`COORD: Routing '${cmd.type}' -> DOM_TYPE`, params);
