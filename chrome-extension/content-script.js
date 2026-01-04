@@ -593,12 +593,32 @@ async function handleInsertContent(selector, value, format = "text") {
       element = await waitForElement(selector, 5000).catch(() => null);
     }
 
+    // ROBUST FALLBACK FOR GOOGLE DOCS (I18n Safe)
+    if (window.location.href.includes("docs.google.com/document/")) {
+      // If specific selector failed (or we want to ensure we hit the editor)
+      if (!element) {
+        Logger.info("⚠️ Selector failed in Google Docs. Attempting robust fallback...");
+        // Try Canvas (Google Docs Rendering Engine)
+        element = document.querySelector('.kix-canvas-tile-content');
+        // Try Content Editable (Fallback)
+        if (!element) element = document.querySelector('[contenteditable="true"]');
+      }
+
+      // Ensure focus for clipboard events
+      if (element) {
+        Logger.info("🎯 Focused Google Docs Editor (Robust Fallback)");
+        element.focus();
+      }
+    }
+
     // Fallback to active element requires valid focus
     if (!element) {
       element = document.activeElement;
     }
 
     if (!element) throw new Error("Target element for insertion not found");
+    // Ensure element is visible/interactive
+    element.focus();
 
     element.focus();
 
