@@ -1637,47 +1637,7 @@ function monitorStorageChanges() {
 // ============================================
 // MESSAGE LISTENER
 // ============================================
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  Logger.debug("Message received from background", { type: message.type });
-
-  switch (message.type) {
-    case "CHECK_AUTH":
-      detectAndSendToken()
-        .then((result) => sendResponse({ success: result }))
-        .catch((error) =>
-          sendResponse({ success: false, error: error.message }),
-        );
-      return true; // Async response
-
-    case "PING":
-      sendResponse({ success: true, message: "pong", timestamp: Date.now() });
-      return true;
-
-    case "GET_TOKEN":
-      const authInfo = findSupabaseAuthKey();
-      if (authInfo) {
-        const authDataRaw = authInfo.storage.getItem(authInfo.key);
-        if (authDataRaw) {
-          try {
-            const authData = JSON.parse(authDataRaw);
-            const validated = validateToken(authData);
-            sendResponse({ success: true, data: validated });
-          } catch (error) {
-            sendResponse({ success: false, error: "Failed to parse token" });
-          }
-        } else {
-          sendResponse({ success: false, error: "No auth data" });
-        }
-      } else {
-        sendResponse({ success: false, error: "No auth key found" });
-      }
-      return true;
-
-    default:
-      sendResponse({ success: false, error: "Unknown message type" });
-      return true;
-  }
-});
+// Duplicate listener removed
 
 // ============================================
 // STORAGE EVENT LISTENER
