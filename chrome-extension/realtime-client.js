@@ -1,14 +1,16 @@
-// ============================================
-// REALTIME CLIENT (WebSockets)
-// ============================================
-// Integrates with background.js state and CONFIG
+import { createClient } from './supabase.js';
 
-let realtimeClient = null;
-let realtimeChannel = null;
+// Module-level variables to hold references
+let state = null;
+let processCommand = null;
 
-async function initRealtimeConnection() {
+export async function initRealtimeConnection(appState, commandProcessor) {
+    // Update references if provided
+    if (appState) state = appState;
+    if (commandProcessor) processCommand = commandProcessor;
+
     // Verificar se temos credenciais
-    if (!state.accessToken || !state.deviceId) {
+    if (!state || !state.accessToken || !state.deviceId) {
         console.log("⚠️ [REALTIME] Missing credentials. Waiting for auth...");
         return;
     }
@@ -22,15 +24,11 @@ async function initRealtimeConnection() {
     try {
         console.log("🔌 [REALTIME] Initializing connection...");
 
-        // Access supabase from global scope (imported via importScripts)
-        const supabaseDef = self.supabase || window.supabase;
-
-        if (!supabaseDef || !supabaseDef.createClient) {
+        // Use imported createClient directly
+        if (!createClient) {
             console.error("❌ [REALTIME] Supabase JS library not loaded!");
             return;
         }
-
-        const { createClient } = supabaseDef;
 
         realtimeClient = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, {
             auth: {
@@ -91,7 +89,7 @@ async function initRealtimeConnection() {
     }
 }
 
-async function cleanupRealtime() {
+export async function cleanupRealtime() {
     if (realtimeChannel) {
         await realtimeClient.removeChannel(realtimeChannel);
         realtimeChannel = null;
@@ -101,6 +99,6 @@ async function cleanupRealtime() {
 
 // Hook into token refresh to reconnect realtime with new token
 // This function should be called by background.js when token refreshes
-async function restartRealtime() {
+export async function restartRealtime() {
     await initRealtimeConnection();
 }

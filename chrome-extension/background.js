@@ -3,12 +3,13 @@
 // Side Panel Architecture + Token Management
 // ============================================
 
-try {
-  importScripts('supabase.js', 'realtime-client.js', 'action-router-client.js');
-  console.log("✅ [IMPORTS] Supabase, Realtime & Action Router Client imported");
-} catch (e) {
-  console.error("❌ [IMPORTS] Failed to import scripts:", e);
-}
+import { createClient } from './supabase.js';
+import { initRealtimeConnection } from './realtime-client.js';
+import { callActionRouter, buildActionPayload } from './action-router-client.js';
+
+console.log("✅ [IMPORTS] Supabase, Realtime & Action Router Client imported");
+// Legacy try/catch block removed as static imports will throw syntax errors if they fail
+
 
 
 console.log(
@@ -221,16 +222,10 @@ async function handleContextInvalidation() {
 
       // Reiniciar heartbeat e polling
       startHeartbeat();
-      // Reiniciar heartbeat e polling
-      startHeartbeat();
       startKeepAlive();
 
       // REALTIME INIT
-      setTimeout(() => initRealtimeConnection(), 1000); // Delay safe
-
-
-      // REALTIME RECONNECT
-      setTimeout(() => initRealtimeConnection(), 1000);
+      setTimeout(() => initRealtimeConnection(state, processCommand), 1000); // Delay safe
 
       Logger.success("Context reconnected successfully");
       state.reconnectionAttempts = 0;
@@ -971,7 +966,7 @@ function startKeepAlive() {
   Logger.debug("Starting keep-alive, polling, and REALTIME...");
 
   // REALTIME START
-  initRealtimeConnection();
+  initRealtimeConnection(state, processCommand);
 
 
   // Main keep-alive interval (ping to stay awake)
@@ -1730,7 +1725,7 @@ async function handleAsyncInternal(request) {
           };
 
           Logger.info("Registering device in Supabase...", {
-            deviceId: state.deviceId.substring(0, 12) + "...",
+            deviceId: (state.deviceId || "unknown").substring(0, 12) + "...",
             userId: state.userId,
           });
 

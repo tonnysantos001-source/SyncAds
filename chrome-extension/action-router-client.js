@@ -221,10 +221,8 @@ function buildActionPayload(cmd, context) {
 }
 
 // Export for use in background.js
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = {
-        callActionRouter,
-        mapCommandToAction,
-        buildActionPayload,
-    };
-}
+export {
+    callActionRouter,
+    mapCommandToAction,
+    buildActionPayload,
+};
