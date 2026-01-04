@@ -493,8 +493,10 @@ async function detectGoogleDocsCreated(timeout = 8000) {
       // 1. URL Check (Regex)
       const urlOk = /^https:\/\/docs\.google\.com\/document\/d\/[a-zA-Z0-9_-]+\/edit/.test(url);
 
-      // 2. Title Check
-      const titleOk = title !== "Google Docs" && !title.includes("Google Docs") && title.trim().length > 0;
+      // 2. Title Check (Relaxed)
+      // Accept "Untitled document - Google Docs" or "Documento sem nome - Google Docs"
+      // Reject ONLY exact "Google Docs" (Loading state) or empty
+      const titleOk = title !== "Google Docs" && title.trim().length > 0;
 
       // 3. Editor Check
       const editorCanvas = document.querySelector('.kix-canvas-tile-content');
