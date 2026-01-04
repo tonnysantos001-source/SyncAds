@@ -3,19 +3,12 @@
  * ACTION ROUTER — NÚCLEO INQUEBRÁVEL DO SISTEMA
  * =====================================================
  * 
- * RESPONSABILIDADES EXCLUSIVAS:
+ * RESPONSABILIDADES:
  * - Validar actions do Planner
- * - Roteardash para executor correto (Browser/API/CLI)
- * - Garantir execução REAL (nunca simulada)
+ * - Roteardash para executor correto (Extension ou Playwright)
+ * - Garantir execução REAL
  * - Reportar resultado + logs
  * - Persistir tudo no Supabase
- * 
- * REGRA INQUEBRÁVEL:
- * Esta é a ÚNICA função autorizada a chamar:
- * - Playwright
- * - Selenium
- * - Puppeteer
- * - Qualquer automação de navegador
  * 
  * =====================================================
  */
@@ -47,12 +40,14 @@ interface ActionPayload {
         sessionId: string;
         conversationId?: string;
         tabId?: string;
+        deviceId?: string;
     };
     metadata?: {
         retryCount?: number;
         timeout?: number;
         requiresVerification?: boolean;
     };
+    commandId?: string; // If present, implies Extension Execution
 }
 
 interface ActionResult {
@@ -65,7 +60,7 @@ interface ActionResult {
     logs: string[];
     screenshot?: string;
     verification?: {
-        method: "visual" | "dom" | "url";
+        method: "visual" | "dom" | "url" | "signal";
         verified: boolean;
         evidence: string;
     };
@@ -76,8 +71,6 @@ interface ActionResult {
 // =====================================================
 
 const HUGGINGFACE_PLAYWRIGHT_URL = "https://bigodetonton-syncads.hf.space";
-
-// ✅ PLAYWRIGHT ÚNICO EXECUTOR (Extensão Chrome removida em 2025-12-29)
 
 // =====================================================
 // LOGGER
@@ -166,6 +159,99 @@ function validateAction(payload: ActionPayload): { valid: boolean; error?: strin
 }
 
 // =====================================================
+// EXTENSION EXECUTOR (Wait for Extension)
+// =====================================================
+
+class ExtensionExecutor {
+    private logger: ActionLogger;
+    private supabase: any;
+    private commandId: string;
+
+    constructor(logger: ActionLogger, supabase: any, commandId: string) {
+        this.logger = logger;
+        this.supabase = supabase;
+        this.commandId = commandId;
+    }
+
+    async waitForCompletion(timeoutMs = 30000): Promise<ActionResult> {
+        const startTime = Date.now();
+        this.logger.log("info", "Waiting for Extension execution", { commandId: this.commandId });
+
+        let attempts = 0;
+        const maxAttempts = timeoutMs / 1000; // Poll every 1s
+
+        while (attempts < maxAttempts) {
+            // Poll command status
+            const { data: command, error } = await this.supabase
+                .from("extension_commands")
+                .select("*")
+                .eq("id", this.commandId)
+                .single();
+
+            if (error) {
+                this.logger.log("error", "Failed to poll command", error.message);
+                throw new Error(`Polling error: ${error.message}`);
+            }
+
+            if (!command) {
+                throw new Error(`Command ${this.commandId} not found`);
+            }
+
+            // Check status
+            if (command.status === "completed") {
+                this.logger.log("info", "Command completed by extension", command.metadata);
+
+                // Check for Document Signal if applicable
+                let verification = undefined;
+                if (command.metadata?.document_signal) {
+                    const signal = command.metadata.document_signal;
+                    verification = {
+                        method: "signal" as const,
+                        verified: signal.verified,
+                        evidence: `Signal received: ${signal.type} (Access: ${signal.accessLevel})`
+                    };
+                }
+
+                return {
+                    success: true,
+                    action: command.type as ActionType,
+                    executedAt: command.completed_at || new Date().toISOString(),
+                    executionTime: Date.now() - startTime,
+                    result: command.result || command.metadata,
+                    logs: this.logger.getLogs(),
+                    verification
+                };
+            }
+
+            if (command.status === "failed" || command.status === "timeout" || command.status === "cancelled") {
+                return {
+                    success: false,
+                    action: command.type as ActionType,
+                    executedAt: command.completed_at || new Date().toISOString(),
+                    executionTime: Date.now() - startTime,
+                    error: command.error || command.last_error || "Unknown extension error",
+                    logs: this.logger.getLogs()
+                };
+            }
+
+            // Still pending/processing
+            attempts++;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        // Timeout
+        return {
+            success: false,
+            action: "BROWSER_WAIT" as ActionType,
+            executedAt: new Date().toISOString(),
+            executionTime: Date.now() - startTime,
+            error: "Timeout waiting for extension",
+            logs: this.logger.getLogs()
+        };
+    }
+}
+
+// =====================================================
 // BROWSER EXECUTOR (Playwright)
 // =====================================================
 
@@ -180,13 +266,9 @@ class BrowserExecutor {
 
     async navigate(url: string, context: ActionPayload["context"]): Promise<ActionResult> {
         const startTime = Date.now();
-        const logs: string[] = [];
 
-        // ✅ AUTO-FIX URL (ROBUST)
-        // 1. Remove whitespace
+        // 1. Auto-fix URL
         let finalUrl = url ? url.trim() : "";
-
-        // 2. Add protocol if missing
         if (finalUrl && !finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
             finalUrl = `https://${finalUrl}`;
             this.logger.log("warn", "URL corrigida (protocolo adicionado)", { original: url, final: finalUrl });
@@ -197,14 +279,13 @@ class BrowserExecutor {
         try {
             this.logger.log("info", "🚀 BrowserExecutor.navigate sending to Playwright", { url: finalUrl });
 
-            // 1. NAVIGATE REQUEST (To existing /automation endpoint)
             const navResponse = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/automation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "navigate",
                     url: finalUrl,
-                    sessionId: context.sessionId // Sent for context
+                    sessionId: context.sessionId
                 }),
             });
 
@@ -261,7 +342,7 @@ class BrowserExecutor {
 
             const result = await response.json();
 
-            // ⭐ VERIFICATION: Read-after-write
+            // Verification
             const verification = await this.verifyTyping(selector, text, context);
 
             return {
@@ -275,7 +356,6 @@ class BrowserExecutor {
             };
         } catch (error: any) {
             this.logger.log("error", "BrowserExecutor.type failed", error.message);
-
             return {
                 success: false,
                 action: "BROWSER_TYPE",
@@ -308,8 +388,6 @@ class BrowserExecutor {
             }
 
             const result = await response.json();
-
-            // Capture screenshot after click
             const screenshot = await this.captureScreenshot(context);
 
             return {
@@ -323,7 +401,6 @@ class BrowserExecutor {
             };
         } catch (error: any) {
             this.logger.log("error", "BrowserExecutor.click failed", error.message);
-
             return {
                 success: false,
                 action: "BROWSER_CLICK",
@@ -346,89 +423,56 @@ class BrowserExecutor {
                 }),
             });
 
-            if (!response.ok) {
-                this.logger.log("warn", "Screenshot failed", response.statusText);
-                return undefined;
-            }
-
+            if (!response.ok) return undefined;
             const result = await response.json();
-            return result.screenshot; // Base64 encoded
+            return result.screenshot;
         } catch (error: any) {
             this.logger.log("warn", "Screenshot error", error.message);
             return undefined;
         }
     }
 
-    async verifyTyping(
-        selector: string,
-        expectedText: string,
-        context: ActionPayload["context"]
-    ): Promise<{ method: string; verified: boolean; evidence: string }> {
+    async verifyTyping(selector: string, expectedText: string, context: ActionPayload["context"]): Promise<{ method: string; verified: boolean; evidence: string }> {
         try {
-            // Read back the value
             const response = await fetch(`${HUGGINGFACE_PLAYWRIGHT_URL}/get_value`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    selector,
-                    sessionId: context.sessionId,
-                }),
+                body: JSON.stringify({ selector, sessionId: context.sessionId }),
             });
 
             if (!response.ok) {
-                return {
-                    method: "dom",
-                    verified: false,
-                    evidence: "Could not read value back",
-                };
+                return { method: "dom", verified: false, evidence: "Could not read value" };
             }
 
             const result = await response.json();
             const actualValue = result.value || "";
-
             const verified = actualValue === expectedText;
 
             return {
                 method: "dom",
                 verified,
-                evidence: verified
-                    ? `Value confirmed: "${actualValue}"`
-                    : `Expected "${expectedText}", got "${actualValue}"`,
+                evidence: verified ? `Value confirmed: "${actualValue}"` : `Expected "${expectedText}", got "${actualValue}"`,
             };
         } catch (error: any) {
-            return {
-                method: "dom",
-                verified: false,
-                evidence: `Verification failed: ${error.message}`,
-            };
+            return { method: "dom", verified: false, evidence: `Verification failed: ${error.message}` };
         }
     }
 }
 
 // =====================================================
-// ❌ EXTENSION EXECUTOR — REMOVIDO (2025-12-29)
-// Motivo: Playwright é o único executor
-// Código morto removido: ~95 linhas
-// =====================================================
-
-// =====================================================
-// CALL EXTENSION ROUTER — FUNÇÃO OBRIGATÓRIA
+// CALL ACTION ROUTER
 // =====================================================
 
 async function callExtensionRouter(
     action: ActionPayload,
     supabase: any
 ): Promise<ActionResult> {
-    // Create logger
     const logger = new ActionLogger(supabase, action.context.sessionId);
-
     logger.log("info", "action_received", action);
 
-    // Validate
     const validation = validateAction(action);
     if (!validation.valid) {
         logger.log("error", "validation_failed", validation.error);
-
         return {
             success: false,
             action: action.action,
@@ -439,31 +483,30 @@ async function callExtensionRouter(
         };
     }
 
-    logger.log("info", "routing_to_playwright_executor", { action: action.action });
-
-    // ✅ SEMPRE usa Playwright (único executor)
-    if (action.action.startsWith("BROWSER_")) {
-        const executor = new BrowserExecutor(logger, supabase);
-
-        switch (action.action) {
-            case "BROWSER_NAVIGATE":
-                return await executor.navigate(action.params.url, action.context);
-
-            case "BROWSER_TYPE":
-                return await executor.type(
-                    action.params.selector,
-                    action.params.text,
-                    action.context
-                );
-
-            case "BROWSER_CLICK":
-                return await executor.click(action.params.selector, action.context);
-
-            default:
-                throw new Error(`Unsupported action: ${action.action}`);
-        }
+    // DECISION: Extension vs Playwright
+    if (action.commandId) {
+        // ✅ EXTENSION MODE
+        logger.log("info", "routing_to_extension_waiter", { commandId: action.commandId });
+        const executor = new ExtensionExecutor(logger, supabase, action.commandId);
+        return await executor.waitForCompletion(action.metadata?.timeout || 30000);
     } else {
-        throw new Error(`Unsupported action type: ${action.action}`);
+        // ✅ PLAYWRIGHT MODE (Legacy/Fallback)
+        logger.log("info", "routing_to_playwright_executor", { action: action.action });
+        if (action.action.startsWith("BROWSER_")) {
+            const executor = new BrowserExecutor(logger, supabase);
+            switch (action.action) {
+                case "BROWSER_NAVIGATE":
+                    return await executor.navigate(action.params.url, action.context);
+                case "BROWSER_TYPE":
+                    return await executor.type(action.params.selector, action.params.text, action.context);
+                case "BROWSER_CLICK":
+                    return await executor.click(action.params.selector, action.context);
+                default:
+                    throw new Error(`Unsupported action: ${action.action}`);
+            }
+        } else {
+            throw new Error(`Unsupported action type: ${action.action}`);
+        }
     }
 }
 
@@ -492,11 +535,11 @@ serve(async (req) => {
             session_id: actionPayload.context.sessionId,
             user_id: actionPayload.context.userId,
             action: actionPayload.action,
-            executor_type: "playwright", // ✅ EVIDÊNCIA: executor usado
+            executor_type: actionPayload.commandId ? "extension" : "playwright",
             success: result.success,
             result: result.result ? JSON.stringify(result.result) : null,
-            playwright_url: result.result?.playwrightUrl || result.result?.url, // ✅ EVIDÊNCIA: URL executada
-            playwright_title: result.result?.playwrightTitle || result.result?.title, // ✅ EVIDÊNCIA: Título da página
+            playwright_url: result.result?.playwrightUrl || result.result?.url,
+            playwright_title: result.result?.playwrightTitle || result.result?.title,
             error: result.error,
             execution_time: result.executionTime,
             logs: result.logs,

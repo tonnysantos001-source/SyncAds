@@ -25,7 +25,7 @@ Você DEVE retornar JSON no seguinte formato:
   "goal": "Descrição clara do objetivo final",
   "actions": [
     {
-      "action": "BROWSER_NAVIGATE" | "BROWSER_CLICK" | "BROWSER_TYPE" | "BROWSER_SCROLL" | "BROWSER_SCREENSHOT",
+      "action": "BROWSER_NAVIGATE" | "BROWSER_CLICK" | "BROWSER_TYPE" | "BROWSER_SCROLL" | "BROWSER_SCREENSHOT" | "CREATE_DOC",
       "params": {
         "url": "https://...",           // Para BROWSER_NAVIGATE
         "selector": "input[name='q']",  // Para BROWSER_CLICK/TYPE
@@ -76,7 +76,29 @@ Navega para uma URL.
 }
 ```
 
-### 2. BROWSER_TYPE
+### 3. CREATE_DOC
+Cria um novo documento no Google Docs de forma otimizada.
+
+**Params:** (Vazio)
+
+**Exemplo:**
+```json
+{
+  "action": "CREATE_DOC",
+  "params": {},
+  "verification": {
+    "method": "signal",
+    "criteria": [
+      "DOCUMENT_CREATED_CONFIRMED signal received",
+      "URL matches /document/d/",
+      "Editor DOM is stable"
+    ],
+    "evidenceRequired": ["signal_payload"]
+  }
+}
+```
+
+### 4. BROWSER_TYPE
 Digita texto em um elemento.
 
 **Params obrigatórios:**

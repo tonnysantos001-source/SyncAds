@@ -268,7 +268,59 @@ serve(async (req) => {
                 };
 
                 try {
-                    const result = await callActionRouter(action, supabaseUrl, serviceRoleKey);
+                    let result;
+                    let commandId = undefined;
+
+                    // 1. Try to find an active device for the user (to prefer Extension execution)
+                    // Only for BROWSER actions or CREATE_DOC
+                    if (action.action.startsWith("BROWSER_") || action.action === "CREATE_DOC") {
+                        const { data: devices } = await supabase
+                            .from("extension_devices")
+                            .select("device_id")
+                            .eq("user_id", user.id) // Query by text ID (Supabase handles UUID->Text cast if implicit, but we know column is text)
+                            .order("last_seen", { ascending: false })
+                            .limit(1);
+
+                        if (devices && devices.length > 0) {
+                            const deviceId = devices[0].device_id;
+                            console.log(`📱 Found active device: ${deviceId}`);
+
+                            // 2. Create command in database
+                            const { data: cmd, error: cmdError } = await supabase
+                                .from("extension_commands")
+                                .insert({
+                                    user_id: user.id, // Using the new user_id column in extension_commands (UUID)
+                                    device_id: deviceId,
+                                    type: action.action,
+                                    payload: action.params,
+                                    status: "pending",
+                                    conversation_id: conversationId,
+                                    metadata: {
+                                        ...action.metadata,
+                                        sessionId: sessionId,
+                                        context: action.context
+                                    }
+                                })
+                                .select("id")
+                                .single();
+
+                            if (cmdError) {
+                                console.error("❌ Failed to create extension command:", cmdError);
+                                // Fallback to Playwright will happen automatically since commandId is undefined
+                            } else {
+                                commandId = cmd.id;
+                                console.log(`💾 Command created: ${commandId}`);
+                                // Pass commandId to action for Action Router
+                                action.commandId = commandId;
+                                action.context.deviceId = deviceId;
+                            }
+                        } else {
+                            console.log("⚠️ No active device found. Defaulting to Playwright.");
+                        }
+                    }
+
+                    // 3. Call Action Router (Extension Mode if commandId set, otherwise Playwright Mode)
+                    result = await callActionRouter(action, supabaseUrl, serviceRoleKey);
 
                     console.log(`✅ Action ${i + 1} result:`, result.success ? "SUCCESS" : "FAILED");
 

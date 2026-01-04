@@ -55,6 +55,26 @@ Você DEVE dizer ao usuário algo como:
 >   
 > O que você gostaria de fazer agora? Posso pesquisar algo para você.
 
+### ✅ Confirmação via SINAL (Google Docs)
+Se o Action Router retornou:
+```json
+{
+  "success": true,
+  "verification": {
+    "method": "signal",
+    "verified": true,
+    "evidence": "Signal received: DOCUMENT_CREATED_CONFIRMED"
+  }
+}
+```
+
+Você deve dizer:
+> ✅ **Google Docs criado e confirmado!**
+> 📡 Recebi confirmação segura da extensão.
+> 🆔 Document ID: [extrair do result]
+>
+> O documento está pronto para edição. O que deseja inserir?
+
 ## 📦 FLUXO DE EXECUÇÃO
 
 ### 1. Receber Plano do Planner
