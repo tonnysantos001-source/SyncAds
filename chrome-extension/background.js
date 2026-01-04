@@ -421,6 +421,7 @@ async function processCommand(cmd) {
       action = "DOM_CLICK"; // Maps to clickElement
       Logger.info("COORD: Mapping 'click' -> DOM_CLICK", params);
 
+    } else if (cmd.type === "type" || cmd.type === "fill_input") {
       // 4. TYPE / FILL INPUT
       params = {
         selector: cmd.payload?.selector || cmd.selector,
