@@ -85,17 +85,19 @@ serve(async (req) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error("Unauthorized");
 
-        // Get Groq Key
-        const { data: keyData } = await supabase
+        // Get Groq Key (Load Balanced)
+        const { data: keys } = await supabase
             .from("GlobalAiConnection")
             .select("apiKey")
             .eq("provider", "GROQ")
-            .eq("isActive", true)
-            .limit(1)
-            .single();
+            .eq("isActive", true);
 
-        if (!keyData?.apiKey) throw new Error("No Groq API Key found");
-        const groqKey = keyData.apiKey;
+        if (!keys || keys.length === 0) throw new Error("No Groq API Key found");
+
+        // Random Selection for Load Balancing
+        const randomIndex = Math.floor(Math.random() * keys.length);
+        const groqKey = keys[randomIndex].apiKey;
+        console.log(`🔑 Using Groq Key Index: ${randomIndex} (Total: ${keys.length})`);
 
         const readable = createStream(async (writer) => {
 

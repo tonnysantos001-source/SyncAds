@@ -505,8 +505,8 @@ async function processCommand(cmd) {
           // Poll for CHECK_DOC_STATUS
           const verifyResponse = await new Promise((resolve, reject) => {
             chrome.tabs.sendMessage(targetTabId, {
-              type: "EXECUTE_COMMAND",
-              command: "CHECK_DOC_STATUS",
+              type: "EXECUTE_DOM_ACTION",
+              action: "CHECK_DOC_STATUS",
               params: { timeout: 8000 }
             }, (resp) => {
               if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
