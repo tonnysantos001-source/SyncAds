@@ -363,6 +363,15 @@ async function processCommand(cmd) {
         }
       }
 
+      if (tab && (tab.url?.startsWith("chrome://") || tab.url?.startsWith("chrome-extension://") || tab.url?.startsWith("edge://"))) {
+        // System page detected - Ignore and try next strategy
+        // Exception: If we are specifically testing an extension page (unlikely for user)
+        // But for automation, we want Web Content.
+        // If query command is 'navigate', we might accept it? No, debugger fails on system pages anyway.
+        Logger.warn("⚠️ Ignoring System/Extension Tab (Debugger Protected)", { url: tab.url });
+        tab = null;
+      }
+
       if (tab && tab.id && tab.status !== 'unloaded') {
         activeTab = tab;
         break;
