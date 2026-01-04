@@ -3037,3 +3037,58 @@ Logger.info("✅ Content script loaded with DOM executor");
 // ============================================
 console.log("✅ [SIDE PANEL] Extension using native Chrome Side Panel");
 console.log("💡 [SIDE PANEL] Click extension icon to open Side Panel");
+
+
+// ============================================
+// LISTENER FOR BACKGROUND ACTIONS
+// ============================================
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'EXECUTE_ACTION') {
+    console.log('🤖 [CONTENT] Received ACTION:', request.action, request.params);
+    
+    handleAction(request.action, request.params)
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+      
+    return true; // Keep channel open for async response
+  }
+});
+
+async function handleAction(action, params) {
+  console.log('⚡ Handling:', action, params);
+  
+  // Simple implementation for critical actions
+  switch (action) {
+    case 'DOM_CLICK':
+      const elClick = document.querySelector(params.selector);
+      if (!elClick) throw new Error('Element not found: ' + params.selector);
+      elClick.click();
+      return { success: true, logs: ['Clicked ' + params.selector] };
+      
+    case 'DOM_TYPE':
+    case 'DOM_INSERT':
+      const elType = document.querySelector(params.selector);
+      if (!elType) throw new Error('Element not found: ' + params.selector);
+      elType.value = params.value;
+      elType.dispatchEvent(new Event('input', { bubbles: true }));
+      elType.dispatchEvent(new Event('change', { bubbles: true }));
+      return { success: true, logs: ['Typed into ' + params.selector] };
+      
+    case 'DOM_WAIT':
+      // Basic wait implementation
+      return new Promise(resolve => {
+        const check = () => {
+          if (document.querySelector(params.selector)) {
+            resolve({ success: true, logs: ['Found ' + params.selector] });
+          } else {
+            requestAnimationFrame(check);
+          }
+        };
+        check();
+        setTimeout(() => resolve({ success: false, error: 'Timeout waiting for ' + params.selector }), params.timeout || 10000);
+      });
+      
+    default:
+      throw new Error('Unknown action: ' + action);
+  }
+}

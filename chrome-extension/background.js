@@ -677,61 +677,79 @@ async function processCommand(cmd) {
 
 
     // ============================================
-    // 3. EXECUTE ACTION VIA ACTION ROUTER
+    // 3. EXECUTE ACTION LOCALLY (EXTENSION IS EXECUTOR)
     // ============================================
-    /**
-     * CRITICAL ARCHITECTURAL REQUIREMENT:
-     * ALL actions MUST go through the Action Router.
-     * NO native execution allowed.
-     * 
-     * This enforces the 3-AGENT architecture:
-     * - Planner generates actions
-     * - Action Router executes
-     * - Executor reports
-     */
 
-    Logger.info(`🎯 [EXECUTE] Building ActionPayload for: ${cmd.type}`);
+    Logger.info(`🎯 [EXECUTE] Executing LOCALLY: ${action}`, params);
 
-    // Build canonical action payload
-    const actionPayload = buildActionPayload(cmd, {
-      userId: state.userId,
-      sessionId: generateSessionId(),
-      conversationId: cmd.conversationId,
-    });
-
-    Logger.info(`🚀 [EXECUTE] Calling Action Router:`, actionPayload);
-
-    let response = null;
+    let domReport = { success: false, logs: [] };
 
     try {
-      // CALL ACTION ROUTER - The ONLY authorized way to execute actions
-      response = await callActionRouter(actionPayload, state.accessToken);
+      if (action === "NAVIGATE") {
+        const urlIndex = params.url.indexOf("://");
+        const targetUrl = urlIndex === -1 ? "https://" + params.url : params.url;
 
-      Logger.success(`✅ [EXECUTE] Action Router returned:`, {
-        action: response.action,
-        success: response.success,
-        verified: response.verification?.verified,
-        executionTime: response.executionTime,
-      });
+        // Create tab if none exists
+        if (!activeTab || !activeTab.id) {
+          Logger.info("Creating NEW tab for navigation");
+          activeTab = await chrome.tabs.create({ url: targetUrl });
+        } else {
+          Logger.info("Updating EXISTING tab for navigation", { tabId: activeTab.id });
+          activeTab = await chrome.tabs.update(activeTab.id, { url: targetUrl });
+        }
 
-      // Validation: Response must have success field
-      if (!response.hasOwnProperty("success")) {
-        throw new Error("Invalid response from Action Router: missing 'success' field");
+        // Wait for connection/load (basic delay for stability)
+        await new Promise(r => setTimeout(r, 2000));
+        domReport = { success: true, final_url: targetUrl, logs: ["Navigated to " + targetUrl] };
+
+      } else {
+        // CONTENT SCRIPT ACTIONS
+        if (!activeTab || !activeTab.id) {
+          throw new Error(`No active tab for DOM action: ${action}`);
+        }
+
+        Logger.info(`Sending message to tab ${activeTab.id}...`);
+
+        // Send message to content script
+        const response = await chrome.tabs.sendMessage(activeTab.id, {
+          type: "EXECUTE_ACTION",
+          action: action,
+          params: params
+        }).catch(err => {
+          throw new Error(`Communication failed (Refresh page?): ${err.message}`);
+        });
+
+        domReport = response || { success: false, error: "No response from content script" };
+
+        if (!domReport.success) {
+          throw new Error(domReport.error || "Unknown content script error");
+        }
       }
 
-    } catch (error) {
-      Logger.error(`❌ [EXECUTE] Action Router failed:`, error);
+      Logger.success(`✅ [EXECUTE] Local execution success`, domReport);
 
-      // Build error response
-      response = {
+    } catch (error) {
+      Logger.error(`❌ [EXECUTE] Local execution failed:`, error);
+      domReport = {
         success: false,
-        action: actionPayload.action,
-        error: error.message || "Action Router execution failed",
-        executedAt: new Date().toISOString(),
-        executionTime: 0,
-        logs: [`Action Router error: ${error.message}`],
+        error: error.message,
+        logs: [`Execution error: ${error.message}`]
       };
     }
+
+    // Prepare response for logging/signals logic downstream
+    // (We reuse 'domReport' which aligns with the variable name expected in line 741)
+    let response = {
+      success: domReport.success,
+      action: action,
+      error: domReport.error,
+      executedAt: new Date().toISOString(),
+      executionTime: 0,
+      logs: domReport.logs || []
+    };
+
+    // Ensure 'domReport' has final_url for the check below
+    domReport.final_url = activeTab ? activeTab.url : "";
 
     let status = "success";
     let retryable = false;
