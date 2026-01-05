@@ -444,15 +444,35 @@ async function checkPendingCommands() {
 
     // Check if token is expired or about to expire
     if (state.tokenExpiresAt) {
-      const expiresAt = new Date(state.tokenExpiresAt).getTime();
+      let expiresAt;
+
+      // Convert to timestamp if string
+      if (typeof state.tokenExpiresAt === 'string') {
+        expiresAt = new Date(state.tokenExpiresAt).getTime();
+      } else if (typeof state.tokenExpiresAt === 'number') {
+        // If it's a number, check if it's in seconds (Unix timestamp)
+        // or milliseconds (JS timestamp)
+        if (state.tokenExpiresAt < 10000000000) {
+          // Likely seconds, convert to milliseconds
+          expiresAt = state.tokenExpiresAt * 1000;
+        } else {
+          expiresAt = state.tokenExpiresAt;
+        }
+      } else {
+        Logger.error("Invalid tokenExpiresAt format:", state.tokenExpiresAt);
+        expiresAt = 0;
+      }
+
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
       // If expired or expiring in less than 5 minutes
       if (timeUntilExpiry < 5 * 60 * 1000) {
         Logger.warn("⏰ Token expired or expiring soon, refreshing...", {
-          expiresAt: state.tokenExpiresAt,
-          timeUntilExpiry: Math.floor(timeUntilExpiry / 1000) + "s",
+          expiresAt: new Date(expiresAt).toISOString(),
+          now: new Date(now).toISOString(),
+          timeUntilExpiry: `${Math.floor(timeUntilExpiry / 1000)}s`,
+          isExpired: timeUntilExpiry < 0
         });
 
         try {
@@ -761,6 +781,33 @@ async function processCommand(cmd) {
     Logger.info(`🎯 [EXECUTE] Executing LOCALLY: ${action}`, params);
 
     let domReport = { success: false, logs: [] };
+
+    // Helper: Ensure content script is injected
+    async function ensureContentScriptInjected(tabId) {
+      try {
+        // Try to ping the content script
+        await chrome.tabs.sendMessage(tabId, { type: "DOM_STATUS" });
+        return true; // Already injected
+      } catch (e) {
+        // Not injected or not responding, inject now
+        Logger.warn(`📌 Content script not responding in tab ${tabId}, injecting...`);
+
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: ['content-script.js']
+          });
+
+          // Wait for injection to complete
+          await new Promise(r => setTimeout(r, 1000));
+          Logger.success(`✅ Content script injected in tab ${tabId}`);
+          return true;
+        } catch (injectError) {
+          Logger.error(`❌ Failed to inject content script:`, injectError);
+          return false;
+        }
+      }
+    }
 
     try {
       if (action === "NAVIGATE") {
