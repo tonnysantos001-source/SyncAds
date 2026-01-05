@@ -386,42 +386,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (commandsResponse.ok) {
           const commands = await commandsResponse.json();
-          if (commands.length \u003e 0) {
-      const command = commands[0];
+          if (commands.length > 0) {
+            const command = commands[0];
 
-      await fetch(
-        `${CONFIG.restUrl}/extension_commands?id=eq.${command.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${state.accessToken}`,
-            apikey: CONFIG.supabaseAnonKey,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-          },
-          body: JSON.stringify({
-            metadata: {
-              ...(command.metadata || {}),
-              document_url: url,
-              document_id: docId,
-              url_captured_at: new Date().toISOString(),
-            },
-            updated_at: new Date().toISOString(),
-          }),
+            await fetch(
+              `${CONFIG.restUrl}/extension_commands?id=eq.${command.id}`,
+              {
+                method: "PATCH",
+                headers: {
+                  Authorization: `Bearer ${state.accessToken}`,
+                  apikey: CONFIG.supabaseAnonKey,
+                  "Content-Type": "application/json",
+                  "Prefer": "return=representation",
+                },
+                body: JSON.stringify({
+                  metadata: {
+                    ...(command.metadata || {}),
+                    document_url: url,
+                    document_id: docId,
+                    url_captured_at: new Date().toISOString(),
+                  },
+                  updated_at: new Date().toISOString(),
+                }),
+              }
+            );
+
+            Logger.success(`✅ [DOCUMENT_URL] URL persisted to command ${command.id}`);
+          }
         }
-      );
+      } catch (persistError) {
+        Logger.error("❌ [DOCUMENT_URL] Error persisting URL:", persistError);
+      }
 
-      Logger.success(`✅ [DOCUMENT_URL] URL persisted to command ${command.id}`);
-    }
-  }
-} catch (persistError) {
-  Logger.error("❌ [DOCUMENT_URL] Error persisting URL:", persistError);
-}
+      sendResponse({ received: true, timestamp: Date.now() });
+    })();
 
-sendResponse({ received: true, timestamp: Date.now() });
-    }) ();
-
-return true; // Keep channel open for async response
+    return true; // Keep channel open for async response
   }
 });
 
