@@ -507,35 +507,6 @@ async function handleDomAction(action, params = {}) {
  * CRITICAL REQUIREMENTS:
  * 1. URL matches /document/d/{docId}/edit
  * 2. Title !== "Google Docs" (not in loading state)
- * 3. Editor ready (.kix-canvas-tile-content OR [contenteditable])
- * 4. DOM STABLE (no mutations for 1 second)
- * 
- * Emits: DOCUMENT_CREATED_CONFIRMED signal
- */
-async function detectGoogleDocsCreated(timeout = 10000) {
-  Logger.info("🕵️ Starting CANONICAL Google Docs Detection with DOM Stability Check...");
-
-  const startTime = Date.now();
-
-  return new Promise((resolve) => {
-    let stabilityTimer = null;
-    let lastMutationTime = Date.now();
-    const STABILITY_THRESHOLD = 1000; // 1 second without mutations
-
-    // Check all conditions
-    const checkConditions = () => {
-      const url = window.location.href;
-      const title = document.title;
-
-      // 1. URL Check (Regex)
-      const urlOk = /^https:\/\/docs\.google\.com\/document\/d\/[a-zA-Z0-9_-]+\/edit/.test(url);
-
-      // 2. Title Check (Relaxed for i18n)
-      // Reject ONLY exact "Google Docs" (Loading state) or empty
-      const titleOk = title !== "Google Docs" && title.trim().length > 0;
-
-      // 3. Editor Check
-      const editorCanvas = document.querySelector('.kix-canvas-tile-content');
       const contentEditable = document.querySelector('[contenteditable="true"]');
       const editor = editorCanvas || contentEditable;
       const editorOk = !!editor;
