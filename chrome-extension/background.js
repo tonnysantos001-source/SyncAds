@@ -764,10 +764,13 @@ async function processCommand(cmd) {
     }
 
     // 2. SIGNAL CHECK
-    if (signals.some(s => s.type === "UNEXPECTED_NAVIGATION")) {
+    // Ensure signals array exists
+    const safeSignals = (typeof signals !== 'undefined' ? signals : []);
+
+    if (safeSignals.some(s => s.type === "UNEXPECTED_NAVIGATION")) {
       status = "failed";
       failureReason = "Executor abortado: navegação inesperada detectada";
-    } else if (cmd.type === "insert_content" && !signals.some(s => s.type === "EDITOR_READY")) {
+    } else if (cmd.type === "insert_content" && !safeSignals.some(s => s.type === "EDITOR_READY")) {
       status = "failed";
       retryable = true;
       failureReason = "Editor não pronto";
