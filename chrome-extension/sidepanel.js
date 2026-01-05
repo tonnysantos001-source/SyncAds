@@ -617,6 +617,31 @@ chrome.runtime.onMessage.addListener((message) => {
       showProcessing(displayText);
     }
   }
+
+  //  ============================================
+  // DISPLAY DOCUMENT LINK HANDLER
+  // ============================================
+  if (message.type === 'DISPLAY_DOCUMENT_LINK') {
+    const { url, docId, message: msg } = message.payload;
+
+    // Criar mensagem formatada com link clicável
+    const linkHtml = `
+      ${msg}<br><br>
+      📄 <a href="${url}" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600; font-size: 15px;">
+        Abrir Documento no Google Docs
+      </a><br>
+      <small style="color: #94a3b8; font size: 12px;">ID: ${docId}</small>
+    `;
+
+    addMessage("assistant", linkHtml);
+
+    // Hide processing indicators
+    hideTyping();
+    hideProcessing();
+    hideNavigation();
+
+    Logger.success(" 📄 Document link displayed in chat");
+  }
 });
 
 

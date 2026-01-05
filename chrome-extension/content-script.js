@@ -305,6 +305,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         );
       return true;
 
+    case "EXECUTE_ACTION":
+      // Explicit handler for EXECUTE_ACTION from background
+      (async () => {
+        try {
+          const result = await handleDomAction(message.action, message.params);
+          sendResponse({ success: true, ...result });
+        } catch (error) {
+          Logger.error("Action execution failed", error);
+          sendresponse({ success: false, error: error.message });
+        }
+      })();
+      return true; // Keep channel open for async
+
     default:
       // Ignore unknown messages to prevent "Unknown message type" error
       return false;
@@ -800,6 +813,32 @@ async function handleInsertContent(selector, value, format = "text") {
 
     if (success) {
       Logger.success("✅ Content inserted via execCommand");
+
+      // CAPTURE AND SEND DOCUMENT URL (Google Docs)
+      if (window.location.href.includes("docs.google.com/document/")) {
+        const documentUrl = window.location.href;
+        const docIdMatch = documentUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        const docId = docIdMatch ? docIdMatch[1] : null;
+
+        if (docId && documentUrl.includes('/edit')) {
+          Logger.info("📄 Capturing document URL:", documentUrl);
+
+          // Send URL to background
+          chrome.runtime.sendMessage({
+            type: "DOCUMENT_URL_CAPTURED",
+            payload: {
+              url: documentUrl,
+              docId: docId,
+              timestamp: Date.now()
+            }
+          }).catch(e => Logger.warn("Could not send URL to background:", e));
+
+          // Update report with URL
+          report.document_url = documentUrl;
+          report.document_id = docId;
+        }
+      }
+
       return {
         success: true,
         method: "execCommand",
@@ -3045,18 +3084,18 @@ console.log("💡 [SIDE PANEL] Click extension icon to open Side Panel");
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'EXECUTE_ACTION') {
     console.log('🤖 [CONTENT] Received ACTION:', request.action, request.params);
-    
+
     handleAction(request.action, request.params)
       .then(result => sendResponse(result))
       .catch(err => sendResponse({ success: false, error: err.message }));
-      
+
     return true; // Keep channel open for async response
   }
 });
 
 async function handleAction(action, params) {
   console.log('⚡ Handling:', action, params);
-  
+
   // Simple implementation for critical actions
   switch (action) {
     case 'DOM_CLICK':
@@ -3064,7 +3103,7 @@ async function handleAction(action, params) {
       if (!elClick) throw new Error('Element not found: ' + params.selector);
       elClick.click();
       return { success: true, logs: ['Clicked ' + params.selector] };
-      
+
     case 'DOM_TYPE':
     case 'DOM_INSERT':
       const elType = document.querySelector(params.selector);
@@ -3073,7 +3112,7 @@ async function handleAction(action, params) {
       elType.dispatchEvent(new Event('input', { bubbles: true }));
       elType.dispatchEvent(new Event('change', { bubbles: true }));
       return { success: true, logs: ['Typed into ' + params.selector] };
-      
+
     case 'DOM_WAIT':
       // Basic wait implementation
       return new Promise(resolve => {
@@ -3087,7 +3126,7 @@ async function handleAction(action, params) {
         check();
         setTimeout(() => resolve({ success: false, error: 'Timeout waiting for ' + params.selector }), params.timeout || 10000);
       });
-      
+
     default:
       throw new Error('Unknown action: ' + action);
   }

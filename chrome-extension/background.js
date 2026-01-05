@@ -345,6 +345,84 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true; // Keep channel open for async response
   }
+
+  // ============================================
+  // DOCUMENT URL CAPTURED HANDLER
+  // ============================================
+  if (message.type === "DOCUMENT_URL_CAPTURED") {
+    (async () => {
+      const { url, docId } = message.payload;
+
+      Logger.success("📄 [DOCUMENT_URL] Document URL captured:", { url, docId });
+
+      // Send to sidepanel
+      try {
+        await chrome.runtime.sendMessage({
+          type: "DISPLAY_DOCUMENT_LINK",
+          payload: {
+            url: url,
+            docId: docId,
+            message: `✅ Documento criado com sucesso!`
+          }
+        });
+        Logger.success("📤 [DOCUMENT_URL] Sent to sidepanel");
+      } catch (e) {
+        Logger.warn("⚠️ [DOCUMENT_URL] Could not send to sidepanel (may be closed):", e.message);
+      }
+
+      // Update command metadata with URL
+      try {
+        const commandsResponse = await fetch(
+          `${CONFIG.restUrl}/extension_commands?device_id=eq.${state.deviceId}&status=in.(processing,completed)&order=created_at.desc&limit=1`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${state.accessToken}`,
+              apikey: CONFIG.supabaseAnonKey,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (commandsResponse.ok) {
+          const commands = await commandsResponse.json();
+          if (commands.length \u003e 0) {
+      const command = commands[0];
+
+      await fetch(
+        `${CONFIG.restUrl}/extension_commands?id=eq.${command.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${state.accessToken}`,
+            apikey: CONFIG.supabaseAnonKey,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+          },
+          body: JSON.stringify({
+            metadata: {
+              ...(command.metadata || {}),
+              document_url: url,
+              document_id: docId,
+              url_captured_at: new Date().toISOString(),
+            },
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      Logger.success(`✅ [DOCUMENT_URL] URL persisted to command ${command.id}`);
+    }
+  }
+} catch (persistError) {
+  Logger.error("❌ [DOCUMENT_URL] Error persisting URL:", persistError);
+}
+
+sendResponse({ received: true, timestamp: Date.now() });
+    }) ();
+
+return true; // Keep channel open for async response
+  }
 });
 
 Logger.info("✅ [DOCUMENT_SIGNAL] Listener registered");
@@ -756,7 +834,7 @@ async function processCommand(cmd) {
     let failureReason = null;
 
     // 1. URL CHECK
-    const finalUrl = (domReport.final_url || updatedTab?.url || "").replace(/\/$/, "");
+    const finalUrl = (domReport.final_url || activeTab?.url || "").replace(/\/$/, "");
     if (finalUrl.endsWith("/u/0")) {
       status = "failed";
       failureReason = "Redirected to Google Docs home (/u/0)";
@@ -783,8 +861,8 @@ async function processCommand(cmd) {
       command_id: cmd.id,
       command_type: cmd.type,
       url_before: activeTab?.url || "unknown",
-      url_after: updatedTab?.url || activeTab?.url || "unknown",
-      title_after: updatedTab?.title || activeTab?.title || "unknown",
+      url_after: activeTab?.url || "unknown",
+      title_after: activeTab?.title || "unknown",
       dom_signals: domReport,
       reason: failureReason,
       originalResponse: response,
