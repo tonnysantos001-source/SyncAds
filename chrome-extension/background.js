@@ -7,6 +7,20 @@ import { createClient } from './supabase.js';
 import { initRealtimeConnection } from './realtime-client.js';
 import { callActionRouter, buildActionPayload } from './action-router-client.js';
 
+// Sistema de Auto-Heal
+let attemptAutoHeal, withAutoHeal;
+try {
+  const autoHealModule = await import('./auto-heal.js');
+  attemptAutoHeal = autoHealModule.attemptAutoHeal;
+  withAutoHeal = autoHealModule.withAutoHeal;
+  console.log("✅ [AUTO-HEAL] Sistema de auto-correção carregado");
+} catch (e) {
+  console.warn("⚠️ [AUTO-HEAL] Não foi possível carregar auto-heal.js:", e.message);
+  // Fallback: funções vazias
+  attemptAutoHeal = async () => false;
+  withAutoHeal = async (fn) => await fn();
+}
+
 console.log("✅ [IMPORTS] Supabase, Realtime & Action Router Client imported");
 // Legacy try/catch block removed as static imports will throw syntax errors if they fail
 
@@ -833,16 +847,66 @@ async function processCommand(cmd) {
           throw new Error(`No active tab for DOM action: ${action}`);
         }
 
+        // ENSURE CONTENT SCRIPT IS INJECTED (com auto-heal integrado)
+        if (!(await ensureContentScriptInjected(activeTab.id))) {
+          const error = new Error("Failed to inject content script - tab may be protected");
+
+          // Tentar auto-heal
+          const healed = await attemptAutoHeal(error, {
+            commandId: cmd.id,
+            deviceId: state.deviceId,
+            action: action,
+            tabId: activeTab.id
+          });
+
+          if (!healed) {
+            throw error;
+          }
+
+          // Retry após heal
+          Logger.info("🩹 [AUTO-HEAL] Retrying after content script injection...");
+          if (!(await ensureContentScriptInjected(activeTab.id))) {
+            throw new Error("Content script injection failed even after auto-heal");
+          }
+        }
+
         Logger.info(`Sending message to tab ${activeTab.id}...`);
 
-        // Send message to content script
-        const response = await chrome.tabs.sendMessage(activeTab.id, {
-          type: "EXECUTE_ACTION",
-          action: action,
-          params: params
-        }).catch(err => {
-          throw new Error(`Communication failed (Refresh page?): ${err.message}`);
-        });
+        // Send message to content script com tratamento de erro e auto-heal
+        let response;
+        try {
+          response = await chrome.tabs.sendMessage(activeTab.id, {
+            type: "EXECUTE_ACTION",
+            action: action,
+            params: params
+          });
+        } catch (err) {
+          const error = new Error(`Communication failed (Refresh page?): ${err.message}`);
+
+          // Tentar auto-heal
+          Logger.warn("⚠️ [AUTO-HEAL] Communication failed, attempting auto-heal...");
+          const healed = await attemptAutoHeal(error, {
+            commandId: cmd.id,
+            deviceId: state.deviceId,
+            action: action,
+            tabId: activeTab.id,
+            originalError: err.message
+          });
+
+          if (healed) {
+            Logger.success("🩹 [AUTO-HEAL] Healed! Retrying communication...");
+
+            // Retry após heal
+            await ensureContentScriptInjected(activeTab.id);
+            response = await chrome.tabs.sendMessage(activeTab.id, {
+              type: "EXECUTE_ACTION",
+              action: action,
+              params: params
+            });
+          } else {
+            throw error;
+          }
+        }
 
         domReport = response || { success: false, error: "No response from content script" };
 
