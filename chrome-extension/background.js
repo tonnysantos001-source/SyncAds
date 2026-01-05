@@ -7,19 +7,21 @@ import { createClient } from './supabase.js';
 import { initRealtimeConnection } from './realtime-client.js';
 import { callActionRouter, buildActionPayload } from './action-router-client.js';
 
-// Sistema de Auto-Heal
-let attemptAutoHeal, withAutoHeal;
-try {
-  const autoHealModule = await import('./auto-heal.js');
-  attemptAutoHeal = autoHealModule.attemptAutoHeal;
-  withAutoHeal = autoHealModule.withAutoHeal;
-  console.log("✅ [AUTO-HEAL] Sistema de auto-correção carregado");
-} catch (e) {
-  console.warn("⚠️ [AUTO-HEAL] Não foi possível carregar auto-heal.js:", e.message);
-  // Fallback: funções vazias
-  attemptAutoHeal = async () => false;
-  withAutoHeal = async (fn) => await fn();
-}
+// Sistema de Auto-Heal (carregado dinamicamente)
+let attemptAutoHeal = async () => false;
+let withAutoHeal = async (fn) => await fn();
+
+// Carregar auto-heal dinamicamente (não pode usar top-level await em service workers)
+(async () => {
+  try {
+    const autoHealModule = await import('./auto-heal.js');
+    attemptAutoHeal = autoHealModule.attemptAutoHeal;
+    withAutoHeal = autoHealModule.withAutoHeal;
+    console.log("✅ [AUTO-HEAL] Sistema de auto-correção carregado");
+  } catch (e) {
+    console.warn("⚠️ [AUTO-HEAL] Não foi possível carregar auto-heal.js:", e.message);
+  }
+})();
 
 console.log("✅ [IMPORTS] Supabase, Realtime & Action Router Client imported");
 // Legacy try/catch block removed as static imports will throw syntax errors if they fail
