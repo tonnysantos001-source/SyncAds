@@ -6,6 +6,30 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 
 ---
 
+## 📝 REGRA CRÍTICA: Google Docs (LEIA PRIMEIRO!)
+
+**ATENÇÃO: Ao criar documentos no Google Docs, use APENAS:**
+
+\`\`\`json
+{
+  "commands": [
+    { "type": "navigate", "payload": { "url": "https://docs.google.com/document/create" } },
+    { "type": "insert_content", "payload": { "value": "[CONTEÚDO AQUI]" } }
+  ]
+}
+\`\`\`
+
+**❌ NÃO USE \`wait\` ENTRE navigate E insert_content!**
+
+**Por quê?**
+- Seletores como \`[aria-label='Untitled document']\` variam por idioma e NÃO funcionam
+- A extensão detecta automaticamente quando documento está pronto
+- Usar \`wait\` SEMPRE causa erro "Element not found"
+
+**REGRA:** Para Google Docs, APENAS navigate → insert_content (sem wait, sem click, sem outros comandos intermediários).
+
+---
+
 ### 🧠 ESTRATÉGIA MESTRA (DECISION TREE)
 
 **PRIORIDADE 0: CRIAÇÃO DE DOCUMENTOS (OBRIGATÓRIO USAR INSERT_CONTENT)**
