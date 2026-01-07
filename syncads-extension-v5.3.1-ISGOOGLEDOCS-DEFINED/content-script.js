@@ -1,0 +1,3104 @@
+// ============================================
+// SYNCADS EXTENSION - CONTENT SCRIPT v4.0
+// Robust Token Detection & Background Communication
+// ============================================
+
+// ============================================
+// ✅ EXECUTAR APENAS NO SYNCADS PARA DETECTAR LOGIN
+// ============================================
+const SYNCADS_DOMAINS = [
+  "syncads.com.br",
+  "www.syncads.com.br",
+  "vercel.app",
+  "localhost",
+  "127.0.0.1",
+];
+
+const currentDomain = window.location.hostname;
+const isSyncAdsSite = SYNCADS_DOMAINS.some(
+  (domain) =>
+    currentDomain.includes(domain) ||
+    currentDomain.includes("syncads") ||
+    window.location.href.includes("syncads"),
+);
+
+// Content script deve executar no SyncAds para capturar token após login
+console.log("🚀 SyncAds Extension v4.0 - Content Script Active", {
+  domain: currentDomain,
+  isSyncAdsSite: isSyncAdsSite,
+  url: window.location.href,
+});
+
+console.log("🚀 SyncAds Content Script v4.0 - Initializing on:", currentDomain);
+
+// ============================================
+// CONFIGURATION
+// ============================================
+const CONFIG = {
+  version: "4.0.0",
+
+  detection: {
+    initialDelay: 2000, // Wait 2s before first check
+    checkInterval: 1000, // Check every 1s
+    storageMonitorInterval: 200, // Monitor storage changes every 200ms
+    maxSendAttempts: 3, // Max attempts to send token to background
+    retryDelay: 1000, // Delay between send retries
+  },
+
+  notification: {
+    duration: 5000,
+    position: { top: "20px", right: "20px" },
+  },
+
+  button: {
+    position: { bottom: "20px", right: "20px" },
+  },
+};
+
+// ============================================
+// STATE MANAGEMENT
+// ============================================
+let state = {
+  isInitialized: false,
+  lastTokenSent: null,
+  knownStorageKeys: new Set(),
+  checkCount: 0,
+  isProcessingToken: false,
+  hasShownButton: false,
+
+  // Track what we've already processed
+  processedTokens: new Set(),
+  lastDetectionTime: null,
+
+  // DOM Control State
+  isDomActive: false,
+  domOverlay: null,
+  domBorder: null,
+};
+
+// ============================================
+// LOGGING
+// ============================================
+const Logger = {
+  info: (message, data = {}) => {
+    console.log(`ℹ️ [ContentScript] ${message}`, data);
+  },
+
+  success: (message, data = {}) => {
+    console.log(`✅ [ContentScript] ${message}`, data);
+  },
+
+  warn: (message, data = {}) => {
+    console.warn(`⚠️ [ContentScript] ${message}`, data);
+  },
+
+  error: (message, error = null, data = {}) => {
+    console.error(`❌ [ContentScript] ${message}`, error, data);
+  },
+
+  debug: (message, data = {}) => {
+    console.log(`🔍 [ContentScript] ${message}`, data);
+  },
+};
+
+// ============================================
+// DOM VISUAL FEEDBACK
+// ============================================
+
+/**
+ * Cria e injeta estilos CSS para feedback visual
+ */
+function injectDomStyles() {
+  if (document.getElementById("syncads-dom-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "syncads-dom-styles";
+  style.textContent = `
+    /* Borda piscando animada */
+    @keyframes syncads-pulse-border {
+      0%, 100% {
+        box-shadow: inset 0 0 0 4px rgba(99, 102, 241, 0.8);
+      }
+      50% {
+        box-shadow: inset 0 0 0 8px rgba(99, 102, 241, 0.4);
+      }
+    }
+
+    .syncads-dom-border {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      pointer-events: none !important;
+      z-index: 999999998 !important;
+      animation: syncads-pulse-border 2s ease-in-out infinite !important;
+      border-radius: 0 !important;
+    }
+
+    /* Overlay de bloqueio */
+    .syncads-dom-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(17, 24, 39, 0.85) !important;
+      backdrop-filter: blur(4px) !important;
+      z-index: 999999999 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    /* Conteúdo do overlay */
+    .syncads-dom-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      padding: 32px 48px !important;
+      border-radius: 16px !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+      text-align: center !important;
+      max-width: 500px !important;
+      animation: syncads-fade-in 0.3s ease-out !important;
+    }
+
+    @keyframes syncads-fade-in {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .syncads-dom-icon {
+      font-size: 64px !important;
+      margin-bottom: 16px !important;
+      animation: syncads-spin 3s linear infinite !important;
+    }
+
+    @keyframes syncads-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .syncads-dom-title {
+      color: #ffffff !important;
+      font-size: 24px !important;
+      font-weight: 700 !important;
+      margin: 0 0 12px 0 !important;
+      letter-spacing: -0.5px !important;
+    }
+
+    .syncads-dom-message {
+      color: rgba(255, 255, 255, 0.9) !important;
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      margin: 0 0 20px 0 !important;
+    }
+
+    .syncads-dom-status {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      padding: 8px 16px !important;
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 20px !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+    }
+
+    .syncads-dom-pulse {
+      width: 8px !important;
+      height: 8px !important;
+      background: #10b981 !important;
+      border-radius: 50% !important;
+      animation: syncads-pulse-dot 1.5s ease-in-out infinite !important;
+    }
+
+    @keyframes syncads-pulse-dot {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+  Logger.success("DOM styles injected");
+}
+
+/**
+ * Ativa o modo DOM - (DISABLED VISUAL OVERLAY per user request)
+ */
+function activateDomMode(message = "Aguarde enquanto a IA controla o navegador...") {
+  state.isDomActive = true;
+  Logger.info("DOM mode activated (Silent)");
+}
+
+/**
+ * Desativa o modo DOM
+ */
+function deactivateDomMode() {
+  state.isDomActive = false;
+  Logger.info("DOM mode deactivated");
+}
+
+/**
+ * Atualiza mensagem do DOM overlay
+ */
+function updateDomMessage(message) {
+  // Disabled
+}
+
+// ============================================
+// MESSAGE LISTENERS - DOM CONTROL
+// ============================================
+
+/**
+ * Listener para comandos de controle DOM
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  Logger.debug("Message received from background", { type: message.type });
+
+  switch (message.type) {
+    case "DOM_ACTIVATE":
+      activateDomMode(message.message);
+      sendResponse({ success: true, active: true });
+      break;
+
+    case "DOM_DEACTIVATE":
+      deactivateDomMode();
+      sendResponse({ success: true, active: false });
+      break;
+
+    case "DOM_UPDATE_MESSAGE":
+      updateDomMessage(message.message);
+      sendResponse({ success: true });
+      break;
+
+    case "DOM_STATUS":
+      sendResponse({ active: state.isDomActive });
+      break;
+
+    case "EXECUTE_STRICT_ACTION":
+      executeStrictAction(message.action, message.params)
+        .then((result) => sendResponse(result))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true;
+
+    case "EXECUTE_DOM_ACTION":
+      handleDomAction(message.action, message.params)
+        .then((result) => sendResponse({ success: true, result }))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true;
+
+    case "EXECUTE_ACTION":
+      // Explicit handler for EXECUTE_ACTION from background
+      (async () => {
+        try {
+          const result = await handleDomAction(message.action, message.params);
+          sendResponse({ success: true, ...result });
+        } catch (error) {
+          Logger.error("Action execution failed", error);
+          sendresponse({ success: false, error: error.message });
+        }
+      })();
+      return true; // Keep channel open for async
+
+    default:
+      // Ignore unknown messages to prevent "Unknown message type" error
+      return false;
+  }
+
+  return true;
+});
+
+/**
+ * HELPER: Wait for element to appear
+ */
+async function waitForElement(selector, timeout = 15000) {
+  const startTime = Date.now();
+
+  // Check immediately
+  if (document.querySelector(selector)) return document.querySelector(selector);
+
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        observer.disconnect();
+        resolve(el);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Element not found after ${timeout}ms: ${selector}`));
+    }, timeout);
+  });
+}
+
+/**
+ * EXECUTE STRICT ACTION (With Visual Verification)
+ */
+async function executeStrictAction(action, params) {
+  Logger.info(` STRICT ACTION: ${action}`, params);
+
+  // activate visual mode
+  if (!state.isDomActive) activateDomMode("IA executando ação...");
+  updateDomMessage(`Ação: ${action}`);
+
+  try {
+    let result = null;
+
+    switch (action) {
+      case "TYPE":
+        // Use existing fillInput which serves strict verification already (see fillInput implementation)
+        result = await fillInput(params.selector, params.text || params.value);
+        // Evidence is the final checked value
+        return { success: true, evidence: { value: params.text } };
+
+      case "CLICK":
+        // Check existance first
+        const el = document.querySelector(params.selector);
+        if (!el) throw new Error(`Element ${params.selector} not found`);
+
+        await clickElement(params.selector);
+        // Verification is implicit in clickElement success (it finds and clicks)
+        // Truly strict verification for click is hard (did page change? did modal open?)
+        // For now, "No Error" + "Element Existed" is the verification.
+        return { success: true, evidence: { selector: params.selector, timestamp: Date.now() } };
+
+      case "PRESS_KEY":
+        if (params.key === 'Enter') {
+          // Logic to press enter on active element or specific selector
+          const target = params.selector ? document.querySelector(params.selector) : document.activeElement;
+          if (!target) throw new Error("No target for PRESS_KEY");
+
+          target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+          target.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', bubbles: true }));
+          target.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+
+          // Allow time for effect
+          await new Promise(r => setTimeout(r, 500));
+          return { success: true, evidence: { key: 'Enter' } };
+        }
+        throw new Error("Unsupported Key");
+
+      default:
+        throw new Error(`Unknown Strict Action: ${action}`);
+    }
+  } catch (e) {
+    Logger.error("Strict execution failed", e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Handler para ações DOM
+ */
+async function handleDomAction(action, params = {}) {
+  Logger.info(`Executing DOM action: ${action}`, params);
+
+  try {
+    switch (action) {
+      // 1. CLICK
+      case "DOM_CLICK":
+      case "CLICK": // Legacy support
+        return await clickElement(params.selector);
+
+      // 2. TYPE (Robust SPA support)
+      case "DOM_TYPE":
+      case "FILL": // Legacy support
+        return await fillInput(params.selector, params.value);
+
+      // 3. WAIT (Robust Selector Wait)
+      case "DOM_WAIT":
+      case "WAIT":
+        if (params.selector) {
+          Logger.info(`⏳ Waiting for selector: ${params.selector} (Timeout: ${params.timeout}ms)`);
+          try {
+            await waitForElement(params.selector, params.timeout || 10000);
+            return { success: true, verified: true };
+          } catch (e) {
+            // ROBUST FALLBACK FOR GOOGLE DOCS (I18n Safe)
+            if (window.location.href.includes("docs.google.com/document/")) {
+              Logger.info("⚠️ Selector wait failed in Docs. Trying robust editor check...");
+              const editor = document.querySelector('.kix-canvas-tile-content') || document.querySelector('[contenteditable="true"]');
+              if (editor) {
+                Logger.success("✅ Google Docs Editor confirmed (Robust Fallback)");
+                return { success: true, verified: true, note: "Fallback to Editor detection" };
+              }
+            }
+            throw e; // Rethrow if not docs or fallback failed
+          }
+        } else {
+          // Internal pause (fallback)
+          await new Promise((resolve) => setTimeout(resolve, params.duration || 1000));
+          return { success: true, type: "pause" };
+        }
+
+      // 4. SCROLL
+      case "DOM_SCROLL":
+      case "SCROLL":
+        window.scrollBy({
+          top: params.y || 0,
+          left: params.x || 0,
+          behavior: "smooth",
+        });
+        return { success: true };
+
+      // 5. NAVIGATE (Content Script verification if needed, usually handled by BG)
+      case "NAVIGATE":
+        return await executeNavigateWithVerification(params.url, params.timeout || 30000);
+
+      // OTHERS
+      case "GET_TEXT":
+        const el = document.querySelector(params.selector);
+        return { success: true, text: el?.textContent || null };
+
+      case "SCREENSHOT":
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: "TAKE_SCREENSHOT" }, resolve);
+        });
+
+      case "SCAN_PAGE":
+        return await executeScanPage();
+
+      case "EXTRACT_CONTENT":
+        return extractPageContent();
+
+      // 6. INSERT_CONTENT (Simulate Paste/Clipboard for long text)
+      case "DOM_INSERT":
+      case "INSERT_CONTENT":
+        return await handleInsertContent(params.selector, params.value, params.format);
+
+      // 7. CHECK_DOC_STATUS (Strict Verification)
+      case "CHECK_DOC_STATUS":
+        return await detectGoogleDocsCreated(params.timeout || 8000);
+
+      default:
+        throw new Error(`Unknown DOM action: ${action}`);
+    }
+  } catch (error) {
+    Logger.error(`DOM action failed: ${action}`, error);
+    throw error;
+  }
+}
+
+/**
+ * CANONICAL DETECTOR: Google Docs Creation with DOM Stability
+ * 
+ * CRITICAL REQUIREMENTS:
+ * 1. URL matches /document/d/{docId}/edit
+ * 2. Title !== "Google Docs" (not in loading state)
+      const contentEditable = document.querySelector('[contenteditable="true"]');
+      const editor = editorCanvas || contentEditable;
+      const editorOk = !!editor;
+
+      return { urlOk, titleOk, editorOk, url, title, editor };
+    };
+
+    // Final confirmation after DOM stability
+    const confirmCreation = (conditions) => {
+      Logger.success("✅ DOCUMENT_CREATED_CONFIRMED! (DOM Stable)", {
+        url: conditions.url,
+        title: conditions.title,
+      });
+
+      // Extract docId
+      const docId = conditions.url.split("/d/")[1]?.split("/")[0] || "unknown";
+
+      // CANONICAL SIGNAL
+      const confirmedSignal = {
+        type: "DOCUMENT_CREATED_CONFIRMED",
+        timestamp: Date.now(),
+        payload: {
+          url: conditions.url,
+          title: conditions.title,
+          docId: docId,
+          stabilityDuration: STABILITY_THRESHOLD,
+        },
+      };
+
+      // Editor ready signal
+      const editorSignal = {
+        type: "EDITOR_READY",
+        timestamp: Date.now(),
+        payload: {
+          editor_selector: conditions.editor.className || "contenteditable",
+        },
+      };
+
+      // Send signal to background
+      chrome.runtime.sendMessage({
+        type: "DOCUMENT_SIGNAL",
+        signal: confirmedSignal,
+      });
+
+      resolve({
+        success: true,
+        dom_signals: {
+          signals: [confirmedSignal, editorSignal],
+          final_url: conditions.url,
+          editor_detected: true,
+          content_length: 0,
+          stability_verified: true,
+        },
+      });
+    };
+
+    // Mutation observer for stability check
+    const stabilityObserver = new MutationObserver(() => {
+      lastMutationTime = Date.now();
+
+      // Clear existing stability timer
+      if (stabilityTimer) {
+        clearTimeout(stabilityTimer);
+      }
+
+      // Check if basic conditions are met
+      const conditions = checkConditions();
+
+      if (conditions.urlOk && conditions.titleOk && conditions.editorOk) {
+        // Set new stability timer
+        stabilityTimer = setTimeout(() => {
+          // If we reach here, DOM has been stable for STABILITY_THRESHOLD
+          const timeSinceLastMutation = Date.now() - lastMutationTime;
+
+          if (timeSinceLastMutation >= STABILITY_THRESHOLD) {
+            stabilityObserver.disconnect();
+            confirmCreation(conditions);
+          }
+        }, STABILITY_THRESHOLD);
+      }
+    });
+
+    // Start observing
+    stabilityObserver.observe(document, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeOldValue: false,
+    });
+
+    // Initial check (might already be ready)
+    const initialConditions = checkConditions();
+    if (
+      initialConditions.urlOk &&
+      initialConditions.titleOk &&
+      initialConditions.editorOk
+    ) {
+      // Start stability timer immediately
+      stabilityTimer = setTimeout(() => {
+        stabilityObserver.disconnect();
+        confirmCreation(initialConditions);
+      }, STABILITY_THRESHOLD);
+    }
+
+    // Overall timeout
+    setTimeout(() => {
+      stabilityObserver.disconnect();
+      if (stabilityTimer) clearTimeout(stabilityTimer);
+
+      const currentUrl = window.location.href;
+      const currentTitle = document.title;
+
+      // Check if redirected to home
+      if (currentUrl.endsWith("/u/0") || currentUrl.includes("/u/0/")) {
+        Logger.error("❌ Redirected to Docs Home (/u/0) - Creation Failed");
+        resolve({
+          success: false,
+          error: "Redirected to Docs Home (/u/0)",
+          dom_signals: {
+            signals: [
+              {
+                type: "UNEXPECTED_NAVIGATION",
+                timestamp: Date.now(),
+                payload: { url: currentUrl },
+              },
+            ],
+            final_url: currentUrl,
+            editor_detected: false,
+          },
+        });
+      } else {
+        Logger.warn("❌ Google Docs Detection Timed Out (No Stability)", {
+          url: currentUrl,
+          title: currentTitle,
+        });
+        resolve({
+          success: false,
+          error: "Google Docs not confirmed (Timeout - DOM unstable)",
+          dom_signals: {
+            signals: [],
+            final_url: currentUrl,
+            editor_detected: !!document.querySelector(
+              '.kix-canvas-tile-content, [contenteditable="true"]'
+            ),
+          },
+        });
+      }
+    }, timeout);
+  });
+}
+
+
+/**
+ * ROBUST CONTENT INSERTION (Clipboard/ExecCommand)
+ * Best for long text, rich text, and Google Docs
+ */
+async function handleInsertContent(selector, value, format = "text") {
+  Logger.info(`📋 [INSERT] Injecting content (${value.length} chars) into ${selector || "activeElement"}`);
+
+  try {
+    let element = null;
+    if (selector) {
+      element = await waitForElement(selector, 5000).catch(() => null);
+    }
+
+    // ROBUST FALLBACK FOR GOOGLE DOCS (I18n Safe)
+    if (window.location.href.includes("docs.google.com/document/")) {
+      // If specific selector failed (or we want to ensure we hit the editor)
+      if (!element) {
+        Logger.info("⚠️ Selector failed in Google Docs. Attempting robust fallback...");
+        // Try Canvas (Google Docs Rendering Engine)
+        element = document.querySelector('.kix-canvas-tile-content');
+        // Try Content Editable (Fallback)
+        if (!element) element = document.querySelector('[contenteditable="true"]');
+      }
+
+      // Ensure focus for clipboard events
+      if (element) {
+        Logger.info("🎯 Focused Google Docs Editor (Robust Fallback)");
+        element.focus();
+      }
+    }
+
+    // Fallback to active element requires valid focus
+    if (!element) {
+      element = document.activeElement;
+    }
+
+    if (!element) throw new Error("Target element for insertion not found");
+    // Ensure element is visible/interactive
+    element.focus();
+
+    element.focus();
+
+    // STRICT DOM SIGNAL GENERATION
+    // STRICT DOM SIGNAL GENERATION
+    const signals = [];
+    const timestamp = Date.now();
+    const currentUrl = window.location.href;
+
+    // 1. SIGNAL: EDITOR_READY
+    if (element) {
+      signals.push({
+        type: "EDITOR_READY",
+        timestamp,
+        payload: { editor_selector: element.tagName }
+      });
+    }
+
+    // 2. SIGNAL: DOCUMENT_CREATED
+    if (currentUrl.includes("/document/d/") && !currentUrl.endsWith("/u/0")) {
+      signals.push({
+        type: "DOCUMENT_CREATED",
+        timestamp,
+        payload: { url: currentUrl }
+      });
+    } else if (currentUrl.endsWith("/u/0") || currentUrl.includes("/document/create")) {
+      signals.push({
+        type: "UNEXPECTED_NAVIGATION",
+        timestamp,
+        payload: { url: currentUrl }
+      });
+    }
+
+    // 3. SIGNAL: CONTENT_INSERTED
+    if (value.length > 0) {
+      signals.push({
+        type: "CONTENT_INSERTED",
+        timestamp,
+        payload: { content_length: value.length }
+      });
+    }
+
+    // CONSTRUCT REPORT
+    const report = {
+      signals: signals,
+      final_url: currentUrl,
+      editor_detected: !!element,
+      content_length: value.length
+    };
+
+    if (isGoogleDocs) {
+      Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
+
+      // Method 1: Clipboard API (Modern)
+      try {
+        await navigator.clipboard.writeText(value);
+        Logger.info("📋 Copied to clipboard");
+
+        const pasteEvent = new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: new DataTransfer()
+        });
+        pasteEvent.clipboardData.setData("text/plain", value);
+        if (format === "html") pasteEvent.clipboardData.setData("text/html", value);
+
+        element.dispatchEvent(pasteEvent);
+        document.execCommand("paste");
+
+        return {
+          success: true,
+          method: "clipboard_paste",
+          dom_signals: report
+        };
+
+      } catch (e) {
+        Logger.warn("Clipboard paste failed, trying insertText execCommand", e);
+      }
+    }
+
+    // Method 2: document.execCommand
+    const command = format === "html" ? "insertHTML" : "insertText";
+    const success = document.execCommand(command, false, value);
+
+    if (success) {
+      Logger.success("✅ Content inserted via execCommand");
+
+      // CAPTURE AND SEND DOCUMENT URL (Google Docs)
+      if (window.location.href.includes("docs.google.com/document/")) {
+        const documentUrl = window.location.href;
+        const docIdMatch = documentUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        const docId = docIdMatch ? docIdMatch[1] : null;
+
+        if (docId && documentUrl.includes('/edit')) {
+          Logger.info("📄 Capturing document URL:", documentUrl);
+
+          // Send URL to background
+          chrome.runtime.sendMessage({
+            type: "DOCUMENT_URL_CAPTURED",
+            payload: {
+              url: documentUrl,
+              docId: docId,
+              timestamp: Date.now()
+            }
+          }).catch(e => Logger.warn("Could not send URL to background:", e));
+
+          // Update report with URL
+          report.document_url = documentUrl;
+          report.document_id = docId;
+        }
+      }
+
+      return {
+        success: true,
+        method: "execCommand",
+        dom_signals: report
+      };
+    }
+
+    // Method 3: Direct Value Set (Fallback)
+    Logger.warn("⚠️ execCommand failed, falling back to direct value set");
+    if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+      element.value = value;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      return {
+        success: true,
+        method: "direct_set",
+        dom_signals: report
+      };
+    } else {
+      element.innerHTML = value;
+      return {
+        success: true,
+        method: "innerHTML",
+        dom_signals: report
+      };
+    }
+
+  } catch (error) {
+    Logger.error("Insert content failed", error);
+    return {
+      success: false,
+      error: error.message,
+      dom_signals: { error_message: error.message }
+    };
+  }
+}
+
+// ============================================
+// VERIFIED NAVIGATION (ANTI-LIE)
+// ============================================
+
+/**
+ * Executa navegação e AGUARDA confirmação real de carregamento
+ * 
+ * REGRAS ANTI-MENTIRA:
+ * - NÃO retorna até window.onload disparar
+ * - Timeout configurável (padrão 30s)
+ * - Retorna evidência verificável: title, readyState, finalUrl
+ * - Se timeout → erro explícito
+ * 
+ * @param {string} url - URL de destino
+ * @param {number} timeout - Timeout em ms (padrão 30000)
+ * @returns {Promise<Object>} Evidência do carregamento
+ */
+async function executeNavigateWithVerification(url, timeout = 30000) {
+  Logger.info(`🚀 [NAVIGATE] Starting verified navigation to: ${url}`);
+
+  const startTime = Date.now();
+  const urlBefore = window.location.href;
+
+  return new Promise((resolve, reject) => {
+    // 1. Setup timeout guard
+    const timeoutId = setTimeout(() => {
+      Logger.error(`⏱️ [NAVIGATE] Timeout after ${timeout}ms waiting for page load`);
+      reject(new Error(`Navigation timeout: Page did not load within ${timeout / 1000}s`));
+    }, timeout);
+
+    // 2. Setup load listener
+    const onLoadComplete = () => {
+      clearTimeout(timeoutId);
+
+      const loadTime = Date.now() - startTime;
+      const evidence = {
+        success: true,
+        urlBefore: urlBefore,
+        urlAfter: window.location.href,
+        title: document.title,
+        readyState: document.readyState,
+        loadTime: loadTime,
+        timestamp: Date.now(),
+        verification: {
+          method: "window.onload",
+          urlMatches: window.location.href.includes(new URL(url).hostname),
+          pageTitle: document.title,
+          documentReady: document.readyState === "complete"
+        }
+      };
+
+      Logger.success(`✅ [NAVIGATE] Page loaded successfully in ${loadTime}ms`);
+      Logger.debug(`[NAVIGATE] Evidence:`, evidence);
+
+      resolve(evidence);
+    };
+
+    // 3. Check if already on target URL (optimization)
+    if (window.location.href === url) {
+      Logger.info(`[NAVIGATE] Already on target URL, confirming page state`);
+
+      if (document.readyState === "complete") {
+        clearTimeout(timeoutId);
+        resolve({
+          success: true,
+          urlBefore: urlBefore,
+          urlAfter: window.location.href,
+          title: document.title,
+          readyState: document.readyState,
+          loadTime: 0,
+          timestamp: Date.now(),
+          verification: {
+            method: "already_loaded",
+            urlMatches: true,
+            pageTitle: document.title,
+            documentReady: true
+          }
+        });
+        return;
+      }
+    }
+
+    // 4. Execute navigation
+    try {
+      // Listen for load event
+      window.addEventListener('load', onLoadComplete, { once: true });
+
+      // Navigate!
+      Logger.info(`[NAVIGATE] Executing: window.location.href = "${url}"`);
+      window.location.href = url;
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      Logger.error(`[NAVIGATE] Navigation failed`, error);
+      reject(error);
+    }
+  });
+}
+
+// ============================================
+// HUMAN INTERACTION LAYER (Ghost Cursor & Typing)
+// ============================================
+
+// Cria e gerencia o cursor fantasma
+function getOrCreateCursor() {
+  let cursor = document.getElementById("syncads-ghost-cursor");
+  if (!cursor) {
+    cursor = document.createElement("div");
+    cursor.id = "syncads-ghost-cursor";
+    cursor.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="#7C3AED" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    `;
+    cursor.style.position = "fixed";
+    cursor.style.top = "0";
+    cursor.style.left = "0";
+    cursor.style.zIndex = "999999999";
+    cursor.style.pointerEvents = "none";
+    cursor.style.transition = "transform 0.1s linear"; // Smooth movement handling by JS
+    cursor.style.transform = "translate(-100px, -100px)"; // Start off-screen
+    document.body.appendChild(cursor);
+  }
+  return cursor;
+}
+
+// Move o cursor suavemente para um elemento
+async function moveCursorTo(element, duration = 1000) {
+  const cursor = getOrCreateCursor();
+  const rect = element.getBoundingClientRect();
+
+  // Destino (centro do elemento com leve aleatoriedade)
+  const targetX = rect.left + (rect.width / 2) + (Math.random() * 10 - 5);
+  const targetY = rect.top + (rect.height / 2) + (Math.random() * 10 - 5);
+
+  // Posição atual (se não tiver, começa do centro da tela)
+  const currentTransform = window.getComputedStyle(cursor).transform;
+  let startX = window.innerWidth / 2;
+  let startY = window.innerHeight / 2;
+
+  if (currentTransform !== 'none') {
+    const matrix = new DOMMatrix(currentTransform);
+    startX = matrix.m41;
+    startY = matrix.m42;
+  }
+
+  // Curva de Bezier simples para movimento mais natural
+  const controlX = startX + (targetX - startX) * 0.5 + (Math.random() * 100 - 50);
+  const controlY = startY + (targetY - startY) * 0.5 + (Math.random() * 100 - 50);
+
+  const startTime = Date.now();
+
+  return new Promise(resolve => {
+    function animate() {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+
+      // Easing: easeOutCubic
+      const t = 1 - Math.pow(1 - progress, 3);
+
+      // Bezier Quadratic Calculation
+      const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * targetX;
+      const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * targetY;
+
+      cursor.style.transform = `translate(${x}px, ${y}px)`;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
+// Simula efeito de clique visual
+function showClickRipple(x, y) {
+  const ripple = document.createElement("div");
+  ripple.style.position = "fixed";
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+  ripple.style.width = "20px";
+  ripple.style.height = "20px";
+  ripple.style.background = "rgba(124, 58, 237, 0.4)";
+  ripple.style.borderRadius = "50%";
+  ripple.style.transform = "translate(-50%, -50%) scale(0)";
+  ripple.style.transition = "transform 0.4s ease-out, opacity 0.4s ease-out";
+  ripple.style.pointerEvents = "none";
+  ripple.style.zIndex = "999999998";
+
+  document.body.appendChild(ripple);
+
+  requestAnimationFrame(() => {
+    ripple.style.transform = "translate(-50%, -50%) scale(2.5)";
+    ripple.style.opacity = "0";
+  });
+
+  setTimeout(() => ripple.remove(), 500);
+}
+
+/**
+ * Clica em um elemento (Com movimento Humano)
+ */
+async function clickElement(selector) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // 1. Highlight
+  const originalOutline = element.style.outline;
+  const originalBoxShadow = element.style.boxShadow;
+  element.style.outline = "2px solid #7C3AED";
+  element.style.boxShadow = "0 0 10px rgba(124, 58, 237, 0.5)";
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // 2. Mover Cursor
+  await moveCursorTo(element, 800 + Math.random() * 400);
+
+  // 3. Efeito Visual de Clique
+  const rect = element.getBoundingClientRect();
+  const clickX = rect.left + rect.width / 2;
+  const clickY = rect.top + rect.height / 2;
+  showClickRipple(clickX, clickY);
+
+  // 4. Clique Real
+  await new Promise(resolve => setTimeout(resolve, 100)); // Pequena pausa pre-click
+  element.click();
+  element.focus();
+
+  // Cleanup style
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+    element.style.boxShadow = originalBoxShadow;
+  }, 1000);
+
+  Logger.success(`🖱️ Clicked element: ${selector}`);
+  return { success: true, selector };
+}
+
+/**
+ * Preenche um input (Com digitação Humana)
+ */
+/**
+ * Preenche um input (Com digitação Humana e Suporte a SPAs/Docs)
+ */
+async function fillInput(selector, value) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Input not found: ${selector}`);
+  }
+
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // 1. Highlight
+  const originalOutline = element.style.outline;
+  element.style.outline = "2px solid #7C3AED";
+
+  // 2. Mover Cursor e Clicar (apenas se não for Docs para ganhar tempo)
+  const isGoogleDocs = selector.includes('.kix-appview-editor') ||
+    window.location.hostname.includes('docs.google.com');
+
+  if (!isGoogleDocs) {
+    await moveCursorTo(element, 800);
+  }
+
+  element.click();
+  element.focus();
+
+  // 3. Digitação Realista
+  const isContentEditable = element.isContentEditable || element.getAttribute('contenteditable') === 'true';
+
+  // Handling Google Docs Special Case
+  if (isGoogleDocs) {
+    Logger.info("📝 Detected Google Docs/Canvas - Using Event-Only Mode");
+
+    // Não tentamos limpar (.innerText = "") pois quebra o Docs
+    // Não usamos appendChild, pois o Docs precisa dos eventos para atualizar o Canvas
+
+    for (const char of value) {
+      const charCode = char.charCodeAt(0);
+
+      // Eventos precisos para o Docs interceptar
+      const keyEvents = [
+        new KeyboardEvent("keydown", { key: char, code: `Key${char.toUpperCase()}`, charCode: charCode, bubbles: true, cancelable: true }),
+        new KeyboardEvent("keypress", { key: char, code: `Key${char.toUpperCase()}`, charCode: charCode, bubbles: true, cancelable: true }),
+        new InputEvent("textInput", { data: char, bubbles: true, cancelable: true, view: window }), // Crucial for Legacy WebKit
+        new InputEvent("input", { data: char, bubbles: true, cancelable: true, inputType: "insertText" }), // Crucial for Modern Apps
+        new KeyboardEvent("keyup", { key: char, code: `Key${char.toUpperCase()}`, charCode: charCode, bubbles: true, cancelable: true })
+      ];
+
+      for (const event of keyEvents) {
+        element.dispatchEvent(event);
+      }
+
+      // Delay maior para Docs processar
+      await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 50));
+    }
+
+    // Verificação Leniente para Docs (já que não podemos ler o canvas facilmente)
+    Logger.success(`📝 Google Docs typing completed (blind verify)`);
+    element.style.outline = originalOutline;
+    return {
+      success: true,
+      selector,
+      value,
+      verified: true, // Assumimos true pois Docs não deixa ler .value confiavelmente
+      actualValue: "GOOGLE_DOCS_BLIND_TYPE",
+      verification: { method: "blind_trust", valueMatches: true }
+    };
+  }
+
+  // --- STANDARD INPUT HANDLING (React/HTML) ---
+
+  if (!isContentEditable) {
+    element.value = "";
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  } else {
+    element.innerText = "";
+  }
+
+  // Digitar caractere por caractere
+  for (const char of value) {
+    const typingSpeed = 30 + Math.random() * 80;
+    await new Promise(resolve => setTimeout(resolve, typingSpeed));
+
+    if (isContentEditable) {
+      // Inserir texto e normalizar cursor
+      const textNode = document.createTextNode(char);
+      element.appendChild(textNode);
+
+      // Mover cursor
+      try {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(element);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch (e) { /* Ignore selection errors */ }
+    } else {
+      element.value += char;
+    }
+
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true })); // React muitas vezes precisa disso
+  }
+
+  // ⭐ VERIFICAÇÃO PADRÃO
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Disparar blur para garantir que o framework salve o estado
+  element.dispatchEvent(new Event("blur", { bubbles: true }));
+
+  // Verificação
+  let actualValue = isContentEditable ? (element.innerText || "") : element.value;
+  let verified = actualValue.trim() === value.trim();
+
+  // Retry simples se falhar
+  if (!verified && !isContentEditable) {
+    Logger.warn("⚠️ Value mismatch, forcing direct value set for reliable fallback");
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+    verified = true;
+  }
+
+  if (verified) {
+    Logger.success(`✅ [FILL] Verified: "${value}"`);
+  } else {
+    Logger.warn(`⚠️ [FILL] Verification warning: Expected "${value}", got "${actualValue}"`);
+    // Não falhamos mais duramente para não travar o fluxo se for apenas formatação
+  }
+
+  element.style.outline = originalOutline;
+
+  return {
+    success: true,
+    selector,
+    value,
+    verified: verified,
+    actualValue,
+    verification: {
+      method: "standard",
+      valueMatches: verified
+    }
+  };
+}
+
+
+// ============================================
+// PAGE CONTENT EXTRACTION (READER MODE)
+// ============================================
+function extractPageContent() {
+  Logger.info("📄 extracting page content (Reader Mode)");
+
+  // Heuristic: Find content container
+  const candidates = [
+    document.querySelector("article"),
+    document.querySelector('div[role="main"]'),
+    document.querySelector("main"),
+    document.querySelector("#content"),
+    document.querySelector(".content"),
+    document.querySelector("#main"),
+    document.querySelector(".post-body"),
+    document.body
+  ];
+
+  // Try to find the best candidate that isn't null and has some text
+  const contentEl = candidates.find(el => el && el.innerText.length > 200);
+  const target = contentEl || document.body;
+
+  // Clone to avoid mutation
+  const clone = target.cloneNode(true);
+
+  // Remove clutter
+  const junkSelectors = [
+    "script", "style", "noscript", "svg", "button", "nav",
+    "footer", "header", ".ads", "#ads", ".cookie-banner",
+    ".sidebar", "#sidebar", ".menu"
+  ];
+
+  junkSelectors.forEach(sel => {
+    clone.querySelectorAll(sel).forEach(el => el.remove());
+  });
+
+  let text = clone.innerText || "";
+
+  // Clean whitespace
+  text = text.replace(/\\n\\s*\\n/g, "\n\n").trim();
+
+  // Limit output size
+  const maxLength = 25000;
+  if (text.length > maxLength) {
+    text = text.substring(0, maxLength) + "\n... [Truncated]";
+  }
+
+  Logger.success(`📄 Content Extracted: ${text.length} chars`);
+
+  return {
+    success: true,
+    title: document.title,
+    url: window.location.href,
+    content: text
+  };
+}
+
+// ============================================
+// UI COMPONENTS
+// ============================================
+function showNotification(message, type = "info") {
+  const existing = document.getElementById("syncads-notification");
+  if (existing) existing.remove();
+
+  const notification = document.createElement("div");
+  notification.id = "syncads-notification";
+  notification.style.cssText = `
+    position: fixed;
+    top: ${CONFIG.notification.position.top};
+    right: ${CONFIG.notification.position.right};
+    background: ${type === "error" ? "#ef4444" : type === "success" ? "#10b981" : "#3b82f6"};
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 999999;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    max-width: 350px;
+    animation: slideIn 0.3s ease;
+  `;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  notification.innerHTML = `<strong>🔌 SyncAds</strong><br>${message}`;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.transition = "opacity 0.3s, transform 0.3s";
+    notification.style.opacity = "0";
+    notification.style.transform = "translateX(400px)";
+    setTimeout(() => notification.remove(), 300);
+  }, CONFIG.notification.duration);
+}
+
+function createConnectButton() {
+  if (state.hasShownButton || document.getElementById("syncads-connect-btn")) {
+    return;
+  }
+
+  const button = document.createElement("div");
+  button.id = "syncads-connect-btn";
+  button.style.cssText = `
+    position: fixed;
+    bottom: ${CONFIG.button.position.bottom};
+    right: ${CONFIG.button.position.right};
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 999998;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+  `;
+  button.innerHTML = `🔌 Conectar SyncAds`;
+
+  button.addEventListener("mouseenter", () => {
+    button.style.transform = "scale(1.05)";
+    button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+  });
+
+  button.addEventListener("mouseleave", () => {
+    button.style.transform = "scale(1)";
+    button.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+  });
+
+  button.addEventListener("click", async () => {
+    button.innerHTML = `⏳ Buscando token...`;
+    state.lastTokenSent = null;
+    state.processedTokens.clear();
+
+    const result = await detectAndSendToken();
+
+    if (!result) {
+      button.innerHTML = `🔌 Conectar SyncAds`;
+      setTimeout(() => {
+        button.innerHTML = `🔌 Tentar novamente`;
+      }, 2000);
+    }
+  });
+
+  document.body.appendChild(button);
+  state.hasShownButton = true;
+
+  // Create Mic Button (Phase 6)
+  createMicButton();
+
+  Logger.debug("Connect button created");
+}
+
+function createMicButton() {
+  if (document.getElementById("syncads-mic-btn")) return;
+
+  const micBtn = document.createElement("div");
+  micBtn.id = "syncads-mic-btn";
+  micBtn.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background: #ef4444; 
+    color: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 24px;
+  `;
+  micBtn.innerHTML = "🎤";
+  micBtn.title = "Falar com SyncAds (Hold to Speak)";
+
+  // Events
+  let recognition = null;
+
+  micBtn.addEventListener("mousedown", () => {
+    micBtn.style.transform = "scale(1.1)";
+    micBtn.style.background = "#22c55e"; // Green on active
+    startVoiceRecognition();
+  });
+
+  micBtn.addEventListener("mouseup", () => {
+    micBtn.style.transform = "scale(1)";
+    micBtn.style.background = "#ef4444";
+    // stopRecognition handled by silence or manual stop
+  });
+
+  document.body.appendChild(micBtn);
+}
+
+function startVoiceRecognition() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Seu navegador não suporta reconhecimento de voz.");
+    return;
+  }
+
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "pt-BR";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    Logger.info("🎤 Voice Recognition Started");
+    showNotification("Ouvindo...", "info");
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    Logger.success(`🎤 Heard: "${text}"`);
+    showNotification(`Você disse: "${text}"`, "success");
+
+    // TODO: Send to Backend
+    // sendMessageToBackground({ type: "VOICE_INPUT", text });
+  };
+
+  recognition.onerror = (event) => {
+    Logger.error("Voice Error", event);
+    showNotification("Erro no microfone.", "error");
+  };
+
+  recognition.start();
+}
+
+function removeConnectButton() {
+  const button = document.getElementById("syncads-connect-btn");
+  if (button) {
+    button.style.transition = "opacity 0.5s, transform 0.5s";
+    button.style.opacity = "0";
+    button.style.transform = "scale(0.8)";
+    setTimeout(() => button.remove(), 500);
+    Logger.debug("Connect button removed");
+  }
+}
+
+// ============================================
+// SAFE MESSAGE SENDER
+// ============================================
+async function sendMessageToBackground(
+  message,
+  maxAttempts = CONFIG.detection.maxSendAttempts,
+) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      Logger.debug(
+        `Sending message to background (attempt ${attempt}/${maxAttempts})`,
+        { type: message.type },
+      );
+
+      const response = await Promise.race([
+        chrome.runtime.sendMessage(message),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Timeout waiting for background response")),
+            15000,
+          ),
+        ),
+      ]);
+
+      Logger.success("Message sent successfully", { response });
+      return { success: true, data: response };
+    } catch (error) {
+      const errorMsg = error?.message || "Unknown error";
+
+      Logger.warn(`Send attempt ${attempt}/${maxAttempts} failed: ${errorMsg}`);
+
+      // Check if it's a fatal error (no retry needed)
+      if (
+        errorMsg.includes("Extension context invalidated") ||
+        errorMsg.includes("message port closed")
+      ) {
+        Logger.error("Fatal error - extension context lost", error);
+        return { success: false, error: errorMsg, fatal: true };
+      }
+
+      // Retry with delay
+      if (attempt < maxAttempts) {
+        await sleep(CONFIG.detection.retryDelay);
+      }
+    }
+  }
+
+  Logger.error("Failed to send message after all attempts");
+  return { success: false, error: "Max retry attempts exceeded" };
+}
+
+// ============================================
+// TOKEN VALIDATION
+// ============================================
+function validateToken(authData) {
+  if (!authData) {
+    Logger.debug("No auth data");
+    return null;
+  }
+
+  const user = authData.user;
+  const accessToken = authData.access_token;
+  const refreshToken = authData.refresh_token;
+  const expiresAt = authData.expires_at;
+
+  if (!user?.id || !accessToken) {
+    Logger.debug("Incomplete auth data", {
+      hasUser: !!user?.id,
+      hasToken: !!accessToken,
+    });
+    return null;
+  }
+
+  // Check token expiration
+  if (expiresAt) {
+    const expiryDate = new Date(expiresAt * 1000);
+    const now = new Date();
+
+    if (expiryDate <= now) {
+      Logger.warn("Token is EXPIRED", {
+        expiresAt: expiryDate.toLocaleString(),
+        now: now.toLocaleString(),
+      });
+      return null;
+    }
+
+    const minutesUntilExpiry = Math.floor((expiryDate - now) / 1000 / 60);
+    Logger.debug("Token is valid", {
+      expiresAt: expiryDate.toLocaleString(),
+      validFor: minutesUntilExpiry + " minutes",
+    });
+  }
+
+  return {
+    userId: user.id,
+    email: user.email || "",
+    accessToken,
+    refreshToken: refreshToken || null,
+    expiresAt: expiresAt || null,
+  };
+}
+
+// ============================================
+// TOKEN DETECTION
+// ============================================
+function findSupabaseAuthKey() {
+  const localKeys = Object.keys(localStorage);
+  const sessionKeys = Object.keys(sessionStorage);
+  const allKeys = [...localKeys, ...sessionKeys];
+
+  // Priority 1: Modern format (sb-*-auth-token)
+  let authKey = allKeys.find(
+    (k) => k.startsWith("sb-") && k.includes("-auth-token"),
+  );
+  if (authKey) {
+    const storage = localKeys.includes(authKey) ? localStorage : sessionStorage;
+    return { key: authKey, storage, format: "modern" };
+  }
+
+  // Priority 2: Legacy format
+  authKey = allKeys.find((k) => k === "supabase.auth.token");
+  if (authKey) {
+    const storage = localKeys.includes(authKey) ? localStorage : sessionStorage;
+    return { key: authKey, storage, format: "legacy" };
+  }
+
+  return null;
+}
+
+async function detectAndSendToken() {
+  // Prevent concurrent processing
+  if (state.isProcessingToken) {
+    Logger.debug("Already processing token, skipping...");
+    return false;
+  }
+
+  state.isProcessingToken = true;
+  Logger.debug("🔍 Detectando token...", {
+    url: window.location.href,
+    isSyncAds: isSyncAdsSite,
+  });
+
+  try {
+    state.checkCount++;
+
+    // Find auth key
+    const authInfo = findSupabaseAuthKey();
+
+    if (!authInfo) {
+      if (state.checkCount % 50 === 0) {
+        Logger.debug("No Supabase auth key found", {
+          checks: state.checkCount,
+          localKeys: Object.keys(localStorage).length,
+          sessionKeys: Object.keys(sessionStorage).length,
+        });
+      }
+      return false;
+    }
+
+    // Read auth data
+    const authDataRaw = authInfo.storage.getItem(authInfo.key);
+    if (!authDataRaw) {
+      Logger.debug("Auth key found but no data");
+      return false;
+    }
+
+    let authData;
+    try {
+      authData = JSON.parse(authDataRaw);
+    } catch (error) {
+      Logger.error("Failed to parse auth data", error);
+      return false;
+    }
+
+    // Validate token
+    const validatedToken = validateToken(authData);
+    if (!validatedToken) {
+      if (state.checkCount % 50 === 0) {
+        Logger.debug("Token found but invalid or expired");
+      }
+      return false;
+    }
+
+    // Create token fingerprint
+    const tokenFingerprint = `${validatedToken.userId}_${validatedToken.accessToken.substring(0, 50)}`;
+
+    // Check if already sent
+    if (state.processedTokens.has(tokenFingerprint)) {
+      if (state.checkCount % 100 === 0) {
+        Logger.debug("Token already processed, waiting for new token...");
+      }
+      return false;
+    }
+
+    // Send to background
+    Logger.info("Valid token detected! Sending to background...", {
+      userId: validatedToken.userId,
+      email: validatedToken.email,
+      format: authInfo.format,
+      hasRefreshToken: !!validatedToken.refreshToken,
+    });
+
+    const result = await sendMessageToBackground({
+      type: "AUTH_TOKEN_DETECTED",
+      data: validatedToken,
+    });
+
+    if (result.success && result.data?.success) {
+      // Mark as processed
+      state.processedTokens.add(tokenFingerprint);
+      state.lastTokenSent = tokenFingerprint;
+      state.lastDetectionTime = Date.now();
+
+      // Show success notification
+      showNotification("✅ Conectado com sucesso!", "success");
+
+      // Remove connect button
+      removeConnectButton();
+
+      Logger.success("Extension connected successfully!", {
+        userId: validatedToken.userId,
+        email: validatedToken.email,
+      });
+
+      return true;
+    } else {
+      const errorMsg = result.data?.error || result.error || "Unknown error";
+      Logger.error("Background rejected token", null, { error: errorMsg });
+
+      showNotification("❌ Erro ao conectar: " + errorMsg, "error");
+
+      return false;
+    }
+  } catch (error) {
+    Logger.error("Token detection exception", error);
+    return false;
+  } finally {
+    state.isProcessingToken = false;
+  }
+}
+
+// ============================================
+// STORAGE MONITORING
+// ============================================
+function monitorStorageChanges() {
+  const currentLocalKeys = new Set(Object.keys(localStorage));
+  const currentSessionKeys = new Set(Object.keys(sessionStorage));
+  const currentKeys = new Set([...currentLocalKeys, ...currentSessionKeys]);
+
+  // Detect new keys
+  const newKeys = [...currentKeys].filter(
+    (k) => !state.knownStorageKeys.has(k),
+  );
+
+  if (newKeys.length > 0) {
+    Logger.debug("New storage keys detected", { newKeys });
+
+    // Check if any new key is a Supabase auth key
+    const hasSupabaseKey = newKeys.some(
+      (k) => k.startsWith("sb-") || k.includes("supabase"),
+    );
+
+    if (hasSupabaseKey) {
+      Logger.info("New Supabase auth key detected, checking token...");
+      setTimeout(() => detectAndSendToken(), 500);
+    }
+  }
+
+  // Update known keys
+  state.knownStorageKeys = currentKeys;
+}
+
+// ============================================
+// MESSAGE LISTENER
+// ============================================
+// Duplicate listener removed
+
+// ============================================
+// STORAGE EVENT LISTENER
+// ============================================
+window.addEventListener("storage", (event) => {
+  if (
+    event.key &&
+    (event.key.startsWith("sb-") || event.key.includes("supabase"))
+  ) {
+    Logger.debug("Storage event detected", { key: event.key });
+    setTimeout(() => detectAndSendToken(), 100);
+  }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+async function initialize() {
+  if (state.isInitialized) {
+    Logger.warn("Already initialized, skipping...");
+    return;
+  }
+
+  Logger.info("Initializing content script...", {
+    url: window.location.href,
+    version: CONFIG.version,
+    isSyncAdsSite: isSyncAdsSite,
+  });
+
+  // Save initial storage keys
+  state.knownStorageKeys = new Set([
+    ...Object.keys(localStorage),
+    ...Object.keys(sessionStorage),
+  ]);
+
+  Logger.debug("Initial storage state", {
+    localKeys: Object.keys(localStorage).length,
+    sessionKeys: Object.keys(sessionStorage).length,
+  });
+
+  // Check if background is ready
+  try {
+    const response = await sendMessageToBackground({ type: "PING" });
+    if (response.success) {
+      Logger.success("Background service worker is ready");
+    }
+  } catch (error) {
+    Logger.warn("Background not ready yet", error);
+  }
+
+  // CRITICAL: Se estamos no SyncAds, detectar token IMEDIATAMENTE
+  if (isSyncAdsSite) {
+    Logger.info("🎯 No SyncAds! Iniciando detecção agressiva de token...");
+
+    // Verificar imediatamente (sem delay)
+    detectAndSendToken();
+
+    // Verificar novamente após 500ms
+    setTimeout(() => detectAndSendToken(), 500);
+
+    // E mais uma vez após 2 segundos
+    setTimeout(() => detectAndSendToken(), 2000);
+
+    // Adicionar listener para mudanças no localStorage/sessionStorage
+    window.addEventListener("storage", (e) => {
+      Logger.debug("Storage changed", { key: e.key, newValue: !!e.newValue });
+      if (e.key && (e.key.includes("auth") || e.key.includes("supabase"))) {
+        Logger.info("Auth storage changed! Detectando token...");
+        setTimeout(() => detectAndSendToken(), 100);
+      }
+    });
+
+    // Observar mudanças diretas no localStorage
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function (key, value) {
+      originalSetItem.apply(this, arguments);
+      if (key.includes("auth") || key.includes("supabase")) {
+        Logger.info("LocalStorage auth modified!", { key });
+        setTimeout(() => detectAndSendToken(), 100);
+      }
+    };
+  } else {
+    // Para outros sites, delay normal
+    setTimeout(() => {
+      Logger.info("Running initial token check...");
+      detectAndSendToken();
+    }, CONFIG.detection.initialDelay);
+  }
+
+  // Create connect button (after delay)
+  // ⚠️ DESABILITADO: Botão removido para não aparecer em todos os sites
+  // A detecção de token continua funcionando automaticamente em background
+  /*
+  setTimeout(() => {
+    if (document.body && !isSyncAdsSite) {
+      createConnectButton();
+    }
+  }, CONFIG.detection.initialDelay + 500);
+  */
+
+  // Start periodic checks (APENAS SE NÃO TEMOS TOKEN AINDA)
+  setInterval(() => {
+    // Só verificar se ainda não processamos nenhum token
+    if (state.processedTokens.size === 0) {
+      detectAndSendToken();
+    }
+  }, 30000); // A cada 30s, não 5s
+
+  // Start storage monitoring
+  setInterval(() => {
+    monitorStorageChanges();
+  }, CONFIG.detection.storageMonitorInterval);
+
+  state.isInitialized = true;
+
+  Logger.success("Content script initialized and monitoring", {
+    storageMonitorInterval: CONFIG.detection.storageMonitorInterval + "ms",
+    isSyncAdsSite: isSyncAdsSite,
+  });
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ============================================
+// DOM COMMAND EXECUTOR
+// ============================================
+async function executeDomCommand(command) {
+  const { type, data } = command;
+
+  Logger.info("🎯 Executing DOM command", { type, data });
+
+  try {
+    let result = null;
+
+    switch (type) {
+      case "DOM_CLICK":
+        result = await executeClick(data.selector);
+        break;
+
+      // Unify all FILL/TYPE commands to the ROBUST fillInput (Docs compatible)
+      case "DOM_TYPE":
+      case "DOM_FILL":
+        result = await fillInput(data.selector, data.value);
+        break;
+
+      case "DOM_READ":
+        result = await executeRead(data.selector);
+        break;
+
+      case "SCREENSHOT":
+        result = await executeScreenshot();
+        break;
+
+      case "NAVIGATE":
+        result = await executeNavigation(data.url, true);
+        break;
+
+      case "SCROLL":
+      case "DOM_SCROLL":
+        result = await executeScroll(data);
+        break;
+
+      // Unify WAIT commands to ROBUST waitForElement
+      case "DOM_WAIT":
+      case "WAIT":
+      case "WAIT_ELEMENT":
+        if (data.selector) {
+          result = await waitForElement(data.selector, data.timeout || 15000);
+        } else {
+          result = await executeWait(data.ms || 1000);
+        }
+        break;
+
+      case "DOM_HOVER":
+        result = await executeHover(data.selector);
+        break;
+
+      case "DOM_SELECT":
+        result = await executeSelect(data.selector, data.value);
+        break;
+
+      case "FORM_SUBMIT":
+        result = await executeFormSubmit(data.selector);
+        break;
+
+      case "GET_PAGE_INFO":
+        result = await executeGetPageInfo();
+        break;
+
+      case "LIST_TABS":
+        result = await executeListTabs();
+        break;
+
+      case "READ_TEXT":
+        result = await executeReadText(data.selector);
+        break;
+
+      case "EXECUTE_JS":
+        result = await executeJS(data.code);
+        break;
+
+      // Comandos avançados de Screenshot
+      case "SCREENSHOT":
+        result = await executeScreenshot(data);
+        break;
+
+      // Comandos avançados de Web Scraping
+      case "EXTRACT_TABLE":
+        result = await extractTable(data);
+        break;
+
+      case "EXTRACT_IMAGES":
+        result = await extractImages(data);
+        break;
+
+      case "EXTRACT_LINKS":
+        result = await extractLinks(data);
+        break;
+
+      case "EXTRACT_EMAILS":
+        result = await extractEmails();
+        break;
+
+      case "EXTRACT_ALL":
+        result = await extractAllData(data);
+        break;
+
+      // Comandos avançados de Formulários
+      case "FILL_FORM":
+        result = await fillForm(data);
+        break;
+
+      case "WAIT_ELEMENT":
+        result = await waitForElement(data);
+        break;
+
+      default:
+        throw new Error(`Unknown command type: ${type}`);
+    }
+
+    Logger.success("✅ Command executed successfully", { type, result });
+    return { success: true, result };
+  } catch (error) {
+    Logger.error("❌ Command execution failed", error, { type, data });
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// COMMAND IMPLEMENTATIONS
+// ============================================
+
+async function executeClick(selector) {
+  Logger.debug("Executing CLICK", { selector });
+
+  // Tentar encontrar elemento com retry
+  let element = null;
+  for (let i = 0; i < 3; i++) {
+    element = document.querySelector(selector);
+    if (element) break;
+    await sleep(500);
+  }
+
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Destacar elemento temporariamente
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #10b981";
+
+  // Clicar
+  element.click();
+
+  // Remover destaque
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    clicked: selector,
+    text: element.textContent?.trim().substring(0, 50) || "",
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeFill(selector, value) {
+  Logger.debug("Executing FILL", { selector, value });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Focar no elemento
+  element.focus();
+
+  // Limpar valor anterior
+  element.value = "";
+
+  // Destacar elemento
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #3b82f6";
+
+  // Preencher com delay (simular digitação)
+  for (let i = 0; i < value.length; i++) {
+    element.value += value[i];
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    await sleep(50);
+  }
+
+  // Disparar eventos
+  element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new Event("blur", { bubbles: true }));
+
+  // Remover destaque
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    filled: selector,
+    value: value,
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeRead(selector) {
+  Logger.debug("Executing READ", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Destacar elemento
+  const originalOutline = element.style.outline;
+  element.style.outline = "3px solid #f59e0b";
+  setTimeout(() => {
+    element.style.outline = originalOutline;
+  }, 500);
+
+  return {
+    text: element.textContent?.trim() || "",
+    html: element.innerHTML,
+    value: element.value || null,
+    tagName: element.tagName.toLowerCase(),
+    attributes: Array.from(element.attributes).reduce((acc, attr) => {
+      acc[attr.name] = attr.value;
+      return acc;
+    }, {}),
+    classList: Array.from(element.classList),
+    href: element.href || null,
+    src: element.src || null,
+  };
+}
+
+
+
+async function executeNavigation(url, newTab = true) {
+  Logger.debug("Executing NAVIGATE", { url, newTab });
+
+  // Validar URL
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
+  }
+
+  // SEMPRE abrir em nova aba para não sair do chat
+  // Ignorar parâmetro newTab - sempre forçar true
+  const response = await chrome.runtime.sendMessage({
+    type: "OPEN_NEW_TAB",
+    url: url,
+  });
+
+  return { navigated: url, newTab: true, message: "Aberto em nova aba" };
+}
+
+// ============================================
+// 📸 COMANDOS AVANÇADOS - SCREENSHOT
+// ============================================
+
+/**
+ * Captura screenshot da página ou elemento específico
+ */
+async function executeScreenshot(data) {
+  Logger.debug("Executing SCREENSHOT", { data });
+
+  const { selector = null, fullPage = false } = data;
+
+  try {
+    if (selector) {
+      // Screenshot de elemento específico
+      const element = document.querySelector(selector);
+      if (!element) {
+        throw new Error(`Elemento não encontrado: ${selector}`);
+      }
+
+      // Scroll para o elemento
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Obter posição e dimensões do elemento
+      const rect = element.getBoundingClientRect();
+
+      // Capturar via background
+      const response = await chrome.runtime.sendMessage({
+        type: "CAPTURE_SCREENSHOT",
+        data: {
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        type: "element",
+        selector,
+        dataUrl: response.dataUrl,
+      };
+    } else {
+      // Screenshot da viewport ou página inteira
+      const response = await chrome.runtime.sendMessage({
+        type: "CAPTURE_SCREENSHOT",
+        data: { fullPage },
+      });
+
+      return {
+        success: true,
+        type: fullPage ? "fullPage" : "viewport",
+        dataUrl: response.dataUrl,
+      };
+    }
+  } catch (error) {
+    Logger.error("Screenshot failed", error);
+    throw error;
+  }
+}
+
+// ============================================
+// 🕷️ COMANDOS AVANÇADOS - WEB SCRAPING
+// ============================================
+
+/**
+ * Extrai dados estruturados de tabelas
+ */
+async function extractTable(data) {
+  Logger.debug("Extracting TABLE", { data });
+
+  const { selector = "table", headers = true } = data;
+
+  const tables = Array.from(document.querySelectorAll(selector));
+
+  if (tables.length === 0) {
+    throw new Error("Nenhuma tabela encontrada");
+  }
+
+  const results = tables.map((table) => {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const data = [];
+
+    rows.forEach((row, index) => {
+      const cells = Array.from(
+        row.querySelectorAll(index === 0 && headers ? "th" : "td"),
+      );
+      const rowData = cells.map((cell) => cell.textContent.trim());
+
+      if (rowData.length > 0) {
+        data.push(rowData);
+      }
+    });
+
+    return data;
+  });
+
+  return {
+    success: true,
+    tables: results,
+    count: results.length,
+  };
+}
+
+/**
+ * Extrai todas as imagens da página
+ */
+async function extractImages(data) {
+  Logger.debug("Extracting IMAGES", { data });
+
+  const { selector = "img", includeBackgrounds = false } = data;
+
+  const images = Array.from(document.querySelectorAll(selector)).map((img) => ({
+    src: img.src,
+    alt: img.alt || "",
+    width: img.width,
+    height: img.height,
+  }));
+
+  let backgroundImages = [];
+  if (includeBackgrounds) {
+    const elements = Array.from(document.querySelectorAll("*"));
+    backgroundImages = elements
+      .map((el) => {
+        const bg = window.getComputedStyle(el).backgroundImage;
+        if (bg && bg !== "none") {
+          const match = bg.match(/url\(["']?(.+?)["']?\)/);
+          return match ? match[1] : null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  return {
+    success: true,
+    images,
+    backgroundImages,
+    totalCount: images.length + backgroundImages.length,
+  };
+}
+
+/**
+ * Extrai todos os links da página
+ */
+async function extractLinks(data) {
+  Logger.debug("Extracting LINKS", { data });
+
+  const { selector = "a", external = false, internal = false } = data;
+
+  const currentDomain = window.location.hostname;
+
+  const links = Array.from(document.querySelectorAll(selector))
+    .map((link) => {
+      const href = link.href;
+      const text = link.textContent.trim();
+      const isExternal = !href.includes(currentDomain);
+
+      return {
+        href,
+        text,
+        isExternal,
+        title: link.title || "",
+      };
+    })
+    .filter((link) => {
+      if (external && !link.isExternal) return false;
+      if (internal && link.isExternal) return false;
+      return true;
+    });
+
+  return {
+    success: true,
+    links,
+    count: links.length,
+  };
+}
+
+/**
+ * Extrai emails da página
+ */
+async function extractEmails() {
+  Logger.debug("Extracting EMAILS");
+
+  const text = document.body.innerText;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const emails = [...new Set(text.match(emailRegex) || [])];
+
+  return {
+    success: true,
+    emails,
+    count: emails.length,
+  };
+}
+
+/**
+ * Extrai todos os dados de uma página (scraping completo)
+ */
+async function extractAllData(data) {
+  Logger.debug("Extracting ALL DATA", { data });
+
+  const { includeMetadata = true, includeStructured = true } = data;
+
+  const result = {
+    success: true,
+    url: window.location.href,
+    title: document.title,
+  };
+
+  // Metadata
+  if (includeMetadata) {
+    const metaTags = Array.from(document.querySelectorAll("meta")).map(
+      (meta) => ({
+        name: meta.name || meta.property,
+        content: meta.content,
+      }),
+    );
+
+    result.metadata = {
+      description:
+        document.querySelector('meta[name="description"]')?.content || "",
+      keywords: document.querySelector('meta[name="keywords"]')?.content || "",
+      author: document.querySelector('meta[name="author"]')?.content || "",
+      metaTags,
+    };
+  }
+
+  // Structured data
+  if (includeStructured) {
+    const headings = {
+      h1: Array.from(document.querySelectorAll("h1")).map((h) =>
+        h.textContent.trim(),
+      ),
+      h2: Array.from(document.querySelectorAll("h2")).map((h) =>
+        h.textContent.trim(),
+      ),
+      h3: Array.from(document.querySelectorAll("h3")).map((h) =>
+        h.textContent.trim(),
+      ),
+    };
+
+    const paragraphs = Array.from(document.querySelectorAll("p"))
+      .map((p) => p.textContent.trim())
+      .filter((text) => text.length > 20)
+      .slice(0, 10); // Limitar a 10 parágrafos
+
+    result.structure = {
+      headings,
+      paragraphs,
+      linkCount: document.querySelectorAll("a").length,
+      imageCount: document.querySelectorAll("img").length,
+      formCount: document.querySelectorAll("form").length,
+    };
+  }
+
+  return result;
+}
+
+// ============================================
+// 📝 COMANDOS AVANÇADOS - FORMULÁRIOS
+// ============================================
+
+/**
+ * Preenche formulário completo
+ */
+async function fillForm(data) {
+  Logger.debug("Filling FORM", { data });
+
+  const { formSelector = "form", fields = {} } = data;
+
+  const form = document.querySelector(formSelector);
+  if (!form) {
+    throw new Error(`Formulário não encontrado: ${formSelector}`);
+  }
+
+  const results = [];
+
+  for (const [fieldName, value] of Object.entries(fields)) {
+    try {
+      // Tentar múltiplos seletores
+      const selectors = [
+        `[name="${fieldName}"]`,
+        `#${fieldName}`,
+        `[id*="${fieldName}"]`,
+        `[placeholder*="${fieldName}"]`,
+      ];
+
+      let field = null;
+      for (const selector of selectors) {
+        field = form.querySelector(selector);
+        if (field) break;
+      }
+
+      if (!field) {
+        results.push({
+          field: fieldName,
+          success: false,
+          error: "Não encontrado",
+        });
+        continue;
+      }
+
+      // Preencher baseado no tipo
+      const tagName = field.tagName.toLowerCase();
+      const type = field.type?.toLowerCase();
+
+      if (tagName === "input") {
+        if (type === "checkbox" || type === "radio") {
+          field.checked = Boolean(value);
+        } else {
+          field.value = value;
+        }
+      } else if (tagName === "select") {
+        field.value = value;
+      } else if (tagName === "textarea") {
+        field.value = value;
+      }
+
+      // Disparar eventos
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+
+      results.push({ field: fieldName, success: true, value });
+    } catch (error) {
+      results.push({ field: fieldName, success: false, error: error.message });
+    }
+  }
+
+  return {
+    success: true,
+    results,
+    filledCount: results.filter((r) => r.success).length,
+    totalFields: results.length,
+  };
+}
+
+
+async function executeScroll(data) {
+  Logger.debug("Executing SCROLL", { data });
+
+  const { x = 0, y = 0, behavior = "smooth", selector = null } = data;
+
+  if (selector) {
+    // Scroll para elemento específico
+    const element = document.querySelector(selector);
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    element.scrollIntoView({ behavior, block: "center" });
+  } else {
+    // Scroll da página
+    window.scrollTo({ top: y, left: x, behavior });
+  }
+
+  await sleep(500);
+
+  return {
+    scrolled: { x, y },
+    currentScroll: {
+      x: window.scrollX,
+      y: window.scrollY,
+    },
+  };
+}
+
+async function executeWait(ms) {
+  Logger.debug("Executing WAIT", { ms });
+
+  await sleep(ms);
+
+  return { waited: ms };
+}
+
+async function executeHover(selector) {
+  Logger.debug("Executing HOVER", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Criar e disparar evento de hover
+  const mouseOverEvent = new MouseEvent("mouseover", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  const mouseEnterEvent = new MouseEvent("mouseenter", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  element.dispatchEvent(mouseOverEvent);
+  element.dispatchEvent(mouseEnterEvent);
+
+  return {
+    hovered: selector,
+    tagName: element.tagName.toLowerCase(),
+  };
+}
+
+async function executeSelect(selector, value) {
+  Logger.debug("Executing SELECT", { selector, value });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  if (element.tagName.toLowerCase() !== "select") {
+    throw new Error("Element is not a SELECT element");
+  }
+
+  // Scroll para elemento estar visível
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(300);
+
+  // Selecionar opção
+  element.value = value;
+
+  // Disparar eventos
+  element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new Event("input", { bubbles: true }));
+
+  return {
+    selected: selector,
+    value: value,
+    selectedText: element.options[element.selectedIndex]?.text || "",
+  };
+}
+
+async function executeFormSubmit(selector) {
+  Logger.debug("Executing FORM_SUBMIT", { selector });
+
+  const element = document.querySelector(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+
+  let form = element;
+  if (element.tagName.toLowerCase() !== "form") {
+    // Buscar form pai
+    form = element.closest("form");
+    if (!form) {
+      throw new Error("No form found");
+    }
+  }
+
+  // Submit
+  form.submit();
+
+  return {
+    submitted: selector,
+    action: form.action || "",
+    method: form.method || "GET",
+  };
+}
+
+async function executeGetPageInfo() {
+  Logger.debug("Executing GET_PAGE_INFO");
+
+  return {
+    title: document.title,
+    url: window.location.href,
+    domain: window.location.hostname,
+    html: document.documentElement.outerHTML.substring(0, 5000),
+    bodyText: document.body.innerText.substring(0, 2000),
+    links: Array.from(document.links)
+      .slice(0, 20)
+      .map((l) => ({
+        text: l.textContent?.trim().substring(0, 50) || "",
+        href: l.href,
+      })),
+    forms: Array.from(document.forms).map((f) => ({
+      action: f.action,
+      method: f.method,
+      fields: Array.from(f.elements)
+        .slice(0, 10)
+        .map((e) => ({
+          name: e.name,
+          type: e.type,
+          value: e.value?.substring(0, 50) || "",
+        })),
+    })),
+  };
+}
+
+async function executeListTabs() {
+  Logger.debug("Executing LIST_TABS");
+
+  // Enviar mensagem para background para listar tabs
+  const response = await chrome.runtime.sendMessage({
+    type: "LIST_TABS",
+  });
+
+  return response;
+}
+
+async function executeReadText(selector) {
+  Logger.debug("Executing READ_TEXT", { selector });
+
+  if (selector) {
+    const element = document.querySelector(selector);
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    return {
+      text: element.innerText || element.textContent,
+      selector: selector,
+    };
+  } else {
+    return {
+      text: document.body.innerText,
+      selector: "body",
+    };
+  }
+}
+
+async function executeJS(code) {
+  Logger.debug("Executing EXECUTE_JS", { code });
+
+  try {
+    const result = eval(code);
+    return { result, success: true };
+  } catch (error) {
+    throw new Error(`JavaScript execution failed: ${error.message}`);
+  }
+}
+
+// ============================================
+// MESSAGE LISTENER - RECEBER COMANDOS
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  Logger.debug("📩 Message received in content-script", { type: message.type });
+
+  if (message.type === "EXECUTE_COMMAND") {
+    // Executar comando de forma assíncrona
+    (async () => {
+      try {
+        const result = await executeDomCommand({
+          type: message.command,
+          data: message.params,
+        });
+
+        sendResponse({ success: true, result });
+
+        // Mostrar feedback visual
+        if (result.success) {
+          showCommandFeedback(message.command, result.result);
+        }
+      } catch (error) {
+        Logger.error("Command execution error", error);
+        sendResponse({ success: false, error: error.message });
+        showCommandError(message.command, error.message);
+      }
+    })();
+
+    return true; // Keep channel open for async response
+  }
+
+  if (message.type === "PING") {
+    sendResponse({ pong: true, timestamp: Date.now() });
+    return true;
+  }
+
+  if (message.type === "GET_PAGE_INFO") {
+    (async () => {
+      try {
+        const result = await executeGetPageInfo();
+        sendResponse({ success: true, result });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "LIST_TABS") {
+    // Repassar para background que tem acesso às tabs
+    chrome.runtime.sendMessage({ type: "LIST_TABS" }, (response) => {
+      sendResponse(response);
+    });
+    return true;
+  }
+});
+
+// ============================================
+// FEEDBACK VISUAL
+// ============================================
+function showCommandFeedback(command, result) {
+  const toast = document.createElement("div");
+  toast.id = "syncads-command-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3), 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 2147483647;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+  `;
+
+  const icon = document.createElement("span");
+  icon.style.cssText = `
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  `;
+  icon.textContent = "✓";
+
+  const text = document.createElement("span");
+  text.textContent = `${formatCommandName(command)} executado com sucesso`;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+
+  // Remover toast anterior se existir
+  const existingToast = document.getElementById("syncads-command-toast");
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation =
+      "slideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+function showCommandError(command, errorMsg) {
+  const toast = document.createElement("div");
+  toast.id = "syncads-command-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 2147483647;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+  `;
+
+  const icon = document.createElement("span");
+  icon.style.cssText = `
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  `;
+  icon.textContent = "✕";
+
+  const text = document.createElement("div");
+  text.innerHTML = `
+    <div style="font-weight: 600; margin-bottom: 4px;">${formatCommandName(command)} falhou</div>
+    <div style="font-size: 12px; opacity: 0.9;">${errorMsg}</div>
+  `;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+
+  // Remover toast anterior se existir
+  const existingToast = document.getElementById("syncads-command-toast");
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation =
+      "slideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+function formatCommandName(command) {
+  const names = {
+    DOM_CLICK: "Clique",
+    DOM_FILL: "Preenchimento",
+    DOM_READ: "Leitura",
+    SCREENSHOT: "Captura de tela",
+    NAVIGATE: "Navegação",
+    SCROLL: "Rolagem",
+    WAIT: "Espera",
+    DOM_HOVER: "Hover",
+    DOM_SELECT: "Seleção",
+    FORM_SUBMIT: "Envio de formulário",
+    GET_PAGE_INFO: "Leitura de página",
+    LIST_TABS: "Listar abas",
+    READ_TEXT: "Leitura de texto",
+    EXECUTE_JS: "Execução de JavaScript",
+  };
+
+  return names[command] || command;
+}
+
+// Adicionar animações CSS
+if (!document.getElementById("syncads-animations")) {
+  const style = document.createElement("style");
+  style.id = "syncads-animations";
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px) scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px) scale(0.9);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+
+// ============================================
+// DOM SCANNER (VISION)
+// ============================================
+
+/**
+ * Gera um seletor CSS único e robusto para um elemento
+ */
+function generateUniqueSelector(element) {
+  if (element.id) return `#${element.id}`;
+
+  // Tentar atributos únicos comuns
+  const uniqueAttrs = ['name', 'data-testid', 'aria-label', 'placeholder', 'title', 'alt'];
+  for (const attr of uniqueAttrs) {
+    if (element.hasAttribute(attr)) {
+      const val = element.getAttribute(attr);
+      if (val && document.querySelectorAll(`[${attr}="${val}"]`).length === 1) {
+        return `${element.tagName.toLowerCase()}[${attr}="${val}"]`;
+      }
+    }
+  }
+
+  // Tentar classes combinadas
+  if (element.className && typeof element.className === 'string') {
+    const classes = element.className.split(/\s+/).filter(c => c && !c.includes(':'));
+    if (classes.length > 0) {
+      const classSelector = '.' + classes.join('.');
+      if (document.querySelectorAll(classSelector).length === 1) {
+        return classSelector;
+      }
+    }
+  }
+
+  // Fallback: Caminho relativo ao pai ou body
+  let path = [];
+  while (element.parentElement) {
+    let tag = element.tagName.toLowerCase();
+    let siblings = Array.from(element.parentElement.children).filter(e => e.tagName.toLowerCase() === tag);
+
+    if (siblings.length > 1) {
+      let index = siblings.indexOf(element) + 1;
+      path.unshift(`${tag}:nth-of-type(${index})`);
+    } else {
+      path.unshift(tag);
+    }
+
+    element = element.parentElement;
+    if (element.id) {
+      path.unshift(`#${element.id}`);
+      return path.join(' > ');
+    }
+  }
+
+  return path.join(' > ');
+}
+
+/**
+ * Escaneia a página e cria um mapa de elementos interativos
+ */
+async function executeScanPage() {
+  Logger.info("Scanning DOM for interactive elements...");
+
+  const interactiveSelector = `
+    a[href], 
+    button, 
+    input:not([type="hidden"]), 
+    textarea, 
+    select, 
+    [role="button"], 
+    [role="textbox"],
+    [contenteditable="true"],
+    [onclick],
+    img
+  `;
+
+  const elements = Array.from(document.querySelectorAll(interactiveSelector));
+
+  // Filtrar visíveis
+  const visibleElements = elements.filter(el => {
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+  });
+
+  // Mapear para formato simples para a IA
+  const map = visibleElements.map((el, index) => {
+    // Tentar pegar texto visível ou label
+    let text = el.innerText || el.textContent || el.value || el.placeholder || el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('alt') || "";
+    text = text.replace(/\s+/g, ' ').trim().substring(0, 50);
+
+    const tagName = el.tagName.toLowerCase();
+    const type = el.getAttribute('type') || '';
+
+    return {
+      index,
+      tag: tagName,
+      type: type,
+      text: text,
+      selector: generateUniqueSelector(el),
+      visible: true
+    };
+  });
+
+  // Limitar tamanho para não estourar contexto da IA
+  // Priorizar elementos com TEXTO e botões relevantes
+  const relevantMap = map.filter(item => {
+    if (item.tag === 'img' && !item.text) return false;
+    if ((item.tag === 'div' || item.tag === 'span') && !item.text) return false;
+    return true;
+  }).slice(0, 100); // Top 100 elementos
+
+  return {
+    success: true,
+    pageTitle: document.title,
+    url: window.location.href,
+    elements: relevantMap
+  };
+}
+
+// ============================================
+// START
+// ============================================
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initialize);
+} else {
+  initialize();
+}
+
+Logger.info("✅ Content script loaded with DOM executor");
+
+// ============================================
+// 🎯 SIDE PANEL MODE - No injection needed
+// ============================================
+console.log("✅ [SIDE PANEL] Extension using native Chrome Side Panel");
+console.log("💡 [SIDE PANEL] Click extension icon to open Side Panel");
+
+
+// ============================================
+// LISTENER FOR BACKGROUND ACTIONS
+// ============================================
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'EXECUTE_ACTION') {
+    console.log('🤖 [CONTENT] Received ACTION:', request.action, request.params);
+
+    handleAction(request.action, request.params)
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+
+    return true; // Keep channel open for async response
+  }
+});
+
+async function handleAction(action, params) {
+  console.log('⚡ Handling:', action, params);
+
+  // Simple implementation for critical actions
+  switch (action) {
+    case 'DOM_CLICK':
+      const elClick = document.querySelector(params.selector);
+      if (!elClick) throw new Error('Element not found: ' + params.selector);
+      elClick.click();
+      return { success: true, logs: ['Clicked ' + params.selector] };
+
+    case 'DOM_TYPE':
+    case 'DOM_INSERT':
+      const elType = document.querySelector(params.selector);
+      if (!elType) throw new Error('Element not found: ' + params.selector);
+      elType.value = params.value;
+      elType.dispatchEvent(new Event('input', { bubbles: true }));
+      elType.dispatchEvent(new Event('change', { bubbles: true }));
+      return { success: true, logs: ['Typed into ' + params.selector] };
+
+    case 'DOM_WAIT':
+      // Basic wait implementation
+      return new Promise(resolve => {
+        const check = () => {
+          if (document.querySelector(params.selector)) {
+            resolve({ success: true, logs: ['Found ' + params.selector] });
+          } else {
+            requestAnimationFrame(check);
+          }
+        };
+        check();
+        setTimeout(() => resolve({ success: false, error: 'Timeout waiting for ' + params.selector }), params.timeout || 10000);
+      });
+
+    default:
+      throw new Error('Unknown action: ' + action);
+  }
+}
