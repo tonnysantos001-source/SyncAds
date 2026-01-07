@@ -646,43 +646,16 @@ async function processCommand(cmd) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     let activeTab = tabs[0];
 
-    // CORREÇÃO #2: AGUARDAR Google Docs estar pronto antes de insert_content
+    // CORREÇÃO #2: BLOQUEAR insert_content ANTES do documento estar pronto
     if (cmd.type === 'insert_content') {
-      Logger.info("📄 [INSERT] Verificando se Google Docs está pronto...");
-
-      // Aguardar até 10 segundos pela URL mudar de /create para /document/d/
-      let attempts = 0;
-      const maxAttempts = 20; // 20 x 500ms = 10 segundos
-
-      while (attempts < maxAttempts) {
-        const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const currentTab = currentTabs[0];
-
-        if (currentTab?.url && isGoogleDocsUrl(currentTab.url)) {
-          // ✅ URL mudou para documento real!
-          Logger.success(`✅ [INSERT] Google Docs pronto! URL: ${currentTab.url}`);
-          activeTab = currentTab;
-          break;
-        }
-
-        if (!currentTab?.url?.includes('docs.google.com')) {
-          // Saiu do Google Docs completamente - erro
-          throw new Error(`Navegação inesperada: ${currentTab?.url}`);
-        }
-
-        // Ainda em /create, aguardar mais
-        Logger.info(`⏳ [INSERT] Aguardando (${attempts + 1}/${maxAttempts})... URL: ${currentTab?.url}`);
-        await new Promise(r => setTimeout(r, 500));
-        attempts++;
-      }
-
-      // Verificação final
       if (!activeTab?.url || activeTab.url.includes('/create')) {
-        throw new Error(`Timeout: Google Docs não saiu de /create após ${maxAttempts * 0.5}s. URL: ${activeTab?.url}`);
+        Logger.info("⏳ Google Docs ainda não pronto, aguardando URL final");
+        await updateCommandStatus(cmd.id, "pending", null, "Aguardando Google Docs carregar");
+        return; // Não executar ainda, aguardar próximo ciclo
       }
 
       if (!isGoogleDocsUrl(activeTab.url)) {
-        throw new Error(`DOM_INSERT before Google Docs ready. URL: ${activeTab.url}`);
+        throw new Error(`DOM_INSERT before Google Docs ready. Current URL: ${activeTab.url}`);
       }
     }
 
