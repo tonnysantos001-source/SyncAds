@@ -748,9 +748,6 @@ async function handleInsertContent(selector, value, format = "text") {
       content_length: value.length
     };
 
-    // Verificar se é Google Docs pela URL
-    const isGoogleDocs = currentUrl.includes("docs.google.com");
-
     if (isGoogleDocs) {
       Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
 
