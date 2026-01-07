@@ -616,15 +616,11 @@ async function checkPendingCommands() {
 
 
 async function processCommand(cmd) {
-  Logger.info(`[PROCESS] Starting command`, { id: cmd.id, type: cmd.type });
-
-  // CORREÇÃO #1: Função helper para verificar Google Docs
-  function isGoogleDocsUrl(url = "") {
-    return (
-      url.includes("docs.google.com/document/") &&
-      !url.includes("/create")
-    );
-  }
+  Logger.info("Processing command", {
+    id: cmd.id,
+    type: cmd.type,
+    // data: cmd.data
+  });
 
   // Fallback for data source
   const cmdData = cmd.data || cmd.options || {};
@@ -642,25 +638,8 @@ async function processCommand(cmd) {
       started_at: new Date().toISOString(),
     });
 
-    // Get active tab
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    let activeTab = tabs[0];
-
-    // CORREÇÃO #2: BLOQUEAR insert_content ANTES do documento estar pronto
-    if (cmd.type === 'insert_content') {
-      if (!activeTab?.url || activeTab.url.includes('/create')) {
-        Logger.info("⏳ Google Docs ainda não pronto, aguardando URL final");
-        await updateCommandStatus(cmd.id, "pending", null, "Aguardando Google Docs carregar");
-        return; // Não executar ainda, aguardar próximo ciclo
-      }
-
-      if (!isGoogleDocsUrl(activeTab.url)) {
-        throw new Error(`DOM_INSERT before Google Docs ready. Current URL: ${activeTab.url}`);
-      }
-    }
-
     // 2. Get Active Tab (NUCLEAR STRATEGY + TARGET URL FALLBACK)
-    activeTab = null; // Reset for the robust strategy
+    let activeTab = null;
     const maxRetries = 10; // 5 seconds total
 
     for (let i = 0; i < maxRetries; i++) {
