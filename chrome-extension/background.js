@@ -694,10 +694,14 @@ async function processCommand(cmd) {
     }
 
     // Se não achou tab ativa, e comando é NAVIGATE, vamos criar uma nova.
-    // Para outros comandos, precisamos de uma tab ativa.
+    // Para insert_content, wait, click - vamos tentar mesmo sem tab (usará estratégia D acima)
     const isNavigate = (cmd.type || "").toLowerCase() === "navigate";
+    const canProceedWithoutTab = isNavigate ||
+      cmd.type === 'insert_content' ||
+      cmd.type === 'wait' ||
+      cmd.type === 'click';
 
-    if (!activeTab && !isNavigate) {
+    if (!activeTab && !canProceedWithoutTab) {
       throw new Error("No active tab found (Open a page first)");
     }
 
