@@ -673,9 +673,14 @@ async function processCommand(cmd) {
           break;
         }
 
-        if (!currentTab?.url?.includes('docs.google.com')) {
-          // Saiu do Google Docs completamente - erro
-          throw new Error(`Navegação inesperada: ${currentTab?.url}`);
+        // Verificar se saiu do Google Docs (só se tiver URL válida e não for Google Docs)
+        const hasValidUrl = currentTab?.url && currentTab.url.trim() !== '' &&
+          !currentTab.url.startsWith('chrome://') &&
+          currentTab.url !== 'about:blank';
+
+        if (hasValidUrl && !currentTab.url.includes('docs.google.com')) {
+          // Realmente saiu do Google Docs para outro site
+          throw new Error(`Navegação inesperada: saiu do Google Docs para ${currentTab.url}`);
         }
 
         // Ainda em /create, aguardar mais
