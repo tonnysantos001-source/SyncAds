@@ -123,20 +123,6 @@ function getDomSignals() {
 const COMMAND_TIMEOUT = 30000;
 
 // ============================================
-// HELPER FUNCTIONS (GLOBAL SCOPE)
-// ============================================
-
-/**
- * Verifica se URL é um documento Google Docs válido (não /create)
- */
-function isGoogleDocsUrl(url = "") {
-  return (
-    url.includes("docs.google.com/document/") &&
-    !url.includes("/create")
-  );
-}
-
-// ============================================
 // STATE MANAGEMENT
 // ============================================
 let state = {
@@ -632,7 +618,13 @@ async function checkPendingCommands() {
 async function processCommand(cmd) {
   Logger.info(`[PROCESS] Starting command`, { id: cmd.id, type: cmd.type });
 
-  // Função isGoogleDocsUrl agora está em escopo global (topo do arquivo)
+  // CORREÇÃO #1: Função helper para verificar Google Docs
+  function isGoogleDocsUrl(url = "") {
+    return (
+      url.includes("docs.google.com/document/") &&
+      !url.includes("/create")
+    );
+  }
 
   // Fallback for data source
   const cmdData = cmd.data || cmd.options || {};
