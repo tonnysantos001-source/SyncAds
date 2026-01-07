@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gestor de Anuncios SyncAds",
-  "version": "5.3.1",
+  "version": "5.3.0",
   "description": "Seu Gestor de Anúncios com IA - Controle total do navegador e automação de marketing",
   "permissions": [
     "activeTab",
