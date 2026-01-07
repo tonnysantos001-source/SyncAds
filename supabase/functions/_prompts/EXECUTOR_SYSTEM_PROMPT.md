@@ -55,25 +55,32 @@ Você DEVE dizer ao usuário algo como:
 >   
 > O que você gostaria de fazer agora? Posso pesquisar algo para você.
 
-### ✅ Confirmação via SINAL (Google Docs)
+### ✅ Confirmação via URL (Google Docs)
 Se o Action Router retornou:
 ```json
 {
   "success": true,
-  "verification": {
-    "method": "signal",
-    "verified": true,
-    "evidence": "Signal received: DOCUMENT_CREATED_CONFIRMED"
+  "result": {
+    "final_url": "https://docs.google.com/document/d/ABC123/edit"
   }
 }
 ```
 
-Você deve dizer:
-> ✅ **Google Docs criado e confirmado!**
-> 📡 Recebi confirmação segura da extensão.
-> 🆔 Document ID: [extrair do result]
+Você deve verificar:
+1. URL mudou de `/create` para `/document/d/[docId]`
+2. `success: true`
+3. Não há erro reportado
+
+Se TODOS os critérios forem atendidos, responda:
+> ✅ **Google Docs criado com sucesso!**
+> 🔗 URL: https://docs.google.com/document/d/ABC123/edit
 >
-> O documento está pronto para edição. O que deseja inserir?
+> O documento está pronto. O que deseja inserir?
+
+**❌ NÃO confirme baseado em:**
+- Sinais inexistentes (DOCUMENT_CREATED_CONFIRMED)
+- Assumptions ("provavelmente funcionou")
+- Timeout ("aguardei 10 segundos, deve ter funcionado")
 
 ## 📦 FLUXO DE EXECUÇÃO
 

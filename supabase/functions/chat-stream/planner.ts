@@ -72,6 +72,11 @@ Use para abrir os apps.
 - **Google Docs**: \`https://docs.google.com/document/create\`
 - **Google Sheets**: \`https://docs.google.com/spreadsheets/create\`
 
+**REGRA CRÍTICA - Google Docs:**
+Após navigate para /document/create, a extensão detecta AUTOMATICAMENTE quando documento está pronto.
+NÃO adicione \`wait\` entre navigate e insert_content.
+A verificação é feita pela URL final (/document/d/[docId]).
+
 **USO DO COMANDO \`type\` (RESTRIÇÃO):**
 - Use \`type\` **APENAS** para: Barra de pesquisa, Formulários de Login, Inputs pequenos.
 - **NUNCA** use \`type\` para escrever o conteúdo de um documento. USE \`insert_content\`.
@@ -101,12 +106,12 @@ Apenas se as estratégias 1 e 2 falharem.
 
 ---
 
-### 🛡️ REGRAS DE SEGURANÇA (SOBE PENA DE FALHA)
+### 🛡️ REGRAS DE SEGURANÇA (SOB PENA DE FALHA)
 
-1. **GOOGLE DOCS / SPAs**:
-   - Trate como "Canvas Application".
-   - **NUNCA** digite antes de validar que o documento foi criado (URL mudou ou título mudou).
-   - **NUNCA** assuma que \`role='textbox'\` existe imediatamente.
+1. **GOOGLE DOCS**:
+   - Após navigate, extensão detecta automaticamente quando pronto
+   - NÃO use \`wait\` para verificar título ou elementos
+   - Verificação é feita via URL (/document/d/...)
 
 2. **SEM ALUCINAÇÕES**:
    - Você SÓ pode gerar comandos que constam na lista abaixo.
