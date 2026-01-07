@@ -654,49 +654,49 @@ async function processCommand(cmd) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     let activeTab = tabs[0];
 
-    // CORREÇÃO FINAL: AGUARDAR Google Docs estar REALMENTE pronto
+    // CORREÇÃO #2: AGUARDAR Google Docs estar pronto antes de insert_content
     if (cmd.type === 'insert_content') {
-      Logger.info("📄 [INSERT] Aguardando Google Docs carregar COMPLETAMENTE...");
+      Logger.info("📄 [INSERT] Verificando se Google Docs está pronto...");
 
-      // TIMEOUT AUMENTADO: 30 segundos (Google Docs leva ~17s)
+      // Aguardar até 10 segundos pela URL mudar de /create para /document/d/
       let attempts = 0;
-      const maxAttempts = 60; // 60 x 500ms = 30 segundos
+      const maxAttempts = 20; // 20 x 500ms = 10 segundos
 
       while (attempts < maxAttempts) {
         const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const currentTab = currentTabs[0];
 
-        const currentUrl = currentTab?.url || "";
-        const urlOk = isGoogleDocsUrl(currentUrl);
-
-        if (urlOk) {
+        if (currentTab?.url && isGoogleDocsUrl(currentTab.url)) {
           // ✅ URL mudou para documento real!
-          Logger.success(`✅ [INSERT] Google Docs PRONTO após ${(attempts * 0.5).toFixed(1)}s! URL: ${currentUrl}`);
+          Logger.success(`✅ [INSERT] Google Docs pronto! URL: ${currentTab.url}`);
           activeTab = currentTab;
           break;
         }
 
-        // Log Progress a cada 4 segundos
-        if (attempts % 8 === 0) {
-          Logger.info(`⏳ [INSERT] Aguardando ${(attempts * 0.5).toFixed(1)}s/${maxAttempts * 0.5}s... URL: ${currentUrl || 'vazio'}`);
+        // Verificar se saiu do Google Docs (só se tiver URL válida e não for Google Docs)
+        const hasValidUrl = currentTab?.url && currentTab.url.trim() !== '' &&
+          !currentTab.url.startsWith('chrome://') &&
+          currentTab.url !== 'about:blank';
+
+        if (hasValidUrl && !currentTab.url.includes('docs.google.com')) {
+          // Realmente saiu do Google Docs para outro site
+          throw new Error(`Navegação inesperada: saiu do Google Docs para ${currentTab.url}`);
         }
 
+        // Ainda em /create, aguardar mais
+        Logger.info(`⏳ [INSERT] Aguardando (${attempts + 1}/${maxAttempts})... URL: ${currentTab?.url}`);
         await new Promise(r => setTimeout(r, 500));
         attempts++;
       }
 
       // Verificação final
       if (!activeTab?.url || activeTab.url.includes('/create')) {
-        const finalUrl = activeTab?.url || "URL não disponível";
-        Logger.error(`❌ [INSERT] TIMEOUT após ${maxAttempts * 0.5}s. URL: ${finalUrl}`);
-        throw new Error(`Timeout: Google Docs não carregou após ${maxAttempts * 0.5}s. URL atual: ${finalUrl}`);
+        throw new Error(`Timeout: Google Docs não saiu de /create após ${maxAttempts * 0.5}s. URL: ${activeTab?.url}`);
       }
 
       if (!isGoogleDocsUrl(activeTab.url)) {
-        throw new Error(`Google Docs não está pronto. URL: ${activeTab.url}`);
+        throw new Error(`DOM_INSERT before Google Docs ready. URL: ${activeTab.url}`);
       }
-
-      Logger.success(`✅ [INSERT] Verificação completa! Documento pronto: ${activeTab.url}`);
     }
 
     // 2. Get Active Tab (NUCLEAR STRATEGY + TARGET URL FALLBACK)
@@ -863,16 +863,15 @@ async function processCommand(cmd) {
 
     let domReport = { success: false, logs: [] };
 
-    // Helper: Ensure content script is injected (COM PREVENÇÃO DE DUPLICAÇÃO)
+    // Helper: Ensure content script is injected
     async function ensureContentScriptInjected(tabId) {
       try {
         // Try to ping the content script
         await chrome.tabs.sendMessage(tabId, { type: "DOM_STATUS" });
-        Logger.debug(`✅ Content script já está ativo no tab ${tabId}`);
         return true; // Already injected
       } catch (e) {
         // Not injected or not responding, inject now
-        Logger.warn(`📌 Content script não responde no tab ${tabId}, injetando...`);
+        Logger.warn(`📌 Content script not responding in tab ${tabId}, injecting...`);
 
         try {
           await chrome.scripting.executeScript({
@@ -881,11 +880,11 @@ async function processCommand(cmd) {
           });
 
           // Wait for injection to complete
-          await new Promise(r => setTimeout(r, 1500)); // Aumentado para 1.5s
-          Logger.success(`✅ Content script injetado no tab ${tabId}`);
+          await new Promise(r => setTimeout(r, 1000));
+          Logger.success(`✅ Content script injected in tab ${tabId}`);
           return true;
         } catch (injectError) {
-          Logger.error(`❌ Falha ao injetar content script:`, injectError);
+          Logger.error(`❌ Failed to inject content script:`, injectError);
           return false;
         }
       }
