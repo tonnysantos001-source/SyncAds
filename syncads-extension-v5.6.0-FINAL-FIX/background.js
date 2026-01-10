@@ -293,19 +293,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       // Update global DOM signals state
       if (globalThis.domSignals) {
-        if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
+        // ✅ ACEITAR APENAS SINAIS CANÔNICOS
+        if (signal.type === "DOCUMENT_READY") {
+          globalThis.domSignals.documentReady = true;
           globalThis.domSignals.editorReady = true;
           globalThis.domSignals.documentUrl = signal.payload.url;
           globalThis.domSignals.navigationComplete = true;
           globalThis.domSignals.lastSignal = signal;
+          Logger.success("✅ [CANONICAL] DOCUMENT_READY aceito", { url: signal.payload.url });
+        } else if (signal.type === "DOCUMENT_READY_TIMEOUT") {
+          globalThis.domSignals.documentReady = false;
+          globalThis.domSignals.lastSignal = signal;
+          Logger.error("❌ [CANONICAL] DOCUMENT_READY_TIMEOUT recebido", { url: signal.payload.url });
         }
       }
 
       // ============================================
       // PERSIST TO SUPABASE
       // ============================================
-      if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
-        Logger.info("💾 [DOCUMENT_SIGNAL] Persisting to Supabase...");
+      if (signal.type === "DOCUMENT_READY" || signal.type === "DOCUMENT_READY_TIMEOUT") {
+        Logger.info(`💾 [DOCUMENT_SIGNAL] Persisting ${signal.type} to Supabase...`);
 
         try {
           // Find the most recent command that's pending or processing
