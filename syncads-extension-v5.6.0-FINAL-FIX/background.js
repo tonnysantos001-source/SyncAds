@@ -651,7 +651,76 @@ async function processCommand(cmd) {
   cmd.value = cmdValue;
   cmd.selector = cmdSelector;
 
+  // ============================================
+  // ✅ VALIDAÇÃO DE SCHEMA (FAIL-FAST)
+  // ============================================
+  /**
+   * Valida que comandos DOM têm target.selector definido.
+   * Previne erro: "Element not found: undefined"
+   */
+  function assertValidDomCommand(command) {
+    // Log completo do comando para auditoria
+    Logger.debug('[VALIDATION] Command schema check', {
+      id: command.id,
+      type: command.type,
+      has_selector: !!command.selector,
+      has_payload_selector: !!command.payload?.selector,
+      payload: command.payload,
+      options: command.options
+    });
+
+    if (!command || !command.type) {
+      throw new Error('INVALID_COMMAND: command or command.type is null');
+    }
+
+    // Comandos DOM que EXIGEM selector
+    const DOM_ACTIONS_REQUIRING_SELECTOR = [
+      'insert_content',
+      'click',
+      'type',
+      'fill_input',
+      'wait'
+    ];
+
+    if (DOM_ACTIONS_REQUIRING_SELECTOR.includes(command.type)) {
+      const hasSelector =
+        command.selector ||
+        command.payload?.selector ||
+        command.options?.selector;
+
+      // ❌ FAIL FAST: Comando inválido
+      if (!hasSelector) {
+        const errorDetails = {
+          command_id: command.id,
+          command_type: command.type,
+          reason: 'MISSING_SELECTOR',
+          payload: command.payload,
+          options: command.options,
+          selector: command.selector
+        };
+
+        Logger.error('❌ [VALIDATION] Invalid DOM command: missing selector', null, errorDetails);
+
+        // Log JSON completo para debug
+        console.error('[VALIDATION] Full command JSON:', JSON.stringify(command, null, 2));
+
+        throw new Error(
+          `INVALID_COMMAND_SCHEMA: ${command.type} requires a selector but got undefined. ` +
+          `Command ID: ${command.id}`
+        );
+      }
+
+      Logger.success(`✅ [VALIDATION] Command schema valid`, {
+        type: command.type,
+        selector: hasSelector
+      });
+    }
+  }
+
   try {
+    // ✅ VALIDAR SCHEMA ANTES DE EXECUTAR
+    assertValidDomCommand(cmd);
+
     // Marcar como PROCESSING
     await updateCommandStatus(cmd.id, "processing", {
       started_at: new Date().toISOString(),
@@ -848,6 +917,15 @@ async function processCommand(cmd) {
         format: cmd.payload?.format || 'html',
         selector: cmd.payload?.selector || cmd.selector
       };
+
+      // ✅ INTENT RESOLVER: Se não tem selector mas está em Google Docs
+      if (!params.selector && activeTab?.url?.includes('docs.google.com')) {
+        Logger.info('🎯 [INTENT RESOLVER] No selector provided, resolving intent: GOOGLE_DOCS_EDITOR');
+        params.intent = 'GOOGLE_DOCS_EDITOR';
+        // O content-script vai resolver isso para o selector correto
+        params.selector = '[data-docs-editor]'; // Placeholder semântico
+      }
+
       action = "DOM_INSERT";
       Logger.info("COORD: Mapping 'insert_content' -> DOM_INSERT", params);
 
@@ -1068,6 +1146,31 @@ async function processCommand(cmd) {
       url: confirmationData.currentUrl,
     });
   } catch (error) {
+    // ============================================
+    // ✅ FAIL-FAST: Comandos inválidos NÃO devem ser retentados
+    // ============================================
+    if (error.message?.includes('INVALID_COMMAND_SCHEMA')) {
+      Logger.error('❌ [FAIL-FAST] Command has invalid schema, marking as FAILED (no retry)', error, {
+        id: cmd.id,
+        type: cmd.type,
+        error: error.message
+      });
+
+      // Marcar como FAILED com razão específica
+      await updateCommandStatus(cmd.id, 'failed', {
+        error: error.message,
+        failure_reason: 'INVALID_COMMAND_SCHEMA',
+        failed_at: new Date().toISOString(),
+        metadata: {
+          validation_error: true,
+          command_type: cmd.type,
+          missing_fields: error.message
+        }
+      });
+
+      return; // ✅ NÃO RETRY, return imediatamente
+    }
+
     // NOVO: retry logic para RETRY_AFTER_RECONNECT
     if (error.message === "RETRY_AFTER_RECONNECT") {
       Logger.info("Retrying command after reconnection...");
