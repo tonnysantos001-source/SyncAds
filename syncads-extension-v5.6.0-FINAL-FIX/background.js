@@ -675,7 +675,6 @@ async function processCommand(cmd) {
 
     // Comandos DOM que EXIGEM selector
     const DOM_ACTIONS_REQUIRING_SELECTOR = [
-      'insert_content',
       'click',
       'type',
       'fill_input',
@@ -714,6 +713,38 @@ async function processCommand(cmd) {
         type: command.type,
         selector: hasSelector
       });
+    }
+
+    // ✅ VALIDAÇÃO ESPECIAL: insert_content
+    // Permite sem selector SE estiver em contexto que pode ser resolvido via Intent
+    if (command.type === 'insert_content') {
+      const hasSelector =
+        command.selector ||
+        command.payload?.selector ||
+        command.options?.selector;
+
+      if (!hasSelector) {
+        // Verifica se tem valor (conteúdo válido)
+        const hasValue = command.payload?.value || command.value;
+
+        if (!hasValue) {
+          Logger.error('❌ [VALIDATION] insert_content requires value');
+          throw new Error(
+            `INVALID_COMMAND_SCHEMA: insert_content requires value but got undefined. ` +
+            `Command ID: ${command.id}`
+          );
+        }
+
+        // ⚠️ Aviso: vai depender do Intent Resolver
+        Logger.warn('⚠️ [VALIDATION] insert_content without selector - will rely on Intent Resolver', {
+          id: command.id,
+          has_value: !!hasValue
+        });
+      } else {
+        Logger.success(`✅ [VALIDATION] insert_content has selector`, {
+          selector: hasSelector
+        });
+      }
     }
   }
 
