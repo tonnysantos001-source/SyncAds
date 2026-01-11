@@ -951,10 +951,9 @@ async function processCommand(cmd) {
 
       // ✅ INTENT RESOLVER: Se não tem selector mas está em Google Docs
       if (!params.selector && activeTab?.url?.includes('docs.google.com')) {
-        Logger.info('🎯 [INTENT RESOLVER] No selector provided, resolving intent: GOOGLE_DOCS_EDITOR');
-        params.intent = 'GOOGLE_DOCS_EDITOR';
-        // O content-script vai resolver isso para o selector correto
-        params.selector = '[data-docs-editor]'; // Placeholder semântico
+        Logger.info('🎯 [INTENT RESOLVER] No selector provided for Google Docs - content-script will use fallback');
+        // NÃO definir selector aqui - deixar undefined
+        // Content-script tem fallback automático: .kix-canvas-tile-content || [contenteditable]
       }
 
       action = "DOM_INSERT";
