@@ -765,27 +765,52 @@ async function processCommand(cmd) {
     if (cmd.type === 'insert_content') {
       Logger.info("📄 [INSERT] Aguardando Google Docs carregar COMPLETAMENTE...");
 
-      // TIMEOUT AUMENTADO: 30 segundos (Google Docs leva ~17s)
+      // TIMEOUT AUMENTADO: 40 segundos (Google Docs leva ~17s reais)
       let attempts = 0;
-      const maxAttempts = 60; // 60 x 500ms = 30 segundos
+      const maxAttempts = 80; // 80 x 500ms = 40 segundos
+      let docReady = false;
 
-      while (attempts < maxAttempts) {
+      while (attempts < maxAttempts && !docReady) {
         const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const currentTab = currentTabs[0];
 
         const currentUrl = currentTab?.url || "";
         const urlOk = isGoogleDocsUrl(currentUrl);
+        const titleOk = currentTab?.title && currentTab.title !== 'Google Docs';
 
-        if (urlOk) {
-          // ✅ URL mudou para documento real!
-          Logger.success(`✅ [INSERT] Google Docs PRONTO após ${(attempts * 0.5).toFixed(1)}s! URL: ${currentUrl}`);
+        // Verificar se há sinal DOCUMENT_READY
+        const hasDocumentReady = globalThis.domSignals?.documentReady === true;
+
+        if (urlOk && titleOk && hasDocumentReady) {
+          // ✅ Documento REALMENTE pronto!
+          Logger.success(`✅ [INSERT] Google Docs CONFIRMADO PRONTO após ${(attempts * 0.5).toFixed(1)}s!`, {
+            url: currentUrl,
+            title: currentTab.title,
+            signal: 'DOCUMENT_READY'
+          });
           activeTab = currentTab;
+          docReady = true;
           break;
         }
 
-        // Log Progress a cada 4 segundos
-        if (attempts % 8 === 0) {
-          Logger.info(`⏳ [INSERT] Aguardando ${(attempts * 0.5).toFixed(1)}s/${maxAttempts * 0.5}s... URL: ${currentUrl || 'vazio'}`);
+        // Fallback: se não tem sinal, mas URL e título OK (após 15s mínimo)
+        if (urlOk && titleOk && attempts > 30) {
+          Logger.warn(`⚠️ [INSERT] Assumindo documento pronto após ${(attempts * 0.5).toFixed(1)}s (sem sinal DOCUMENT_READY)`, {
+            url: currentUrl,
+            title: currentTab.title
+          });
+          activeTab = currentTab;
+          docReady = true;
+          break;
+        }
+
+        // Log Progress a cada 5 segundos
+        if (attempts % 10 === 0) {
+          Logger.info(`⏳ [INSERT] Aguardando ${(attempts * 0.5).toFixed(1)}s/40s...`, {
+            url: currentUrl || 'vazio',
+            title: currentTab?.title || 'sem título',
+            hasSignal: hasDocumentReady
+          });
         }
 
         await new Promise(r => setTimeout(r, 500));
@@ -793,7 +818,7 @@ async function processCommand(cmd) {
       }
 
       // Verificação final
-      if (!activeTab?.url || activeTab.url.includes('/create')) {
+      if (!docReady || !activeTab?.url || activeTab.url.includes('/create')) {
         const finalUrl = activeTab?.url || "URL não disponível";
         Logger.error(`❌ [INSERT] TIMEOUT após ${maxAttempts * 0.5}s. URL: ${finalUrl}`);
         throw new Error(`Timeout: Google Docs não carregou após ${maxAttempts * 0.5}s. URL atual: ${finalUrl}`);
