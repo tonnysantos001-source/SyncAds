@@ -765,51 +765,59 @@ async function processCommand(cmd) {
     if (cmd.type === 'insert_content') {
       Logger.info("📄 [INSERT] Aguardando Google Docs carregar COMPLETAMENTE...");
 
-      // TIMEOUT AUMENTADO: 40 segundos (Google Docs leva ~17s reais)
-      let attempts = 0;
-      const maxAttempts = 80; // 80 x 500ms = 40 segundos
-      let docReady = false;
+      // ESTRATÉGIA SIMPLIFICADA: Esperar 20s MÍNIMOS
+      const MINIMUM_WAIT = 20000; // 20 segundos MÍNIMOS
+      const ADDITIONAL_DELAY = 5000; // 5s adicionais após detectar documento
+      const MAX_WAIT = 50000; // 50s máximo total
 
-      while (attempts < maxAttempts && !docReady) {
+      const startTime = Date.now();
+      let docReady = false;
+      let attempts = 0;
+
+      Logger.info(`⏳ [INSERT] Aguardando ${MINIMUM_WAIT / 1000}s MÍNIMOS antes de verificar...`);
+
+      // PASSO 1: Esperar 20s MÍNIMOS (não importa o que aconteça)
+      await new Promise(r => setTimeout(r, MINIMUM_WAIT));
+
+      Logger.info(`✅ [INSERT] ${MINIMUM_WAIT / 1000}s passados, iniciando verificação...`);
+
+      // PASSO 2: Verificar se documento está pronto (até 30s adicionais)
+      while (Date.now() - startTime < MAX_WAIT && !docReady) {
         const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const currentTab = currentTabs[0];
 
         const currentUrl = currentTab?.url || "";
         const urlOk = isGoogleDocsUrl(currentUrl);
-        const titleOk = currentTab?.title && currentTab.title !== 'Google Docs';
+        const titleOk = currentTab?.title && currentTab.title !== 'Google Docs' && currentTab.title !== 'Untitled document';
 
         // Verificar se há sinal DOCUMENT_READY
         const hasDocumentReady = globalThis.domSignals?.documentReady === true;
 
-        if (urlOk && titleOk && hasDocumentReady) {
-          // ✅ Documento REALMENTE pronto!
-          Logger.success(`✅ [INSERT] Google Docs CONFIRMADO PRONTO após ${(attempts * 0.5).toFixed(1)}s!`, {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (urlOk && titleOk) {
+          Logger.success(`✅ [INSERT] Documento detectado após ${elapsed}s!`, {
             url: currentUrl,
             title: currentTab.title,
-            signal: 'DOCUMENT_READY'
+            hasSignal: hasDocumentReady
           });
+
+          // DELAY ADICIONAL de 5s para garantir estabilidade
+          Logger.info(`⏳ [INSERT] Aguardando ${ADDITIONAL_DELAY / 1000}s adicionais para estabilidade...`);
+          await new Promise(r => setTimeout(r, ADDITIONAL_DELAY));
+
           activeTab = currentTab;
           docReady = true;
           break;
         }
 
-        // Fallback: se não tem sinal, mas URL e título OK (após 15s mínimo)
-        if (urlOk && titleOk && attempts > 30) {
-          Logger.warn(`⚠️ [INSERT] Assumindo documento pronto após ${(attempts * 0.5).toFixed(1)}s (sem sinal DOCUMENT_READY)`, {
-            url: currentUrl,
-            title: currentTab.title
-          });
-          activeTab = currentTab;
-          docReady = true;
-          break;
-        }
-
-        // Log Progress a cada 5 segundos
-        if (attempts % 10 === 0) {
-          Logger.info(`⏳ [INSERT] Aguardando ${(attempts * 0.5).toFixed(1)}s/40s...`, {
+        // Log a cada 2s
+        if (attempts % 4 === 0) {
+          Logger.info(`⏳ [INSERT] Verificando... ${elapsed}s/${MAX_WAIT / 1000}s`, {
             url: currentUrl || 'vazio',
             title: currentTab?.title || 'sem título',
-            hasSignal: hasDocumentReady
+            urlOk,
+            titleOk
           });
         }
 
@@ -820,15 +828,17 @@ async function processCommand(cmd) {
       // Verificação final
       if (!docReady || !activeTab?.url || activeTab.url.includes('/create')) {
         const finalUrl = activeTab?.url || "URL não disponível";
-        Logger.error(`❌ [INSERT] TIMEOUT após ${maxAttempts * 0.5}s. URL: ${finalUrl}`);
-        throw new Error(`Timeout: Google Docs não carregou após ${maxAttempts * 0.5}s. URL atual: ${finalUrl}`);
+        const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        Logger.error(`❌ [INSERT] TIMEOUT após ${totalTime}s. URL: ${finalUrl}`);
+        throw new Error(`Timeout: Google Docs não carregou após ${totalTime}s. URL atual: ${finalUrl}`);
       }
 
       if (!isGoogleDocsUrl(activeTab.url)) {
         throw new Error(`Google Docs não está pronto. URL: ${activeTab.url}`);
       }
 
-      Logger.success(`✅ [INSERT] Verificação completa! Documento pronto: ${activeTab.url}`);
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      Logger.success(`✅ [INSERT] Verificação completa! Total: ${totalTime}s. Documento: ${activeTab.url}`);
     }
 
     // 2. Get Active Tab (NUCLEAR STRATEGY + TARGET URL FALLBACK)
