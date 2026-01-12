@@ -1964,6 +1964,11 @@ async function handleAuthToken(data) {
         : "unknown",
     });
 
+    // ✅ Send to content script (mesmo se element estiver undefined - content-script tem fallback)
+    const result = await chrome.tabs.sendMessage(tab.id, {
+      action: commandObj.action,
+      params: commandObj.params
+    }); expiration
     // Validate required fields
     if (!userId || !accessToken) {
       throw new Error("Missing userId or accessToken");
