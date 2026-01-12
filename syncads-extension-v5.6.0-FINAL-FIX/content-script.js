@@ -1078,7 +1078,42 @@
       // Verificar se é Google Docs pela URL
       const isGoogleDocs = currentUrl.includes("docs.google.com");
 
-      if (isGoogleDocs) { Logger.info("📋 Google Docs - innerHTML"); element.focus(); element.click(); await new Promise(r => setTimeout(r, 500)); element.innerHTML = value; element.dispatchEvent(new Event('input', {bubbles: true})); Logger.success("✅ innerHTML OK"); }
+      if (isGoogleDocs) {
+        Logger.info("📋 Google Docs - innerHTML");
+
+        try {
+          element.focus();
+          element.click();
+          await new Promise(r => setTimeout(r, 500));
+
+          element.innerHTML = value;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+
+          Logger.success("✅ innerHTML OK");
+
+          // Capturar URL do documento
+          const documentUrl = window.location.href;
+          const docIdMatch = documentUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+          const docId = docIdMatch ? docIdMatch[1] : null;
+
+          if (docId && documentUrl.includes('/edit')) {
+            chrome.runtime.sendMessage({
+              type: "DOCUMENT_URL_CAPTURED",
+              payload: { url: documentUrl, docId: docId, timestamp: Date.now() }
+            }).catch(() => { });
+
+            report.document_url = documentUrl;
+            report.document_id = docId;
+          }
+
+          return {
+            success: true,
+            method: 'innerHTML',
+            dom_signals: report
+          };
+        } catch (e) {
+          Logger.error("innerHTML failed", e);
+        }
       }
 
       // Method 2: document.execCommand
