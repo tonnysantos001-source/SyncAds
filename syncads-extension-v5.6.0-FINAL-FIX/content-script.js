@@ -1086,8 +1086,23 @@
           element.click();
           await new Promise(r => setTimeout(r, 500));
 
-          element.innerHTML = value;
-          element.dispatchEvent(new Event('input', { bubbles: true }));
+          // MÉTODO CORRETO: Selection API + insertText
+          Logger.info("📋 Creating selection");
+
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          range.collapse(false);
+
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          Logger.info(" 📋 insertText");
+          const success = document.execCommand('insertText', false, value);
+
+          if (!success) throw new Error("insertText failed");
+
+          await new Promise(r => setTimeout(r, 1000));
 
           Logger.success("✅ innerHTML OK");
 

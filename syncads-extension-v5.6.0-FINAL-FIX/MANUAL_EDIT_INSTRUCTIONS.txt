@@ -1,0 +1,26 @@
+// INSTRUÇÕES PARA EDIÇÃO MANUAL - LINHAS 1089-1090
+
+// ❌ REMOVER (linhas 1089-1090):
+element.innerHTML = value;
+element.dispatchEvent(new Event('input', {bubbles: true}));
+
+// ✅ SUBSTITUIR POR:
+// MÉTODO CORRETO: Selection API + insertText
+Logger.info("📋 Creating selection in editor");
+
+const selection = window.getSelection();
+const range = document.createRange();
+range.selectNodeContents(element);
+range.collapse(false); // Posicionar no fim
+
+selection.removeAllRanges();
+selection.addRange(range);
+
+Logger.info("📋 Executing insertText");
+const success = document.execCommand('insertText', false, value);
+
+if (!success) {
+  throw new Error("insertText failed");
+}
+
+await new Promise(r => setTimeout(r, 1000));
