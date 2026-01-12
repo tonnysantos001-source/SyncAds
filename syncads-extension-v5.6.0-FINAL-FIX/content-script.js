@@ -1078,15 +1078,7 @@
       // Verificar se é Google Docs pela URL
       const isGoogleDocs = currentUrl.includes("docs.google.com");
 
-      if (isGoogleDocs) {
-        Logger.info("📋 Detected Google Docs - Using Clipboard API + Paste Event");
-
-        // Method 1: Clipboard API (Modern)
-        try {
-          await pasteToGoogleDocsRobust(element, value); /* REPLACED OLD CLIPBOARD CODE */
-        } catch (e) {
-          Logger.error("Google Docs paste failed, trying insertText execCommand", e);
-        }
+      if (isGoogleDocs) { Logger.info("📋 Google Docs - innerHTML"); element.focus(); element.click(); await new Promise(r => setTimeout(r, 500)); element.innerHTML = value; element.dispatchEvent(new Event('input', {bubbles: true})); Logger.success("✅ innerHTML OK"); }
       }
 
       // Method 2: document.execCommand
