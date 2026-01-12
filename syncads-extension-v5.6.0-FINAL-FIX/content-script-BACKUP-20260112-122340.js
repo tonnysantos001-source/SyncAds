@@ -930,54 +930,6 @@
   }
   
   
- 
-
-  // ============================================
-  // GOOGLE DOCS ROBUST PASTE (MÉTODO DEFINITIVO)
-  // ============================================
-  async function pasteToGoogleDocsRobust(element, value) {
-    Logger.info("📋 [GOOGLE DOCS ROBUST] Starting paste sequence");
-    try {
-      Logger.info("📋 [STEP 1/7] Ensuring element focus");
-      element.focus(); element.click();
-      await new Promise(r => setTimeout(r, 500));
-      
-      Logger.info("📋 [STEP 2/7] Creating intermediate textarea");
-      const textarea = document.createElement('textarea');
-      textarea.value = value;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      
-      Logger.info("📋 [STEP 3/7] Selecting text");
-      textarea.focus(); textarea.select();
-      
-      Logger.info("📋 [STEP 4/7] Copying to clipboard");
-      const copySuccess = document.execCommand('copy');
-      if (!copySuccess) throw new Error("Copy failed");
-      Logger.success("✅ [STEP 4/7] Copied");
-      
-      Logger.info("📋 [STEP 5/7] Refocusing editor");
-      document.body.removeChild(textarea);
-      element.focus(); element.click();
-      await new Promise(r => setTimeout(r, 300));
-      
-      Logger.info("📋 [STEP 6/7] Pasting");
-      document.execCommand('paste');
-      
-      Logger.info("📋 [STEP 7/7] Dispatching event");
-      element.dispatchEvent(new ClipboardEvent('paste', {bubbles: true, cancelable: true}));
-      await new Promise(r => setTimeout(r, 1000));
-      
-      Logger.success("✅ PASTE COMPLETED");
-      return { success: true, method: 'google_docs_robust' };
-    } catch (error) {
-      Logger.error("❌ Paste failed", error);
-      throw error;
-    }
-  }
-
   /**
    * ROBUST CONTENT INSERTION (Clipboard/ExecCommand)
    * Best for long text, rich text, and Google Docs
@@ -1075,7 +1027,28 @@
 
         // Method 1: Clipboard API (Modern)
         try {
-          await pasteToGoogleDocsRobust(element, value); /* REPLACED OLD CLIPBOARD CODE */ } catch (e) { Logger.error("Google Docs paste failed, trying insertText execCommand", e);
+          await navigator.clipboard.writeText(value);
+          Logger.info("📋 Copied to clipboard");
+
+          const pasteEvent = new ClipboardEvent("paste", {
+            bubbles: true,
+            cancelable: true,
+            clipboardData: new DataTransfer()
+          });
+          pasteEvent.clipboardData.setData("text/plain", value);
+          if (format === "html") pasteEvent.clipboardData.setData("text/html", value);
+
+          element.dispatchEvent(pasteEvent);
+          document.execCommand("paste");
+
+          return {
+            success: true,
+            method: "clipboard_paste",
+            dom_signals: report
+          };
+
+        } catch (e) {
+          Logger.warn("Clipboard paste failed, trying insertText execCommand", e);
         }
       }
 
@@ -3407,4 +3380,3 @@
   // ✅ FIM DO IIFE - ISOLAMENTO DE ESCOPO
   // ============================================
 })(); // Fecha IIFE iniciada no topo do arquivo
-

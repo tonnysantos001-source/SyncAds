@@ -1,0 +1,46 @@
+// CÓDIGO PARA ADICIONAR APÓS LINHA 930
+
+  // ============================================
+  // GOOGLE DOCS ROBUST PASTE
+  // ============================================
+  async function pasteToGoogleDocsRobust(element, value) {
+    const L = Logger;
+    L.info('📋 [G-DOCS PASTE] Starting');
+    try {
+      L.info('📋 Step 1: Focus'); 
+      element.focus(); 
+      element.click(); 
+      await new Promise(r => setTimeout(r, 500));
+      
+      L.info('📋 Step 2: Create textarea'); 
+      const t = document.createElement('textarea'); 
+      t.value = value; 
+      t.style.cssText = 'position:fixed;top:-9999px;left:-9999px'; 
+      document.body.appendChild(t);
+      
+      L.info('📋 Step 3: Select'); 
+      t.focus(); 
+      t.select();
+      
+      L.info('📋 Step 4: Copy to clipboard'); 
+      if (!document.execCommand('copy')) throw new Error('Copy failed');
+      L.success('✅ Copied to clipboard');
+      
+      L.info('📋 Step 5: Cleanup & refocus'); 
+      document.body.removeChild(t); 
+      element.focus(); 
+      element.click(); 
+      await new Promise(r => setTimeout(r, 300));
+      
+      L.info('📋 Step 6: Paste'); 
+      document.execCommand('paste'); 
+      element.dispatchEvent(new ClipboardEvent('paste', {bubbles: true})); 
+      await new Promise(r => setTimeout(r, 1000));
+      
+      L.success('✅ PASTE COMPLETED');
+      return { success: true, method: 'google_docs_robust' };
+    } catch (error) {
+      L.error('❌ Paste failed', error);
+      throw error;
+    }
+  }
