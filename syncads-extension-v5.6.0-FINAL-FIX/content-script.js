@@ -936,44 +936,52 @@
   // GOOGLE DOCS ROBUST PASTE (MÉTODO DEFINITIVO)
   // ============================================
   async function pasteToGoogleDocsRobust(element, value) {
-    Logger.info("📋 [GOOGLE DOCS ROBUST] Starting paste sequence");
+    Logger.info("📋 [G-DOCS] Starting paste");
     try {
-      Logger.info("📋 [STEP 1/7] Ensuring element focus");
       element.focus(); element.click();
       await new Promise(r => setTimeout(r, 500));
       
-      Logger.info("📋 [STEP 2/7] Creating intermediate textarea");
-      const textarea = document.createElement('textarea');
-      textarea.value = value;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
+      // ESTRATÉGIA HÍBRIDA: Tenta API moderna primeiro
+      Logger.info("📋 [G-DOCS] Trying modern Clipboard API");
+      try {
+        await navigator.clipboard.writeText(value);
+        Logger.success("✅ Modern API worked");
+        
+        element.focus(); element.click();
+        await new Promise(r => setTimeout(r, 300));
+        
+        document.execCommand('paste');
+        element.dispatchEvent(new ClipboardEvent('paste', {bubbles: true}));
+        await new Promise(r => setTimeout(r, 1000));
+        
+        Logger.success("✅ PASTE OK (Modern API)");
+        return { success: true, method: 'clipboard_api' };
+      } catch (clipErr) {
+        Logger.warn("⚠️ Modern API failed, trying legacy", clipErr);
+      }
       
-      Logger.info("📋 [STEP 3/7] Selecting text");
-      textarea.focus(); textarea.select();
+      // FALLBACK: execCommand copy
+      Logger.info("📋 [G-DOCS] Trying legacy execCommand");
+      const t = document.createElement('textarea');
+      t.value = value;
+      t.style.cssText = 'position:fixed;top:-9999px';
+      document.body.appendChild(t);
+      t.focus(); t.select();
       
-      Logger.info("📋 [STEP 4/7] Copying to clipboard");
-      const copySuccess = document.execCommand('copy');
-      if (!copySuccess) throw new Error("Copy failed");
-      Logger.success("✅ [STEP 4/7] Copied");
+      const copied = document.execCommand('copy');
+      document.body.removeChild(t);
       
-      Logger.info("📋 [STEP 5/7] Refocusing editor");
-      document.body.removeChild(textarea);
+      if (!copied) throw new Error("execCommand copy failed");
+      
       element.focus(); element.click();
       await new Promise(r => setTimeout(r, 300));
-      
-      Logger.info("📋 [STEP 6/7] Pasting");
       document.execCommand('paste');
-      
-      Logger.info("📋 [STEP 7/7] Dispatching event");
-      element.dispatchEvent(new ClipboardEvent('paste', {bubbles: true, cancelable: true}));
       await new Promise(r => setTimeout(r, 1000));
       
-      Logger.success("✅ PASTE COMPLETED");
-      return { success: true, method: 'google_docs_robust' };
+      Logger.success("✅ PASTE OK (Legacy)");
+      return { success: true, method: 'execCommand' };
     } catch (error) {
-      Logger.error("❌ Paste failed", error);
+      Logger.error("❌ All paste methods failed", error);
       throw error;
     }
   }
@@ -1075,7 +1083,9 @@
 
         // Method 1: Clipboard API (Modern)
         try {
-          await pasteToGoogleDocsRobust(element, value); /* REPLACED OLD CLIPBOARD CODE */ } catch (e) { Logger.error("Google Docs paste failed, trying insertText execCommand", e);
+          await pasteToGoogleDocsRobust(element, value); /* REPLACED OLD CLIPBOARD CODE */
+        } catch (e) {
+          Logger.error("Google Docs paste failed, trying insertText execCommand", e);
         }
       }
 
