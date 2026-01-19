@@ -18,7 +18,7 @@ export interface ExecutionResult {
 }
 
 export interface PlannerCommand {
-    type: "navigate" | "wait" | "click" | "type" | "fill_input" | "scroll" | "insert_content" | "scan_page";
+    type: "navigate" | "wait" | "click" | "type" | "fill_input" | "scroll" | "insert_content" | "insert_via_api" | "scan_page";
     payload: any;
 }
 

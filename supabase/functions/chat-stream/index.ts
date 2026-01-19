@@ -5,6 +5,7 @@ import { REASONER_PROMPT } from "./reasoner.ts";
 import { PLANNER_PROMPT } from "./planner.ts";
 import { ReasonerOutput, PlannerOutput } from "./types.ts";
 import { ReasonerVerifier } from "./reasoner-verifier.ts";
+import { processImagePlaceholders } from "./image-fetcher.ts";
 
 console.log("🚀 Agentic Chat Stream - Multi-Agent V2 Loaded");
 
@@ -178,6 +179,14 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                 // 3. EXECUTION (PERSIST & WATCH)
                 await writeToStream(writer, "state", "EXECUTING");
 
+                // 🎨 PROCESS IMAGE PLACEHOLDERS (if insert_via_api command)
+                for (const cmd of plan.commands) {
+                    if (cmd.type === 'insert_via_api' && cmd.payload?.value) {
+                        console.log("🎨 Processing image placeholders in content...");
+                        cmd.payload.value = await processImagePlaceholders(cmd.payload.value);
+                    }
+                }
+
                 // Allow only recognized commands
                 const commandsToInsert = plan.commands.map(cmd => ({
                     device_id: targetDeviceId,
@@ -194,6 +203,72 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     .select();
 
                 if (dbError) throw new Error(`DB Error: ${dbError.message}`);
+
+                // 🚀 EXECUTE insert_via_api DIRECTLY via Playwright
+                for (const cmd of insertedCommands) {
+                    if (cmd.type === 'insert_via_api') {
+                        console.log("🎯 [API EXECUTE] Calling Playwright HTTP service...");
+
+                        try {
+                            // Call Playwright service on Hugging Face
+                            const playwrightResponse = await fetch('https://bigodetonton-syncads-google-docs-api.hf.space/insert-content', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    content: cmd.payload.value,
+                                    // Playwright will create new document
+                                })
+                            });
+
+                            if (!playwrightResponse.ok) {
+                                const errorText = await playwrightResponse.text();
+                                throw new Error(`Playwright API Error (${playwrightResponse.status}): ${errorText}`);
+                            }
+
+                            const playwrightResult = await playwrightResponse.json();
+                            console.log("✅ [API EXECUTE] Playwright execution complete:", playwrightResult);
+
+                            // Extract document URL from Playwright response
+                            const docUrl = playwrightResult.doc_url || playwrightResult.url || "";
+                            const docTitle = playwrightResult.title || "Documento sem nome";
+
+                            // Write result back to DB for chat-stream polling
+                            await supabase
+                                .from("extension_commands")
+                                .update({
+                                    status: 'completed',
+                                    result: {
+                                        success: true,
+                                        command_type: 'insert_via_api',
+                                        url_after: docUrl,
+                                        doc_url: docUrl,
+                                        title_after: docTitle,
+                                        result: playwrightResult
+                                    },
+                                    completed_at: new Date().toISOString()
+                                })
+                                .eq('id', cmd.id);
+
+                            console.log(`✅ [API EXECUTE] Result written to DB for command ${cmd.id}`);
+
+                        } catch (error) {
+                            console.error("❌ [API EXECUTE] Playwright execution failed:", error);
+
+                            // Write error to DB
+                            await supabase
+                                .from("extension_commands")
+                                .update({
+                                    status: 'failed',
+                                    result: {
+                                        success: false,
+                                        error: error.message,
+                                        retryable: true
+                                    }
+                                })
+                                .eq('id', cmd.id);
+                        }
+                    }
+                }
 
                 // Monitor Execution (Wait for ALL)
                 let cycleExecutionResult: any = null;

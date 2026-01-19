@@ -1,0 +1,17 @@
+# Credentials and secrets
+credentials.json
+token.json
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+venv/
+env/

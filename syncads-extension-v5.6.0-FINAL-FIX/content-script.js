@@ -994,27 +994,129 @@
     Logger.info(`📋 [INSERT] Injecting content (${value.length} chars) into ${selector || "activeElement"}`);
 
     try {
+      // 🔥 GOOGLE DOCS: EXECUTAR ANTES DE QUALQUER VALIDAÇÃO
+      const currentUrl = window.location.href;
+      const isGoogleDocs = currentUrl.includes("docs.google.com/document/");
+
+      if (isGoogleDocs && !selector) {
+        Logger.info("🎯 Google Docs detected WITHOUT selector - usando método nativo");
+
+        let element = document.querySelector('.kix-canvas-tile-content');
+        if (!element) element = document.querySelector('[contenteditable="true"]');
+
+        if (element) {
+          element.focus();
+          element.click();
+          await new Promise(r => setTimeout(r, 500));
+
+          // MÉTODO CORRETO: Múltiplos fallbacks até um funcionar
+          Logger.info("📋 Creating selection in editor");
+
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          range.collapse(false);
+
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          let success = false;
+          let method = 'unknown';
+
+          // MÉTODO 1: Clipboard API (mais moderno)
+          try {
+            Logger.info("🔷 Trying Clipboard API...");
+            await navigator.clipboard.writeText(value);
+            await new Promise(r => setTimeout(r, 100));
+            document.execCommand('paste');
+            success = true;
+            method = 'clipboard_api';
+            Logger.success("✅ Clipboard API worked!");
+          } catch (clipErr) {
+            Logger.warn("⚠️ Clipboard API failed:", clipErr.message);
+          }
+
+          // MÉTODO 2: InputEvent beforeinput (se Clipboard falhou)
+          if (!success) {
+            try {
+              Logger.info("🔷 Trying InputEvent beforeinput...");
+              const inputEvent = new InputEvent('beforeinput', {
+                inputType: 'insertText',
+                data: value,
+                bubbles: true,
+                cancelable: true
+              });
+              element.dispatchEvent(inputEvent);
+
+              const inputEvent2 = new InputEvent('input', {
+                inputType: 'insertText',
+                data: value,
+                bubbles: true
+              });
+              element.dispatchEvent(inputEvent2);
+
+              success = true;
+              method = 'input_event';
+              Logger.success("✅ InputEvent worked!");
+            } catch (inputErr) {
+              Logger.warn("⚠️ InputEvent failed:", inputErr.message);
+            }
+          }
+
+          // MÉTODO 3: DataTransfer paste (se InputEvent falhou)
+          if (!success) {
+            try {
+              Logger.info("🔷 Trying DataTransfer paste...");
+              const dataTransfer = new DataTransfer();
+              dataTransfer.setData('text/plain', value);
+
+              const pasteEvent = new ClipboardEvent('paste', {
+                clipboardData: dataTransfer,
+                bubbles: true,
+                cancelable: true
+              });
+              element.dispatchEvent(pasteEvent);
+
+              success = true;
+              method = 'datatransfer';
+              Logger.success("✅ DataTransfer worked!");
+            } catch (dtErr) {
+              Logger.warn("⚠️ DataTransfer failed:", dtErr.message);
+            }
+          }
+
+          if (!success) {
+            throw new Error("All insertion methods failed for Google Docs");
+          }
+
+          await new Promise(r => setTimeout(r, 1000));
+          Logger.success(`✅ Google Docs insert OK (method: ${method})`);
+
+          return {
+            success: true,
+            method: method,
+            dom_signals: [{
+              type: "CONTENT_INSERTED",
+              timestamp: Date.now(),
+              payload: { content_length: value.length }
+            }]
+          };
+        }
+      }
+
+      // FLUXO NORMAL para outros sites
       let element = null;
       if (selector) {
         element = await waitForElement(selector, 5000).catch(() => null);
       }
 
       // ROBUST FALLBACK FOR GOOGLE DOCS (I18n Safe)
-      if (window.location.href.includes("docs.google.com/document/")) {
-        // If specific selector failed (or we want to ensure we hit the editor)
-        if (!element) {
-          Logger.info("⚠️ Selector failed in Google Docs. Attempting robust fallback...");
-          // Try Canvas (Google Docs Rendering Engine)
-          element = document.querySelector('.kix-canvas-tile-content');
-          // Try Content Editable (Fallback)
-          if (!element) element = document.querySelector('[contenteditable="true"]');
-        }
-
-        // Ensure focus for clipboard events
-        if (element) {
-          Logger.info("🎯 Focused Google Docs Editor (Robust Fallback)");
-          element.focus();
-        }
+      if (isGoogleDocs && !element) {
+        Logger.info("⚠️ Selector failed in Google Docs. Attempting robust fallback...");
+        // Try Canvas (Google Docs Rendering Engine)
+        element = document.querySelector('.kix-canvas-tile-content');
+        // Try Content Editable (Fallback)
+        if (!element) element = document.querySelector('[contenteditable="true"]');
       }
 
       // Fallback to active element requires valid focus
@@ -1032,7 +1134,7 @@
       // STRICT DOM SIGNAL GENERATION
       const signals = [];
       const timestamp = Date.now();
-      const currentUrl = window.location.href;
+      // currentUrl e isGoogleDocs já declarados no início da função
 
       // 1. SIGNAL: EDITOR_READY
       if (element) {
@@ -1075,8 +1177,7 @@
         content_length: value.length
       };
 
-      // Verificar se é Google Docs pela URL
-      const isGoogleDocs = currentUrl.includes("docs.google.com");
+      // Verificar se é Google Docs pela URL (já declarado no topo)
 
       if (isGoogleDocs) {
         Logger.info("📋 Google Docs - innerHTML");

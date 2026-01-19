@@ -136,6 +136,29 @@ function isGoogleDocsUrl(url = "") {
   );
 }
 
+/**
+ * Extrai o ID do documento da URL do Google Docs
+ */
+function extractDocId(url) {
+  const match = url.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Obtém token OAuth do usuário via chrome.identity
+ */
+function getGoogleToken() {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(token);
+      }
+    });
+  });
+}
+
 // ============================================
 // STATE MANAGEMENT
 // ============================================
@@ -998,12 +1021,88 @@ async function processCommand(cmd) {
     } else if (cmd.type === "NAVIGATE") {
       params = { url: cmd.options?.url || cmd.value };
       action = "NAVIGATE";
-    } else {
-      // REJECT UNKNOWN TYPES
-      throw new Error(`CRITICAL: Executor received unknown command type: ${cmd.type}`);
+      params = { url: cmd.options?.url || cmd.value };
+      action = "NAVIGATE";
+
+      // 7. GOOGLE DOCS API INSERT (NEW)
+    } else if (cmd.type === "insert_via_api") {
+      params = {
+        value: cmd.payload?.value || cmd.value,
+        docId: cmd.payload?.docId // Optional, can extract from URL
+      };
+      action = "API_INSERT_DOCS";
+      Logger.info("COORD: Mapping 'insert_via_api' -> API_INSERT_DOCS", params);
+
     }
 
 
+
+    // ============================================
+    // 2.5 INTELLIGENT ROUTING DECISION (NEW)
+    // ============================================
+
+    /**
+     * Decide: Execute locally (Extension) or remotely (Action Router → HF Playwright)?
+     * 
+     * RULES:
+     * - Simple UI interactions → Local (faster, visual)
+     * - Heavy/complex tasks → Action Router → Playwright HF
+     * - Document generation → Python API
+     */
+    const shouldUseActionRouter = (cmdType, cmdParams) => {
+      // Keywords that indicate backend execution
+      const heavyKeywords = ['pesquisar produtos', 'minerar', 'raspar', 'scrape', 'analyze'];
+      const contentValue = (cmdParams.value || '').toLowerCase();
+
+      // Force backend for specific command types
+      if (cmdType === 'scrape' || cmdType === 'analyze_competitors') {
+        return true;
+      }
+
+      // Check if content suggests complex operation
+      if (heavyKeywords.some(kw => contentValue.includes(kw))) {
+        return true;
+      }
+
+      // Default: execute locally (faster for simple tasks)
+      return false;
+    };
+
+    // Check if we should route to Action Router
+    if (shouldUseActionRouter(cmd.type, params)) {
+      Logger.info(`🔀 [ROUTING] Complex task detected → Action Router (HF Playwright)`, {
+        type: cmd.type,
+        action: action
+      });
+
+      try {
+        // Build action payload for Action Router
+        const actionPayload = buildActionPayload(cmd, {
+          userId: state.userId,
+          sessionId: generateSessionId(),
+          conversationId: cmd.conversation_id,
+          commandId: cmd.id // Link back to extension command
+        });
+
+        // Call Action Router (which decides Extension wait vs Playwright direct)
+        const routerResult = await callActionRouter(actionPayload, state.accessToken);
+
+        Logger.success(`✅ [ROUTING] Action Router execution complete`, routerResult);
+
+        // Update command with result
+        await updateCommandStatus(cmd.id, "completed", {
+          result: routerResult,
+          completed_at: new Date().toISOString(),
+          executor: 'action_router'
+        });
+
+        return; // Exit early - command processed via router
+
+      } catch (error) {
+        Logger.error(`❌ [ROUTING] Action Router failed, falling back to local`, error);
+        // Fallback: continue to local execution below
+      }
+    }
 
     // ============================================
     // 3. EXECUTE ACTION LOCALLY (EXTENSION IS EXECUTOR)
@@ -1058,6 +1157,26 @@ async function processCommand(cmd) {
         // Wait for connection/load (basic delay for stability)
         await new Promise(r => setTimeout(r, 2000));
         domReport = { success: true, final_url: targetUrl, logs: ["Navigated to " + targetUrl] };
+
+      } else if (action === "API_INSERT_DOCS") {
+        // ============================================
+        // REMOTE EXECUTION (Playwright on HF)
+        // Extension does NOT execute this locally
+        // ============================================
+        Logger.info("🌐 [API_INSERT_DOCS] This command is executed remotely by Playwright");
+        Logger.info("⏳ [API_INSERT_DOCS] Waiting for remote execution to complete...");
+        
+        // Mark as processing but don't execute locally
+        // chat-stream will call Playwright HTTP and write result to DB
+        // Extension just waits for the result via normal polling
+        
+        domReport = {
+          success: true,
+          logs: ["Command delegated to remote Playwright execution"],
+          remote: true
+        };
+        
+        Logger.success("✅ [API_INSERT_DOCS] Command marked for remote execution");
 
       } else {
         // CONTENT SCRIPT ACTIONS

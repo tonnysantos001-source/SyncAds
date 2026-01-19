@@ -64,6 +64,40 @@ export class ReasonerVerifier {
         const intent = originalIntent.intent;
 
         if (intent === "create_document") {
+            // ⚠️ SKIP DOM SIGNAL VALIDATION for insert_via_api (uses Google Docs API directly)
+            if (result.command_type === "insert_via_api") {
+                // API-based insertion - check success from API result
+                if (result.success) {
+                    // Extract document URL from multiple possible locations
+                    const docUrl = result.doc_url ||
+                        result.url_after ||
+                        result.result?.doc_url ||
+                        result.result?.url ||
+                        "";
+
+                    // Extract title if available
+                    const docTitle = result.title_after ||
+                        result.result?.title ||
+                        "Documento sem nome";
+
+                    return {
+                        status: "SUCCESS",
+                        reason: "Content inserted successfully via Google Docs API",
+                        final_message_to_user: docUrl
+                            ? `✅ **${docTitle}** criado com sucesso!\n\n🔗 [Abrir documento](${docUrl})`
+                            : "✅ Conteúdo inserido via API do Google Docs!",
+                        verification_score: 100
+                    };
+                }
+                // If API failed, return failure
+                return {
+                    status: "FAILURE",
+                    reason: result.result?.error || result.error || "API insertion failed",
+                    final_message_to_user: `❌ Falha ao inserir conteúdo via API: ${result.result?.error || result.error || "Erro desconhecido"}`
+                };
+            }
+
+            // Legacy DOM-based document creation (insert_content command)
             // Rule: Missing DOCUMENT_CREATED -> FAILURE
             if (!signals.some(s => s.type === "DOCUMENT_CREATED")) {
                 return {

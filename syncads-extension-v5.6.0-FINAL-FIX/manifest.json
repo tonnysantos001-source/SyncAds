@@ -16,8 +16,16 @@
     "bookmarks",
     "sidePanel",
     "clipboardRead",
-    "clipboardWrite"
+    "clipboardWrite",
+    "identity"
   ],
+  "oauth2": {
+    "client_id": "919331747393-7l34tsk8v9jbi19hgffo4fihk8fo36k9.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/documents",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
   "host_permissions": [
     "https://*/*",
     "http://*/*",
