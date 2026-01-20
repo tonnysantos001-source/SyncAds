@@ -1,0 +1,11 @@
+Bundling Function: chat-stream
+Specifying decorator through flags is no longer supported. Please use deno.json instead.
+Error: failed to create the graph
+
+Caused by:
+    The module's source code could not be parsed: Unterminated regexp literal at file:///Users/dinho/Documents/GitHub/SyncAds/supabase/functions/chat-stream/planner.ts:118:18
+    
+                      </tbody>
+                       ~~~~~~~
+error running container: exit 1
+Try rerunning the command with --debug to troubleshoot the error.

@@ -1,5 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 /**
  * Image Fetcher - Busca imagens do Unsplash para ilustrar documentos
  */

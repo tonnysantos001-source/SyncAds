@@ -51,80 +51,25 @@ O conteúdo deve ser **HTML RICO e FORMATADO**. Exemplo:
 - ✅ Emojis para deixar visualmente atrativo
 - ✅ Estilos inline para cores e tamanhos
 
+
 **📚 EBOOKS - INSTRUÇÕES ESPECIAIS:**
 
-Para ebooks, receitas, guias e conteúdo longo, use:
+Para ebooks, receitas, guias e conteúdo longo:
 
-1. **Imagens ilustrativas** - Use placeholders:
-   ```html
-{ { IMAGE:palavra chave descritiva } }
-```
-   
-   Exemplos:
-   - `{ { IMAGE:pão de queijo dourado } } ` → Imagem de pão de queijo
-   - `{ { IMAGE:ebook cooking recipes } } ` → Capa de livro de receitas
-   - `{ { IMAGE:lasanha layers close - up } } ` → Foto detalhada
+1. **Imagens ilustrativas**: A IA pode adicionar imagens usando a sintaxe especial de duplas chaves com a palavra IMAGE seguida de dois pontos e uma descrição da imagem desejada.
 
-2. **Estrutura de ebook completo**:
-   ```html
-  < !--CAPA -->
-    <div style="text-align: center; padding: 80px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; page-break-after: always;" >
-      <h1 style="font-size: 56px; font-family: 'Georgia', serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);" >
-        50 Receitas Brasileiras
-          </h1>
-          < p style = "font-size: 24px; margin-top: 30px;" > Um guia completo </p>
-{ { IMAGE:brazilian cookbook food photography } }
-</div>
+2. **Estrutura de ebook completo**: Use HTML com estilos inline para criar layouts profissionais:
+   - Capas com gradientes coloridos
+   - Sumários com listas
+   - Capítulos com quebras de página
+   - Receitas/seções com títulos h1, h2, h3
+   - Listas ordenadas e não ordenadas
+   - Tabelas para informações nutricionais
+   - Boxes de dicas com backgrounds coloridos
 
-  < !--SUMÁRIO -->
-    <div style="page-break-after: always;" >
-      <h2 style="font-size: 36px; border-bottom: 3px solid #3498DB;" > Sumário </h2>
-        < ul style = "font-size: 18px; line-height: 2.5; list-style: none;" >
-          <li>Capítulo 1: Receitas Básicas ....................3 </li>
-            < li > Capítulo 2: Pratos Regionais .................. 15 </li>
-              </ul>
-              </div>
+3. **Tabelas profissionais**: Use tags table, thead, tbody, tr, th, td com estilos inline para bordas, padding, cores de fundo.
 
-              < !--CAPÍTULO -->
-                <div style="page-break-before: always;" >
-                  <h2 style="font-size: 36px; color: #E74C3C;" > Capítulo 1: Receitas Básicas </h2>
-
-                    < !--RECEITA -->
-                      <h3 style="font-size: 28px; margin-top: 40px;" > Pão de Queijo </h3>
-{ { IMAGE:brazilian cheese bread golden } }
-
-<div style="background: #ECF0F1; padding: 20px; border-radius: 8px; margin: 20px 0;" >
-  <p>⏱️ <strong>Tempo: </strong> 40 min | 👥 <strong>Porções:</strong > 30 </p>
-    </div>
-
-    < !--Ingredientes e preparo... -->
-      </div>
-        ```
-
-3. **Tabelas profissionais**:
-   ```html
-  < table style = "width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;" >
-    <thead>
-    <tr style="background: #3498DB; color: white;" >
-      <th style="padding: 12px; text-align: left;" > Nutriente </th>
-        < th style = "padding: 12px; text-align: right;" > Quantidade </th>
-          </tr>
-          </thead>
-          < tbody >
-          <tr style="background: #ECF0F1;" >
-            <td style="padding: 10px;" > Calorias </td>
-              < td style = "padding: 10px; text-align: right;" > <strong>85 kcal < /strong></td >
-                </tr>
-                </tbody>
-                </table>
-                  ```
-
-4. **Boxes de dicas**:
-   ```html
-  < div style = "background: #D5F4E6; border-left: 5px solid #27AE60; padding: 15px; margin: 25px 0;" >
-    <strong>💡 Dica: </strong> Substitua metade do polvilho para textura mais aerada!
-      </div>
-        ```
+4. **Boxes de dicas**: Divs com background colorido, border-left destacado, e padding adequado.
 
 **❌ NÃO USE:**
 - ❌ Texto plano sem formatação
