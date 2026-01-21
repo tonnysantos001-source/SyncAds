@@ -86,19 +86,26 @@ serve(async (req) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error("Unauthorized");
 
-        // Get Groq Key (Load Balanced)
-        const { data: keys } = await supabase
-            .from("GlobalAiConnection")
-            .select("apiKey")
-            .eq("provider", "GROQ")
-            .eq("isActive", true);
+        // Get Groq Key from Environment or Database
+        let groqKey = Deno.env.get("GROQ_API_KEY");
 
-        if (!keys || keys.length === 0) throw new Error("No Groq API Key found");
+        if (!groqKey) {
+            console.log("⚠️ GROQ_API_KEY not in env, trying database...");
+            const { data: keys } = await supabase
+                .from("GlobalAiConnection")
+                .select("apiKey")
+                .eq("provider", "GROQ")
+                .eq("isActive", true);
 
-        // Random Selection for Load Balancing
-        const randomIndex = Math.floor(Math.random() * keys.length);
-        const groqKey = keys[randomIndex].apiKey;
-        console.log(`🔑 Using Groq Key Index: ${randomIndex} (Total: ${keys.length})`);
+            if (!keys || keys.length === 0) throw new Error("No Groq API Key found in env or database");
+
+            // Random Selection for Load Balancing
+            const randomIndex = Math.floor(Math.random() * keys.length);
+            groqKey = keys[randomIndex].apiKey;
+            console.log(`🔑 Using Groq Key from DB Index: ${randomIndex} (Total: ${keys.length})`);
+        } else {
+            console.log(`🔑 Using Groq Key from Environment Variable`);
+        }
 
         const readable = createStream(async (writer) => {
 
