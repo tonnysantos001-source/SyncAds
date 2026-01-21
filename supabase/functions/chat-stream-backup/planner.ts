@@ -73,8 +73,8 @@ Para ebooks, receitas, guias e conteúdo longo:
 
 **❌ NÃO USE:**
 - ❌ Texto plano sem formatação
-- ❌ insert_content (comando antigo)
-- ❌ type para documentos
+- ❌ `insert_content` (comando antigo)
+- ❌ `type` para documentos
 
 **REGRA:** Para Google Docs, SEMPRE use navigate → insert_via_api com HTML formatado.
 
