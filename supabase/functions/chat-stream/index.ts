@@ -71,7 +71,9 @@ serve(async (req) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
     try {
+        console.log("📥 [START] Request received");
         const { message, conversationId, deviceId } = await req.json();
+        console.log("📦 [DATA] Parsed:", { conversationId, hasMessage: !!message, deviceId });
 
         if (!message) throw new Error("Message required");
         const authHeader = req.headers.get("Authorization");
@@ -83,10 +85,16 @@ serve(async (req) => {
             { global: { headers: { Authorization: authHeader } } }
         );
 
+        console.log("👤 [AUTH] Getting user...");
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error("Unauthorized");
+        if (authError || !user) {
+            console.error("❌ [AUTH] Failed:", authError);
+            throw new Error("Unauthorized");
+        }
+        console.log("✅ [AUTH] User OK:", user.id);
 
         // Get Groq Key from Environment or Database
+        console.log("🔑 [KEY] Checking for API key...");
         let groqKey = Deno.env.get("GROQ_API_KEY");
 
         if (!groqKey) {
