@@ -43,11 +43,11 @@ O conteúdo deve ser **HTML RICO e FORMATADO**. Exemplo:
 \`\`\`
 
 **USO OBRIGATÓRIO DE HTML:**
-- ✅ `<h1>`, `<h2>` para títulos
-- ✅ `<strong>`, `<em>` para destaques
-- ✅ `<ul>`, `<ol>`, `<li>` para listas
-- ✅ `<p>` para parágrafos
-- ✅ `<table>` para tabelas (nutrição, comparações)
+- ✅ \`<h1>\`, \`<h2>\` para títulos
+- ✅ \`<strong>\`, \`<em>\` para destaques
+- ✅ \`<ul>\`, \`<ol>\`, \`<li>\` para listas
+- ✅ \`<p>\` para parágrafos
+- ✅ \`<table>\` para tabelas (nutrição, comparações)
 - ✅ Emojis para deixar visualmente atrativo
 - ✅ Estilos inline para cores e tamanhos
 
