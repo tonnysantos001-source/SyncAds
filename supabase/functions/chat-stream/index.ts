@@ -139,23 +139,42 @@ serve(async (req) => {
 
 
         // Get Groq Key from Environment or Database
-        console.log("­ƒöæ [KEY] Checking for API key...");
+        console.log("🔑 [KEY] Checking for API key...");
         let groqKey = Deno.env.get("GROQ_API_KEY");
 
         if (!groqKey) {
-            console.log("ÔÜá´©Å GROQ_API_KEY not in env, trying database...");
-            const { data: keys } = await supabase
+            console.log("⚠️ GROQ_API_KEY not in env, trying database...");
+
+            // IMPORTANTE: Usar supabaseAdmin para buscar keys (bypassa RLS)
+            // Se não tiver SERVICE_ROLE, tenta com cliente normal
+            const clientForKeys = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+                ? supabaseAdmin
+                : supabase;
+
+            console.log("🔑 Using", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ? "SERVICE_ROLE" : "ANON", "client for keys query");
+
+            const { data: keys, error: keysError } = await clientForKeys
                 .from("GlobalAiConnection")
-                .select("apiKey")
+                .select("apiKey, name")
                 .eq("provider", "GROQ")
                 .eq("isActive", true);
 
-            if (!keys || keys.length === 0) throw new Error("No Groq API Key found in env or database");
+            if (keysError) {
+                console.error("❌ [KEY] Database error:", keysError);
+                throw new Error(`Failed to fetch API keys: ${keysError.message}`);
+            }
+
+            console.log(`🔑 [KEY] Found ${keys?.length || 0} keys in database`);
+
+            if (!keys || keys.length === 0) {
+                console.error("❌ [KEY] No keys found! Check RLS policies on GlobalAiConnection table");
+                throw new Error("No Groq API Key found in env or database. Check RLS policies!");
+            }
 
             // Random Selection for Load Balancing
             const randomIndex = Math.floor(Math.random() * keys.length);
             groqKey = keys[randomIndex].apiKey;
-            console.log(`­ƒöæ Using Groq Key from DB Index: ${randomIndex} (Total: ${keys.length})`);
+            console.log(`🔑 Using Groq Key: ${keys[randomIndex].name} (Index: ${randomIndex}, Total: ${keys.length})`);
         } else {
             console.log(`­ƒöæ Using Groq Key from Environment Variable`);
         }
