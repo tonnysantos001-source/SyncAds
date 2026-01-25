@@ -87,16 +87,22 @@ serve(async (req) => {
 
         console.log("🔐 [AUTH] Authorization header received:", authHeader.substring(0, 20) + "...");
         console.log("🔧 [ENV] SUPABASE_URL:", Deno.env.get("SUPABASE_URL"));
-        console.log("🔧 [ENV] SUPABASE_ANON_KEY exists:", !!Deno.env.get("SUPABASE_ANON_KEY"));
+        console.log("🔧 [ENV] SERVICE_ROLE exists:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
 
-        const supabase = createClient(
+        // Extrair o token do header
+        const token = authHeader.replace("Bearer ", "");
+
+        // IMPORTANTE: Usar SERVICE_ROLE_KEY para poder validar qualquer token JWT
+        // A ANON_KEY requer sessão ativa, SERVICE_ROLE pode validar tokens diretamente
+        const supabaseAdmin = createClient(
             Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_ANON_KEY")!,
-            { global: { headers: { Authorization: authHeader } } }
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!
         );
 
-        console.log("🔐 [AUTH] Getting user...");
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        console.log("🔐 [AUTH] Getting user from token...");
+
+        // Usar getUser passando o token diretamente
+        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
         if (authError) {
             console.error("❌ [AUTH] Error details:", authError);
@@ -104,7 +110,7 @@ serve(async (req) => {
                 JSON.stringify({
                     error: "Authentication failed",
                     details: authError.message,
-                    hint: "Faça logout e login novamente na extensão"
+                    hint: "Token inválido ou expirado. Faça login novamente."
                 }),
                 { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
@@ -122,6 +128,14 @@ serve(async (req) => {
         }
 
         console.log("✅ [AUTH] User OK:", user.id);
+
+        // Criar cliente normal para operações de banco (com permissões do usuário)
+        const supabase = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_ANON_KEY")!,
+            { global: { headers: { Authorization: authHeader } } }
+        );
+
 
 
         // Get Groq Key from Environment or Database
