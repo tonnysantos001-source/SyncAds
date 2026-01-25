@@ -77,7 +77,17 @@ serve(async (req) => {
 
         if (!message) throw new Error("Message required");
         const authHeader = req.headers.get("Authorization");
-        if (!authHeader) throw new Error("Missing Authorization header");
+        if (!authHeader) {
+            console.error("❌ [AUTH] Missing Authorization header");
+            return new Response(
+                JSON.stringify({ error: "Missing Authorization header" }),
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        console.log("🔐 [AUTH] Authorization header received:", authHeader.substring(0, 20) + "...");
+        console.log("🔧 [ENV] SUPABASE_URL:", Deno.env.get("SUPABASE_URL"));
+        console.log("🔧 [ENV] SUPABASE_ANON_KEY exists:", !!Deno.env.get("SUPABASE_ANON_KEY"));
 
         const supabase = createClient(
             Deno.env.get("SUPABASE_URL")!,
@@ -85,13 +95,34 @@ serve(async (req) => {
             { global: { headers: { Authorization: authHeader } } }
         );
 
-        console.log("­ƒæñ [AUTH] Getting user...");
+        console.log("🔐 [AUTH] Getting user...");
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            console.error("ÔØî [AUTH] Failed:", authError);
-            throw new Error("Unauthorized");
+
+        if (authError) {
+            console.error("❌ [AUTH] Error details:", authError);
+            return new Response(
+                JSON.stringify({
+                    error: "Authentication failed",
+                    details: authError.message,
+                    hint: "Faça logout e login novamente na extensão"
+                }),
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
         }
-        console.log("Ô£à [AUTH] User OK:", user.id);
+
+        if (!user) {
+            console.error("❌ [AUTH] No user found");
+            return new Response(
+                JSON.stringify({
+                    error: "No user found",
+                    hint: "Token inválido. Faça login novamente na extensão."
+                }),
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        console.log("✅ [AUTH] User OK:", user.id);
+
 
         // Get Groq Key from Environment or Database
         console.log("­ƒöæ [KEY] Checking for API key...");
