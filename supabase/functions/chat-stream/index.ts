@@ -6,6 +6,7 @@ import { PLANNER_PROMPT } from "./planner.ts";
 import { ReasonerOutput, PlannerOutput } from "./types.ts";
 import { ReasonerVerifier } from "./reasoner-verifier.ts";
 import { processImagePlaceholders } from "./image-fetcher.ts";
+import { generateEditorialPlan, buildDocStructure, renderToGoogleDocs } from "./editorial/index.ts";
 
 console.log("­ƒÜÇ Agentic Chat Stream - Multi-Agent V2 Loaded");
 
@@ -238,13 +239,62 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
 
                 const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
 
+                const targetDeviceId = plan.device_id || deviceId;
+
+                // 🆕 EDITORIAL MIDDLEWARE (se aplicável)
+                let finalPlan = plan;
+                try {
+                    const editorialPlan = generateEditorialPlan(currentMessage, reasonerOutput);
+
+                    if (editorialPlan) {
+                        console.log("📚 [EDITORIAL] Aplicando estrutura editorial...");
+
+                        // Extrair conteúdo bruto do plano original
+                        const insertCommand = plan.commands.find(c => c.type === 'insert_via_api');
+
+                        if (insertCommand?.payload?.value) {
+                            const rawContent = insertCommand.payload.value;
+                            console.log(`📄 [EDITORIAL] Conteúdo original: ${rawContent.length} bytes`);
+
+                            // Processar placeholders de imagem ANTES de estruturar
+                            const contentWithImages = await processImagePlaceholders(rawContent);
+
+                            // Construir estrutura editorial
+                            const structuredContent = buildDocStructure(editorialPlan, contentWithImages);
+
+                            // Gerar comandos estruturados
+                            const editorialCommands = await renderToGoogleDocs(
+                                structuredContent,
+                                targetDeviceId,
+                                editorialPlan
+                            );
+
+                            // Substituir comandos por versão estruturada
+                            finalPlan = {
+                                ...plan,
+                                message: `${plan.message} (com estrutura editorial aplicada)`,
+                                commands: editorialCommands
+                            };
+
+                            console.log("✅ [EDITORIAL] Estrutura editorial aplicada com sucesso");
+                        } else {
+                            console.log("⚠️ [EDITORIAL] Comando insert_via_api não encontrado, usando plano original");
+                        }
+                    } else {
+                        console.log("ℹ️ [EDITORIAL] Não é conteúdo editorial, mantendo plano original");
+                    }
+                } catch (editorialError) {
+                    console.error("❌ [EDITORIAL] Erro no middleware, usando plano original:", editorialError);
+                    // Fallback: continua com plano original
+                }
+
                 // Stream Planner message if any
-                if (plan.message && loopCount === 1) {
-                    await writeToStream(writer, "content", plan.message);
+                if (finalPlan.message && loopCount === 1) {
+                    await writeToStream(writer, "content", finalPlan.message);
                 }
 
                 // If no commands, we are done
-                if (!plan.commands || plan.commands.length === 0) {
+                if (!finalPlan.commands || finalPlan.commands.length === 0) {
                     await writeToStream(writer, "state", "DONE");
                     if (loopCount > 1) {
                         // Only add done message if not the very first thought
@@ -253,13 +303,11 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     break;
                 }
 
-                const targetDeviceId = plan.device_id || deviceId;
-
                 // 3. EXECUTION (PERSIST & WATCH)
                 await writeToStream(writer, "state", "EXECUTING");
 
                 // ­ƒÄ¿ PROCESS IMAGE PLACEHOLDERS (if insert_via_api command)
-                for (const cmd of plan.commands) {
+                for (const cmd of finalPlan.commands) {
                     if (cmd.type === 'insert_via_api' && cmd.payload?.value) {
                         console.log("­ƒÄ¿ Processing image placeholders in content...");
                         cmd.payload.value = await processImagePlaceholders(cmd.payload.value);
@@ -268,7 +316,7 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
 
                 // ✅ FILTER DUPLICATE insert_via_api COMMANDS
                 // CRITICAL: Only allow ONE insert_via_api command per execution cycle
-                let filteredCommands = plan.commands;
+                let filteredCommands = finalPlan.commands;
                 const insertViaApiCommands = filteredCommands.filter(cmd => cmd.type === 'insert_via_api');
 
                 if (insertViaApiCommands.length > 1) {
