@@ -19,108 +19,102 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 }
 \`\`\`
 
+**🚨 REGRA FUNDAMENTAL - APENAS 1 COMANDO insert_via_api:**
+- ❌ **NUNCA** gere mais de 1 comando insert_via_api por resposta
+- ❌ **NUNCA** gere comandos insert_via_api duplicados
+- ✅ Todo o conteúdo do ebook/receita deve ir em UM ÚNICO comando
+- ✅ Use quebras de página dentro do HTML para separar seções
+
 **⚠️ IMPORTANTE - FORMATAÇÃO HTML:**
 
-O conteúdo deve ser **HTML RICO e FORMATADO**. Exemplo COMPLETO:
+O conteúdo deve ser **HTML RICO e FORMATADO** com quebras de página para ebooks.
+
+**ESTRUTURA DE EBOOK (Exemplo Simplificado):**
+
+Para criar um ebook com páginas navegáveis (separadores no menu lateral):
 
 \`\`\`html
-<h1 style="color: #2196F3; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">🧀 Receita de Pão de Queijo</h1>
+<h1 style="font-size: 32px; text-align: center; color: #2196F3;">Receita de Pão de Queijo</h1>
+<p style="text-align: center; color: #888;">Ebook Completo - Passo a Passo</p>
+<div style="page-break-after: always;"></div>
 
-<p style="font-size: 14px; color: #888; text-align: center; margin-bottom: 30px;">
-  <em>Tempo de preparo: 30 minutos | Rendimento: 20 unidades</em>
-</p>
-
-<h2 style="color: #FF9800; font-size: 20px; font-weight: bold; margin-top: 25px; border-left: 4px solid #FF9800; padding-left: 10px;">📋 Ingredientes:</h2>
-<ul style="line-height: 2; font-size: 15px;">
+<h1 style="color: #FF9800; border-left: 5px solid #FF9800; padding-left: 15px;">Ingredientes</h1>
+<ul style="line-height: 2;">
   <li><strong>500g</strong> de polvilho doce</li>
   <li><strong>3 ovos</strong> inteiros</li>
   <li><strong>200ml</strong> de leite</li>
   <li><strong>100ml</strong> de óleo</li>
-  <li><strong>200g</strong> de queijo minas padrão ralado</li>
+  <li><strong>200g</strong> de queijo minas ralado</li>
   <li><strong>100g</strong> de queijo parmesão ralado</li>
   <li><strong>1 colher de chá</strong> de sal</li>
 </ul>
+<div style="page-break-after: always;"></div>
 
-<h2 style="color: #4CAF50; font-size: 20px; font-weight: bold; margin-top: 25px; border-left: 4px solid #4CAF50; padding-left: 10px;">👨‍🍳 Modo de Preparo:</h2>
-<ol style="line-height: 2; font-size: 15px;">
+<h1 style="color: #4CAF50; border-left: 5px solid #4CAF50; padding-left: 15px;">Modo de Preparo</h1>
+<ol style="line-height: 2.5;">
   <li>Pré-aqueça o forno a <strong>180°C</strong></li>
-  <li>Em uma panela, ferva o <strong>leite</strong> com o <strong>óleo</strong> e o <strong>sal</strong></li>
-  <li>Despeje a mistura quente sobre o <strong>polvilho</strong> e misture bem até formar uma massa</li>
-  <li>Deixe esfriar por <strong>10 minutos</strong></li>
-  <li>Adicione os <strong>ovos</strong> um a um, misturando bem após cada adição</li>
-  <li>Acrescente os <strong>queijos ralados</strong> e misture até obter uma massa homogênea</li>
-  <li>Com as mãos untadas com óleo, faça <strong>bolinhas</strong> do tamanho de uma noz</li>
-  <li>Coloque as bolinhas em uma assadeira untada, deixando <strong>espaço entre elas</strong></li>
-  <li>Asse por <strong>25-30 minutos</strong> ou até ficarem dourados por fora e sequinhos por dentro</li>
-  <li>Sirva ainda <strong>quente</strong> e aproveite! ☕</li>
+  <li>Ferva o leite com óleo e sal</li>
+  <li>Despeje sobre o polvilho e misture</li>
+  <li>Deixe esfriar por 10 minutos</li>
+  <li>Adicione os ovos um a um</li>
+  <li>Acrescente os queijos ralados</li>
+  <li>Faça bolinhas com as mãos untadas</li>
+  <li>Coloque em assadeira untada</li>
+  <li>Asse por 25-30 minutos até dourar</li>
+  <li>Sirva quente</li>
 </ol>
+<div style="page-break-after: always;"></div>
 
-<div style="background: #FFF9C4; border-left: 4px solid #FFC107; padding: 15px; margin: 25px 0; border-radius: 5px;">
-  <strong style="color: #F57C00;">💡 Dica do Chef:</strong> 
-  <p style="margin: 5px 0 0 0;">Para um pão de queijo ainda mais saboroso, adicione ervas frescas como orégano ou alecrim à massa!</p>
-</div>
-
-<h2 style="color: #9C27B0; font-size: 18px; font-weight: bold; margin-top: 25px;">📊 Informação Nutricional (por unidade):</h2>
-<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+<h1 style="color: #9C27B0; border-left: 5px solid #9C27B0; padding-left: 15px;">Informação Nutricional</h1>
+<table style="width: 100%; border-collapse: collapse;">
   <thead>
     <tr style="background: #F3E5F5;">
-      <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Nutriente</th>
-      <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Quantidade</th>
+      <th style="border: 1px solid #ddd; padding: 10px;">Nutriente</th>
+      <th style="border: 1px solid #ddd; padding: 10px;">Quantidade</th>
     </tr>
   </thead>
   <tbody>
-    <tr>
-      <td style="border: 1px solid #ddd; padding: 8px;">Calorias</td>
-      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">95 kcal</td>
-    </tr>
-    <tr style="background: #FAFAFA;">
-      <td style="border: 1px solid #ddd; padding: 8px;">Proteínas</td>
-      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">3g</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ddd; padding: 8px;">Carboidratos</td>
-      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">12g</td>
-    </tr>
-    <tr style="background: #FAFAFA;">
-      <td style="border: 1px solid #ddd; padding: 8px;">Gorduras</td>
-      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">4g</td>
-    </tr>
+    <tr><td style="border: 1px solid #ddd; padding: 8px;">Calorias</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">95 kcal</td></tr>
+    <tr style="background: #FAFAFA;"><td style="border: 1px solid #ddd; padding: 8px;">Proteínas</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">3g</td></tr>
   </tbody>
 </table>
 \`\`\`
 
-
 **USO OBRIGATÓRIO DE HTML:**
-- ✅ \`<h1>\`, \`<h2>\` para títulos
-- ✅ \`<strong>\`, \`<em>\` para destaques
-- ✅ \`<ul>\`, \`<ol>\`, \`<li>\` para listas
-- ✅ \`<p>\` para parágrafos
-- ✅ \`<table>\` para tabelas (nutrição, comparações)
+- ✅ Use \`<h1>\` para criar SEPARADORES NAVEGÁVEIS no menu lateral
+- ✅ Use \`<div style="page-break-after: always;"></div>\` para QUEBRAS DE PÁGINA
+- ✅ Use \`<strong>\`, \`<em>\` para destaques
+- ✅ Use \`<ul>\`, \`<ol>\`, \`<li>\` para listas
+- ✅ Use \`<table>\` para tabelas (nutrição, comparações)
+- ✅ Estilos inline para cores, bordas e formatação
 - ✅ Emojis para deixar visualmente atrativo
-- ✅ Estilos inline para cores e tamanhos
 
 
 **📚 EBOOKS - INSTRUÇÕES ESPECIAIS:**
 
 Para ebooks, receitas, guias e conteúdo longo:
 
-1. **Imagens ilustrativas**: A IA pode adicionar imagens usando a sintaxe especial de duplas chaves com a palavra IMAGE seguida de dois pontos e uma descrição da imagem desejada.
+1. **Quebras de Página**: Use \`<div style="page-break-after: always;"></div>\` após cada seção principal
 
-2. **Estrutura de ebook completo**: Use HTML com estilos inline para criar layouts profissionais:
-   - Capas com gradientes coloridos
-   - Sumários com listas
-   - Capítulos com quebras de página
-   - Receitas/seções com títulos h1, h2, h3
-   - Listas ordenadas e não ordenadas
-   - Tabelas para informações nutricionais
-   - Boxes de dicas com backgrounds coloridos
+2. **Navegação Lateral**: Cada \`<h1>\` cria um separador navegável automaticamente. Use títulos descritivos:
+   - Capa (página 1)
+   - Ingredientes (página 2)
+   - Modo de Preparo (página 3)
+   - Informação Nutricional (página 4)
+   - Dicas e Variações (página 5)
 
-3. **Tabelas profissionais**: Use tags table, thead, tbody, tr, th, td com estilos inline para bordas, padding, cores de fundo.
+3. **Imagens ilustrativas**: Adicione imagens usando: \`{{IMAGE: descrição da imagem}}\`
 
-4. **Boxes de dicas**: Divs com background colorido, border-left destacado, e padding adequado.
+4. **Boxes de dicas**: Use \`<div style="background: #FFF9C4; border-left: 4px solid #FFC107; padding: 15px; margin: 20px 0;">\`
+
+5. **Conteúdo Completo**: Sempre crie receitas COMPLETAS com TODOS os ingredientes e TODOS os passos detalhados
 
 **❌ NÃO USE:**
 - ❌ Texto plano sem formatação
+- ❌ Receitas incompletas ou resumidas
+- ❌ Múltiplos comandos insert_via_api (APENAS 1!)
 - ❌ insert_content (comando antigo)
 - ❌ type para documentos
 
@@ -131,7 +125,7 @@ Para ebooks, receitas, guias e conteúdo longo:
 ### 🧠 ESTRATÉGIA MESTRA (DECISION TREE)
 
 **PRIORIDADE 0: CRIAÇÃO DE DOCUMENTOS (OBRIGATÓRIO USAR INSERT_VIA_API)**
-SEMPRE que for criar um documento com texto (Receita, Ebook, Artigo, Planilha Preenchida):
+SEMPRE que for criar um documento com texto (Receita, Ebook, Artigo):
 ❌ **COMANDOS DISPONÍVEIS (USE APENAS ESTES):**
 
 1.  \`navigate\` { url: string }
@@ -150,6 +144,7 @@ SEMPRE que for criar um documento com texto (Receita, Ebook, Artigo, Planilha Pr
     - 🏆 **COMANDO SUPREMO PARA CRIAÇÃO DE DOCUMENTOS.**
     - Gera HTML completo e cola instantaneamente.
     - Use para: Ebooks, Receitas, Cartas, Relatórios.
+    - ⚠️ **APENAS 1 COMANDO POR RESPOSTA!**
 
 **EXEMPLO DE RESPOSTA (JSON):**
 \`\`\`json
@@ -229,7 +224,8 @@ Retorne APENAS o JSON abaixo. Nada mais.
   "device_id": "...",
   "message": "Explicação da estratégia escolhida (ex: 'Usando URL direta para criar documento...')",
   "commands": [
-    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page", "insert_content"
+    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page", "insert_content", "insert_via_api"
+    // ⚠️ APENAS 1 comando insert_via_api permitido!
   ]
 }
 `;

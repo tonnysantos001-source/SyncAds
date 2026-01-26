@@ -266,8 +266,29 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     }
                 }
 
+                // ✅ FILTER DUPLICATE insert_via_api COMMANDS
+                // CRITICAL: Only allow ONE insert_via_api command per execution cycle
+                let filteredCommands = plan.commands;
+                const insertViaApiCommands = filteredCommands.filter(cmd => cmd.type === 'insert_via_api');
+
+                if (insertViaApiCommands.length > 1) {
+                    console.warn(`⚠️ [PLANNER] Generated ${insertViaApiCommands.length} insert_via_api commands - keeping only the FIRST one`);
+                    // Keep only the first insert_via_api command
+                    let keptInsertApi = false;
+                    filteredCommands = filteredCommands.filter(cmd => {
+                        if (cmd.type === 'insert_via_api') {
+                            if (!keptInsertApi) {
+                                keptInsertApi = true;
+                                return true; // Keep first one
+                            }
+                            return false; // Remove duplicates
+                        }
+                        return true; // Keep other commands
+                    });
+                }
+
                 // Allow only recognized commands
-                const commandsToInsert = plan.commands.map(cmd => ({
+                const commandsToInsert = filteredCommands.map(cmd => ({
                     device_id: targetDeviceId,
                     type: cmd.type,
                     command_type: cmd.type,
