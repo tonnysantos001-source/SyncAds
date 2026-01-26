@@ -53,6 +53,7 @@ async function callGroqJSON(apiKey: string, messages: any[]): Promise<any> {
             model: GROQ_MODEL,
             messages: messages,
             temperature: 0.1, // Precision is key
+            max_tokens: 8000, // 🔥 CRÍTICO: Permite respostas longas para ebooks completos
             response_format: { type: "json_object" }
         }),
     });

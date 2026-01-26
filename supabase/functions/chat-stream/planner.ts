@@ -111,6 +111,13 @@ Para ebooks, receitas, guias e conteúdo longo:
 
 5. **Conteúdo Completo**: Sempre crie receitas COMPLETAS com TODOS os ingredientes e TODOS os passos detalhados
 
+🚨 **REGRA CRÍTICA DE COMPLETUDE:**
+- ✅ Cada seção (\u003ch1\u003e) DEVE ter conteúdo real e completo
+- ✅ "Modo de Preparo" DEVE ter NO MÍNIMO 5 passos detalhados
+- ✅ "Informação Nutricional" DEVE ter tabela completa
+- ✅ NUNCA deixe seções vazias ou incompletas
+- ✅ Se não souber o conteúdo, invente mas COMPLETE a seção
+
 **❌ NÃO USE:**
 - ❌ Texto plano sem formatação
 - ❌ Receitas incompletas ou resumidas
