@@ -45,4 +45,5 @@ export interface StructuredContent {
     sectionsCount: number;
     pageBreaks: number;
     headingsCount: number;
+    finalizerApplied?: boolean;
 }

@@ -259,8 +259,8 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             // Processar placeholders de imagem ANTES de estruturar
                             const contentWithImages = await processImagePlaceholders(rawContent);
 
-                            // Construir estrutura editorial
-                            const structuredContent = buildDocStructure(editorialPlan, contentWithImages);
+                            // Construir estrutura editorial (com finalizer integrado)
+                            const structuredContent = await buildDocStructure(editorialPlan, contentWithImages);
 
                             // Gerar comandos estruturados
                             const editorialCommands = await renderToGoogleDocs(

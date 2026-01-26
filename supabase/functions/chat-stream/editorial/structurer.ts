@@ -57,10 +57,10 @@ function cleanHtml(html: string): string {
  * @param rawContent - Conteúdo HTML bruto do Planner
  * @returns HTML estruturado com capa, quebras de página e hierarquia
  */
-export function buildDocStructure(
+export async function buildDocStructure(
     plan: EditorialPlan,
     rawContent: string
-): StructuredContent {
+): Promise<StructuredContent> {
     console.log("🏗️ [STRUCTURER] Construindo estrutura do documento...");
 
     const parts: string[] = [];
@@ -142,19 +142,42 @@ export function buildDocStructure(
     }
 
     // 5. MONTAR HTML FINAL
-    const finalHtml = cleanHtml(parts.join('\n\n'));
+    const preliminaryHtml = cleanHtml(parts.join('\n\n'));
+
+    console.log(`📄 [STRUCTURER] HTML preliminar criado: ${preliminaryHtml.length} bytes`);
+
+    // 🔥 6. FINALIZER - VALIDAÇÃO E NORMALIZAÇÃO
+    console.log("🔍 [STRUCTURER] Aplicando finalizer para validação...");
+
+    let finalHtml = preliminaryHtml;
+    let finalizerApplied = false;
+
+    try {
+        // Importar finalizer dinamicamente
+        const { finalizeEditorialDocument } = await import("./finalizer.ts");
+
+        finalHtml = finalizeEditorialDocument(preliminaryHtml, plan.documentType);
+        finalizerApplied = true;
+
+        console.log("✅ [STRUCTURER] Finalizer aplicado com sucesso");
+    } catch (error) {
+        console.error("⚠️ [STRUCTURER] Finalizer falhou, usando HTML preliminar:", error);
+        // Continua com HTML preliminar (não quebra o fluxo)
+    }
 
     console.log(`✅ [STRUCTURER] Documento estruturado criado:`, {
         sectionsCount: sectionNumber - 1,
         pageBreaks: pageBreaksCount,
         headings: headingsCount,
-        sizeBytes: finalHtml.length
+        sizeBytes: finalHtml.length,
+        finalizerApplied
     });
 
     return {
         html: finalHtml,
         sectionsCount: sectionNumber - 1,
         pageBreaks: pageBreaksCount,
-        headingsCount: headingsCount
+        headingsCount: headingsCount,
+        finalizerApplied
     };
 }
