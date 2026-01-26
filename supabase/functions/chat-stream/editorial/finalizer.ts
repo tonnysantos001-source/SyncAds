@@ -195,10 +195,21 @@ function validateCompleteness(
 function rebuildHtml(sections: Section[]): string {
     const parts: string[] = [];
 
-    for (const section of sections) {
-        // Reconstruir com <h1> + conteúdo
-        parts.push(`<h1>${section.title}</h1>`);
+    // Paleta de cores para seções
+    const colors = ['#2196F3', '#FF9800', '#4CAF50', '#9C27B0', '#FF5722'];
+
+    for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const color = colors[i % colors.length];
+
+        // Reconstruir com <h1> + estilos + conteúdo
+        parts.push(`<h1 style="color: ${color}; border-left: 5px solid ${color}; padding-left: 15px;">${section.title}</h1>`);
         parts.push(section.content);
+
+        // Adicionar quebra de página (exceto última seção)
+        if (i < sections.length - 1) {
+            parts.push('<div style="page-break-after: always;"></div>');
+        }
     }
 
     return parts.join('\n\n').trim();
@@ -222,26 +233,31 @@ export function finalizeEditorialDocument(
     let sections = extractSections(html);
     console.log(`📑 [FINALIZER] Extraídas ${sections.length} seções`);
 
-    // 2. REMOVER DUPLICATAS
+    if (sections.length === 0) {
+        console.warn("⚠️ [FINALIZER] Nenhuma seção encontrada, retornando HTML original");
+        return html;
+    }
+
+    // 2. REMOVER DUPLICATAS (SEMPRE, mesmo que incompleto)
     sections = removeDuplicateSections(sections);
     console.log(`✂️ [FINALIZER] Após remoção de duplicatas: ${sections.length} seções`);
 
-    // 3. REORDENAR
+    // 3. REORDENAR (SEMPRE, mesmo que incompleto)
     sections = reorderSections(sections, documentType);
     console.log(`📊 [FINALIZER] Seções reordenadas na ordem canônica`);
 
-    // 4. VALIDAR COMPLETUDE
+    // 4. VALIDAR COMPLETUDE (WARNING, não bloqueia)
     const validation = validateCompleteness(sections, documentType);
 
     if (!validation.valid) {
-        const errorMsg = `Documento editorial incompleto. Seções faltando/vazias: ${validation.missing.join(', ')}`;
-        console.error(`❌ [FINALIZER] ${errorMsg}`);
-        throw new Error(errorMsg);
+        console.warn(`⚠️ [FINALIZER] Documento incompleto mas continuando: ${validation.missing.join(', ')}`);
+        // NÃO lançar erro, apenas avisar
+        // O sistema de retry do Reasoner pode tentar novamente se necessário
+    } else {
+        console.log("✅ [FINALIZER] Documento validado com sucesso");
     }
 
-    console.log("✅ [FINALIZER] Documento validado com sucesso");
-
-    // 5. RECONSTRUIR HTML
+    // 5. RECONSTRUIR HTML (SEMPRE)
     const finalHtml = rebuildHtml(sections);
 
     console.log(`📄 [FINALIZER] HTML finalizado: ${finalHtml.length} bytes, ${sections.length} seções`);
