@@ -21,26 +21,74 @@ Para isso, você deve seguir estritamente a HIERARQUIA DE 3 ESTRATÉGIAS abaixo.
 
 **⚠️ IMPORTANTE - FORMATAÇÃO HTML:**
 
-O conteúdo deve ser **HTML RICO e FORMATADO**. Exemplo:
+O conteúdo deve ser **HTML RICO e FORMATADO**. Exemplo COMPLETO:
 
 \`\`\`html
-<h1 style="color: #2196F3; font-size: 24px; font-weight: bold;">Receita de Pão de Queijo</h1>
+<h1 style="color: #2196F3; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">🧀 Receita de Pão de Queijo</h1>
 
-<h2 style="color: #666; font-size: 18px; margin-top: 20px;">🧀 Ingredientes:</h2>
-<ul style="line-height: 1.8;">
+<p style="font-size: 14px; color: #888; text-align: center; margin-bottom: 30px;">
+  <em>Tempo de preparo: 30 minutos | Rendimento: 20 unidades</em>
+</p>
+
+<h2 style="color: #FF9800; font-size: 20px; font-weight: bold; margin-top: 25px; border-left: 4px solid #FF9800; padding-left: 10px;">📋 Ingredientes:</h2>
+<ul style="line-height: 2; font-size: 15px;">
   <li><strong>500g</strong> de polvilho doce</li>
-  <li><strong>3 ovos</strong></li>
+  <li><strong>3 ovos</strong> inteiros</li>
   <li><strong>200ml</strong> de leite</li>
+  <li><strong>100ml</strong> de óleo</li>
+  <li><strong>200g</strong> de queijo minas padrão ralado</li>
+  <li><strong>100g</strong> de queijo parmesão ralado</li>
+  <li><strong>1 colher de chá</strong> de sal</li>
 </ul>
 
-<h2 style="color: #666; font-size: 18px; margin-top: 20px;">👨‍🍳 Modo de Preparo:</h2>
-<ol style="line-height: 1.8;">
-  <li>Pré-aqueça o forno a 180°C</li>
-  <li>Bata todos os ingredientes no liquidificador</li>
-  <li>Coloque em forminhas untadas</li>
-  <li>Asse por 20-25 minutos até dourar</li>
+<h2 style="color: #4CAF50; font-size: 20px; font-weight: bold; margin-top: 25px; border-left: 4px solid #4CAF50; padding-left: 10px;">👨‍🍳 Modo de Preparo:</h2>
+<ol style="line-height: 2; font-size: 15px;">
+  <li>Pré-aqueça o forno a <strong>180°C</strong></li>
+  <li>Em uma panela, ferva o <strong>leite</strong> com o <strong>óleo</strong> e o <strong>sal</strong></li>
+  <li>Despeje a mistura quente sobre o <strong>polvilho</strong> e misture bem até formar uma massa</li>
+  <li>Deixe esfriar por <strong>10 minutos</strong></li>
+  <li>Adicione os <strong>ovos</strong> um a um, misturando bem após cada adição</li>
+  <li>Acrescente os <strong>queijos ralados</strong> e misture até obter uma massa homogênea</li>
+  <li>Com as mãos untadas com óleo, faça <strong>bolinhas</strong> do tamanho de uma noz</li>
+  <li>Coloque as bolinhas em uma assadeira untada, deixando <strong>espaço entre elas</strong></li>
+  <li>Asse por <strong>25-30 minutos</strong> ou até ficarem dourados por fora e sequinhos por dentro</li>
+  <li>Sirva ainda <strong>quente</strong> e aproveite! ☕</li>
 </ol>
+
+<div style="background: #FFF9C4; border-left: 4px solid #FFC107; padding: 15px; margin: 25px 0; border-radius: 5px;">
+  <strong style="color: #F57C00;">💡 Dica do Chef:</strong> 
+  <p style="margin: 5px 0 0 0;">Para um pão de queijo ainda mais saboroso, adicione ervas frescas como orégano ou alecrim à massa!</p>
+</div>
+
+<h2 style="color: #9C27B0; font-size: 18px; font-weight: bold; margin-top: 25px;">📊 Informação Nutricional (por unidade):</h2>
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+  <thead>
+    <tr style="background: #F3E5F5;">
+      <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Nutriente</th>
+      <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Quantidade</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;">Calorias</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">95 kcal</td>
+    </tr>
+    <tr style="background: #FAFAFA;">
+      <td style="border: 1px solid #ddd; padding: 8px;">Proteínas</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">3g</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;">Carboidratos</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">12g</td>
+    </tr>
+    <tr style="background: #FAFAFA;">
+      <td style="border: 1px solid #ddd; padding: 8px;">Gorduras</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">4g</td>
+    </tr>
+  </tbody>
+</table>
 \`\`\`
+
 
 **USO OBRIGATÓRIO DE HTML:**
 - ✅ \`<h1>\`, \`<h2>\` para títulos

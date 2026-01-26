@@ -1160,23 +1160,99 @@ async function processCommand(cmd) {
 
       } else if (action === "API_INSERT_DOCS") {
         // ============================================
-        // REMOTE EXECUTION (Playwright on HF)
-        // Extension does NOT execute this locally
+        // API INSERT DOCS - Chamada REAL para a API do HuggingFace
         // ============================================
-        Logger.info("🌐 [API_INSERT_DOCS] This command is executed remotely by Playwright");
-        Logger.info("⏳ [API_INSERT_DOCS] Waiting for remote execution to complete...");
-        
-        // Mark as processing but don't execute locally
-        // chat-stream will call Playwright HTTP and write result to DB
-        // Extension just waits for the result via normal polling
-        
-        domReport = {
-          success: true,
-          logs: ["Command delegated to remote Playwright execution"],
-          remote: true
-        };
-        
-        Logger.success("✅ [API_INSERT_DOCS] Command marked for remote execution");
+        Logger.info("🌐 [API_INSERT_DOCS] Preparing to call Google Docs API...");
+
+        try {
+          // 1. Esperar documento Google Docs estar pronto
+          const MAX_WAIT = 20000; // 20 segundos
+          const startTime = Date.now();
+          let docId = null;
+          let docTab = null;
+
+          Logger.info("⏳ [API_INSERT_DOCS] Waiting for Google Docs document...");
+
+          while (Date.now() - startTime < MAX_WAIT) {
+            const tabs = await chrome.tabs.query({ url: "*://docs.google.com/document/*" });
+            for (const tab of tabs) {
+              const extractedId = extractDocId(tab.url);
+              if (extractedId && !tab.url.includes('/create')) {
+                docId = extractedId;
+                docTab = tab;
+                break;
+              }
+            }
+            if (docId) break;
+            await new Promise(r => setTimeout(r, 1000));
+          }
+
+          if (!docId) {
+            throw new Error("Timeout: Google Docs document not found or not ready");
+          }
+
+          Logger.info(`✅ [API_INSERT_DOCS] Document found: ${docId}`, { url: docTab.url });
+
+          // 2. Obter token OAuth do Google
+          Logger.info("🔑 [API_INSERT_DOCS] Getting Google OAuth token...");
+          let authToken;
+          try {
+            authToken = await getGoogleToken();
+            Logger.success("✅ [API_INSERT_DOCS] OAuth token obtained");
+          } catch (authError) {
+            Logger.error("❌ [API_INSERT_DOCS] Failed to get OAuth token:", authError);
+            throw new Error(`OAuth failed: ${authError.message}. Please authorize the extension.`);
+          }
+
+          // 3. Chamar API do HuggingFace
+          const apiUrl = 'https://bigodetonton-syncads-google-docs-api.hf.space/insert-content';
+          Logger.info(`🚀 [API_INSERT_DOCS] Calling API: ${apiUrl}`);
+          Logger.info(`📄 [API_INSERT_DOCS] Content preview: ${(params.value || "").substring(0, 100)}...`);
+
+          const apiResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              doc_id: docId,
+              content: params.value,
+              auth_token: authToken,
+              position: 1
+            })
+          });
+
+          const responseText = await apiResponse.text();
+          Logger.info(`📬 [API_INSERT_DOCS] Response status: ${apiResponse.status}`);
+
+          if (!apiResponse.ok) {
+            Logger.error(`❌ [API_INSERT_DOCS] API Error: ${responseText}`);
+            throw new Error(`API Error (${apiResponse.status}): ${responseText}`);
+          }
+
+          let apiResult;
+          try {
+            apiResult = JSON.parse(responseText);
+          } catch {
+            apiResult = { success: true, message: responseText };
+          }
+
+          Logger.success("✅ [API_INSERT_DOCS] Content inserted successfully!", apiResult);
+
+          domReport = {
+            success: true,
+            logs: ["Content inserted via Google Docs API"],
+            doc_id: docId,
+            doc_url: `https://docs.google.com/document/d/${docId}/edit`,
+            result: apiResult
+          };
+
+        } catch (error) {
+          Logger.error("❌ [API_INSERT_DOCS] Execution failed:", error);
+          domReport = {
+            success: false,
+            error: error.message,
+            logs: [`API Insert failed: ${error.message}`]
+          };
+        }
 
       } else {
         // CONTENT SCRIPT ACTIONS
