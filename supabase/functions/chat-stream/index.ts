@@ -258,7 +258,28 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             console.log(`📄 [EDITORIAL] Conteúdo original: ${rawContent.length} bytes`);
 
                             // Processar placeholders de imagem ANTES de estruturar
-                            const contentWithImages = await processImagePlaceholders(rawContent);
+                            let contentWithImages = await processImagePlaceholders(rawContent);
+
+                            // 🔥 EXPANDER - Gerar seções isoladamente se tiver placeholders
+                            const { hasPlaceholders, expandPlaceholders } = await import("./editorial/expander.ts");
+
+                            if (hasPlaceholders(contentWithImages)) {
+                                console.log("🔄 [EDITORIAL] Placeholders detectados, expandindo seções...");
+
+                                try {
+                                    contentWithImages = await expandPlaceholders(
+                                        contentWithImages,
+                                        groqKey,
+                                        editorialPlan.title
+                                    );
+                                    console.log("✅ [EDITORIAL] Placeholders expandidos com sucesso");
+                                } catch (error) {
+                                    console.error("⚠️ [EDITORIAL] Erro ao expandir placeholders:", error);
+                                    // Continua com content sem expandir (melhor que quebrar)
+                                }
+                            } else {
+                                console.log("ℹ️ [EDITORIAL] Sem placeholders, usando conteúdo direto");
+                            }
 
                             // Construir estrutura editorial (com finalizer integrado)
                             const structuredContent = await buildDocStructure(editorialPlan, contentWithImages);
