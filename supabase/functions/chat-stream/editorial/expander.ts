@@ -6,31 +6,33 @@
  * PROBLEMA RESOLVIDO:
  * - Groq truncava JSON quando HTML ficava muito grande
  * - Agora cada seção tem 8000 tokens SÓ para ela
+ * - v7: Usa função callback com load balancing ao invés de API key direta
  * 
  * FUNCIONAMENTO:
  * 1. Detecta placeholders: {{INGREDIENTES}}, {{MODO_PREPARO}}, etc
- * 2. Para cada placeholder, chama Groq com prompt específico
+ * 2. Para cada placeholder, chama Groq via callback (load balancing automático)
  * 3. Substitui placeholder pelo conteúdo gerado
  * 4. Retorna HTML completo
  */
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.1-70b-versatile";
+// 🔥 v7: Removidas constantes - usa callback do index.ts com load balancing
+// const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+// const GROQ_MODEL = "llama-3.1-70b-versatile";
 
 interface SectionPromptConfig {
-    sectionName: string;
-    placeholder: string;
-    promptTemplate: (context: string) => string;
+  sectionName: string;
+  placeholder: string;
+  promptTemplate: (context: string) => string;
 }
 
 /**
  * Configuração de prompts por tipo de seção
  */
 const SECTION_CONFIGS: SectionPromptConfig[] = [
-    {
-        sectionName: "Ingredientes",
-        placeholder: "{{INGREDIENTES}}",
-        promptTemplate: (recipeTitle: string) => `
+  {
+    sectionName: "Ingredientes",
+    placeholder: "{{INGREDIENTES}}",
+    promptTemplate: (recipeTitle: string) => `
 Gere uma lista COMPLETA e DETALHADA de ingredientes para: "${recipeTitle}".
 
 INSTRUÇÕES:
@@ -50,11 +52,11 @@ FORMATO ESPERADO:
 
 RETORNE APENAS O HTML, SEM EXPLICAÇÕES.
 `
-    },
-    {
-        sectionName: "Modo de Preparo",
-        placeholder: "{{MODO_PREPARO}}",
-        promptTemplate: (recipeTitle: string) => `
+  },
+  {
+    sectionName: "Modo de Preparo",
+    placeholder: "{{MODO_PREPARO}}",
+    promptTemplate: (recipeTitle: string) => `
 Gere PASSO A PASSO COMPLETO e DETALHADO do modo de preparo para: "${recipeTitle}".
 
 INSTRUÇÕES:
@@ -76,11 +78,11 @@ FORMATO ESPERADO:
 NÃO ABREVIE! SEJA EXTREMAMENTE DETALHADO!
 RETORNE APENAS O HTML, SEM EXPLICAÇÕES.
 `
-    },
-    {
-        sectionName: "Informação Nutricional",
-        placeholder: "{{INFO_NUTRICIONAL}}",
-        promptTemplate: (recipeTitle: string) => `
+  },
+  {
+    sectionName: "Informação Nutricional",
+    placeholder: "{{INFO_NUTRICIONAL}}",
+    promptTemplate: (recipeTitle: string) => `
 Gere uma TABELA NUTRICIONAL COMPLETA para: "${recipeTitle}".
 
 INSTRUÇÕES:
@@ -112,11 +114,11 @@ FORMATO ESPERADO:
 
 RETORNE APENAS O HTML DA TABELA, SEM EXPLICAÇÕES.
 `
-    },
-    {
-        sectionName: "Dicas e Variações",
-        placeholder: "{{DICAS}}",
-        promptTemplate: (recipeTitle: string) => `
+  },
+  {
+    sectionName: "Dicas e Variações",
+    placeholder: "{{DICAS}}",
+    promptTemplate: (recipeTitle: string) => `
 Gere DICAS PRÁTICAS e VARIAÇÕES para: "${recipeTitle}".
 
 INSTRUÇÕES:
@@ -145,56 +147,32 @@ FORMATO ESPERADO:
 
 RETORNE APENAS O HTML, SEM EXPLICAÇÕES.
 `
-    }
+  }
 ];
 
 /**
  * Chama Groq para gerar conteúdo de uma seção específica
+ * v7: Usa função callback ao invés de API key direta (load balancing automático)
  */
 async function callGroqForSection(
-    apiKey: string,
-    sectionConfig: SectionPromptConfig,
-    context: string
+  callGroq: (prompt: string, options: any) => Promise<{ message: string }>,
+  sectionConfig: SectionPromptConfig,
+  context: string
 ): Promise<string> {
-    console.log(`🔄 [EXPANDER] Gerando conteúdo: ${sectionConfig.sectionName}...`);
+  console.log(`🔄 [EXPANDER] Gerando conteúdo: ${sectionConfig.sectionName}...`);
 
-    const prompt = sectionConfig.promptTemplate(context);
+  const prompt = sectionConfig.promptTemplate(context);
 
-    const response = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model: GROQ_MODEL,
-            messages: [
-                {
-                    role: "system",
-                    content: "Você é um chef profissional especializado em criar receitas completas e detalhadas. Retorne APENAS HTML, sem markdown ou explicações."
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            temperature: 0.7, // Mais criativo para conteúdo
-            max_tokens: 8000, // MUITO espaço para esta seção
-        }),
-    });
+  // 🔥 v7: Usar callback (load balancing + retry automático)
+  const response = await callGroq(prompt, {
+    temperature: 0.7,
+    max_tokens: 8000,
+  });
 
-    if (!response.ok) {
-        const error = await response.text();
-        console.error(`❌ [EXPANDER] Erro ao gerar ${sectionConfig.sectionName}:`, error);
-        throw new Error(`Groq API Error: ${error}`);
-    }
+  const content = response.message.trim();
+  console.log(`✅ [EXPANDER] ${sectionConfig.sectionName} gerado: ${content.length} bytes`);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content.trim();
-
-    console.log(`✅ [EXPANDER] ${sectionConfig.sectionName} gerado: ${content.length} bytes`);
-
-    return content;
+  return content;
 }
 
 /**
@@ -206,50 +184,48 @@ async function callGroqForSection(
  * @returns HTML com placeholders substituídos por conteúdo real
  */
 export async function expandPlaceholders(
-    html: string,
-    groqApiKey: string,
-    context: string
+  html: string,
+  callGroq: (prompt: string, options: any) => Promise<{ message: string }>,
+  context: string
 ): Promise<string> {
-    console.log("🔍 [EXPANDER] Iniciando expansão de placeholders...");
+  console.log("🔍 [EXPANDER] Iniciando expansão de placeholders...");
 
-    let expandedHtml = html;
-    let sectionsExpanded = 0;
+  let expandedHtml = html;
+  let sectionsExpanded = 0;
 
-    // Para cada configuração de seção
-    for (const config of SECTION_CONFIGS) {
-        // Verificar se placeholder existe no HTML
-        if (expandedHtml.includes(config.placeholder)) {
-            console.log(`📝 [EXPANDER] Placeholder encontrado: ${config.placeholder}`);
+  // Para cada configuração de seção
+  for (const config of SECTION_CONFIGS) {
+    // Verificar se placeholder existe no HTML
+    if (expandedHtml.includes(config.placeholder)) {
+      console.log(`📝 [EXPANDER] Placeholder encontrado: ${config.placeholder}`);
 
-            try {
-                // Gerar conteúdo para esta seção
-                const sectionContent = await callGroqForSection(groqApiKey, config, context);
+      try {
+        // Gerar conteúdo para esta seção (v7: usa callback)
+        const sectionContent = await callGroqForSection(callGroq, config, context);
 
-                // Substituir placeholder
-                expandedHtml = expandedHtml.replace(config.placeholder, sectionContent);
-                sectionsExpanded++;
+        // Substituir placeholder
+        expandedHtml = expandedHtml.replace(config.placeholder, sectionContent);
+        sectionsExpanded++;
 
-                console.log(`✅ [EXPANDER] Placeholder ${config.placeholder} expandido`);
-            } catch (error) {
-                console.error(`❌ [EXPANDER] Falha ao expandir ${config.placeholder}:`, error);
-                // Substituir por mensagem de erro visível
-                expandedHtml = expandedHtml.replace(
-                    config.placeholder,
-                    `<p style="color: red;">⚠️ Erro ao gerar ${config.sectionName}. Tente novamente.</p>`
-                );
-            }
-        }
+        console.log(`✅ [EXPANDER] Placeholder ${config.placeholder} expandido`);
+      } catch (error) {
+        console.error(`❌ [EXPANDER] Falha ao expandir ${config.placeholder}:`, error);
+        // v7: NÃO substituir por erro, deixar placeholder para debug
+        console.warn(`⚠️ [EXPANDER] Deixando placeholder ${config.placeholder} intacto para debug`);
+        // Placeholder será removido pelo finalizer se necessário
+      }
     }
+  }
 
-    console.log(`✅ [EXPANDER] Expansão concluída: ${sectionsExpanded} seções expandidas`);
-    console.log(`📄 [EXPANDER] HTML final: ${expandedHtml.length} bytes`);
+  console.log(`✅ [EXPANDER] Expansão concluída: ${sectionsExpanded} seções expandidas`);
+  console.log(`📄 [EXPANDER] HTML final: ${expandedHtml.length} bytes`);
 
-    return expandedHtml;
+  return expandedHtml;
 }
 
 /**
  * Detecta se HTML contém placeholders que precisam ser expandidos
  */
 export function hasPlaceholders(html: string): boolean {
-    return SECTION_CONFIGS.some(config => html.includes(config.placeholder));
+  return SECTION_CONFIGS.some(config => html.includes(config.placeholder));
 }

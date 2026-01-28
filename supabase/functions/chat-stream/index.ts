@@ -12,6 +12,8 @@ console.log("­ƒÜÇ Agentic Chat Stream - Multi-Agent V2 Loaded");
 
 // CONFIG
 const GROQ_MODEL = "llama-3.3-70b-versatile";
+const MISTRAL_MODEL = "mistral-medium-latest";
+const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
 // TYPES
 // INTERFACES REMOVED - IMPORTED FROM types.ts
@@ -65,6 +67,42 @@ async function callGroqJSON(apiKey: string, messages: any[]): Promise<any> {
     } catch (e) {
         console.error("Failed to parse Groq JSON:", data.choices[0].message.content);
         throw new Error("IA retornou JSON inv├ílido.");
+    }
+}
+
+// 🌯 MISTRAL API - Planner (mais inteligente, não trunca)
+async function callMistralJSON(apiKey: string, messages: any[]): Promise<any> {
+    console.log("🔮 [MISTRAL] Calling Mistral API...");
+
+    const response = await fetch(MISTRAL_API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: MISTRAL_MODEL,
+            messages: messages,
+            temperature: 0.1, // Precision 
+            max_tokens: 8000,
+            response_format: { type: "json_object" }, // JSON mode
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        console.error("❌ [MISTRAL] API Error:", error);
+        throw new Error(`Mistral API Error: ${error}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ [MISTRAL] Response received");
+
+    try {
+        return JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+        console.error("❌ [MISTRAL] Failed to parse JSON:", data.choices[0].message.content);
+        throw new Error("Mistral retornou JSON inválido.");
     }
 }
 
@@ -181,6 +219,39 @@ serve(async (req) => {
             console.log(`­ƒöæ Using Groq Key from Environment Variable`);
         }
 
+        // 🔮 Get Mistral Key from Environment or Database (Planner)
+        console.log("🔮 [KEY] Checking for Mistral API key...");
+        let mistralKey = Deno.env.get("MISTRAL_API_KEY");
+
+        if (!mistralKey) {
+            console.log("⚠️ MISTRAL_API_KEY not in env, trying database...");
+
+            const clientForKeys = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+                ? supabaseAdmin
+                : supabase;
+
+            const { data: mistralKeys, error: mistralKeysError } = await clientForKeys
+                .from("GlobalAiConnection")
+                .select("apiKey, name")
+                .eq("provider", "MISTRAL")
+                .eq("isActive", true);
+
+            if (mistralKeysError) {
+                console.error("❌ [MISTRAL] Database error:", mistralKeysError);
+                console.warn("⚠️ [MISTRAL] No Mistral key found, will use Groq for Planner");
+                mistralKey = groqKey; // Fallback
+            } else if (!mistralKeys || mistralKeys.length === 0) {
+                console.warn("⚠️ [MISTRAL] No keys found, will use Groq for Planner");
+                mistralKey = groqKey; // Fallback
+            } else {
+                const randomIndex = Math.floor(Math.random() * mistralKeys.length);
+                mistralKey = mistralKeys[randomIndex].apiKey;
+                console.log(`🔮 Using Mistral Key: ${mistralKeys[randomIndex].name} (Index: ${randomIndex}, Total: ${mistralKeys.length})`);
+            }
+        } else {
+            console.log(`🔮 Using Mistral Key from Environment Variable`);
+        }
+
         const readable = createStream(async (writer) => {
 
             let loopCount = 0;
@@ -238,7 +309,7 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     { role: "user", content: plannerContext }
                 ];
 
-                const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
+                const plan: PlannerOutput = await callMistralJSON(mistralKey, plannerMessages);
 
                 const targetDeviceId = plan.device_id || deviceId;
 
@@ -281,10 +352,27 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             if (hasPlaceholders(contentWithImages)) {
                                 console.log("🔄 [EDITORIAL] Placeholders detectados, expandindo seções...");
 
+                                // 🔥 v7: CRIAR FUNÇÃO CALLBACK para Groq (com load balancing)
+                                const callGroqFunction = async (prompt: string, options: any) => {
+                                    console.log("🔑 [EXPANDER-CALLBACK] Chamando Groq via callback (load balancing)...");
+
+                                    // Usar callGroqJSON existente (já tem load balancing + retry!)
+                                    const response = await callGroqJSON(
+                                        prompt,
+                                        {
+                                            temperature: options.temperature || 0.7,
+                                            max_tokens: options.max_tokens || 8000,
+                                        },
+                                        groqKey
+                                    );
+
+                                    return response;
+                                };
+
                                 try {
                                     contentWithImages = await expandPlaceholders(
                                         contentWithImages,
-                                        groqKey,
+                                        callGroqFunction,  // ✅ Passa função ao invés de string key
                                         editorialPlan.title
                                     );
                                     console.log("✅ [EDITORIAL] Placeholders expandidos com sucesso");
