@@ -325,10 +325,9 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     { role: "user", content: plannerContext }
                 ];
 
-                // 🔥 HOTFIX: Reverter para Groq temporariamente (Mistral falhando)
-                // const plan: PlannerOutput = await callMistralJSON(mistralKey, plannerMessages);
-                const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
-                console.log("⚠️ [DEBUG] Using Groq for Planner (Mistral debug mode)");
+                // 🔮 USAR MISTRAL para Planner (mais inteligente, não trunca)
+                const plan: PlannerOutput = await callMistralJSON(mistralKey, plannerMessages);
+                console.log("🔮 [PLANNER] Mistral usado com sucesso");
 
                 const targetDeviceId = plan.device_id || deviceId;
 
@@ -373,18 +372,18 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
 
                                 // 🔥 v7: CRIAR FUNÇÃO CALLBACK para Groq (com load balancing)
                                 const callGroqFunction = async (prompt: string, options: any) => {
-                                    console.log("🔑 [EXPANDER-CALLBACK] Chamando Groq via callback (load balancing)...");
+                                    console.log("🔑 [EXPANDER-CALLBACK] Chamando Groq via callback...");
 
-                                    // Usar callGroqJSON existente (já tem load balancing + retry!)
-                                    const response = await callGroqJSON(
-                                        prompt,
+                                    // 🔥 FIX: Usar formato correto de messages para callGroqJSON
+                                    const messages = [
                                         {
-                                            temperature: options.temperature || 0.7,
-                                            max_tokens: options.max_tokens || 8000,
-                                        },
-                                        groqKey
-                                    );
+                                            role: "user",
+                                            content: prompt
+                                        }
+                                    ];
 
+                                    // callGroqJSON espera (apiKey, messages)
+                                    const response = await callGroqJSON(groqKey, messages);
                                     return response;
                                 };
 
