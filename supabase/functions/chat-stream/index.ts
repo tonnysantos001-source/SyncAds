@@ -420,11 +420,6 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             };
 
                             console.log(`✅ [EDITORIAL] Pipeline completo! ${editorialCommands.length} comandos gerados`);
-
-                            // 🔥 FIX: BREAK AQUI para evitar loop duplicado em conteúdo editorial
-                            // Editorial é one-shot: gera documento completo e para
-                            // Não precisa de ciclos adicionais do Reasoner
-                            break;
                         } else {
                             console.log("ℹ️ [EDITORIAL] Comando insert_via_api não encontrado, usando plano original");
                         }
