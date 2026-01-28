@@ -9,6 +9,7 @@ export { buildDocStructure } from "./structurer.ts";
 export { renderToGoogleDocs } from "./renderer.ts";
 export { finalizeEditorialDocument, safeFinalize } from "./finalizer.ts";
 export { expandPlaceholders, hasPlaceholders } from "./expander.ts";
+export { convertToTemplate, safeConvertToTemplate, isAlreadyTemplate } from "./template-converter.ts";
 
 export type {
     DocumentType,

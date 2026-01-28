@@ -260,6 +260,21 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             // Processar placeholders de imagem ANTES de estruturar
                             let contentWithImages = await processImagePlaceholders(rawContent);
 
+                            // 🔥 TEMPLATE CONVERTER - FORÇAR uso de placeholders (v6)
+                            const { safeConvertToTemplate } = await import("./editorial/template-converter.ts");
+
+                            const conversionResult = safeConvertToTemplate(
+                                contentWithImages,
+                                editorialPlan.documentType
+                            );
+
+                            if (conversionResult.converted) {
+                                console.log("✅ [EDITORIAL] HTML convertido para template com placeholders");
+                                contentWithImages = conversionResult.html;
+                            } else {
+                                console.log("ℹ️ [EDITORIAL] HTML não requer conversão (já é template ou tipo não suportado)");
+                            }
+
                             // 🔥 EXPANDER - Gerar seções isoladamente se tiver placeholders
                             const { hasPlaceholders, expandPlaceholders } = await import("./editorial/expander.ts");
 
