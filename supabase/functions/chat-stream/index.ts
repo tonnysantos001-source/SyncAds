@@ -214,9 +214,25 @@ serve(async (req) => {
             // Random Selection for Load Balancing
             const randomIndex = Math.floor(Math.random() * keys.length);
             groqKey = keys[randomIndex].apiKey;
+
+            // 🔥 DEBUG: Log key details (primeiros/últimos chars)
+            const keyPreview = groqKey
+                ? `${groqKey.substring(0, 8)}...${groqKey.substring(groqKey.length - 4)}`
+                : 'NULL_OR_EMPTY';
             console.log(`🔑 Using Groq Key: ${keys[randomIndex].name} (Index: ${randomIndex}, Total: ${keys.length})`);
+            console.log(`🔍 [DEBUG] Key preview: ${keyPreview}, Length: ${groqKey?.length || 0}`);
         } else {
-            console.log(`­ƒöæ Using Groq Key from Environment Variable`);
+            const keyPreview = groqKey
+                ? `${groqKey.substring(0, 8)}...${groqKey.substring(groqKey.length - 4)}`
+                : 'NULL_OR_EMPTY';
+            console.log(`🔑 Using Groq Key from Environment Variable`);
+            console.log(`🔍 [DEBUG] Env key preview: ${keyPreview}, Length: ${groqKey?.length || 0}`);
+        }
+
+        // 🔥 VALIDAÇÃO CRÍTICA: Garantir que groqKey não está vazia
+        if (!groqKey || groqKey.length < 20) {
+            console.error(`❌ [CRITICAL] Groq key is invalid! Value: ${groqKey}`);
+            throw new Error(`Invalid Groq API Key (length: ${groqKey?.length || 0})`);
         }
 
         // 🔮 Get Mistral Key from Environment or Database (Planner)
