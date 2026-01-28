@@ -309,7 +309,10 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     { role: "user", content: plannerContext }
                 ];
 
-                const plan: PlannerOutput = await callMistralJSON(mistralKey, plannerMessages);
+                // 🔥 HOTFIX: Reverter para Groq temporariamente (Mistral falhando)
+                // const plan: PlannerOutput = await callMistralJSON(mistralKey, plannerMessages);
+                const plan: PlannerOutput = await callGroqJSON(groqKey, plannerMessages);
+                console.log("⚠️ [DEBUG] Using Groq for Planner (Mistral debug mode)");
 
                 const targetDeviceId = plan.device_id || deviceId;
 
