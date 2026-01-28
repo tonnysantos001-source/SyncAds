@@ -382,9 +382,13 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                                         }
                                     ];
 
-                                    // callGroqJSON espera (apiKey, messages)
+                                    // callGroqJSON retorna JSON completo, mas Expander espera {message: string}
                                     const response = await callGroqJSON(groqKey, messages);
-                                    return response;
+
+                                    // 🔥 CRÍTICO: Retornar no formato esperado pelo Expander
+                                    // Expander espera: {message: string}
+                                    // response é o JSON parseado, pode ter structure com "message" ou conteúdo direto
+                                    return { message: response.message || JSON.stringify(response) };
                                 };
 
                                 try {
