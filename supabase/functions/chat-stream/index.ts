@@ -412,16 +412,21 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                                 editorialPlan
                             );
 
-                            // Substituir comandos por versão estruturada
+                            // 🔥 CRÍTICO: Substituir comandos do planner pelos comandos editoriais
                             finalPlan = {
-                                ...plan,
-                                message: `${plan.message} (com estrutura editorial aplicada)`,
-                                commands: editorialCommands
+                                ...finalPlan,
+                                commands: editorialCommands,
+                                message: finalPlan.message || `Criando documento editorial: "${editorialPlan.title}"`
                             };
 
-                            console.log("✅ [EDITORIAL] Estrutura editorial aplicada com sucesso");
+                            console.log(`✅ [EDITORIAL] Pipeline completo! ${editorialCommands.length} comandos gerados`);
+
+                            // 🔥 FIX: BREAK AQUI para evitar loop duplicado em conteúdo editorial
+                            // Editorial é one-shot: gera documento completo e para
+                            // Não precisa de ciclos adicionais do Reasoner
+                            break;
                         } else {
-                            console.log("⚠️ [EDITORIAL] Comando insert_via_api não encontrado, usando plano original");
+                            console.log("ℹ️ [EDITORIAL] Comando insert_via_api não encontrado, usando plano original");
                         }
                     } else {
                         console.log("ℹ️ [EDITORIAL] Não é conteúdo editorial, mantendo plano original");
