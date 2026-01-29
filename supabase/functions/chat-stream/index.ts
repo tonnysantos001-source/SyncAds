@@ -333,6 +333,24 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
 
                 // 🆕 EDITORIAL MIDDLEWARE (se aplicável)
                 let finalPlan = plan;
+
+                // 🚨 MIDDLEWARE DESABILITADO PARA DEBUG - Usando output DIRETO do Mistral
+                console.log("⚠️ [DEBUG] Editorial middleware DESABILITADO");
+                console.log("📋 [DEBUG] Using plan directly from Mistral");
+                console.log("📋 [DEBUG] Plan commands count:", plan.commands?.length || 0);
+
+                if (plan.commands && plan.commands.length > 0) {
+                    const insertCmd = plan.commands.find((c: any) => c.type === 'insert_via_api');
+                    if (insertCmd?.payload?.value) {
+                        console.log("📄 [DEBUG] Content length:", insertCmd.payload.value.length);
+                        console.log("📄 [DEBUG] Content start:", insertCmd.payload.value.substring(0, 500));
+                        console.log("📄 [DEBUG] Content end:", insertCmd.payload.value.substring(insertCmd.payload.value.length - 300));
+                    } else {
+                        console.log("⚠️ [DEBUG] No insert_via_api command found or no value");
+                    }
+                }
+
+                /* EDITORIAL MIDDLEWARE COMMENTED OUT FOR DEBUGGING
                 try {
                     const editorialPlan = generateEditorialPlan(currentMessage, reasonerOutput);
 
@@ -434,6 +452,7 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     console.error("❌ [EDITORIAL] Erro no middleware, usando plano original:", editorialError);
                     // Fallback: continua com plano original
                 }
+                */
 
                 // Stream Planner message if any
                 if (finalPlan.message && loopCount === 1) {
