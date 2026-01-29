@@ -334,23 +334,9 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                 // 🆕 EDITORIAL MIDDLEWARE (se aplicável)
                 let finalPlan = plan;
 
-                // 🚨 MIDDLEWARE DESABILITADO PARA DEBUG - Usando output DIRETO do Mistral
-                console.log("⚠️ [DEBUG] Editorial middleware DESABILITADO");
-                console.log("📋 [DEBUG] Using plan directly from Mistral");
-                console.log("📋 [DEBUG] Plan commands count:", plan.commands?.length || 0);
-
-                if (plan.commands && plan.commands.length > 0) {
-                    const insertCmd = plan.commands.find((c: any) => c.type === 'insert_via_api');
-                    if (insertCmd?.payload?.value) {
-                        console.log("📄 [DEBUG] Content length:", insertCmd.payload.value.length);
-                        console.log("📄 [DEBUG] Content start:", insertCmd.payload.value.substring(0, 500));
-                        console.log("📄 [DEBUG] Content end:", insertCmd.payload.value.substring(insertCmd.payload.value.length - 300));
-                    } else {
-                        console.log("⚠️ [DEBUG] No insert_via_api command found or no value");
-                    }
-                }
-
-                /* EDITORIAL MIDDLEWARE COMMENTED OUT FOR DEBUGGING
+                // 🔥 RE-ATIVADO: Editorial necessário para formatar HTML corretamente para HF API
+                // Template Converter foi desabilitado (sempre retorna HTML original)
+                // Mas Structurer + Renderer são ESSENCIAIS para API funcionar
                 try {
                     const editorialPlan = generateEditorialPlan(currentMessage, reasonerOutput);
 
@@ -367,7 +353,7 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             // Processar placeholders de imagem ANTES de estruturar
                             let contentWithImages = await processImagePlaceholders(rawContent);
 
-                            // 🔥 TEMPLATE CONVERTER - FORÇAR uso de placeholders (v6)
+                            // 🔥 TEMPLATE CONVERTER - DESABILITADO (sempre retorna original)
                             const { safeConvertToTemplate } = await import("./editorial/template-converter.ts");
 
                             const conversionResult = safeConvertToTemplate(
@@ -375,54 +361,12 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                                 editorialPlan.documentType
                             );
 
-                            if (conversionResult.converted) {
-                                console.log("✅ [EDITORIAL] HTML convertido para template com placeholders");
-                                contentWithImages = conversionResult.html;
-                            } else {
-                                console.log("ℹ️ [EDITORIAL] HTML não requer conversão (já é template ou tipo não suportado)");
-                            }
+                            // Não precisa mais checar `converted` pois sempre será false
+                            contentWithImages = conversionResult.html;
 
-                            // 🔥 EXPANDER - Gerar seções isoladamente se tiver placeholders
-                            const { hasPlaceholders, expandPlaceholders } = await import("./editorial/expander.ts");
-
-                            if (hasPlaceholders(contentWithImages)) {
-                                console.log("🔄 [EDITORIAL] Placeholders detectados, expandindo seções...");
-
-                                // 🔥 v7: CRIAR FUNÇÃO CALLBACK para Groq (com load balancing)
-                                const callGroqFunction = async (prompt: string, options: any) => {
-                                    console.log("🔑 [EXPANDER-CALLBACK] Chamando Groq via callback...");
-
-                                    // 🔥 FIX: Usar formato correto de messages para callGroqJSON
-                                    const messages = [
-                                        {
-                                            role: "user",
-                                            content: prompt
-                                        }
-                                    ];
-
-                                    // callGroqJSON retorna JSON completo, mas Expander espera {message: string}
-                                    const response = await callGroqJSON(groqKey, messages);
-
-                                    // 🔥 CRÍTICO: Retornar no formato esperado pelo Expander
-                                    // Expander espera: {message: string}
-                                    // response é o JSON parseado, pode ter structure com "message" ou conteúdo direto
-                                    return { message: response.message || JSON.stringify(response) };
-                                };
-
-                                try {
-                                    contentWithImages = await expandPlaceholders(
-                                        contentWithImages,
-                                        callGroqFunction,  // ✅ Passa função ao invés de string key
-                                        editorialPlan.title
-                                    );
-                                    console.log("✅ [EDITORIAL] Placeholders expandidos com sucesso");
-                                } catch (error) {
-                                    console.error("⚠️ [EDITORIAL] Erro ao expandir placeholders:", error);
-                                    // Continua com content sem expandir (melhor que quebrar)
-                                }
-                            } else {
-                                console.log("ℹ️ [EDITORIAL] Sem placeholders, usando conteúdo direto");
-                            }
+                            // 🔥 EXPANDER - SKIPPED (sem placeholders no HTML original)
+                            // Template Converter não cria mais placeholders, então nada para expandir
+                            console.log("ℹ️ [EDITORIAL] Expander pulado - HTML já completo do Mistral");
 
                             // Construir estrutura editorial (com finalizer integrado)
                             const structuredContent = await buildDocStructure(editorialPlan, contentWithImages);
@@ -452,7 +396,6 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     console.error("❌ [EDITORIAL] Erro no middleware, usando plano original:", editorialError);
                     // Fallback: continua com plano original
                 }
-                */
 
                 // Stream Planner message if any
                 if (finalPlan.message && loopCount === 1) {

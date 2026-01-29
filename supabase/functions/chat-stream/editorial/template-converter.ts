@@ -179,25 +179,18 @@ export function isAlreadyTemplate(html: string): boolean {
 }
 
 /**
- * Versão safe: converte apenas se necessário
+ * Versão safe: DESABILITADA - sempre retorna HTML original
+ * 
+ * 🔥 MOTIVO: Mistral gera HTML COMPLETO sem placeholders
+ * Template Converter foi desabilitado pois criava placeholders desnecessários
  */
 export function safeConvertToTemplate(
     html: string,
     documentType: DocumentType
 ): { html: string; converted: boolean } {
-    // Se já é template, não converter
-    if (isAlreadyTemplate(html)) {
-        console.log(`✅ [TEMPLATE-CONVERTER] HTML já é template, não convertendo`);
-        return { html, converted: false };
-    }
+    console.log(`⚠️ [TEMPLATE-CONVERTER] DESABILITADO - retornando HTML original`);
+    console.log(`📄 [TEMPLATE-CONVERTER] Document type: ${documentType}, HTML length: ${html.length}`);
 
-    // Converter
-    const template = convertToTemplate(html, documentType);
-    const converted = template !== html;
-
-    if (converted) {
-        console.log(`✅ [TEMPLATE-CONVERTER] HTML convertido para template`);
-    }
-
-    return { html: template, converted };
+    // 🔥 SEMPRE retornar HTML original, NÃO converter para template
+    return { html, converted: false };
 }
