@@ -53,5 +53,11 @@ export async function renderToGoogleDocs(
     console.log(`✅ [RENDERER] Gerados ${commands.length} comandos`);
     console.log(`📊 [RENDERER] Conteúdo: ${structuredContent.html.length} bytes, ${structuredContent.sectionsCount} seções`);
 
+    // 🔥 DEBUG: Ver exatamente o que está sendo enviado
+    console.log(`📄 [RENDERER-DEBUG] HTML completo (primeiros 1000 chars):`);
+    console.log(structuredContent.html.substring(0, 1000));
+    console.log(`📄 [RENDERER-DEBUG] HTML completo (últimos 500 chars):`);
+    console.log(structuredContent.html.substring(structuredContent.html.length - 500));
+
     return commands;
 }
