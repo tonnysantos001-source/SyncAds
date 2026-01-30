@@ -1160,9 +1160,9 @@ async function processCommand(cmd) {
 
       } else if (action === "API_INSERT_DOCS") {
         // ============================================
-        // API INSERT DOCS - Chamada REAL para a API do HuggingFace
+        // API INSERT DOCS - Chamada OFICIAL Google Docs API
         // ============================================
-        Logger.info("🌐 [API_INSERT_DOCS] Preparing to call Google Docs API...");
+        Logger.info("🌐 [API_INSERT_DOCS] Preparing to call OFFICIAL Google Docs API...");
 
         try {
           // 1. Esperar documento Google Docs estar pronto
@@ -1204,19 +1204,61 @@ async function processCommand(cmd) {
             throw new Error(`OAuth failed: ${authError.message}. Please authorize the extension.`);
           }
 
-          // 3. Chamar API do HuggingFace
-          const apiUrl = 'https://bigodetonton-syncads-google-docs-api.hf.space/insert-content';
-          Logger.info(`🚀 [API_INSERT_DOCS] Calling API: ${apiUrl}`);
-          Logger.info(`📄 [API_INSERT_DOCS] Content preview: ${(params.value || "").substring(0, 100)}...`);
+          // 3. Converter HTML para texto simples
+          // (A API oficial do Google Docs não aceita HTML diretamente, apenas texto)
+          Logger.info("🔄 [API_INSERT_DOCS] Converting HTML to plain text...");
+
+          function htmlToPlainText(html) {
+            // Remove scripts e styles
+            let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+            text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+            // Converter quebras de linha
+            text = text.replace(/<br\s*\/?>/gi, '\n');
+            text = text.replace(/<\/p>/gi, '\n\n');
+            text = text.replace(/<\/div>/gi, '\n');
+            text = text.replace(/<\/h[1-6]>/gi, '\n\n');
+            text = text.replace(/<\/li>/gi, '\n');
+
+            // Remover todas as tags HTML
+            text = text.replace(/<[^>]+>/g, '');
+
+            // Decodificar entidades HTML
+            const parser = new DOMParser();
+            const decoded = parser.parseFromString(text, 'text/html').documentElement.textContent;
+
+            // Limpar espaços extras
+            return decoded
+              .replace(/\n\s*\n\s*\n/g, '\n\n') // Max 2 line breaks
+              .replace(/[ \t]+/g, ' ') // Multiple spaces to one
+              .trim();
+          }
+
+          const plainText = htmlToPlainText(params.value || '');
+          Logger.info(`📄 [API_INSERT_DOCS] Content preview: ${plainText.substring(0, 100)}...`);
+          Logger.info(`📊 [API_INSERT_DOCS] Content length: ${plainText.length} chars (plain text)`);
+
+          // 4. Chamar API OFICIAL do Google Docs
+          const apiUrl = `https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`;
+          Logger.info(`🚀 [API_INSERT_DOCS] Calling OFFICIAL API: ${apiUrl}`);
 
           const apiResponse = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify({
-              doc_id: docId,
-              content: params.value,
-              auth_token: authToken,
-              position: 1
+              requests: [
+                {
+                  insertText: {
+                    location: {
+                      index: 1
+                    },
+                    text: plainText
+                  }
+                }
+              ]
             })
           });
 
@@ -1235,14 +1277,15 @@ async function processCommand(cmd) {
             apiResult = { success: true, message: responseText };
           }
 
-          Logger.success("✅ [API_INSERT_DOCS] Content inserted successfully!", apiResult);
+          Logger.success("✅ [API_INSERT_DOCS] Content inserted successfully via OFFICIAL API!", apiResult);
 
           domReport = {
             success: true,
-            logs: ["Content inserted via Google Docs API"],
+            logs: ["Content inserted via OFFICIAL Google Docs API (plain text)"],
             doc_id: docId,
             doc_url: `https://docs.google.com/document/d/${docId}/edit`,
-            result: apiResult
+            result: apiResult,
+            method: 'official_api'
           };
 
         } catch (error) {
