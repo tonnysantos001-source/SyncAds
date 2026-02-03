@@ -282,10 +282,20 @@ function extractInlineStyles(html) {
 }
 
 /**
- * Remove todas as tags HTML
+ * Remove todas as tags HTML (incluindo orphãs e mal-formadas)
  */
 function stripTags(html) {
-    return html.replace(/<[^>]+>/g, '').trim();
+    // Remover todas as tags (abertura e fechamento)
+    let text = html.replace(/<[^>]+>/g, '');
+
+    // Remover tags mal-formadas ou incompletas
+    text = text.replace(/<[^>]*/g, ''); // Tags sem fechamento
+    text = text.replace(/[^<]*>/g, ''); // Tags de fechamento sem abertura
+
+    // Limpar espaços extras
+    text = text.replace(/\s+/g, ' ').trim();
+
+    return text;
 }
 
 /**
