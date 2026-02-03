@@ -7,6 +7,8 @@ import { createClient } from './supabase.js';
 import { initRealtimeConnection } from './realtime-client.js';
 import { callActionRouter, buildActionPayload } from './action-router-client.js';
 import { fetchWithRetry } from './fetch-retry.js';
+import { parseHtmlToAst } from './html-to-docs-parser.js';
+import { buildDocsApiRequests } from './docs-api-builder.js';
 
 // Sistema de Auto-Heal (carregado dinamicamente)
 let attemptAutoHeal = async () => false;
@@ -1212,15 +1214,10 @@ async function processCommand(cmd) {
           let useRichFormatting = true;
 
           try {
-            // Importar módulos dinamicamente
-            console.log('🔄 [DEBUG] Importing parser...');
-            const { parseHtmlToAst } = await import('./html-to-docs-parser.js');
-            console.log('🔄 [DEBUG] Importing builder...');
-            const { buildDocsApiRequests } = await import('./docs-api-builder.js');
-            console.log('✅ [DEBUG] Modules imported successfully');
+            // Módulos já importados estaticamente no topo do arquivo
+            console.log('🔍 [DEBUG] Starting HTML parse, length:', (params.value || '').length);
 
             // Parsear HTML para AST estruturado
-            console.log('🔍 [DEBUG] Starting HTML parse, length:', (params.value || '').length);
             const ast = parseHtmlToAst(params.value || '');
             console.log('✅ [DEBUG] Parse complete, children:', ast.children.length);
             Logger.info(`📊 [API_INSERT_DOCS] Parsed ${ast.children.length} elements from HTML`);
