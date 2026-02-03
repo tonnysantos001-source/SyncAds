@@ -3,6 +3,8 @@ import { createClient } from './supabase.js';
 // Module-level variables to hold references
 let state = null;
 let processCommand = null;
+let realtimeClient = null;
+let realtimeChannel = null;
 
 export async function initRealtimeConnection(appState, commandProcessor) {
     // Update references if provided

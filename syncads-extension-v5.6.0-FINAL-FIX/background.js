@@ -6,6 +6,7 @@
 import { createClient } from './supabase.js';
 import { initRealtimeConnection } from './realtime-client.js';
 import { callActionRouter, buildActionPayload } from './action-router-client.js';
+import { fetchWithRetry } from './fetch-retry.js';
 
 // Sistema de Auto-Heal (carregado dinamicamente)
 let attemptAutoHeal = async () => false;
@@ -1204,43 +1205,101 @@ async function processCommand(cmd) {
             throw new Error(`OAuth failed: ${authError.message}. Please authorize the extension.`);
           }
 
-          // 3. Converter HTML para texto simples
-          // (A API oficial do Google Docs não aceita HTML diretamente, apenas texto)
-          Logger.info("🔄 [API_INSERT_DOCS] Converting HTML to plain text...");
+          // 3. Converter HTML para Google Docs API requests (COM FORMATAÇÃO RICA)
+          Logger.info("🔄 [API_INSERT_DOCS] Parsing HTML to structured format...");
 
-          function htmlToPlainText(html) {
-            // Remove scripts e styles
-            let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-            text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+          let requests;
+          let useRichFormatting = true;
 
-            // Converter quebras de linha
-            text = text.replace(/<br\s*\/?>/gi, '\n');
-            text = text.replace(/<\/p>/gi, '\n\n');
-            text = text.replace(/<\/div>/gi, '\n');
-            text = text.replace(/<\/h[1-6]>/gi, '\n\n');
-            text = text.replace(/<\/li>/gi, '\n');
+          try {
+            // Importar módulos dinamicamente
+            console.log('🔄 [DEBUG] Importing parser...');
+            const { parseHtmlToAst } = await import('./html-to-docs-parser.js');
+            console.log('🔄 [DEBUG] Importing builder...');
+            const { buildDocsApiRequests } = await import('./docs-api-builder.js');
+            console.log('✅ [DEBUG] Modules imported successfully');
 
-            // Remover todas as tags HTML
-            text = text.replace(/<[^>]+>/g, '');
+            // Parsear HTML para AST estruturado
+            console.log('🔍 [DEBUG] Starting HTML parse, length:', (params.value || '').length);
+            const ast = parseHtmlToAst(params.value || '');
+            console.log('✅ [DEBUG] Parse complete, children:', ast.children.length);
+            Logger.info(`📊 [API_INSERT_DOCS] Parsed ${ast.children.length} elements from HTML`);
 
-            // Decodificar entidades HTML
-            const parser = new DOMParser();
-            const decoded = parser.parseFromString(text, 'text/html').documentElement.textContent;
+            // Gerar requests da API
+            console.log('🎨 [DEBUG] Building API requests...');
+            requests = buildDocsApiRequests(ast);
+            console.log('✅ [DEBUG] Requests built:', requests.length);
+            Logger.info(`🎨 [API_INSERT_DOCS] Generated ${requests.length} API requests with formatting`);
 
-            // Limpar espaços extras
-            return decoded
-              .replace(/\n\s*\n\s*\n/g, '\n\n') // Max 2 line breaks
-              .replace(/[ \t]+/g, ' ') // Multiple spaces to one
-              .trim();
+          } catch (parserError) {
+            // Fallback: usar conversão simples
+            console.error('❌ [DEBUG] Parser/Builder FAILED:', parserError);
+            console.error('Stack:', parserError.stack);
+            Logger.warn("⚠️ [API_INSERT_DOCS] Parser failed, using plain text fallback:", parserError);
+            useRichFormatting = false;
+
+            function htmlToPlainText(html) {
+              // Remove scripts e styles
+              let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+              text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+              // Converter quebras de linha
+              text = text.replace(/<br\s*\/?>/gi, '\n');
+              text = text.replace(/<\/p>/gi, '\n\n');
+              text = text.replace(/<\/div>/gi, '\n');
+              text = text.replace(/<\/h[1-6]>/gi, '\n\n');
+              text = text.replace(/<\/li>/gi, '\n');
+
+              // Remover todas as tags HTML
+              text = text.replace(/<[^>]+>/g, '');
+
+              // Decodificar entidades HTML comuns (SEM DOMParser - Service Worker não tem DOM)
+              const entities = {
+                '&nbsp;': ' ',
+                '&amp;': '&',
+                '&lt;': '<',
+                '&gt;': '>',
+                '&quot;': '"',
+                '&#39;': "'",
+                '&apos;': "'",
+                '&cent;': '¢',
+                '&pound;': '£',
+                '&yen;': '¥',
+                '&euro;': '€',
+                '&copy;': '©',
+                '&reg;': '®',
+                '&trade;': '™'
+              };
+
+              // Substituir entidades nomeadas
+              for (const [entity, char] of Object.entries(entities)) {
+                text = text.replace(new RegExp(entity, 'gi'), char);
+              }
+
+              // Decodificar entidades numéricas (&#123; ou &#xAB;)
+              text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+              text = text.replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+              // Limpar espaços extras
+              return text
+                .replace(/\n\s*\n\s*\n/g, '\n\n') // Max 2 line breaks
+                .replace(/[ \t]+/g, ' ') // Multiple spaces to one
+                .trim();
+            }
+
+            const plainText = htmlToPlainText(params.value || '');
+            Logger.info(`📄 [FALLBACK] Content preview: ${plainText.substring(0, 100)}...`);
+            requests = [{
+              insertText: {
+                location: { index: 1 },
+                text: plainText
+              }
+            }];
           }
-
-          const plainText = htmlToPlainText(params.value || '');
-          Logger.info(`📄 [API_INSERT_DOCS] Content preview: ${plainText.substring(0, 100)}...`);
-          Logger.info(`📊 [API_INSERT_DOCS] Content length: ${plainText.length} chars (plain text)`);
 
           // 4. Chamar API OFICIAL do Google Docs
           const apiUrl = `https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`;
-          Logger.info(`🚀 [API_INSERT_DOCS] Calling OFFICIAL API: ${apiUrl}`);
+          Logger.info(`🚀 [API_INSERT_DOCS] Calling OFFICIAL API with ${requests.length} requests...`);
 
           const apiResponse = await fetch(apiUrl, {
             method: 'POST',
@@ -1248,18 +1307,7 @@ async function processCommand(cmd) {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({
-              requests: [
-                {
-                  insertText: {
-                    location: {
-                      index: 1
-                    },
-                    text: plainText
-                  }
-                }
-              ]
-            })
+            body: JSON.stringify({ requests })
           });
 
           const responseText = await apiResponse.text();
@@ -1277,15 +1325,17 @@ async function processCommand(cmd) {
             apiResult = { success: true, message: responseText };
           }
 
-          Logger.success("✅ [API_INSERT_DOCS] Content inserted successfully via OFFICIAL API!", apiResult);
+          const methodUsed = useRichFormatting ? 'rich_formatting' : 'plain_text_fallback';
+          Logger.success(`✅ [API_INSERT_DOCS] Content inserted via ${methodUsed}!`, apiResult);
 
           domReport = {
             success: true,
-            logs: ["Content inserted via OFFICIAL Google Docs API (plain text)"],
+            logs: [`Content inserted via OFFICIAL Google Docs API (${methodUsed})`],
             doc_id: docId,
             doc_url: `https://docs.google.com/document/d/${docId}/edit`,
             result: apiResult,
-            method: 'official_api'
+            method: methodUsed,
+            requestsCount: requests.length
           };
 
         } catch (error) {
