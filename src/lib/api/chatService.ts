@@ -43,7 +43,9 @@ export interface SendMessageResponse {
 // ============================================
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const CHAT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/chat-stream`;
+// ✅ FIX: chat-enhanced is the correct function for web chat (returns JSON)
+// chat-stream is for browser automation (returns NDJSON stream, requires Chrome extension)
+const CHAT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/chat-enhanced`;
 
 // ============================================
 // MAIN SERVICE CLASS
@@ -133,6 +135,7 @@ class ChatService {
         conversationId,
         conversationHistory,
         systemPrompt: undefined, // Usa o padrão da função
+        extensionConnected: false, // ✅ FIX: indica contexto web (sem extensão)
       };
 
       console.log(

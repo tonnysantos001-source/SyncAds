@@ -368,8 +368,20 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                             // Template Converter não cria mais placeholders, então nada para expandir
                             console.log("ℹ️ [EDITORIAL] Expander pulado - HTML já completo do Mistral");
 
-                            // Construir estrutura editorial (com finalizer integrado)
-                            const structuredContent = await buildDocStructure(editorialPlan, contentWithImages);
+                            // Criar callback para o expander (converte callGroqJSON para formato esperado)
+                            const callGroqForExpander = async (prompt: string, options: any) => {
+                                const result = await callGroqJSON(groqKey, [
+                                    { role: "user", content: prompt }
+                                ]);
+                                return { message: result.html || result.content || JSON.stringify(result) };
+                            };
+
+                            // Construir estrutura editorial (com finalizer + expander integrados)
+                            const structuredContent = await buildDocStructure(
+                                editorialPlan,
+                                contentWithImages,
+                                callGroqForExpander // Passa callback para expansão de placeholders
+                            );
 
                             // Gerar comandos estruturados
                             const editorialCommands = await renderToGoogleDocs(

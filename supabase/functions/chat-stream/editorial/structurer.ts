@@ -10,6 +10,7 @@ import {
     generateSectionTemplate,
     generatePageBreak,
 } from "./templates.ts";
+import { expandPlaceholders, hasPlaceholders } from "./expander.ts";
 
 /**
  * Extrai seções do conteúdo HTML bruto
@@ -55,11 +56,13 @@ function cleanHtml(html: string): string {
  * 
  * @param plan - Plano editorial gerado pelo planner
  * @param rawContent - Conteúdo HTML bruto do Planner
+ * @param callGroq - Callback para chamar Groq (load balancing)
  * @returns HTML estruturado com capa, quebras de página e hierarquia
  */
 export async function buildDocStructure(
     plan: EditorialPlan,
-    rawContent: string
+    rawContent: string,
+    callGroq?: (prompt: string, options: any) => Promise<{ message: string }>
 ): Promise<StructuredContent> {
     console.log("🏗️ [STRUCTURER] Construindo estrutura do documento...");
 
@@ -165,12 +168,31 @@ export async function buildDocStructure(
         // Continua com HTML preliminar (não quebra o fluxo)
     }
 
+    // 🔥 7. EXPANDER - EXPANDIR PLACEHOLDERS (SE HOUVER)
+    let expanderApplied = false;
+
+    if (callGroq && hasPlaceholders(finalHtml)) {
+        console.log("🔄 [STRUCTURER] Placeholders detectados, iniciando expansão...");
+
+        try {
+            finalHtml = await expandPlaceholders(finalHtml, callGroq, plan.title);
+            expanderApplied = true;
+            console.log("✅ [STRUCTURER] Expander aplicado com sucesso");
+        } catch (error) {
+            console.error("⚠️ [STRUCTURER] Expander falhou, placeholders não expandidos:", error);
+            // Continua com placeholders (não quebra o fluxo)
+        }
+    } else if (!callGroq) {
+        console.warn("⚠️ [STRUCTURER] callGroq não fornecido, pulando expansão de placeholders");
+    }
+
     console.log(`✅ [STRUCTURER] Documento estruturado criado:`, {
         sectionsCount: sectionNumber - 1,
         pageBreaks: pageBreaksCount,
         headings: headingsCount,
         sizeBytes: finalHtml.length,
-        finalizerApplied
+        finalizerApplied,
+        expanderApplied
     });
 
     return {

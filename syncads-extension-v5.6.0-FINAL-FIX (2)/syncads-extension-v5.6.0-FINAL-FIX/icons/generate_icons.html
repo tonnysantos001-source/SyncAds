@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Ícones - SyncAds Extension</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .icon-item {
+            text-align: center;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .icon-item h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto 15px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .download-all {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .info {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .info strong {
+            color: #2d3748;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Gerador de Ícones SyncAds</h1>
+        <p class="subtitle">Extensão Chrome - Ícones Profissionais</p>
+
+        <div class="icons-grid">
+            <div class="icon-item">
+                <h3>16x16 pixels</h3>
+                <canvas id="canvas16" width="16" height="16"></canvas>
+                <button onclick="downloadIcon(16)">⬇️ Baixar icon16.png</button>
+            </div>
+
+            <div class="icon-item">
+                <h3>48x48 pixels</h3>
+                <canvas id="canvas48" width="48" height="48"></canvas>
+                <button onclick="downloadIcon(48)">⬇️ Baixar icon48.png</button>
+            </div>
+
+            <div class="icon-item">
+                <h3>128x128 pixels</h3>
+                <canvas id="canvas128" width="128" height="128"></canvas>
+                <button onclick="downloadIcon(128)">⬇️ Baixar icon128.png</button>
+            </div>
+        </div>
+
+        <button class="download-all" onclick="downloadAll()">📦 Baixar Todos os Ícones</button>
+
+        <div class="success" id="success">✅ Ícones baixados com sucesso!</div>
+
+        <div class="info">
+            <strong>📋 Instruções:</strong><br>
+            1. Clique em cada botão para baixar os ícones individualmente<br>
+            2. Ou clique em "Baixar Todos" para baixar os 3 ícones de uma vez<br>
+            3. Salve os arquivos na pasta <code>chrome-extension/icons/</code><br>
+            4. Os ícones já estão prontos para uso na extensão Chrome!
+        </div>
+    </div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+
+            // Limpar canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Cores do gradiente
+            const color1 = '#667eea';
+            const color2 = '#764ba2';
+
+            // Criar gradiente circular
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+
+            // Desenhar círculo de fundo
+            const padding = size / 8;
+            const radius = (size - padding * 2) / 2;
+            const centerX = size / 2;
+            const centerY = size / 2;
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Desenhar símbolo de IA (circuito/cérebro)
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+
+            const elementSize = size / 4;
+            const coreSize = elementSize / 2;
+            const lineWidth = Math.max(1, size / 32);
+            const nodeSize = Math.max(2, size / 16);
+
+            ctx.lineWidth = lineWidth;
+
+            // Círculo central (núcleo da IA)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, coreSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Linhas de conexão (estilo circuito)
+
+            // Linha horizontal esquerda
+            ctx.beginPath();
+            ctx.moveTo(centerX - elementSize, centerY);
+            ctx.lineTo(centerX - coreSize, centerY);
+            ctx.stroke();
+
+            // Linha horizontal direita
+            ctx.beginPath();
+            ctx.moveTo(centerX + coreSize, centerY);
+            ctx.lineTo(centerX + elementSize, centerY);
+            ctx.stroke();
+
+            // Linha vertical superior
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - elementSize);
+            ctx.lineTo(centerX, centerY - coreSize);
+            ctx.stroke();
+
+            // Linha vertical inferior
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY + coreSize);
+            ctx.lineTo(centerX, centerY + elementSize);
+            ctx.stroke();
+
+            // Nós nas extremidades
+
+            // Nó esquerdo
+            ctx.beginPath();
+            ctx.arc(centerX - elementSize, centerY, nodeSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nó direito
+            ctx.beginPath();
+            ctx.arc(centerX + elementSize, centerY, nodeSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nó superior
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - elementSize, nodeSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nó inferior
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + elementSize, nodeSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Adicionar linhas diagonais para ícones maiores
+            if (size >= 48) {
+                const diagonalDist = elementSize * 0.7;
+                const diagonalLineWidth = Math.max(1, size / 40);
+                ctx.lineWidth = diagonalLineWidth;
+
+                // Diagonal superior esquerda
+                ctx.beginPath();
+                ctx.moveTo(centerX - diagonalDist, centerY - diagonalDist);
+                ctx.lineTo(centerX - coreSize * 0.7, centerY - coreSize * 0.7);
+                ctx.stroke();
+
+                // Diagonal superior direita
+                ctx.beginPath();
+                ctx.moveTo(centerX + diagonalDist, centerY - diagonalDist);
+                ctx.lineTo(centerX + coreSize * 0.7, centerY - coreSize * 0.7);
+                ctx.stroke();
+
+                // Diagonal inferior esquerda
+                ctx.beginPath();
+                ctx.moveTo(centerX - diagonalDist, centerY + diagonalDist);
+                ctx.lineTo(centerX - coreSize * 0.7, centerY + coreSize * 0.7);
+                ctx.stroke();
+
+                // Diagonal inferior direita
+                ctx.beginPath();
+                ctx.moveTo(centerX + diagonalDist, centerY + diagonalDist);
+                ctx.lineTo(centerX + coreSize * 0.7, centerY + coreSize * 0.7);
+                ctx.stroke();
+
+                // Nós diagonais
+                const diagonalNodeSize = Math.max(1.5, size / 20);
+
+                ctx.beginPath();
+                ctx.arc(centerX - diagonalDist, centerY - diagonalDist, diagonalNodeSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(centerX + diagonalDist, centerY - diagonalDist, diagonalNodeSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(centerX - diagonalDist, centerY + diagonalDist, diagonalNodeSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(centerX + diagonalDist, centerY + diagonalDist, diagonalNodeSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            showSuccess();
+        }
+
+        function downloadAll() {
+            setTimeout(() => downloadIcon(16), 100);
+            setTimeout(() => downloadIcon(48), 300);
+            setTimeout(() => downloadIcon(128), 500);
+
+            showSuccess();
+        }
+
+        function showSuccess() {
+            const successDiv = document.getElementById('success');
+            successDiv.style.display = 'block';
+
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Gerar todos os ícones ao carregar a página
+        window.onload = function() {
+            createIcon(16);
+            createIcon(48);
+            createIcon(128);
+        };
+    </script>
+</body>
+</html>
