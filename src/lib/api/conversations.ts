@@ -7,14 +7,20 @@ export type ChatConversationInsert = TablesInsert<"ChatConversation">;
 export type ChatConversationUpdate = TablesUpdate<"ChatConversation">;
 
 export const conversationsApi = {
-  // Get all conversations for a user
-  getConversations: async (userId: string): Promise<ChatConversation[]> => {
+  // Get conversations for a user, filtered by context (web | admin | extension)
+  getConversations: async (userId: string, context?: string): Promise<ChatConversation[]> => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("ChatConversation")
         .select("*")
-        .eq("userId", userId)
-        .order("updatedAt", { ascending: false });
+        .eq("userId", userId);
+
+      // Filter by context if provided (isolates admin/web/extension chats)
+      if (context) {
+        query = query.eq("context", context);
+      }
+
+      const { data, error } = await query.order("updatedAt", { ascending: false });
 
       if (error) throw error;
       return data || [];
@@ -24,10 +30,11 @@ export const conversationsApi = {
     }
   },
 
-  // Create a new conversation (SIMPLIFIED - sem userId necessário)
+  // Create a new conversation with optional context to isolate admin/web/extension
   createConversation: async (
     userId: string,
     title: string,
+    context?: string,
   ): Promise<ChatConversation> => {
     try {
       const now = new Date().toISOString();
@@ -35,6 +42,7 @@ export const conversationsApi = {
         id: uuidv4(),
         userId,
         title,
+        context: context || null,
         createdAt: now,
         updatedAt: now,
       };

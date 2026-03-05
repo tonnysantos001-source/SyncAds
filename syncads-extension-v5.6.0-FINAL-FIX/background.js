@@ -6,9 +6,6 @@
 import { createClient } from './supabase.js';
 import { initRealtimeConnection } from './realtime-client.js';
 import { callActionRouter, buildActionPayload } from './action-router-client.js';
-import { fetchWithRetry } from './fetch-retry.js';
-import { parseHtmlToAst } from './html-to-docs-parser.js';
-import { buildDocsApiRequests } from './docs-api-builder.js';
 
 // Sistema de Auto-Heal (carregado dinamicamente)
 let attemptAutoHeal = async () => false;
@@ -137,29 +134,6 @@ function isGoogleDocsUrl(url = "") {
     url.includes("docs.google.com/document/") &&
     !url.includes("/create")
   );
-}
-
-/**
- * Extrai o ID do documento da URL do Google Docs
- */
-function extractDocId(url) {
-  const match = url.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : null;
-}
-
-/**
- * Obtém token OAuth do usuário via chrome.identity
- */
-function getGoogleToken() {
-  return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: true }, (token) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(token);
-      }
-    });
-  });
 }
 
 // ============================================
@@ -319,26 +293,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       // Update global DOM signals state
       if (globalThis.domSignals) {
-        // ✅ ACEITAR APENAS SINAIS CANÔNICOS
-        if (signal.type === "DOCUMENT_READY") {
-          globalThis.domSignals.documentReady = true;
+        if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
           globalThis.domSignals.editorReady = true;
           globalThis.domSignals.documentUrl = signal.payload.url;
           globalThis.domSignals.navigationComplete = true;
           globalThis.domSignals.lastSignal = signal;
-          Logger.success("✅ [CANONICAL] DOCUMENT_READY aceito", { url: signal.payload.url });
-        } else if (signal.type === "DOCUMENT_READY_TIMEOUT") {
-          globalThis.domSignals.documentReady = false;
-          globalThis.domSignals.lastSignal = signal;
-          Logger.error("❌ [CANONICAL] DOCUMENT_READY_TIMEOUT recebido", { url: signal.payload.url });
         }
       }
 
       // ============================================
       // PERSIST TO SUPABASE
       // ============================================
-      if (signal.type === "DOCUMENT_READY" || signal.type === "DOCUMENT_READY_TIMEOUT") {
-        Logger.info(`💾 [DOCUMENT_SIGNAL] Persisting ${signal.type} to Supabase...`);
+      if (signal.type === "DOCUMENT_CREATED_CONFIRMED") {
+        Logger.info("💾 [DOCUMENT_SIGNAL] Persisting to Supabase...");
 
         try {
           // Find the most recent command that's pending or processing
@@ -677,107 +644,7 @@ async function processCommand(cmd) {
   cmd.value = cmdValue;
   cmd.selector = cmdSelector;
 
-  // ============================================
-  // ✅ VALIDAÇÃO DE SCHEMA (FAIL-FAST)
-  // ============================================
-  /**
-   * Valida que comandos DOM têm target.selector definido.
-   * Previne erro: "Element not found: undefined"
-   */
-  function assertValidDomCommand(command) {
-    // Log completo do comando para auditoria
-    Logger.debug('[VALIDATION] Command schema check', {
-      id: command.id,
-      type: command.type,
-      has_selector: !!command.selector,
-      has_payload_selector: !!command.payload?.selector,
-      payload: command.payload,
-      options: command.options
-    });
-
-    if (!command || !command.type) {
-      throw new Error('INVALID_COMMAND: command or command.type is null');
-    }
-
-    // Comandos DOM que EXIGEM selector
-    const DOM_ACTIONS_REQUIRING_SELECTOR = [
-      'click',
-      'type',
-      'fill_input',
-      'wait'
-    ];
-
-    if (DOM_ACTIONS_REQUIRING_SELECTOR.includes(command.type)) {
-      const hasSelector =
-        command.selector ||
-        command.payload?.selector ||
-        command.options?.selector;
-
-      // ❌ FAIL FAST: Comando inválido
-      if (!hasSelector) {
-        const errorDetails = {
-          command_id: command.id,
-          command_type: command.type,
-          reason: 'MISSING_SELECTOR',
-          payload: command.payload,
-          options: command.options,
-          selector: command.selector
-        };
-
-        Logger.error('❌ [VALIDATION] Invalid DOM command: missing selector', null, errorDetails);
-
-        // Log JSON completo para debug
-        console.error('[VALIDATION] Full command JSON:', JSON.stringify(command, null, 2));
-
-        throw new Error(
-          `INVALID_COMMAND_SCHEMA: ${command.type} requires a selector but got undefined. ` +
-          `Command ID: ${command.id}`
-        );
-      }
-
-      Logger.success(`✅ [VALIDATION] Command schema valid`, {
-        type: command.type,
-        selector: hasSelector
-      });
-    }
-
-    // ✅ VALIDAÇÃO ESPECIAL: insert_content
-    // Permite sem selector SE estiver em contexto que pode ser resolvido via Intent
-    if (command.type === 'insert_content') {
-      const hasSelector =
-        command.selector ||
-        command.payload?.selector ||
-        command.options?.selector;
-
-      if (!hasSelector) {
-        // Verifica se tem valor (conteúdo válido)
-        const hasValue = command.payload?.value || command.value;
-
-        if (!hasValue) {
-          Logger.error('❌ [VALIDATION] insert_content requires value');
-          throw new Error(
-            `INVALID_COMMAND_SCHEMA: insert_content requires value but got undefined. ` +
-            `Command ID: ${command.id}`
-          );
-        }
-
-        // ⚠️ Aviso: vai depender do Intent Resolver
-        Logger.warn('⚠️ [VALIDATION] insert_content without selector - will rely on Intent Resolver', {
-          id: command.id,
-          has_value: !!hasValue
-        });
-      } else {
-        Logger.success(`✅ [VALIDATION] insert_content has selector`, {
-          selector: hasSelector
-        });
-      }
-    }
-  }
-
   try {
-    // ✅ VALIDAR SCHEMA ANTES DE EXECUTAR
-    assertValidDomCommand(cmd);
-
     // Marcar como PROCESSING
     await updateCommandStatus(cmd.id, "processing", {
       started_at: new Date().toISOString(),
@@ -791,60 +658,27 @@ async function processCommand(cmd) {
     if (cmd.type === 'insert_content') {
       Logger.info("📄 [INSERT] Aguardando Google Docs carregar COMPLETAMENTE...");
 
-      // ESTRATÉGIA SIMPLIFICADA: Esperar 20s MÍNIMOS
-      const MINIMUM_WAIT = 20000; // 20 segundos MÍNIMOS
-      const ADDITIONAL_DELAY = 5000; // 5s adicionais após detectar documento
-      const MAX_WAIT = 50000; // 50s máximo total
-
-      const startTime = Date.now();
-      let docReady = false;
+      // TIMEOUT AUMENTADO: 30 segundos (Google Docs leva ~17s)
       let attempts = 0;
+      const maxAttempts = 60; // 60 x 500ms = 30 segundos
 
-      Logger.info(`⏳ [INSERT] Aguardando ${MINIMUM_WAIT / 1000}s MÍNIMOS antes de verificar...`);
-
-      // PASSO 1: Esperar 20s MÍNIMOS (não importa o que aconteça)
-      await new Promise(r => setTimeout(r, MINIMUM_WAIT));
-
-      Logger.info(`✅ [INSERT] ${MINIMUM_WAIT / 1000}s passados, iniciando verificação...`);
-
-      // PASSO 2: Verificar se documento está pronto (até 30s adicionais)
-      while (Date.now() - startTime < MAX_WAIT && !docReady) {
+      while (attempts < maxAttempts) {
         const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const currentTab = currentTabs[0];
 
         const currentUrl = currentTab?.url || "";
         const urlOk = isGoogleDocsUrl(currentUrl);
-        const titleOk = currentTab?.title && currentTab.title !== 'Google Docs' && currentTab.title !== 'Untitled document';
 
-        // Verificar se há sinal DOCUMENT_READY
-        const hasDocumentReady = globalThis.domSignals?.documentReady === true;
-
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        if (urlOk && titleOk) {
-          Logger.success(`✅ [INSERT] Documento detectado após ${elapsed}s!`, {
-            url: currentUrl,
-            title: currentTab.title,
-            hasSignal: hasDocumentReady
-          });
-
-          // DELAY ADICIONAL de 5s para garantir estabilidade
-          Logger.info(`⏳ [INSERT] Aguardando ${ADDITIONAL_DELAY / 1000}s adicionais para estabilidade...`);
-          await new Promise(r => setTimeout(r, ADDITIONAL_DELAY));
-
+        if (urlOk) {
+          // ✅ URL mudou para documento real!
+          Logger.success(`✅ [INSERT] Google Docs PRONTO após ${(attempts * 0.5).toFixed(1)}s! URL: ${currentUrl}`);
           activeTab = currentTab;
-          docReady = true;
           break;
         }
 
-        // Log a cada 2s
-        if (attempts % 4 === 0) {
-          Logger.info(`⏳ [INSERT] Verificando... ${elapsed}s/${MAX_WAIT / 1000}s`, {
-            url: currentUrl || 'vazio',
-            title: currentTab?.title || 'sem título',
-            urlOk,
-            titleOk
-          });
+        // Log Progress a cada 4 segundos
+        if (attempts % 8 === 0) {
+          Logger.info(`⏳ [INSERT] Aguardando ${(attempts * 0.5).toFixed(1)}s/${maxAttempts * 0.5}s... URL: ${currentUrl || 'vazio'}`);
         }
 
         await new Promise(r => setTimeout(r, 500));
@@ -852,19 +686,17 @@ async function processCommand(cmd) {
       }
 
       // Verificação final
-      if (!docReady || !activeTab?.url || activeTab.url.includes('/create')) {
+      if (!activeTab?.url || activeTab.url.includes('/create')) {
         const finalUrl = activeTab?.url || "URL não disponível";
-        const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        Logger.error(`❌ [INSERT] TIMEOUT após ${totalTime}s. URL: ${finalUrl}`);
-        throw new Error(`Timeout: Google Docs não carregou após ${totalTime}s. URL atual: ${finalUrl}`);
+        Logger.error(`❌ [INSERT] TIMEOUT após ${maxAttempts * 0.5}s. URL: ${finalUrl}`);
+        throw new Error(`Timeout: Google Docs não carregou após ${maxAttempts * 0.5}s. URL atual: ${finalUrl}`);
       }
 
       if (!isGoogleDocsUrl(activeTab.url)) {
         throw new Error(`Google Docs não está pronto. URL: ${activeTab.url}`);
       }
 
-      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      Logger.success(`✅ [INSERT] Verificação completa! Total: ${totalTime}s. Documento: ${activeTab.url}`);
+      Logger.success(`✅ [INSERT] Verificação completa! Documento pronto: ${activeTab.url}`);
     }
 
     // 2. Get Active Tab (NUCLEAR STRATEGY + TARGET URL FALLBACK)
@@ -1009,14 +841,6 @@ async function processCommand(cmd) {
         format: cmd.payload?.format || 'html',
         selector: cmd.payload?.selector || cmd.selector
       };
-
-      // ✅ INTENT RESOLVER: Se não tem selector mas está em Google Docs
-      if (!params.selector && activeTab?.url?.includes('docs.google.com')) {
-        Logger.info('🎯 [INTENT RESOLVER] No selector provided for Google Docs - content-script will use fallback');
-        // NÃO definir selector aqui - deixar undefined
-        // Content-script tem fallback automático: .kix-canvas-tile-content || [contenteditable]
-      }
-
       action = "DOM_INSERT";
       Logger.info("COORD: Mapping 'insert_content' -> DOM_INSERT", params);
 
@@ -1024,88 +848,12 @@ async function processCommand(cmd) {
     } else if (cmd.type === "NAVIGATE") {
       params = { url: cmd.options?.url || cmd.value };
       action = "NAVIGATE";
-      params = { url: cmd.options?.url || cmd.value };
-      action = "NAVIGATE";
-
-      // 7. GOOGLE DOCS API INSERT (NEW)
-    } else if (cmd.type === "insert_via_api") {
-      params = {
-        value: cmd.payload?.value || cmd.value,
-        docId: cmd.payload?.docId // Optional, can extract from URL
-      };
-      action = "API_INSERT_DOCS";
-      Logger.info("COORD: Mapping 'insert_via_api' -> API_INSERT_DOCS", params);
-
+    } else {
+      // REJECT UNKNOWN TYPES
+      throw new Error(`CRITICAL: Executor received unknown command type: ${cmd.type}`);
     }
 
 
-
-    // ============================================
-    // 2.5 INTELLIGENT ROUTING DECISION (NEW)
-    // ============================================
-
-    /**
-     * Decide: Execute locally (Extension) or remotely (Action Router → HF Playwright)?
-     * 
-     * RULES:
-     * - Simple UI interactions → Local (faster, visual)
-     * - Heavy/complex tasks → Action Router → Playwright HF
-     * - Document generation → Python API
-     */
-    const shouldUseActionRouter = (cmdType, cmdParams) => {
-      // Keywords that indicate backend execution
-      const heavyKeywords = ['pesquisar produtos', 'minerar', 'raspar', 'scrape', 'analyze'];
-      const contentValue = (cmdParams.value || '').toLowerCase();
-
-      // Force backend for specific command types
-      if (cmdType === 'scrape' || cmdType === 'analyze_competitors') {
-        return true;
-      }
-
-      // Check if content suggests complex operation
-      if (heavyKeywords.some(kw => contentValue.includes(kw))) {
-        return true;
-      }
-
-      // Default: execute locally (faster for simple tasks)
-      return false;
-    };
-
-    // Check if we should route to Action Router
-    if (shouldUseActionRouter(cmd.type, params)) {
-      Logger.info(`🔀 [ROUTING] Complex task detected → Action Router (HF Playwright)`, {
-        type: cmd.type,
-        action: action
-      });
-
-      try {
-        // Build action payload for Action Router
-        const actionPayload = buildActionPayload(cmd, {
-          userId: state.userId,
-          sessionId: generateSessionId(),
-          conversationId: cmd.conversation_id,
-          commandId: cmd.id // Link back to extension command
-        });
-
-        // Call Action Router (which decides Extension wait vs Playwright direct)
-        const routerResult = await callActionRouter(actionPayload, state.accessToken);
-
-        Logger.success(`✅ [ROUTING] Action Router execution complete`, routerResult);
-
-        // Update command with result
-        await updateCommandStatus(cmd.id, "completed", {
-          result: routerResult,
-          completed_at: new Date().toISOString(),
-          executor: 'action_router'
-        });
-
-        return; // Exit early - command processed via router
-
-      } catch (error) {
-        Logger.error(`❌ [ROUTING] Action Router failed, falling back to local`, error);
-        // Fallback: continue to local execution below
-      }
-    }
 
     // ============================================
     // 3. EXECUTE ACTION LOCALLY (EXTENSION IS EXECUTOR)
@@ -1133,7 +881,7 @@ async function processCommand(cmd) {
           });
 
           // Wait for injection to complete
-          await new Promise(r => setTimeout(r, 3000)); // Aumentado para 3.0s
+          await new Promise(r => setTimeout(r, 1500)); // Aumentado para 1.5s
           Logger.success(`✅ Content script injetado no tab ${tabId}`);
           return true;
         } catch (injectError) {
@@ -1160,189 +908,6 @@ async function processCommand(cmd) {
         // Wait for connection/load (basic delay for stability)
         await new Promise(r => setTimeout(r, 2000));
         domReport = { success: true, final_url: targetUrl, logs: ["Navigated to " + targetUrl] };
-
-      } else if (action === "API_INSERT_DOCS") {
-        // ============================================
-        // API INSERT DOCS - Chamada OFICIAL Google Docs API
-        // ============================================
-        Logger.info("🌐 [API_INSERT_DOCS] Preparing to call OFFICIAL Google Docs API...");
-
-        try {
-          // 1. Esperar documento Google Docs estar pronto
-          const MAX_WAIT = 20000; // 20 segundos
-          const startTime = Date.now();
-          let docId = null;
-          let docTab = null;
-
-          Logger.info("⏳ [API_INSERT_DOCS] Waiting for Google Docs document...");
-
-          while (Date.now() - startTime < MAX_WAIT) {
-            const tabs = await chrome.tabs.query({ url: "*://docs.google.com/document/*" });
-            for (const tab of tabs) {
-              const extractedId = extractDocId(tab.url);
-              if (extractedId && !tab.url.includes('/create')) {
-                docId = extractedId;
-                docTab = tab;
-                break;
-              }
-            }
-            if (docId) break;
-            await new Promise(r => setTimeout(r, 1000));
-          }
-
-          if (!docId) {
-            throw new Error("Timeout: Google Docs document not found or not ready");
-          }
-
-          Logger.info(`✅ [API_INSERT_DOCS] Document found: ${docId}`, { url: docTab.url });
-
-          // 2. Obter token OAuth do Google
-          Logger.info("🔑 [API_INSERT_DOCS] Getting Google OAuth token...");
-          let authToken;
-          try {
-            authToken = await getGoogleToken();
-            Logger.success("✅ [API_INSERT_DOCS] OAuth token obtained");
-          } catch (authError) {
-            Logger.error("❌ [API_INSERT_DOCS] Failed to get OAuth token:", authError);
-            throw new Error(`OAuth failed: ${authError.message}. Please authorize the extension.`);
-          }
-
-          // 3. Converter HTML para Google Docs API requests (COM FORMATAÇÃO RICA)
-          Logger.info("🔄 [API_INSERT_DOCS] Parsing HTML to structured format...");
-
-          let requests;
-          let useRichFormatting = true;
-
-          try {
-            // Módulos já importados estaticamente no topo do arquivo
-            console.log('🔍 [DEBUG] Starting HTML parse, length:', (params.value || '').length);
-
-            // Parsear HTML para AST estruturado
-            const ast = parseHtmlToAst(params.value || '');
-            console.log('✅ [DEBUG] Parse complete, children:', ast.children.length);
-            Logger.info(`📊 [API_INSERT_DOCS] Parsed ${ast.children.length} elements from HTML`);
-
-            // Gerar requests da API
-            console.log('🎨 [DEBUG] Building API requests...');
-            requests = buildDocsApiRequests(ast);
-            console.log('✅ [DEBUG] Requests built:', requests.length);
-            Logger.info(`🎨 [API_INSERT_DOCS] Generated ${requests.length} API requests with formatting`);
-
-          } catch (parserError) {
-            // Fallback: usar conversão simples
-            console.error('❌ [DEBUG] Parser/Builder FAILED:', parserError);
-            console.error('Stack:', parserError.stack);
-            Logger.warn("⚠️ [API_INSERT_DOCS] Parser failed, using plain text fallback:", parserError);
-            useRichFormatting = false;
-
-            function htmlToPlainText(html) {
-              // Remove scripts e styles
-              let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-              text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-
-              // Converter quebras de linha
-              text = text.replace(/<br\s*\/?>/gi, '\n');
-              text = text.replace(/<\/p>/gi, '\n\n');
-              text = text.replace(/<\/div>/gi, '\n');
-              text = text.replace(/<\/h[1-6]>/gi, '\n\n');
-              text = text.replace(/<\/li>/gi, '\n');
-
-              // Remover todas as tags HTML
-              text = text.replace(/<[^>]+>/g, '');
-
-              // Decodificar entidades HTML comuns (SEM DOMParser - Service Worker não tem DOM)
-              const entities = {
-                '&nbsp;': ' ',
-                '&amp;': '&',
-                '&lt;': '<',
-                '&gt;': '>',
-                '&quot;': '"',
-                '&#39;': "'",
-                '&apos;': "'",
-                '&cent;': '¢',
-                '&pound;': '£',
-                '&yen;': '¥',
-                '&euro;': '€',
-                '&copy;': '©',
-                '&reg;': '®',
-                '&trade;': '™'
-              };
-
-              // Substituir entidades nomeadas
-              for (const [entity, char] of Object.entries(entities)) {
-                text = text.replace(new RegExp(entity, 'gi'), char);
-              }
-
-              // Decodificar entidades numéricas (&#123; ou &#xAB;)
-              text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-              text = text.replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-
-              // Limpar espaços extras
-              return text
-                .replace(/\n\s*\n\s*\n/g, '\n\n') // Max 2 line breaks
-                .replace(/[ \t]+/g, ' ') // Multiple spaces to one
-                .trim();
-            }
-
-            const plainText = htmlToPlainText(params.value || '');
-            Logger.info(`📄 [FALLBACK] Content preview: ${plainText.substring(0, 100)}...`);
-            requests = [{
-              insertText: {
-                location: { index: 1 },
-                text: plainText
-              }
-            }];
-          }
-
-          // 4. Chamar API OFICIAL do Google Docs
-          const apiUrl = `https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`;
-          Logger.info(`🚀 [API_INSERT_DOCS] Calling OFFICIAL API with ${requests.length} requests...`);
-
-          const apiResponse = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ requests })
-          });
-
-          const responseText = await apiResponse.text();
-          Logger.info(`📬 [API_INSERT_DOCS] Response status: ${apiResponse.status}`);
-
-          if (!apiResponse.ok) {
-            Logger.error(`❌ [API_INSERT_DOCS] API Error: ${responseText}`);
-            throw new Error(`API Error (${apiResponse.status}): ${responseText}`);
-          }
-
-          let apiResult;
-          try {
-            apiResult = JSON.parse(responseText);
-          } catch {
-            apiResult = { success: true, message: responseText };
-          }
-
-          const methodUsed = useRichFormatting ? 'rich_formatting' : 'plain_text_fallback';
-          Logger.success(`✅ [API_INSERT_DOCS] Content inserted via ${methodUsed}!`, apiResult);
-
-          domReport = {
-            success: true,
-            logs: [`Content inserted via OFFICIAL Google Docs API (${methodUsed})`],
-            doc_id: docId,
-            doc_url: `https://docs.google.com/document/d/${docId}/edit`,
-            result: apiResult,
-            method: methodUsed,
-            requestsCount: requests.length
-          };
-
-        } catch (error) {
-          Logger.error("❌ [API_INSERT_DOCS] Execution failed:", error);
-          domReport = {
-            success: false,
-            error: error.message,
-            logs: [`API Insert failed: ${error.message}`]
-          };
-        }
 
       } else {
         // CONTENT SCRIPT ACTIONS
@@ -1496,31 +1061,6 @@ async function processCommand(cmd) {
       url: confirmationData.currentUrl,
     });
   } catch (error) {
-    // ============================================
-    // ✅ FAIL-FAST: Comandos inválidos NÃO devem ser retentados
-    // ============================================
-    if (error.message?.includes('INVALID_COMMAND_SCHEMA')) {
-      Logger.error('❌ [FAIL-FAST] Command has invalid schema, marking as FAILED (no retry)', error, {
-        id: cmd.id,
-        type: cmd.type,
-        error: error.message
-      });
-
-      // Marcar como FAILED com razão específica
-      await updateCommandStatus(cmd.id, 'failed', {
-        error: error.message,
-        failure_reason: 'INVALID_COMMAND_SCHEMA',
-        failed_at: new Date().toISOString(),
-        metadata: {
-          validation_error: true,
-          command_type: cmd.type,
-          missing_fields: error.message
-        }
-      });
-
-      return; // ✅ NÃO RETRY, return imediatamente
-    }
-
     // NOVO: retry logic para RETRY_AFTER_RECONNECT
     if (error.message === "RETRY_AFTER_RECONNECT") {
       Logger.info("Retrying command after reconnection...");
@@ -2249,11 +1789,6 @@ async function handleAuthToken(data) {
         : "unknown",
     });
 
-    // ✅ Send to content script (mesmo se element estiver undefined - content-script tem fallback)
-    const result = await chrome.tabs.sendMessage(tab.id, {
-      action: commandObj.action,
-      params: commandObj.params
-    }); expiration
     // Validate required fields
     if (!userId || !accessToken) {
       throw new Error("Missing userId or accessToken");

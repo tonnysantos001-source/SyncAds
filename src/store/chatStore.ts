@@ -9,8 +9,8 @@ interface ChatState {
   isAssistantTyping: boolean;
 
   // Actions
-  loadConversations: (userId: string) => Promise<void>;
-  createNewConversation: (userId: string, title?: string) => Promise<void>;
+  loadConversations: (userId: string, context?: string) => Promise<void>;
+  createNewConversation: (userId: string, title?: string, context?: string) => Promise<void>;
   addMessage: (
     userId: string,
     conversationId: string,
@@ -33,10 +33,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isAssistantTyping: false,
 
   // Load Conversations
-  loadConversations: async (userId: string) => {
+  loadConversations: async (userId: string, context?: string) => {
     try {
       // Carregar conversas
-      const dbConversations = await conversationsApi.getConversations(userId);
+      const dbConversations = await conversationsApi.getConversations(userId, context);
 
       // Load messages for each conversation
       const conversationsWithMessages = await Promise.all(
@@ -71,13 +71,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   // Create New Conversation
-  createNewConversation: async (userId: string, title?: string) => {
+  createNewConversation: async (userId: string, title?: string, context?: string) => {
     try {
       const conversationTitle =
         title || `Nova Conversa ${new Date().toLocaleDateString()}`;
       const newConversation = await conversationsApi.createConversation(
         userId,
         conversationTitle,
+        context,
       );
 
       set((state) => ({

@@ -87,13 +87,14 @@ export default function AdminChatPage() {
         setIsLoadingConversations(true);
 
         console.log("📥 [AdminChat] Carregando conversações...");
-        await useChatStore.getState().loadConversations(user.id);
+        await useChatStore.getState().loadConversations(user.id, 'admin');
 
         const { data: existingConversations, error: queryError } =
           await supabase
             .from("ChatConversation")
             .select("id")
             .eq("userId", user.id)
+            .eq("context", "admin")
             .limit(1);
 
         if (queryError) {
@@ -114,7 +115,7 @@ export default function AdminChatPage() {
           console.log("➕ [AdminChat] Criando primeira conversação admin...");
           await useChatStore
             .getState()
-            .createNewConversation(user.id, "Chat Admin");
+            .createNewConversation(user.id, "Chat Admin", 'admin');
           console.log("✅ [AdminChat] Primeira conversação criada");
         }
 
@@ -237,8 +238,8 @@ export default function AdminChatPage() {
 
       await useChatStore
         .getState()
-        .createNewConversation(user.id, "Nova Conversa Admin");
-      await useChatStore.getState().loadConversations(user.id);
+        .createNewConversation(user.id, "Nova Conversa Admin", 'admin');
+      await useChatStore.getState().loadConversations(user.id, 'admin');
 
       toast({
         title: "Nova conversa criada",
@@ -260,7 +261,7 @@ export default function AdminChatPage() {
       await useChatStore.getState().deleteConversation(id);
 
       if (activeConversationId === id && user) {
-        await useChatStore.getState().loadConversations(user.id);
+        await useChatStore.getState().loadConversations(user.id, 'admin');
       }
 
       toast({
