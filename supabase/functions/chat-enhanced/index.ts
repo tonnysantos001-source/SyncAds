@@ -11,14 +11,37 @@ serve(async (req) => {
     return handlePreflightRequest();
   }
 
+  // ✅ FIX: Guard against missing Authorization header BEFORE try/catch
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.error("❌ [chat-enhanced] Missing or invalid Authorization header");
+    return new Response(
+      JSON.stringify({ error: "Unauthorized", message: "Authorization header ausente ou inválido." }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  const token = authHeader.replace("Bearer ", "");
+
   try {
+    // ✅ FIX: Wrap body parsing in try/catch to avoid 500 on malformed JSON
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("❌ [chat-enhanced] Erro ao parsear body JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON", message: "Body deve ser JSON válido." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const {
       message,
       conversationId,
       conversationHistory = [],
       systemPrompt,
       extensionConnected: rawExtensionConnected,
-    } = await req.json();
+    } = body;
 
     // Garantir booleano
     const extensionConnected =
@@ -31,9 +54,22 @@ serve(async (req) => {
       extensionConnectedFinal: extensionConnected,
     });
 
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
+    // Validar campos obrigatórios
+    if (!message || typeof message !== "string" || message.trim() === "") {
+      console.error("❌ [chat-enhanced] Campo 'message' ausente ou inválido");
+      return new Response(
+        JSON.stringify({ error: "Bad Request", message: "Campo 'message' é obrigatório." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!conversationId || typeof conversationId !== "string") {
+      console.error("❌ [chat-enhanced] Campo 'conversationId' ausente ou inválido");
+      return new Response(
+        JSON.stringify({ error: "Bad Request", message: "Campo 'conversationId' é obrigatório." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -47,6 +83,7 @@ serve(async (req) => {
       error: userError,
     } = await supabase.auth.getUser(token);
     if (userError || !user) {
+      console.error("❌ [chat-enhanced] Auth error:", userError?.message);
       throw new Error("Unauthorized");
     }
 
@@ -2662,16 +2699,27 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error) {
-    console.error("Chat error:", error);
+  } catch (error: any) {
+    // ✅ FIX: Log detalhado para facilitar debugging
+    console.error("❌ [chat-enhanced] Erro inesperado:", {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack?.substring(0, 500),
+    });
+
+    const isAuthError = error?.message === "Unauthorized" || error?.status === 401;
+    const statusCode = isAuthError ? 401 : 500;
+    const userMessage = isAuthError
+      ? "Sessão expirada. Faça login novamente."
+      : "Erro ao processar mensagem. Tente novamente em instantes.";
+
     return new Response(
       JSON.stringify({
-        error: error.message || "Internal server error",
-        message:
-          "Erro ao processar mensagem. Verifique se a IA está configurada corretamente.",
+        error: error?.message || "Internal server error",
+        message: userMessage,
       }),
       {
-        status: 500,
+        status: statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );

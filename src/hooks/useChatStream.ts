@@ -1,196 +1,83 @@
 /**
- * useChatStream Hook
- * Hook para gerenciar streaming de chat com Edge Functions
- * 
- * Features:
- * - Server-Sent Events (SSE) streaming
- * - Event parsing automático
- * - Error handling robusto
- * - Retry logic
- * - Typing indicators
- * 
- * @version 1.0.0
+ * @deprecated Este hook foi descontinuado.
+ *
+ * Motivo: Chamava POST /api/chat-stream que NÃO existe no Vercel (causava erro 405).
+ * Solução: Redireciona para chatService.ts que chama a Edge Function chat-enhanced
+ * diretamente via Supabase — sem passar por rota Vercel inexistente.
+ *
+ * Componentes afetados: Nenhum — ChatPage.tsx usa chatService diretamente.
+ *
+ * @version 2.0.0 (deprecado e corrigido em 2026-03-10)
  */
 
 import { useState, useCallback } from 'react';
-import { useModalError } from './useModalError';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
+import chatService from '@/lib/api/chatService';
 
-interface ChatMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-}
-
+// Manter interface para retrocompatibilidade caso algum componente importe
 interface StreamOptions {
-    /** ID da conversa ativa */
     conversationId?: string;
-    /** Contexto adicional para a IA */
     context?: string;
-    /** System prompt customizado */
     systemPrompt?: string;
-    /** Modelo de IA a usar */
     model?: 'claude' | 'gpt-4' | 'groq';
 }
 
+/**
+ * @deprecated Use chatService.ts diretamente.
+ * Este hook redireciona para chatService para evitar quebrar importações existentes.
+ */
 export function useChatStream() {
     const [isStreaming, setIsStreaming] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
 
-    const { handleError, withRetry } = useModalError();
-    const addMessage = useChatStore((state) => state.addMessage);
     const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
     const user = useAuthStore((state) => state.user);
 
     /**
-     * Envia mensagem e faz streaming da resposta
+     * @deprecated Use chatService.sendMessage() diretamente.
+     * Redireciona para chatService (Edge Function chat-enhanced).
      */
     const sendMessage = useCallback(
         async (
             message: string,
             options: StreamOptions = {}
         ): Promise<string> => {
-            if (!user) {
-                throw new Error('Usuário não autenticado');
-            }
+            if (!user) throw new Error('Usuário não autenticado');
 
-            const {
-                conversationId,
-                context = 'chat',
-                systemPrompt,
-                model = 'claude',
-            } = options;
+            const { conversationId } = options;
+            if (!conversationId) {
+                throw new Error('conversationId é obrigatório');
+            }
 
             setIsStreaming(true);
             setStreamedContent('');
             setAssistantTyping(true);
 
             try {
-                // Adicionar mensagem do usuário imediatamente
-                if (conversationId) {
-                    await addMessage(user.id, conversationId, {
-                        role: 'user',
-                        content: message,
-                    });
-                }
-
-                // Chamar Edge Function com retry
-                const fullContent = await withRetry(async () => {
-                    const response = await fetch('/api/chat-stream', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${user.id}`, // Usar token real aqui
+                const response = await chatService.sendMessage(
+                    message,
+                    conversationId,
+                    {
+                        onChunk: (chunk) => {
+                            setStreamedContent((prev) => prev + chunk);
                         },
-                        body: JSON.stringify({
-                            message,
-                            conversationId,
-                            context,
-                            systemPrompt,
-                            model,
-                            userId: user.id,
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Erro ao enviar mensagem');
                     }
-
-                    // Processar SSE stream
-                    return await processStream(response, conversationId);
-                }, 2); // 2 tentativas
-
-                return fullContent;
-            } catch (error) {
-                handleError(error, {
-                    context: 'Chat Stream',
-                    userMessage: 'Não foi possível enviar sua mensagem. Tente novamente.',
-                });
-                throw error;
+                );
+                return response;
             } finally {
                 setIsStreaming(false);
                 setAssistantTyping(false);
             }
         },
-        [user, addMessage, setAssistantTyping, handleError, withRetry]
+        [user, setAssistantTyping]
     );
 
-    /**
-     * Processa stream de eventos do servidor
-     */
-    const processStream = async (
-        response: Response,
-        conversationId?: string
-    ): Promise<string> => {
-        const reader = response.body?.getReader();
-        if (!reader) {
-            throw new Error('Stream não disponível');
-        }
-
-        const decoder = new TextDecoder();
-        let fullContent = '';
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-
-                if (done) break;
-
-                // Decodificar chunk
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (!line.trim() || !line.startsWith('data: ')) continue;
-
-                    const data = line.slice(6); // Remove 'data: '
-
-                    if (data === '[DONE]') {
-                        // Stream finalizado
-                        break;
-                    }
-
-                    try {
-                        const parsed = JSON.parse(data);
-
-                        if (parsed.content) {
-                            fullContent += parsed.content;
-                            setStreamedContent(fullContent);
-                        }
-
-                        if (parsed.error) {
-                            throw new Error(parsed.error);
-                        }
-                    } catch (e) {
-                        // Ignorar linhas inválidas
-                        if (e instanceof SyntaxError) continue;
-                        throw e;
-                    }
-                }
-            }
-
-            // Adicionar mensagem completa do assistente
-            if (conversationId && fullContent && user) {
-                await addMessage(user.id, conversationId, {
-                    role: 'assistant',
-                    content: fullContent,
-                });
-            }
-
-            return fullContent;
-        } finally {
-            reader.releaseLock();
-        }
-    };
-
-    /**
-     * Cancela stream em andamento
-     */
     const cancelStream = useCallback(() => {
         setIsStreaming(false);
         setAssistantTyping(false);
         setStreamedContent('');
+        chatService.abort();
     }, [setAssistantTyping]);
 
     return {

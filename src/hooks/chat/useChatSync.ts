@@ -27,6 +27,13 @@ interface UseChatSyncOptions {
    * @default true
    */
   enabled?: boolean;
+
+  /**
+   * Contexto do chat para filtrar conversas isoladas
+   * Valores: 'web' | 'extension' | 'admin'
+   * @default undefined (carrega todos — evitar, sempre passar o contexto)
+   */
+  context?: string;
 }
 
 /**
@@ -60,6 +67,7 @@ export function useChatSync(options: UseChatSyncOptions = {}) {
     syncOnFocus = true,
     syncOnOnline = true,
     enabled = true,
+    context, // ✅ FIX: filtrar por contexto para separar web/extension/admin
   } = options;
 
   const user = useAuthStore((state) => state.user);
@@ -89,11 +97,11 @@ export function useChatSync(options: UseChatSyncOptions = {}) {
         return;
       }
 
-      // Carregar conversas
-      await loadConversations(user.id);
+      // Carregar conversas — filtradas por contexto para isolamento correto
+      await loadConversations(user.id, context);
 
       lastSyncRef.current = new Date();
-      console.log('✅ Chat sincronizado com sucesso');
+      console.log('✅ Chat sincronizado com sucesso', context ? `(context=${context})` : '(sem filtro de contexto)');
     } catch (error) {
       console.error('❌ Erro ao sincronizar chat:', error);
     } finally {
