@@ -2065,7 +2065,14 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
 
     if (openaiCompatibleProviders.includes(aiConnection.provider)) {
       // Determine base URL
-      const baseUrl = aiConnection.baseUrl || "https://api.openai.com/v1";
+      let baseUrl = aiConnection.baseUrl;
+      if (!baseUrl) {
+        if (aiConnection.provider === "GROQ") baseUrl = "https://api.groq.com/openai/v1";
+        else if (aiConnection.provider === "TOGETHER") baseUrl = "https://api.together.xyz/v1";
+        else if (aiConnection.provider === "MISTRAL") baseUrl = "https://api.mistral.ai/v1";
+        else if (aiConnection.provider === "OPENROUTER") baseUrl = "https://openrouter.ai/api/v1";
+        else baseUrl = "https://api.openai.com/v1";
+      }
       const endpoint = `${baseUrl}/chat/completions`;
 
       // Determine headers based on provider
