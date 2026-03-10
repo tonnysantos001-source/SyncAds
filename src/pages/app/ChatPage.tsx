@@ -10,6 +10,7 @@ import chatService from '@/lib/api/chatService';
 import type { ModalContext } from '@/lib/ai/modalContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
+import { conversationsApi } from '@/lib/api';
 
 /**
  * CHAT PAGE - SISTEMA DE MODAIS ADAPTATIVOS COM SIDEBAR
@@ -102,44 +103,68 @@ export default function ChatPage() {
     }
 
     try {
-      const response = await chatService.sendMessage(
-        message,
-        activeConversationId || 'temp',
-      );
+      // ✅ FIX CRÍTICO: Auto-criar conversa web se não houver uma ativa
+      let convId = activeConversationId;
+      if (!convId && user) {
+        console.log('[ChatPage] Sem conversa ativa - criando automaticamente...');
+        try {
+          const newConv = await conversationsApi.createConversation(
+            user.id,
+            `Conversa ${new Date().toLocaleString('pt-BR')}`,
+            'web'
+          );
+          convId = newConv.id;
+          setActiveConversationId(convId);
+          // Adicionar à lista local
+          const { addConversation } = useChatStore.getState();
+          addConversation({ id: convId, title: newConv.title, createdAt: newConv.createdAt, messages: [] });
+          console.log('[ChatPage] Conversa criada:', convId);
+        } catch (convError) {
+          console.error('[ChatPage] Erro ao criar conversa:', convError);
+          throw new Error('Não foi possível criar uma conversa.');
+        }
+      }
+
+      if (!convId) throw new Error('Nenhuma conversa disponível.');
+
+      const response = await chatService.sendMessage(message, convId);
 
       // ✅ Resetar loading após receber resposta
       setAssistantTyping(false);
 
-      // Extrair metadata da última mensagem para ver se houve execução de ferramenta
-      if (activeConversationId) {
-        const { data: messages } = await supabase
-          .from('ChatMessage')
-          .select('metadata')
-          .eq('conversationId', activeConversationId)
-          .eq('role', 'ASSISTANT')
-          .order('createdAt', { ascending: false })
-          .limit(1);
+      // Recarregar mensagens do banco após resposta da IA
+      const { data: updatedMessages } = await supabase
+        .from('ChatMessage')
+        .select('*')
+        .eq('conversationId', convId)
+        .order('createdAt', { ascending: true });
 
-        if (messages && messages.length > 0 && messages[0].metadata) {
-          const metadata = messages[0].metadata as any;
+      if (updatedMessages && updatedMessages.length > 0) {
+        const formatted = updatedMessages.map(msg => ({
+          id: msg.id,
+          role: msg.role.toLowerCase() as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+        }));
+        const { setConversationMessages } = useChatStore.getState();
+        setConversationMessages(convId, formatted);
+      }
 
-          // Se houve execução de ferramenta
+      // Verificar metadata de tool execution
+      if (convId && updatedMessages && updatedMessages.length > 0) {
+        const lastAssistant = [...updatedMessages].reverse().find(m => m.role === 'ASSISTANT');
+        if (lastAssistant?.metadata) {
+          const metadata = lastAssistant.metadata as any;
           if (metadata.tool_success !== undefined) {
-            const logs = metadata.execution_logs || [];
-            setToolLogs(logs);
-
-            if (metadata.tool_success) {
-              setToolStatus('success');
-            } else {
-              setToolStatus('error');
-              setToolError(metadata.tool_message || 'Erro desconhecido');
-            }
+            setToolLogs(metadata.execution_logs || []);
+            if (metadata.tool_success) setToolStatus('success');
+            else { setToolStatus('error'); setToolError(metadata.tool_message || 'Erro desconhecido'); }
           } else {
-            // Não houve execução de ferramenta, resetar
             setToolStatus('idle');
           }
         }
       }
+
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
 
@@ -154,7 +179,7 @@ export default function ChatPage() {
 
       toast({
         title: 'Erro',
-        description: 'Não foi possível enviar a mensagem.',
+        description: error instanceof Error ? error.message : 'Não foi possível enviar a mensagem.',
         variant: 'destructive',
       });
     }
@@ -294,6 +319,16 @@ export default function ChatPage() {
           onModalChange={handleModalChange}
           onSendMessage={handleSendMessage}
           className="h-full w-full"
+          onCreateConversation={async () => {
+            if (!user) return null;
+            try {
+              const newConv = await conversationsApi.createConversation(user.id, `Conversa ${new Date().toLocaleString('pt-BR')}`, 'web');
+              setActiveConversationId(newConv.id);
+              const { addConversation } = useChatStore.getState();
+              addConversation({ id: newConv.id, title: newConv.title, createdAt: newConv.createdAt, messages: [] });
+              return newConv.id;
+            } catch { return null; }
+          }}
         />
       </div>
 

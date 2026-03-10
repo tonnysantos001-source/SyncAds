@@ -7,3 +7,4 @@ node_modules/
 
 .vercel
 sync-ads-ai/
+.env*.local

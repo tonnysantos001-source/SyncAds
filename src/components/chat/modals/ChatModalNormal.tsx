@@ -25,7 +25,6 @@ import Textarea from 'react-textarea-autosize';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { ChatMessage } from '@/components/chat/ChatMessage';
-import { useChatStream } from '@/hooks/useChatStream';
 import { useModalShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useModalError } from '@/hooks/useModalError';
 
@@ -65,12 +64,11 @@ export function ChatModalNormal({
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const messages = activeConversation?.messages || [];
 
-  const { sendMessage, isStreaming, streamedContent } = useChatStream();
   const { handleError } = useModalError();
 
   const shortcuts = useModalShortcuts({
     onSend: () => {
-      if (input.trim() && !isStreaming) {
+      if (input.trim() && !isAssistantTyping) {
         handleSend();
       }
     },
@@ -82,7 +80,7 @@ export function ChatModalNormal({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isAssistantTyping, streamedContent]);
+  }, [messages, isAssistantTyping]);
 
   useEffect(() => {
     if (input.trim() && onDetectContext) {
@@ -105,17 +103,13 @@ export function ChatModalNormal({
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isAssistantTyping) return;
 
     const message = input.trim();
     setInput('');
 
     try {
       onSendMessage?.(message);
-      await sendMessage(message, {
-        conversationId: activeConversationId,
-        context: 'chat',
-      });
       textareaRef.current?.focus();
     } catch (error) {
       console.error('Error in handleSend:', error);
@@ -356,24 +350,24 @@ export function ChatModalNormal({
               placeholder="Digite sua mensagem... (Ctrl+Enter para enviar)"
               minRows={1}
               maxRows={6}
-              disabled={isStreaming}
+              disabled={isAssistantTyping}
               className="flex-1 bg-transparent border-none text-white placeholder:text-gray-500 focus:outline-none resize-none py-2 max-h-40"
             />
 
             {/* Send button */}
             <motion.button
               onClick={handleSend}
-              disabled={!input.trim() || isStreaming}
+              disabled={!input.trim() || isAssistantTyping}
               className={cn(
                 'p-2 rounded-lg transition-all duration-200',
-                input.trim() && !isStreaming
+                input.trim() && !isAssistantTyping
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:bg-blue-700'
                   : 'bg-white/5 text-gray-500 cursor-not-allowed'
               )}
-              whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
-              whileTap={input.trim() && !isStreaming ? { scale: 0.95 } : {}}
+              whileHover={input.trim() && !isAssistantTyping ? { scale: 1.05 } : {}}
+              whileTap={input.trim() && !isAssistantTyping ? { scale: 0.95 } : {}}
             >
-              {isStreaming ? (
+              {isAssistantTyping ? (
                 <IconLoader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <IconSend className="w-5 h-5" />

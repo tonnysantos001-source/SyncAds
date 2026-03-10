@@ -116,6 +116,90 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
         },
     },
 
+    huggingface_tts: {
+        id: 'huggingface_tts',
+        name: 'Hugging Face TTS (Free)',
+        description: 'Geração de voz gratuita via IA open-source',
+        type: ['tts'],
+        costPer1000Chars: 0,
+        supportedVoices: [
+            'facebook/mms-tts-por',
+            'facebook/mms-tts-eng'
+        ],
+        generate: async (options) => {
+            const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+            if (!hfKey) throw new Error('HUGGINGFACE_API_KEY não configurada no .env');
+
+            // Pegar sessão para fazer upload da mídia gerada
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Usuário não autenticado');
+
+            const model = options.voice || 'facebook/mms-tts-por';
+
+            const response = await fetch(
+                `https://api-inference.huggingface.co/models/${model}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${hfKey}`,
+                        "Content-Type": "application/json",
+                    },
+                    method: "POST",
+                    body: JSON.stringify({ inputs: options.text }),
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMsg = "Erro ao gerar áudio no Hugging Face";
+                try {
+                    const errObj = JSON.parse(errorText);
+                    if (errObj.error) errorMsg = errObj.error;
+                } catch (e) { }
+
+                if (errorMsg.includes("is currently loading") || errorMsg.includes("estimated_time")) {
+                    throw new Error("O modelo gratuito de voz está inicializando (warm-up). Por favor, aguarde 1 minuto e tente novamente.");
+                }
+                throw new Error(errorMsg);
+            }
+
+            const audioBlob = await response.blob();
+            const fileName = `audio/${session.user.id}/hf_tts_${Date.now()}.wav`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('ai-generated')
+                .upload(fileName, audioBlob, {
+                    contentType: 'audio/wav',
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                throw new Error("Erro ao salvar o áudio gerado na nuvem");
+            }
+
+            const { data: publicUrl } = supabase.storage
+                .from('ai-generated')
+                .getPublicUrl(fileName);
+
+            return {
+                url: publicUrl.publicUrl,
+                type: 'tts',
+                text: options.text,
+                provider: 'huggingface',
+                timestamp: Date.now(),
+                cost: 0,
+                metadata: {
+                    model,
+                    duration: 0,
+                },
+            };
+        },
+        isAvailable: async () => {
+            const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+            return !!hfKey;
+        },
+    },
+
     playht_tts: {
         id: 'playht_tts',
         name: 'Play.ht TTS',
@@ -217,11 +301,11 @@ export async function generateAudioWithFallback(
         }
     }
 
-    // Try providers in order of quality/cost
+    // Try providers in order of cost (cheaper first) to avoid paying implicitly when free is available
     const sortedProviders = [...availableProviders].sort((a, b) => {
         const costA = a.costPer1000Chars || a.costPerSecond || 0;
         const costB = b.costPer1000Chars || b.costPerSecond || 0;
-        return costB - costA; // Higher cost = better quality
+        return costA - costB; // Menor custo primeiro (gratuitos na frente)
     });
 
     for (const provider of sortedProviders) {

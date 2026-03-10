@@ -45,9 +45,9 @@ import {
     parseAITools,
     executeAITools
 } from '@/lib/visual-editor/ai-tools';
-import { useChatStream } from '@/hooks/useChatStream';
 import { useModalError } from '@/hooks/useModalError';
 import { usePages } from '@/hooks/usePages';
+import { supabase } from '@/lib/supabase';
 
 interface VisualEditorProProps {
     onSendMessage?: (message: string) => void;
@@ -101,7 +101,7 @@ export function VisualEditorPro({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Hooks
-    const { sendMessage, isStreaming } = useChatStream();
+    const [isStreaming, setIsStreaming] = useState(false);
     const { handleError } = useModalError();
 
     // Sync code with current page
@@ -159,6 +159,43 @@ export function VisualEditorPro({
         }
     }, [fullCode]);
 
+    // Helper function to call AI
+    const callVisualEditorAI = async (promptText: string, contextMessages: Array<{ role: string, content: string }>) => {
+        setIsStreaming(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Não autenticado');
+
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const res = await fetch(`${supabaseUrl}/functions/v1/chat-enhanced`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({
+                    message: promptText,
+                    conversationId: `visual-editor-${pages[0]?.id || 'temp'}`,
+                    conversationHistory: contextMessages,
+                    systemPrompt: ADVANCED_SYSTEM_PROMPT,
+                    extensionConnected: false
+                }),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || 'Erro ao comunicar com a IA');
+            }
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            return data.response;
+        } finally {
+            setIsStreaming(false);
+        }
+    };
+
     // Handle AI message
     const handleAIGenerate = async () => {
         if (!input.trim() || isStreaming) return;
@@ -167,18 +204,15 @@ export function VisualEditorPro({
         setInput('');
 
         // Add user message
-        setMessages(prev => [...prev, { role: 'user', content: prompt }]);
+        const newMessages = [...messages, { role: 'user', content: prompt }];
+        setMessages(newMessages);
 
         try {
             // Call AI with advanced system prompt
-            const response = await sendMessage(prompt, {
-                context: 'visual-editor',
-                systemPrompt: ADVANCED_SYSTEM_PROMPT,
-                model: 'claude',
-            });
+            const responseText = await callVisualEditorAI(prompt, messages);
 
             // Parse and execute tools
-            const { updatedCode, messages: toolMessages } = await executeAITools(response, htmlCode);
+            const { updatedCode, messages: toolMessages } = await executeAITools(responseText, htmlCode);
 
             if (updatedCode !== htmlCode) {
                 setHtmlCode(updatedCode);
@@ -206,16 +240,13 @@ export function VisualEditorPro({
         Mantenha o estilo visual existente e integre-o ao componente App principal.`;
 
         // Update UI to show what's happening
-        setMessages(prev => [...prev, { role: 'user', content: prompt }]);
+        const newMessages = [...messages, { role: 'user', content: prompt }];
+        setMessages(newMessages);
 
         try {
-            const response = await sendMessage(prompt, {
-                context: 'visual-editor',
-                systemPrompt: ADVANCED_SYSTEM_PROMPT,
-                model: 'claude',
-            });
+            const responseText = await callVisualEditorAI(prompt, messages);
 
-            const { updatedCode, messages: toolMessages } = await executeAITools(response, htmlCode);
+            const { updatedCode, messages: toolMessages } = await executeAITools(responseText, htmlCode);
 
             if (updatedCode !== htmlCode) {
                 setHtmlCode(updatedCode);

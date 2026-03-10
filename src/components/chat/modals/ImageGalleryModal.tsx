@@ -165,12 +165,14 @@ export function ImageGalleryModal({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // Call Edge Function
-      const response = await fetch('/api/generate-image', {
+      // Call Supabase Edge Function generate-image ✅ (não /api/generate-image - rota Vercel inexistente)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           prompt,

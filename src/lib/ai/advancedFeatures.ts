@@ -52,14 +52,14 @@ const searchCache = new SearchCache();
 
 export interface AdvancedIntent {
   type:
-    | "generate-image"
-    | "generate-video"
-    | "web-search"
-    | "create-file"
-    | "scrape-python"
-    | "generate-pdf"
-    | "process-image"
-    | "none";
+  | "generate-image"
+  | "generate-video"
+  | "web-search"
+  | "create-file"
+  | "scrape-python"
+  | "generate-pdf"
+  | "process-image"
+  | "none";
   confidence: number;
   params: Record<string, any>;
 }
@@ -614,15 +614,15 @@ export interface FileGenerationOptions {
   content: string;
   fileName: string;
   fileType:
-    | "txt"
-    | "md"
-    | "json"
-    | "csv"
-    | "html"
-    | "js"
-    | "ts"
-    | "css"
-    | "xml";
+  | "txt"
+  | "md"
+  | "json"
+  | "csv"
+  | "html"
+  | "js"
+  | "ts"
+  | "css"
+  | "xml";
   userId: string;
   metadata?: Record<string, any>;
 }
@@ -715,7 +715,7 @@ export interface VideoGenerationOptions {
   duration?: number; // em segundos (5, 10, 15)
   aspectRatio?: "16:9" | "9:16" | "1:1";
   style?: "realistic" | "cinematic" | "anime" | "3d";
-  provider?: "runway" | "pika";
+  provider?: "runway" | "pika" | "huggingface";
   userId: string;
   onProgress?: (status: string, progress: number) => void;
 }
@@ -759,20 +759,23 @@ export async function generateVideo(
       };
     }
 
-    // Determinar provider
-    const provider = options.provider || "runway";
+    const provider = options.provider || "huggingface";
     const runwayKey =
       process.env.VITE_RUNWAY_API_KEY || (config as any)?.runwayKey;
     const pikaKey = process.env.VITE_PIKA_API_KEY || (config as any)?.pikaKey;
+    const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
 
-    if (provider === "runway" && runwayKey) {
+    if ((provider === "runway" || (!hfKey && runwayKey)) && runwayKey) {
       return await generateVideoWithRunway(
         options,
         runwayKey,
         config.apiKey || "",
       );
-    } else if (provider === "pika" && pikaKey) {
+    } else if ((provider === "pika" || (!hfKey && pikaKey)) && pikaKey) {
       return await generateVideoWithPika(options, pikaKey, config.apiKey || "");
+    } else if (hfKey) {
+      // Usa Hugging Face por padrão quando há a chave gratuita configurada (ou quando explicitamente solicitado)
+      return await generateVideoWithHuggingFace(options, hfKey);
     } else {
       // Fallback: Gerar vídeo placeholder com imagem estática
       return await generateVideoPlaceholder(options);
@@ -994,16 +997,15 @@ async function generateVideoPlaceholder(
   return {
     success: false,
     error:
-      "🎬 **Geração de Vídeos - Em Configuração**\n\n" +
-      "Para ativar esta funcionalidade, você precisa:\n\n" +
-      "1. **Runway Gen-2**: Configure `VITE_RUNWAY_API_KEY` em .env\n" +
-      "   - Obtenha em: https://runwayml.com\n" +
-      "   - Plano recomendado: Standard ($12/vídeo)\n\n" +
-      "2. **Pika Labs**: Configure `VITE_PIKA_API_KEY` em .env\n" +
-      "   - Obtenha em: https://pika.art\n" +
-      "   - Plano recomendado: Pro ($10/mês)\n\n" +
+      "🎬 **Gerador de Vídeos - Configuração Necessária**\n\n" +
+      "Nenhuma API de vídeo está configurada.\n\n" +
+      "**Opção Gratuita Recomendada:**\n" +
+      "Configure `VITE_HUGGINGFACE_API_KEY` em seu arquivo `.env` para usar o gerador gratuito do Hugging Face.\n\n" +
+      "**Opções Avançadas (Pagas):**\n" +
+      "- **Runway Gen-2**: Configure `VITE_RUNWAY_API_KEY`\n" +
+      "- **Pika Labs**: Configure `VITE_PIKA_API_KEY`\n\n" +
       `Prompt salvo: "${options.prompt}"\n\n` +
-      "_Após configurar, esta funcionalidade estará disponível!_",
+      "_Após configurar sua chave gratuita, esta funcionalidade estará completa!_",
     metadata: {
       prompt: options.prompt,
       duration: options.duration || 5,
@@ -1183,6 +1185,99 @@ async function uploadVideoToStorage(
   } catch (error) {
     console.warn("⚠️ Erro no upload:", error);
     return null;
+  }
+}
+
+/**
+ * Gerar vídeo com Hugging Face (Gratuito)
+ */
+async function generateVideoWithHuggingFace(
+  options: VideoGenerationOptions,
+  apiKey: string,
+): Promise<VideoGenerationResult> {
+  try {
+    console.log("🎬 Usando Hugging Face Inference API...");
+
+    if (options.onProgress) {
+      options.onProgress("🎬 Iniciando geração no Hugging Face...", 30);
+    }
+
+    // Usando um modelo popular de text-to-video open-source
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ inputs: options.prompt }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMsg = "Erro ao gerar vídeo no Hugging Face";
+      try {
+        const errObj = JSON.parse(errorText);
+        if (errObj.error) errorMsg = errObj.error;
+      } catch (e) { }
+      throw new Error(errorMsg);
+    }
+
+    if (options.onProgress) {
+      options.onProgress("📤 Fazendo upload do vídeo para Storage...", 80);
+    }
+
+    // O Hugging Face retorna diretamente o arquivo de vídeo como blob
+    const videoBlob = await response.blob();
+    const fileName = `videos/${options.userId}/hf_${Date.now()}.mp4`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("ai-generated")
+      .upload(fileName, videoBlob, {
+        contentType: "video/mp4",
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error("Erro ao salvar vídeo na nuvem");
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from("ai-generated")
+      .getPublicUrl(fileName);
+
+    if (options.onProgress) {
+      options.onProgress("✅ Vídeo gerado com sucesso!", 100);
+    }
+
+    return {
+      success: true,
+      videoUrl: publicUrl.publicUrl,
+      downloadUrl: publicUrl.publicUrl,
+      metadata: {
+        prompt: options.prompt,
+        duration: 2, // Os modelos de HF base costumam gerar +- 2 a 4 segundos
+        aspectRatio: options.aspectRatio || "16:9",
+        provider: "huggingface",
+        generatedAt: new Date().toISOString(),
+        status: "completed",
+      },
+    };
+  } catch (error: any) {
+    console.error("❌ Erro no Hugging Face:", error);
+    if (error.message?.includes("is currently loading") || error.message?.includes("estimated_time")) {
+      return {
+        success: false,
+        error: "O modelo gratuito IA está inicializando (warm-up). Por favor, tente novamente em 1-2 minutos.",
+      };
+    }
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
 
