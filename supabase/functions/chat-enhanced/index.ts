@@ -2090,7 +2090,7 @@ Instrua: "Para usar minhas capacidades, faça login no painel SyncAds clicando n
 
       // ✅ GROQ: Usar tool calling NATIVO
       const requestBody: any = {
-        model: aiConnection.model || "gpt-4-turbo",
+        model: aiConnection.model || (aiConnection.provider === "GROQ" ? "llama-3.3-70b-versatile" : aiConnection.provider === "MISTRAL" ? "mistral-medium-latest" : aiConnection.provider === "TOGETHER" ? "meta-llama/Llama-3.3-70B-Instruct-Turbo" : "gpt-4-turbo"),
         messages: messages,
         temperature: aiConnection.temperature || 0.7,
         max_tokens: aiConnection.maxTokens || 4096,
