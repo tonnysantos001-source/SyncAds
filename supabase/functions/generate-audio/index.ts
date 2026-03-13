@@ -282,21 +282,15 @@ serve(async (req) => {
         }
 
         // Save to database
-        const { error: dbError } = await supabaseClient.from("MediaGeneration").insert({
-            userId: user.id,
-            type: "AUDIO",
+        const { error: dbError } = await supabaseClient.from("generated_audios").insert({
+            user_id: user.id,
+            type: "tts",
             provider: usedProvider,
             prompt: text,
             url: audioUrl,
-            metadata: {
-                voice,
-                style,
-                model: provider === "elevenlabs" ? "eleven_monolingual_v1" : "google-tts",
-                textLength: text.length,
-                duration,
-            },
-            cost,
-            status: "COMPLETED",
+            text,
+            voice,
+            duration
         });
 
         if (dbError) {

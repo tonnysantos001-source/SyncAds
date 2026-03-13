@@ -61,7 +61,7 @@ interface GeneratedAudio {
     voice?: string;
 }
 
-type TabType = 'tts' | 'clone' | 'music' | 'sfx';
+type TabType = 'tts' | 'clone' | 'music' | 'sfx' | 'library';
 
 const TTS_QUICK_TEXTS = [
     'Olá, seja muito bem-vindo! Como posso ajudar você hoje?',
@@ -364,6 +364,17 @@ export function AudioGalleryPro({
                     >
                         <IconVolume className="w-6 h-6" />
                     </button>
+                    
+                    <button
+                        onClick={() => setActiveTab('library')}
+                        className={cn(
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all mt-auto mb-4',
+                            activeTab === 'library' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                        )}
+                        title="Biblioteca de Áudios"
+                    >
+                        <IconHistory className="w-6 h-6" />
+                    </button>
                 </div>
 
                 {/* 2. Main Content Area */}
@@ -390,11 +401,13 @@ export function AudioGalleryPro({
                                         activeTab === 'clone' && "bg-purple-500 shadow-purple-500/30 shadow-lg",
                                         activeTab === 'music' && "bg-pink-500 shadow-pink-500/30 shadow-lg",
                                         activeTab === 'sfx' && "bg-cyan-500 shadow-cyan-500/30 shadow-lg",
+                                        activeTab === 'library' && "bg-emerald-500 shadow-emerald-500/30 shadow-lg",
                                     )}>
                                         {activeTab === 'tts' && <IconMicrophone className="w-8 h-8" />}
                                         {activeTab === 'clone' && <IconUser className="w-8 h-8" />}
                                         {activeTab === 'music' && <IconMusic className="w-8 h-8" />}
                                         {activeTab === 'sfx' && <IconVolume className="w-8 h-8" />}
+                                        {activeTab === 'library' && <IconHistory className="w-8 h-8" />}
                                     </div>
                                     <div>
                                         <h1 className="text-3xl font-extrabold text-white tracking-tight">
@@ -402,12 +415,14 @@ export function AudioGalleryPro({
                                             {activeTab === 'clone' && 'Clonagem Neural de Voz'}
                                             {activeTab === 'music' && 'Música IA'}
                                             {activeTab === 'sfx' && 'Efeitos Sonoros'}
+                                            {activeTab === 'library' && 'Biblioteca de Áudios'}
                                         </h1>
                                         <p className="text-gray-400 mt-1">
                                             {activeTab === 'tts' && 'Sintetize vozes incrivelmente realistas a partir de textos'}
                                             {activeTab === 'clone' && 'Recrie a sua própria voz para narrações e locuções'}
                                             {activeTab === 'music' && 'A trilha sonora perfeita sob demanda'}
                                             {activeTab === 'sfx' && 'Catálogo com milhares de sons para os seus vídeos'}
+                                            {activeTab === 'library' && 'Gerencie, ouça e baixe suas criações em áudio'}
                                         </p>
                                     </div>
                                 </motion.div>
@@ -555,94 +570,94 @@ export function AudioGalleryPro({
                                 </motion.div>
                             )}
 
-                            {/* Music Placeholder */}
-                            {activeTab === 'music' && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20 opacity-50">
-                                    <IconMusic className="w-24 h-24 mb-6 text-pink-500/50" />
-                                    <h3 className="text-2xl font-bold text-white mb-2">Trilha Sonora Automática</h3>
-                                    <p className="text-center text-gray-400 max-w-md">O gerador de música avançado está em atualização para a v3.0.</p>
+                            {/* LIBRARY TAB */}
+                            {activeTab === 'library' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <AnimatePresence>
+                                            {audios.length === 0 ? (
+                                                <div className="col-span-full text-center py-20 px-4 opacity-50 bg-white/[0.02] rounded-3xl border border-white/5">
+                                                    <IconLayoutGrid className="w-16 h-16 mx-auto mb-4 text-gray-500" />
+                                                    <p className="text-gray-300 font-medium text-lg">Sua biblioteca está vazia</p>
+                                                    <p className="text-gray-500 mt-2">Crie seu primeiro projeto para visualizar aqui.</p>
+                                                </div>
+                                            ) : (
+                                                audios.map((audio) => (
+                                                    <motion.div
+                                                        key={audio.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.95 }}
+                                                        className="bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05] rounded-3xl p-5 transition-all group flex flex-col justify-between"
+                                                    >
+                                                        <div>
+                                                            <div className="flex items-start justify-between mb-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center shrink-0">
+                                                                        {audio.type === 'tts' && <IconMicrophone className="w-6 h-6" />}
+                                                                        {audio.type === 'music' && <IconMusic className="w-6 h-6" />}
+                                                                        {audio.type !== 'tts' && audio.type !== 'music' && <IconVolume className="w-6 h-6" />}
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                                                                            {audio.type} <span className="text-white/40 font-normal">|</span> <span className="text-indigo-300 capitalize">{audio.voice || audio.provider}</span>
+                                                                        </h4>
+                                                                        <p className="text-[10px] text-gray-500 font-medium">
+                                                                            {new Date(audio.timestamp).toLocaleDateString()}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={async () => {
+                                                                        const { error } = await supabase.from('generated_audios').update({ deleted_at: new Date().toISOString() }).eq('id', audio.id);
+                                                                        if(!error) setAudios(prev => prev.filter(a => a.id !== audio.id));
+                                                                    }}
+                                                                    className="text-red-500/40 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-xl transition-all"
+                                                                    title="Excluir"
+                                                                >
+                                                                    <IconTrash className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            <div className="mb-4">
+                                                                <p className="text-sm text-gray-300 line-clamp-3 bg-black/20 p-3 rounded-xl border border-white/5" title={audio.text || audio.prompt || ''}>
+                                                                    {audio.text || audio.prompt || 'Trilha Sem Descrição'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* NATIVE VISIBLE PLAYER WITH BETTER UI */}
+                                                        <div>
+                                                            <div className="bg-black/40 rounded-xl overflow-hidden shadow-inner mb-4">
+                                                                <audio
+                                                                    controls
+                                                                    src={audio.url}
+                                                                    className="w-full h-12 sepia-[0.3] hue-rotate-180 saturate-200 outline-none"
+                                                                    controlsList="nodownload"
+                                                                />
+                                                            </div>
+
+                                                            <div className="flex justify-end gap-2">
+                                                                <a 
+                                                                    href={audio.url} 
+                                                                    download={`SyncAds_${audio.type}_${Date.now()}.mp3`} 
+                                                                    target="_blank" 
+                                                                    rel="noreferrer" 
+                                                                    className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                                                >
+                                                                    <IconDownload className="w-4 h-4" /> Baixar MP3
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </motion.div>
                             )}
 
                         </div>
-                    </div>
-                </div>
-
-                {/* 3. Right Sidebar - History & Playback (ALWAYS VISIBLE) */}
-                <div className="w-[380px] bg-black/50 backdrop-blur-xl border-l border-white/5 flex flex-col z-10 shrink-0">
-                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <IconHistory className="w-6 h-6 text-indigo-400" />
-                            Sua Biblioteca
-                        </h2>
-                        <span className="bg-white/10 text-xs px-2.5 py-1 rounded-md text-white/50">{audios.length} itens</span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                        <AnimatePresence>
-                            {audios.length === 0 ? (
-                                <div className="text-center py-20 px-4 opacity-50">
-                                    <IconLayoutGrid className="w-16 h-16 mx-auto mb-4 text-gray-500" />
-                                    <p className="text-gray-300 font-medium">Sua biblioteca está vazia</p>
-                                    <p className="text-sm text-gray-500 mt-2">Crie seu primeiro projeto para visualizar aqui.</p>
-                                </div>
-                            ) : (
-                                audios.map((audio) => (
-                                    <motion.div
-                                        key={audio.id}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05] rounded-2xl p-4 transition-all group"
-                                    >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
-                                                    {audio.type === 'tts' && <IconMicrophone className="w-5 h-5" />}
-                                                    {audio.type === 'music' && <IconMusic className="w-5 h-5" />}
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                                                        {audio.type} <span className="text-white/40 font-normal">|</span> <span className="text-indigo-300 capitalize">{audio.voice || audio.provider}</span>
-                                                    </h4>
-                                                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-1" title={audio.text || audio.prompt || ''}>
-                                                        {audio.text || audio.prompt || 'Sem descrição'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={async () => {
-                                                    const { error } = await supabase.from('generated_audios').update({ deleted_at: new Date().toISOString() }).eq('id', audio.id);
-                                                    if(!error) setAudios(prev => prev.filter(a => a.id !== audio.id));
-                                                }}
-                                                className="text-red-500/50 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all"
-                                            >
-                                                <IconTrash className="w-4 h-4" />
-                                            </button>
-                                        </div>
-
-                                        {/* NATIVE VISIBLE PLAYER */}
-                                        <div className="mt-3 bg-black/40 rounded-xl overflow-hidden shadow-inner">
-                                            <audio
-                                                controls
-                                                src={audio.url}
-                                                className="w-full h-11 sepia-[0.3] hue-rotate-180 saturate-200 outline-none"
-                                                controlsList="nodownload"
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center justify-between mt-3 px-1">
-                                            <span className="text-[10px] text-gray-500 font-medium bg-black/40 px-2 py-1 rounded">Hoje</span>
-                                            <div className="flex gap-2">
-                                                <a href={audio.url} download target="_blank" rel="noreferrer" className="text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/20 p-1.5 rounded-lg">
-                                                    <IconDownload className="w-4 h-4" />
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))
-                            )}
-                        </AnimatePresence>
                     </div>
                 </div>
             </div>
