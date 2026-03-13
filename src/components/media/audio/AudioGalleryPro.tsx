@@ -1,16 +1,6 @@
 /**
- * AUDIO GALLERY PRO - Versão 2026 Profissional
+ * AUDIO GALLERY PRO - Versão 3.0 Profissional (Unified Workspace)
  * Plataforma completa de geração e edição de áudio com IA
- * 
- * Features:
- * - TTS (ElevenLabs, Play.ht)
- * - Music Generation (Stable Audio, Suno)
- * - SFX Library (Freesound.org)
- * - AudioEditor integrado (Wavesurfer.js)
- * - História salva no Supabase
- * 
- * @version 2.0.0
- * @date 2025-12-10
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -21,18 +11,17 @@ import {
     IconMusic,
     IconVolume,
     IconDownload,
-    IconX,
     IconHeart,
     IconHeartFilled,
     IconLoader2,
     IconSparkles,
     IconEdit,
-    IconHistory,
     IconTrash,
-    IconPlayerPlay,
     IconWaveSine,
     IconUpload,
     IconUser,
+    IconPlayerPlay,
+    IconLayoutGrid,
 } from '@tabler/icons-react';
 import Textarea from 'react-textarea-autosize';
 import { toast } from 'sonner';
@@ -71,27 +60,24 @@ interface GeneratedAudio {
     voice?: string;
 }
 
-type TabType = 'tts' | 'music' | 'sfx' | 'edit' | 'history' | 'clone';
+type TabType = 'tts' | 'clone' | 'music' | 'sfx';
 
 const TTS_QUICK_TEXTS = [
-    'Olá! Bem-vindo ao nosso serviço.',
-    'Este é um teste de qualidade de voz.',
-    'Narração profissional para vídeos.',
-    'Podcast intro de alta qualidade.',
+    'Olá, seja muito bem-vindo! Como posso ajudar você hoje?',
+    'Apresentamos a nova solução inteligente para o seu negócio.',
+    'Este tutorial vai te guiar pelo passo a passo de forma simples.',
+    'Prepare-se para uma experiência auditiva inovadora.',
 ];
 
 const MUSIC_PROMPTS = [
-    { icon: '🎵', text: 'Música lo-fi calma para estudar', mood: 'calm' },
-    { icon: '⚡', text: 'Música eletrônica energética upbeat', mood: 'energetic' },
-    { icon: '🎻', text: 'Música clássica orquestral épica', mood: 'dramatic' },
-    { icon: '🎸', text: 'Rock instrumental intenso', mood: 'energetic' },
+    { icon: '🎵', text: 'Lo-fi relaxante para estudo', mood: 'calm' },
+    { icon: '⚡', text: 'Eletrônica upbeat para treino', mood: 'energetic' },
+    { icon: '🎻', text: 'Clássica épica orquestral', mood: 'dramatic' },
+    { icon: '🎸', text: 'Rock instrumental vibrante', mood: 'energetic' },
 ];
 
 export function AudioGalleryPro({
-    onSendMessage,
-    onDetectContext,
-    userId,
-    isExpanded,
+    // Props removidas/não usadas mantidas por compatibilidade
 }: AudioGalleryProProps) {
     // State
     const [activeTab, setActiveTab] = useState<TabType>('tts');
@@ -113,24 +99,26 @@ export function AudioGalleryPro({
     const [isCloning, setIsCloning] = useState(false);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    // supabase já importado
     const user = useAuthStore((state) => state.user);
 
-    // Load available providers
+    // Initial Load
+    useEffect(() => {
+        loadAudiosFromSupabase();
+    }, []);
+
+    // Load available providers based on tab
     useEffect(() => {
         loadAvailableProviders();
     }, [activeTab]);
 
     const loadAvailableProviders = async () => {
-        let providers;
-        if (activeTab === 'tts') {
+        let providers: any[] = [];
+        if (activeTab === 'tts' || activeTab === 'clone') {
             providers = await getTTSProviders();
         } else if (activeTab === 'music') {
             providers = await getMusicProviders();
         } else if (activeTab === 'sfx') {
             providers = await getSFXProviders();
-        } else {
-            providers = [];
         }
 
         setAvailableProviders(providers.map(p => p.id));
@@ -142,13 +130,6 @@ export function AudioGalleryPro({
             }
         }
     };
-
-    // Load audios from Supabase
-    useEffect(() => {
-        if (activeTab === 'history') {
-            loadAudiosFromSupabase();
-        }
-    }, [activeTab]);
 
     const loadAudiosFromSupabase = async () => {
         if (!user) return;
@@ -177,15 +158,15 @@ export function AudioGalleryPro({
                     voice: aud.voice,
                     liked: aud.liked || false,
                 }));
+                // We show immediate history right away
                 setAudios(formattedAudios);
             }
         } catch (error) {
             console.error('Error loading audios:', error);
-            toast.error('Erro ao carregar histórico');
         }
     };
 
-    // Generate audio
+    // Generate TTS/Music audio
     const handleGenerate = async () => {
         if (!input.trim() || isGenerating || !user) return;
 
@@ -194,17 +175,17 @@ export function AudioGalleryPro({
 
         try {
             const options: AudioGenerationOptions = {
-                type: activeTab as 'tts' | 'music' | 'sfx',
+                type: activeTab === 'tts' || activeTab === 'clone' ? 'tts' : activeTab as 'tts' | 'music' | 'sfx',
                 text: activeTab === 'tts' ? text : undefined,
-                prompt: activeTab !== 'tts' ? text : undefined,
+                prompt: (activeTab === 'music' || activeTab === 'sfx') ? text : undefined,
                 voice: activeTab === 'tts' ? selectedVoice : undefined,
-                duration: activeTab !== 'tts' ? selectedDuration : undefined,
+                duration: (activeTab === 'music' || activeTab === 'sfx') ? selectedDuration : undefined,
                 style: selectedStyle,
             };
 
             const result = await generateAudioWithFallback(options, selectedProvider);
 
-            // Save to Supabase
+            // Save to DB
             const { data, error } = await supabase
                 .from('generated_audios')
                 .insert({
@@ -223,30 +204,23 @@ export function AudioGalleryPro({
             if (error) throw error;
 
             const newAudio: GeneratedAudio = {
+                ...result,
                 id: data.id,
-                url: result.url,
-                type: result.type,
-                text: result.text,
-                prompt: result.prompt,
-                timestamp: Date.now(),
                 duration: result.metadata.duration,
-                provider: result.provider,
                 voice: result.metadata.voice,
+                liked: false,
             };
 
             setAudios((prev) => [newAudio, ...prev]);
-            setInput('');
-            toast.success('Áudio gerado!');
-            setActiveTab('history');
+            toast.success('Áudio gerado com sucesso!');
         } catch (error: any) {
-            console.error('Generation error:', error);
-            toast.error(error.message || 'Erro ao gerar áudio');
+            console.error('Generation err:', error);
+            toast.error(error.message || 'Erro ao gerar detalhado no console');
         } finally {
             setIsGenerating(false);
         }
     };
 
-    // Voice Cloning handler
     const handleCloneVoice = async () => {
         if (!cloneFile || !cloneName.trim() || !user || isCloning) return;
 
@@ -274,253 +248,190 @@ export function AudioGalleryPro({
                 throw new Error(error.error || 'Erro ao clonar voz');
             }
 
-            toast.success('Voz clonada com sucesso!');
+            toast.success('Aúdio processado! Nova voz clonada.');
             setCloneFile(null);
             setCloneName('');
             setCloneDescription('');
-            // Optional: Refresh voices list if implemented
+            // Move back to TTS to use it (optional, needs the voice to be listed)
+            setActiveTab('tts');
         } catch (error: any) {
-            console.error('Clone error:', error);
             toast.error(error.message || 'Erro ao processar clonagem');
         } finally {
             setIsCloning(false);
         }
     };
 
-    // Format duration
     const formatDuration = (seconds: number) => {
+        if (!seconds) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Toggle like
-    const toggleLike = async (audioId: string) => {
-        const audio = audios.find(a => a.id === audioId);
-        if (!audio) return;
+    // Rendering Providers
+    const renderProviderSelector = () => (
+        <div className="mb-6">
+            <h3 className="text-sm font-semibold text-white/70 mb-3 uppercase tracking-wider">Mecanismo de Inteligência</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {availableProviders.map((providerId) => {
+                    const provider = AUDIO_PROVIDERS[providerId];
+                    if (!provider) return null;
 
-        const newLiked = !audio.liked;
-
-        try {
-            const { error } = await supabase
-                .from('generated_audios')
-                .update({ liked: newLiked })
-                .eq('id', audioId);
-
-            if (error) throw error;
-
-            setAudios(prev => prev.map(a =>
-                a.id === audioId ? { ...a, liked: newLiked } : a
-            ));
-        } catch (error) {
-            console.error('Error toggling like:', error);
-        }
-    };
-
-    // Download audio
-    const handleDownload = async (audio: GeneratedAudio) => {
-        try {
-            const response = await fetch(audio.url);
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `audio-${audio.id}.mp3`;
-            a.click();
-            URL.revokeObjectURL(url);
-            toast.success('Download iniciado!');
-        } catch (error) {
-            console.error('Download error:', error);
-            toast.error('Erro ao baixar áudio');
-        }
-    };
-
-    // Delete audio
-    const handleDelete = async (audioId: string) => {
-        try {
-            const { error } = await supabase
-                .from('generated_audios')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', audioId);
-
-            if (error) throw error;
-
-            setAudios(prev => prev.filter(a => a.id !== audioId));
-            toast.success('Áudio deletado');
-        } catch (error) {
-            console.error('Delete error:', error);
-            toast.error('Erro ao deletar');
-        }
-    };
+                    return (
+                        <button
+                            key={providerId}
+                            onClick={() => setSelectedProvider(providerId)}
+                            className={cn(
+                                'p-4 rounded-xl border transition-all text-left relative overflow-hidden group',
+                                selectedProvider === providerId
+                                    ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/50'
+                                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                            )}
+                        >
+                            {selectedProvider === providerId && (
+                                <div className="absolute top-0 right-0 p-2">
+                                    <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                                </div>
+                            )}
+                            <div className="font-bold text-white mb-1.5">{provider.name}</div>
+                            <div className="text-xs text-indigo-200/60 mb-3 leading-relaxed min-h-[32px]">{provider.description}</div>
+                            <div className="text-[10px] font-bold px-2.5 py-1 rounded inline-flex bg-indigo-500/20 text-indigo-300 uppercase tracking-widest">
+                                {provider.costPer1000Chars > 0 ? `${provider.costPer1000Chars} créditos/1k` : 'Modelo Gratuito'}
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
 
     return (
         <>
-            <div className="flex h-full bg-[#0a0f1c] text-white">
-                {/* Left Sidebar - Tabs */}
-                <div className="w-20 bg-gray-950/50 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-6 gap-4">
+            <div className="flex w-full h-full bg-[#0a0f1c] text-white overflow-hidden font-sans relative">
+                
+                {/* 1. Left Vertical Navigation */}
+                <div className="w-20 bg-black/40 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-6 gap-3 z-10 shrink-0">
+                    <div className="mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <IconWaveSine className="text-white w-6 h-6" />
+                        </div>
+                    </div>
+                    
                     <button
                         onClick={() => setActiveTab('tts')}
                         className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition',
-                            activeTab === 'tts'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+                            activeTab === 'tts' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-white/10 hover:text-white'
                         )}
                         title="Text-to-Speech"
                     >
                         <IconMicrophone className="w-6 h-6" />
                     </button>
+                    
+                    <button
+                        onClick={() => setActiveTab('clone')}
+                        className={cn(
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+                            activeTab === 'clone' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                        )}
+                        title="Clonagem de Voz"
+                    >
+                        <IconUser className="w-6 h-6" />
+                    </button>
 
                     <button
                         onClick={() => setActiveTab('music')}
                         className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition',
-                            activeTab === 'music'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+                            activeTab === 'music' ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30' : 'text-gray-400 hover:bg-white/10 hover:text-white'
                         )}
-                        title="Música"
+                        title="Menu de Músicas"
                     >
                         <IconMusic className="w-6 h-6" />
                     </button>
-
+                    
                     <button
                         onClick={() => {
-                            setShowSoundLibrary(true);
                             setActiveTab('sfx');
+                            setShowSoundLibrary(true);
                         }}
                         className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition',
-                            activeTab === 'sfx'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+                            activeTab === 'sfx' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' : 'text-gray-400 hover:bg-white/10 hover:text-white'
                         )}
-                        title="Sound Effects"
+                        title="Efeitos Sonoros"
                     >
                         <IconVolume className="w-6 h-6" />
                     </button>
-
-                    <button
-                        onClick={() => setActiveTab('history')}
-                        className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition',
-                            activeTab === 'history'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                        )}
-                        title="História"
-                    >
-                        <IconHistory className="w-6 h-6" />
-                    </button>
-
-                    <div className="h-px w-10 bg-white/10 my-2" />
-
-                    <button
-                        onClick={() => setActiveTab('clone')}
-                        className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition',
-                            activeTab === 'clone'
-                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-purple-500/20'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                        )}
-                        title="Clonar Voz (ElevenLabs)"
-                    >
-                        <IconUser className="w-6 h-6" />
-                    </button>
                 </div>
 
-                {/* Main Content */}
-                <div className="flex-1 flex flex-col bg-gradient-to-br from-[#0f1525] to-[#0a0f1c]">
-                    {/* Header */}
-                    <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02]">
-                        <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                            {activeTab === 'tts' && <><IconMicrophone className="w-8 h-8 text-blue-500" /> Text-to-Speech</>}
-                            {activeTab === 'music' && <><IconMusic className="w-8 h-8 text-pink-500" /> Studio de Música</>}
-                            {activeTab === 'sfx' && <><IconVolume className="w-8 h-8 text-cyan-500" /> Sound Effects</>}
-                            {activeTab === 'history' && <><IconHistory className="w-8 h-8 text-purple-500" /> Seu Histórico</>}
-                            {activeTab === 'clone' && <><IconUser className="w-8 h-8 text-indigo-500" /> Clonagem de Voz</>}
-                        </h2>
-                        <p className="text-sm text-gray-400">
-                            {activeTab === 'tts' && 'Converta texto em fala ultra-realista no padrão premium'}
-                            {activeTab === 'music' && 'Gere músicas completas e envolventes com IA'}
-                            {activeTab === 'sfx' && 'Catálogo com milhares de efeitos sonoros'}
-                            {activeTab === 'history' && `${audios.length} áudios gerados em sua biblioteca`}
-                            {activeTab === 'clone' && 'Crie instâncias de vozes reais para usar no Text-to-Speech'}
-                        </p>
-                    </div>
+                {/* 2. Main Content Area */}
+                <div className="flex-1 flex flex-col bg-gradient-to-br from-[#0c1222] to-[#050812] relative overflow-y-auto z-0 custom-scrollbar">
+                    {/* Background glow */}
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-                    {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8 relative">
-                        {/* Background glowing orb */}
-                        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="px-10 py-8 relative z-10 max-w-4xl">
                         
-                        <AnimatePresence mode="wait">
-                            {/* TTS Tab */}
-                            {activeTab === 'tts' && (
+                        {/* Headers */}
+                        <div className="mb-8">
+                            <AnimatePresence mode="popLayout">
                                 <motion.div
-                                    key="tts"
-                                    initial={{ opacity: 0, y: 20 }}
+                                    key={activeTab}
+                                    initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="space-y-6 max-w-4xl"
+                                    exit={{ opacity: 0, y: -15 }}
+                                    className="flex items-center gap-4"
                                 >
-                                    {/* Provider Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            Provedor TTS
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {availableProviders.map((providerId) => {
-                                                const provider = AUDIO_PROVIDERS[providerId];
-                                                if (!provider) return null;
-
-                                                return (
-                                                    <button
-                                                        key={providerId}
-                                                        onClick={() => setSelectedProvider(providerId)}
-                                                        className={cn(
-                                                            'p-4 rounded-xl border transition-all text-left relative overflow-hidden group',
-                                                            selectedProvider === providerId
-                                                                ? 'border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
-                                                                : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10'
-                                                        )}
-                                                    >
-                                                        {selectedProvider === providerId && (
-                                                            <div className="absolute top-0 right-0 p-2">
-                                                                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                                                            </div>
-                                                        )}
-                                                        <div className="font-semibold text-white mb-1.5 flex items-center justify-between">
-                                                            {provider.name}
-                                                        </div>
-                                                        <div className="text-xs text-gray-400 mb-3 line-clamp-2">
-                                                            {provider.description}
-                                                        </div>
-                                                        <div className="text-xs font-medium px-2.5 py-1 rounded inline-flex bg-blue-500/10 text-blue-400">
-                                                            {provider.costPer1000Chars > 0 ? `${provider.costPer1000Chars} créditos/1k chars` : 'Gratuito'}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                    <div className={cn(
+                                        "p-3 rounded-2xl flex items-center justify-center text-white",
+                                        activeTab === 'tts' && "bg-indigo-500 shadow-indigo-500/30 shadow-lg",
+                                        activeTab === 'clone' && "bg-purple-500 shadow-purple-500/30 shadow-lg",
+                                        activeTab === 'music' && "bg-pink-500 shadow-pink-500/30 shadow-lg",
+                                        activeTab === 'sfx' && "bg-cyan-500 shadow-cyan-500/30 shadow-lg",
+                                    )}>
+                                        {activeTab === 'tts' && <IconMicrophone className="w-8 h-8" />}
+                                        {activeTab === 'clone' && <IconUser className="w-8 h-8" />}
+                                        {activeTab === 'music' && <IconMusic className="w-8 h-8" />}
+                                        {activeTab === 'sfx' && <IconVolume className="w-8 h-8" />}
                                     </div>
+                                    <div>
+                                        <h1 className="text-3xl font-extrabold text-white tracking-tight">
+                                            {activeTab === 'tts' && 'Text-to-Speech Studio'}
+                                            {activeTab === 'clone' && 'Clonagem Neural de Voz'}
+                                            {activeTab === 'music' && 'Música IA'}
+                                            {activeTab === 'sfx' && 'Efeitos Sonoros'}
+                                        </h1>
+                                        <p className="text-gray-400 mt-1">
+                                            {activeTab === 'tts' && 'Sintetize vozes incrivelmente realistas a partir de textos'}
+                                            {activeTab === 'clone' && 'Recrie a sua própria voz para narrações e locuções'}
+                                            {activeTab === 'music' && 'A trilha sonora perfeita sob demanda'}
+                                            {activeTab === 'sfx' && 'Catálogo com milhares de sons para os seus vídeos'}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
 
-                                    {/* Voice Selection */}
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                                        <label className="block text-sm font-medium text-white mb-4 flex items-center gap-2">
-                                            <IconUser className="w-4 h-4 text-purple-400" />
-                                            Voz ({AUDIO_PROVIDERS[selectedProvider]?.supportedVoices?.length || 0} disponíveis)
-                                        </label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {/* Module Content */}
+                        <div className="space-y-8">
+                            {/* TTS TAB */}
+                            {activeTab === 'tts' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                                    {renderProviderSelector()}
+                                    
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-white/70 mb-3 uppercase tracking-wider">Selecione a Voz</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                             {AUDIO_PROVIDERS[selectedProvider]?.supportedVoices?.map((voice) => (
                                                 <button
                                                     key={voice}
                                                     onClick={() => setSelectedVoice(voice)}
                                                     className={cn(
-                                                        'px-4 py-3 rounded-xl font-medium transition-all capitalize text-sm border',
+                                                        'px-4 py-3 rounded-xl font-bold transition-all text-sm truncate',
                                                         selectedVoice === voice
-                                                            ? 'border-purple-500/50 bg-purple-500/20 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                                                            : 'border-white/5 bg-white/5 text-gray-300 hover:bg-white/10'
+                                                            ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                                                            : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20'
                                                     )}
                                                 >
                                                     {voice.replace('facebook/', '')}
@@ -529,427 +440,221 @@ export function AudioGalleryPro({
                                         </div>
                                     </div>
 
-                                    {/* Quick Texts */}
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                                        <label className="block text-sm font-medium text-white mb-4 flex items-center gap-2">
-                                            <IconSparkles className="w-4 h-4 text-cyan-400" />
-                                            Textos Rápidos
-                                        </label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {TTS_QUICK_TEXTS.map((text, idx) => (
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-white/70 mb-3 uppercase tracking-wider">O que deseja que o narrador diga?</h3>
+                                        <div className="bg-black/40 border border-white/10 focus-within:border-indigo-500/50 rounded-2xl p-4 transition-all shadow-inner">
+                                            <Textarea
+                                                ref={textareaRef}
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                placeholder="Digite aqui o roteiro da sua locução ou narração..."
+                                                minRows={5}
+                                                className="w-full bg-transparent text-lg text-white placeholder:text-gray-600 focus:outline-none resize-none leading-relaxed"
+                                            />
+                                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-indigo-400 font-medium px-2 py-1 bg-indigo-500/10 rounded-md">
+                                                        {input.length} caracteres digitados
+                                                    </span>
+                                                </div>
                                                 <button
-                                                    key={idx}
-                                                    onClick={() => setInput(text)}
-                                                    className="p-4 bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 rounded-xl text-left transition text-sm text-gray-300 group"
+                                                    onClick={() => setInput(TTS_QUICK_TEXTS[Math.floor(Math.random() * TTS_QUICK_TEXTS.length)])}
+                                                    className="px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-md transition-colors flex items-center gap-2"
                                                 >
-                                                    <span className="text-white/50 group-hover:text-blue-400 transition mr-2">{idx + 1}.</span>
-                                                    {text}
+                                                    <IconSparkles className="w-3.5 h-3.5" /> Texto Aleatório
                                                 </button>
-                                            ))}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Text Input */}
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                                        <label className="block text-sm font-medium text-white mb-4 justify-between flex items-center">
-                                            <span>Seu Texto</span>
-                                            <span className={cn(
-                                                "text-xs px-2 py-1 rounded font-medium",
-                                                input.length > 3000 ? "bg-red-500/20 text-red-400" : "bg-white/10 text-gray-400"
-                                            )}>
-                                                {input.length} caracteres
-                                            </span>
-                                        </label>
-                                        <Textarea
-                                            ref={textareaRef}
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            placeholder="Digite o texto que você quer converter em fala... A inteligência artificial fará o resto com emoção e naturalidade."
-                                            minRows={4}
-                                            maxRows={12}
-                                            className="w-full px-5 py-4 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 resize-none transition-all leading-relaxed"
-                                        />
-                                    </div>
-
-                                    {/* Generate Button */}
                                     <button
                                         onClick={handleGenerate}
                                         disabled={!input.trim() || isGenerating}
-                                        className="w-full relative px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 overflow-hidden shadow-lg shadow-blue-500/20 group"
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                                        <span className="relative z-10 flex items-center gap-3">
-                                            {isGenerating ? (
-                                                <>
-                                                    <IconLoader2 className="w-6 h-6 animate-spin" />
-                                                    Sintetizando Voz...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <IconMicrophone className="w-6 h-6" />
-                                                    Gerar Áudio de Alta Qualidade
-                                                </>
-                                            )}
-                                        </span>
-                                    </button>
-                                </motion.div>
-                            )}
-
-                            {/* Music Tab */}
-                            {activeTab === 'music' && (
-                                <motion.div
-                                    key="music"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="space-y-6 max-w-4xl"
-                                >
-                                    {/* Duration */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            Duração
-                                        </label>
-                                        <div className="flex gap-3">
-                                            {[15, 30, 60, 120].map((dur) => (
-                                                <button
-                                                    key={dur}
-                                                    onClick={() => setSelectedDuration(dur)}
-                                                    className={cn(
-                                                        'flex-1 px-4 py-3 rounded-lg font-medium transition',
-                                                        selectedDuration === dur
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                                                    )}
-                                                >
-                                                    {dur >= 60 ? `${dur / 60}min` : `${dur}s`}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Style */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            Estilo
-                                        </label>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {(['natural', 'expressive', 'calm', 'energetic'] as const).map((style) => (
-                                                <button
-                                                    key={style}
-                                                    onClick={() => setSelectedStyle(style)}
-                                                    className={cn(
-                                                        'px-4 py-2 rounded-lg font-medium transition capitalize',
-                                                        selectedStyle === style
-                                                            ? 'bg-purple-600 text-white'
-                                                            : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                                                    )}
-                                                >
-                                                    {style}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Music Prompts */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            Prompts de Música
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {MUSIC_PROMPTS.map((prompt, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => setInput(prompt.text)}
-                                                    className="p-4 bg-white/5 hover:bg-white/10 rounded-lg text-left transition"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-2xl">{prompt.icon}</span>
-                                                        <span className="text-sm text-gray-300">
-                                                            {prompt.text}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Prompt Input */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            Descreva a Música
-                                        </label>
-                                        <Textarea
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            placeholder="Descreva o tipo de música que você quer... (ex: 'música relaxante de piano para estudar')"
-                                            maxRows={6}
-                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                        />
-                                    </div>
-
-                                    {/* Generate Button */}
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={!input.trim() || isGenerating}
-                                        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-3"
+                                        className="w-full px-6 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 overflow-hidden shadow-lg shadow-indigo-600/30 group"
                                     >
                                         {isGenerating ? (
-                                            <>
-                                                <IconLoader2 className="w-6 h-6 animate-spin" />
-                                                Gerando Música...
-                                            </>
+                                            <><IconLoader2 className="w-6 h-6 animate-spin" /> Sintetizando Áudio Magistral...</>
                                         ) : (
-                                            <>
-                                                <IconMusic className="w-6 h-6" />
-                                                Gerar Música
-                                            </>
+                                            <><IconPlayerPlay className="w-6 h-6" /> Produzir Áudio Agora</>
                                         )}
                                     </button>
                                 </motion.div>
                             )}
 
-                            {/* History Tab */}
-                            {activeTab === 'history' && (
-                                <motion.div
-                                    key="history"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                >
-                                    {audios.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-96">
-                                            <IconWaveSine className="w-20 h-20 text-gray-600 mb-4" />
-                                            <p className="text-xl text-gray-400 mb-2">
-                                                Nenhum áudio ainda
-                                            </p>
-                                            <p className="text-sm text-gray-500">
-                                                Gere seu primeiro áudio para começar
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {audios.map((audio) => (
-                                                <div
-                                                    key={audio.id}
-                                                    className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-xl transition"
-                                                >
-                                                    {/* Icon */}
-                                                    <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-                                                        {audio.type === 'tts' ? (
-                                                            <IconMicrophone className="w-6 h-6 text-white" />
-                                                        ) : audio.type === 'music' ? (
-                                                            <IconMusic className="w-6 h-6 text-white" />
-                                                        ) : (
-                                                            <IconVolume className="w-6 h-6 text-white" />
-                                                        )}
-                                                    </div>
-
-                                                    {/* Info */}
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <h3 className="font-semibold text-white capitalize">
-                                                                {audio.type}
-                                                            </h3>
-                                                            {audio.voice && (
-                                                                <span className="px-2 py-0.5 bg-purple-600/30 text-purple-300 text-xs rounded capitalize">
-                                                                    {audio.voice}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-sm text-gray-400 line-clamp-1">
-                                                            {audio.text || audio.prompt}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                                            <span>{formatDuration(audio.duration)}</span>
-                                                            <span>•</span>
-                                                            <span className="capitalize">{audio.provider}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Audio Player */}
-                                                    <div className="w-[300px]">
-                                                        <audio 
-                                                            controls 
-                                                            src={audio.url} 
-                                                            className="w-full h-10 rounded-lg opacity-80 hover:opacity-100 transition invert contrast-150 saturate-0" 
-                                                            controlsList="nodownload noplaybackrate"
-                                                        />
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                                                        <button
-                                                            onClick={() => setAudioToEdit(audio.url)}
-                                                            className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
-                                                            title="Editar"
-                                                        >
-                                                            <IconEdit className="w-5 h-5 text-white" />
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleDownload(audio)}
-                                                            className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition"
-                                                            title="Download"
-                                                        >
-                                                            <IconDownload className="w-5 h-5 text-white" />
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => toggleLike(audio.id)}
-                                                            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
-                                                            title="Curtir"
-                                                        >
-                                                            {audio.liked ? (
-                                                                <IconHeartFilled className="w-5 h-5 text-red-500" />
-                                                            ) : (
-                                                                <IconHeart className="w-5 h-5 text-white" />
-                                                            )}
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleDelete(audio.id)}
-                                                            className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition"
-                                                            title="Deletar"
-                                                        >
-                                                            <IconTrash className="w-5 h-5 text-white" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-                            {/* Clone Voice Tab */}
+                            {/* CLONE TAB */}
                             {activeTab === 'clone' && (
-                                <motion.div
-                                    key="clone"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="space-y-6 max-w-2xl mx-auto mt-8"
-                                >
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm relative overflow-hidden">
-                                        {/* Corner decoration */}
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full pointer-events-none" />
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                                    <div className="bg-purple-900/10 border border-purple-500/20 rounded-3xl p-8 backdrop-blur-md">
                                         
-                                        <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                                            <IconUser className="w-6 h-6 text-indigo-400" />
-                                            Clonagem Profissional
-                                        </h3>
-                                        <p className="text-gray-400 mb-8 leading-relaxed">
-                                            Faça upload de um áudio com gravação de voz clara e sem ruídos para criar uma voz idêntica personalizável com inteligência artificial.
-                                        </p>
-
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-white mb-2">
-                                                    Nome da Voz
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={cloneName}
-                                                    onChange={(e) => setCloneName(e.target.value)}
-                                                    placeholder="Ex: Narrador Institucional, Minha Voz"
-                                                    className="w-full px-5 py-3.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
-                                                />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {/* Formulário */}
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-white/80 mb-2">Nome do Clone</label>
+                                                    <input
+                                                        type="text"
+                                                        value={cloneName}
+                                                        onChange={(e) => setCloneName(e.target.value)}
+                                                        placeholder="Ex: Minha Voz Principal"
+                                                        className="w-full px-5 py-3.5 bg-black/40 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-white/80 mb-2">Descrição / Sotaque</label>
+                                                    <input
+                                                        type="text"
+                                                        value={cloneDescription}
+                                                        onChange={(e) => setCloneDescription(e.target.value)}
+                                                        placeholder="Ex: Voz jovem, entusiástica, tom natural..."
+                                                        className="w-full px-5 py-3.5 bg-black/40 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                                                    />
+                                                </div>
                                             </div>
 
+                                            {/* Upload de Arquivo */}
                                             <div>
-                                                <label className="block text-sm font-medium text-white mb-2">
-                                                    Descrição (Opcional)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={cloneDescription}
-                                                    onChange={(e) => setCloneDescription(e.target.value)}
-                                                    placeholder="Voz suave, tom formal, etc."
-                                                    className="w-full px-5 py-3.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-white mb-2">
-                                                    Arquivo de Áudio (.mp3, .wav)
-                                                </label>
-                                                <div className="relative border-2 border-dashed border-white/20 hover:border-indigo-500/50 transition-colors rounded-2xl bg-black/10 group">
+                                                <label className="block text-sm font-semibold text-white/80 mb-2">Áudio Modelo (.mp3, .wav)</label>
+                                                <div className="relative border-2 border-dashed border-purple-500/30 hover:border-purple-500 bg-purple-500/5 transition-all rounded-3xl h-full min-h-[160px] group flex flex-col items-center justify-center text-center p-6">
                                                     <input
                                                         type="file"
                                                         accept=".mp3,.wav,.m4a"
                                                         onChange={(e) => setCloneFile(e.target.files?.[0] || null)}
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                     />
-                                                    <div className="p-8 text-center flex flex-col items-center gap-3 pointer-events-none">
-                                                        <div className="w-14 h-14 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                            <IconUpload className="w-6 h-6" />
-                                                        </div>
-                                                        {cloneFile ? (
-                                                            <div className="text-indigo-400 font-medium">
-                                                                {cloneFile.name} ({(cloneFile.size / 1024 / 1024).toFixed(2)} MB)
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <span className="text-white font-medium">Clique ou arraste um arquivo de áudio para cá</span>
-                                                                <span className="text-sm text-gray-500">Mínimo 1 minuto, áudio limpo, de preferência em estúdio ou podcast.</span>
-                                                            </>
-                                                        )}
+                                                    <div className="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all mb-4">
+                                                        <IconUpload className="w-8 h-8" />
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                onClick={handleCloneVoice}
-                                                disabled={!cloneFile || !cloneName.trim() || isCloning}
-                                                className="w-full mt-4 relative px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 overflow-hidden shadow-lg shadow-indigo-500/25 group"
-                                            >
-                                                <span className="relative z-10 flex items-center gap-3">
-                                                    {isCloning ? (
-                                                        <>
-                                                            <IconLoader2 className="w-6 h-6 animate-spin" />
-                                                            Processando e Clonando...
-                                                        </>
+                                                    {cloneFile ? (
+                                                        <div>
+                                                            <div className="text-white font-bold">{cloneFile.name}</div>
+                                                            <div className="text-purple-300/60 text-sm mt-1">{(cloneFile.size / 1024 / 1024).toFixed(2)} MB preparo para clonagem</div>
+                                                        </div>
                                                     ) : (
                                                         <>
-                                                            <IconSparkles className="w-6 h-6" />
-                                                            Criar Clone de Voz Realista
+                                                            <span className="text-purple-100 font-bold mb-1">Arraste seu arquivo para cá</span>
+                                                            <span className="text-sm text-purple-300/50 px-4">Para melhor resultado: 1 a 3 minutos gravados em estúdio sem ruído de fundo.</span>
                                                         </>
                                                     )}
-                                                </span>
-                                            </button>
+                                                </div>
+                                            </div>
                                         </div>
+
+                                        <button
+                                            onClick={handleCloneVoice}
+                                            disabled={!cloneFile || !cloneName.trim() || isCloning}
+                                            className="w-full mt-8 px-6 py-5 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 shadow-lg shadow-purple-600/30"
+                                        >
+                                            {isCloning ? (
+                                                <><IconLoader2 className="w-6 h-6 animate-spin" /> Injetando Algoritmos de IA DeepLearning...</>
+                                            ) : (
+                                                <><IconSparkles className="w-6 h-6" /> Analisar Áudio & Criar Clone</>
+                                            )}
+                                        </button>
                                     </div>
                                 </motion.div>
+                            )}
+
+                            {/* Music Placeholder */}
+                            {activeTab === 'music' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20 opacity-50">
+                                    <IconMusic className="w-24 h-24 mb-6 text-pink-500/50" />
+                                    <h3 className="text-2xl font-bold text-white mb-2">Trilha Sonora Automática</h3>
+                                    <p className="text-center text-gray-400 max-w-md">O gerador de música avançado está em atualização para a v3.0.</p>
+                                </motion.div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Right Sidebar - History & Playback (ALWAYS VISIBLE) */}
+                <div className="w-[380px] bg-black/50 backdrop-blur-xl border-l border-white/5 flex flex-col z-10 shrink-0">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <IconHistory className="w-6 h-6 text-indigo-400" />
+                            Sua Biblioteca
+                        </h2>
+                        <span className="bg-white/10 text-xs px-2.5 py-1 rounded-md text-white/50">{audios.length} itens</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        <AnimatePresence>
+                            {audios.length === 0 ? (
+                                <div className="text-center py-20 px-4 opacity-50">
+                                    <IconLayoutGrid className="w-16 h-16 mx-auto mb-4 text-gray-500" />
+                                    <p className="text-gray-300 font-medium">Sua biblioteca está vazia</p>
+                                    <p className="text-sm text-gray-500 mt-2">Crie seu primeiro projeto para visualizar aqui.</p>
+                                </div>
+                            ) : (
+                                audios.map((audio) => (
+                                    <motion.div
+                                        key={audio.id}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05] rounded-2xl p-4 transition-all group"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+                                                    {audio.type === 'tts' && <IconMicrophone className="w-5 h-5" />}
+                                                    {audio.type === 'music' && <IconMusic className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                                                        {audio.type} <span className="text-white/40 font-normal">|</span> <span className="text-indigo-300 capitalize">{audio.voice || audio.provider}</span>
+                                                    </h4>
+                                                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-1" title={audio.text || audio.prompt || ''}>
+                                                        {audio.text || audio.prompt || 'Sem descrição'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={async () => {
+                                                    const { error } = await supabase.from('generated_audios').update({ deleted_at: new Date().toISOString() }).eq('id', audio.id);
+                                                    if(!error) setAudios(prev => prev.filter(a => a.id !== audio.id));
+                                                }}
+                                                className="text-red-500/50 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <IconTrash className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* NATIVE VISIBLE PLAYER */}
+                                        <div className="mt-3 bg-black/40 rounded-xl overflow-hidden shadow-inner">
+                                            <audio
+                                                controls
+                                                src={audio.url}
+                                                className="w-full h-11 sepia-[0.3] hue-rotate-180 saturate-200 outline-none"
+                                                controlsList="nodownload"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-3 px-1">
+                                            <span className="text-[10px] text-gray-500 font-medium bg-black/40 px-2 py-1 rounded">Hoje</span>
+                                            <div className="flex gap-2">
+                                                <a href={audio.url} download target="_blank" rel="noreferrer" className="text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/20 p-1.5 rounded-lg">
+                                                    <IconDownload className="w-4 h-4" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))
                             )}
                         </AnimatePresence>
                     </div>
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Modals outside workspace */}
             {audioToEdit && (
-                <AudioEditor
-                    audioUrl={audioToEdit}
-                    onSave={(editedUrl) => {
-                        setAudioToEdit(null);
-                        toast.success('Áudio editado salvo!');
-                    }}
-                    onClose={() => setAudioToEdit(null)}
-                />
+                <AudioEditor audioUrl={audioToEdit} onSave={() => setAudioToEdit(null)} onClose={() => setAudioToEdit(null)} />
             )}
-
             {showSoundLibrary && (
-                <SoundLibrary
-                    onSelectSound={(soundUrl, title) => {
-                        setShowSoundLibrary(false);
-                        toast.success(`${title} selecionado!`);
-                    }}
-                    onClose={() => setShowSoundLibrary(false)}
-                />
+                <SoundLibrary onSelectSound={() => setShowSoundLibrary(false)} onClose={() => setShowSoundLibrary(false)} />
             )}
         </>
     );
 }
 
 export default AudioGalleryPro;
-
-
