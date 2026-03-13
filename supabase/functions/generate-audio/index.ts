@@ -94,7 +94,10 @@ serve(async (req) => {
                         if (errorMsg.includes("is currently loading") || errorMsg.includes("estimated_time")) {
                             throw new Error("O modelo gratuito de voz está inicializando. Aguarde 1 minuto e tente novamente.");
                         }
-                        throw new Error(`HF API failed: ${errorMsg}`);
+                        if (errorMsg.includes("deprecated or expired") || errorMsg.includes("invalid")) {
+                            throw new Error("Sua chave de API do Hugging Face expirou ou é inválida. Atualize nos segredos do sistema.");
+                        }
+                        throw new Error(`Erro do Provedor (Hugging Face): ${errorMsg}`);
                     }
 
                     const audioBlob = await response.blob();
@@ -327,13 +330,20 @@ serve(async (req) => {
     } catch (error: any) {
         console.error("❌ [Audio Generation] Error:", error);
 
+        // Se for um erro que nós lançamos ativamente com mensagem em português (ex: chave vencida)
+        // ou erro de provedor de terceiros, retornamos 400 (Bad Request) em vez de 500 
+        // para que o painel mostre a notificação corretamente e o navegador não logue um crash interno grave.
+        const status = error.message?.includes("Erro do Provedor") || error.message?.includes("expirou") || error.message?.includes("inicializando") 
+            ? 400 
+            : 500;
+
         return new Response(
             JSON.stringify({
-                error: error.message || "Audio generation failed",
+                error: error.message || "Falha na geração de áudio devido a um erro interno no servidor",
                 details: error.stack,
             }),
             {
-                status: 500,
+                status,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             }
         );
