@@ -103,22 +103,20 @@ export default function ChatPage() {
     }
 
     try {
-      // ✅ FIX CRÍTICO: Auto-criar conversa web se não houver uma ativa
+      // ✅ Auto-criar conversa web se não houver uma ativa
       let convId = activeConversationId;
       if (!convId && user) {
         console.log('[ChatPage] Sem conversa ativa - criando automaticamente...');
         try {
-          const newConv = await conversationsApi.createConversation(
+          const newConv = await createNewConversation(
             user.id,
             `Conversa ${new Date().toLocaleString('pt-BR')}`,
             'web'
           );
-          convId = newConv.id;
-          setActiveConversationId(convId);
-          // Adicionar à lista local
-          const { addConversation } = useChatStore.getState();
-          addConversation({ id: convId, title: newConv.title, createdAt: newConv.createdAt, messages: [] });
-          console.log('[ChatPage] Conversa criada:', convId);
+          if (newConv?.id) {
+            convId = newConv.id;
+            console.log('[ChatPage] Conversa criada:', convId);
+          }
         } catch (convError) {
           console.error('[ChatPage] Erro ao criar conversa:', convError);
           throw new Error('Não foi possível criar uma conversa.');
@@ -127,34 +125,63 @@ export default function ChatPage() {
 
       if (!convId) throw new Error('Nenhuma conversa disponível.');
 
+      // 1. Adicionar mensagem do usuário ao estado local IMEDIATAMENTE (aparece na tela)
+      const { addMessage } = useChatStore.getState();
+      const userMsgId = crypto.randomUUID();
+      const tempUserMessage = {
+        id: userMsgId,
+        role: 'user' as const,
+        content: message,
+        timestamp: new Date(),
+      };
+      await addMessage(user.id, convId, tempUserMessage as any);
+
+      // 2. Salvar mensagem do usuário no banco (sem aguardar o resultado para não bloquear a UX)
+      supabase
+        .from('ChatMessage')
+        .insert({
+          id: userMsgId,
+          userId: user!.id,
+          conversationId: convId,
+          role: 'USER' as any,
+          content: message,
+          createdAt: new Date().toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.error('[ChatPage] Erro ao salvar mensagem do usuário no BD:', error);
+          else console.log('[ChatPage] Mensagem do usuário salva no BD ✅');
+        });
+
+      // 3. Enviar para IA e obter resposta
       const response = await chatService.sendMessage(message, convId);
 
       // ✅ Resetar loading após receber resposta
       setAssistantTyping(false);
 
-      // Recarregar mensagens do banco após resposta da IA
-      const { data: updatedMessages } = await supabase
+      // 4. Adicionar resposta da IA ao estado local sobrescrevendo apenas a última mensagem da IA
+      //    (A Edge Function já salva no banco; nós só atualizamos a tela)
+      //    Buscar apenas a última resposta do assistente para atualizar o estado local
+      const { data: latestMessages } = await supabase
         .from('ChatMessage')
         .select('*')
         .eq('conversationId', convId)
-        .order('createdAt', { ascending: true });
+        .eq('role', 'ASSISTANT')
+        .order('createdAt', { ascending: false })
+        .limit(1);
 
-      if (updatedMessages && updatedMessages.length > 0) {
-        const formatted = updatedMessages.map(msg => ({
-          id: msg.id,
-          role: msg.role.toLowerCase() as 'user' | 'assistant',
-          content: msg.content,
-          timestamp: new Date(msg.createdAt),
-        }));
-        const { setConversationMessages } = useChatStore.getState();
-        setConversationMessages(convId, formatted);
-      }
+      if (latestMessages && latestMessages.length > 0) {
+        const aiMsg = latestMessages[0];
+        const aiMessage = {
+          id: aiMsg.id,
+          role: 'assistant' as const,
+          content: aiMsg.content,
+          timestamp: new Date(aiMsg.createdAt),
+        };
+        await addMessage(user.id, convId, aiMessage as any);
 
-      // Verificar metadata de tool execution
-      if (convId && updatedMessages && updatedMessages.length > 0) {
-        const lastAssistant = [...updatedMessages].reverse().find(m => m.role === 'ASSISTANT');
-        if (lastAssistant?.metadata) {
-          const metadata = lastAssistant.metadata as any;
+        // Verificar metadata de tool execution
+        if (aiMsg.metadata) {
+          const metadata = aiMsg.metadata as any;
           if (metadata.tool_success !== undefined) {
             setToolLogs(metadata.execution_logs || []);
             if (metadata.tool_success) setToolStatus('success');
@@ -190,8 +217,10 @@ export default function ChatPage() {
     if (!user) return;
 
     try {
-      const newConv = await createNewConversation(user.id, 'web'); // Web context
-      setActiveConversationId(newConv.id);
+      const newConv = await createNewConversation(user.id, undefined, 'web'); // Web context is the 3rd param
+      if (newConv?.id) {
+        setActiveConversationId(newConv.id);
+      }
 
       toast({
         title: '✨ Nova Conversa',
@@ -322,11 +351,8 @@ export default function ChatPage() {
           onCreateConversation={async () => {
             if (!user) return null;
             try {
-              const newConv = await conversationsApi.createConversation(user.id, `Conversa ${new Date().toLocaleString('pt-BR')}`, 'web');
-              setActiveConversationId(newConv.id);
-              const { addConversation } = useChatStore.getState();
-              addConversation({ id: newConv.id, title: newConv.title, createdAt: newConv.createdAt, messages: [] });
-              return newConv.id;
+              const newConv = await createNewConversation(user.id, `Conversa ${new Date().toLocaleString('pt-BR')}`, 'web');
+              return newConv?.id || null;
             } catch { return null; }
           }}
         />

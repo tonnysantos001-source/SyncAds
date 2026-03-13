@@ -5,7 +5,7 @@ import { corsHeaders } from "../_utils/cors.ts";
 interface AudioGenerationRequest {
     text: string;
     voice?: string;
-    provider?: "elevenlabs" | "playht" | "google";
+    provider?: "elevenlabs" | "playht" | "google" | "huggingface";
     style?: "natural" | "expressive" | "calm" | "energetic";
 }
 
@@ -64,8 +64,74 @@ serve(async (req) => {
         let duration: number;
         let cost: number;
 
+        if (provider === "huggingface") {
+            const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
+            if (HF_API_KEY) {
+                try {
+                    console.log("🎙️ [Hugging Face] Generating audio...");
+                    const model = voice || "facebook/mms-tts-por";
+                    
+                    const response = await fetch(
+                        `https://api-inference.huggingface.co/models/${model}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${HF_API_KEY}`,
+                                "Content-Type": "application/json",
+                            },
+                            method: "POST",
+                            body: JSON.stringify({ inputs: text }),
+                        }
+                    );
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorMsg = "Erro ao gerar áudio no Hugging Face";
+                        try {
+                            const errObj = JSON.parse(errorText);
+                            if (errObj.error) errorMsg = errObj.error;
+                        } catch (e) { }
+
+                        if (errorMsg.includes("is currently loading") || errorMsg.includes("estimated_time")) {
+                            throw new Error("O modelo gratuito de voz está inicializando. Aguarde 1 minuto e tente novamente.");
+                        }
+                        throw new Error(`HF API failed: ${errorMsg}`);
+                    }
+
+                    const audioBlob = await response.blob();
+                    const audioBuffer = await audioBlob.arrayBuffer();
+
+                    const fileName = `audio/${user.id}/${Date.now()}-${crypto.randomUUID()}.wav`;
+
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from("media-generations")
+                        .upload(fileName, audioBuffer, {
+                            contentType: "audio/wav",
+                            upsert: false,
+                        });
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabaseClient.storage
+                        .from("media-generations")
+                        .getPublicUrl(fileName);
+
+                    audioUrl = publicUrl;
+                    usedProvider = "huggingface";
+                    duration = Math.ceil(text.length / 15);
+                    cost = 0;
+                    console.log("✅ [Hugging Face] Generated and uploaded");
+                } catch (error) {
+                    console.error("❌ [Hugging Face] Failed:", error);
+                    throw error;
+                }
+            } else {
+                 console.warn("⚠️ [Hugging Face] API key not configured");
+                 throw new Error("Hugging Face API key not configured");
+            }
+        }
+
         // Try ElevenLabs first
-        if (provider === "elevenlabs") {
+        if (!audioUrl && provider === "elevenlabs") {
             const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
             if (ELEVENLABS_API_KEY) {

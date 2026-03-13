@@ -154,7 +154,8 @@ export function ImageGalleryModal({
     setIsGenerating(true);
 
     try {
-      onSendMessage?.(prompt);
+      // ⚠️ Modal independente: NÃO enviar para o chat principal
+      // onSendMessage foi removido intencionalmente
 
       toast({
         title: 'Gerando imagem...',

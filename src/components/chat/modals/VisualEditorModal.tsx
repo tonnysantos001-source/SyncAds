@@ -127,8 +127,8 @@ export function VisualEditorModal({
     setIsGenerating(true);
 
     try {
-      // Callback
-      onSendMessage?.(prompt);
+      // ⚠️ Modal independente: NÃO enviar para o chat principal
+      // Este modal tem seu próprio sistema de chat interno (messages[])
 
       // System prompt especializado para geração de código
       const systemPrompt = `Você é um expert em criar landing pages e websites modernos.

@@ -743,41 +743,33 @@ export async function generateVideo(
   try {
     console.log("🎬 Iniciando geração de vídeo...");
 
-    // Buscar configuração da API
-    const { data: config, error: configError } = await supabase
+    const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+    const provider = options.provider || "huggingface";
+
+    // Se HuggingFace key está disponível, usar diretamente sem buscar GlobalAiConnection
+    if (hfKey && (provider === "huggingface" || provider !== "runway" && provider !== "pika")) {
+      return await generateVideoWithHuggingFace(options, hfKey);
+    }
+
+    // Para Runway/Pika, buscar config do banco
+    const { data: config } = await supabase
       .from("GlobalAiConnection")
       .select("*")
       .eq("userId", options.userId)
       .eq("isActive", true)
       .single();
 
-    if (configError || !config) {
-      return {
-        success: false,
-        error:
-          "Configuração de IA não encontrada. Configure em Configurações > IA Global.",
-      };
-    }
+    const runwayKey = (config as any)?.runwayKey;
+    const pikaKey = (config as any)?.pikaKey;
 
-    const provider = options.provider || "huggingface";
-    const runwayKey =
-      process.env.VITE_RUNWAY_API_KEY || (config as any)?.runwayKey;
-    const pikaKey = process.env.VITE_PIKA_API_KEY || (config as any)?.pikaKey;
-    const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-
-    if ((provider === "runway" || (!hfKey && runwayKey)) && runwayKey) {
-      return await generateVideoWithRunway(
-        options,
-        runwayKey,
-        config.apiKey || "",
-      );
-    } else if ((provider === "pika" || (!hfKey && pikaKey)) && pikaKey) {
-      return await generateVideoWithPika(options, pikaKey, config.apiKey || "");
+    if (provider === "runway" && runwayKey) {
+      return await generateVideoWithRunway(options, runwayKey, config?.apiKey || "");
+    } else if (provider === "pika" && pikaKey) {
+      return await generateVideoWithPika(options, pikaKey, config?.apiKey || "");
     } else if (hfKey) {
-      // Usa Hugging Face por padrão quando há a chave gratuita configurada (ou quando explicitamente solicitado)
       return await generateVideoWithHuggingFace(options, hfKey);
     } else {
-      // Fallback: Gerar vídeo placeholder com imagem estática
+      // Fallback: placeholder simples
       return await generateVideoPlaceholder(options);
     }
   } catch (error: any) {

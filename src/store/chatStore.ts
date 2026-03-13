@@ -10,7 +10,7 @@ interface ChatState {
 
   // Actions
   loadConversations: (userId: string, context?: string) => Promise<void>;
-  createNewConversation: (userId: string, title?: string, context?: string) => Promise<void>;
+  createNewConversation: (userId: string, title?: string, context?: string) => Promise<ChatConversation>;
   addMessage: (
     userId: string,
     conversationId: string,
@@ -81,18 +81,52 @@ export const useChatStore = create<ChatState>((set, get) => ({
         context,
       );
 
+      // Nova Conversa sempre começa com uma saudação no contexto web/default
+      const greetingContent = "Bom dia. Como posso ajudar você hoje?";
+      
+      let greetingMessage = null;
+      try {
+        // Salva a mensagem inicial no banco diretamente via API
+        const savedMessage = await chatApi.createMessage(
+          userId,
+          newConversation.id,
+          "ASSISTANT",
+          greetingContent
+        );
+        
+        greetingMessage = {
+          id: savedMessage.id,
+          role: "assistant" as const,
+          content: savedMessage.content,
+          timestamp: new Date(savedMessage.createdAt)
+        };
+      } catch (e) {
+        console.error("Erro ao criar saudação inicial:", e);
+        // Fallback apenas local se a API falhar (improvável)
+        greetingMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant" as const,
+          content: greetingContent,
+          timestamp: new Date()
+        };
+      }
+
+      const conversationWithMessages = {
+        id: newConversation.id,
+        title: newConversation.title,
+        createdAt: newConversation.createdAt,
+        messages: [greetingMessage],
+      };
+
       set((state) => ({
         conversations: [
-          {
-            id: newConversation.id,
-            title: newConversation.title,
-            createdAt: newConversation.createdAt,
-            messages: [],
-          },
+          conversationWithMessages,
           ...state.conversations,
         ],
         activeConversationId: newConversation.id,
       }));
+
+      return conversationWithMessages;
     } catch (error) {
       console.error("Create conversation error:", error);
       throw error;

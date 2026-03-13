@@ -127,8 +127,7 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             'facebook/mms-tts-eng'
         ],
         generate: async (options) => {
-            const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-            if (!hfKey) throw new Error('HUGGINGFACE_API_KEY não configurada no .env');
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
             // Pegar sessão para fazer upload da mídia gerada
             const { data: { session } } = await supabase.auth.getSession();
@@ -137,66 +136,50 @@ export const AUDIO_PROVIDERS: Record<string, AudioProvider> = {
             const model = options.voice || 'facebook/mms-tts-por';
 
             const response = await fetch(
-                `https://api-inference.huggingface.co/models/${model}`,
+                `${supabaseUrl}/functions/v1/generate-audio`,
                 {
+                    method: 'POST',
                     headers: {
-                        Authorization: `Bearer ${hfKey}`,
-                        "Content-Type": "application/json",
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json',
                     },
-                    method: "POST",
-                    body: JSON.stringify({ inputs: options.text }),
+                    body: JSON.stringify({
+                        text: options.text,
+                        voice: model,
+                        provider: 'huggingface',
+                        style: options.style || 'natural',
+                    }),
                 }
             );
 
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorMsg = "Erro ao gerar áudio no Hugging Face";
-                try {
-                    const errObj = JSON.parse(errorText);
-                    if (errObj.error) errorMsg = errObj.error;
-                } catch (e) { }
-
-                if (errorMsg.includes("is currently loading") || errorMsg.includes("estimated_time")) {
-                    throw new Error("O modelo gratuito de voz está inicializando (warm-up). Por favor, aguarde 1 minuto e tente novamente.");
-                }
-                throw new Error(errorMsg);
+                const error = await response.json();
+                throw new Error(error.error || 'Erro ao gerar áudio no servidor');
             }
 
-            const audioBlob = await response.blob();
-            const fileName = `audio/${session.user.id}/hf_tts_${Date.now()}.wav`;
+            const result = await response.json();
 
-            const { error: uploadError } = await supabase.storage
-                .from('ai-generated')
-                .upload(fileName, audioBlob, {
-                    contentType: 'audio/wav',
-                    cacheControl: '3600',
-                    upsert: false
-                });
-
-            if (uploadError) {
-                throw new Error("Erro ao salvar o áudio gerado na nuvem");
+            if (!result.success || !result.audio) {
+                throw new Error('Resposta inválida do servidor');
             }
-
-            const { data: publicUrl } = supabase.storage
-                .from('ai-generated')
-                .getPublicUrl(fileName);
 
             return {
-                url: publicUrl.publicUrl,
+                url: result.audio.url,
                 type: 'tts',
-                text: options.text,
-                provider: 'huggingface',
+                text: result.audio.text,
+                provider: result.audio.provider,
                 timestamp: Date.now(),
-                cost: 0,
+                cost: result.audio.cost || 0,
                 metadata: {
                     model,
-                    duration: 0,
+                    duration: result.audio.duration || 0,
+                    voice: result.audio.voice,
                 },
             };
         },
         isAvailable: async () => {
-            const hfKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-            return !!hfKey;
+            const { data: { session } } = await supabase.auth.getSession();
+            return !!session;
         },
     },
 
