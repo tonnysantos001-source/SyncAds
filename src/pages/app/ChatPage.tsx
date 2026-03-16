@@ -82,15 +82,11 @@ export default function ChatPage() {
     // Auto-hide sidebar when sending message (ChatGPT behavior)
     setSidebarOpen(false);
 
-    // ✅ CRÍTICO: Setar loading IMEDIATAMENTE (antes de qualquer await)
-    setAssistantTyping(true);
-
     // Detectar se é comando de browser automation
     const browserTriggers = ['abr', 'vá', 'acesse', 'entr', 'cliqu', 'naveg', 'visit'];
     const isBrowserCommand = browserTriggers.some(trigger => message.toLowerCase().includes(trigger));
 
     if (isBrowserCommand) {
-      // Extrair ação
       let action = 'Processando comando';
       if (message.toLowerCase().includes('google')) action = 'Abrindo Google';
       else if (message.toLowerCase().includes('facebook')) action = 'Abrindo Facebook';
@@ -103,7 +99,7 @@ export default function ChatPage() {
     }
 
     try {
-      // ✅ Auto-criar conversa web se não houver uma ativa
+      // 1. ✅ PRIMEIRO: Garantir que existe uma conversa ativa
       let convId = activeConversationId;
       if (!convId && user) {
         console.log('[ChatPage] Sem conversa ativa - criando automaticamente...');
@@ -125,7 +121,7 @@ export default function ChatPage() {
 
       if (!convId) throw new Error('Nenhuma conversa disponível.');
 
-      // 1. Adicionar mensagem do usuário ao estado local IMEDIATAMENTE (aparece na tela)
+      // 2. ✅ IMEDIATAMENTE: Adicionar mensagem do usuário ao estado local (aparece na tela AGORA)
       const { addMessage } = useChatStore.getState();
       const userMsgId = crypto.randomUUID();
       const tempUserMessage = {
@@ -134,9 +130,12 @@ export default function ChatPage() {
         content: message,
         timestamp: new Date(),
       };
-      await addMessage(user.id, convId, tempUserMessage as any);
+      await addMessage(user!.id, convId, tempUserMessage as any);
 
-      // 2. Salvar mensagem do usuário no banco (sem aguardar o resultado para não bloquear a UX)
+      // 3. ✅ Só agora ativar loading (a mensagem do usuário já está visível)
+      setAssistantTyping(true);
+
+      // 4. Salvar mensagem do usuário no banco em background (não bloqueia a UX)
       supabase
         .from('ChatMessage')
         .insert({
@@ -152,15 +151,13 @@ export default function ChatPage() {
           else console.log('[ChatPage] Mensagem do usuário salva no BD ✅');
         });
 
-      // 3. Enviar para IA e obter resposta
+      // 5. Enviar para IA e obter resposta
       const response = await chatService.sendMessage(message, convId);
 
-      // ✅ Resetar loading após receber resposta
+      // Resetar loading após receber resposta
       setAssistantTyping(false);
 
-      // 4. Adicionar resposta da IA ao estado local sobrescrevendo apenas a última mensagem da IA
-      //    (A Edge Function já salva no banco; nós só atualizamos a tela)
-      //    Buscar apenas a última resposta do assistente para atualizar o estado local
+      // 6. Buscar a última resposta do assistente e exibir na tela
       const { data: latestMessages } = await supabase
         .from('ChatMessage')
         .select('*')
@@ -177,7 +174,7 @@ export default function ChatPage() {
           content: aiMsg.content,
           timestamp: new Date(aiMsg.createdAt),
         };
-        await addMessage(user.id, convId, aiMessage as any);
+        await addMessage(user!.id, convId, aiMessage as any);
 
         // Verificar metadata de tool execution
         if (aiMsg.metadata) {
@@ -195,7 +192,7 @@ export default function ChatPage() {
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
 
-      // ✅ Resetar loading em caso de erro também
+      // Resetar loading em caso de erro também
       setAssistantTyping(false);
 
       // Atualizar indicador para erro

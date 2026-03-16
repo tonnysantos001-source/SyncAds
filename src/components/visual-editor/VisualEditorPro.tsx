@@ -95,6 +95,8 @@ export function VisualEditorPro({
     const [showDesignTools, setShowDesignTools] = useState(false);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
+    // srcDoc state para o preview (evita erro cross-origin com contentDocument.write)
+    const [previewSrc, setPreviewSrc] = useState<string>('');
 
     // Refs
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -146,17 +148,9 @@ export function VisualEditorPro({
         return `${htmlCode}\n<style>\n${cssCode}\n</style>\n<script>\n${jsCode}\n</script>`;
     }, [htmlCode, cssCode, jsCode]);
 
-    // Update preview
+    // Update preview via srcDoc (sem erro cross-origin)
     useEffect(() => {
-        if (iframeRef.current) {
-            const iframe = iframeRef.current;
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (doc) {
-                doc.open();
-                doc.write(fullCode);
-                doc.close();
-            }
-        }
+        setPreviewSrc(fullCode);
     }, [fullCode]);
 
     // Helper function to call AI
@@ -513,9 +507,10 @@ export function VisualEditorPro({
                             >
                                 <iframe
                                     ref={iframeRef}
+                                    srcDoc={previewSrc}
                                     className="w-full h-full border-0"
                                     title="Preview"
-                                    sandbox="allow-scripts"
+                                    sandbox="allow-scripts allow-same-origin"
                                 />
                             </div>
                         </div>
