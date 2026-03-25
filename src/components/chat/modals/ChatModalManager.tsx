@@ -24,21 +24,15 @@ import {
 import { cn } from '@/lib/utils';
 import {
   IconMessageCircle,
-  IconBrush,
-  IconPhoto,
-  IconVideo,
-  IconMicrophone,
-  IconX,
   IconMaximize,
   IconMinimize,
+  IconMenu2,
+  IconArrowLeft,
+  IconX,
 } from '@tabler/icons-react';
 
-// Import dos modais
+// Import do modal principal
 import { ChatModalNormal } from './ChatModalNormal';
-import VisualEditorPro from '../../visual-editor/VisualEditorPro';
-import { ImageGalleryModal } from './ImageGalleryModal';
-import { VideoGalleryModal } from './VideoGalleryModal';
-import AudioGalleryPro from '../../media/audio/AudioGalleryPro';
 
 interface ChatModalManagerProps {
   /** Se deve detectar automaticamente o contexto */
@@ -55,30 +49,25 @@ interface ChatModalManagerProps {
   className?: string;
   /** Dados do usuário */
   userId?: string;
+  /** Action de toggle do sidebar inserido via wrapper */
+  onOpenSidebar?: () => void;
+  /** Controla se mostra ícone de sidebar */
+  showSidebarToggle?: boolean;
+  /** Função de "Sair" do chat */
+  onExit?: () => void;
+  /** Função para criar nova conversa */
+  onCreateConversation?: () => Promise<string | null>;
+  /** ID da Conversa Ativa */
+  conversationId?: string;
 }
 
-/**
- * Ícones para cada tipo de modal
- */
-const MODAL_ICONS: Record<ModalType, React.ComponentType<any>> = {
+// Somente o chat é exibido como aba — mídia fica integrada no MediaGeneratorPanel
+const MODAL_ICONS: Record<string, React.ComponentType<any>> = {
   chat: IconMessageCircle,
-  'visual-editor': IconBrush,
-  'image-gallery': IconPhoto,
-  'video-gallery': IconVideo,
-  'audio-gallery': IconMicrophone,
-  'code-editor': IconMessageCircle, // Placeholder
 };
 
-/**
- * Nomes dos modais para exibição
- */
-const MODAL_NAMES: Record<ModalType, string> = {
-  chat: 'Chat',
-  'visual-editor': 'Construtor Web',
-  'image-gallery': 'Imagens',
-  'video-gallery': 'Vídeos',
-  'audio-gallery': 'Áudio',
-  'code-editor': 'Código',
+const MODAL_NAMES: Record<string, string> = {
+  chat: 'Chat IA',
 };
 
 export function ChatModalManager({
@@ -89,6 +78,11 @@ export function ChatModalManager({
   allowManualSwitch = true,
   className,
   userId,
+  onOpenSidebar,
+  showSidebarToggle,
+  onExit,
+  onCreateConversation,
+  conversationId,
 }: ChatModalManagerProps) {
   const [currentModal, setCurrentModal] = useState<ModalType>(initialModal);
   const [previousModal, setPreviousModal] = useState<ModalType>(initialModal);
@@ -161,7 +155,7 @@ export function ChatModalManager({
   }, [previousModal, currentModal]);
 
   /**
-   * Renderiza o modal atual
+   * Renderiza o modal atual (sempre ChatModalNormal — mídia integrada via MediaGeneratorPanel)
    */
   const renderCurrentModal = () => {
     const modalProps = {
@@ -170,24 +164,7 @@ export function ChatModalManager({
       userId,
       isExpanded,
     };
-
-    switch (currentModal) {
-      case 'visual-editor':
-        return <VisualEditorPro {...modalProps} />;
-
-      case 'image-gallery':
-        return <ImageGalleryModal {...modalProps} />;
-
-      case 'video-gallery':
-        return <VideoGalleryModal {...modalProps} />;
-
-      case 'audio-gallery':
-        return <AudioGalleryPro {...modalProps} />;
-
-      case 'chat':
-      default:
-        return <ChatModalNormal {...modalProps} onSwitchModal={handleManualSwitch} />;
-    }
+    return <ChatModalNormal {...modalProps} onSwitchModal={handleManualSwitch} />;
   };
 
   return (
@@ -199,28 +176,33 @@ export function ChatModalManager({
       )}
     >
       {/* Header com seletores de modal */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        {/* Modal Switcher */}
-        <div className="flex items-center gap-2">
-          {(Object.keys(MODAL_NAMES) as ModalType[]).map((type) => {
-            if (type === 'code-editor') return null; // Skip por enquanto
+      <div className="flex items-center px-4 py-3 border-b border-white/10 bg-black/20 backdrop-blur-sm w-full overflow-hidden">
+        
+        {/* Menu Toggle no Mobile incorporado ao cabeçalho flexível */}
+        {showSidebarToggle && onOpenSidebar && (
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden mr-3 p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
+            aria-label="Abrir Menu"
+          >
+            <IconMenu2 className="w-5 h-5" />
+          </button>
+        )}
 
+        {/* Modal Switcher - Apenas Chat IA visível; Imagem/Vídeo/Áudio integrados no botão + */}
+        <div className="flex items-center gap-2 flex-grow overflow-x-auto no-scrollbar scroll-smooth pl-1 pr-4">
+          {Object.keys(MODAL_NAMES).map((type) => {
             const Icon = MODAL_ICONS[type];
-            const isActive = currentModal === type;
-            const isDetected = detectedContext?.type === type;
+            const isActive = true; // always chat
+            const isDetected = false;
 
             return (
               <motion.button
                 key={type}
-                onClick={() => handleManualSwitch(type)}
-                disabled={!allowManualSwitch || isTransitioning}
                 className={cn(
                   'relative flex items-center gap-2 px-3 py-2 rounded-lg',
                   'transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                  'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                 )}
                 whileHover={!isTransitioning ? { scale: 1.05 } : {}}
                 whileTap={!isTransitioning ? { scale: 0.95 } : {}}
@@ -242,12 +224,25 @@ export function ChatModalManager({
           })}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-2">
+        {/* Controls - Separados e fixos à direita */}
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0 border-l border-white/10 pl-4 bg-transparent">
+          {/* Exit Button */}
+          {onExit && (
+            <motion.button
+              onClick={onExit}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 transition-colors mr-1"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <IconArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-semibold hidden sm:inline">Voltar</span>
+            </motion.button>
+          )}
+          
           {/* Expand/Collapse */}
           <motion.button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors hidden sm:flex"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

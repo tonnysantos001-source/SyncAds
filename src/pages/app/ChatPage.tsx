@@ -10,7 +10,7 @@ import chatService from '@/lib/api/chatService';
 import type { ModalContext } from '@/lib/ai/modalContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { conversationsApi } from '@/lib/api';
+import { conversationsApi, chatApi } from '@/lib/api';
 
 /**
  * CHAT PAGE - SISTEMA DE MODAIS ADAPTATIVOS COM SIDEBAR
@@ -135,59 +135,58 @@ export default function ChatPage() {
       // 3. ✅ Só agora ativar loading (a mensagem do usuário já está visível)
       setAssistantTyping(true);
 
-      // 4. Salvar mensagem do usuário no banco em background (não bloqueia a UX)
-      supabase
-        .from('ChatMessage')
-        .insert({
-          id: userMsgId,
-          userId: user!.id,
-          conversationId: convId,
-          role: 'USER' as any,
-          content: message,
-          createdAt: new Date().toISOString(),
-        })
-        .then(({ error }) => {
-          if (error) console.error('[ChatPage] Erro ao salvar mensagem do usuário no BD:', error);
-          else console.log('[ChatPage] Mensagem do usuário salva no BD ✅');
-        });
-
-      // 5. Enviar para IA e obter resposta
+      // 4. Enviar para IA e obter resposta (IA salva do lado do servidor)
       const response = await chatService.sendMessage(message, convId);
 
       // Resetar loading após receber resposta
       setAssistantTyping(false);
 
-      // 6. Buscar a última resposta do assistente e exibir na tela
-      const { data: latestMessages } = await supabase
-        .from('ChatMessage')
-        .select('*')
-        .eq('conversationId', convId)
-        .eq('role', 'ASSISTANT')
-        .order('createdAt', { ascending: false })
-        .limit(1);
-
-      if (latestMessages && latestMessages.length > 0) {
-        const aiMsg = latestMessages[0];
+      // 5. ✅ PRIMEIRO: Usar a resposta já retornada pelo chatService (mais rápido)
+      // Isso funciona para respostas normais E para imagens geradas pelo interceptor
+      if (response && typeof response === 'string' && response.trim()) {
         const aiMessage = {
-          id: aiMsg.id,
+          id: crypto.randomUUID(),
           role: 'assistant' as const,
-          content: aiMsg.content,
-          timestamp: new Date(aiMsg.createdAt),
+          content: response,
+          timestamp: new Date(),
         };
         await addMessage(user!.id, convId, aiMessage as any);
+        setToolStatus('idle');
+      } else {
+        // 6. Fallback: Buscar a última resposta do assistente no banco
+        const { data: latestMessages } = await supabase
+          .from('ChatMessage')
+          .select('*')
+          .eq('conversationId', convId)
+          .eq('role', 'ASSISTANT')
+          .order('createdAt', { ascending: false })
+          .limit(1);
 
-        // Verificar metadata de tool execution
-        if (aiMsg.metadata) {
-          const metadata = aiMsg.metadata as any;
-          if (metadata.tool_success !== undefined) {
-            setToolLogs(metadata.execution_logs || []);
-            if (metadata.tool_success) setToolStatus('success');
-            else { setToolStatus('error'); setToolError(metadata.tool_message || 'Erro desconhecido'); }
-          } else {
-            setToolStatus('idle');
+        if (latestMessages && latestMessages.length > 0) {
+          const aiMsg = latestMessages[0];
+          const aiMessage = {
+            id: aiMsg.id,
+            role: 'assistant' as const,
+            content: aiMsg.content,
+            timestamp: new Date(aiMsg.createdAt),
+          };
+          await addMessage(user!.id, convId, aiMessage as any);
+
+          // Verificar metadata de tool execution
+          if (aiMsg.metadata) {
+            const metadata = aiMsg.metadata as any;
+            if (metadata.tool_success !== undefined) {
+              setToolLogs(metadata.execution_logs || []);
+              if (metadata.tool_success) setToolStatus('success');
+              else { setToolStatus('error'); setToolError(metadata.tool_message || 'Erro desconhecido'); }
+            } else {
+              setToolStatus('idle');
+            }
           }
         }
       }
+
+
 
     } catch (error) {
       console.error('[ChatPage] Error sending message:', error);
@@ -328,13 +327,6 @@ export default function ChatPage() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Menu Toggle Button (visible when sidebar is closed) */}
-        {!sidebarOpen && (
-          <div className="absolute top-4 left-4 z-10">
-            <MenuToggleButton onClick={() => setSidebarOpen(true)} />
-          </div>
-        )}
-
         {/* Chat Modal Manager */}
         <ChatModalManager
           autoDetect={true}
@@ -345,6 +337,9 @@ export default function ChatPage() {
           onModalChange={handleModalChange}
           onSendMessage={handleSendMessage}
           className="h-full w-full"
+          onOpenSidebar={() => setSidebarOpen(true)}
+          showSidebarToggle={!sidebarOpen}
+          onExit={() => navigate('/reports/overview')}
           onCreateConversation={async () => {
             if (!user) return null;
             try {

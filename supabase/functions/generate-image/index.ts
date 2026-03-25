@@ -1,235 +1,134 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handlePreflightRequest } from "../_utils/cors.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 /**
- * Enhanced Image Generation with Multiple Providers
- * 
- * Priority:
- * 1. Pollinations.ai (FREE, no API key)
- * 2. DALL-E 3 (OpenAI, requires API key)
- * 3. Stable Diffusion (if configured)
+ * GENERATE-IMAGE EDGE FUNCTION
+ * Priority: 1. HuggingFace FLUX.1 (via Router) -> 2. Pollinations.ai (Fallback)
  */
 
 serve(async (req) => {
+  // CORS Preflight
   if (req.method === "OPTIONS") {
-    return handlePreflightRequest();
+    return new Response("ok", { headers: corsHeaders });
   }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const hfToken = Deno.env.get("HUGGINGFACE_API_KEY");
+
+  // Admin client for DB/Storage
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
+    if (!authHeader) throw new Error("Missing Authorization header");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    // Verify user JWT
+    const supabaseUser = createClient(supabaseUrl, authHeader);
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) throw new Error("Unauthorized");
 
     const body = await req.json();
-    const {
-      prompt,
-      size = "1024x1024",
-      quality = "standard",
-      provider = "auto"
-    } = body;
+    const { prompt, size = "1024x1024", provider = "auto" } = body;
 
-    if (!prompt) {
-      throw new Error("Prompt is required");
-    }
+    if (!prompt) throw new Error("Prompt is required");
 
-    console.log("🎨 [Image Gen] Request:", { userId: user.id, prompt, provider });
+    console.log(`🎨 [GENERATE-IMAGE] Request from ${user.email}: "${prompt}"`);
 
-    let imageUrl: string | null = null;
-    let usedProvider = "";
-    let cost = 0;
+    let imageUrl = null;
+    let finalProvider = "auto";
+    const [w, h] = size.split("x").map((s) => parseInt(s) || 1024);
+    const seed = Math.floor(Math.random() * 999999);
 
-    // ============================================
-    // PROVIDER 1: POLLINATIONS.AI (FREE, NO API KEY)
-    // ============================================
-    if (provider === "auto" || provider === "pollinations") {
+    // --- PROVIDER 1: HUGGING FACE (FLUX.1-schnell) ---
+    if (hfToken && (provider === "auto" || provider === "huggingface")) {
       try {
-        console.log("🌸 Trying Pollinations.ai (free)...");
-
-        // Pollinations.ai - Direct URL generation (no API call needed!)
-        const encodedPrompt = encodeURIComponent(prompt);
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-
-        // Verify the image exists
-        const testResponse = await fetch(pollinationsUrl, { method: "HEAD" });
-
-        if (testResponse.ok) {
-          imageUrl = pollinationsUrl;
-          usedProvider = "Pollinations.ai";
-          cost = 0; // FREE!
-          console.log("✅ [Image Gen] Pollinations.ai SUCCESS");
-        } else {
-          console.warn("⚠️ Pollinations.ai failed, trying next provider...");
-        }
-      } catch (error) {
-        console.warn("⚠️ Pollinations.ai error:", error);
-      }
-    }
-
-    // ============================================
-    // PROVIDER 2: DALL-E 3 (OpenAI - requires API key)
-    // ============================================
-    if (!imageUrl && (provider === "auto" || provider === "dalle")) {
-      try {
-        console.log("🎨 Trying DALL-E 3...");
-
-        const { data: openaiConfig } = await supabase
-          .from("GlobalAiConnection")
-          .select("apiKey")
-          .eq("provider", "OPENAI")
-          .eq("isActive", true)
-          .single();
-
-        if (openaiConfig?.apiKey) {
-          const openaiResponse = await fetch("https://api.openai.com/v1/images/generations", {
+        console.log("⚡ Attempting Hugging Face FLUX.1...");
+        const hfResponse = await fetch(
+          "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+          {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${openaiConfig.apiKey}`,
+              "Authorization": `Bearer ${hfToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              model: "dall-e-3",
-              prompt: prompt,
-              n: 1,
-              size: size === "1024x1024" ? "1024x1024" : "1792x1024",
-              quality: quality === "hd" ? "hd" : "standard",
-            }),
-          });
+            body: JSON.stringify({ inputs: prompt }),
+          }
+        );
 
-          if (openaiResponse.ok) {
-            const data = await openaiResponse.json();
-            imageUrl = data.data[0].url;
-            usedProvider = "DALL-E 3";
-            cost = quality === "hd" ? 0.08 : 0.04;
-            console.log("✅ [Image Gen] DALL-E 3 SUCCESS");
+        if (hfResponse.ok) {
+          const buffer = await hfResponse.arrayBuffer();
+          const fileName = `generations/${user.id}/${Date.now()}-flux.webp`;
+          
+          const { error: uploadError } = await supabaseAdmin.storage
+            .from("media-generations")
+            .upload(fileName, buffer, {
+              contentType: "image/webp",
+              cacheControl: "3600",
+              upsert: true
+            });
+
+          if (!uploadError) {
+            imageUrl = supabaseAdmin.storage.from("media-generations").getPublicUrl(fileName).data.publicUrl;
+            finalProvider = "huggingface";
+            console.log("✅ HF Success + Uploaded to Storage");
+          } else {
+            console.warn("⚠️ HF upload failed:", uploadError.message);
           }
         } else {
-          console.log("ℹ️ OpenAI not configured, skipping DALL-E");
+          const errText = await hfResponse.text();
+          console.warn(`⚠️ HF API returned ${hfResponse.status}:`, errText);
         }
-      } catch (error) {
-        console.warn("⚠️ DALL-E error:", error);
+      } catch (hfErr) {
+        console.warn("⚠️ HF Provider Error:", hfErr);
       }
     }
 
-    // ============================================
-    // FALLBACK: Error if no provider worked
-    // ============================================
-    if (!imageUrl) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to generate image with all providers",
-          suggestion: "Try configuring OpenAI (DALL-E) in Super Admin for better results",
-          providers_tried: provider === "auto" ? ["Pollinations.ai", "DALL-E 3"] : [provider],
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    // --- PROVIDER 2: POLLINATIONS (Fallback or Direct) ---
+    if (!imageUrl || provider === "pollinations") {
+      console.log("🌐 Using Pollinations.ai fallback...");
+      const encodedPrompt = encodeURIComponent(prompt);
+      imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${w}&height=${h}&nologo=true&seed=${seed}&model=flux`;
+      finalProvider = "pollinations";
+      console.log("✅ Pollinations URL ready");
     }
 
-    // ============================================
-    // UPLOAD TO SUPABASE STORAGE (optional)
-    // ============================================
-    let finalUrl = imageUrl;
-
-    // Only download and upload if it's not Pollinations (which is already hosted)
-    if (usedProvider !== "Pollinations.ai") {
-      try {
-        const imageResponse = await fetch(imageUrl);
-        const imageBlob = await imageResponse.blob();
-        const imageBuffer = await imageBlob.arrayBuffer();
-
-        const fileName = `images/${user.id}/${Date.now()}-${crypto.randomUUID()}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from("media-generations")
-          .upload(fileName, imageBuffer, {
-            contentType: "image/png",
-            upsert: false,
-          });
-
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from("media-generations")
-            .getPublicUrl(fileName);
-          finalUrl = publicUrl;
-        }
-      } catch (uploadError) {
-        console.warn("⚠️ Upload to storage failed, using external URL:", uploadError);
-      }
-    }
-
-    // ============================================
-    // SAVE TO DATABASE
-    // ============================================
+    // Log to DB
     try {
-      await supabase.from("MediaGeneration").insert({
+      await supabaseAdmin.from("MediaGeneration").insert({
         userId: user.id,
         type: "IMAGE",
-        provider: usedProvider,
+        url: imageUrl,
         prompt: prompt,
-        url: finalUrl,
-        size: size,
-        quality: quality,
-        cost: cost,
-        status: "COMPLETED",
-        metadata: {
-          originalUrl: imageUrl,
-          provider: usedProvider,
-        },
+        provider: finalProvider,
+        metadata: { size, model: "FLUX.1-schnell", source: "edge-function" }
       });
-    } catch (dbError) {
-      console.warn("⚠️ DB insert failed:", dbError);
+    } catch (dbErr) {
+      console.warn("⚠️ DB log failed:", dbErr);
     }
 
-    // ============================================
-    // SUCCESS RESPONSE
-    // ============================================
     return new Response(
       JSON.stringify({
         success: true,
         image: {
-          url: finalUrl,
+          url: imageUrl,
           prompt: prompt,
-          size: size,
-          quality: quality,
-          provider: usedProvider,
-          cost: cost,
-          free: cost === 0,
-        },
-        message: `Imagem gerada com ${usedProvider}!`,
+          provider: finalProvider
+        }
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    console.error("❌ [Image Gen] Error:", error);
 
+  } catch (error: any) {
+    console.error("❌ [GENERATE-IMAGE] Fatal error:", error.message);
     return new Response(
-      JSON.stringify({
-        error: error.message || "Unknown error",
-        details: error.stack,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -178,7 +178,6 @@ function App() {
 
   // Data loaders (novos stores)
   const loadCampaigns = useCampaignsStore((state) => state.loadCampaigns);
-  const loadConversations = useChatStore((state) => state.loadConversations);
   const loadIntegrations = useIntegrationsStore(
     (state) => state.loadIntegrations,
   );
@@ -285,7 +284,6 @@ function App() {
     if (isAuthenticated && user && user.isSuperAdmin !== true) {
       Promise.all([
         loadCampaigns(user.id),
-        loadConversations(user.id),
         loadIntegrations(user.id),
         loadAiConnections(user.id),
       ]).catch((error) => {
@@ -296,7 +294,6 @@ function App() {
     isAuthenticated,
     user,
     loadCampaigns,
-    loadConversations,
     loadIntegrations,
     loadAiConnections,
   ]);

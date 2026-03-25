@@ -62,8 +62,9 @@ export const ChatMessage = React.memo(function ChatMessage({
   const cleanContent = message.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
 
   // Detectar URLs de imagem no conteúdo (Markdown e diretas)
+  // Suporta: extensões de imagem, Pollinations.ai, HuggingFace, e data URLs base64
   const imageUrlRegex =
-    /!\[([^\]]*)\]\(([^)]+)\)|(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?)/gi;
+    /!\[([^\]]*)\]\(([^)]+)\)|(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?)|(https?:\/\/image\.pollinations\.ai\/[^\s]+)|(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+)/gi;
   const videoUrlRegex =
     /(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)(?:\?[^\s]*)?)/gi;
 
@@ -77,12 +78,19 @@ export const ChatMessage = React.memo(function ChatMessage({
         // Markdown: ![alt](url)
         return { url: match[2], alt: match[1] || "Imagem" };
       } else if (match[3]) {
-        // URL direta
+        // URL direta com extensão
         return { url: match[3], alt: "Imagem" };
+      } else if (match[4]) {
+        // Pollinations.ai URL
+        return { url: match[4], alt: "Imagem gerada pela IA" };
+      } else if (match[5]) {
+        // Base64 data URL
+        return { url: match[5], alt: "Imagem gerada pela IA" };
       }
       return null;
     })
     .filter(Boolean) as Array<{ url: string; alt: string }>;
+
 
   const extractedVideos = videoMatches.map((match) => match[1]);
 

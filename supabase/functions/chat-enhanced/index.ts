@@ -11,6 +11,10 @@ serve(async (req) => {
     return handlePreflightRequest();
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
   // ✅ FIX: Guard against missing Authorization header BEFORE try/catch
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -71,24 +75,18 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    // Get user
+    const supabaseUser = createClient(supabaseUrl, authHeader);
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       console.error("❌ [chat-enhanced] Auth error:", userError?.message);
       throw new Error("Unauthorized");
     }
 
     // Verificar se é admin (admins não têm rate limit)
-    const { data: userData } = await supabase
+    const { data: userData } = await supabaseAdmin
       .from("User")
       .select("role")
       .eq("id", user.id)
@@ -108,11 +106,96 @@ serve(async (req) => {
     }
 
     // ============================================
+    // 🎨 MEDIA INTERCEPTION — Intercepts image/audio/video requests
+    // before the LLM to call the appropriate Edge Function directly
+    // Prevents the LLM from hallucinating or calling wrong tools
+    // ============================================
+    const msgLower = message.toLowerCase();
+
+    const imageKeywords = [
+      "crie uma imagem", "cria uma imagem", "gere uma imagem", "gera uma imagem",
+      "criar imagem", "gerar imagem", "faça uma imagem", "faz uma imagem",
+      "desenhe", "ilustre", "crie um banner", "gere um banner",
+      "gere uma foto", "crie uma foto", "generate image", "create image",
+      "make an image", "draw a", "create a picture", "generate a picture",
+      "crie uma arte", "gere uma arte", "crie uma logo", "gere um logo",
+    ];
+
+    const isImageRequest = imageKeywords.some(kw => msgLower.includes(kw));
+
+    if (isImageRequest) {
+      console.log("🎨 [MEDIA INTERCEPT] Detected image request, calling generate-image directly...");
+
+      try {
+        // Extract the prompt from the message
+        let imagePrompt = message;
+        for (const kw of imageKeywords) {
+          const idx = msgLower.indexOf(kw);
+          if (idx !== -1) {
+            imagePrompt = message.substring(idx + kw.length).trim();
+            if (imagePrompt.length < 5) imagePrompt = message; // fallback to full message
+            break;
+          }
+        }
+
+        console.log("🎨 Image prompt extracted:", imagePrompt.substring(0, 100));
+
+        const imageResponse = await fetch(
+          `${supabaseUrl}/functions/v1/generate-image`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${supabaseServiceKey}`, // Use Service Key for internal call reliability
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              prompt: imagePrompt,
+              size: "1024x1024",
+              provider: "auto",
+            }),
+          }
+        );
+
+        if (imageResponse.ok) {
+          const imageData = await imageResponse.json();
+          const imageUrl = imageData.image?.url;
+          const provider = imageData.image?.provider || "IA";
+
+          if (imageUrl) {
+            console.log("✅ [MEDIA INTERCEPT] Image generated:", imageUrl.substring(0, 80));
+
+            const responseContent = `🎨 **Imagem gerada com sucesso!** *(via ${provider})*\n\n![${imagePrompt}](${imageUrl})\n\n*Prompt usado: "${imagePrompt}"*\n\nGostou? Posso gerar outra versão ou ajustar algo!`;
+
+            // Save to DB using Admin client to bypass RLS issues during intercept
+            try {
+              await supabaseAdmin.from("ChatMessage").insert([
+                { conversationId, role: "USER", content: message, userId: user.id },
+                { conversationId, role: "ASSISTANT", content: responseContent, userId: user.id, metadata: { provider, type: "image_generation" } },
+              ]);
+            } catch (dbErr) {
+              console.warn("⚠️ [MEDIA INTERCEPT] DB insert failed:", dbErr);
+            }
+
+            return new Response(
+              JSON.stringify({ response: responseContent, provider, model: "generate-image" }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+
+        console.warn("⚠️ [MEDIA INTERCEPT] Image generation failed, falling back to LLM...");
+      } catch (mediaErr) {
+        console.warn("⚠️ [MEDIA INTERCEPT] Error:", mediaErr, "Falling back to LLM...");
+      }
+    }
+
+    // ============================================
     // 🎯 AI ROUTER - SELEÇÃO INTELIGENTE DE IA
     // ============================================
     console.log("🤖 Chamando AI Router para selecionar melhor IA...");
 
     let selectedProvider = "GROQ"; // fallback padrão
+
     let selectedReason = "Default fallback";
 
     try {

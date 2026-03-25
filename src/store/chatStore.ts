@@ -58,12 +58,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }),
       );
 
-      set({
-        conversations: conversationsWithMessages,
-        activeConversationId:
-          conversationsWithMessages.length > 0
-            ? conversationsWithMessages[0].id
-            : null,
+      set((state) => {
+        // Se já tiver uma conversa ativa que ainda existe na lista, mantê-la.
+        // Caso contrário, pegar a primeira da lista.
+        const activeExists = state.activeConversationId 
+          ? conversationsWithMessages.some(c => c.id === state.activeConversationId)
+          : false;
+
+        return {
+          conversations: conversationsWithMessages,
+          activeConversationId: activeExists
+            ? state.activeConversationId
+            : conversationsWithMessages.length > 0
+              ? conversationsWithMessages[0].id
+              : null,
+        };
       });
     } catch (error) {
       console.error("Load conversations error:", error);

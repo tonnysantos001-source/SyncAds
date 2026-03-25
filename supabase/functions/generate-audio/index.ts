@@ -9,6 +9,11 @@ interface AudioGenerationRequest {
     style?: "natural" | "expressive" | "calm" | "energetic";
 }
 
+// ✅ Use Service Role Key for internal administrative tasks (Storage, DB writes)
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
 serve(async (req) => {
     // Handle CORS preflight
     if (req.method === "OPTIONS") {
@@ -22,16 +27,12 @@ serve(async (req) => {
             throw new Error("Missing authorization header");
         }
 
-        const supabaseClient = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-        );
-
-        const token = authHeader.replace("Bearer ", "");
+        // Use user client for identity verification
+        const supabaseUser = createClient(supabaseUrl, authHeader);
         const {
             data: { user },
             error: authError,
-        } = await supabaseClient.auth.getUser(token);
+        } = await supabaseUser.auth.getUser();
 
         if (authError || !user) {
             throw new Error("Unauthorized");
@@ -103,26 +104,66 @@ serve(async (req) => {
                     const audioBlob = await response.blob();
                     const audioBuffer = await audioBlob.arrayBuffer();
 
-                    const fileName = `audio/${user.id}/${Date.now()}-${crypto.randomUUID()}.wav`;
+                    // Try to upload to storage bucket first
+                    let audioStorageUrl: string | null = null;
+                    let base64Data: string | null = null; // To store base64 for DB log if storage fails
+                    try {
+                        const fileName = `audio/${user.id}/${Date.now()}-${crypto.randomUUID()}.wav`;
 
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from("media-generations")
-                        .upload(fileName, audioBuffer, {
-                            contentType: "audio/wav",
-                            upsert: false,
-                        });
+                        const { error: uploadError } = await supabaseAdmin.storage
+                            .from("media-generations")
+                            .upload(fileName, audioBuffer, {
+                                contentType: "audio/wav",
+                                cacheControl: "3600",
+                                upsert: true,
+                            });
 
-                    if (uploadError) throw uploadError;
+                        if (!uploadError) {
+                            const { data: { publicUrl } } = supabaseAdmin.storage
+                                .from("media-generations")
+                                .getPublicUrl(fileName);
+                            audioStorageUrl = publicUrl;
+                            console.log("✅ [Hugging Face] Uploaded to storage");
+                        } else {
+                            console.warn("⚠️ Storage upload failed (bucket may not exist), using base64 fallback:", uploadError.message);
+                        }
+                    } catch (uploadErr) {
+                        console.warn("⚠️ Storage exception, using base64 fallback:", uploadErr);
+                    }
 
-                    const { data: { publicUrl } } = supabaseClient.storage
-                        .from("media-generations")
-                        .getPublicUrl(fileName);
+                    // Fallback: encode as base64 data URL if storage failed
+                    if (!audioStorageUrl) {
+                        const uint8Array = new Uint8Array(audioBuffer);
+                        let binary = "";
+                        for (let i = 0; i < uint8Array.byteLength; i++) {
+                            binary += String.fromCharCode(uint8Array[i]);
+                        }
+                        base64Data = btoa(binary);
+                        audioStorageUrl = `data:audio/wav;base64,${base64Data}`;
+                        console.log("✅ [Hugging Face] Using base64 data URL fallback");
+                    }
 
-                    audioUrl = publicUrl;
+                    audioUrl = audioStorageUrl;
                     usedProvider = "huggingface";
                     duration = Math.ceil(text.length / 15);
                     cost = 0;
                     console.log("✅ [Hugging Face] Generated and uploaded");
+
+                    // Track generation in DB using Admin client
+                    try {
+                        await supabaseAdmin.from("generated_audios").insert({
+                            user_id: user.id,
+                            type: "tts",
+                            url: audioUrl || `data:audio/wav;base64,${base64Data}`,
+                            prompt: text,
+                            provider: "huggingface",
+                            voice,
+                            duration,
+                        });
+                    } catch (dbErr) {
+                        console.warn("⚠️ Audio DB log failed:", dbErr);
+                    }
+
                 } catch (error) {
                     console.error("❌ [Hugging Face] Failed:", error);
                     throw error;
@@ -178,7 +219,7 @@ serve(async (req) => {
                     // Upload to Supabase Storage
                     const fileName = `audio/${user.id}/${Date.now()}-${crypto.randomUUID()}.mp3`;
 
-                    const { error: uploadError } = await supabaseClient.storage
+                    const { error: uploadError } = await supabaseAdmin.storage
                         .from("media-generations")
                         .upload(fileName, audioBuffer, {
                             contentType: "audio/mpeg",
@@ -192,7 +233,7 @@ serve(async (req) => {
 
                     const {
                         data: { publicUrl },
-                    } = supabaseClient.storage
+                    } = supabaseAdmin.storage
                         .from("media-generations")
                         .getPublicUrl(fileName);
 
