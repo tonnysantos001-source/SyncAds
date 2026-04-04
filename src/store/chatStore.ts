@@ -27,9 +27,9 @@ interface ChatState {
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  // Estado inicial
+  // Estado inicial — restore activeConversationId from localStorage
   conversations: [],
-  activeConversationId: null,
+  activeConversationId: localStorage.getItem('syncads_active_conv') || null,
   isAssistantTyping: false,
 
   // Load Conversations
@@ -59,19 +59,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       );
 
       set((state) => {
-        // Se já tiver uma conversa ativa que ainda existe na lista, mantê-la.
-        // Caso contrário, pegar a primeira da lista.
-        const activeExists = state.activeConversationId 
-          ? conversationsWithMessages.some(c => c.id === state.activeConversationId)
-          : false;
+        // Restore previously active conversation if it still exists
+        const storedId = localStorage.getItem('syncads_active_conv');
+        const activeExists = storedId
+          ? conversationsWithMessages.some(c => c.id === storedId)
+          : state.activeConversationId
+            ? conversationsWithMessages.some(c => c.id === state.activeConversationId)
+            : false;
+
+        const newActiveId = activeExists
+          ? (storedId || state.activeConversationId)
+          : conversationsWithMessages.length > 0
+            ? conversationsWithMessages[0].id
+            : null;
+
+        if (newActiveId) localStorage.setItem('syncads_active_conv', newActiveId);
 
         return {
           conversations: conversationsWithMessages,
-          activeConversationId: activeExists
-            ? state.activeConversationId
-            : conversationsWithMessages.length > 0
-              ? conversationsWithMessages[0].id
-              : null,
+          activeConversationId: newActiveId,
         };
       });
     } catch (error) {
@@ -91,7 +97,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       );
 
       // Nova Conversa sempre começa com uma saudação no contexto web/default
-      const greetingContent = "Bom dia. Como posso ajudar você hoje?";
+      const currentHour = new Date().getHours();
+      let greetingTime = "Bom dia";
+      if (currentHour >= 12 && currentHour < 18) {
+        greetingTime = "Boa tarde";
+      } else if (currentHour >= 18) {
+        greetingTime = "Boa noite";
+      }
+      const greetingContent = `${greetingTime}. Como posso ajudar você hoje?`;
       
       let greetingMessage = null;
       try {
@@ -134,6 +147,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ],
         activeConversationId: newConversation.id,
       }));
+
+      // Persist new conversation as active
+      localStorage.setItem('syncads_active_conv', newConversation.id);
 
       return conversationWithMessages;
     } catch (error) {
@@ -268,8 +284,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })),
 
   // Set Active Conversation
-  setActiveConversationId: (id: string | null) =>
-    set({ activeConversationId: id }),
+  setActiveConversationId: (id: string | null) => {
+    if (id) localStorage.setItem('syncads_active_conv', id);
+    else localStorage.removeItem('syncads_active_conv');
+    set({ activeConversationId: id });
+  },
 
   // Set Assistant Typing
   setAssistantTyping: (isTyping: boolean) =>

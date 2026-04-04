@@ -82,7 +82,7 @@ const CheckoutCustomizePage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
 
   const [expandedSections, setExpandedSections] = useState<string[]>([
-    "CABEÇALHO",
+    "CABECALHO",
   ]);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
     "desktop",
@@ -260,8 +260,18 @@ const CheckoutCustomizePage: React.FC = () => {
       const data = await checkoutApi.loadCustomization(user!.id);
       if (data) {
         setCustomization(data);
+      } else {
+        // Criar uma personalização default em memória se não existir
+        setCustomization({
+          id: `draft-${Date.now()}`,
+          userId: user!.id,
+          name: "Checkout Principal",
+          theme: DEFAULT_CHECKOUT_THEME as any,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       }
-      // Não criar workspace automaticamente se não houver customização
     } catch (error) {
       console.error("Erro ao carregar personalização:", error);
       toast({

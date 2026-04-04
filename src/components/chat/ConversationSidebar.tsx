@@ -32,21 +32,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 }) => {
     return (
         <>
-            {/* Backdrop escuro em mobile quando sidebar está aberta */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
-                    onClick={onClose}
-                />
-            )}
-
-            {/* SIDEBAR - Conversas Antigas (Mobile: Overlay, Desktop: Sidebar) */}
-            <div
-                className={`${isOpen
-                    ? "fixed md:relative inset-0 md:inset-auto w-full sm:w-80 md:w-72 z-50 md:z-auto animate-in slide-in-from-left duration-300"
-                    : "hidden md:w-0"
-                    } bg-white dark:bg-gray-950 md:border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden shadow-xl md:shadow-none transition-colors duration-300`}
-            >
+        {/* Desktop-only sidebar — mobile uses the dropdown selector in the header */}
+        <div
+            className={`hidden md:flex md:flex-col ${isOpen ? "md:w-72" : "md:w-0"}
+            bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800
+            overflow-hidden transition-all duration-300 flex-shrink-0`}
+        >
                 {/* Sidebar Header */}
                 <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 md:bg-transparent">
                     <div className="flex items-center justify-between mb-3">

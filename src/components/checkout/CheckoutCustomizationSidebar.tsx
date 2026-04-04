@@ -15,6 +15,8 @@ import {
   Zap,
   Settings,
   Sparkles,
+  LayoutGrid,
+  CheckCircle2,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -41,28 +43,184 @@ interface CheckoutCustomizationSidebarProps {
   onToggleSection: (sectionId: string) => void;
   customization: any;
   onUpdateTheme: (updates: any) => void;
+  /** Callback quando o usuário seleciona um template */
+  onSelectTemplate?: (slug: string, version: number) => void;
 }
 
 const sections: Section[] = [
-  { id: "CABEÇALHO", label: "Cabeçalho", icon: Layout },
-  { id: "BARRA_DE_AVISOS", label: "Barra de Avisos", icon: Bell },
-  { id: "BANNER", label: "Banner", icon: Flag },
-  { id: "CARRINHO", label: "Carrinho", icon: ShoppingCart },
-  { id: "CONTEÚDO", label: "Conteúdo", icon: FileText },
-  { id: "RODAPÉ", label: "Rodapé", icon: AlignJustify },
-  { id: "ESCASSEZ", label: "Escassez", icon: Clock },
-  { id: "ORDER_BUMP", label: "Order Bump", icon: Zap },
-  { id: "CONFIGURAÇÕES", label: "Configurações", icon: Settings },
+  { id: "MODELOS",         label: "Modelos",         icon: LayoutGrid  },
+  { id: "CABECALHO",       label: "Cabeçalho",       icon: Layout       },
+  { id: "BARRA_DE_AVISOS", label: "Barra de Avisos",  icon: Bell         },
+  { id: "BANNER",          label: "Banner",           icon: Flag         },
+  { id: "CARRINHO",        label: "Carrinho",          icon: ShoppingCart },
+  { id: "CONTEUDO",        label: "Conteúdo",         icon: FileText     },
+  { id: "RODAPE",          label: "Rodapé",           icon: AlignJustify },
+  { id: "ESCASSEZ",        label: "Escassez",          icon: Clock        },
+  { id: "ORDER_BUMP",      label: "Order Bump",        icon: Zap          },
+  { id: "CONFIGURACOES",   label: "Configurações",     icon: Settings     },
 ];
 
 export const CheckoutCustomizationSidebar: React.FC<
   CheckoutCustomizationSidebarProps
-> = ({ expandedSections, onToggleSection, customization, onUpdateTheme }) => {
+> = ({ expandedSections, onToggleSection, customization, onUpdateTheme, onSelectTemplate }) => {
+
+  // Templates disponíveis para seleção
+  const AVAILABLE_TEMPLATES = [
+    {
+      slug: 'minimal',
+      version: 1,
+      name: 'Minimalista',
+      description: '3 etapas progressivas',
+      color: '#111827',
+      emoji: '⚫',
+      badge: 'Preto',
+    },
+    {
+      slug: 'high-conversion',
+      version: 1,
+      name: 'Alto Impacto',
+      description: 'Máxima conversão',
+      color: '#1766DC',
+      emoji: '🔵',
+      badge: 'Azul',
+    },
+    {
+      slug: 'tiktok',
+      version: 1,
+      name: 'Estilo TikTok',
+      description: 'Pagamento à direita',
+      color: '#E91E8C',
+      emoji: '💗',
+      badge: 'Pink',
+    },
+    {
+      slug: 'streamline',
+      version: 1,
+      name: 'Streamline',
+      description: 'Split-stepper Black Friday',
+      color: '#E60000',
+      emoji: '🔴',
+      badge: 'Vermelho',
+    },
+    {
+      slug: 'premium',
+      version: 1,
+      name: 'Checkout Premium',
+      description: 'Design luxuoso e sutil',
+      color: '#10B981',
+      emoji: '🟢',
+      badge: 'Verde',
+    },
+    {
+      slug: 'confianca',
+      version: 1,
+      name: 'Checkout Confiança',
+      description: 'FAQ + depoimentos',
+      color: '#8DC63F',
+      emoji: '🟡',
+      badge: 'Lime',
+    },
+  ];
+
+  const currentTemplateSlug = customization?.theme?.templateSlug || customization?.templateSlug || 'minimal';
+
+  const handleSelectTemplate = (slug: string, version: number) => {
+    // Salvar no tema para persistência
+    onUpdateTheme({ templateSlug: slug, templateVersion: version });
+    // Callback externo (para o builder atualizar preview)
+    onSelectTemplate?.(slug, version);
+  };
+
   const renderSectionContent = (sectionId: string) => {
     if (!customization?.theme) return null;
 
     switch (sectionId) {
-      case "CABEÇALHO":
+      // ── MODELOS ────────────────────────────────────────────────────────
+      case "MODELOS":
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Escolha um modelo para o seu checkout. Cada modelo tem layout,
+              cores e funcionalidades únicas para maximizar suas conversões.
+            </p>
+
+            <div className="grid grid-cols-1 gap-2">
+              {AVAILABLE_TEMPLATES.map((tpl) => {
+                const isActive = currentTemplateSlug === tpl.slug;
+                return (
+                  <button
+                    key={tpl.slug}
+                    type="button"
+                    onClick={() => handleSelectTemplate(tpl.slug, tpl.version)}
+                    className={cn(
+                      "w-full text-left p-3 rounded-xl border-2 transition-all duration-200 group",
+                      isActive
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+                        : "border-gray-200 dark:border-gray-700 hover:border-violet-300 bg-white dark:bg-gray-800"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Color swatch */}
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-sm"
+                        style={{ backgroundColor: `${tpl.color}15`, border: `2px solid ${tpl.color}40` }}
+                      >
+                        {tpl.emoji}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {tpl.name}
+                          </span>
+                          {isActive && (
+                            <CheckCircle2 className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {tpl.description}
+                        </p>
+                      </div>
+
+                      {/* Badge cor */}
+                      <span
+                        className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: `${tpl.color}20`,
+                          color: tpl.color,
+                        }}
+                      >
+                        {tpl.badge}
+                      </span>
+                    </div>
+
+                    {/* Preview strip — barra de cor */}
+                    {isActive && (
+                      <div
+                        className="mt-2 h-1 rounded-full"
+                        style={{ backgroundColor: tpl.color }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700/30 rounded-lg">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                💡 <strong>Dica:</strong> Ative a flag{" "}
+                <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
+                  VITE_USE_NEW_CHECKOUT=true
+                </code>{" "}
+                para usar os novos modelos no checkout público.
+              </p>
+            </div>
+          </div>
+        );
+
+      // ── SEÇÕES EXISTENTES ───────────────────────────────────────
+      case "CABECALHO":
         return (
           <div className="space-y-4">
             {/* Logo */}
@@ -389,7 +547,7 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
-      case "CONTEÚDO":
+      case "CONTEUDO":
         return (
           <div className="space-y-4">
             {/* Visual do botão */}
@@ -516,7 +674,7 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
-      case "RODAPÉ":
+      case "RODAPE":
         return (
           <div className="space-y-4">
             {/* Cores do rodapé */}
@@ -749,6 +907,30 @@ export const CheckoutCustomizationSidebar: React.FC<
                 max="120"
               />
             </div>
+
+            {/* Número inicial de compras simuladas */}
+            <div>
+              <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mt-4">
+                <ShoppingCart className="h-3.5 w-3.5" />
+                Número inicial de compras (Prova Social)
+              </Label>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                A partir de qual número o contador de vendas deve começar
+              </p>
+              <Input
+                type="number"
+                value={customization.theme.initialPurchases || 803}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onUpdateTheme({
+                    initialPurchases: parseInt(e.target.value) || 803,
+                  })
+                }
+                placeholder="803"
+                className="mt-2"
+                min="0"
+                max="99999"
+              />
+            </div>
           </div>
         );
 
@@ -826,7 +1008,7 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
-      case "CONFIGURAÇÕES":
+      case "CONFIGURACOES":
         return (
           <div className="space-y-4">
             {/* Navegação */}

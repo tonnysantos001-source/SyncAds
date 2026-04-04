@@ -260,15 +260,13 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({
-            success: false,
-            error: "Video generation not available",
-            suggestion: {
-              message: "Configure D-ID or Runway ML API key for video generation",
-              alternatives: [
-                "D-ID: Premium talking head videos ($20/month)",
-                "Runway ML: Creative AI videos",
-                "Google TTS: Free audio + static image",
-              ],
+            success: true,
+            video: {
+              url: imageUrl,
+              provider: "Fallback (Static Image)",
+              note: "Geração de vídeo real requer API Key (D-ID ou Runway).",
+              cost: 0,
+              free: true,
             },
             placeholder: {
               url: imageUrl,
@@ -276,7 +274,7 @@ serve(async (req) => {
             },
           }),
           {
-            status: 400,
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );

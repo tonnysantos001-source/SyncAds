@@ -475,15 +475,7 @@
             source: "shopify-checkout-redirect",
             timestamp: new Date().toISOString(),
           },
-        }),
-
-        // LOG DEBUG: Ver payload completo
-        console.log("🔍 [DEBUG] Payload enviado para API:", {
-          shopifyDomain: shopDomain,
-          items: cart.items,
-          total: getCartTotal()
-        });
-  </parameter>
+        })
       });
 
       if (!response.ok) {
@@ -617,7 +609,6 @@
       alert("Erro: Produto não encontrado. Recarregue a página.");
       return false;
     }
-</parameter>
 
     const variantId = getSelectedVariant();
     const quantity = getQuantity();
@@ -669,7 +660,6 @@
     });
 
     addToCart(productData);
-</parameter>
     return false;
   }
 

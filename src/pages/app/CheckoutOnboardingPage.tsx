@@ -209,15 +209,7 @@ export default function CheckoutOnboardingPage() {
           .
         </div>
 
-        {/* Floating Help Button */}
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            className="rounded-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 shadow-lg transition-colors"
-            onClick={() => handleNavigate("/chat")}
-          >
-            Precisa de ajuda?
-          </button>
-        </div>
+
       </div>
     );
   } catch (error) {

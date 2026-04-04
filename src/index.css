@@ -58,16 +58,13 @@ body {
 }
 
 #root {
-    /* height: 100vh; */
-    /* max-height: 100vh; */
-    /* overflow: hidden; */
-    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Força containers flex a respeitar altura do viewport */
 [class*="flex"][class*="h-full"],
 [class*="flex"][class*="h-screen"] {
-    max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden;
 }
 
@@ -152,13 +149,13 @@ body {
     }
 
     .dark {
-        --background: 224 71% 4%;
+        --background: 228 63% 7%;
         --foreground: 210 40% 98%;
 
-        --card: 224 71% 8%;
+        --card: 228 63% 9%;
         --card-foreground: 210 40% 98%;
 
-        --popover: 224 71% 4%;
+        --popover: 228 63% 7%;
         --popover-foreground: 210 40% 98%;
 
         --primary: 210 40% 98%;

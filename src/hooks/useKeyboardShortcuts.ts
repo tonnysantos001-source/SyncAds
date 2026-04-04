@@ -43,14 +43,17 @@ export function useKeyboardShortcuts(
                 event.target instanceof HTMLTextAreaElement;
 
             for (const shortcut of shortcuts) {
-                const ctrlMatch = shortcut.ctrl === undefined || shortcut.ctrl === (event.ctrlKey || event.metaKey);
-                const shiftMatch = shortcut.shift === undefined || shortcut.shift === event.shiftKey;
-                const altMatch = shortcut.alt === undefined || shortcut.alt === event.altKey;
+                // Se o modificador não for especificado no atalho, assumimos que NÃO deve estar pressionado (false)
+                const ctrlMatch = (shortcut.ctrl || false) === (event.ctrlKey || event.metaKey);
+                const shiftMatch = (shortcut.shift || false) === event.shiftKey;
+                const altMatch = (shortcut.alt || false) === event.altKey;
                 const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
 
                 if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
-                    // Permitir Ctrl+Enter em inputs
-                    if (isInputElement && !(shortcut.ctrl && shortcut.key === 'Enter')) {
+                    // Permitir Ctrl+Enter em inputs/textareas
+                    const isCtrlEnter = shortcut.ctrl && shortcut.key.toLowerCase() === 'enter';
+                    
+                    if (isInputElement && !isCtrlEnter) {
                         continue;
                     }
 

@@ -54,19 +54,24 @@ export const ChatMessage = React.memo(function ChatMessage({
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
   const [videoError, setVideoError] = useState<{ [key: string]: boolean }>({});
 
-  // Detectar Thinking Block
-  const thinkingMatch = message.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
+  // Detectar Thinking Block — suporta <thinking> e <antigravity_thinking>
+  const thinkingMatch =
+    message.content.match(/<thinking>([\s\S]*?)<\/thinking>/) ||
+    message.content.match(/<antigravity_thinking>([\s\S]*?)<\/antigravity_thinking>/);
   const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : null;
 
-  // Clean content - Remove thinking block for display vs thinking display
-  const cleanContent = message.content.replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/, "").trim();
+  // Clean content - Remove AMBAS as tags de thinking para exibição
+  const cleanContent = message.content
+    .replace(/<thinking>[\s\S]*?<\/thinking>/g, "")
+    .replace(/<antigravity_thinking>[\s\S]*?<\/antigravity_thinking>/g, "")
+    .trim();
 
   // Detectar URLs de imagem no conteúdo (Markdown e diretas)
   // Suporta: extensões de imagem, Pollinations.ai, HuggingFace, e data URLs base64
   const imageUrlRegex =
     /!\[([^\]]*)\]\(([^)]+)\)|(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?)|(https?:\/\/image\.pollinations\.ai\/[^\s]+)|(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+)/gi;
   const videoUrlRegex =
-    /(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)(?:\?[^\s]*)?)/gi;
+    /(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|m4v)(?:\?[^\s]*)?)|(data:video\/[a-z]+;base64,[A-Za-z0-9+/=]+)|(🎥?.*?https?:\/\/[^\s]+\/(?:video|media)\/[^\s]+)/gi;
 
   const imageMatches = Array.from(cleanContent.matchAll(imageUrlRegex));
   const videoMatches = Array.from(cleanContent.matchAll(videoUrlRegex));
@@ -92,19 +97,26 @@ export const ChatMessage = React.memo(function ChatMessage({
     .filter(Boolean) as Array<{ url: string; alt: string }>;
 
 
-  const extractedVideos = videoMatches.map((match) => match[1]);
+  const extractedVideos = videoMatches.map((match) => {
+    // Se o match for a string inteira incluindo o prefixo, tenta extrair só a URL
+    const fullMatch = match[0];
+    const urlOnly = fullMatch.match(/https?:\/\/[^\s]+/);
+    return urlOnly ? urlOnly[0] : fullMatch;
+  });
 
   // Remover URLs de mídia do conteúdo para não duplicar
-  let contentWithoutMedia = cleanContent;
-  extractedImages.forEach((img) => {
-    contentWithoutMedia = contentWithoutMedia.replace(img.url, "");
-  });
-  extractedVideos.forEach((video) => {
-    contentWithoutMedia = contentWithoutMedia.replace(video, "");
-  });
-  contentWithoutMedia = contentWithoutMedia
-    .replace(imageUrlRegex, "")
-    .replace(videoUrlRegex, "")
+  // IMPORTANT: Remove the full markdown image syntax ![alt](url), not just the URL
+  let contentWithoutMedia = cleanContent
+    // Remove markdown images: ![alt](url)
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    // Remove standalone Pollinations URLs (not already in markdown)
+    .replace(/https?:\/\/image\.pollinations\.ai\/[^\s)]+/g, "")
+    // Remove standalone Supabase storage image URLs
+    .replace(/https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?/g, "")
+    // Remove standalone video URLs
+    .replace(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)(?:\?[^\s]*)?/g, "")
+    // Remove base64 video URLs
+    .replace(/data:video\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, "")
     .trim();
 
   const hasMedia =
@@ -127,41 +139,19 @@ export const ChatMessage = React.memo(function ChatMessage({
 
       {/* Conteúdo */}
       <div
-        className={cn("flex flex-col gap-2 max-w-[80%]", isUser && "items-end")}
+        className={cn("flex flex-col gap-2 max-w-[90%] md:max-w-[80%]", isUser && "items-end")}
       >
         {/* Thinking / Planning Block (Only for Assistant) */}
         {!isUser && thinkingContent && (
           <PlanningBlock content={thinkingContent} />
         )}
 
-        {/* Mensagem de texto */}
-        {contentWithoutMedia && (
-          <div
-            className={cn(
-              "rounded-lg px-4 py-2",
-              isUser
-                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700",
-            )}
-          >
-            {isUser ? (
-              <p className="text-sm whitespace-pre-wrap">
-                {contentWithoutMedia}
-              </p>
-            ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown>{contentWithoutMedia}</ReactMarkdown>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Imagens extraídas do conteúdo */}
         {extractedImages.length > 0 && (
           <div
             className={cn(
-              "flex flex-col gap-2",
-              isUser ? "items-end" : "items-start",
+              "flex flex-col gap-2 w-full mt-2",
+              isUser ? "items-end" : "md:items-start items-center",
             )}
           >
             {extractedImages.map((img, index) => (
@@ -191,7 +181,7 @@ export const ChatMessage = React.memo(function ChatMessage({
                     <img
                       src={img.url}
                       alt={img.alt}
-                      className="max-w-sm max-h-96 object-contain"
+                      className="w-full max-w-sm h-auto max-h-96 object-contain rounded-lg"
                       onError={() =>
                         setImageError((prev) => ({ ...prev, [img.url]: true }))
                       }
@@ -219,8 +209,8 @@ export const ChatMessage = React.memo(function ChatMessage({
         {extractedVideos.length > 0 && (
           <div
             className={cn(
-              "flex flex-col gap-2",
-              isUser ? "items-end" : "items-start",
+              "flex flex-col gap-2 w-full mt-2",
+              isUser ? "items-end" : "md:items-start items-center",
             )}
           >
             {extractedVideos.map((videoUrl, index) => (
@@ -246,20 +236,56 @@ export const ChatMessage = React.memo(function ChatMessage({
                     </div>
                   </div>
                 ) : (
-                  <video
-                    src={videoUrl}
-                    controls
-                    className="max-w-sm max-h-96"
-                    onError={() =>
-                      setVideoError((prev) => ({ ...prev, [videoUrl]: true }))
-                    }
-                    preload="metadata"
-                  >
-                    Seu navegador não suporta vídeos.
-                  </video>
+                  <>
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="w-full max-w-sm h-auto max-h-96 rounded-lg"
+                      onError={() =>
+                        setVideoError((prev) => ({ ...prev, [videoUrl]: true }))
+                      }
+                      preload="metadata"
+                    >
+                      Seu navegador não suporta vídeos.
+                    </video>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-white text-xs flex items-center gap-1 hover:underline"
+                        download
+                      >
+                        <Download className="h-3 w-3" />
+                        Baixar vídeo
+                      </a>
+                    </div>
+                  </>
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Mensagem de texto */}
+        {contentWithoutMedia && (
+          <div
+            className={cn(
+              "rounded-lg px-4 py-2",
+              isUser
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700",
+            )}
+          >
+            {isUser ? (
+              <p className="text-sm whitespace-pre-wrap">
+                {contentWithoutMedia}
+              </p>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{contentWithoutMedia}</ReactMarkdown>
+              </div>
+            )}
           </div>
         )}
 
@@ -267,8 +293,8 @@ export const ChatMessage = React.memo(function ChatMessage({
         {message.attachments && message.attachments.length > 0 && (
           <div
             className={cn(
-              "flex flex-col gap-2",
-              isUser ? "items-end" : "items-start",
+              "flex flex-col gap-2 w-full mt-2",
+              isUser ? "items-end" : "items-center",
             )}
           >
             {message.attachments.map((attachment, index) => (
@@ -277,11 +303,11 @@ export const ChatMessage = React.memo(function ChatMessage({
                 className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
               >
                 {attachment.type === "image" && (
-                  <div className="relative bg-white dark:bg-gray-800">
+                  <div className="relative bg-white dark:bg-gray-800 rounded-lg overflow-hidden w-full max-w-sm flex items-center justify-center">
                     <img
                       src={attachment.url}
                       alt={attachment.name || "Anexo"}
-                      className="max-w-sm max-h-96 object-contain"
+                      className="w-full h-auto max-h-96 object-contain"
                       loading="lazy"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">

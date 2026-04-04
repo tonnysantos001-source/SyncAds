@@ -27,15 +27,18 @@ serve(async (req) => {
             throw new Error("Missing authorization header");
         }
 
-        // Use user client for identity verification
-        const supabaseUser = createClient(supabaseUrl, authHeader);
-        const {
-            data: { user },
-            error: authError,
-        } = await supabaseUser.auth.getUser();
+        const token = authHeader.replace("Bearer ", "");
 
-        if (authError || !user) {
-            throw new Error("Unauthorized");
+        // ✅ AUTH BYPASS: Allow internal calls using Service Role Key
+        let user = null;
+        if (token === supabaseServiceKey) {
+            console.log("🔐 [GENERATE-AUDIO] Internal admin call detected via Service Key");
+            user = { id: "admin", email: "admin@syncads.com.br" };
+        } else {
+            // Normal user validation using admin client
+            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+            if (authError || !authUser) throw new Error("Unauthorized");
+            user = authUser;
         }
 
         // Parse request
@@ -296,7 +299,7 @@ serve(async (req) => {
                 // Upload to Supabase Storage
                 const fileName = `audio/${user.id}/${Date.now()}-${crypto.randomUUID()}.mp3`;
 
-                const { error: uploadError } = await supabaseClient.storage
+                const { error: uploadError } = await supabaseAdmin.storage
                     .from("media-generations")
                     .upload(fileName, audioBuffer, {
                         contentType: "audio/mpeg",
@@ -307,7 +310,7 @@ serve(async (req) => {
 
                 const {
                     data: { publicUrl },
-                } = supabaseClient.storage
+                } = supabaseAdmin.storage
                     .from("media-generations")
                     .getPublicUrl(fileName);
 
@@ -323,7 +326,7 @@ serve(async (req) => {
         }
 
         // Save to database
-        const { error: dbError } = await supabaseClient.from("generated_audios").insert({
+        const { error: dbError } = await supabaseAdmin.from("generated_audios").insert({
             user_id: user.id,
             type: "tts",
             provider: usedProvider,
@@ -384,3 +387,4 @@ serve(async (req) => {
         );
     }
 });
+

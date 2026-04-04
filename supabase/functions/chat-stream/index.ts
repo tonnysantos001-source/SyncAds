@@ -304,11 +304,9 @@ ${lastExecutionResult ? `ÔÜá´©Å RESULTADO ANTERIOR: ${JSON.stringify(lastE
                     const response = reasonerOutput.direct_response || reasonerOutput.strategy_analysis || "Entendido.";
                     await writeToStream(writer, "content", response);
 
-                    // Save History
-                    await supabase.from("ChatMessage").insert([
-                        { conversationId, role: "user", content: message, userId: user.id },
-                        { conversationId, role: "assistant", content: JSON.stringify({ reasonerOutput }), userId: user.id }
-                    ]);
+                    // Save History (Sequential)
+                    await supabase.from("ChatMessage").insert({ conversationId, role: "user", content: message, userId: user.id });
+                    await supabase.from("ChatMessage").insert({ conversationId, role: "assistant", content: JSON.stringify({ reasonerOutput }), userId: user.id });
                     return; // EXIT LOOP IMMEDIATELY
                 }
 
@@ -456,8 +454,71 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                     });
                 }
 
-                // Allow only recognized commands
-                const commandsToInsert = filteredCommands.map(cmd => ({
+                // 🆕 SERVER-SIDE EXECUTION (INTERCEPT)
+                // Commands that should be executed by the server, not the extension
+                let cycleExecutionResult: any = null;
+                const extensionCommandsList = [];
+
+                for (const cmd of filteredCommands) {
+                    if (cmd.type === 'generate_video') {
+                        // ... existing video logic ...
+                        console.log("🎬 [SERVER EXEC] Executing generate_video tool...");
+                        try {
+                            const { data, error } = await supabaseAdmin.functions.invoke('generate-video', {
+                                body: cmd.payload
+                            });
+                            
+                            if (error || !data.success) {
+                                console.error("❌ [SERVER EXEC] Video generation failed:", error || data.error);
+                                cycleExecutionResult = { 
+                                    success: false, 
+                                    error: error?.message || data?.error || "Falha na geração",
+                                    retryable: true 
+                                };
+                            } else {
+                                console.log("✅ [SERVER EXEC] Video generated successfully");
+                                cycleExecutionResult = {
+                                    success: true,
+                                    videoUrl: data.videoUrl,
+                                    prompt: cmd.payload.prompt,
+                                    message: "Vídeo gerado com sucesso!"
+                                };
+                                // Stream the result for the frontend extractor to pick up
+                                await writeToStream(writer, "content", `\n\n🎬 Aqui está o seu vídeo:\n${data.videoUrl}`);
+                            }
+                        } catch (err) {
+                            console.error("❌ [SERVER EXEC] Exception:", err);
+                            cycleExecutionResult = { success: false, error: err.message, retryable: true };
+                        }
+                    } 
+                    else if (cmd.type === 'generate_marketing_asset') {
+                        console.log("🎯 [SERVER EXEC] Executing generate_marketing_asset tool...");
+                        try {
+                            const { data, error } = await supabaseAdmin.functions.invoke('ai-tools', {
+                                body: { toolName: 'generate_marketing_asset', parameters: cmd.payload }
+                            });
+
+                            if (error || !data.success) {
+                                console.error("❌ [SERVER EXEC] Marketing asset failed:", error || data?.message);
+                                cycleExecutionResult = { success: false, error: error?.message || data?.message, retryable: true };
+                            } else {
+                                console.log("✅ [SERVER EXEC] Marketing asset generated successfully");
+                                cycleExecutionResult = data.data; 
+                                // Stream the result (URL) for the frontend
+                                await writeToStream(writer, "content", `\n\n🎯 Ativo para ${cmd.payload.platform} (${cmd.payload.type}) gerado:\n${data.data.url}`);
+                            }
+                        } catch (err) {
+                            console.error("❌ [SERVER EXEC] Exception:", err);
+                            cycleExecutionResult = { success: false, error: err.message, retryable: true };
+                        }
+                    }
+                    else {
+                        extensionCommandsList.push(cmd);
+                    }
+                }
+
+                // Allow only recognized commands for the extension
+                const commandsToInsert = extensionCommandsList.map(cmd => ({
                     device_id: targetDeviceId,
                     type: cmd.type,
                     command_type: cmd.type,
@@ -518,11 +579,9 @@ DICA DE RETRY: ${strategyHint || "Nenhuma"}
                         await writeToStream(writer, "content", `\n\n${verification.final_message_to_user}`);
                     }
 
-                    // SAVE HISTORY
-                    await supabase.from("ChatMessage").insert([
-                        { conversationId, role: "user", content: message, userId: user.id },
-                        { conversationId, role: "assistant", content: JSON.stringify({ plan, verification }), userId: user.id }
-                    ]);
+                    // SAVE HISTORY (Sequential)
+                    await supabase.from("ChatMessage").insert({ conversationId, role: "user", content: message, userId: user.id });
+                    await supabase.from("ChatMessage").insert({ conversationId, role: "assistant", content: JSON.stringify({ plan, verification }), userId: user.id });
                     return; // EXIT LOOP SUCCESSFULLY
                 }
 

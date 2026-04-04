@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, handlePreflightRequest, jsonResponse, errorResponse } from '../_utils/cors.ts'
+import { callGoogleWithRetry } from '../_utils/google-ai.ts'
+import { callWithFallback } from '../_utils/model-fallback.ts'
 
 serve(async (req) => {
   // Handle CORS
@@ -138,12 +140,11 @@ serve(async (req) => {
       tokensUsed = data.usage.input_tokens + data.usage.output_tokens
 
     } else if (aiConnection.provider === 'GOOGLE') {
-      const googleResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${aiConnection.model || 'gemini-pro'}:generateContent?key=${aiConnection.apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      try {
+        const googleData = await callGoogleWithRetry(
+          aiConnection.model || 'gemini-1.5-flash',
+          aiConnection.apiKey,
+          {
             contents: messages.filter(m => m.role !== 'system').map(m => ({
               role: m.role === 'assistant' ? 'model' : 'user',
               parts: [{ text: m.content }]
@@ -152,18 +153,51 @@ serve(async (req) => {
               temperature: aiConnection.temperature || 0.7,
               maxOutputTokens: aiConnection.maxTokens || 4096
             }
-          })
+          }
+        );
+
+        response = googleData.candidates[0].content.parts[0].text;
+        tokensUsed = googleData.usageMetadata?.totalTokenCount || 0;
+      } catch (err: any) {
+        console.error('⚠️ [GOOGLE FALLBACK] Google falhou após retentativas, tentando Groq...', err.message);
+        
+        // Plano B: Tentar Groq se o Google estiver totalmente fora do ar
+        // Buscamos uma conexão do Groq no DB ou usamos uma fallback estática se tivermos a chave
+        const { data: groqConn } = await supabase
+          .from('GlobalAiConnection')
+          .select('*')
+          .eq('provider', 'GROQ')
+          .eq('isActive', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (groqConn) {
+          console.log('🔄 [FALLBACK] Usando Groq como backup...');
+          const groqResp = await fetch(`${groqConn.baseUrl || 'https://api.groq.com/openai/v1'}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqConn.apiKey}`
+            },
+            body: JSON.stringify({
+              model: groqConn.model || 'llama-3.3-70b-versatile',
+              messages: messages,
+              temperature: aiConnection.temperature || 0.7,
+            })
+          });
+
+          if (groqResp.ok) {
+            const data = await groqResp.json();
+            response = data.choices[0].message.content;
+            tokensUsed = data.usage?.total_tokens || 0;
+            console.log('✅ [FALLBACK] Groq salvou o dia!');
+          } else {
+            throw new Error(`Ambos Google e Groq falharam. Erro Google original: ${err.message}`);
+          }
+        } else {
+          throw err; // Se não tem fallback configurado, repassa o erro original
         }
-      )
-
-      if (!googleResponse.ok) {
-        const error = await googleResponse.text()
-        throw new Error(`Google API error: ${error}`)
       }
-
-      const data = await googleResponse.json()
-      response = data.candidates[0].content.parts[0].text
-      tokensUsed = data.usageMetadata.totalTokenCount || 0
 
     } else if (aiConnection.provider === 'COHERE') {
       // Convert messages to Cohere format

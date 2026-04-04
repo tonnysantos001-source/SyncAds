@@ -38,17 +38,24 @@ export const MODEL_PRIORITY: ModelConfig[] = [
     apiKey: Deno.env.get('OPENAI_API_KEY') || '',
     maxTokens: 128000,
   },
-  // 2. Anthropic Claude 3 (Fallback 1)
+  // 2. Google Gemini 2.0 (Fallback 1) - Muito capaz e multimodal
+  {
+    provider: 'GOOGLE',
+    model: 'gemini-2.0-flash-exp',
+    apiKey: Deno.env.get('GOOGLE_AI_API_KEY') || Deno.env.get('GEMINI_API_KEY') || '',
+    maxTokens: 1000000,
+  },
+  // 3. Anthropic Claude 3 (Fallback 2)
   {
     provider: 'ANTHROPIC',
     model: 'claude-3-opus-20240229',
     apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     maxTokens: 200000,
   },
-  // 3. Groq Mixtral (Fallback 2)
+  // 4. Groq Mixtral (Fallback 3) - O mais rápido
   {
     provider: 'GROQ',
-    model: 'mixtral-8x7b-32768',
+    model: 'llama-3.3-70b-versatile',
     apiKey: Deno.env.get('GROQ_API_KEY') || '',
     maxTokens: 32768,
   },
@@ -137,6 +144,8 @@ async function callModel(
     return await callAnthropic(config, messages, temperature);
   } else if (config.provider === 'GROQ') {
     return await callGroq(config, messages, temperature);
+  } else if (config.provider === 'GOOGLE') {
+    return await callGoogle(config, messages, temperature);
   } else {
     throw new Error(`Provider ${config.provider} não implementado`);
   }
@@ -257,6 +266,46 @@ async function callGroq(
   return {
     response: data.choices[0].message.content,
     tokensUsed: data.usage?.total_tokens,
+  };
+}
+
+/**
+ * Chama Google Gemini
+ */
+async function callGoogle(
+  config: ModelConfig,
+  messages: MessageRole[],
+  temperature: number
+): Promise<{ response: string; tokensUsed?: number }> {
+  // Nota: Idealmente usaríamos a implementação robusta de google-ai.ts, 
+  // mas aqui mantemos o padrão simples para consistência interna do utils.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: messages.filter(m => m.role !== 'system').map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      generationConfig: {
+        temperature,
+        maxOutputTokens: 4096
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Google error (${response.status}): ${error}`);
+  }
+
+  const data = await response.json();
+  
+  return {
+    response: data.candidates[0].content.parts[0].text,
+    tokensUsed: data.usageMetadata?.totalTokenCount || 0,
   };
 }
 

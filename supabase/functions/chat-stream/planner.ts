@@ -227,12 +227,13 @@ Apenas se as estratégias 1 e 2 falharem.
 
 Retorne APENAS o JSON abaixo. Nada mais.
 
-{
   "device_id": "...",
   "message": "Explicação da estratégia escolhida (ex: 'Usando URL direta para criar documento...')",
   "commands": [
-    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page", "insert_content", "insert_via_api"
+    // Lista de comandos. Tipos permitidos: "navigate", "wait", "click", "type", "scroll", "scan_page", "insert_content", "insert_via_api", "generate_video", "generate_marketing_asset"
     // ⚠️ APENAS 1 comando insert_via_api permitido!
+    // ⚠️ generate_video espera { prompt: string, style?: string, duration?: number }
+    // ⚠️ generate_marketing_asset espera { platform: "tiktok"|"meta"|"google"|"shopify", type: string (ex: portrait, square, banner, logo), prompt: string }
   ]
 }
 `;

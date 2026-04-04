@@ -46,6 +46,16 @@ import { SecurityBadges } from "@/components/checkout/SecurityBadges";
 import { PaymentMethodIcons } from "@/components/checkout/PaymentMethodIcons";
 
 // ============================================
+// MULTI-TEMPLATE SYSTEM (feature flag)
+// ============================================
+const USE_NEW_CHECKOUT = import.meta.env.VITE_USE_NEW_CHECKOUT === 'true';
+
+// Lazy import — só carrega o bundle se a flag estiver ativa
+const TemplateRenderer = USE_NEW_CHECKOUT
+  ? React.lazy(() => import('@/components/checkout/TemplateRenderer'))
+  : null;
+
+// ============================================
 // INTERFACES
 // ============================================
 
@@ -192,6 +202,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   });
   const [orderBumps, setOrderBumps] = useState<any[]>([]);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
+
+  // ============================================
+  // TEMPLATE STATE (multi-template system)
+  // ============================================
+  const [templateSlug, setTemplateSlug] = useState<string>('minimal');
+  const [templateVersion, setTemplateVersion] = useState<number>(1);
+  const [isTemplateDisabled, setIsTemplateDisabled] = useState<boolean>(false);
 
   // Dados do formulário
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -357,11 +374,26 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       if (injectedTheme) {
         // Modo preview: usar tema injetado
         setTheme({ ...DEFAULT_CHECKOUT_THEME, ...injectedTheme });
+        // Em preview, templateSlug pode vir no injectedTheme
+        if (injectedTheme.templateSlug) {
+          setTemplateSlug(injectedTheme.templateSlug);
+          setTemplateVersion(injectedTheme.templateVersion || 1);
+          setIsTemplateDisabled(injectedTheme.templateDisabled === true);
+        }
       } else if (order.userId) {
         try {
           const customData = await checkoutApi.loadCustomization(order.userId);
           if (customData?.theme) {
             setTheme({ ...DEFAULT_CHECKOUT_THEME, ...customData.theme });
+          }
+          // Carregar template selecionado pelo usuário
+          if (USE_NEW_CHECKOUT && customData) {
+            const slug    = customData.templateSlug    || customData.theme?.templateSlug    || 'minimal';
+            const version = customData.templateVersion || customData.theme?.templateVersion || 1;
+            const active  = customData.isActive !== false; // default: ativo
+            setTemplateSlug(slug);
+            setTemplateVersion(Number(version));
+            setIsTemplateDisabled(!active);
           }
         } catch (e) {
           console.log("Usando tema padrão");
@@ -769,6 +801,52 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   // RENDER PRINCIPAL
   // ============================================
 
+  // ── MULTI-TEMPLATE SYSTEM ──────────────────────────────────────────────
+  // Se a feature flag VITE_USE_NEW_CHECKOUT está ativa, delega para o
+  // TemplateRenderer que carrega dinamicamente o template correto.
+  // O checkout legado abaixo permanece como fallback seguro.
+  // ──────────────────────────────────────────────────────────────────────
+  if (USE_NEW_CHECKOUT && TemplateRenderer && checkoutData) {
+    const checkoutPayload = {
+      orderId:      orderId,
+      products:     checkoutData.products,
+      total:        finalTotalWithBumps,
+      subtotal:     checkoutData.subtotal,
+      shipping:     checkoutData.shipping,
+      discount:     checkoutData.discount,
+    };
+
+    return (
+      <React.Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <p className="text-sm text-gray-500">Carregando checkout...</p>
+            </div>
+          </div>
+        }
+      >
+        <TemplateRenderer
+          templateSlug={templateSlug}
+          templateVersion={templateVersion}
+          isTemplateDisabled={isTemplateDisabled}
+          orderId={orderId}
+          checkoutData={checkoutPayload}
+          theme={theme}
+          isPreview={previewMode}
+          onStepChange={(step) => setCurrentStep(step)}
+          onPaymentSuccess={(id) => {
+            navigate(`/checkout/sucesso/${id || orderId}`);
+          }}
+          isMobile={isMobile || false}
+        />
+      </React.Suspense>
+    );
+  }
+
+  // ── CHECKOUT LEGADO (fallback / flag desativada) ─────────────────────
+
   return (
     <div
       className="min-h-screen"
@@ -777,6 +855,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         fontFamily: getFontFamily(),
       }}
     >
+
       {/* Notice Bar com Animações */}
       <NoticeBar theme={theme} isMobile={isMobile} closeable={false} />
 

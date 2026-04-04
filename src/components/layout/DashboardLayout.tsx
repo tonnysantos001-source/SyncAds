@@ -28,6 +28,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   }, [location]);
 
+  // Allow child pages (e.g. ChatPage full-screen) to open the app sidebar via CustomEvent
+  useEffect(() => {
+    const handler = () => setSidebarOpen(true);
+    window.addEventListener('open-app-sidebar', handler);
+    return () => window.removeEventListener('open-app-sidebar', handler);
+  }, []);
+
   // Páginas que não devem ter padding/container
   const isFullPageRoute = location.pathname === "/chat";
 
@@ -61,7 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   try {
     return (
       <div
-        className={`flex h-screen max-h-screen relative overflow-hidden ${isFullPageRoute ? "" : "bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40"}`}
+        className={`flex h-[100dvh] max-h-[100dvh] relative overflow-hidden ${isFullPageRoute ? "" : "bg-gradient-to-br from-gray-900 via-gray-850 to-purple-900/40"}`}
       >
         {/* Background customizado - apenas quando NÃO for chat */}
         {!isFullPageRoute && (

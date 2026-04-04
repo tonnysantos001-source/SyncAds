@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { ChatModalManager } from '@/components/chat/modals';
-import { ConversationSidebar, MenuToggleButton } from '@/components/chat/ConversationSidebar';
+// ConversationSidebar removed — dropdown now shown on all screen sizes via ChatModalManager
 import { ToolExecutionIndicator, ToolExecutionStatus } from '@/components/chat/ToolExecutionIndicator';
 import { AdminBadge } from '@/components/admin/AdminBadge';
 import chatService from '@/lib/api/chatService';
@@ -31,6 +31,8 @@ export default function ChatPage() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlId = searchParams.get('id');
   const { toast } = useToast();
 
   // Chat store
@@ -42,10 +44,8 @@ export default function ChatPage() {
   const loadConversations = useChatStore((state) => state.loadConversations);
   const setAssistantTyping = useChatStore((state) => state.setAssistantTyping);
 
-  // Sidebar state (open by default on desktop, closed on mobile)
-  const [sidebarOpen, setSidebarOpen] = useState(
-    typeof window !== 'undefined' && window.innerWidth >= 768
-  );
+  // Sidebar state kept for compatibility (dropdown used instead)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Tool execution indicator state
   const [toolStatus, setToolStatus] = useState<ToolExecutionStatus>('idle');
@@ -53,19 +53,35 @@ export default function ChatPage() {
   const [toolError, setToolError] = useState<string>('');
   const [toolLogs, setToolLogs] = useState<string[]>([]);
 
-  // Auth check
+  // Auth check and URL-Store sync
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/login-v2', { replace: true });
+    } else if (urlId && urlId !== activeConversationId) {
+      // Sincronizar store com ID da URL
+      console.log('[ChatPage] Sincronizando store com URL ID:', urlId);
+      setActiveConversationId(urlId);
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, urlId, activeConversationId, setActiveConversationId]);
 
   // Load conversations for web context only
   useEffect(() => {
     if (user) {
-      loadConversations(user.id, 'web'); // Only web conversations
+      loadConversations(user.id, 'web');
     }
   }, [user?.id, loadConversations]);
+
+  // ✅ FIX Bug #3: Restore messages when active conversation reloads from localStorage
+  useEffect(() => {
+    if (!activeConversationId || conversations.length === 0) return;
+    const activeConv = conversations.find(c => c.id === activeConversationId);
+    if (!activeConv) return;
+    // If no messages loaded yet, fetch from DB
+    if (!activeConv.messages || activeConv.messages.length === 0) {
+      console.log('[ChatPage] Auto-restaurando mensagens:', activeConversationId);
+      loadConversationMessages(activeConversationId);
+    }
+  }, [activeConversationId, conversations.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle modal changes
   const handleModalChange = (modalType: string) => {
@@ -112,6 +128,8 @@ export default function ChatPage() {
           if (newConv?.id) {
             convId = newConv.id;
             console.log('[ChatPage] Conversa criada:', convId);
+            // Atualizar URL para persistência
+            navigate(`/chat?id=${convId}`, { replace: true });
           }
         } catch (convError) {
           console.error('[ChatPage] Erro ao criar conversa:', convError);
@@ -136,13 +154,16 @@ export default function ChatPage() {
       setAssistantTyping(true);
 
       // 4. Enviar para IA e obter resposta (IA salva do lado do servidor)
-      const response = await chatService.sendMessage(message, convId);
+      const rawResponse = await chatService.sendMessage(message, convId);
 
       // Resetar loading após receber resposta
       setAssistantTyping(false);
 
-      // 5. ✅ PRIMEIRO: Usar a resposta já retornada pelo chatService (mais rápido)
-      // Isso funciona para respostas normais E para imagens geradas pelo interceptor
+      // ✅ Passar o rawResponse COMPLETO ao state (inclui <thinking> para o PlanningBlock renderizar)
+      // ChatMessage.tsx extrai e exibe o bloco thinking separadamente
+      const response = rawResponse;
+
+      // 5. ✅ Usar a resposta retornada pelo chatService
       if (response && typeof response === 'string' && response.trim()) {
         const aiMessage = {
           id: crypto.randomUUID(),
@@ -216,6 +237,7 @@ export default function ChatPage() {
       const newConv = await createNewConversation(user.id, undefined, 'web'); // Web context is the 3rd param
       if (newConv?.id) {
         setActiveConversationId(newConv.id);
+        navigate(`/chat?id=${newConv.id}`);
       }
 
       toast({
@@ -274,6 +296,7 @@ export default function ChatPage() {
   // Load conversation messages
   const loadConversationMessages = async (conversationId: string) => {
     setActiveConversationId(conversationId);
+    navigate(`/chat?id=${conversationId}`);
 
     // Carregar mensagens do banco
     try {
@@ -281,7 +304,8 @@ export default function ChatPage() {
         .from('ChatMessage')
         .select('*')
         .eq('conversationId', conversationId)
-        .order('createdAt', { ascending: true });
+        .order('createdAt', { ascending: true })
+        .order('id', { ascending: true });
 
       if (messages && messages.length > 0) {
         // Converter para formato do store
@@ -312,19 +336,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen w-full flex overflow-hidden">
-      {/* Sidebar */}
-      <ConversationSidebar
-        isOpen={sidebarOpen}
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onClose={() => setSidebarOpen(false)}
-        onNewConversation={handleNewConversation}
-        onSelectConversation={loadConversationMessages}
-        onDeleteConversation={handleDeleteConversation}
-      />
-
+    <div className="h-full w-full flex overflow-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Chat Modal Manager */}
@@ -340,6 +352,10 @@ export default function ChatPage() {
           onOpenSidebar={() => setSidebarOpen(true)}
           showSidebarToggle={!sidebarOpen}
           onExit={() => navigate('/reports/overview')}
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          onSelectConversation={loadConversationMessages}
+          onNewConversation={handleNewConversation}
           onCreateConversation={async () => {
             if (!user) return null;
             try {
