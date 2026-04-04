@@ -1,0 +1,237 @@
+/**
+ * TikTokTemplate — Checkout Estilo TikTok / TokVex
+ *
+ * Layout: Dois colunas com PAGAMENTO na coluna DIREITA
+ * Cor:    Pink/Magenta gradient #E91E8C → #FF4559
+ * Fluxo:  Página única — dados + entrega à esq, pagamento à dir
+ * Unique: Apple Pay simulado, endereço colapsável no mobile
+ *
+ * @version 1.0
+ */
+
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Lock, ShieldCheck, ChevronDown, ChevronUp, Smartphone } from 'lucide-react';
+import { checkoutMonitor } from '@/lib/checkoutMonitor';
+import { ScarcityTimer } from '@/components/checkout/ScarcityTimer';
+import { CheckoutFooter } from '@/components/checkout/CheckoutFooter';
+import { NoticeBar } from '@/components/checkout/NoticeBar';
+import type { TemplateRenderProps } from '@/types/checkout.types';
+import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
+import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
+import { CheckoutSummaryPanel } from './shared/CheckoutSummaryPanel';
+import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
+
+// ============================================================
+// HEADER TikTok-style (minimal, clean)
+// ============================================================
+
+const TikTokHeader: React.FC<{ theme: Record<string, unknown>; gradient: string }> = ({
+  theme, gradient,
+}) => (
+  <div className="w-full py-3 px-6 flex items-center justify-between bg-white border-b border-gray-100">
+    {(theme.logoUrl as string) ? (
+      <img src={theme.logoUrl as string} alt="Logo" className="h-8 object-contain" />
+    ) : (
+      <div className="font-bold text-gray-800 text-lg">
+        {(theme.storeName as string) || 'Minha Loja'}
+      </div>
+    )}
+    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+      <ShieldCheck className="w-4 h-4" style={{ color: '#E91E8C' }} />
+      PAGAMENTO SEGURO
+    </div>
+  </div>
+);
+
+// ============================================================
+// SCARCITY BAR - gradient pink
+// ============================================================
+
+const PinkScarcityBar: React.FC<{ theme: Record<string, unknown> }> = ({ theme }) => (
+  <div
+    className="w-full py-2.5 text-white text-center text-sm font-semibold"
+    style={{
+      background: (theme.scarcityBarBgGradient as string)
+        || 'linear-gradient(135deg, #E91E8C, #FF4559)',
+    }}
+  >
+    <ScarcityTimer theme={theme as any} />
+  </div>
+);
+
+// ============================================================
+// APPLE PAY BUTTON (simulado — visual only)
+// ============================================================
+
+const ApplePayButton: React.FC = () => (
+  <button
+    type="button"
+    className="w-full py-3 rounded-full bg-black text-white font-semibold text-sm flex items-center justify-center gap-2 mb-3"
+    style={{ cursor: 'pointer' }}
+  >
+    🍎 Pagar com Apple Pay
+  </button>
+);
+
+// ============================================================
+// COLLAPSIBLE ADDRESS (mobile)
+// ============================================================
+
+const CollapsibleAddress: React.FC<{
+  theme: Record<string, unknown>;
+  primaryColor: string;
+  isPreview: boolean;
+}> = ({ theme, primaryColor, isPreview }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-5 py-4 flex items-center justify-between text-left"
+      >
+        <span className="font-semibold text-sm text-gray-800">Endereço de entrega</span>
+        {open
+          ? <ChevronUp className="w-4 h-4 text-gray-400" />
+          : <ChevronDown className="w-4 h-4 text-gray-400" />
+        }
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5">
+              <MinimalStepShipping
+                theme={theme}
+                isPreview={isPreview}
+                onNext={() => setOpen(false)}
+                onBack={() => setOpen(false)}
+                primaryColor={primaryColor}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN TEMPLATE
+// ============================================================
+
+const TikTokTemplate: React.FC<TemplateRenderProps> = ({
+  orderId, checkoutData, theme, templateConfig, isPreview = false,
+  onStepChange, onPaymentSuccess,
+}) => {
+  const primaryColor = (theme.primaryColor as string) || '#E91E8C';
+  const gradient = (theme.buttonGradient as string) || 'linear-gradient(135deg, #E91E8C, #FF4559)';
+  const scarcityEnabled = (theme.showCountdownTimer as boolean) !== false;
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundColor: (theme.backgroundColor as string) || '#ffffff',
+        fontFamily: (theme.fontFamily as string) || 'Inter, system-ui, sans-serif',
+      }}
+    >
+      {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
+      <TikTokHeader theme={theme} gradient={gradient} />
+      {scarcityEnabled && <PinkScarcityBar theme={theme} />}
+
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* TikTok: LEFT = dados/entrega, RIGHT = pagamento + resumo */}
+        <div className="flex flex-col lg:flex-row gap-6">
+
+          {/* LEFT COLUMN */}
+          <div className="flex-1 space-y-4">
+
+            {/* Dados pessoais */}
+            <div className="rounded-xl border bg-white shadow-sm p-5">
+              <h3 className="font-semibold text-sm text-gray-800 mb-4">
+                Informações de contato
+              </h3>
+              <MinimalStepCustomer
+                theme={theme}
+                isPreview={isPreview}
+                onNext={() => checkoutMonitor.stepAdvance(2, templateConfig.slug, orderId)}
+                primaryColor={primaryColor}
+              />
+            </div>
+
+            {/* Endereço colapsável */}
+            <CollapsibleAddress
+              theme={theme}
+              primaryColor={primaryColor}
+              isPreview={isPreview}
+            />
+
+            {/* CPF separado */}
+            <div className="rounded-xl border bg-white shadow-sm p-5">
+              <h3 className="font-semibold text-sm text-gray-800 mb-4">CPF do titular</h3>
+              <input
+                style={{
+                  width: '100%', height: '48px', padding: '0 12px',
+                  borderRadius: (theme.inputBorderRadius as string) || '6px',
+                  border: `1px solid ${(theme.inputBorderColor as string) || '#d1d5db'}`,
+                  fontSize: '14px', outline: 'none',
+                }}
+                placeholder="000.000.000-00"
+                maxLength={14}
+              />
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN — Pagamento + Resumo */}
+          <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
+
+            {/* Resumo */}
+            <CheckoutSummaryPanel
+              checkoutData={checkoutData}
+              theme={theme}
+              isPreview={isPreview}
+              totalColor={primaryColor}
+            />
+
+            {/* Apple Pay */}
+            {(theme.applePayEnabled as boolean) && <ApplePayButton />}
+
+            {/* Pagamento */}
+            <div className="rounded-xl border bg-white shadow-sm p-5">
+              <h3 className="font-semibold text-sm text-gray-800 mb-4">Forma de pagamento</h3>
+
+              {/* Botão com gradiente pink + valor */}
+              <MinimalStepPayment
+                theme={{
+                  ...theme,
+                  buttonGradient: gradient,
+                  primaryColor,
+                }}
+                isPreview={isPreview}
+                checkoutData={checkoutData}
+                orderId={orderId}
+                onBack={() => {}}
+                onSuccess={onPaymentSuccess}
+                primaryColor={primaryColor}
+                templateSlug={templateConfig.slug}
+              />
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <CheckoutFooter theme={theme as any} />
+    </div>
+  );
+};
+
+export default TikTokTemplate;

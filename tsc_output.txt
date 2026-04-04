@@ -1,0 +1,1455 @@
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/App.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/App.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Breadcrumbs.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Breadcrumbs.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/EmptyState.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/EmptyState.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ErrorBoundary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ErrorBoundary.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/InactivityWarning.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/InactivityWarning.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/LazyLoad.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/LazyLoad.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/LoadingSpinner.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/LoadingSpinner.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Logo.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Logo.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ModernLogo.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ModernLogo.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Pagination.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/Pagination.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PerformanceDevTools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PerformanceDevTools.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PlaceholderPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PlaceholderPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ProtectedRoute.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ProtectedRoute.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PublicRoute.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/PublicRoute.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ThemeProvider.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ThemeProvider.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ZipDownload.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ZipDownload.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/admin/AdminBadge.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/admin/AdminBadge.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/admin/AdminProgressIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/admin/AdminProgressIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/AISystemDebugger.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/AISystemDebugger.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/AiThinkingIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/AiThinkingIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ConnectionStatus.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ConnectionStatus.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ModernAiLoader.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ModernAiLoader.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/SonicIcon.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/SonicIcon.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ToolStepsIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ai/ToolStepsIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/AnimatedGradient.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/AnimatedGradient.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/GlassBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/GlassBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/ParticlesBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/ParticlesBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/SyncAdsWatermarkBg.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/SyncAdsWatermarkBg.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/ChatBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/ChatBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/DashboardBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/DashboardBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/LandingBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/LandingBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/LoginBackground.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/backgrounds/presets/LoginBackground.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIActionButtons.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIActionButtons.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIProgressIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIProgressIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIRoleBadge.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIRoleBadge.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIUsageBadge.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/AIUsageBadge.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ActiveAIIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ActiveAIIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatAttachment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatAttachment.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatInput.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatInput.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatMessage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ChatMessage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ConversationSidebar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ConversationSidebar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/IntegrationActionButtons.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/IntegrationActionButtons.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/IntegrationConnectionCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/IntegrationConnectionCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/MediaGeneratorPanel.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/MediaGeneratorPanel.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/PlanningBlock.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/PlanningBlock.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/SuperAIProgress.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/SuperAIProgress.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ToolExecutionIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ToolExecutionIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/TypingIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/TypingIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/WebSearchIndicator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/WebSearchIndicator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ZipDownloadCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/ZipDownloadCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ChatModalManager.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ChatModalManager.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ChatModalNormal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ChatModalNormal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/CodeEditorModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/CodeEditorModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ImageGalleryModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/ImageGalleryModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VideoGalleryModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VideoGalleryModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VisualEditorModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VisualEditorModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VisualEditorModalDualite.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VisualEditorModalDualite.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VoiceInput.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/VoiceInput.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/chat/modals/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/BoletoPayment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/BoletoPayment.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CepInput.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CepInput.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutButton.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutButton.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutCustomizationSidebar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutCustomizationSidebar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutFooter.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutFooter.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutInput.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CheckoutInput.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ColorPicker.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ColorPicker.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CpfInput.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CpfInput.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CreditCardForm.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/CreditCardForm.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ExtraFields.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ExtraFields.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ImageUpload.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ImageUpload.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ImageUploadField.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ImageUploadField.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/LogoHeader.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/LogoHeader.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernColorPicker.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernColorPicker.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernCreditCardPayment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernCreditCardPayment.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernPixPayment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ModernPixPayment.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/NoticeBar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/NoticeBar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/OrderBumpCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/OrderBumpCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/OrderSummary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/OrderSummary.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/PaymentMethodIcons.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/PaymentMethodIcons.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/PixPayment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/PixPayment.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ProgressBar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ProgressBar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ScarcityTimer.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/ScarcityTimer.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/SecurityBadges.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/SecurityBadges.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/SocialProofNotifications.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/SocialProofNotifications.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepDadosPessoais.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepDadosPessoais.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepEndereco.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepEndereco.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepPagamento.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/StepPagamento.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/Stepper.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/steps/Stepper.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/AnimatedNumber.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/AnimatedNumber.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/AnimatedPieChart.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/AnimatedPieChart.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/LiveSparkline.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/dashboard/LiveSparkline.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/debug/PlanDebugInfo.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/debug/PlanDebugInfo.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/developer/DeveloperSetupModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/developer/DeveloperSetupModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/developer/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/developer/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/editor/CodeEditor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/editor/CodeEditor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/CustomGatewayLogos.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/CustomGatewayLogos.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/GatewayCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/GatewayCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/GatewayLogo.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/GatewayLogo.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/LocalGatewayLogos.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/gateway/LocalGatewayLogos.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Breadcrumbs.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Breadcrumbs.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/DashboardLayout.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/DashboardLayout.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Header.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Header.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/MobileBottomNav.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/MobileBottomNav.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Sidebar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Sidebar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Sidebar_OLD.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/Sidebar_OLD.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/SuperAdminLayout.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/SuperAdminLayout.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/UserLayout.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/layout/UserLayout.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/AudioEditor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/AudioEditor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/AudioGalleryPro.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/AudioGalleryPro.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/SoundLibrary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/audio/SoundLibrary.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/AssetLibrary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/AssetLibrary.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/ImageEditor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/ImageEditor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/ImageGalleryPro.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/image/ImageGalleryPro.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/MusicLibrary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/MusicLibrary.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/VideoEditor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/VideoEditor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/VideoGalleryPro.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/media/video/VideoGalleryPro.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/FloatingElements.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/FloatingElements.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/GlassmorphismCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/GlassmorphismCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/GradientCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/GradientCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/ModernButtons.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/ModernButtons.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/ModernInputs.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/ModernInputs.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/modern-ui/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/payment/PaymentQueueMonitor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/payment/PaymentQueueMonitor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/tables/VirtualizedProductsTable.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/tables/VirtualizedProductsTable.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/templates/TemplateSelector.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/templates/TemplateSelector.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/VirtualizedTable.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/VirtualizedTable.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/alert-dialog.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/alert-dialog.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/alert.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/alert.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/avatar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/avatar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/badge.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/badge.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/button.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/button.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/calendar.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/calendar.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/card.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/card.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/checkbox.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/checkbox.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/dialog.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/dialog.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/dropdown-menu.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/dropdown-menu.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/input.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/input.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/label.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/label.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/popover.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/popover.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/progress.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/progress.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/radio-group.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/radio-group.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/select.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/select.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/separator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/separator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/skeleton.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/skeleton.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/switch.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/switch.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/table.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/table.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/tabs.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/tabs.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/textarea.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/textarea.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/toast.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/toast.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/toaster.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/toaster.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/tooltip.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/tooltip.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/use-toast.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/ui/use-toast.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/AnimationTimeline.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/AnimationTimeline.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/CodeEditor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/CodeEditor.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/ComponentPalette.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/ComponentPalette.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/DesignTools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/DesignTools.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/GradientBuilder.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/GradientBuilder.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/PageManager.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/PageManager.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/ShadowGenerator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/ShadowGenerator.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/VisualEditorPro.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/components/visual-editor/VisualEditorPro.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/defaultCheckoutTheme.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/defaultCheckoutTheme.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/integrations.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/integrations.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/plans.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/config/plans.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/data/mocks.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/data/mocks.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/data/notifications.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/data/notifications.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/__tests__/useOptimizedSelectors.test.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/__tests__/useOptimizedSelectors.test.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/chat/useChatSync.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/chat/useChatSync.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useAISystem.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useAISystem.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useAbandonedCartDetection.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useAbandonedCartDetection.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useCachedQuery.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useCachedQuery.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useChartData.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useChartData.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useChatStream.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useChatStream.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useCustomers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useCustomers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDarkMode.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDarkMode.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDashboardMetrics.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDashboardMetrics.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDebounce.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useDebounce.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useEnhancedDashboardMetrics.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useEnhancedDashboardMetrics.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useErrorHandler.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useErrorHandler.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useImageGeneration.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useImageGeneration.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useInactivityLogout.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useInactivityLogout.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useKeyboardShortcuts.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useKeyboardShortcuts.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useLeads.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useLeads.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useModalError.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useModalError.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useOptimizedSelectors.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useOptimizedSelectors.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useOrders.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useOrders.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePages.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePages.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePaymentDiscounts.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePaymentDiscounts.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePaymentQueue.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePaymentQueue.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePixelTracking.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePixelTracking.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePixels.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/usePixels.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useProducts.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useProducts.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useSocialProofExamples.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useSocialProofExamples.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useVirtualizedData.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/hooks/useVirtualizedData.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/adminTools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/adminTools.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/advancedFeatures.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/advancedFeatures.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/campaignParser.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/campaignParser.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/chatHandlers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/chatHandlers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/core/aiCore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/core/aiCore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/core/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/core/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/formatting/responseFormatter.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/formatting/responseFormatter.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/integrationTools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/integrationTools.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/modalContext.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/modalContext.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/openai.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/openai.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/sarcasticPersonality.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/sarcasticPersonality.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/superAITools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/superAITools.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolCallingPrompt.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolCallingPrompt.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolDefinitions.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolDefinitions.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolExecutor.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/tools/toolExecutor.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/toolsManager.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/ai/toolsManager.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/analytics/modalAnalytics.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/analytics/modalAnalytics.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/aiConnections.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/aiConnections.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/auth.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/auth.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/campaigns.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/campaigns.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/cartApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/cartApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/cashbackApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/cashbackApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/chat.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/chat.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/chatService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/chatService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/checkoutApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/checkoutApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/conversations.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/conversations.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/customersApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/customersApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/dashboardApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/dashboardApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/discountBannerApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/discountBannerApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/extensionApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/extensionApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/gatewaysApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/gatewaysApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/integrations.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/integrations.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/invites.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/invites.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/marketingApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/marketingApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/mercadolivreIntegrationApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/mercadolivreIntegrationApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/notifications.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/notifications.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/nuvemshopIntegrationApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/nuvemshopIntegrationApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/omnibrainService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/omnibrainService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/ordersApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/ordersApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/payment.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/payment.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/paymentMetricsApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/paymentMetricsApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/productsApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/productsApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/pythonService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/pythonService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/recoveryApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/recoveryApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/redirectApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/redirectApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyCollections.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyCollections.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyDiscounts.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyDiscounts.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyIntegrationApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifyIntegrationApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifySync.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/shopifySync.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/utmApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/utmApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/vtexIntegrationApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/vtexIntegrationApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/woocommerceIntegrationApi.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/woocommerceIntegrationApi.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/zipService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/api/zipService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/cache/redis.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/cache/redis.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/config.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/config.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/constants.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/constants.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/database.types.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/database.types.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/developer/DeveloperCredentialsService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/developer/DeveloperCredentialsService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/developer/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/developer/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/errors.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/errors.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/gatewayAutoDetect.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/gatewayAutoDetect.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/gatewaysList.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/gatewaysList.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/implementedGateways.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/gateways/implementedGateways.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/init-mobile-fix.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/init-mobile-fix.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/deploy/DeployService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/deploy/DeployService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/deploy/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/deploy/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/GitHubService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/GitHubService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/types.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/github/types.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/integrationParsers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/integrationParsers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/integrationsService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/integrationsService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/oauthConfig.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/oauthConfig.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/types.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/integrations/types.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/audio-providers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/audio-providers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/image-providers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/image-providers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/templates/image-templates.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/templates/image-templates.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/templates/video-templates.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/templates/video-templates.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/video-providers.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/media/video-providers.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/mobile-fix-auto.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/mobile-fix-auto.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/mobile-fix.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/mobile-fix.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/orchestrator/ServiceOrchestrator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/orchestrator/ServiceOrchestrator.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/orchestrator/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/orchestrator/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/paste-fix.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/paste-fix.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/performance.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/performance.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/plans/planLimits.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/plans/planLimits.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/sentry.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/sentry.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/storage/StorageService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/storage/StorageService.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/storage/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/storage/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/supabase-mobile-fix.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/supabase-mobile-fix.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/supabase.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/supabase.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/templates/TemplateLibrary.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/templates/TemplateLibrary.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/templates/landing-page-templates.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/templates/landing-page-templates.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cepUtils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cepUtils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfUtils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfUtils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfValidation.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfValidation.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfValidator.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/cpfValidator.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/emailUtils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/emailUtils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/phoneUtils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/phoneUtils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/validationUtils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/utils/validationUtils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/validators.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/validators.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/ai-tools.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/ai-tools.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/components.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/components.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/export-utils.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/export-utils.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/templates.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/visual-editor/templates.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/workflows/DeployWorkflow.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/lib/workflows/DeployWorkflow.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/main.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/main.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/IntegrationCallbackPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/IntegrationCallbackPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/ModernUIShowcase.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/ModernUIShowcase.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/NotFoundPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/NotFoundPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/AnalyticsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/AnalyticsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.backup2.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.backup2.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/BillingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/CampaignsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/CampaignsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.ANTIGO.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.ANTIGO.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ChatPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/CheckoutOnboardingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/CheckoutOnboardingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/DashboardPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/DashboardPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/DomainValidationPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/DomainValidationPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/EmailVerificationPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/EmailVerificationPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ExtensionPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ExtensionPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ExtensionSetupPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ExtensionSetupPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationDetailPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationDetailPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationDetailPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationDetailPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/IntegrationsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/SettingsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/SettingsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ShippingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/ShippingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/SystemHealthPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/SystemHealthPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/TeamPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/TeamPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/UnifiedDashboardPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/UnifiedDashboardPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/CampaignDetailsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/CampaignDetailsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/EditCampaignModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/EditCampaignModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/NewCampaignModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/campaigns/NewCampaignModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/CheckoutCustomizePage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/CheckoutCustomizePage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/CheckoutCustomizePage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/CheckoutCustomizePage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/DiscountsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/DiscountsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/DiscountsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/DiscountsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.BACKUP2.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.BACKUP2.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewayConfigPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysListPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysListPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysListPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysListPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/GatewaysPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/RedirectPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/RedirectPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/RedirectPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/RedirectPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/SocialProofPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/SocialProofPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/SocialProofPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkout/SocialProofPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkouts/CheckoutsManagementPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/checkouts/CheckoutsManagementPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/AllCustomersPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/AllCustomersPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/AllCustomersPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/AllCustomersPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/LeadsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/LeadsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/LeadsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/customers/LeadsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/ActiveCampaignsTable.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/ActiveCampaignsTable.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/AiSuggestionsCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/AiSuggestionsCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/ConversionGoalsCard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/ConversionGoalsCard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/DashboardChart.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/DashboardChart.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/RecentCampaignsTable.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/RecentCampaignsTable.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/SimpleDashboardPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/dashboard/SimpleDashboardPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CashbackPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CashbackPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CashbackPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CashbackPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CouponsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CouponsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CouponsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CouponsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CrossSellPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CrossSellPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CrossSellPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/CrossSellPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/DiscountBannerPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/DiscountBannerPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/DiscountBannerPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/DiscountBannerPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/OrderBumpPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/OrderBumpPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/OrderBumpPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/OrderBumpPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/PixelsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/PixelsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/PixelsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/PixelsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/UpsellPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/UpsellPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/UpsellPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/marketing/UpsellPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AbandonedCartsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AbandonedCartsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AbandonedCartsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AbandonedCartsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AllOrdersPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AllOrdersPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AllOrdersPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/AllOrdersPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/OrdersManagementPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/OrdersManagementPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/OrdersManagementPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/OrdersManagementPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/PixRecoveredPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/PixRecoveredPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/PixRecoveredPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/orders/PixRecoveredPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/AllProductsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/AllProductsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/AllProductsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/AllProductsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/CollectionsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/CollectionsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/CollectionsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/CollectionsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/KitsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/KitsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/KitsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/products/KitsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AdsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AdsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AdsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AdsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AudiencePage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AudiencePage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AudiencePage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/AudiencePage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.WORKING_BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.WORKING_BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.backup.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.backup.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/ReportsOverviewPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/UtmsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/UtmsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/UtmsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/reports/UtmsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AccountSecurityTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AccountSecurityTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AccountSecurityTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AccountSecurityTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiConnectionModal.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiConnectionModal.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiConnectionModal.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiConnectionModal.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiGreetingsTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiGreetingsTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiGreetingsTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiGreetingsTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiPersonalityTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiPersonalityTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiPersonalityTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiPersonalityTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/AiTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab_BACKUP.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab_BACKUP.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab_BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ApiKeysTab_BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/BillingTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/BillingTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/BillingTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/BillingTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/DomainsTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/DomainsTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/DomainsTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/DomainsTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/LogisticsTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/LogisticsTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/LogisticsTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/LogisticsTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/NotificationsTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/NotificationsTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/NotificationsTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/NotificationsTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/OrganizationAiTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/OrganizationAiTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/OrganizationAiTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/OrganizationAiTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ProfileTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ProfileTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ProfileTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/ProfileTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/SecurityTab.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/SecurityTab.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/SecurityTab.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/settings/SecurityTab.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/tracking/PixelsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/tracking/PixelsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/workspace/WorkspacePage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/app/workspace/WorkspacePage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/ForgotPasswordPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/ForgotPasswordPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/LoginPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/LoginPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/RegisterPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/auth/RegisterPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/checkout/CheckoutDashboard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/checkout/CheckoutDashboard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/orders/AllOrdersPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/orders/AllOrdersPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/CheckoutSuccessPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/CheckoutSuccessPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/LandingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/LandingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/ModernCheckoutPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/ModernCheckoutPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPageComponents.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPageComponents.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPageFooter.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPageFooter.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage_Jornada.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage_Jornada.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage_New_Sections.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NewLandingPage_New_Sections.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NotFoundPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/NotFoundPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PixPaymentPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PixPaymentPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PrivacyPolicy.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PrivacyPolicy.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.BACKUP-ANTES-MODERNO.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.BACKUP-ANTES-MODERNO.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.REDESIGN_BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.REDESIGN_BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPageIncomplete.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPageIncomplete.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPageNovo.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPageNovo.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/RefundPolicy.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/RefundPolicy.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/TermsOfService.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/TermsOfService.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/sections_temp_3.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/sections_temp_3.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/AdminChatPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/AdminChatPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/BillingPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/BillingPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPage.BACKUP.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPage.BACKUP.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPageNEW_PART1.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/ClientsPageNEW_PART1.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/GatewaysPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/GatewaysPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/GlobalAiPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/GlobalAiPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/OAuthConfigPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/OAuthConfigPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/OrganizationsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/OrganizationsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/PaymentSplitPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/PaymentSplitPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/PlansManagementPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/PlansManagementPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/SubscriptionsPage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/SubscriptionsPage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/SuperAdminDashboard.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/SuperAdminDashboard.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/UsagePage.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/super-admin/UsagePage.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/test/GatewayLogosTest.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/pages/test/GatewayLogosTest.tsx'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/routes/optimizedRoutes.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/routes/optimizedRoutes.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/__tests__/authSchemas.test.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/__tests__/authSchemas.test.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/authSchemas.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/authSchemas.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/campaignSchemas.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/campaignSchemas.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/checkoutSchemas.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/checkoutSchemas.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/productSchemas.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/schemas/productSchemas.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/authStore.test.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/authStore.test.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/campaignsStore.test.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/campaignsStore.test.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/integrationsStore.test.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/__tests__/integrationsStore.test.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/authStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/authStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/campaignsStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/campaignsStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/chatStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/chatStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/index.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/index.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/integrationsStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/integrationsStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/settingsStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/settingsStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/useStore.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/useStore.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/useStore.new.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/store/useStore.new.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/test/setup.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/test/setup.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/types/pixel.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/types/pixel.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'
+error TS6305: Output file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/types/supabase.d.ts' has not been built from source file 'C:/Users/dinho/Documents/GitHub/SyncAds/src/types/supabase.ts'.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/Users/dinho/Documents/GitHub/SyncAds/tsconfig.json'

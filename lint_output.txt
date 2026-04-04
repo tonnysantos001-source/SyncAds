@@ -1,0 +1,13 @@
+
+> vite-react-typescript-starter@0.0.1 lint
+> eslint .
+
+
+C:\Users\dinho\Documents\GitHub\SyncAds\dist\shopify-checkout-redirect.js
+  481:16  error  Parsing error: Unexpected token .
+
+C:\Users\dinho\Documents\GitHub\SyncAds\public\shopify-checkout-redirect.js
+  481:16  error  Parsing error: Unexpected token .
+
+Ô£û 2 problems (2 errors, 0 warnings)
+
