@@ -437,6 +437,7 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
                         <h2 className="mb-1 flex items-center gap-3 transition-colors" style={{ fontWeight: 500, fontSize: '21px', marginTop: 0, fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif', textTransform: 'none', color: currentStep === 3 ? primary : 'rgb(107,114,128)' }}>
                           <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: currentStep >= 3 ? primary : 'rgb(209,213,219)' }}>3</span>
                           Pagamento
+                        </h2>
                       </button>
 
                       {currentStep === 3 && (
