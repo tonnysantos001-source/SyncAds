@@ -85,15 +85,20 @@ const Countdown: React.FC = () => {
   );
 };
 
-// ── DROP ZONE (Caixa "Solte aqui" para personalização) ───────
+// ── DROP ZONE (Caixa de upload de imagem) ───────
 const DropZone: React.FC<{
-  imageSrc?: string;
+  imageSrc?: string | null;
   themeKey: string;
   onUpdateTheme?: (themeOverrides: Partial<Record<string, unknown>>) => void;
 }> = ({ imageSrc, themeKey, onUpdateTheme }) => {
   const [localImage, setLocalImage] = useState<string | null>(imageSrc || null);
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ SYNC: quando o tema pai atualiza (ex: reload do banco), sincroniza o localImage
+  useEffect(() => {
+    setLocalImage(imageSrc || null);
+  }, [imageSrc]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -109,6 +114,7 @@ const DropZone: React.FC<{
         }
       } catch (error) {
         console.error("Erro no upload:", error);
+        setLocalImage(imageSrc || null); // reverte em caso de erro
       } finally {
         setIsUploading(false);
       }
@@ -200,15 +206,21 @@ const DropZone: React.FC<{
 
 // ── CUSTOMIZABLE BANNER (Upload de Imagens Responsivas) ───────
 const CustomizableBanner: React.FC<{
-  imageSrc?: string;
+  imageSrc?: string | null;
+  themeKey: string;
   type: 'desktop' | 'mobile';
   isMobileView: boolean;
   onUpdateTheme?: (themeOverrides: Partial<Record<string, unknown>>) => void;
-}> = ({ imageSrc, type, isMobileView, onUpdateTheme }) => {
+}> = ({ imageSrc, themeKey, type, isMobileView, onUpdateTheme }) => {
   const isMobileType = type === 'mobile';
   const [localImage, setLocalImage] = useState<string | null>(imageSrc || null);
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ SYNC: quando o tema pai atualiza (ex: reload do banco), sincroniza o localImage
+  useEffect(() => {
+    setLocalImage(imageSrc || null);
+  }, [imageSrc]);
 
   // Renderiza apenas o banner correto para o dispositivo
   if (isMobileType && !isMobileView) return null;
@@ -217,23 +229,18 @@ const CustomizableBanner: React.FC<{
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
       try {
         setIsUploading(true);
-        // Atualização Otimista Imediata da UI
         const localUrl = URL.createObjectURL(file);
         setLocalImage(localUrl);
 
-        // Upload Real no Back-End
         const publicUrl = await checkoutApi.uploadCheckoutImage(file);
-        
-        // Disparando para o Tema pai
         if (onUpdateTheme) {
-          onUpdateTheme({ bannerImageUrl: publicUrl });
+          onUpdateTheme({ [themeKey]: publicUrl });
         }
       } catch (error) {
         console.error("Erro ao subir imagem:", error);
-        // Em um sistema mais complexo poderiamos exibir um Toast de erro ou regressar a preview
+        setLocalImage(imageSrc || null); // reverte em erro
       } finally {
         setIsUploading(false);
       }
@@ -295,7 +302,7 @@ const CustomizableBanner: React.FC<{
             onClick={() => {
               setLocalImage(null);
               if (onUpdateTheme) {
-                 onUpdateTheme({ bannerImageUrl: null });
+                 onUpdateTheme({ [themeKey]: null });
               }
             }} 
             className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors disabled:opacity-50"
@@ -639,8 +646,20 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
                   </div>
 
                   {/* BANNERS PERSONALIZÁVEIS */}
-                  <CustomizableBanner imageSrc={bannerSrc} type="desktop" isMobileView={isMobile} onUpdateTheme={onUpdateTheme} />
-                  <CustomizableBanner imageSrc={bannerSrc} type="mobile" isMobileView={isMobile} onUpdateTheme={onUpdateTheme} />
+                  <CustomizableBanner 
+                    themeKey="bannerDesktopUrl" 
+                    imageSrc={theme.bannerDesktopUrl as string | null} 
+                    type="desktop" 
+                    isMobileView={isMobile} 
+                    onUpdateTheme={onUpdateTheme} 
+                  />
+                  <CustomizableBanner 
+                    themeKey="bannerMobileUrl" 
+                    imageSrc={theme.bannerMobileUrl as string | null} 
+                    type="mobile" 
+                    isMobileView={isMobile} 
+                    onUpdateTheme={onUpdateTheme} 
+                  />
 
                   {/* SEÇÃO 2: ENTREGA */}
                   <div className="space-y-4 pt-4">

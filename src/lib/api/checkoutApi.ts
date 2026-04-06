@@ -25,13 +25,15 @@ export interface CheckoutCustomization {
 
     // Banner
     bannerEnabled?: boolean;
-    bannerImageUrl?: string;
+    bannerImageUrl?: string | null;
+    bannerDesktopUrl?: string | null;
+    bannerMobileUrl?: string | null;
 
     // Banners extras
-    leftTopBannerUrl?: string;
-    rightTopBannerUrl?: string;
-    leftBottomBannerUrl?: string;
-    rightBottomBannerUrl?: string;
+    leftTopBannerUrl?: string | null;
+    rightTopBannerUrl?: string | null;
+    leftBottomBannerUrl?: string | null;
+    rightBottomBannerUrl?: string | null;
 
     // Carrinho
     cartDisplay?: "closed" | "open";
