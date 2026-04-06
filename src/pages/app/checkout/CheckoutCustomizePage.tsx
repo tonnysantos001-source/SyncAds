@@ -100,6 +100,7 @@ const CheckoutCustomizePage: React.FC = () => {
   const [activeTemplateSlug, setActiveTemplateSlug] = useState<string>(
     () => customization?.theme?.templateSlug || 'minimal'
   );
+  const UI_VERSION = "v4.5-FINAL-FIX";
   const [isActivating, setIsActivating] = useState(false);
 
   // Detectar e aplicar dark mode do sistema
@@ -358,7 +359,9 @@ const CheckoutCustomizePage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      console.log("💾 Salvando personalização...", customization.theme);
+      // ✅ LOG PARA DEPURAÇÃO: Ver exatamente o que está sendo enviado
+      console.log(`💾 [${UI_VERSION}] Salvando tema...`, customization.theme);
+      
       const isDraft = !customization.id || customization.id.startsWith('draft-');
 
       if (isDraft) {
@@ -373,9 +376,11 @@ const CheckoutCustomizePage: React.FC = () => {
           })
           .select()
           .single();
+        
         if (error) throw error;
         setCustomization({ ...customization, ...data });
       } else {
+        // ✅ ATUALIZAÇÃO EXPLÍCITA: Forçar o envio do objeto theme completo, incluindo nulls
         const { error } = await supabase
           .from('CheckoutCustomization')
           .update({
@@ -384,19 +389,20 @@ const CheckoutCustomizePage: React.FC = () => {
             updatedAt: new Date().toISOString(),
           })
           .eq('id', customization.id);
+        
         if (error) throw error;
       }
       
       setHasChanges(false);
       toast({
-        title: "Alterações salvas!",
-        description: "Suas configurações foram sincronizadas com sucesso.",
+        title: "Sucesso!",
+        description: `Configurações (${UI_VERSION}) salvas no banco de dados.`,
       });
     } catch (error: any) {
-      console.error("Erro ao salvar personalização:", error);
+      console.error("❌ Erro fatal ao salvar:", error);
       toast({
-        title: "Erro ao salvar",
-        description: error?.message || "Não foi possível conectar ao banco de dados.",
+        title: "Falha Crítica",
+        description: error?.message || "Erro de conexão com o Supabase.",
         variant: "destructive",
       });
     } finally {
@@ -442,6 +448,11 @@ const CheckoutCustomizePage: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-850 dark:to-purple-900/40">
+      {/* Marcador de Versão para Debug */}
+      <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-2 py-1 rounded text-[10px] font-mono pointer-events-none">
+        {UI_VERSION}
+      </div>
+
       {/* Sidebar de Personalização */}
       <CheckoutCustomizationSidebar
         expandedSections={expandedSections}

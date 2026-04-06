@@ -118,7 +118,7 @@ const DropZone: React.FC<{
   const handleRemove = () => {
     setLocalImage(null);
     if (onUpdateTheme) {
-      onUpdateTheme({ [themeKey]: "" });
+      onUpdateTheme({ [themeKey]: null });
     }
   };
 
@@ -295,7 +295,7 @@ const CustomizableBanner: React.FC<{
             onClick={() => {
               setLocalImage(null);
               if (onUpdateTheme) {
-                 onUpdateTheme({ bannerImageUrl: "" });
+                 onUpdateTheme({ bannerImageUrl: null });
               }
             }} 
             className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors disabled:opacity-50"
