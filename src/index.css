@@ -225,3 +225,23 @@ body {
         background: rgba(147, 51, 234, 0.7);
     }
 }
+
+/* Animação de pulso para botões de checkout */
+@keyframes btn-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 130, 236, 0.4);
+    }
+    70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(0, 130, 236, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 130, 236, 0);
+    }
+}
+
+.btn-animate-pulse-normal {
+    animation: btn-pulse 2s infinite;
+}

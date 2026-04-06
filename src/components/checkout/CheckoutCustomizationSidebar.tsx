@@ -45,6 +45,8 @@ interface CheckoutCustomizationSidebarProps {
   onUpdateTheme: (updates: any) => void;
   /** Callback quando o usuário seleciona um template */
   onSelectTemplate?: (slug: string, version: number) => void;
+  /** Slug do template atualmente ativo em produção */
+  activeTemplateSlug?: string;
 }
 
 const sections: Section[] = [
@@ -62,7 +64,7 @@ const sections: Section[] = [
 
 export const CheckoutCustomizationSidebar: React.FC<
   CheckoutCustomizationSidebarProps
-> = ({ expandedSections, onToggleSection, customization, onUpdateTheme, onSelectTemplate }) => {
+> = ({ expandedSections, onToggleSection, customization, onUpdateTheme, onSelectTemplate, activeTemplateSlug }) => {
 
   // Templates disponíveis para seleção
   const AVAILABLE_TEMPLATES = [
@@ -147,6 +149,7 @@ export const CheckoutCustomizationSidebar: React.FC<
             <div className="grid grid-cols-1 gap-2">
               {AVAILABLE_TEMPLATES.map((tpl) => {
                 const isActive = currentTemplateSlug === tpl.slug;
+                const isLive = (activeTemplateSlug || currentTemplateSlug) === tpl.slug;
                 return (
                   <button
                     key={tpl.slug}
@@ -183,16 +186,15 @@ export const CheckoutCustomizationSidebar: React.FC<
                         </p>
                       </div>
 
-                      {/* Badge cor */}
-                      <span
-                        className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor: `${tpl.color}20`,
-                          color: tpl.color,
-                        }}
-                      >
-                        {tpl.badge}
-                      </span>
+                      {/* Direita: bolinha verde se ativo em produção */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {isLive && (
+                          <div className="relative flex-shrink-0" title="Ativo em produção">
+                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                            <div className="absolute inset-0 rounded-full bg-green-400 opacity-50 scale-150" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Preview strip — barra de cor */}
@@ -205,16 +207,6 @@ export const CheckoutCustomizationSidebar: React.FC<
                   </button>
                 );
               })}
-            </div>
-
-            <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700/30 rounded-lg">
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                💡 <strong>Dica:</strong> Ative a flag{" "}
-                <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
-                  VITE_USE_NEW_CHECKOUT=true
-                </code>{" "}
-                para usar os novos modelos no checkout público.
-              </p>
             </div>
           </div>
         );

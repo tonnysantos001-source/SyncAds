@@ -174,6 +174,7 @@ interface PublicCheckoutPageProps {
   injectedTheme?: any;
   previewMode?: boolean;
   isMobile?: boolean;
+  onUpdateTheme?: (themeOverrides: Partial<Record<string, unknown>>) => void;
 }
 
 const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
@@ -181,6 +182,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   injectedTheme,
   previewMode = false,
   isMobile = false,
+  onUpdateTheme,
 }) => {
   const { orderId: paramOrderId } = useParams<{ orderId: string }>();
   const orderId = injectedOrderId || paramOrderId;
@@ -840,6 +842,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             navigate(`/checkout/sucesso/${id || orderId}`);
           }}
           isMobile={isMobile || false}
+          onUpdateTheme={onUpdateTheme}
         />
       </React.Suspense>
     );

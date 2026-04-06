@@ -189,6 +189,9 @@ export interface TemplateRenderProps {
   /** Callback de pagamento */
   onPaymentSuccess?: (orderId: string) => void;
 
+  /** Callback para atualizar o tema de dentro do template */
+  onUpdateTheme?: (themeOverrides: Partial<Record<string, unknown>>) => void;
+
   /** Customização atual */
   customization?: CheckoutCustomizationState;
 }

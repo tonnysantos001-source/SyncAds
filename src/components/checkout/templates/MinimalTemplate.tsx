@@ -12,9 +12,9 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Lock, User, Truck, CreditCard, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
-import { PaymentMethodIcons } from '@/components/checkout/PaymentMethodIcons';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
+import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
 import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
@@ -303,7 +303,7 @@ const MinimalFakeSocialProof = ({ theme, isMobileView = false }: { theme: any; i
 // ============================================================
 // MINIMAL FOOTER (Strictly matched to Image 2)
 // ============================================================
-const MinimalFooter = () => (
+const MinimalFooter = ({ theme, isMobile }: { theme?: any; isMobile?: boolean }) => (
   <footer
     style={{
       marginTop: 'auto',
@@ -327,33 +327,20 @@ const MinimalFooter = () => (
         borderTop: '1px solid #E5E7EB',
       }}
     >
-      <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: '500' }}>
-        Formas de Pagamento
-      </span>
-      <PaymentMethodIcons
-        variant="horizontal"
-        methods={['visa', 'mastercard', 'elo', 'amex', 'diners', 'pix', 'boleto']}
-        isMobile={false}
-      />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 14px',
-          backgroundColor: '#F0FDF4',
-          borderRadius: '999px',
-          color: '#166534',
-          fontSize: '13px',
-          fontWeight: '500',
-        }}
-      >
-        <span style={{ position: 'relative', display: 'flex', height: '8px', width: '8px' }}>
-          <span style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite', position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', backgroundColor: '#4ade80', opacity: 0.75 }}></span>
-          <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', height: '8px', width: '8px', backgroundColor: '#22c55e' }}></span>
+        <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Formas de Pagamento
         </span>
-        Site Seguro
-      </div>
+        <PaymentMethodIcons
+          variant="horizontal"
+          methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
+          isMobile={isMobile}
+        />
+        <div 
+          className="flex items-center gap-2.5 px-4 py-2 bg-[#F0FDF4] rounded-full border border-green-100 shadow-sm transition-all hover:scale-105"
+        >
+          <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+          <span className="text-[11px] font-bold text-[#166534] tracking-tight uppercase">Site Seguro</span>
+        </div>
     </div>
   </footer>
 );
@@ -367,21 +354,28 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   checkoutData = { products: [], total: 0, subtotal: 0, shipping: 0 },
   theme,
   templateConfig,
-  isPreview = false,
-  isMobile: isMobileProp = false,
+  currentStep: currentStepProp,
   onStepChange,
   onPaymentSuccess,
+  primaryColor: primaryColorProp,
+  isMobile = false,
+  isPreview = false,
   customization,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
-  const isMobile = isMobileProp; // Source of truth for all components
-
-  const primaryColor    = (theme.primaryColor    as string) || '#0B1320';
+  
+  const primaryColor    = primaryColorProp || (theme.primaryColor as string) || '#0B1320';
   const scarcityBgColor = (theme.scarcityBarBgColor as string) || '#0B1320';
   const navSteps        = (theme.navigationSteps as number) || 3;
+  const storeName       = (theme.storeName as string) || 'Minha Loja';
 
-  const storeName = (theme.storeName as string) || 'Minha Loja';
+  // Sync internal state if prop changes (rare but good for consistency)
+  useEffect(() => {
+    if (currentStepProp !== undefined) {
+      setCurrentStep(currentStepProp);
+    }
+  }, [currentStepProp]);
 
   const handleStepAdvance = useCallback((toStep: number) => {
     setCurrentStep(toStep);
@@ -401,18 +395,30 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
         minHeight: '100vh',
         width: '100%',
-        maxWidth: '100vw',
-        overflowX: 'hidden',
-        backgroundColor: (theme.backgroundColor as string) || '#F9FAFB',
+        backgroundColor: '#0f172a',
+        padding: '24px 12px 64px',
         fontFamily: (theme.fontFamily as string) || "'Rubik', 'Inter', system-ui, sans-serif",
       }}
     >
-      {/* Notice Bar */}
-      {(theme.noticeBarEnabled as boolean) && (
-        <NoticeBar theme={theme as any} />
-      )}
+      <div 
+        style={{ 
+          width: '100%', 
+          maxWidth: '1280px', 
+          backgroundColor: '#ffffff', 
+          borderRadius: '16px', 
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+        }}
+      >
+        {/* Notice Bar inside card for consistent look */}
+        {(theme.noticeBarEnabled as boolean) && (
+          <NoticeBar theme={theme as any} />
+        )}
 
       {/* ── HEADER ──────────────────────────────────────────── */}
       <div
@@ -421,7 +427,8 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
           backgroundColor: '#ffffff',
           borderBottom: '1px solid #E5E7EB',
           width: '100%',
-          height: isMobile ? '64px' : '72px',
+          height: isMobile ? '85px' : '80px',
+          paddingTop: isMobile ? '24px' : '0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -472,20 +479,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             )}
           </div>
 
-          {/* Segurança */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#111827',
-              flexShrink: 0
-            }}
-          >
-            <Lock strokeWidth={1.5} style={{ width: isMobile ? '16px' : '20px', height: isMobile ? '16px' : '20px', color: '#10B981' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', fontSize: isMobile ? '9px' : '10px', fontWeight: '800', lineHeight: '1.1' }}>
-              <span>PAGAMENTO</span>
-              <span>100% SEGURO</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50">
+              <Lock className="w-4 h-4 text-green-500 fill-current" />
+            </div>
+            <div className="flex flex-col items-start leading-[1.1]">
+              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pagamento</span>
+              <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">100% Seguro</span>
             </div>
           </div>
         </div>
@@ -644,7 +644,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
       </div>
 
       {/* Footer */}
-      <MinimalFooter />
+      <MinimalFooter theme={theme} isMobile={isMobile} />
 
       {/* ── ESTILOS RESPONSIVOS ──────────────────────────────── */}
       <style>{`
@@ -663,7 +663,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             }
             .checkout-col-main {
               width: 100%;
-              padding: 0 16px;
+              padding: 0;
             }
             .checkout-col-summary {
               display: none;
@@ -691,6 +691,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             }
           }
       `}</style>
+      </div>
     </div>
   );
 };

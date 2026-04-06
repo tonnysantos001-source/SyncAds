@@ -144,6 +144,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   isPreview = false,
   onStepChange,
   onPaymentSuccess,
+  onUpdateTheme,
   customization,
   isMobile = false,
 }) => {
@@ -227,6 +228,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     isPreview,
     onStepChange,
     onPaymentSuccess,
+    onUpdateTheme,
     customization,
     isMobile,
   };

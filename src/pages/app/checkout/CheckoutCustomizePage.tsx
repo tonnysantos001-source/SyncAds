@@ -12,6 +12,7 @@ import {
   Layout,
   Zap,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 import { CheckoutCustomizationSidebar } from "@/components/checkout/CheckoutCustomizationSidebar";
+
 
 interface MetricCardProps {
   title: string;
@@ -95,6 +97,10 @@ const CheckoutCustomizePage: React.FC = () => {
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewKey, setPreviewKey] = useState(0);
+  const [activeTemplateSlug, setActiveTemplateSlug] = useState<string>(
+    () => customization?.theme?.templateSlug || 'minimal'
+  );
+  const [isActivating, setIsActivating] = useState(false);
 
   // Detectar e aplicar dark mode do sistema
   useEffect(() => {
@@ -284,22 +290,113 @@ const CheckoutCustomizePage: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleUseTemplate = async (slug: string) => {
     if (!customization || !user?.id) return;
+    setIsActivating(true);
+    try {
+      const isDraft = !customization.id || customization.id.startsWith('draft-');
+      const newTheme = { ...customization.theme, templateSlug: slug, activeTemplateSlug: slug };
+
+      let savedData: any;
+
+      if (isDraft) {
+        // Criar novo registro no banco
+        const { data, error } = await supabase
+          .from('CheckoutCustomization')
+          .insert({
+            userId: user.id,
+            name: customization.name || 'Checkout Principal',
+            theme: newTheme,
+            isActive: true,
+            updatedAt: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        savedData = data;
+      } else {
+        // Atualizar registro existente
+        const { data, error } = await supabase
+          .from('CheckoutCustomization')
+          .update({
+            theme: newTheme,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', customization.id)
+          .select()
+          .single();
+        if (error) throw error;
+        savedData = data;
+      }
+
+      setCustomization({ ...customization, ...savedData, theme: newTheme });
+      setActiveTemplateSlug(slug);
+      setHasChanges(false);
+      setPreviewKey((prev) => prev + 1);
+      toast({
+        title: "✅ Template ativado!",
+        description: "O checkout público agora usa este template.",
+      });
+    } catch (e: any) {
+      console.error('handleUseTemplate error:', e);
+      toast({ title: "Erro", description: e?.message || "Não foi possível ativar o template.", variant: "destructive" });
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!customization) {
+      toast({ title: "Erro", description: "Configurações não encontradas.", variant: "destructive" });
+      return;
+    }
+    
+    if (!user?.id) {
+      toast({ title: "Erro", description: "Você precisa estar logado para salvar.", variant: "destructive" });
+      return;
+    }
 
     setIsSaving(true);
     try {
-      await checkoutApi.saveCustomization(customization);
+      console.log("💾 Salvando personalização...", customization.theme);
+      const isDraft = !customization.id || customization.id.startsWith('draft-');
+
+      if (isDraft) {
+        const { data, error } = await supabase
+          .from('CheckoutCustomization')
+          .insert({
+            userId: user.id,
+            name: customization.name || 'Checkout Principal',
+            theme: customization.theme,
+            isActive: true,
+            updatedAt: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        setCustomization({ ...customization, ...data });
+      } else {
+        const { error } = await supabase
+          .from('CheckoutCustomization')
+          .update({
+            theme: customization.theme,
+            name: customization.name,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', customization.id);
+        if (error) throw error;
+      }
+      
       setHasChanges(false);
       toast({
-        title: "Personalização salva!",
-        description: "Suas configurações foram salvas com sucesso",
+        title: "Alterações salvas!",
+        description: "Suas configurações foram sincronizadas com sucesso.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar personalização:", error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações",
+        description: error?.message || "Não foi possível conectar ao banco de dados.",
         variant: "destructive",
       });
     } finally {
@@ -351,6 +448,10 @@ const CheckoutCustomizePage: React.FC = () => {
         onToggleSection={toggleSection}
         customization={customization}
         onUpdateTheme={updateTheme}
+        activeTemplateSlug={activeTemplateSlug}
+        onSelectTemplate={(slug, version) => {
+          updateTheme({ templateSlug: slug, templateVersion: version });
+        }}
       />
 
       {/* Área Principal - Header + Preview */}
@@ -425,6 +526,24 @@ const CheckoutCustomizePage: React.FC = () => {
                 </div>
               )}
 
+              {/* Usar este Checkout Button */}
+              <Button
+                onClick={() => {
+                  const currentSlug = customization?.theme?.templateSlug || 'minimal';
+                  handleUseTemplate(currentSlug);
+                }}
+                disabled={isActivating}
+                variant="outline"
+                className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 font-semibold transition-all duration-200"
+              >
+                {isActivating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Usar este Checkout
+              </Button>
+
               {/* Save Button */}
               <Button
                 onClick={handleSave}
@@ -456,29 +575,88 @@ const CheckoutCustomizePage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Preview Area */}
+        {/* Preview Area - Background unificado azul marinho (#0f172a) */}
         {showPreview ? (
-          <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-6">
+          <div className={cn("flex-1 overflow-y-auto overflow-x-hidden bg-[#0f172a]", previewMode === "mobile" ? "p-4 pt-12" : "p-8 pt-16")}>
+             {/* Global style to hide the scrollbar track and make it look premium */}
+             <style dangerouslySetInnerHTML={{ __html: `
+                ::-webkit-scrollbar {
+                  width: 8px;
+                }
+                ::-webkit-scrollbar-track {
+                  background: #0f172a;
+                }
+                ::-webkit-scrollbar-thumb {
+                  background: #1e293b;
+                  border-radius: 4px;
+                }
+                ::-webkit-scrollbar-thumb:hover {
+                  background: #334155;
+                }
+             `}} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              className="h-full flex items-center justify-center"
+              className="flex flex-col items-center placeholder-preview w-full"
             >
               <Card
                 className={cn(
-                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300",
+                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300 mx-auto relative",
                   previewMode === "desktop"
-                    ? "w-full max-w-6xl h-full rounded-2xl"
-                    : "w-[390px] h-[844px] rounded-3xl",
+                    ? "w-full max-w-[1400px] h-auto rounded-2xl"
+                    : "w-[530px] h-auto min-h-[850px] rounded-[3.5rem] border-[12px] border-[#1e293b] shadow-[0_0_0_2px_rgba(255,255,255,0.05),0_20px_50px_-12px_rgba(0,0,0,0.5)] mb-12",
                 )}
               >
+                {/* Physical Buttons Simulation (Only Mobile) */}
+                {previewMode === "mobile" && (
+                  <>
+                    {/* Left side: Mute & Volume */}
+                    <div className="absolute -left-[14px] top-32 w-[3px] h-8 bg-[#334155] rounded-l-md" /> {/* Mute */}
+                    <div className="absolute -left-[14px] top-48 w-[3px] h-16 bg-[#334155] rounded-l-md" /> {/* Vol Up */}
+                    <div className="absolute -left-[14px] top-68 w-[3px] h-16 bg-[#334155] rounded-l-md" /> {/* Vol Down */}
+                    {/* Right side: Power */}
+                    <div className="absolute -right-[14px] top-56 w-[3px] h-24 bg-[#334155] rounded-r-md" />
+                  </>
+                )}
                 <div
                   className={cn(
-                    "h-full w-full overflow-y-auto overflow-x-hidden",
+                    "h-auto w-full overflow-visible relative",
+                    previewMode === "mobile" ? "bg-[#0f172a]" : "bg-[#0f172a]",
                     previewMode === "mobile" && "scale-100",
                   )}
                 >
+                  {/* Dynamic Island / Status Bar UI */}
+                  {previewMode === "mobile" && (
+                    <div className="sticky top-0 left-0 right-0 h-14 flex items-center justify-between px-8 z-[100] bg-transparent flex-shrink-0 pointer-events-none transition-all duration-300">
+                      {/* Clock */}
+                      <span className="text-[11px] font-bold text-white/90">9:41</span>
+                      
+                      {/* Dynamic Island Pill (Escalado para 530px) */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-4 w-[130px] h-[34px] bg-black rounded-[18px] flex items-center justify-between px-4 ring-1 ring-white/10 shadow-lg group hover:w-[200px] transition-all duration-500">
+                         {/* Mute/Action Indicator dot (simulated) */}
+                         <div className="w-[18px] h-[3px] bg-zinc-800 rounded-full" />
+                         {/* Camera Lens */}
+                         <div className="w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5 flex items-center justify-center">
+                            <div className="w-1 h-1 bg-blue-500/20 blur-[1px] rounded-full" />
+                         </div>
+                      </div>
+
+                      {/* Icons (WiFi, Signal, Battery) */}
+                      <div className="flex items-center gap-1">
+                         <svg width="15" height="10" viewBox="0 0 15 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 7.5V10H2V7.5H0ZM3.25 5V10H5.25V5H3.25ZM6.5 2.5V10H8.5V2.5H6.5ZM9.75 0V10H11.75V0H9.75Z" fill="white" fillOpacity="0.9"/>
+                         </svg>
+                         <svg width="15" height="11" viewBox="0 0 15 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.5 11L15 2.5C14.7 2.2 12 0 7.5 0C3 0 0.3 2.2 0 2.5L7.5 11ZM7.5 1.5C10.5 1.5 12.5 2.8 13.5 3.5L7.5 10.3L1.5 3.5C2.5 2.8 4.5 1.5 7.5 1.5Z" fill="white" fillOpacity="0.9"/>
+                         </svg>
+                         <div className="w-[20px] h-[10px] border border-white/40 rounded-[2.5px] relative p-[1px]">
+                            <div className="h-full w-[90%] bg-white rounded-[1px]" />
+                            <div className="absolute -right-[3px] top-[2.5px] w-[1.5px] h-[3px] bg-white/40 rounded-r-[1px]" />
+                         </div>
+                      </div>
+                    </div>
+                  )}
                   {previewOrderId ? (
                     <>
                       <div className="hidden">
@@ -498,7 +676,15 @@ const CheckoutCustomizePage: React.FC = () => {
                         injectedTheme={customization?.theme || null}
                         previewMode={true}
                         isMobile={previewMode === "mobile"}
+                        onUpdateTheme={(overrides) => updateTheme(overrides)}
                       />
+                      
+                      {/* Home Indicator (iOS Style) */}
+                      {previewMode === "mobile" && (
+                        <div className="flex justify-center pb-3 pt-8 flex-shrink-0 sticky bottom-0 left-0 right-0 bg-transparent pointer-events-none">
+                          <div className="w-32 h-1.5 bg-white/20 rounded-full shadow-sm" />
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50 dark:from-gray-800 dark:to-gray-900">

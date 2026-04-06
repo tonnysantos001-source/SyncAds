@@ -1,1 +1,0 @@
-import{i as e}from"./index-GGo8O_g9.js";const a=e("outline","check","Check",[["path",{d:"M5 12l5 5l10 -10",key:"svg-0"}]]),o=e("outline","loader-2","Loader2",[["path",{d:"M12 3a9 9 0 1 0 9 9",key:"svg-0"}]]);export{o as I,a};

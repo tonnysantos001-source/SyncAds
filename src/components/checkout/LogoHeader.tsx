@@ -212,6 +212,8 @@ export const LogoHeader: React.FC<LogoHeaderProps> = ({
         "w-full transition-all duration-300",
         showBackground ? "shadow-sm" : "",
         compact ? "py-3" : "py-4 md:py-6",
+        // Adicionar padding-top extra no mobile para evitar cortes (notch/status bar)
+        "pt-8 md:pt-0",
         className
       )}
       style={{

@@ -11,11 +11,13 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { Lock, ShieldCheck, ChevronDown, ChevronUp, Smartphone } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import { ScarcityTimer } from '@/components/checkout/ScarcityTimer';
 import { CheckoutFooter } from '@/components/checkout/CheckoutFooter';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
+import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
 import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
@@ -26,10 +28,10 @@ import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
 // HEADER TikTok-style (minimal, clean)
 // ============================================================
 
-const TikTokHeader: React.FC<{ theme: Record<string, unknown>; gradient: string }> = ({
-  theme, gradient,
+const TikTokHeader: React.FC<{ theme: Record<string, unknown>; gradient: string; isMobile?: boolean }> = ({
+  theme, gradient, isMobile
 }) => (
-  <div className="w-full py-3 px-6 flex items-center justify-between bg-white border-b border-gray-100">
+  <div className={cn("w-full px-4 flex items-center justify-between bg-white border-b border-gray-100", isMobile ? "h-[85px] pt-6" : "h-20 lg:px-6")}>
     {(theme.logoUrl as string) ? (
       <img src={theme.logoUrl as string} alt="Logo" className="h-8 object-contain" />
     ) : (
@@ -37,9 +39,14 @@ const TikTokHeader: React.FC<{ theme: Record<string, unknown>; gradient: string 
         {(theme.storeName as string) || 'Minha Loja'}
       </div>
     )}
-    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-      <ShieldCheck className="w-4 h-4" style={{ color: '#E91E8C' }} />
-      PAGAMENTO SEGURO
+    <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50">
+        <Lock className="w-4 h-4 text-green-500 fill-current" />
+      </div>
+      <div className="flex flex-col items-start leading-[1.1]">
+        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pagamento</span>
+        <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">100% Seguro</span>
+      </div>
     </div>
   </div>
 );
@@ -128,7 +135,7 @@ const CollapsibleAddress: React.FC<{
 
 const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, templateConfig, isPreview = false,
-  onStepChange, onPaymentSuccess,
+  isMobile = false, onStepChange, onPaymentSuccess,
 }) => {
   const primaryColor = (theme.primaryColor as string) || '#E91E8C';
   const gradient = (theme.buttonGradient as string) || 'linear-gradient(135deg, #E91E8C, #FF4559)';
@@ -136,19 +143,23 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
 
   return (
     <div
-      className="min-h-screen"
+      className={cn("min-h-screen flex flex-col items-center", isMobile ? "pt-8 pb-16 px-4" : "p-4 lg:p-6")}
       style={{
-        backgroundColor: (theme.backgroundColor as string) || '#ffffff',
+        backgroundColor: '#0f172a',
         fontFamily: (theme.fontFamily as string) || 'Inter, system-ui, sans-serif',
       }}
     >
-      {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
-      <TikTokHeader theme={theme} gradient={gradient} />
+      <div 
+        className="w-full max-w-7xl bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col"
+        style={{ minHeight: isMobile ? 'calc(100vh - 32px)' : 'auto' }}
+      >
+        {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
+      <TikTokHeader theme={theme} gradient={gradient} isMobile={isMobile} />
       {scarcityEnabled && <PinkScarcityBar theme={theme} />}
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className={cn("max-w-7xl mx-auto", isMobile ? "p-0" : "px-4 py-6")}>
         {/* TikTok: LEFT = dados/entrega, RIGHT = pagamento + resumo */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className={cn("flex flex-col gap-6", isMobile ? "" : "lg:flex-row")}>
 
           {/* LEFT COLUMN */}
           <div className="flex-1 space-y-4">
@@ -229,7 +240,31 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
         </div>
       </div>
 
+      {/* Standardized Payment Footer */}
+      <footer className="w-full max-w-7xl mx-auto px-4 py-10 mt-6 border-t border-gray-100 bg-white rounded-b-2xl">
+        <div className="flex flex-col items-center gap-8">
+          <div className="w-full flex flex-col items-center gap-4">
+            <p className="text-sm font-semibold tracking-wide uppercase opacity-30 text-gray-500">
+              Formas de Pagamento
+            </p>
+            <PaymentMethodIcons 
+              isMobile={isMobile}
+              className="justify-center"
+              methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
+            />
+          </div>
+
+          <div className="flex justify-center">
+            <div className="flex items-center gap-2.5 px-4 py-2 bg-[#F0FDF4] rounded-full border border-green-100 shadow-sm transition-all hover:scale-105">
+              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="text-[11px] font-bold text-[#166534] tracking-tight uppercase">Site Seguro</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       <CheckoutFooter theme={theme as any} />
+      </div>
     </div>
   );
 };

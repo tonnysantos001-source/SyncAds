@@ -30,31 +30,9 @@ export const PaymentMethodIcons: React.FC<PaymentMethodIconsProps> = ({
   isMobile = false,
   variant = "horizontal",
   showText = false,
-  methods = ["visa", "mastercard", "amex", "elo", "discover", "diners", "pix", "boleto"],
+  methods = ["visa", "mastercard", "elo", "amex", "discover", "diners", "aura", "pix", "boleto"],
 }) => {
-  // SVG dos cartões de crédito
-  const getIcon = (method: string) => {
-    switch (method.toLowerCase()) {
-      case "visa":
-        return <Visa style={{ width: "100%", height: "100%" }} />;
-      case "mastercard":
-        return <Mastercard style={{ width: "100%", height: "100%" }} />;
-      case "amex":
-        return <Amex style={{ width: "100%", height: "100%" }} />;
-      case "elo":
-        return <Elo style={{ width: "100%", height: "100%" }} />;
-      case "discover":
-        return <Discover style={{ width: "100%", height: "100%" }} />;
-      case "diners":
-        return <DinersClub style={{ width: "100%", height: "100%" }} />;
-      case "pix":
-        return <Pix style={{ width: "100%", height: "100%" }} />;
-      case "boleto":
-        return <Boleto style={{ width: "100%", height: "100%" }} />;
-      default:
-        return null;
-    }
-  };
+  const getIconUrl = (method: string) => `/icones-pay/card-${method.toLowerCase()}.svg`;
 
   const getName = (method: string) => {
     switch (method.toLowerCase()) {
@@ -64,9 +42,10 @@ export const PaymentMethodIcons: React.FC<PaymentMethodIconsProps> = ({
       case "elo": return "Elo";
       case "discover": return "Discover";
       case "diners": return "Diners";
+      case "aura": return "Aura";
       case "pix": return "PIX";
       case "boleto": return "Boleto";
-      default: return "";
+      default: return method;
     }
   };
 
@@ -106,37 +85,33 @@ export const PaymentMethodIcons: React.FC<PaymentMethodIconsProps> = ({
       animate="visible"
     >
       <div className={getGridClasses()}>
-        {methods.map((method) => {
-          const iconComponent = getIcon(method);
-          if (!iconComponent) return null;
+        {methods.map((method) => (
+          <motion.div
+            key={method}
+            variants={itemVariants}
+            whileHover={{ scale: 1.05, y: -2 }}
+            className={cn(
+              "relative rounded-[4px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 bg-white border border-gray-100 flex items-center justify-center",
+              isMobile ? "h-[22px] px-1" : "h-[26px] px-1.5"
+            )}
+          >
+            <img 
+              src={getIconUrl(method)} 
+              alt={getName(method)} 
+              className="h-[80%] w-auto object-contain"
+              onError={(e) => {
+                // Fallback caso o ícone não exista
+                (e.target as HTMLImageElement).style.display = 'none';
+              }} 
+            />
 
-          return (
-            <motion.div
-              key={method}
-              variants={itemVariants}
-              whileHover={{ scale: 1.05, y: -2 }}
-              className={cn(
-                "relative rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 bg-white border border-gray-200",
-                isMobile ? "w-10 h-6" : "w-12 h-8"
-              )}
-              style={{
-                borderColor: theme?.borderColor || "#e5e7eb",
-              }}
-            >
-              <div
-                className="w-full h-full flex items-center justify-center p-1"
-              >
-                 {iconComponent}
+            {showText && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-[8px] text-center py-0.5">
+                {getName(method)}
               </div>
-
-              {showText && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-[8px] text-center py-0.5">
-                  {getName(method)}
-                </div>
-              )}
-            </motion.div>
-          );
-        })}
+            )}
+          </motion.div>
+        ))}
       </div>
 
       {/* Texto informativo */}

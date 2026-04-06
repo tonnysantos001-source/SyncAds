@@ -27,6 +27,12 @@ export interface CheckoutCustomization {
     bannerEnabled?: boolean;
     bannerImageUrl?: string;
 
+    // Banners extras
+    leftTopBannerUrl?: string;
+    rightTopBannerUrl?: string;
+    leftBottomBannerUrl?: string;
+    rightBottomBannerUrl?: string;
+
     // Carrinho
     cartDisplay?: "closed" | "open";
     allowCouponEdit?: boolean;
@@ -735,6 +741,33 @@ export const checkoutPreviewApi = {
       return template as CheckoutCustomization;
     } catch (error) {
       console.error("Error saving checkout template:", error);
+      throw error;
+    }
+  },
+
+  // Upload custom checkout images to Supabase Storage
+  async uploadCheckoutImage(file: File): Promise<string> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Usuário não autenticado");
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${session.user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('checkout-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('checkout-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading checkout image:", error);
       throw error;
     }
   },
