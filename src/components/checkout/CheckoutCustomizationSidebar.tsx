@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useCheckoutConfigStore,
@@ -664,8 +664,6 @@ export const CheckoutCustomizationSidebar: React.FC<
             </p>
           </div>
         );
-    }
-  };
     }
   };
 
