@@ -10,7 +10,8 @@ import { Lock, CheckCircle, Loader2, Package, Minus, Plus, ShoppingCart, Chevron
 import { cn } from '@/lib/utils';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import type { TemplateRenderProps } from '@/types/checkout.types';
-import { checkoutApi } from '@/lib/api/checkoutApi';
+import type { CheckoutConfig } from '@/types/checkout-config.types';
+import { checkoutApi, checkoutPreviewApi } from '@/lib/api/checkoutApi';
 import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import { formatPhone } from '@/lib/utils/phoneUtils';
 import { formatCpf } from '@/lib/utils/cpfUtils';
@@ -21,19 +22,20 @@ import {
   capitalizeWords,
 } from '@/lib/utils/validationUtils';
 
-// ── COUNTDOWN (Estilizado conforme Referência) ──────────────
-const Countdown: React.FC = () => {
-  const [time, setTime] = useState({ h: 0, m: 8, s: 13 });
+// ── COUNTDOWN ───────────────────────────────────────────
+const Countdown: React.FC<{ scarcityConfig?: CheckoutConfig['scarcity'] }> = ({ scarcityConfig }) => {
+  const durationMinutes = scarcityConfig?.durationMinutes ?? 10;
+  const storageKey = scarcityConfig?.storageKey ?? 'ck_high_v5_exp';
+  const [time, setTime] = useState({ h: 0, m: Math.floor(durationMinutes), s: 0 });
 
   const expTime = useMemo(() => {
-    const KEY = 'ck_high_v5_exp';
-    const s = localStorage.getItem(KEY);
+    const s = localStorage.getItem(storageKey);
     if (s) return new Date(s);
     const d = new Date();
-    d.setMinutes(d.getMinutes() + 10);
-    localStorage.setItem(KEY, d.toISOString());
+    d.setMinutes(d.getMinutes() + durationMinutes);
+    localStorage.setItem(storageKey, d.toISOString());
     return d;
-  }, []);
+  }, [storageKey, durationMinutes]);
 
   useEffect(() => {
     const tick = () => {
@@ -108,7 +110,7 @@ const DropZone: React.FC<{
         const localUrl = URL.createObjectURL(file);
         setLocalImage(localUrl);
 
-        const publicUrl = await checkoutApi.uploadCheckoutImage(file);
+        const publicUrl = await checkoutPreviewApi.uploadCheckoutImage(file);
         if (onUpdateTheme) {
           onUpdateTheme({ [themeKey]: publicUrl });
         }
@@ -234,7 +236,7 @@ const CustomizableBanner: React.FC<{
         const localUrl = URL.createObjectURL(file);
         setLocalImage(localUrl);
 
-        const publicUrl = await checkoutApi.uploadCheckoutImage(file);
+        const publicUrl = await checkoutPreviewApi.uploadCheckoutImage(file);
         if (onUpdateTheme) {
           onUpdateTheme({ [themeKey]: publicUrl });
         }
@@ -362,10 +364,18 @@ const PREV_BRINDE   = { name: 'Body oil anti-cellulite', label: 'Grátis', image
 // ════════════════════════════════════════════════════════════
 
 const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
-  orderId, checkoutData, theme, templateConfig, isPreview = false,
+  orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
   onStepChange, onPaymentSuccess, onUpdateTheme,
 }) => {
-  const primary = (theme.primaryColor as string) || '#0082ec';
+  // Prioriza config tipada; fallback para theme legado
+  const primary =
+    checkoutConfig?.buttons.primaryBg ??
+    (theme.primaryColor as string) ??
+    '#0082ec';
+  const storeName = checkoutConfig?.header.storeName ?? (theme.storeName as string) ?? 'Minha Loja';
+  const logoUrl   = checkoutConfig?.header.logoUrl   ?? (theme.logoUrl as string | null) ?? null;
+  const headerBg  = checkoutConfig?.header.bgColor   ?? 'rgb(0, 129, 236)';
+  const scarcityEnabled = checkoutConfig?.scarcity.enabled ?? true;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -473,18 +483,18 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
         >
           
           {/* HEADER (Sincronizado com Referência) */}
-          <header 
+          <header
             className="flex justify-between items-center px-4 md:px-8 border-b border-gray-100/10"
-            style={{ 
-              backgroundColor: 'rgb(0, 129, 236)', 
+            style={{
+              backgroundColor: headerBg,
               height: '71px',
-              minHeight: '71px'
+              minHeight: '71px',
             }}
           >
             <div className="flex items-center h-full">
-              {(theme.logoUrl as string)
-                ? <img src={theme.logoUrl as string} alt="Logo" className={cn("object-contain", isMobile ? "h-8" : "h-9")} />
-                : <span className={cn("font-extrabold text-white truncate", isMobile ? "text-lg" : "text-xl")}>{(theme.storeName as string) || 'Minha Loja'}</span>
+              {logoUrl
+                ? <img src={logoUrl} alt="Logo" className={cn('object-contain', isMobile ? 'h-8' : 'h-9')} />
+                : <span className={cn('font-extrabold text-white truncate', isMobile ? 'text-lg' : 'text-xl')}>{storeName}</span>
               }
             </div>
             <div className="flex items-center gap-2.5">
@@ -495,10 +505,12 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
             </div>
           </header>
 
-          {/* COUNTDOWN — Full Width cobrindo as duas colunas */}
-          <div className="w-full px-4 md:px-6 py-4 bg-white">
-            <Countdown />
-          </div>
+          {/* COUNTDOWN — controlado pelo config */}
+          {scarcityEnabled && (
+            <div className="w-full px-4 md:px-6 py-4 bg-white">
+              <Countdown scarcityConfig={checkoutConfig?.scarcity} />
+            </div>
+          )}
 
           {/* MAIN CONTENT AREA */}
           <main className="flex-1">

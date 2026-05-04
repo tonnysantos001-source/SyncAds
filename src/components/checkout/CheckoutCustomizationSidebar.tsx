@@ -1,5 +1,9 @@
-import React from "react";
+﻿import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  useCheckoutConfigStore,
+  selectCheckoutConfig,
+} from "@/store/checkoutConfigStore";
 import { cn } from "@/lib/utils";
 import {
   ChevronDown,
@@ -41,12 +45,12 @@ interface Section {
 interface CheckoutCustomizationSidebarProps {
   expandedSections: string[];
   onToggleSection: (sectionId: string) => void;
-  customization: any;
-  onUpdateTheme: (updates: any) => void;
   /** Callback quando o usuário seleciona um template */
   onSelectTemplate?: (slug: string, version: number) => void;
   /** Slug do template atualmente ativo em produção */
   activeTemplateSlug?: string;
+  /** Chamado a cada mudança para marcar hasChanges na página pai */
+  onAnyChange?: () => void;
 }
 
 const sections: Section[] = [
@@ -64,7 +68,16 @@ const sections: Section[] = [
 
 export const CheckoutCustomizationSidebar: React.FC<
   CheckoutCustomizationSidebarProps
-> = ({ expandedSections, onToggleSection, customization, onUpdateTheme, onSelectTemplate, activeTemplateSlug }) => {
+> = ({ expandedSections, onToggleSection, onSelectTemplate, activeTemplateSlug, onAnyChange }) => {
+  // ── Store Zustand (source of truth) ──────────────────────────────────────
+  const config     = useCheckoutConfigStore(selectCheckoutConfig);
+  const updateConfig = useCheckoutConfigStore((s) => s.updateConfig);
+
+  /** Helper: aplica patch + notifica página pai */
+  const update = (patch: Parameters<typeof updateConfig>[0]) => {
+    updateConfig(patch);
+    onAnyChange?.();
+  };
 
   // Templates disponíveis para seleção
   const AVAILABLE_TEMPLATES = [
@@ -124,18 +137,14 @@ export const CheckoutCustomizationSidebar: React.FC<
     },
   ];
 
-  const currentTemplateSlug = customization?.theme?.templateSlug || customization?.templateSlug || 'minimal';
+  const currentTemplateSlug = config.templateSlug || 'minimal';
 
   const handleSelectTemplate = (slug: string, version: number) => {
-    // Salvar no tema para persistência
-    onUpdateTheme({ templateSlug: slug, templateVersion: version });
-    // Callback externo (para o builder atualizar preview)
     onSelectTemplate?.(slug, version);
+    onAnyChange?.();
   };
 
   const renderSectionContent = (sectionId: string) => {
-    if (!customization?.theme) return null;
-
     switch (sectionId) {
       // ── MODELOS ────────────────────────────────────────────────────────
       case "MODELOS":
@@ -211,35 +220,28 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
-      // ── SEÇÕES EXISTENTES ───────────────────────────────────────
+      // ── SEÇÕES ──────────────────────────────────────────────────
       case "CABECALHO":
         return (
           <div className="space-y-4">
-            {/* Logo */}
             <ImageUploadField
               label="Logo"
               description="Tamanho recomendado: 300px x 80px"
-              value={customization.theme.logoUrl || ""}
-              onChange={(url: string) => onUpdateTheme({ logoUrl: url })}
+              value={config.header.logoUrl || ""}
+              onChange={(url: string) => update({ header: { logoUrl: url } })}
               bucket="checkout-images"
               path="logos"
               maxSizeMB={2}
             />
-
-            {/* Alinhamento do Logo */}
             <div>
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Alinhamento do logo
               </Label>
               <Select
-                value={customization.theme.logoAlignment || "left"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ logoAlignment: value })
-                }
+                value={config.header.logoAlign}
+                onValueChange={(v) => update({ header: { logoAlign: v as 'left'|'center'|'right' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="left">Esquerda</SelectItem>
                   <SelectItem value="center">Centro</SelectItem>
@@ -247,124 +249,77 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Mostrar logo no topo */}
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Mostrar logo no topo
+                Exibir badge Pagamento Seguro
               </Label>
               <Switch
-                checked={customization.theme.showLogoAtTop || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ showLogoAtTop: checked })
-                }
+                checked={config.header.showSecurityBadge}
+                onCheckedChange={(v) => update({ header: { showSecurityBadge: v } })}
               />
             </div>
-
-            {/* Favicon */}
             <ImageUploadField
               label="Favicon"
               description="Tamanho recomendado: 32px x 32px"
-              value={customization.theme.faviconUrl || ""}
-              onChange={(url: string) => onUpdateTheme({ faviconUrl: url })}
+              value={config.header.faviconUrl || ""}
+              onChange={(url: string) => update({ header: { faviconUrl: url } })}
               bucket="checkout-images"
               path="favicons"
-              acceptedFormats={[
-                "image/png",
-                "image/x-icon",
-                "image/vnd.microsoft.icon",
-              ]}
+              acceptedFormats={["image/png","image/x-icon","image/vnd.microsoft.icon"]}
               maxSizeMB={1}
             />
-
-            {/* Cor de fundo */}
             <ModernColorPicker
-              label="Cor de fundo"
-              value={customization.theme.backgroundColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ backgroundColor: color })
-              }
+              label="Cor de fundo do cabeçalho"
+              value={config.header.bgColor}
+              onChange={(c) => update({ header: { bgColor: c } })}
             />
-
-            {/* Usar gradiente */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Aplicar fundo degradê
-              </Label>
-              <Switch
-                checked={customization.theme.useGradient || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ useGradient: checked })
-                }
-              />
-            </div>
+            <ModernColorPicker
+              label="Cor do texto do cabeçalho"
+              value={config.header.textColor}
+              onChange={(c) => update({ header: { textColor: c } })}
+            />
           </div>
         );
 
       case "BARRA_DE_AVISOS":
         return (
           <div className="space-y-4">
-            {/* Ativar barra */}
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Ativar barra de avisos
               </Label>
               <Switch
-                checked={customization.theme.noticeBarEnabled || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ noticeBarEnabled: checked })
-                }
+                checked={config.noticeBar.enabled}
+                onCheckedChange={(v) => update({ noticeBar: { enabled: v } })}
               />
             </div>
-
-            {/* Mensagem */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Mensagem
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mensagem</Label>
               <Textarea
-                value={customization.theme.noticeBarText || ""}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  onUpdateTheme({ noticeBarText: e.target.value })
-                }
+                value={config.noticeBar.message}
+                onChange={(e) => update({ noticeBar: { message: e.target.value } })}
                 placeholder="🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!"
                 className="mt-2 resize-none"
                 rows={3}
               />
             </div>
-
-            {/* Cor de fundo */}
             <ModernColorPicker
               label="Cor de fundo"
-              value={customization.theme.noticeBarBackgroundColor || "#1a1a1a"}
-              onChange={(color: string) =>
-                onUpdateTheme({ noticeBarBackgroundColor: color })
-              }
+              value={config.noticeBar.bgColor}
+              onChange={(c) => update({ noticeBar: { bgColor: c } })}
             />
-
-            {/* Cor do texto */}
             <ModernColorPicker
               label="Cor do texto"
-              value={customization.theme.noticeBarTextColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ noticeBarTextColor: color })
-              }
+              value={config.noticeBar.textColor}
+              onChange={(c) => update({ noticeBar: { textColor: c } })}
             />
-
-            {/* Estilo */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Estilo
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Estilo</Label>
               <Select
-                value={customization.theme.noticeBarStyle || "normal"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ noticeBarStyle: value })
-                }
+                value={config.noticeBar.style}
+                onValueChange={(v) => update({ noticeBar: { style: v as 'normal'|'highlight'|'urgent' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="highlight">Destaque</SelectItem>
@@ -372,42 +327,26 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Posição */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Posição
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Posição</Label>
               <Select
-                value={customization.theme.noticeBarPosition || "top"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ noticeBarPosition: value })
-                }
+                value={config.noticeBar.position}
+                onValueChange={(v) => update({ noticeBar: { position: v as 'top'|'bottom' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="top">Topo</SelectItem>
                   <SelectItem value="bottom">Rodapé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Animação */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Animação
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Animação</Label>
               <Select
-                value={customization.theme.noticeBarAnimation || "slide"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ noticeBarAnimation: value })
-                }
+                value={config.noticeBar.animation}
+                onValueChange={(v) => update({ noticeBar: { animation: v as 'slide'|'fade'|'scale'|'none' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="slide">Deslizar</SelectItem>
                   <SelectItem value="fade">Fade In/Out</SelectItem>
@@ -421,25 +360,29 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "BANNER":
         return (
           <div className="space-y-4">
-            {/* Ativar banner */}
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Ativar banner no checkout
               </Label>
               <Switch
-                checked={customization.theme.bannerEnabled || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ bannerEnabled: checked })
-                }
+                checked={config.banner.enabled}
+                onCheckedChange={(v) => update({ banner: { enabled: v } })}
               />
             </div>
-
-            {/* Imagem do banner */}
             <ImageUploadField
-              label="Imagem do banner"
+              label="Banner desktop"
               description="Tamanho recomendado: 1200px x 150px"
-              value={customization.theme.bannerImageUrl || ""}
-              onChange={(url: string) => onUpdateTheme({ bannerImageUrl: url })}
+              value={config.banner.desktopUrl || ""}
+              onChange={(url) => update({ banner: { desktopUrl: url } })}
+              bucket="checkout-images"
+              path="banners"
+              maxSizeMB={3}
+            />
+            <ImageUploadField
+              label="Banner mobile"
+              description="Tamanho recomendado: 600px x 150px"
+              value={config.banner.mobileUrl || ""}
+              onChange={(url) => update({ banner: { mobileUrl: url } })}
               bucket="checkout-images"
               path="banners"
               maxSizeMB={3}
@@ -450,91 +393,46 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "CARRINHO":
         return (
           <div className="space-y-4">
-            {/* Exibir carrinho */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Exibir carrinho
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Exibir carrinho</Label>
               <Select
-                value={customization.theme.cartDisplay || "open"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ cartDisplay: value })
-                }
+                value={config.cart.display}
+                onValueChange={(v) => update({ cart: { display: v as 'open'|'closed'|'drawer' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="open">Aberto</SelectItem>
                   <SelectItem value="closed">Pré-fechado</SelectItem>
+                  <SelectItem value="drawer">Drawer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Cor da borda do carrinho */}
             <ModernColorPicker
               label="Cor da borda do carrinho"
-              value={customization.theme.cartBorderColor || "#000000"}
-              onChange={(color: string) =>
-                onUpdateTheme({ cartBorderColor: color })
-              }
+              value={config.cart.borderColor}
+              onChange={(c) => update({ cart: { borderColor: c } })}
             />
-
-            {/* Cor do círculo de quantidade */}
             <ModernColorPicker
               label="Cor do círculo de quantidade"
-              value={customization.theme.quantityCircleColor || "#8b5cf6"}
-              onChange={(color: string) =>
-                onUpdateTheme({ quantityCircleColor: color })
-              }
+              value={config.cart.quantityCircleColor}
+              onChange={(c) => update({ cart: { quantityCircleColor: c } })}
             />
-
-            {/* Cor do texto da quantidade */}
             <ModernColorPicker
               label="Cor do texto da quantidade"
-              value={customization.theme.quantityTextColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ quantityTextColor: color })
-              }
+              value={config.cart.quantityTextColor}
+              onChange={(c) => update({ cart: { quantityTextColor: c } })}
             />
-
-            {/* Mostrar ícone do carrinho */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Mostrar ícone do carrinho sempre
-              </Label>
-              <Switch
-                checked={customization.theme.showCartIcon || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ showCartIcon: checked })
-                }
-              />
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mostrar ícone do carrinho sempre</Label>
+              <Switch checked={config.cart.showIcon} onCheckedChange={(v) => update({ cart: { showIcon: v } })} />
             </div>
-
-            {/* Permitir editar cupom */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Permitir editar cupom de desconto
-              </Label>
-              <Switch
-                checked={customization.theme.allowCouponEdit || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ allowCouponEdit: checked })
-                }
-              />
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Permitir editar cupom de desconto</Label>
+              <Switch checked={config.cart.couponEnabled} onCheckedChange={(v) => update({ cart: { couponEnabled: v } })} />
             </div>
-
-            {/* Mostrar lembrete do carrinho */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Mostrar lembrete do carrinho
-              </Label>
-              <Switch
-                checked={customization.theme.showCartReminder || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ showCartReminder: checked })
-                }
-              />
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mostrar lembrete do carrinho</Label>
+              <Switch checked={config.cart.showCartReminder} onCheckedChange={(v) => update({ cart: { showCartReminder: v } })} />
             </div>
           </div>
         );
@@ -542,20 +440,13 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "CONTEUDO":
         return (
           <div className="space-y-4">
-            {/* Visual do botão */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Visual do botão
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Visual do botão</Label>
               <Select
-                value={customization.theme.nextStepStyle || "rounded"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ nextStepStyle: value })
-                }
+                value={config.buttons.nextStepStyle}
+                onValueChange={(v) => update({ buttons: { nextStepStyle: v as 'rounded'|'rectangular'|'oval' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rectangular">Retangular</SelectItem>
                   <SelectItem value="rounded">Arredondado</SelectItem>
@@ -563,104 +454,30 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Botão Primário */}
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                Botão Primário (Próximo)
-              </p>
-
-              <ModernColorPicker
-                label="Cor do texto"
-                value={customization.theme.primaryButtonTextColor || "#ffffff"}
-                onChange={(color: string) =>
-                  onUpdateTheme({ primaryButtonTextColor: color })
-                }
-              />
-
-              <ModernColorPicker
-                label="Cor de fundo"
-                value={
-                  customization.theme.primaryButtonBackgroundColor || "#8b5cf6"
-                }
-                onChange={(color: string) =>
-                  onUpdateTheme({ primaryButtonBackgroundColor: color })
-                }
-              />
-
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Botão Primário (Próximo)</p>
+              <ModernColorPicker label="Cor do texto" value={config.buttons.primaryText} onChange={(c) => update({ buttons: { primaryText: c } })} />
+              <ModernColorPicker label="Cor de fundo" value={config.buttons.primaryBg} onChange={(c) => update({ buttons: { primaryBg: c } })} />
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Efeito hover
-                </Label>
-                <Switch
-                  checked={customization.theme.primaryButtonHover || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ primaryButtonHover: checked })
-                  }
-                />
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito hover</Label>
+                <Switch checked={config.buttons.primaryHover} onCheckedChange={(v) => update({ buttons: { primaryHover: v } })} />
               </div>
-
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Efeito fluir
-                </Label>
-                <Switch
-                  checked={customization.theme.primaryButtonFlow || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ primaryButtonFlow: checked })
-                  }
-                />
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito fluir</Label>
+                <Switch checked={config.buttons.primaryFlow} onCheckedChange={(v) => update({ buttons: { primaryFlow: v } })} />
               </div>
             </div>
-
-            {/* Botão Checkout */}
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                Botão Checkout (Finalizar)
-              </p>
-
-              <ModernColorPicker
-                label="Cor do texto"
-                value={
-                  customization.theme.highlightedBorderTextColor || "#ffffff"
-                }
-                onChange={(color: string) =>
-                  onUpdateTheme({ highlightedBorderTextColor: color })
-                }
-              />
-
-              <ModernColorPicker
-                label="Cor de fundo"
-                value={
-                  customization.theme.checkoutButtonBackgroundColor || "#10b981"
-                }
-                onChange={(color: string) =>
-                  onUpdateTheme({ checkoutButtonBackgroundColor: color })
-                }
-              />
-
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Botão Checkout (Finalizar)</p>
+              <ModernColorPicker label="Cor do texto" value={config.buttons.checkoutText} onChange={(c) => update({ buttons: { checkoutText: c } })} />
+              <ModernColorPicker label="Cor de fundo" value={config.buttons.checkoutBg} onChange={(c) => update({ buttons: { checkoutBg: c } })} />
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Efeito hover
-                </Label>
-                <Switch
-                  checked={customization.theme.checkoutButtonHover || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ checkoutButtonHover: checked })
-                  }
-                />
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito hover</Label>
+                <Switch checked={config.buttons.checkoutHover} onCheckedChange={(v) => update({ buttons: { checkoutHover: v } })} />
               </div>
-
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Efeito pulsante
-                </Label>
-                <Switch
-                  checked={customization.theme.checkoutButtonFlow || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ checkoutButtonFlow: checked })
-                  }
-                />
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito pulsante</Label>
+                <Switch checked={config.buttons.pulse} onCheckedChange={(v) => update({ buttons: { pulse: v } })} />
               </div>
             </div>
           </div>
@@ -669,136 +486,29 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "RODAPE":
         return (
           <div className="space-y-4">
-            {/* Cores do rodapé */}
-            <ModernColorPicker
-              label="Cor de fundo"
-              value={customization.theme.footerBackgroundColor || "#f6f6f6"}
-              onChange={(color: string) =>
-                onUpdateTheme({ footerBackgroundColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor do texto"
-              value={customization.theme.footerTextColor || "#3b3b3b"}
-              onChange={(color: string) =>
-                onUpdateTheme({ footerTextColor: color })
-              }
-            />
-
-            {/* Opções de exibição */}
+            <ModernColorPicker label="Cor de fundo" value={config.footer.bgColor} onChange={(c) => update({ footer: { bgColor: c } })} />
+            <ModernColorPicker label="Cor do texto" value={config.footer.textColor} onChange={(c) => update({ footer: { textColor: c } })} />
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                Informações a exibir
-              </p>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Nome da loja
-                </Label>
-                <Switch
-                  checked={customization.theme.showStoreName || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showStoreName: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Formas de pagamento
-                </Label>
-                <Switch
-                  checked={customization.theme.showPaymentMethods || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showPaymentMethods: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  CNPJ/CPF
-                </Label>
-                <Switch
-                  checked={customization.theme.showCnpjCpf || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showCnpjCpf: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  E-mail de contato
-                </Label>
-                <Switch
-                  checked={customization.theme.showContactEmail || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showContactEmail: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Endereço
-                </Label>
-                <Switch
-                  checked={customization.theme.showAddress || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showAddress: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Telefone
-                </Label>
-                <Switch
-                  checked={customization.theme.showPhone || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showPhone: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Política de privacidade
-                </Label>
-                <Switch
-                  checked={customization.theme.showPrivacyPolicy || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showPrivacyPolicy: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Termos e condições
-                </Label>
-                <Switch
-                  checked={customization.theme.showTermsConditions || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showTermsConditions: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Trocas e devoluções
-                </Label>
-                <Switch
-                  checked={customization.theme.showReturns || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ showReturns: checked })
-                  }
-                />
-              </div>
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Informações a exibir</p>
+              {([
+                ['showStoreName',       'Nome da loja'],
+                ['showPaymentMethods',  'Formas de pagamento'],
+                ['showCnpj',           'CNPJ/CPF'],
+                ['showContactEmail',   'E-mail de contato'],
+                ['showAddress',        'Endereço'],
+                ['showPhone',          'Telefone'],
+                ['showPrivacyPolicy',  'Política de privacidade'],
+                ['showTermsConditions','Termos e condições'],
+                ['showReturns',        'Trocas e devoluções'],
+              ] as [keyof typeof config.footer, string][]).map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <Label className="text-xs text-gray-700 dark:text-gray-300">{label}</Label>
+                  <Switch
+                    checked={config.footer[key] as boolean}
+                    onCheckedChange={(v) => update({ footer: { [key]: v } })}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -806,121 +516,42 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "ESCASSEZ":
         return (
           <div className="space-y-4">
-            {/* Ativar escassez */}
             <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
               <div>
                 <Label className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Clock className="h-4 w-4 text-red-500" />
                   Ativar Gatilho de Escassez
                 </Label>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                  Countdown timer para criar urgência
-                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Countdown timer para criar urgência</p>
               </div>
               <Switch
-                checked={customization.theme.useVisible || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ useVisible: checked })
-                }
+                checked={config.scarcity.enabled}
+                onCheckedChange={(v) => update({ scarcity: { enabled: v } })}
               />
             </div>
-
-            {/* Dica de uso */}
-            {customization.theme.useVisible && (
+            {config.scarcity.enabled && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
                   <Zap className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span>
-                    <strong>Dica:</strong> Timers de 10-15 minutos têm maior
-                    taxa de conversão. O timer reseta a cada nova sessão do
-                    usuário.
-                  </span>
+                  <span><strong>Dica:</strong> Timers de 10-15 minutos têm maior taxa de conversão.</span>
                 </p>
               </div>
             )}
-
-            {/* Tag de desconto */}
-            <ModernColorPicker
-              label="Cor do texto da tag"
-              value={customization.theme.discountTagTextColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ discountTagTextColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor de fundo da tag"
-              value={
-                customization.theme.discountTagBackgroundColor || "#000000"
-              }
-              onChange={(color: string) =>
-                onUpdateTheme({ discountTagBackgroundColor: color })
-              }
-            />
-
-            {/* Tempo de expiração */}
+            <ModernColorPicker label="Cor da barra" value={config.scarcity.bgColor} onChange={(c) => update({ scarcity: { bgColor: c } })} />
+            <ModernColorPicker label="Cor do texto" value={config.scarcity.textColor} onChange={(c) => update({ scarcity: { textColor: c } })} />
             <div>
               <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                Tempo de expiração (minutos)
+                Duração (minutos)
               </Label>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
-                Quanto tempo o usuário tem para finalizar a compra
-              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">Quanto tempo o usuário tem para finalizar a compra</p>
               <Input
                 type="number"
-                value={customization.theme.expirationTime || 15}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateTheme({
-                    expirationTime: parseInt(e.target.value) || 15,
-                  })
-                }
+                value={config.scarcity.durationMinutes}
+                onChange={(e) => update({ scarcity: { durationMinutes: parseInt(e.target.value) || 15 } })}
                 placeholder="15"
                 min="1"
                 max="120"
-              />
-            </div>
-
-            {/* Tempo de remoção forçada */}
-            <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Tempo de remoção forçada (minutos)
-              </Label>
-              <Input
-                type="number"
-                value={customization.theme.forceRemovalTime || 20}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateTheme({
-                    forceRemovalTime: parseInt(e.target.value) || 20,
-                  })
-                }
-                className="mt-2"
-                min="1"
-                max="120"
-              />
-            </div>
-
-            {/* Número inicial de compras simuladas */}
-            <div>
-              <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mt-4">
-                <ShoppingCart className="h-3.5 w-3.5" />
-                Número inicial de compras (Prova Social)
-              </Label>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
-                A partir de qual número o contador de vendas deve começar
-              </p>
-              <Input
-                type="number"
-                value={customization.theme.initialPurchases || 803}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateTheme({
-                    initialPurchases: parseInt(e.target.value) || 803,
-                  })
-                }
-                placeholder="803"
-                className="mt-2"
-                min="0"
-                max="99999"
               />
             </div>
           </div>
@@ -929,145 +560,63 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "ORDER_BUMP":
         return (
           <div className="space-y-4">
-            {/* Ativar Order Bump */}
             <div className="flex items-center justify-between p-3 bg-violet-50 dark:bg-violet-950/20 rounded-lg border border-violet-200 dark:border-violet-800">
               <div>
-                <Label className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Ativar Order Bump
-                </Label>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                  Exibir ofertas adicionais no checkout
-                </p>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white">Ativar Order Bump</Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Exibir ofertas adicionais no checkout</p>
               </div>
-              <Switch
-                checked={customization.theme.orderBumpEnabled || false}
-                onCheckedChange={(checked: boolean) =>
-                  onUpdateTheme({ orderBumpEnabled: checked })
-                }
-              />
+              <Switch checked={config.orderBump.enabled} onCheckedChange={(v) => update({ orderBump: { enabled: v } })} />
             </div>
-
-            {/* Cores do Order Bump */}
-            <ModernColorPicker
-              label="Cor do texto"
-              value={customization.theme.orderBumpTextColor || "#1a1a1a"}
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpTextColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor de fundo"
-              value={customization.theme.orderBumpBackgroundColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpBackgroundColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor do preço"
-              value={customization.theme.orderBumpPriceColor || "#10b981"}
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpPriceColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor da borda"
-              value={customization.theme.orderBumpBorderColor || "#e5e7eb"}
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpBorderColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor do texto do botão"
-              value={customization.theme.orderBumpButtonTextColor || "#ffffff"}
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpButtonTextColor: color })
-              }
-            />
-
-            <ModernColorPicker
-              label="Cor de fundo do botão"
-              value={
-                customization.theme.orderBumpButtonBackgroundColor || "#8b5cf6"
-              }
-              onChange={(color: string) =>
-                onUpdateTheme({ orderBumpButtonBackgroundColor: color })
-              }
-            />
+            <ModernColorPicker label="Cor do texto" value={config.orderBump.textColor} onChange={(c) => update({ orderBump: { textColor: c } })} />
+            <ModernColorPicker label="Cor de fundo" value={config.orderBump.bgColor} onChange={(c) => update({ orderBump: { bgColor: c } })} />
+            <ModernColorPicker label="Cor do preço" value={config.orderBump.priceColor} onChange={(c) => update({ orderBump: { priceColor: c } })} />
+            <ModernColorPicker label="Cor da borda" value={config.orderBump.borderColor} onChange={(c) => update({ orderBump: { borderColor: c } })} />
+            <ModernColorPicker label="Cor do texto do botão" value={config.orderBump.buttonTextColor} onChange={(c) => update({ orderBump: { buttonTextColor: c } })} />
+            <ModernColorPicker label="Cor de fundo do botão" value={config.orderBump.buttonBgColor} onChange={(c) => update({ orderBump: { buttonBgColor: c } })} />
           </div>
         );
 
       case "CONFIGURACOES":
         return (
           <div className="space-y-4">
-            {/* Navegação */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Etapas de navegação
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Etapas de navegação</Label>
               <Select
-                value={String(customization.theme.navigationSteps || 5)}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ navigationSteps: parseInt(value) })
-                }
+                value={String(config.form.navigationSteps)}
+                onValueChange={(v) => update({ form: { navigationSteps: parseInt(v) as 1|2|3 } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 etapa</SelectItem>
+                  <SelectItem value="2">2 etapas</SelectItem>
                   <SelectItem value="3">3 etapas</SelectItem>
-                  <SelectItem value="5">5 etapas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Fonte */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Fonte do checkout
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Fonte do checkout</Label>
               <Select
-                value={customization.theme.fontFamily || "Inter, sans-serif"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ fontFamily: value })
-                }
+                value={config.typography.fontFamily}
+                onValueChange={(v) => update({ typography: { fontFamily: v } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Inter, sans-serif">Inter</SelectItem>
-                  <SelectItem value="Roboto, sans-serif">Roboto</SelectItem>
-                  <SelectItem value="Open Sans, sans-serif">
-                    Open Sans
-                  </SelectItem>
-                  <SelectItem value="Poppins, sans-serif">Poppins</SelectItem>
-                  <SelectItem value="Montserrat, sans-serif">
-                    Montserrat
-                  </SelectItem>
-                  <SelectItem value="Lato, sans-serif">Lato</SelectItem>
+                  <SelectItem value="'Inter', system-ui, sans-serif">Inter</SelectItem>
+                  <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
+                  <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                  <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                  <SelectItem value="'Montserrat', sans-serif">Montserrat</SelectItem>
+                  <SelectItem value="'Lato', sans-serif">Lato</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Idioma */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Idioma
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Idioma</Label>
               <Select
-                value={customization.theme.language || "pt"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ language: value })
-                }
+                value={config.form.language}
+                onValueChange={(v) => update({ form: { language: v as 'pt'|'en'|'es' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pt">Português (BR)</SelectItem>
                   <SelectItem value="en">English (US)</SelectItem>
@@ -1075,21 +624,13 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Moeda */}
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Moeda
-              </Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Moeda</Label>
               <Select
-                value={customization.theme.currency || "BRL"}
-                onValueChange={(value: string) =>
-                  onUpdateTheme({ currency: value })
-                }
+                value={config.form.currency}
+                onValueChange={(v) => update({ form: { currency: v as 'BRL'|'USD'|'EUR' } })}
               >
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BRL">Real (R$)</SelectItem>
                   <SelectItem value="USD">Dólar ($)</SelectItem>
@@ -1097,47 +638,19 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Opções extras */}
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                Opções extras
-              </p>
-
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Opções extras</p>
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Solicitar CPF apenas no pagamento
-                </Label>
-                <Switch
-                  checked={customization.theme.requestCpfOnlyAtPayment || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ requestCpfOnlyAtPayment: checked })
-                  }
-                />
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar CPF apenas no pagamento</Label>
+                <Switch checked={config.form.requestCpfOnlyAtPayment} onCheckedChange={(v) => update({ form: { requestCpfOnlyAtPayment: v } })} />
               </div>
-
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Solicitar data de nascimento
-                </Label>
-                <Switch
-                  checked={customization.theme.requestBirthDate || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ requestBirthDate: checked })
-                  }
-                />
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar data de nascimento</Label>
+                <Switch checked={config.form.requestBirthDate} onCheckedChange={(v) => update({ form: { requestBirthDate: v } })} />
               </div>
-
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">
-                  Solicitar gênero
-                </Label>
-                <Switch
-                  checked={customization.theme.requestGender || false}
-                  onCheckedChange={(checked: boolean) =>
-                    onUpdateTheme({ requestGender: checked })
-                  }
-                />
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar gênero</Label>
+                <Switch checked={config.form.requestGender} onCheckedChange={(v) => update({ form: { requestGender: v } })} />
               </div>
             </div>
           </div>
@@ -1151,6 +664,8 @@ export const CheckoutCustomizationSidebar: React.FC<
             </p>
           </div>
         );
+    }
+  };
     }
   };
 

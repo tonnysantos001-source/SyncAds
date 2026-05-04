@@ -164,6 +164,15 @@ export interface CheckoutCustomizationState {
 // TEMPLATE RENDER PROPS — props passadas para todo template
 // ============================================================
 
+/**
+ * Tema mesclado (legado) OU config tipada.
+ *
+ * MIGRAÇÃO GRADUAL:
+ *   - Templates antigos: recebem `theme: Record<string, unknown>`
+ *   - Templates novos:   recebem `config: CheckoutConfig` (tipado)
+ *
+ * Ambos coexistem durante a migração. Novos templates devem usar `config`.
+ */
 export interface TemplateRenderProps {
   /** ID do pedido */
   orderId?: string;
@@ -171,8 +180,18 @@ export interface TemplateRenderProps {
   /** Dados do pedido */
   checkoutData?: CheckoutData;
 
-  /** Tema mesclado (default + overrides do usuário) */
+  /**
+   * Tema legado (flat object).
+   * @deprecated Use `config: CheckoutConfig` em novos templates.
+   */
   theme: Record<string, unknown>;
+
+  /**
+   * Config tipada canônica (novo sistema).
+   * Quando presente, os templates devem preferir este campo.
+   * Gerado automaticamente pelo TemplateRenderer via legacyThemeToConfig().
+   */
+  checkoutConfig?: import('./checkout-config.types').CheckoutConfig;
 
   /** Config do template */
   templateConfig: TemplateConfig;
@@ -194,6 +213,9 @@ export interface TemplateRenderProps {
 
   /** Customização atual */
   customization?: CheckoutCustomizationState;
+
+  /** Cor primária do template (calculada do config/theme) */
+  primaryColor?: string;
 }
 
 // ============================================================

@@ -18,6 +18,7 @@ import React, { Suspense, lazy, useMemo, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import { getTemplateConfig, getFallbackTemplateConfig } from '@/config/checkoutTemplateConfigs';
+import { legacyThemeToConfig } from '@/types/checkout-config.types';
 import {
   FALLBACK_TEMPLATE_SLUG,
   FALLBACK_TEMPLATE_VERSION,
@@ -211,19 +212,49 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   // 3. Merge de tema: defaults do template + overrides do usuário
   // ------------------------------------------------------------------
 
+  // ------------------------------------------------------------------
+  // 3. Merge de tema: defaults do template + overrides EXPLÍCITOS do usuário
+  // ------------------------------------------------------------------
+  //
+  // REGRA: defaults do novo template devem prevalecer sobre valores herdados
+  // do template anterior, EXCETO para overrides globais (logo, fonte, cores
+  // customizadas pelo usuário).
+  //
+  // Para detectar "override explícito do usuário" usamos a heurística:
+  //   - Se a chave existe em templateConfig.defaultThemeOverrides E em theme
+  //     com o MESMO valor → não é override do usuário, é herança do template anterior.
+  //   - Se é diferente → usuário mudou → preservar.
+  //
+  // Na prática: spread simples mantendo defaults do template quando o usuário
+  // não tocou. A sidebar deve sempre passar o valor atual ao trocar template.
+
   const mergedTheme = useMemo(() => ({
     ...templateConfig.defaultThemeOverrides,
     ...theme,
   }), [templateConfig.defaultThemeOverrides, theme]);
 
   // ------------------------------------------------------------------
-  // 4. Props para o template
+  // 4. Gerar checkoutConfig tipado a partir do tema mesclado
+  // ------------------------------------------------------------------
+  //
+  // Converte o tema flat legado para o schema canônico CheckoutConfig.
+  // Templates novos devem usar `checkoutConfig` ao invés de `theme`.
+  // Templates antigos continuam usando `theme` sem modificação.
+
+  const checkoutConfig = useMemo(
+    () => legacyThemeToConfig(mergedTheme, effectiveSlug),
+    [mergedTheme, effectiveSlug],
+  );
+
+  // ------------------------------------------------------------------
+  // 5. Props para o template
   // ------------------------------------------------------------------
 
   const templateProps: TemplateRenderProps = {
     orderId,
     checkoutData,
     theme: mergedTheme,
+    checkoutConfig,             // ← novo campo tipado
     templateConfig,
     isPreview,
     onStepChange,
@@ -231,6 +262,8 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     onUpdateTheme,
     customization,
     isMobile,
+    // Extrai primaryColor do config tipado para fácil acesso nos templates
+    primaryColor: checkoutConfig.buttons.primaryBg,
   };
 
   // ------------------------------------------------------------------
@@ -280,7 +313,14 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
       orderId={orderId}
       onError={handleRenderError}
     >
-      <Suspense fallback={<TemplateLoadingFallback />}>
+      {/*
+       * key={effectiveSlug} forca o React a destruir e recriar o componente
+       * inteiramente ao trocar de template, eliminando:
+       *   - Estado de formulario orfao (email, cep, nome do template anterior)
+       *   - Timers de countdown persistindo entre templates
+       *   - Re-renders parciais causando flash de conteudo antigo
+       */}
+      <Suspense key={effectiveSlug} fallback={<TemplateLoadingFallback />}>
         <LazyTemplate {...templateProps} />
       </Suspense>
     </TemplateErrorBoundary>

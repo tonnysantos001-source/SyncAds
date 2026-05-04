@@ -31,7 +31,7 @@ export interface CheckoutTheme {
   // BARRA DE AVISOS
   // ========================================
   noticeBarEnabled: boolean;
-  noticeBarMessage: string;
+  noticeBarText: string;
   noticeBarBackgroundColor: string;
   noticeBarTextColor: string;
   noticeBarAnimation: boolean;
@@ -283,7 +283,7 @@ export const DEFAULT_CHECKOUT_THEME: CheckoutTheme = {
   // BARRA DE AVISOS
   // ========================================
   noticeBarEnabled: true,
-  noticeBarMessage:
+  noticeBarText:
     "🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!",
   noticeBarBackgroundColor: "#1F2937", // Cinza muito escuro
   noticeBarTextColor: "#FFFFFF",

@@ -16,6 +16,7 @@ import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
+import type { CheckoutConfig } from '@/types/checkout-config.types';
 import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
 import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
 import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
@@ -91,73 +92,75 @@ const MinimalStepWrapper: React.FC<MinimalStepWrapperProps> = ({
 };
 
 // ============================================================
-// MINIMAL SCARCITY BAR (Strictly matched to Image 2)
-// ============================================================
 // MINIMAL SCARCITY BAR
 // ============================================================
-const MinimalScarcityBar = ({ theme, isPreview }: { theme: any; isPreview?: boolean }) => {
+const MinimalScarcityBar = ({
+  config,
+  theme,
+  isPreview,
+}: {
+  config?: CheckoutConfig['scarcity'];
+  theme: Record<string, unknown>;
+  isPreview?: boolean;
+}) => {
   const [timeLeft, setTimeLeft] = useState({ h: '00', m: '00', s: '00' });
   const [isExpired, setIsExpired] = useState(false);
 
-  const expirationMinutes = theme.expirationTime || 15;
+  // Prioriza config tipada; faz fallback para theme legado
+  const expirationMinutes = config?.durationMinutes ?? (theme.expirationTime as number) ?? 15;
+  const bgColor = config?.bgColor ?? (theme.scarcityBarBgColor as string) ?? '#0F172A';
+  const textColor = config?.textColor ?? (theme.scarcityBarTextColor as string) ?? '#ffffff';
+  // storageKey única por template (evita herdar timer de outro template)
+  const storageKey = config?.storageKey ?? 'minimal_checkout_expiration_time';
 
   const expirationTime = useMemo(() => {
-    const storageKey = 'minimal_checkout_expiration_time';
-    
-    // If we're in preview mode, let's always restart the timer for visual feedback
     if (isPreview) {
-      const pExpiration = new Date();
-      pExpiration.setMinutes(pExpiration.getMinutes() + expirationMinutes);
-      return pExpiration;
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + expirationMinutes);
+      return d;
     }
-
     const stored = localStorage.getItem(storageKey);
     if (stored) return new Date(stored);
-
     const newExpiration = new Date();
     newExpiration.setMinutes(newExpiration.getMinutes() + expirationMinutes);
     localStorage.setItem(storageKey, newExpiration.toISOString());
     return newExpiration;
-  }, [expirationMinutes, isPreview]);
+  }, [expirationMinutes, isPreview, storageKey]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date().getTime();
       const distance = expirationTime.getTime() - now;
-
       if (distance < 0) {
         setIsExpired(true);
         setTimeLeft({ h: '00', m: '00', s: '00' });
         clearInterval(timer);
         return;
       }
-
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
       setTimeLeft({
         h: hours.toString().padStart(2, '0'),
         m: minutes.toString().padStart(2, '0'),
-        s: seconds.toString().padStart(2, '0')
+        s: seconds.toString().padStart(2, '0'),
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [expirationTime]);
 
-  if (theme.useVisible === false || (isExpired && !isPreview)) return null;
+  if (isExpired && !isPreview) return null;
 
   return (
     <div
       style={{
-        backgroundColor: (theme?.scarcityBarBgColor as string) || '#0F172A',
+        backgroundColor: bgColor,
         width: '100%',
         padding: '12px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: (theme?.scarcityBarTextColor as string) || '#ffffff',
+        color: textColor,
         fontSize: '14px',
         fontWeight: '500',
       }}
@@ -353,6 +356,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   orderId,
   checkoutData = { products: [], total: 0, subtotal: 0, shipping: 0 },
   theme,
+  checkoutConfig,          // ← novo: config tipada gerada pelo TemplateRenderer
   templateConfig,
   currentStep: currentStepProp,
   onStepChange,
@@ -364,13 +368,29 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
-  
-  const primaryColor    = primaryColorProp || (theme.primaryColor as string) || '#0B1320';
-  const scarcityBgColor = (theme.scarcityBarBgColor as string) || '#0B1320';
-  const navSteps        = (theme.navigationSteps as number) || 3;
-  const storeName       = (theme.storeName as string) || 'Minha Loja';
 
-  // Sync internal state if prop changes (rare but good for consistency)
+  // Prioriza config tipada; faz fallback para valores do theme legado
+  const primaryColor =
+    primaryColorProp ||
+    checkoutConfig?.buttons.primaryBg ||
+    (theme.primaryColor as string) ||
+    '#0B1320';
+
+  const headerBgColor = checkoutConfig?.header.bgColor ?? '#ffffff';
+  const storeName = checkoutConfig?.header.storeName ?? (theme.storeName as string) ?? 'Minha Loja';
+  const logoUrl = checkoutConfig?.header.logoUrl ?? (theme.logoUrl as string | null) ?? null;
+  const fontFamily =
+    checkoutConfig?.typography.fontFamily ??
+    (theme.fontFamily as string) ??
+    "'Rubik', 'Inter', system-ui, sans-serif";
+  const navSteps = checkoutConfig?.form.navigationSteps ?? (theme.navigationSteps as number) ?? 3;
+
+  // Escassez
+  const scarcityEnabled =
+    checkoutConfig?.scarcity.enabled ?? (theme.useVisible as boolean) ?? false;
+
+  // ------------------------------------------------------------------
+
   useEffect(() => {
     if (currentStepProp !== undefined) {
       setCurrentStep(currentStepProp);
@@ -398,9 +418,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
         alignItems: 'center',
         minHeight: '100vh',
         width: '100%',
-        backgroundColor: '#0f172a',
+        // Usa bgColor do config se disponível, senão fallback para #0f172a
+        backgroundColor:
+          checkoutConfig?.header.bgColor !== '#ffffff'
+            ? '#0f172a' // fundo externo sempre escuro no Minimal
+            : '#0f172a',
         padding: '24px 12px 64px',
-        fontFamily: (theme.fontFamily as string) || "'Rubik', 'Inter', system-ui, sans-serif",
+        fontFamily,
       }}
     >
       <div 
@@ -415,16 +439,16 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
           boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
         }}
       >
-        {/* Notice Bar inside card for consistent look */}
-        {(theme.noticeBarEnabled as boolean) && (
-          <NoticeBar theme={theme as any} />
+        {/* Notice Bar */}
+        {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) && (
+          <NoticeBar theme={theme as Record<string, unknown>} />
         )}
 
       {/* ── HEADER ──────────────────────────────────────────── */}
       <div
         id="minimal-checkout-header"
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: headerBgColor,
           borderBottom: '1px solid #E5E7EB',
           width: '100%',
           height: isMobile ? '85px' : '80px',
@@ -434,7 +458,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
           justifyContent: 'center',
           flexShrink: 0,
           zIndex: 50,
-          position: 'relative'
+          position: 'relative',
         }}
       >
         <div
@@ -447,21 +471,21 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
           }}
         >
           {/* Logo / Nome da loja */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'flex-start',
-              flex: 1
+              flex: 1,
             }}
           >
-            {(theme.logoUrl as string) ? (
+            {logoUrl ? (
               <img
-                src={theme.logoUrl as string}
+                src={logoUrl}
                 alt={storeName}
                 style={{ height: isMobile ? '32px' : '40px', objectFit: 'contain' }}
               />
@@ -491,9 +515,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
         </div>
       </div>
 
-      {/* ── HEADER TIMER BAR NO TOPO ─────────────────────────────── */}
-      {(theme.useVisible as boolean) && (
-        <MinimalScarcityBar theme={theme} isPreview={isPreview} />
+      {/* ── SCARCITY BAR ─────────────────────────────────────── */}
+      {scarcityEnabled && (
+        <MinimalScarcityBar
+          config={checkoutConfig?.scarcity}
+          theme={theme}
+          isPreview={isPreview}
+        />
       )}
 
       {/* ── MOBILE EXCLUSIVE UI ──────────────────────────────────── */}

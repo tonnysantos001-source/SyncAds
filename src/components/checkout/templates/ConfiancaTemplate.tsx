@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  Check, Truck, Shield, Clock, Lock, ChevronRight, ChevronDown, ChevronUp,
+  Truck, Shield, Clock, Lock, ChevronDown,
   Star, ShoppingCart,
 } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
@@ -21,6 +21,7 @@ import { CheckoutFooter } from '@/components/checkout/CheckoutFooter';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
+import type { CheckoutConfig } from '@/types/checkout-config.types';
 import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
 import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
 import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
@@ -30,32 +31,41 @@ import { CheckoutSummaryPanel } from './shared/CheckoutSummaryPanel';
 // HEADER — Logo + badge verde
 // ============================================================
 
-const ConfiancaHeader: React.FC<{ theme: Record<string, unknown>; primaryColor: string; isMobile?: boolean }> = ({
-  theme, primaryColor, isMobile,
-}) => (
-  <div className={cn("w-full px-4 flex items-center justify-between border-b border-gray-100 bg-white", isMobile ? "h-[85px] pt-6" : "h-20 lg:px-8")}>
-    {(theme.logoUrl as string) ? (
-      <img src={theme.logoUrl as string} alt="Logo" className="h-8 object-contain" />
-    ) : (
-      <div className="font-bold text-gray-800 text-lg">
-        {(theme.storeName as string) || 'Minha Loja'}
+const ConfiancaHeader: React.FC<{
+  storeName: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  isMobile?: boolean;
+}> = ({ storeName, logoUrl, primaryColor, isMobile }) => (
+  <header className="bg-white border-b sticky top-0 z-50">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+      {/* Logo */}
+      <div className="flex items-center">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" style={{ width: '120px', height: '50px', objectFit: 'contain' }} />
+        ) : (
+          <div className="font-bold text-gray-900 text-xl tracking-tight">
+            {storeName}
+          </div>
+        )}
       </div>
-    )}
-    <div className="flex items-center gap-2">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50">
-        <Lock className="w-4 h-4 text-green-500 fill-current" />
-      </div>
-      <div className="flex flex-col items-start leading-[1.1]">
-        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pagamento</span>
-        <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">100% Seguro</span>
+
+      {/* Security Badge - White style from reference */}
+      <div className="flex items-center gap-3 px-3 py-2 rounded-[4px] bg-white border border-gray-100 shadow-sm">
+        <div className="flex items-center">
+          <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div className="flex flex-col leading-tight" style={{ gap: '1px' }}>
+          <span className="text-[0.75rem] font-bold tracking-wider leading-tight text-gray-900">PAGAMENTO</span>
+          <span className="text-[0.75rem] font-medium tracking-wider leading-tight text-gray-600">100% SEGURO</span>
+        </div>
       </div>
     </div>
-  </div>
+  </header>
 );
-
-// ============================================================
-// PRODUCT SHOWCASE BANNER — lime green com produto
-// ============================================================
 
 const ProductShowcaseBanner: React.FC<{ theme: Record<string, unknown>; primaryColor: string }> = ({
   theme, primaryColor,
@@ -63,51 +73,42 @@ const ProductShowcaseBanner: React.FC<{ theme: Record<string, unknown>; primaryC
   const bannerImage = theme.bannerImage as string | undefined;
 
   return (
-    <div
-      className="w-full relative overflow-hidden"
-      style={{
-        backgroundColor: primaryColor,
-        minHeight: '120px',
-      }}
-    >
-      {bannerImage ? (
-        <img src={bannerImage} alt="Banner" className="w-full object-cover" style={{ maxHeight: '200px' }} />
-      ) : (
-        <div className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
-          {/* Left text */}
-          <div className="text-white">
-            <div className="text-xs uppercase tracking-wider opacity-70 mb-1">Edição Especial</div>
-            <h2 className="text-xl font-bold leading-snug">
-              Revele sua beleza<br />
-              <em>interior</em> e exterior.
-            </h2>
-            <button
-              type="button"
-              className="mt-3 flex items-center gap-2 bg-white text-sm font-semibold px-4 py-2 rounded-lg"
-              style={{ color: primaryColor }}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              Compra segura.
-            </button>
-          </div>
-
-          {/* Right — product boxes */}
-          <div className="hidden sm:flex gap-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-20 h-20 rounded-xl flex items-center justify-center"
-                style={{
-                  border: `3px solid rgba(255,255,255,0.5)`,
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                }}
-              >
-                <div className="text-3xl">🧴</div>
+    <div className="w-full px-4 sm:px-6 lg:px-8 pt-6">
+      <div 
+        className="w-full relative overflow-hidden rounded-[16px] shadow-sm border border-gray-100"
+        style={{ minHeight: '180px', backgroundColor: bannerImage ? 'transparent' : `${primaryColor}10` }}
+      >
+        {bannerImage ? (
+          <img src={bannerImage} alt="Banner" className="w-full object-cover" style={{ height: '350px' }} />
+        ) : (
+          <div className="w-full p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 bg-gradient-to-br from-white to-gray-50/50">
+            <div className="max-w-md text-left space-y-4">
+              <div className="inline-flex px-3 py-1 rounded-full bg-green-100/50 text-green-700 text-[10px] font-bold uppercase tracking-wider">
+                Edição Especial
               </div>
-            ))}
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-[1.1]">
+                Revele sua beleza <br />
+                <span style={{ color: primaryColor }}>interior</span> e exterior.
+              </h2>
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                <ShoppingCart className="w-4 h-4" />
+                <span>Compra segura com entrega garantida</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center bg-white shadow-md border border-gray-100 transition-transform hover:scale-105"
+                >
+                  <div className="text-4xl">🧴</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
@@ -120,45 +121,45 @@ const HorizontalStepper: React.FC<{ currentStep: number; primaryColor: string }>
   currentStep, primaryColor,
 }) => {
   const steps = [
-    { number: 1, label: 'Identificação' },
-    { number: 2, label: 'Endereço' },
-    { number: 3, label: 'Pagamento' },
+    { label: 'Identificação', icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> },
+    { label: 'Endereço',      icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg> },
+    { label: 'Pagamento',     icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg> },
   ];
 
   return (
-    <div className="flex items-center justify-center gap-0 py-4 px-4 bg-white border-b border-gray-100">
-      {steps.map((step, index) => {
-        const isCompleted = currentStep > step.number;
-        const isActive    = currentStep === step.number;
-        return (
-          <React.Fragment key={step.number}>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+    <nav className="w-full py-6 bg-white border-b border-gray-100 flex items-center justify-center px-4 font-nunito">
+      <ol className="flex items-center w-full max-w-lg justify-between relative">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isCompleted = currentStep > stepNumber;
+          const isActive    = currentStep === stepNumber;
+          
+          return (
+            <li key={index} className="flex flex-col items-center relative z-10 flex-1">
+              <div 
+                className="w-7 h-7 rounded-[12px] flex items-center justify-center transition-all duration-300 border-2"
                 style={{
-                  backgroundColor: isCompleted || isActive ? primaryColor : '#e5e7eb',
-                  color: isCompleted || isActive ? '#fff' : '#9ca3af',
+                  backgroundColor: 'white',
+                  borderColor: isActive || isCompleted ? primaryColor : '#E5E7EB',
+                  color: isActive || isCompleted ? primaryColor : '#9CA3AF',
                 }}
               >
-                {isCompleted ? <Check className="w-3 h-3" /> : step.number}
+                {step.icon}
               </div>
-              <span
-                className="text-xs font-medium hidden sm:block"
-                style={{ color: isActive ? '#111827' : '#9ca3af' }}
+              <span 
+                className={cn(
+                  "mt-2 text-[11px] font-medium transition-colors duration-200",
+                  isActive || isCompleted ? "text-gray-900" : "text-gray-500"
+                )}
+                style={{ color: isActive || isCompleted ? primaryColor : undefined }}
               >
                 {step.label}
               </span>
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className="h-0.5 w-8 sm:w-16 mx-2 rounded-full transition-all duration-500"
-                style={{ backgroundColor: currentStep > step.number ? primaryColor : '#e5e7eb' }}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 };
 
@@ -168,24 +169,35 @@ const HorizontalStepper: React.FC<{ currentStep: number; primaryColor: string }>
 
 const BenefitsCard: React.FC<{ primaryColor: string }> = ({ primaryColor }) => {
   const items = [
-    { icon: Truck,   label: 'Frete Grátis',    desc: 'Para todo o Brasil em compras acima de R$ 189' },
-    { icon: Shield,  label: 'Compra Segura',   desc: 'Seus dados de pagamento sempre seguros' },
-    { icon: Clock,   label: 'Entrega Rápida',  desc: 'Enviamos em até 24 horas após a confirmação' },
+    { 
+      icon: <Truck className="w-5 h-5" style={{ color: primaryColor }} />, 
+      label: 'Frete Grátis',    
+      desc: 'Para todo o Brasil em compras acima de R$ 199' 
+    },
+    { 
+      icon: <Shield className="w-5 h-5" style={{ color: primaryColor }} />,  
+      label: 'Compra Segura',   
+      desc: 'Seus dados protegidos e pagamento seguro' 
+    },
+    { 
+      icon: <Clock className="w-5 h-5" style={{ color: primaryColor }} />,   
+      label: 'Entrega Rápida',  
+      desc: 'Enviamos em até 24 horas após a confirmação' 
+    },
   ];
 
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-3" style={{ borderColor: '#e5e7eb' }}>
-      {items.map((item) => (
-        <div key={item.label} className="flex items-start gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${primaryColor}15` }}
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-6">
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-start gap-4 group">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-50 group-hover:bg-white transition-colors"
           >
-            <item.icon className="w-4 h-4" style={{ color: primaryColor }} />
+            {item.icon}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-800">{item.label}</p>
-            <p className="text-xs text-gray-500">{item.desc}</p>
+            <h4 className="text-sm sm:text-base font-bold text-gray-900 leading-tight">{item.label}</h4>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">{item.desc}</p>
           </div>
         </div>
       ))}
@@ -200,40 +212,40 @@ const BenefitsCard: React.FC<{ primaryColor: string }> = ({ primaryColor }) => {
 const TestimonialsWithAvatar: React.FC<{ primaryColor: string }> = ({ primaryColor }) => {
   const reviews = [
     {
-      name: 'Montana Lopez',
-      text: 'Atendimento excelente e tudo chegou certinho. Recomendo!',
+      name: 'Mariana Lopes',
+      text: 'Atendimento excelente e tudo chegou perfeito. Recomendo!',
       rating: 5,
-      initials: 'ML',
+      avatar: 'https://images.pexels.com/photos/29616387/pexels-photo-29616387.jpeg',
     },
     {
       name: 'Ana Paula',
-      text: 'Produto de alta qualidade e entrega super rápida. Com certeza voltarei.',
+      text: 'Produtos de ótima qualidade e entrega super rápida. Amei!',
       rating: 5,
-      initials: 'AP',
+      avatar: 'https://images.pexels.com/photos/35391664/pexels-photo-35391664.jpeg',
     },
   ];
 
   return (
-    <div className="space-y-3">
-      {reviews.map((r) => (
-        <div key={r.name} className="rounded-xl border bg-white p-4 flex items-start gap-3" style={{ borderColor: '#e5e7eb' }}>
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}80)` }}
-          >
-            {r.initials}
-          </div>
-          <div>
-            <div className="flex items-center gap-1 mb-1">
-              {Array.from({ length: r.rating }).map((_, i) => (
-                <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-              ))}
+    <div className="bg-white rounded-[16px] p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="space-y-6">
+        {reviews.map((r, idx) => (
+          <div key={idx} className="space-y-3">
+            <div className="flex items-start gap-3">
+              <img src={r.avatar} alt={r.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-0.5 mb-1">
+                  {Array.from({ length: r.rating }).map((_, i) => (
+                    <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <h4 className="text-[16px] font-semibold text-gray-900 mb-1">{r.name}</h4>
+                <p className="text-[14px] text-gray-600 leading-normal">{r.text}</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-800">{r.text}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">{r.name}</p>
+            {idx < reviews.length - 1 && <div className="border-t border-dotted border-gray-200 mt-0 pt-0" />}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
@@ -246,44 +258,44 @@ const CheckoutFAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const items = [
-    { q: 'Quais formas de pagamento são aceitas?', a: 'Aceitamos PIX, cartão de crédito (até 12x) e boleto bancário.' },
-    { q: 'Posso parcelar minha compra?',            a: 'Sim! Parcele em até 12x no cartão de crédito sem juros.' },
-    { q: 'Recebo confirmação após o pagamento?',   a: 'Sim, você receberá um e-mail de confirmação com todos os detalhes.' },
-    { q: 'Qual o prazo de entrega?',               a: 'Entregamos em todo o Brasil entre 3 a 7 dias úteis após confirmação.' },
+    { q: 'Quais formas de pagamento são aceitas?', a: 'Aceitamos cartão de crédito, Pix e boleto bancário.' },
+    { q: 'Posso parcelar minha compra?',            a: 'Sim, o parcelamento está disponível no cartão de crédito (conforme condições exibidas no checkout).' },
+    { q: 'Recebo confirmação após o pagamento?',   a: 'Sim, você receberá a confirmação por e-mail e/ou WhatsApp.' },
+    { q: 'Qual o prazo de entrega?',               a: 'O prazo varia conforme sua região e aparece antes de finalizar o pedido.' },
   ];
 
   return (
-    <div className="rounded-xl border bg-white overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
-      <div className="px-5 py-4 border-b" style={{ borderColor: '#e5e7eb' }}>
-        <h3 className="font-semibold text-sm text-gray-800">Perguntas Frequentes</h3>
+    <div className="bg-white rounded-[16px] border border-gray-100 overflow-hidden">
+      <div className="px-6 py-6 border-b border-gray-100/50">
+        <h3 className="text-lg font-medium text-gray-900">Perguntas Frequentes</h3>
       </div>
-      {items.map((item, i) => (
-        <div key={i} className="border-b last:border-0" style={{ borderColor: '#f3f4f6' }}>
-          <button
-            type="button"
-            onClick={() => setOpenIndex(openIndex === i ? null : i)}
-            className="w-full px-5 py-3.5 flex items-center justify-between text-left text-sm text-gray-700"
-          >
-            {item.q}
-            {openIndex === i
-              ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            }
-          </button>
-          <AnimatePresence>
-            {openIndex === i && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <p className="px-5 pb-4 text-sm text-gray-500">{item.a}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
+      <div className="divide-y divide-gray-100">
+        {items.map((item, i) => (
+          <div key={i}>
+            <button
+              type="button"
+              onClick={() => setOpenIndex(openIndex === i ? null : i)}
+              className="w-full px-6 py-4 flex items-center justify-between text-left group transition-all"
+              style={{ gap: '1rem' }}
+            >
+              <span className="text-sm font-medium text-gray-900">{item.q}</span>
+              <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform duration-300", openIndex === i && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {openIndex === i && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden bg-gray-50/30"
+                >
+                  <p className="px-6 pb-4 text-sm text-gray-500 leading-relaxed font-normal">{item.a}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -308,12 +320,26 @@ const GreenSiteSeguro: React.FC<{ primaryColor: string }> = ({ primaryColor }) =
 // ============================================================
 
 const ConfiancaTemplate: React.FC<TemplateRenderProps> = ({
-  orderId, checkoutData, theme, templateConfig, isPreview = false,
+  orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
   isMobile = false, onStepChange, onPaymentSuccess,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
 
-  const primaryColor    = (theme.primaryColor as string) || '#8DC63F';
+  // Prioriza config tipada; fallback para theme legado
+  const primaryColor =
+    checkoutConfig?.buttons.primaryBg ??
+    (theme.primaryColor as string) ??
+    '#8DC63F';
+  const storeName = checkoutConfig?.header.storeName ?? (theme.storeName as string) ?? 'Minha Loja';
+  const logoUrl   = checkoutConfig?.header.logoUrl   ?? (theme.logoUrl as string | null) ?? null;
+  const fontFamily =
+    checkoutConfig?.typography.fontFamily ??
+    (theme.fontFamily as string) ??
+    'Nunito, system-ui, sans-serif';
+  const noticeBarEnabled =
+    checkoutConfig?.noticeBar.enabled ??
+    (theme.noticeBarEnabled as boolean) ??
+    false;
 
   const handleAdvance = (toStep: number) => {
     setCurrentStep(toStep);
@@ -324,154 +350,160 @@ const ConfiancaTemplate: React.FC<TemplateRenderProps> = ({
 
   return (
     <div
-      className={cn("min-h-screen flex flex-col items-center", isMobile ? "pt-8 pb-16 px-4" : "p-4 lg:p-6")}
+      className={cn('min-h-screen w-full flex flex-col items-center overflow-visible', isMobile ? 'px-0 pb-20' : 'p-4 lg:p-8 pb-32')}
       style={{
-        backgroundColor: '#0f172a',
-        fontFamily: (theme.fontFamily as string) || 'Inter, system-ui, sans-serif',
+        backgroundColor: `${primaryColor}1A`,
+        fontFamily,
       }}
     >
-      <div 
-        className="w-full max-w-7xl bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col"
-        style={{ minHeight: isMobile ? 'calc(100vh - 32px)' : 'auto' }}
-      >
-        {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
+      <div className="w-full max-w-[1280px] bg-white rounded-2xl shadow-2xl shadow-black/5 flex flex-col border border-gray-100">
+        {noticeBarEnabled && <NoticeBar theme={theme as Record<string, unknown>} />}
 
-      {/* Header lime */}
-      <ConfiancaHeader theme={theme} primaryColor={primaryColor} isMobile={isMobile} />
+        {/* Header lime */}
+        <ConfiancaHeader
+          storeName={storeName}
+          logoUrl={logoUrl}
+          primaryColor={primaryColor}
+          isMobile={isMobile}
+        />
 
-      {/* Product Showcase Banner */}
-      <ProductShowcaseBanner theme={theme} primaryColor={primaryColor} />
+        {/* Product Showcase Banner */}
+        <ProductShowcaseBanner theme={theme} primaryColor={primaryColor} />
 
-      {/* Horizontal Stepper */}
-      <HorizontalStepper currentStep={currentStep} primaryColor={primaryColor} />
+        {/* Horizontal Stepper */}
+        <HorizontalStepper currentStep={currentStep} primaryColor={primaryColor} />
 
-      {/* Content */}
-      <div className={cn("max-w-7xl mx-auto", isMobile ? "p-0" : "px-4 py-6")}>
-        <div className={cn("flex flex-col gap-6", isMobile ? "" : "lg:flex-row")}>
+        {/* Content */}
+        <div className={cn("max-w-[1280px] mx-auto w-full", isMobile ? "p-4" : "px-8 py-10")}>
+          <div className={cn("grid grid-cols-1 gap-10", isMobile ? "" : "lg:grid-cols-[1fr_400px]")}>
 
-          {/* Left — etapas */}
-          <div className="flex-1 space-y-4">
+            {/* Left — etapas */}
+            <div className="space-y-6">
 
-            {/* Etapa 1: Dados pessoais */}
-            <AnimatePresence>
-              {currentStep === 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl border bg-white p-5"
-                  style={{ borderColor: primaryColor, borderWidth: '2px' }}
-                >
-                  <MinimalStepCustomer
-                    theme={{
-                      ...theme,
-                      formTitle: 'Dados pessoais',
-                      formSubtitle: 'Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, notificações de pedidos e carrinho de compras.',
-                      buttonText: 'Ir para Entrega',
-                    }}
-                    isPreview={isPreview}
-                    onNext={() => handleAdvance(2)}
-                    primaryColor={primaryColor}
-                  />
+              {/* Etapa 1: Dados pessoais */}
+              <AnimatePresence mode="wait">
+                {currentStep === 1 && (
+                  <motion.div
+                    key="step1"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="space-y-8"
+                  >
+                    <div className="bg-gray-50/50 rounded-3xl p-6 sm:p-8 border border-gray-100/50">
+                      <MinimalStepCustomer
+                        theme={{
+                          ...theme,
+                          formTitle: 'Dados pessoais',
+                          formSubtitle: 'Utilizaremos seu e-mail para identificar seu perfil e histórico de compra.',
+                          buttonText: 'Ir para Entrega',
+                        }}
+                        isPreview={isPreview}
+                        onNext={() => handleAdvance(2)}
+                        primaryColor={primaryColor}
+                      />
+                    </div>
 
-                  {/* FAQ below form */}
-                  <div className="mt-6">
-                    <CheckoutFAQ />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    {/* FAQ below form */}
+                    <div className="pt-4">
+                      <CheckoutFAQ />
+                    </div>
+                  </motion.div>
+                )}
 
-            {/* Etapa 2: Endereço */}
-            <AnimatePresence>
-              {currentStep === 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl border bg-white p-5"
-                  style={{ borderColor: primaryColor, borderWidth: '2px' }}
-                >
-                  <MinimalStepShipping
-                    theme={theme}
-                    isPreview={isPreview}
-                    onNext={() => handleAdvance(3)}
-                    onBack={() => handleAdvance(1)}
-                    primaryColor={primaryColor}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                {/* Etapa 2: Endereço */}
+                {currentStep === 2 && (
+                  <motion.div
+                    key="step2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="bg-gray-50/50 rounded-3xl p-6 sm:p-8 border border-gray-100/50"
+                  >
+                    <MinimalStepShipping
+                      theme={theme}
+                      isPreview={isPreview}
+                      onNext={() => handleAdvance(3)}
+                      onBack={() => handleAdvance(1)}
+                      primaryColor={primaryColor}
+                    />
+                  </motion.div>
+                )}
 
-            {/* Etapa 3: Pagamento */}
-            <AnimatePresence>
-              {currentStep === 3 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl border bg-white p-5"
-                  style={{ borderColor: primaryColor, borderWidth: '2px' }}
-                >
-                  <MinimalStepPayment
-                    theme={theme}
-                    isPreview={isPreview}
+                {/* Etapa 3: Pagamento */}
+                {currentStep === 3 && (
+                  <motion.div
+                    key="step3"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="bg-gray-50/50 rounded-3xl p-6 sm:p-8 border border-gray-100/50"
+                  >
+                    <MinimalStepPayment
+                      theme={theme}
+                      isPreview={isPreview}
+                      checkoutData={checkoutData}
+                      orderId={orderId}
+                      onBack={() => handleAdvance(2)}
+                      onSuccess={onPaymentSuccess}
+                      primaryColor={primaryColor}
+                      templateSlug={templateConfig.slug}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Right — resumo + trust elements */}
+            <div className="space-y-6">
+              <div className="sticky top-28 space-y-6">
+                {/* Resumo */}
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                  <CheckoutSummaryPanel
                     checkoutData={checkoutData}
-                    orderId={orderId}
-                    onBack={() => handleAdvance(2)}
-                    onSuccess={onPaymentSuccess}
-                    primaryColor={primaryColor}
-                    templateSlug={templateConfig.slug}
+                    theme={theme}
+                    isPreview={isPreview}
+                    totalColor={primaryColor}
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+
+                {/* Depoimentos com avatar */}
+                <TestimonialsWithAvatar primaryColor={primaryColor} />
+
+                {/* Benefits 3 itens */}
+                <BenefitsCard primaryColor={primaryColor} />
+              </div>
+            </div>
 
           </div>
-
-          {/* Right — resumo + trust elements */}
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
-
-            {/* Resumo */}
-            <CheckoutSummaryPanel
-              checkoutData={checkoutData}
-              theme={theme}
-              isPreview={isPreview}
-              totalColor={primaryColor}
-            />
-
-            {/* Depoimentos com avatar */}
-            <TestimonialsWithAvatar primaryColor={primaryColor} />
-
-            {/* Benefits 3 itens */}
-            <BenefitsCard primaryColor={primaryColor} />
-
-          </div>
-
         </div>
-      </div>
 
-      {/* Standardized Payment Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-10 mt-6 border-t border-gray-100 bg-white rounded-b-2xl">
-        <div className="flex flex-col items-center gap-8">
-          <div className="w-full flex flex-col items-center gap-4">
-            <p className="text-sm font-semibold tracking-wide uppercase opacity-30 text-gray-500">
-              Formas de Pagamento
-            </p>
-            <PaymentMethodIcons 
-              isMobile={isMobile}
-              className="justify-center"
-              methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
-            />
-          </div>
+        {/* Standardized Payment Footer */}
+        <footer className="w-full bg-white border-t border-gray-100 py-12 px-8 font-nunito">
+          <div className="max-w-7xl mx-auto flex flex-col items-center gap-10">
+            <div className="space-y-6 w-full flex flex-col items-center">
+              <p className="text-center text-sm font-medium text-gray-500">
+                Formas de Pagamento
+              </p>
+              <div className="flex flex-wrap justify-center items-center gap-3">
+                <PaymentMethodIcons 
+                  isMobile={isMobile}
+                  className="justify-center grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
+                  methods={['visa', 'mastercard', 'elo', 'amex', 'pix', 'boleto']}
+                />
+              </div>
+            </div>
 
-          <div className="flex justify-center">
-            <div className="flex items-center gap-2.5 px-4 py-2 bg-[#F0FDF4] rounded-full border border-green-100 shadow-sm transition-all hover:scale-105">
-              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="text-[11px] font-bold text-[#166534] tracking-tight uppercase">Site Seguro</span>
+            <div className="flex justify-center items-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2 bg-[#97e00d] rounded-full" style={{ backgroundColor: primaryColor }}>
+                <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" />
+                <span className="text-sm font-bold text-white uppercase tracking-tight">Site Seguro</span>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
 
-      <CheckoutFooter theme={theme as any} />
+        <CheckoutFooter theme={theme as Record<string, unknown>} />
       </div>
     </div>
   );

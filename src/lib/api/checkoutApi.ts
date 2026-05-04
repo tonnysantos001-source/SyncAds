@@ -81,7 +81,7 @@ export interface CheckoutCustomization {
     // Barra de Avisos
     noticeBarTextColor?: string;
     noticeBarBackgroundColor?: string;
-    noticeBarMessage?: string;
+    noticeBarText?: string;
 
     // Configurações Gerais
     navigationSteps?: 1 | 3 | 5;

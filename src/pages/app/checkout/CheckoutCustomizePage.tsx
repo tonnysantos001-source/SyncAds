@@ -26,6 +26,11 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 import { CheckoutCustomizationSidebar } from "@/components/checkout/CheckoutCustomizationSidebar";
+import {
+  useCheckoutConfigStore,
+  selectCheckoutConfig,
+} from "@/store/checkoutConfigStore";
+import { legacyThemeToConfig } from "@/types/checkout-config.types";
 
 
 interface MetricCardProps {
@@ -83,24 +88,24 @@ const CheckoutCustomizePage: React.FC = () => {
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
-  const [expandedSections, setExpandedSections] = useState<string[]>([
-    "CABECALHO",
-  ]);
-  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
-    "desktop",
-  );
+  // ── Zustand store (source of truth para configuração) ──────────────────
+  const storeConfig   = useCheckoutConfigStore(selectCheckoutConfig);
+  const loadConfig    = useCheckoutConfigStore((s) => s.loadConfig);
+  const switchTemplate = useCheckoutConfigStore((s) => s.switchTemplate);
+  // ──────────────────────────────────────────────────────────────────────
+
+  const [expandedSections, setExpandedSections] = useState<string[]>(["CABECALHO"]);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [showPreview, setShowPreview] = useState(true);
-  const [customization, setCustomization] =
-    useState<CheckoutCustomization | null>(null);
+  // customization: dados brutos do Supabase (legado) — mantido para compatibilidade de persistência
+  const [customization, setCustomization] = useState<CheckoutCustomization | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewKey, setPreviewKey] = useState(0);
-  const [activeTemplateSlug, setActiveTemplateSlug] = useState<string>(
-    () => customization?.theme?.templateSlug || 'minimal'
-  );
-  const UI_VERSION = "v4.5-FINAL-FIX";
+  const [activeTemplateSlug, setActiveTemplateSlug] = useState<string>('minimal');
+  const UI_VERSION = "v5.0-STORE";
   const [isActivating, setIsActivating] = useState(false);
 
   // Detectar e aplicar dark mode do sistema
@@ -265,20 +270,26 @@ const CheckoutCustomizePage: React.FC = () => {
     try {
       setLoading(true);
       const data = await checkoutApi.loadCustomization(user!.id);
+      const rawTheme = data?.theme ?? (DEFAULT_CHECKOUT_THEME as Record<string, unknown>);
+      const slug = (rawTheme.templateSlug as string) || 'minimal';
+
       if (data) {
         setCustomization(data);
       } else {
-        // Criar uma personalização default em memória se não existir
         setCustomization({
           id: `draft-${Date.now()}`,
           userId: user!.id,
           name: "Checkout Principal",
-          theme: DEFAULT_CHECKOUT_THEME as any,
+          theme: DEFAULT_CHECKOUT_THEME as Record<string, unknown>,
           isActive: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
       }
+
+      // ✅ Sincronizar store com dados do banco
+      loadConfig(legacyThemeToConfig(rawTheme, slug));
+      setActiveTemplateSlug(slug);
     } catch (error) {
       console.error("Erro ao carregar personalização:", error);
       toast({
@@ -295,13 +306,15 @@ const CheckoutCustomizePage: React.FC = () => {
     if (!customization || !user?.id) return;
     setIsActivating(true);
     try {
+      // ✅ Atualiza store com defaults corretos do novo template
+      switchTemplate(slug);
+
       const isDraft = !customization.id || customization.id.startsWith('draft-');
+      // Persiste no banco usando o tema legado mesclado com o novo slug
       const newTheme = { ...customization.theme, templateSlug: slug, activeTemplateSlug: slug };
 
-      let savedData: any;
-
+      let savedData: CheckoutCustomization | null = null;
       if (isDraft) {
-        // Criar novo registro no banco
         const { data, error } = await supabase
           .from('CheckoutCustomization')
           .insert({
@@ -316,13 +329,9 @@ const CheckoutCustomizePage: React.FC = () => {
         if (error) throw error;
         savedData = data;
       } else {
-        // Atualizar registro existente
         const { data, error } = await supabase
           .from('CheckoutCustomization')
-          .update({
-            theme: newTheme,
-            updatedAt: new Date().toISOString(),
-          })
+          .update({ theme: newTheme, updatedAt: new Date().toISOString() })
           .eq('id', customization.id)
           .select()
           .single();
@@ -330,17 +339,15 @@ const CheckoutCustomizePage: React.FC = () => {
         savedData = data;
       }
 
-      setCustomization({ ...customization, ...savedData, theme: newTheme });
+      setCustomization({ ...customization, ...(savedData ?? {}), theme: newTheme });
       setActiveTemplateSlug(slug);
       setHasChanges(false);
       setPreviewKey((prev) => prev + 1);
-      toast({
-        title: "✅ Template ativado!",
-        description: "O checkout público agora usa este template.",
-      });
-    } catch (e: any) {
+      toast({ title: "✅ Template ativado!", description: "O checkout público agora usa este template." });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Não foi possível ativar o template.";
       console.error('handleUseTemplate error:', e);
-      toast({ title: "Erro", description: e?.message || "Não foi possível ativar o template.", variant: "destructive" });
+      toast({ title: "Erro", description: msg, variant: "destructive" });
     } finally {
       setIsActivating(false);
     }
@@ -351,7 +358,6 @@ const CheckoutCustomizePage: React.FC = () => {
       toast({ title: "Erro", description: "Configurações não encontradas.", variant: "destructive" });
       return;
     }
-    
     if (!user?.id) {
       toast({ title: "Erro", description: "Você precisa estar logado para salvar.", variant: "destructive" });
       return;
@@ -359,9 +365,31 @@ const CheckoutCustomizePage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // ✅ LOG PARA DEPURAÇÃO: Ver exatamente o que está sendo enviado
-      console.log(`💾 [${UI_VERSION}] Salvando tema...`, customization.theme);
-      
+      // ✅ Usa store como source of truth — mescla com theme legado para retrocompatibilidade
+      const mergedTheme = {
+        ...customization.theme,
+        // Campos canônicos do store (sobrescrevem os legados)
+        noticeBarEnabled: storeConfig.noticeBar.enabled,
+        noticeBarText: storeConfig.noticeBar.message,
+        noticeBarBackgroundColor: storeConfig.noticeBar.bgColor,
+        noticeBarTextColor: storeConfig.noticeBar.textColor,
+        primaryColor: storeConfig.buttons.primaryBg,
+        primaryButtonBackgroundColor: storeConfig.buttons.primaryBg,
+        checkoutButtonBackgroundColor: storeConfig.buttons.checkoutBg,
+        fontFamily: storeConfig.typography.fontFamily,
+        logoUrl: storeConfig.header.logoUrl,
+        storeName: storeConfig.header.storeName,
+        footerBackgroundColor: storeConfig.footer.bgColor,
+        footerTextColor: storeConfig.footer.textColor,
+        useVisible: storeConfig.scarcity.enabled,
+        expirationTime: storeConfig.scarcity.durationMinutes,
+        templateSlug: storeConfig.templateSlug,
+        // Payload novo (checkoutConfig completo para leitura futura)
+        _checkoutConfig: storeConfig,
+      };
+
+      console.log(`💾 [${UI_VERSION}] Salvando config...`, mergedTheme);
+
       const isDraft = !customization.id || customization.id.startsWith('draft-');
 
       if (isDraft) {
@@ -370,58 +398,52 @@ const CheckoutCustomizePage: React.FC = () => {
           .insert({
             userId: user.id,
             name: customization.name || 'Checkout Principal',
-            theme: customization.theme,
+            theme: mergedTheme,
             isActive: true,
             updatedAt: new Date().toISOString(),
           })
           .select()
           .single();
-        
         if (error) throw error;
-        setCustomization({ ...customization, ...data });
+        setCustomization({ ...customization, ...data, theme: mergedTheme });
       } else {
-        // ✅ ATUALIZAÇÃO EXPLÍCITA: Forçar o envio do objeto theme completo, incluindo nulls
         const { error } = await supabase
           .from('CheckoutCustomization')
           .update({
-            theme: customization.theme,
+            theme: mergedTheme,
             name: customization.name,
             updatedAt: new Date().toISOString(),
           })
           .eq('id', customization.id);
-        
         if (error) throw error;
+        setCustomization({ ...customization, theme: mergedTheme });
       }
-      
+
       setHasChanges(false);
       toast({
-        title: "Sucesso!",
-        description: `Configurações (${UI_VERSION}) salvas no banco de dados.`,
+        title: "✅ Salvo!",
+        description: `Configurações (${UI_VERSION}) salvas com sucesso.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Erro de conexão com o Supabase.";
       console.error("❌ Erro fatal ao salvar:", error);
-      toast({
-        title: "Falha Crítica",
-        description: error?.message || "Erro de conexão com o Supabase.",
-        variant: "destructive",
-      });
+      toast({ title: "Falha Crítica", description: msg, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const updateTheme = (updates: Partial<CheckoutCustomization["theme"]>) => {
+  /**
+   * Mantido para compatibilidade com o preview legado.
+   * As edições finas agora fluem pelo Zustand store via Sidebar.
+   */
+  const updateTheme = (updates: Partial<Record<string, unknown>>) => {
     if (!customization) return;
-
     setCustomization({
       ...customization,
-      theme: {
-        ...customization.theme,
-        ...updates,
-      },
+      theme: { ...customization.theme, ...updates },
     });
     setHasChanges(true);
-    // Força atualização do preview
     setPreviewKey((prev) => prev + 1);
   };
 
@@ -453,15 +475,20 @@ const CheckoutCustomizePage: React.FC = () => {
         {UI_VERSION}
       </div>
 
-      {/* Sidebar de Personalização */}
+      {/* Sidebar de Personalização — agora conectada ao Zustand store */}
       <CheckoutCustomizationSidebar
         expandedSections={expandedSections}
         onToggleSection={toggleSection}
-        customization={customization}
-        onUpdateTheme={updateTheme}
         activeTemplateSlug={activeTemplateSlug}
         onSelectTemplate={(slug, version) => {
-          updateTheme({ templateSlug: slug, templateVersion: version });
+          switchTemplate(slug, version);
+          setActiveTemplateSlug(slug);
+          setHasChanges(true);
+          setPreviewKey((prev) => prev + 1);
+        }}
+        onAnyChange={() => {
+          setHasChanges(true);
+          setPreviewKey((prev) => prev + 1);
         }}
       />
 
