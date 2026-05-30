@@ -483,6 +483,9 @@ const CheckoutCustomizePage: React.FC = () => {
         onSelectTemplate={(slug, version) => {
           switchTemplate(slug, version);
           setActiveTemplateSlug(slug);
+          setCustomization((prev) => 
+            prev ? { ...prev, theme: { ...prev.theme, templateSlug: slug } } : prev
+          );
           setHasChanges(true);
           setPreviewKey((prev) => prev + 1);
         }}

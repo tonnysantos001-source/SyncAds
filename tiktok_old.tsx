@@ -1,10 +1,10 @@
-/**
- * TikTokTemplate — Checkout Estilo TikTok / TokVex
+﻿/**
+ * TikTokTemplate ÔÇö Checkout Estilo TikTok / TokVex
  *
  * Layout: Dois colunas com PAGAMENTO na coluna DIREITA
- * Cor:    Pink/Magenta gradient #E91E8C → #FF4559
- * Fluxo:  Página única — dados + entrega à esq, pagamento à dir
- * Unique: Apple Pay simulado, endereço colapsável no mobile
+ * Cor:    Pink/Magenta gradient #E91E8C ÔåÆ #FF4559
+ * Fluxo:  P├ígina ├║nica ÔÇö dados + entrega ├á esq, pagamento ├á dir
+ * Unique: Apple Pay simulado, endere├ºo colaps├ível no mobile
  *
  * @version 1.0
  */
@@ -68,7 +68,7 @@ const PinkScarcityBar: React.FC<{ theme: Record<string, unknown> }> = ({ theme }
 );
 
 // ============================================================
-// APPLE PAY BUTTON (simulado — visual only)
+// APPLE PAY BUTTON (simulado ÔÇö visual only)
 // ============================================================
 
 const ApplePayButton: React.FC = () => (
@@ -77,7 +77,7 @@ const ApplePayButton: React.FC = () => (
     className="w-full py-3 rounded-full bg-black text-white font-semibold text-sm flex items-center justify-center gap-2 mb-3"
     style={{ cursor: 'pointer' }}
   >
-    🍎 Pagar com Apple Pay
+    ­ƒìÄ Pagar com Apple Pay
   </button>
 );
 
@@ -99,7 +99,7 @@ const CollapsibleAddress: React.FC<{
         onClick={() => setOpen(!open)}
         className="w-full px-5 py-4 flex items-center justify-between text-left"
       >
-        <span className="font-semibold text-sm text-gray-800">Endereço de entrega</span>
+        <span className="font-semibold text-sm text-gray-800">Endere├ºo de entrega</span>
         {open
           ? <ChevronUp className="w-4 h-4 text-gray-400" />
           : <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -167,7 +167,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             {/* Dados pessoais */}
             <div className="rounded-xl border bg-white shadow-sm p-5">
               <h3 className="font-semibold text-sm text-gray-800 mb-4">
-                Informações de contato
+                Informa├º├Áes de contato
               </h3>
               <MinimalStepCustomer
                 theme={theme}
@@ -177,7 +177,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
               />
             </div>
 
-            {/* Endereço colapsável */}
+            {/* Endere├ºo colaps├ível */}
             <CollapsibleAddress
               theme={theme}
               primaryColor={primaryColor}
@@ -201,7 +201,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
 
           </div>
 
-          {/* RIGHT COLUMN — Pagamento + Resumo */}
+          {/* RIGHT COLUMN ÔÇö Pagamento + Resumo */}
           <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
 
             {/* Resumo */}
@@ -219,7 +219,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             <div className="rounded-xl border bg-white shadow-sm p-5">
               <h3 className="font-semibold text-sm text-gray-800 mb-4">Forma de pagamento</h3>
 
-              {/* Botão com gradiente pink + valor */}
+              {/* Bot├úo com gradiente pink + valor */}
               <MinimalStepPayment
                 theme={{
                   ...theme,
