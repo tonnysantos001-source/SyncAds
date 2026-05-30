@@ -284,7 +284,7 @@ const SummaryPanelContent = ({
     <div className="w-full min-w-0 pt-0 lg:pt-[10px] rounded-xl font-inter">
       <div className="mb-5 flex flex-col gap-5">
         {/* Mock Product Items */}
-        {checkoutData?.items?.filter((i: any) => i.id !== 'shipping').map((it: any, idx: number) => (
+        {checkoutData?.products?.filter((i: any) => i.id !== 'shipping').map((it: any, idx: number) => (
           <div key={idx} className="flex gap-4">
             <div className="relative w-16 h-16 flex-shrink-0">
               <div className="w-full h-full bg-white flex items-center justify-center rounded-lg border border-gray-200 overflow-hidden">
@@ -435,7 +435,6 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   const handleFinalize = async () => {
     if (isPreview) {
       if (onPaymentSuccess) onPaymentSuccess(orderId || 'preview');
-      else if (onSuccess) onSuccess(); 
       return;
     }
     setProcessing(true);
@@ -444,7 +443,6 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
       await new Promise((r) => setTimeout(r, 1200));
       checkoutMonitor.paymentSuccess('PIX', templateConfig.slug, orderId);
       if (onPaymentSuccess) onPaymentSuccess(orderId || '');
-      else if (onSuccess) onSuccess();
     } catch (e) {
       checkoutMonitor.paymentError('PIX', String(e), templateConfig.slug, orderId);
     } finally {

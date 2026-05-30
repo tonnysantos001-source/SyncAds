@@ -216,6 +216,9 @@ export interface TemplateRenderProps {
 
   /** Cor primária do template (calculada do config/theme) */
   primaryColor?: string;
+
+  /** Step atual passado externamente (usado pelo MinimalTemplate para controle externo) */
+  currentStep?: number;
 }
 
 // ============================================================

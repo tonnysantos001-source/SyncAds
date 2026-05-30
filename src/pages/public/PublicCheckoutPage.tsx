@@ -432,7 +432,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             .select("*")
             .eq("userId", order.userId)
             .eq("isActive", true)
-            .order("order", { ascending: true });
+            .order("createdAt", { ascending: true });
 
           if (!bumpsError && bumps) {
             setOrderBumps(bumps);
