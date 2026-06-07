@@ -27,9 +27,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { NoticeBarConfig } from "@/types/checkout-config.types";
 
 interface NoticeBarProps {
   theme: any;
+  /** Config tipada do store — substitui os campos legados do theme */
+  noticeBarConfig?: NoticeBarConfig;
   className?: string;
   isMobile?: boolean;
   closeable?: boolean;
@@ -39,6 +42,7 @@ interface NoticeBarProps {
 
 export const NoticeBar: React.FC<NoticeBarProps> = ({
   theme,
+  noticeBarConfig,
   className = "",
   isMobile = false,
   closeable = false,
@@ -48,11 +52,12 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
-  // ============================================
-  // VERIFICAR SE DEVE MOSTRAR
-  // ============================================
+  // Resolve valores: store (novo) > theme (legado)
+  const enabled   = noticeBarConfig?.enabled ?? theme.noticeBarEnabled;
+  const message   = noticeBarConfig?.message  ?? theme.noticeBarText ?? '';
+  const isCloseable = noticeBarConfig?.closeable ?? closeable ?? theme.noticeBarCloseable ?? false;
 
-  if (!theme.noticeBarEnabled || !theme.noticeBarText) {
+  if (!enabled || !message) {
     return null;
   }
 
@@ -74,38 +79,27 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
   // ESTILOS E CONFIGURAÇÕES
   // ============================================
 
-  const style = theme.noticeBarStyle || "normal";
-  const position = theme.noticeBarPosition || "top";
-  const animation = theme.noticeBarAnimation || "slide";
+  // Resolve restante dos campos
+  const style     = noticeBarConfig?.style     ?? theme.noticeBarStyle     ?? 'normal';
+  const position  = noticeBarConfig?.position  ?? theme.noticeBarPosition  ?? 'top';
+  const animation = noticeBarConfig?.animation ?? theme.noticeBarAnimation ?? 'slide';
+  const bgColor   = noticeBarConfig?.bgColor   ?? theme.noticeBarBackgroundColor;
+  const textColor = noticeBarConfig?.textColor ?? theme.noticeBarTextColor;
 
-  // Cores baseadas no estilo
+  // Cores baseadas no estilo — usa cores do store se disponíveis
   const getStyleColors = () => {
-    if (theme.noticeBarTextColor && theme.noticeBarBackgroundColor) {
-      return {
-        bg: theme.noticeBarBackgroundColor,
-        text: theme.noticeBarTextColor,
-      };
+    if (bgColor && textColor) {
+      return { bg: bgColor, text: textColor };
     }
+    if (bgColor) return { bg: bgColor, text: '#ffffff' };
 
     switch (style) {
-      case "urgent":
-        return {
-          bg: "#ef4444",
-          text: "#ffffff",
-          accent: "#fca5a5",
-        };
-      case "highlight":
-        return {
-          bg: "#8b5cf6",
-          text: "#ffffff",
-          accent: "#c4b5fd",
-        };
+      case 'urgent':
+        return { bg: '#ef4444', text: '#ffffff', accent: '#fca5a5' };
+      case 'highlight':
+        return { bg: '#8b5cf6', text: '#ffffff', accent: '#c4b5fd' };
       default:
-        return {
-          bg: "#3b82f6",
-          text: "#ffffff",
-          accent: "#93c5fd",
-        };
+        return { bg: '#1F2937', text: '#FFFFFF', accent: '#93c5fd' };
     }
   };
 
@@ -188,6 +182,7 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
     <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
+          key={`noticebar-${animation}-${position}`}
           className={cn(
             "w-full relative overflow-hidden",
             position === "top" ? "top-0" : "bottom-0",
@@ -261,11 +256,11 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {theme.noticeBarText}
+              {message}
             </motion.p>
 
             {/* Botão de fechar */}
-            {closeable && (
+            {isCloseable && (
               <motion.button
                 onClick={() => setIsVisible(false)}
                 className={cn(

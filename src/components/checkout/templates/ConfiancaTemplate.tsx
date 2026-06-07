@@ -350,7 +350,12 @@ const ConfiancaTemplate: React.FC<TemplateRenderProps> = ({
 
   return (
     <div
-      className={cn('min-h-screen w-full flex flex-col items-center overflow-visible', isMobile ? 'px-0 pb-20' : 'p-4 lg:p-8 pb-32')}
+      className={cn(
+        'w-full flex flex-col items-center overflow-visible',
+        isPreview
+          ? ''
+          : cn('min-h-screen', isMobile ? 'px-0 pb-20' : 'p-4 lg:p-8 pb-32'),
+      )}
       style={{
         backgroundColor: `${primaryColor}1A`,
         fontFamily,

@@ -19,6 +19,7 @@ import { Loader2 } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import { getTemplateConfig, getFallbackTemplateConfig } from '@/config/checkoutTemplateConfigs';
 import { legacyThemeToConfig } from '@/types/checkout-config.types';
+import type { CheckoutConfig } from '@/types/checkout-config.types';
 import {
   FALLBACK_TEMPLATE_SLUG,
   FALLBACK_TEMPLATE_VERSION,
@@ -32,12 +33,9 @@ import {
 // ============================================================
 
 const templateLoaders: Record<string, () => Promise<{ default: React.ComponentType<TemplateRenderProps> }>> = {
-  'minimal':         () => import('./templates/MinimalTemplate'),
-  'high-conversion': () => import('./templates/HighConversionTemplate'),
-  'tiktok':          () => import('./templates/TikTokTemplate'),
-  'streamline':      () => import('./templates/StreamlineTemplate'),
-  'premium':         () => import('./templates/PremiumTemplate'),
-  'confianca':       () => import('./templates/ConfiancaTemplate'),
+  'minimal':  () => import('./templates/MinimalTemplate'),
+  'tiktok':   () => import('./templates/TikTokTemplate'),
+  'premium':  () => import('./templates/PremiumTemplate'),
 };
 
 // Cache — evita recarregar o mesmo template durante a sessão
@@ -110,7 +108,24 @@ class TemplateErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBou
 
   render() {
     if (this.state.hasError) {
-      return null; // onError dispara o fallback no pai
+      // Em modo preview/dev, mostrar erro legível para diagnóstico
+      const isDev = import.meta.env.DEV || window.location.pathname.includes('checkout/customize');
+      if (isDev) {
+        return (
+          <div style={{ padding: '24px', backgroundColor: '#fef2f2', border: '2px solid #ef4444', borderRadius: '12px', margin: '16px', fontFamily: 'monospace' }}>
+            <h3 style={{ color: '#dc2626', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+              ❌ Erro no template: {this.props.templateSlug}
+            </h3>
+            <p style={{ color: '#7f1d1d', fontSize: '13px', marginBottom: '8px' }}>
+              {this.state.error?.message}
+            </p>
+            <pre style={{ color: '#7f1d1d', fontSize: '11px', overflow: 'auto', maxHeight: '200px', whiteSpace: 'pre-wrap' }}>
+              {this.state.error?.stack}
+            </pre>
+          </div>
+        );
+      }
+      return null; // Em produção: onError dispara o fallback no pai
     }
     return this.props.children;
   }
@@ -237,14 +252,19 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   // 4. Gerar checkoutConfig tipado a partir do tema mesclado
   // ------------------------------------------------------------------
   //
-  // Converte o tema flat legado para o schema canônico CheckoutConfig.
-  // Templates novos devem usar `checkoutConfig` ao invés de `theme`.
-  // Templates antigos continuam usando `theme` sem modificação.
+  // PRIORIDADE:
+  //   1. Se o tema traz _checkoutConfig injetado (customizador em tempo real)
+  //      → usar diretamente (reatividade imediata, sem converter legado)
+  //   2. Caso contrário → converter o tema legado via legacyThemeToConfig
+  //      (produção: tema salvo no banco, sem _checkoutConfig)
 
-  const checkoutConfig = useMemo(
-    () => legacyThemeToConfig(mergedTheme, effectiveSlug),
-    [mergedTheme, effectiveSlug],
-  );
+  const checkoutConfig = useMemo(() => {
+    const injected = (mergedTheme as Record<string, unknown>)._checkoutConfig;
+    if (injected && typeof injected === 'object' && !Array.isArray(injected)) {
+      return injected as CheckoutConfig;
+    }
+    return legacyThemeToConfig(mergedTheme, effectiveSlug);
+  }, [mergedTheme, effectiveSlug]);
 
   // ------------------------------------------------------------------
   // 5. Props para o template

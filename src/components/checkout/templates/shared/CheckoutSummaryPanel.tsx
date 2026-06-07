@@ -11,10 +11,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Tag, Truck, Package } from 'lucide-react';
 import type { CheckoutData } from '@/types/checkout.types';
+import type { CheckoutConfig } from '@/types/checkout-config.types';
 
 interface CheckoutSummaryPanelProps {
   checkoutData?: CheckoutData;
   theme: Record<string, unknown>;
+  /** Config tipada do store — substitui campos legados do theme */
+  checkoutConfig?: CheckoutConfig;
   isPreview?: boolean;
   collapsibleOnMobile?: boolean;
   totalPrefix?: string;
@@ -29,6 +32,7 @@ const PREVIEW_PRODUCTS = [
 export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   checkoutData,
   theme,
+  checkoutConfig,
   isPreview = false,
   collapsibleOnMobile = false,
   totalPrefix,
@@ -36,7 +40,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
 }) => {
   const [couponCode, setCouponCode]     = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
-  const [isExpanded, setIsExpanded]       = useState(true);
+  const [isExpanded, setIsExpanded]       = useState(() => (checkoutConfig?.cart.display ?? 'open') !== 'closed');
 
   const products = checkoutData?.products ?? (isPreview ? PREVIEW_PRODUCTS : []);
   const subtotal  = checkoutData?.subtotal ?? (isPreview ? 197.00 : 0);
@@ -44,19 +48,30 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   const discount  = checkoutData?.discount ?? 0;
   const total     = checkoutData?.total     ?? (isPreview ? 212.00 : 0);
 
-  const primaryColor          = (theme.primaryColor as string) || '#0B1320';
-  const effectiveTotalColor   = totalColor || (theme.totalColor as string) || '#16a34a';
-  const effectiveTotalPrefix  = totalPrefix || (theme.totalPrefix as string) || '';
+  // Resolve: store (novo) > theme (legado)
+  const primaryColor         = checkoutConfig?.buttons.checkoutBg
+                              ?? checkoutConfig?.buttons.primaryBg
+                              ?? (theme.primaryColor as string)
+                              ?? '#0B1320';
+  const cartBorderColor      = checkoutConfig?.cart.borderColor
+                              ?? (theme.cartBorderColor as string)
+                              ?? '#E5E7EB';
+  const cartBgColor          = (theme.cartBackgroundColor as string) ?? '#ffffff';
+  const effectiveTotalColor  = totalColor ?? (theme.totalColor as string) ?? '#16a34a';
+  const effectiveTotalPrefix = totalPrefix ?? (theme.totalPrefix as string) ?? '';
+  const couponEnabled        = checkoutConfig?.cart.couponEnabled ?? true;
+  // Quantity badge colors
+  const qtyCircleColor       = checkoutConfig?.cart.quantityCircleColor ?? '#6B7280';
+  const qtyTextColor         = checkoutConfig?.cart.quantityTextColor   ?? '#ffffff';
 
   const formatCurrency = (v: number) =>
     `R$ ${v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: (theme.cartBackgroundColor as string) || '#ffffff',
+    backgroundColor: cartBgColor,
     borderRadius: '12px',
-    border: `1px solid ${(theme.cartBorderColor as string) || '#E5E7EB'}`,
+    border: `1px solid ${cartBorderColor}`,
     boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
-    // Sticky — para antes do footer com `self-start` no pai
     position: 'sticky',
     top: '24px',
     overflow: 'hidden',
@@ -69,28 +84,25 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
       <div
         style={{
           padding: '16px 20px',
-          borderBottom: `1px solid ${(theme.cartBorderColor as string) || '#E5E7EB'}`,
+          borderBottom: `1px solid ${cartBorderColor}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-          Resumo ({products.length})
-        </span>
-        {collapsibleOnMobile && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-            className="lg:hidden"
-          >
-            {isExpanded
-              ? <ChevronUp style={{ width: '16px', height: '16px', color: '#6B7280' }} />
-              : <ChevronDown style={{ width: '16px', height: '16px', color: '#6B7280' }} />
-            }
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+            Resumo ({products.length})
+          </span>
+          {isExpanded
+            ? <ChevronUp style={{ width: '14px', height: '14px', color: '#9CA3AF' }} />
+            : <ChevronDown style={{ width: '14px', height: '14px', color: '#9CA3AF' }} />
+          }
+        </button>
       </div>
 
       {/* ── BODY ───────────────────────────────────────── */}
@@ -105,7 +117,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
               {/* Campo de cupom */}
-              {!couponApplied ? (
+              {couponEnabled && !couponApplied ? (
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <Tag
@@ -121,7 +133,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                         paddingLeft: '30px',
                         paddingRight: '10px',
                         borderRadius: '7px',
-                        border: `1px solid ${(theme.inputBorderColor as string) || '#D1D5DB'}`,
+                        border: `1px solid ${(theme.inputBorderColor as string) || cartBorderColor}`,
                         backgroundColor: (theme.inputBackgroundColor as string) || '#fff',
                         fontSize: '13px',
                         color: '#111827',
@@ -179,7 +191,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
               )}
 
               {/* Separador */}
-              <div style={{ height: '1px', backgroundColor: (theme.cartBorderColor as string) || '#E5E7EB' }} />
+              <div style={{ height: '1px', backgroundColor: cartBorderColor }} />
 
               {/* Produtos */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -191,20 +203,39 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                 ) : (
                   products.map((p) => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {/* Imagem */}
-                      <div
-                        style={{
-                          width: '48px', height: '48px', borderRadius: '8px',
-                          border: `1px solid ${(theme.cartBorderColor as string) || '#E5E7EB'}`,
-                          backgroundColor: '#F9FAFB', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {p.image
-                          ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <Package style={{ width: '20px', height: '20px', color: '#D1D5DB' }} />
-                        }
+                      {/* Imagem com badge de quantidade */}
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            width: '52px', height: '52px', borderRadius: '8px',
+                            border: `1px solid ${cartBorderColor}`,
+                            backgroundColor: '#F9FAFB',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {p.image
+                            ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <Package style={{ width: '20px', height: '20px', color: '#D1D5DB' }} />
+                          }
+                        </div>
+                        {/* Badge de quantidade */}
+                        <span
+                          style={{
+                            position: 'absolute', top: '-6px', right: '-6px',
+                            minWidth: '18px', height: '18px',
+                            backgroundColor: qtyCircleColor,
+                            color: qtyTextColor,
+                            borderRadius: '50%',
+                            fontSize: '10px', fontWeight: '700',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            border: '1.5px solid #fff',
+                            lineHeight: 1,
+                            padding: '0 2px',
+                          }}
+                        >
+                          {p.quantity}
+                        </span>
                       </div>
 
                       {/* Info */}
@@ -213,11 +244,11 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                           {p.name}
                         </p>
                         <p style={{ fontSize: '12px', color: '#9CA3AF', margin: 0 }}>
-                          Qtd: {p.quantity}
+                          {formatCurrency(p.price)} / un
                         </p>
                       </div>
 
-                      {/* Preço */}
+                      {/* Preço total */}
                       <p style={{ fontSize: '13px', fontWeight: '600', color: '#111827', flexShrink: 0, margin: 0 }}>
                         {formatCurrency(p.price * p.quantity)}
                       </p>
@@ -227,7 +258,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
               </div>
 
               {/* Separador */}
-              <div style={{ height: '1px', backgroundColor: (theme.cartBorderColor as string) || '#E5E7EB' }} />
+              <div style={{ height: '1px', backgroundColor: cartBorderColor }} />
 
               {/* Totais */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -258,7 +289,7 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                 {/* Separador e Total */}
                 <div
                   style={{
-                    borderTop: `1px solid ${(theme.cartBorderColor as string) || '#E5E7EB'}`,
+                    borderTop: `1px solid ${cartBorderColor}`,
                     paddingTop: '12px',
                     display: 'flex',
                     justifyContent: 'space-between',

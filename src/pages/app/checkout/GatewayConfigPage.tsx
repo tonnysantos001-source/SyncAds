@@ -99,20 +99,18 @@ const GatewayConfigPage = () => {
 
       if (user?.id) {
         const { data: dbGateway } = await supabase
-
           .from("Gateway")
           .select("id")
           .eq("slug", gatewayConfig.slug)
-          .single();
+          .maybeSingle();
 
         if (dbGateway?.id) {
           const { data, error } = await supabase
             .from("GatewayConfig")
             .select("*")
             .eq("userId", user.id)
-
             .eq("gatewayId", dbGateway.id)
-            .single();
+            .maybeSingle();
 
           if (!error && data) {
             setIsActive(data.isActive || false);
@@ -173,15 +171,11 @@ const GatewayConfigPage = () => {
       }
 
       const { data: existingConfig } = await supabase
-
         .from("GatewayConfig")
-
         .select("id")
-
         .eq("userId", user.id)
-
         .eq("gatewayId", dbGateway.id)
-        .single();
+        .maybeSingle();
 
       if (existingConfig) {
         // Update existing config
@@ -515,7 +509,14 @@ const GatewayConfigPage = () => {
                           onChange={(e) =>
                             handleFieldChange(field.name, e.target.value)
                           }
-                          className="pr-10 dark:bg-gray-800 dark:border-gray-700"
+                          onPaste={(e) => {
+                            const pasted = e.clipboardData.getData("text");
+                            handleFieldChange(field.name, pasted);
+                            e.preventDefault();
+                          }}
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="pr-10 dark:bg-gray-800 dark:border-gray-700 font-mono text-sm"
                           required={field.required}
                         />
                         {formData[field.name] && (
@@ -546,7 +547,14 @@ const GatewayConfigPage = () => {
                           onChange={(e) =>
                             handleFieldChange(field.name, e.target.value)
                           }
-                          className="pr-20 dark:bg-gray-800 dark:border-gray-700"
+                          onPaste={(e) => {
+                            const pasted = e.clipboardData.getData("text");
+                            handleFieldChange(field.name, pasted);
+                            e.preventDefault();
+                          }}
+                          autoComplete="new-password"
+                          spellCheck={false}
+                          className="pr-20 dark:bg-gray-800 dark:border-gray-700 font-mono text-sm"
                           required={field.required}
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">

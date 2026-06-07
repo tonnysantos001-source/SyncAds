@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   Zap,
   Sparkles,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,17 @@ import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { supabase } from "@/lib/supabase";
 import PublicCheckoutPage from "@/pages/public/PublicCheckoutPage";
 import { CheckoutCustomizationSidebar } from "@/components/checkout/CheckoutCustomizationSidebar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   useCheckoutConfigStore,
   selectCheckoutConfig,
 } from "@/store/checkoutConfigStore";
 import { legacyThemeToConfig } from "@/types/checkout-config.types";
+
+// Limpa chaves antigas do localStorage (evita dados corrompidos de versões anteriores)
+try {
+  localStorage.removeItem('checkout-config-v1');
+} catch (_) { /* silencioso */ }
 
 
 interface MetricCardProps {
@@ -91,6 +98,7 @@ const CheckoutCustomizePage: React.FC = () => {
   // ── Zustand store (source of truth para configuração) ──────────────────
   const storeConfig   = useCheckoutConfigStore(selectCheckoutConfig);
   const loadConfig    = useCheckoutConfigStore((s) => s.loadConfig);
+  const updateConfig  = useCheckoutConfigStore((s) => s.updateConfig);
   const switchTemplate = useCheckoutConfigStore((s) => s.switchTemplate);
   // ──────────────────────────────────────────────────────────────────────
 
@@ -107,6 +115,23 @@ const CheckoutCustomizePage: React.FC = () => {
   const [activeTemplateSlug, setActiveTemplateSlug] = useState<string>('minimal');
   const UI_VERSION = "v5.0-STORE";
   const [isActivating, setIsActivating] = useState(false);
+
+  // Detectar mudanças no storeConfig (via updateConfig do Zustand) → habilitar botão salvar
+  const prevStoreConfigRef = useRef<typeof storeConfig | null>(null);
+  useEffect(() => {
+    if (prevStoreConfigRef.current !== null && prevStoreConfigRef.current !== storeConfig) {
+      setHasChanges(true);
+    }
+    prevStoreConfigRef.current = storeConfig;
+  }, [storeConfig]);
+
+  // ✨ Preview reativo: injeta storeConfig no tema para que o TemplateRenderer
+  // use o config do store diretamente (bypassa legacyThemeToConfig em modo preview)
+  const previewTheme = useMemo(() => ({
+    ...(customization?.theme || DEFAULT_CHECKOUT_THEME),
+    templateSlug: activeTemplateSlug,
+    _checkoutConfig: storeConfig,    // ← portador do config reativo
+  }), [customization?.theme, storeConfig, activeTemplateSlug]);
 
   // Detectar e aplicar dark mode do sistema
   useEffect(() => {
@@ -139,124 +164,13 @@ const CheckoutCustomizePage: React.FC = () => {
         return;
       }
 
-      console.log("🚀 Iniciando carregamento do preview...");
+      console.log("🚀 Iniciando carregamento do checkout customizer...");
       await loadCustomization();
 
-      if (!previewOrderId) {
-        console.log("📦 Criando pedido de preview...");
-        try {
-          // Primeiro, tentar buscar um pedido PREVIEW existente
-          const { data: existingOrders, error: searchError } = await supabase
-            .from("Order")
-            .select("id")
-            .eq("status", "PREVIEW")
-            .eq("userId", user.id)
-            .limit(1);
-
-          if (!searchError && existingOrders && existingOrders.length > 0) {
-            console.log("✅ Usando pedido existente:", existingOrders[0].id);
-            const orderId = existingOrders[0].id;
-            console.log("✅ OrderId type:", typeof orderId);
-            console.log("✅ OrderId value:", orderId);
-            setPreviewOrderId(orderId);
-            setLoading(false);
-            return;
-          }
-
-          console.log("🆕 Nenhum pedido preview encontrado, criando novo...");
-
-          // Criar pedido de preview diretamente
-          const previewProducts = [
-            {
-              id: "preview-product-1",
-              productId: "preview-product-1",
-              variantId: "preview-variant-1",
-              name: "Produto de Demonstração 1",
-              price: 199.99,
-              quantity: 1,
-              image:
-                "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-              sku: "DEMO-001",
-            },
-            {
-              id: "preview-product-2",
-              productId: "preview-product-2",
-              variantId: "preview-variant-2",
-              name: "Produto de Demonstração 2",
-              price: 149.99,
-              quantity: 2,
-              image:
-                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-              sku: "DEMO-002",
-            },
-          ];
-
-          const subtotal = 499.97;
-          const shipping = 29.99;
-          const total = 529.96;
-
-          const { data: order, error } = await supabase
-            .from("Order")
-            .insert({
-              userId: user.id,
-              orderNumber: `PREVIEW-${Date.now()}`,
-              status: "PREVIEW",
-              paymentStatus: "PENDING",
-              paymentMethod: "PIX",
-              items: previewProducts,
-              subtotal: subtotal,
-              shipping: shipping,
-              tax: 0,
-              discount: 0,
-              total: total,
-              customerName: "Cliente de Demonstração",
-              customerEmail: "demo@exemplo.com",
-              customerPhone: "(11) 99999-9999",
-              metadata: {
-                isPreview: true,
-                originalProducts: previewProducts,
-                createdBy: "checkout-customizer",
-              },
-            })
-            .select()
-            .single();
-
-          if (!error && order) {
-            console.log("✅ Preview order criado com sucesso:", order.id);
-            console.log("✅ Order completo:", JSON.stringify(order, null, 2));
-            setPreviewOrderId(order.id);
-            console.log("✅ previewOrderId setado para:", order.id);
-            setLoading(false);
-          } else {
-            console.error("❌ Erro ao criar preview order:", error);
-            console.error("❌ Detalhes:", JSON.stringify(error, null, 2));
-
-            // FALLBACK: Buscar qualquer pedido do usuário
-            console.log("🔄 Tentando fallback: buscar qualquer pedido...");
-            const { data: anyOrder } = await supabase
-              .from("Order")
-              .select("id")
-              .eq("userId", user.id)
-              .limit(1)
-              .single();
-
-            if (anyOrder) {
-              console.log("✅ Usando pedido fallback:", anyOrder.id);
-              setPreviewOrderId(anyOrder.id);
-              setLoading(false);
-            } else {
-              console.error("❌ Nenhum pedido disponível para preview");
-              setLoading(false);
-            }
-          }
-        } catch (e) {
-          console.error("❌ Exceção ao criar preview order:", e);
-          setLoading(false);
-        }
-      } else {
-        console.log("ℹ️ previewOrderId já existe:", previewOrderId);
-        setLoading(false);
-      }
+      // ✅ Usar ID local de preview — não cria Order no banco
+      // (evita violação de constraint CHECK no campo status)
+      setPreviewOrderId("preview-local");
+      setLoading(false);
     };
 
     if (user?.id) {
@@ -290,6 +204,19 @@ const CheckoutCustomizePage: React.FC = () => {
       // ✅ Sincronizar store com dados do banco
       loadConfig(legacyThemeToConfig(rawTheme, slug));
       setActiveTemplateSlug(slug);
+
+      // ✅ Inicializar banner URLs no store para que apagos sejam rastreados
+      // (sem isso, ao apagar uma imagem o store fica com undefined e o ?? usa o valor antigo do DB)
+      if (data) {
+        updateConfig({
+          banner: {
+            desktopUrl: (rawTheme.bannerTopUrl as string | null) ?? null,
+            leftTopUrl: (rawTheme.bannerLeftUrl as string | null) ?? null,
+            rightTopUrl: (rawTheme.bannerRightUrl as string | null) ?? null,
+            mobileUrl: (rawTheme.bannerMobileUrl as string | null) ?? null,
+          },
+        });
+      }
     } catch (error) {
       console.error("Erro ao carregar personalização:", error);
       toast({
@@ -384,6 +311,30 @@ const CheckoutCustomizePage: React.FC = () => {
         useVisible: storeConfig.scarcity.enabled,
         expirationTime: storeConfig.scarcity.durationMinutes,
         templateSlug: storeConfig.templateSlug,
+        // Banner zones (zonas de imagem dos templates — DropZone)
+        // IMPORTANTE: usar in-check em vez de ?? para que null (apagado) não seja substituído
+        // pelo valor antigo de customization.theme. null = explicitamente apagado pelo usuário.
+        bannerTopUrl: (() => {
+          const st = storeConfig.banner;
+          // Se o store tem um valor (incluindo null = apagado), usa ele; caso contrário mantém o do DB
+          if (st && st.desktopUrl !== undefined) return st.desktopUrl;  // null ou url
+          return customization.theme?.bannerTopUrl ?? null;
+        })(),
+        bannerLeftUrl: (() => {
+          const st = storeConfig.banner;
+          if (st && st.leftTopUrl !== undefined) return st.leftTopUrl;
+          return customization.theme?.bannerLeftUrl ?? null;
+        })(),
+        bannerRightUrl: (() => {
+          const st = storeConfig.banner;
+          if (st && st.rightTopUrl !== undefined) return st.rightTopUrl;
+          return customization.theme?.bannerRightUrl ?? null;
+        })(),
+        bannerMobileUrl: (() => {
+          const st = storeConfig.banner;
+          if (st && st.mobileUrl !== undefined) return st.mobileUrl;
+          return customization.theme?.bannerMobileUrl ?? null;
+        })(),
         // Payload novo (checkoutConfig completo para leitura futura)
         _checkoutConfig: storeConfig,
       };
@@ -475,25 +426,29 @@ const CheckoutCustomizePage: React.FC = () => {
         {UI_VERSION}
       </div>
 
-      {/* Sidebar de Personalização — agora conectada ao Zustand store */}
-      <CheckoutCustomizationSidebar
-        expandedSections={expandedSections}
-        onToggleSection={toggleSection}
-        activeTemplateSlug={activeTemplateSlug}
-        onSelectTemplate={(slug, version) => {
-          switchTemplate(slug, version);
-          setActiveTemplateSlug(slug);
-          setCustomization((prev) => 
-            prev ? { ...prev, theme: { ...prev.theme, templateSlug: slug } } : prev
-          );
-          setHasChanges(true);
-          setPreviewKey((prev) => prev + 1);
-        }}
-        onAnyChange={() => {
-          setHasChanges(true);
-          setPreviewKey((prev) => prev + 1);
-        }}
-      />
+      {/* Sidebar de Personalização — envolvida em ErrorBoundary local */}
+      <ErrorBoundary>
+        <CheckoutCustomizationSidebar
+          expandedSections={expandedSections}
+          onToggleSection={toggleSection}
+          activeTemplateSlug={activeTemplateSlug}
+          onSelectTemplate={(slug, version) => {
+            // Limpar dados corrompidos antes de trocar template
+            try { localStorage.removeItem('checkout-config-v1'); } catch (_) {}
+            switchTemplate(slug, version);
+            setActiveTemplateSlug(slug);
+            setCustomization((prev) => 
+              prev ? { ...prev, theme: { ...prev.theme, templateSlug: slug } } : prev
+            );
+            setHasChanges(true);
+            setPreviewKey((prev) => prev + 1);
+          }}
+          onAnyChange={() => {
+            setHasChanges(true);
+            // ✔ Não precisa mais de setPreviewKey — o previewTheme é reativo via storeConfig
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Área Principal - Header + Preview */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -643,57 +598,62 @@ const CheckoutCustomizePage: React.FC = () => {
             >
               <Card
                 className={cn(
-                  "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-300 mx-auto relative",
+                  "shadow-2xl transition-all duration-300 mx-auto relative",
                   previewMode === "desktop"
-                    ? "w-full max-w-[1400px] h-auto rounded-2xl"
-                    : "w-[530px] h-auto min-h-[850px] rounded-[3.5rem] border-[12px] border-[#1e293b] shadow-[0_0_0_2px_rgba(255,255,255,0.05),0_20px_50px_-12px_rgba(0,0,0,0.5)] mb-12",
+                    // Desktop: sem overflow-hidden — o Card cresce com o conteúdo e a área externa faz scroll
+                    ? "w-full max-w-[1400px] h-auto rounded-2xl bg-white overflow-visible"
+                    // Mobile: frame do phone com borda arredondada — o clip é feito pelo frame
+                    : "w-[390px] rounded-[3rem] border-[10px] border-[#1e293b] shadow-[0_0_0_2px_rgba(255,255,255,0.05),0_20px_50px_-12px_rgba(0,0,0,0.5)] mb-12 overflow-hidden bg-white",
                 )}
               >
                 {/* Physical Buttons Simulation (Only Mobile) */}
                 {previewMode === "mobile" && (
                   <>
                     {/* Left side: Mute & Volume */}
-                    <div className="absolute -left-[14px] top-32 w-[3px] h-8 bg-[#334155] rounded-l-md" /> {/* Mute */}
-                    <div className="absolute -left-[14px] top-48 w-[3px] h-16 bg-[#334155] rounded-l-md" /> {/* Vol Up */}
-                    <div className="absolute -left-[14px] top-68 w-[3px] h-16 bg-[#334155] rounded-l-md" /> {/* Vol Down */}
+                    <div className="absolute -left-[12px] top-28 w-[3px] h-6 bg-[#334155] rounded-l-md" /> {/* Mute */}
+                    <div className="absolute -left-[12px] top-40 w-[3px] h-14 bg-[#334155] rounded-l-md" /> {/* Vol Up */}
+                    <div className="absolute -left-[12px] top-56 w-[3px] h-14 bg-[#334155] rounded-l-md" /> {/* Vol Down */}
                     {/* Right side: Power */}
-                    <div className="absolute -right-[14px] top-56 w-[3px] h-24 bg-[#334155] rounded-r-md" />
+                    <div className="absolute -right-[12px] top-48 w-[3px] h-20 bg-[#334155] rounded-r-md" />
                   </>
                 )}
                 <div
                   className={cn(
-                    "h-auto w-full overflow-visible relative",
-                    previewMode === "mobile" ? "bg-[#0f172a]" : "bg-[#0f172a]",
-                    previewMode === "mobile" && "scale-100",
+                    "w-full relative",
+                    previewMode === "mobile"
+                      // Mobile: área scrollável de altura fixa simulando a tela do celular
+                      ? "h-[700px] overflow-y-auto overflow-x-hidden"
+                      // Desktop: sem restrição de altura — cresce com o conteúdo
+                      : "h-auto overflow-visible",
                   )}
                 >
-                  {/* Dynamic Island / Status Bar UI */}
+                  {/* Dynamic Island / Status Bar UI — fundo branco para compatibilidade com todos os templates */}
                   {previewMode === "mobile" && (
-                    <div className="sticky top-0 left-0 right-0 h-14 flex items-center justify-between px-8 z-[100] bg-transparent flex-shrink-0 pointer-events-none transition-all duration-300">
+                    <div className="sticky top-0 left-0 right-0 h-12 flex items-center justify-between px-6 z-[100] bg-white border-b border-gray-100 flex-shrink-0 pointer-events-none">
                       {/* Clock */}
-                      <span className="text-[11px] font-bold text-white/90">9:41</span>
+                      <span className="text-[11px] font-bold text-gray-900">9:41</span>
                       
-                      {/* Dynamic Island Pill (Escalado para 530px) */}
-                      <div className="absolute left-1/2 -translate-x-1/2 top-4 w-[130px] h-[34px] bg-black rounded-[18px] flex items-center justify-between px-4 ring-1 ring-white/10 shadow-lg group hover:w-[200px] transition-all duration-500">
-                         {/* Mute/Action Indicator dot (simulated) */}
-                         <div className="w-[18px] h-[3px] bg-zinc-800 rounded-full" />
+                      {/* Dynamic Island Pill */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-2.5 w-[100px] h-[26px] bg-black rounded-[14px] flex items-center justify-between px-3 ring-1 ring-black/10 shadow-md">
+                         {/* Mute/Action Indicator dot */}
+                         <div className="w-[14px] h-[2px] bg-zinc-800 rounded-full" />
                          {/* Camera Lens */}
-                         <div className="w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5 flex items-center justify-center">
+                         <div className="w-3 h-3 rounded-full bg-[#0a0a0a] border border-white/5 flex items-center justify-center">
                             <div className="w-1 h-1 bg-blue-500/20 blur-[1px] rounded-full" />
                          </div>
                       </div>
 
-                      {/* Icons (WiFi, Signal, Battery) */}
+                      {/* Icons (WiFi, Signal, Battery) — dark for white background */}
                       <div className="flex items-center gap-1">
                          <svg width="15" height="10" viewBox="0 0 15 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M0 7.5V10H2V7.5H0ZM3.25 5V10H5.25V5H3.25ZM6.5 2.5V10H8.5V2.5H6.5ZM9.75 0V10H11.75V0H9.75Z" fill="white" fillOpacity="0.9"/>
+                            <path d="M0 7.5V10H2V7.5H0ZM3.25 5V10H5.25V5H3.25ZM6.5 2.5V10H8.5V2.5H6.5ZM9.75 0V10H11.75V0H9.75Z" fill="#111827" fillOpacity="0.9"/>
                          </svg>
                          <svg width="15" height="11" viewBox="0 0 15 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.5 11L15 2.5C14.7 2.2 12 0 7.5 0C3 0 0.3 2.2 0 2.5L7.5 11ZM7.5 1.5C10.5 1.5 12.5 2.8 13.5 3.5L7.5 10.3L1.5 3.5C2.5 2.8 4.5 1.5 7.5 1.5Z" fill="white" fillOpacity="0.9"/>
+                            <path d="M7.5 11L15 2.5C14.7 2.2 12 0 7.5 0C3 0 0.3 2.2 0 2.5L7.5 11ZM7.5 1.5C10.5 1.5 12.5 2.8 13.5 3.5L7.5 10.3L1.5 3.5C2.5 2.8 4.5 1.5 7.5 1.5Z" fill="#111827" fillOpacity="0.9"/>
                          </svg>
-                         <div className="w-[20px] h-[10px] border border-white/40 rounded-[2.5px] relative p-[1px]">
-                            <div className="h-full w-[90%] bg-white rounded-[1px]" />
-                            <div className="absolute -right-[3px] top-[2.5px] w-[1.5px] h-[3px] bg-white/40 rounded-r-[1px]" />
+                         <div className="w-[20px] h-[10px] border border-gray-400 rounded-[2.5px] relative p-[1px]">
+                            <div className="h-full w-[90%] bg-gray-800 rounded-[1px]" />
+                            <div className="absolute -right-[3px] top-[2.5px] w-[1.5px] h-[3px] bg-gray-400 rounded-r-[1px]" />
                          </div>
                       </div>
                     </div>
@@ -711,14 +671,16 @@ const CheckoutCustomizePage: React.FC = () => {
                         )}
                         {console.log("🎨 Preview mode:", true)}
                       </div>
-                      <PublicCheckoutPage
-                        key={previewKey}
-                        injectedOrderId={previewOrderId}
-                        injectedTheme={customization?.theme || null}
-                        previewMode={true}
-                        isMobile={previewMode === "mobile"}
-                        onUpdateTheme={(overrides) => updateTheme(overrides)}
-                      />
+                      <ErrorBoundary>
+                        <PublicCheckoutPage
+                          key={activeTemplateSlug}
+                          injectedOrderId={previewOrderId}
+                          injectedTheme={previewTheme}
+                          previewMode={true}
+                          isMobile={previewMode === "mobile"}
+                          onUpdateTheme={(overrides) => updateTheme(overrides)}
+                        />
+                      </ErrorBoundary>
                       
                       {/* Home Indicator (iOS Style) */}
                       {previewMode === "mobile" && (

@@ -277,6 +277,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     if (orderId) loadCheckoutData();
   }, [orderId]);
 
+  // ✨ Preview reativo: sincroniza injectedTheme → theme state quando as props mudam.
+  // Sem este efeito, mudanças da sidebar (via Zustand store) são ignoradas após o mount.
+  useEffect(() => {
+    if (!previewMode || !injectedTheme) return;
+    setTheme({ ...DEFAULT_CHECKOUT_THEME, ...injectedTheme });
+    if (USE_NEW_CHECKOUT && injectedTheme.templateSlug) {
+      setTemplateSlug(injectedTheme.templateSlug);
+      setTemplateVersion(injectedTheme.templateVersion || 1);
+    }
+  }, [injectedTheme]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadCheckoutData = async () => {
     try {
       setLoading(true);
@@ -285,6 +296,25 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       console.log("🔍 [DEBUG] orderId:", orderId);
       console.log("🔍 [DEBUG] injectedOrderId:", injectedOrderId);
       console.log("🔍 [DEBUG] previewMode:", previewMode);
+
+      // ✅ Modo preview local — não faz nenhuma query ao banco
+      if (orderId === "preview-local") {
+        const previewProducts = [
+          { id: "p1", name: "Produto de Demonstração Premium", price: 199.99, quantity: 1, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400" },
+          { id: "p2", name: "Produto de Demonstração Extra", price: 149.99, quantity: 2, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400" },
+        ];
+        setCheckoutData({ orderId: "preview-local", products: previewProducts, total: 499.97, subtotal: 470.00, shipping: 29.97, discount: 0 });
+        // Carregar tema do usuário
+        if (injectedTheme) {
+          setTheme({ ...DEFAULT_CHECKOUT_THEME, ...injectedTheme });
+          if (USE_NEW_CHECKOUT && injectedTheme.templateSlug) {
+            setTemplateSlug(injectedTheme.templateSlug);
+            setTemplateVersion(injectedTheme.templateVersion || 1);
+          }
+        }
+        setLoading(false);
+        return;
+      }
 
       const { data: order, error: orderError } = await supabase
         .from("Order")

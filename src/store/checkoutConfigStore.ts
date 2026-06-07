@@ -231,9 +231,36 @@ export const useCheckoutConfigStore = create<CheckoutConfigStore>()(
       },
     }),
     {
-      name: 'checkout-config-v1',
+      name: 'checkout-config-v2',  // Incrementar versão invalida localStorage corrompido
+      version: 1,
       // Salvar apenas a config — não salvar as funções
       partialize: (state) => ({ config: state.config }),
+      /**
+       * Migração: garante que todos os campos do CheckoutConfig existam
+       * mesmo que o localStorage tenha dados de uma versão anterior.
+       * Faz deep merge com DEFAULT_CHECKOUT_CONFIG para preencher campos faltantes.
+       */
+      migrate: (persistedState: unknown, _version: number) => {
+        const persisted = persistedState as { config?: Partial<CheckoutConfig> };
+        if (!persisted?.config) return { config: DEFAULT_CHECKOUT_CONFIG };
+        // Deep merge: DEFAULT como base, dados persistidos sobrescrevem
+        const safeConfig: CheckoutConfig = {
+          ...DEFAULT_CHECKOUT_CONFIG,
+          ...persisted.config,
+          // Garantir que todos os blocos existam
+          header:    { ...DEFAULT_CHECKOUT_CONFIG.header,    ...(persisted.config.header    ?? {}) },
+          noticeBar: { ...DEFAULT_CHECKOUT_CONFIG.noticeBar, ...(persisted.config.noticeBar ?? {}) },
+          banner:    { ...DEFAULT_CHECKOUT_CONFIG.banner,    ...(persisted.config.banner    ?? {}) },
+          scarcity:  { ...DEFAULT_CHECKOUT_CONFIG.scarcity,  ...(persisted.config.scarcity  ?? {}) },
+          orderBump: { ...DEFAULT_CHECKOUT_CONFIG.orderBump, ...(persisted.config.orderBump ?? {}) },
+          cart:      { ...DEFAULT_CHECKOUT_CONFIG.cart,      ...(persisted.config.cart      ?? {}) },
+          buttons:   { ...DEFAULT_CHECKOUT_CONFIG.buttons,   ...(persisted.config.buttons   ?? {}) },
+          typography:{ ...DEFAULT_CHECKOUT_CONFIG.typography,...(persisted.config.typography?? {}) },
+          footer:    { ...DEFAULT_CHECKOUT_CONFIG.footer,    ...(persisted.config.footer    ?? {}) },
+          form:      { ...DEFAULT_CHECKOUT_CONFIG.form,      ...(persisted.config.form      ?? {}) },
+        };
+        return { config: safeConfig };
+      },
     },
   ),
 );

@@ -175,7 +175,7 @@ export const gatewaysList: GatewayConfig[] = [
     id: "asaas",
     name: "Asaas",
     slug: "asaas",
-    logo: "https://www.asaas.com/images/logo-asaas.svg",
+    logo: "https://asaas.com/packs/media/img/asaas-v2-logo-a6e8c94e50b47f5a3a1d.svg",
     type: "nacional",
     status: "active",
     description: "Plataforma completa de cobranças e pagamentos",
@@ -193,7 +193,14 @@ export const gatewaysList: GatewayConfig[] = [
         label: "API Key",
         type: "password",
         required: true,
-        placeholder: "$aact_YTU5YTE0M2M2N2I4MTliNzk0YTI5N2U5MzY",
+        placeholder: "$aact_hmlg_... (Sandbox) ou $aact_prod_... (Produção)",
+      },
+      {
+        name: "walletId",
+        label: "Wallet ID (Opcional)",
+        type: "text",
+        required: false,
+        placeholder: "wd_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
       },
       {
         name: "environment",
@@ -206,7 +213,7 @@ export const gatewaysList: GatewayConfig[] = [
         ],
       },
     ],
-    apiDocs: "https://docs.asaas.com/",
+    apiDocs: "https://docs.asaas.com/reference/criar-cobranca",
     testMode: true,
   },
 

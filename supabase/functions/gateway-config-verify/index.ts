@@ -231,6 +231,8 @@ const mercadopagoAdapter: Adapter = {
 };
 
 // Asaas: GET /myAccount with access_token header
+// Sandbox:    https://sandbox.asaas.com/api/v3/myAccount
+// Production: https://api.asaas.com/v3/myAccount
 const asaasAdapter: Adapter = {
   slug: "asaas",
   async verify(credentials, signal) {
@@ -243,9 +245,27 @@ const asaasAdapter: Adapter = {
         message: "Credenciais Asaas inválidas: apiKey ausente",
       };
     }
-    const res = await fetch("https://www.asaas.com/api/v3/myAccount", {
+
+    // Detectar ambiente automaticamente pelo prefixo da key ou pelo campo environment
+    // Keys sandbox começam com $aact_hmlg_ (hmlg = homologação)
+    const isSandbox =
+      apiKey.startsWith("$aact_hmlg_") ||
+      credentials?.environment === "sandbox";
+
+    const baseUrl = isSandbox
+      ? "https://sandbox.asaas.com/api/v3"
+      : "https://api.asaas.com/v3";
+
+    console.log(
+      `[Asaas] Ambiente detectado: ${isSandbox ? "SANDBOX" : "PRODUÇÃO"} → ${baseUrl}`,
+    );
+
+    const res = await fetch(`${baseUrl}/myAccount`, {
       method: "GET",
-      headers: { "Content-Type": "application/json", access_token: apiKey },
+      headers: {
+        "Content-Type": "application/json",
+        access_token: apiKey,
+      },
       signal,
     }).catch((e) => {
       if (e.name === "AbortError") {
@@ -276,26 +296,34 @@ const asaasAdapter: Adapter = {
       return {
         ok: true,
         httpStatus,
-        message: `Conta Asaas verificada (name=${data?.name || "desconhecido"})`,
+        message: `Conta Asaas verificada (name=${data?.name || "desconhecido"}, env=${isSandbox ? "sandbox" : "production"})`,
         capabilities,
         metadata: {
           name: data?.name,
           email: data?.email,
           cpfCnpj: data?.cpfCnpj,
           mobilePhone: data?.mobilePhone,
+          environment: isSandbox ? "sandbox" : "production",
         },
       };
     } else {
       const text = await res.text().catch(() => "");
+      let message = `Asaas rejeitou as credenciais (${httpStatus})`;
+      if (httpStatus === 401) {
+        message = `Asaas: chave de API inválida ou expirada (401) - ambiente: ${isSandbox ? "sandbox" : "produção"}`;
+      } else if (httpStatus === 403) {
+        message = "Asaas: acesso negado (403) - verifique as permissões da conta";
+      }
       return {
         ok: false,
         httpStatus,
-        message: `Asaas rejeitou as credenciais (${httpStatus})`,
-        metadata: { response_excerpt: text.slice(0, 200) },
+        message,
+        metadata: { response_excerpt: text.slice(0, 200), environment: isSandbox ? "sandbox" : "production" },
       };
     }
   },
 };
+
 
 // Pague-X: GET /v1/transactions (Basic Auth: publicKey:secretKey)
 const paguexAdapter: Adapter = {

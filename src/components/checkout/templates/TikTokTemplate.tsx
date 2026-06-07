@@ -1,126 +1,582 @@
 /**
- * TikTokTemplate — Checkout Estilo TikTok / TokVex
+ * TikTokTemplate.tsx — Template TikTok/Tokvex refatorado
  *
- * Layout: Dois colunas com PAGAMENTO na coluna DIREITA
- * Cor:    Pink/Magenta gradient #E91E8C → #FF4559
- * Fluxo:  Página única — dados + entrega à esq, pagamento à dir
- * Unique: Apple Pay simulado, endereço colapsável no mobile
- *
- * @version 1.0
+ * Fase 1 completa:
+ * ✅ Formulários controlados com validação em tempo real
+ * ✅ CEP → autopreenchimento via ViaCEP API
+ * ✅ Formulário de cartão de crédito expande inline ao selecionar o método
+ * ✅ Máscaras: CPF, CNPJ, telefone, CEP, número do cartão, validade
+ * ✅ Validação antes de enviar (campos obrigatórios)
+ * ✅ Apple Pay marcado como "Em breve"
+ * ✅ DropZone com upload real (Supabase Storage)
+ * ✅ Botões Trocar/Apagar nas zonas de banner
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Lock, ShieldCheck, ChevronDown, ChevronUp, Smartphone } from 'lucide-react';
-import { checkoutMonitor } from '@/lib/checkoutMonitor';
-import { ScarcityTimer } from '@/components/checkout/ScarcityTimer';
-import { CheckoutFooter } from '@/components/checkout/CheckoutFooter';
-import { NoticeBar } from '@/components/checkout/NoticeBar';
-import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
+import {
+  ShieldCheck, ChevronDown, ChevronUp,
+  Package, User, Plus, Minus, Camera, Loader2, X as XIcon, Lock,
+  CheckCircle2, AlertCircle, CreditCard,
+} from 'lucide-react';
 import type { TemplateRenderProps } from '@/types/checkout.types';
-import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
-import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
-import { CheckoutSummaryPanel } from './shared/CheckoutSummaryPanel';
-import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
+import { supabase } from '@/lib/supabase';
+import { useCheckoutConfigStore } from '@/store/checkoutConfigStore';
+import { useCepLookup } from '@/hooks/useCepLookup';
+import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
+import { NoticeBar } from '@/components/checkout/NoticeBar';
+import {
+  fmtBRL, formatCEP, formatCPFCNPJ, formatPhone, formatCardNumber, formatExpiry,
+  validateCPFCNPJ, validateEmail, validatePhone, validateCEP,
+  validateCardNumber, validateExpiry, detectCardBrand,
+} from '@/utils/checkoutValidators';
 
-// ============================================================
-// HEADER TikTok-style (minimal, clean)
-// ============================================================
+// ─── TYPES ───────────────────────────────────────────────────────────────────
 
-const TikTokHeader: React.FC<{ theme: Record<string, unknown>; gradient: string; isMobile?: boolean }> = ({
-  theme, gradient, isMobile
-}) => (
-  <div className={cn("w-full px-4 flex items-center justify-between bg-white border-b border-gray-100", isMobile ? "h-[85px] pt-6" : "h-20 lg:px-6")}>
-    {(theme.logoUrl as string) ? (
-      <img src={theme.logoUrl as string} alt="Logo" className="h-8 object-contain" />
-    ) : (
-      <div className="font-bold text-gray-800 text-lg">
-        {(theme.storeName as string) || 'Minha Loja'}
+interface ContactState { name: string; email: string; phone: string }
+interface AddressState { cep: string; street: string; number: string; complement: string; neighborhood: string; city: string; state: string }
+interface CardState { holderName: string; cpf: string; number: string; expiry: string; cvv: string; installments: number }
+
+const emptyContact = (): ContactState => ({ name: '', email: '', phone: '' });
+const emptyAddress = (): AddressState => ({ cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '' });
+const emptyCard = (): CardState => ({ holderName: '', cpf: '', number: '', expiry: '', cvv: '', installments: 1 });
+
+type FormErrors = Partial<Record<string, string>>;
+
+// ─── DROP ZONE ───────────────────────────────────────────────────────────────
+
+const DropZone: React.FC<{
+  imageUrl?: string;
+  isPreview?: boolean;
+  className?: string;
+  minHeight?: number;
+  label?: string;
+  recommendedSize?: string;
+  onImageChange?: (url: string) => void;
+}> = ({ imageUrl, isPreview = false, className, minHeight = 80, label = 'Solte aqui', recommendedSize, onImageChange }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [localUrl, setLocalUrl] = useState<string | undefined>(undefined);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const preview = URL.createObjectURL(file);
+    setLocalUrl(preview);
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'webp';
+      const path = `banner-zones/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('checkout-images').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('checkout-images').getPublicUrl(path);
+      const permanentUrl = urlData.publicUrl;
+      setLocalUrl(permanentUrl);
+      onImageChange?.(permanentUrl);
+    } catch {
+      setLocalUrl(undefined);
+      onImageChange?.('');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); if (isPreview) setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setIsDragging(false);
+    if (!isPreview) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+  const handleDelete = useCallback(() => { setLocalUrl(undefined); onImageChange?.(''); }, [onImageChange]);
+
+  const displayUrl = localUrl || imageUrl;
+
+  const fileInput = (
+    <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+      onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+  );
+
+  if (displayUrl) {
+    return (
+      <div className={cn('w-full rounded-xl overflow-hidden relative group', className)}
+        style={{ minHeight }} onDragOver={isPreview ? handleDragOver : undefined}
+        onDragLeave={isPreview ? handleDragLeave : undefined} onDrop={isPreview ? handleDrop : undefined}>
+        {fileInput}
+        <img src={displayUrl} alt="Banner" className="w-full object-cover" style={{ minHeight }} />
+        {isPreview && (
+          <div className="absolute inset-0 flex items-center justify-center gap-3 transition-opacity duration-200"
+            style={{ backgroundColor: isUploading ? 'rgba(0,0,0,0.55)' : undefined }}>
+            {isUploading ? (
+              <><Loader2 className="w-5 h-5 text-white animate-spin" /><p className="text-white text-xs font-semibold">Enviando...</p></>
+            ) : (
+              <div className="opacity-0 group-hover:opacity-100 w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200"
+                style={{ backgroundColor: 'rgba(0,0,0,0.50)' }}>
+                <button type="button" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold shadow-lg transition-all duration-150 hover:scale-105"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.92)', color: '#111827' }}>
+                  <Camera className="w-3.5 h-3.5" /> Trocar
+                </button>
+                <button type="button" onClick={e => { e.stopPropagation(); handleDelete(); }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold shadow-lg transition-all duration-150 hover:scale-105"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.92)', color: '#fff' }}>
+                  <XIcon className="w-3.5 h-3.5" /> Apagar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+    );
+  }
+
+  if (!isPreview) return null;
+
+  return (
+    <div className={cn('rounded-lg relative cursor-pointer select-none', className)}
+      style={{ minHeight }} onClick={() => fileInputRef.current?.click()}
+      onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {fileInput}
+      <div className="flex flex-col items-center justify-center gap-2 rounded-lg px-4 transition-all duration-150" style={{
+        minHeight,
+        border: isDragging ? '1.82px dashed rgba(99,102,241,0.7)' : '1.82px dashed rgba(229,231,235,0.5)',
+        backgroundColor: isDragging ? 'rgba(99,102,241,0.04)' : 'transparent',
+      }}>
+        {isUploading ? (
+          <><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(156,163,175,0.9)' }} />
+          <p className="text-xs" style={{ color: 'rgba(156,163,175,0.9)' }}>Enviando imagem...</p></>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: isDragging ? 'rgba(99,102,241,0.1)' : 'rgba(243,244,246,0.5)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isDragging ? 'rgba(99,102,241,0.7)' : 'rgba(156,163,175,0.6)' }} />
+              <p className="text-sm font-medium" style={{ color: isDragging ? 'rgba(99,102,241,0.9)' : 'rgba(156,163,175,0.9)' }}>
+                {isDragging ? 'Solte para adicionar' : label}
+              </p>
+            </div>
+            {recommendedSize && <p className="text-[10px] font-medium" style={{ color: 'rgba(156,163,175,0.7)' }}>Recomendado: {recommendedSize}</p>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── CONTROLLED PILL INPUT ───────────────────────────────────────────────────
+
+const PillInput: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+  readOnly?: boolean;
+  className?: string;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+}> = ({ value, onChange, placeholder, type = 'text', error, readOnly, className, maxLength, inputMode }) => (
+  <div className={cn('flex flex-col', className)}>
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      readOnly={readOnly}
+      maxLength={maxLength}
+      inputMode={inputMode}
+      className={cn(
+        'w-full h-12 border rounded-xl px-4 text-sm text-gray-700 placeholder-gray-400 bg-white',
+        'focus:outline-none transition-all',
+        error
+          ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
+          : 'border-gray-200 focus:border-pink-300 focus:ring-1 focus:ring-pink-100',
+        readOnly && 'bg-gray-50',
+      )}
+    />
+    {error && (
+      <p className="flex items-center gap-1 text-xs text-red-500 mt-1 px-1">
+        <AlertCircle className="w-3 h-3 flex-shrink-0" /> {error}
+      </p>
     )}
-    <div className="flex items-center gap-2">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50">
-        <Lock className="w-4 h-4 text-green-500 fill-current" />
+  </div>
+);
+
+// ─── ADDRESS FIELDS (with CEP auto-fill) ─────────────────────────────────────
+
+const AddressFields: React.FC<{
+  data: AddressState;
+  onChange: (d: AddressState) => void;
+  errors?: FormErrors;
+}> = ({ data, onChange, errors }) => {
+  const { lookup, loading: cepLoading } = useCepLookup();
+
+  const handleCep = async (raw: string) => {
+    const formatted = formatCEP(raw);
+    onChange({ ...data, cep: formatted });
+    const clean = formatted.replace(/\D/g, '');
+    if (clean.length === 8) {
+      const result = await lookup(clean);
+      if (result) {
+        onChange({
+          ...data, cep: formatted,
+          street: result.street,
+          neighborhood: result.neighborhood,
+          city: result.city,
+          state: result.state,
+        });
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <PillInput value={data.cep} onChange={handleCep} placeholder="00000-000" maxLength={9}
+          inputMode="numeric" error={errors?.cep} />
+        {cepLoading && <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-pink-400" />}
       </div>
-      <div className="flex flex-col items-start leading-[1.1]">
-        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pagamento</span>
-        <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">100% Seguro</span>
+      <div className="grid grid-cols-[1fr_90px] gap-3">
+        <PillInput value={data.street} onChange={v => onChange({ ...data, street: v })} placeholder="Rua *" readOnly={cepLoading} error={errors?.street} />
+        <PillInput value={data.number} onChange={v => onChange({ ...data, number: v })} placeholder="Nº *" inputMode="numeric" error={errors?.number} />
       </div>
+      <PillInput value={data.complement} onChange={v => onChange({ ...data, complement: v })} placeholder="Complemento" />
+      <div className="grid grid-cols-[1fr_1fr_70px] gap-3">
+        <PillInput value={data.neighborhood} onChange={v => onChange({ ...data, neighborhood: v })} placeholder="Bairro *" error={errors?.neighborhood} readOnly={cepLoading} />
+        <PillInput value={data.city} onChange={v => onChange({ ...data, city: v })} placeholder="Cidade *" error={errors?.city} readOnly={cepLoading} />
+        <PillInput value={data.state} onChange={v => onChange({ ...data, state: v.toUpperCase().slice(0, 2) })} placeholder="UF" maxLength={2} error={errors?.state} readOnly={cepLoading} />
+      </div>
+    </div>
+  );
+};
+
+// ─── SECTION CARD ─────────────────────────────────────────────────────────────
+
+const SectionCard: React.FC<{ icon?: React.ReactNode; title: string; children: React.ReactNode; className?: string }> = ({ icon, title, children, className }) => (
+  <div className={cn('bg-white rounded-xl p-6 border border-gray-200', className)}>
+    <div className="flex items-center gap-2 mb-5">
+      {icon && <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">{icon}</div>}
+      <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+// ─── DESKTOP FORM CARDS (controlled) ──────────────────────────────────────────
+
+const DesktopContactCard: React.FC<{ data: ContactState; onChange: (d: ContactState) => void; errors?: FormErrors }> = ({ data, onChange, errors }) => (
+  <SectionCard icon={<User className="w-3.5 h-3.5 text-gray-500" />} title="Informações de Contato">
+    <div className="space-y-3">
+      <PillInput value={data.name} onChange={v => onChange({ ...data, name: v })} placeholder="Nome completo *" error={errors?.name} />
+      <div className="grid grid-cols-2 gap-3">
+        <PillInput value={data.email} onChange={v => onChange({ ...data, email: v })} placeholder="E-mail *" type="email" error={errors?.email} />
+        <PillInput value={data.phone} onChange={v => onChange({ ...data, phone: formatPhone(v) })} placeholder="Telefone *" inputMode="tel" error={errors?.phone} />
+      </div>
+    </div>
+  </SectionCard>
+);
+
+const DesktopAddressCard: React.FC<{ data: AddressState; onChange: (d: AddressState) => void; errors?: FormErrors }> = ({ data, onChange, errors }) => (
+  <SectionCard title="Endereço de Entrega">
+    <AddressFields data={data} onChange={onChange} errors={errors} />
+  </SectionCard>
+);
+
+const DesktopCpfCard: React.FC<{ value: string; onChange: (v: string) => void; error?: string }> = ({ value, onChange, error }) => (
+  <SectionCard title="CPF / CNPJ">
+    <PillInput value={value} onChange={v => onChange(formatCPFCNPJ(v))} placeholder="000.000.000-00" inputMode="numeric" error={error} />
+  </SectionCard>
+);
+
+// ─── PAYMENT SECTION (radio buttons + inline card form) ───────────────────────
+
+const PIX_ICON = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M6.5 6.5L12 1L17.5 6.5L12 12L6.5 6.5Z" fill="#00BFA5"/>
+    <path d="M17.5 6.5L23 12L17.5 17.5L12 12L17.5 6.5Z" fill="#00BFA5"/>
+    <path d="M17.5 17.5L12 23L6.5 17.5L12 12L17.5 17.5Z" fill="#00BFA5"/>
+    <path d="M6.5 17.5L1 12L6.5 6.5L12 12L6.5 17.5Z" fill="#00BFA5"/>
+    <path d="M9.5 9.5L12 7L14.5 9.5L12 12L9.5 9.5Z" fill="white"/>
+    <path d="M14.5 9.5L17 12L14.5 14.5L12 12L14.5 9.5Z" fill="white"/>
+    <path d="M14.5 14.5L12 17L9.5 14.5L12 12L14.5 14.5Z" fill="white"/>
+    <path d="M9.5 14.5L7 12L9.5 9.5L12 12L9.5 14.5Z" fill="white"/>
+  </svg>
+);
+
+const CARD_ICON = () => (
+  <div className="w-8 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md flex flex-col justify-between p-1">
+    <div className="w-4 h-1 bg-white/60 rounded" />
+    <div className="flex gap-0.5">
+      <div className="w-2 h-1 bg-white/40 rounded" />
+      <div className="w-2 h-1 bg-white/40 rounded" />
     </div>
   </div>
 );
 
-// ============================================================
-// SCARCITY BAR - gradient pink
-// ============================================================
-
-const PinkScarcityBar: React.FC<{ theme: Record<string, unknown> }> = ({ theme }) => (
-  <div
-    className="w-full py-2.5 text-white text-center text-sm font-semibold"
-    style={{
-      background: (theme.scarcityBarBgGradient as string)
-        || 'linear-gradient(135deg, #E91E8C, #FF4559)',
-    }}
-  >
-    <ScarcityTimer theme={theme as any} />
-  </div>
+const APPLE_ICON = () => (
+  <svg width="20" height="24" viewBox="0 0 20 24" fill="currentColor" className="text-gray-800">
+    <path d="M16.71 17.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C1.25 15-.06 10.45 1.7 7.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M11 1.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+  </svg>
 );
 
-// ============================================================
-// APPLE PAY BUTTON (simulado — visual only)
-// ============================================================
-
-const ApplePayButton: React.FC = () => (
-  <button
-    type="button"
-    className="w-full py-3 rounded-full bg-black text-white font-semibold text-sm flex items-center justify-center gap-2 mb-3"
-    style={{ cursor: 'pointer' }}
-  >
-    🍎 Pagar com Apple Pay
+const PaymentRadio: React.FC<{
+  label: string; sublabel?: string; sublabelColor?: string; sublabel2?: string;
+  icon: React.ReactNode; selected: boolean; onClick: () => void;
+  rightBadge?: React.ReactNode;
+}> = ({ label, sublabel, sublabelColor, sublabel2, icon, selected, onClick, rightBadge }) => (
+  <button type="button" onClick={onClick}
+    className="w-full flex items-center gap-3 px-4 py-3.5 text-left border-b border-gray-100 last:border-0">
+    <div className="flex-shrink-0 w-8 flex items-center justify-center">{icon}</div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-semibold text-gray-800">{label}</p>
+      {sublabel && <p className="text-xs mt-0.5" style={{ color: sublabelColor || '#6b7280' }}>{sublabel}</p>}
+      {sublabel2 && <p className="text-xs text-gray-400">{sublabel2}</p>}
+    </div>
+    {rightBadge}
+    <div className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+      style={selected ? { borderColor: '#E91E8C', backgroundColor: '#E91E8C' } : { borderColor: '#d1d5db' }}>
+      {selected && <div className="w-2 h-2 bg-white rounded-full" />}
+    </div>
   </button>
 );
 
-// ============================================================
-// COLLAPSIBLE ADDRESS (mobile)
-// ============================================================
+// Brand logos SVG inline (small)
+const CardBrands: React.FC = () => (
+  <div className="flex items-center gap-1.5 mt-1">
+    {/* Mastercard */}
+    <svg width="28" height="18" viewBox="0 0 38 24" fill="none">
+      <rect width="38" height="24" rx="4" fill="#F4F4F4"/>
+      <circle cx="15" cy="12" r="8" fill="#EB001B"/>
+      <circle cx="23" cy="12" r="8" fill="#F79E1B"/>
+      <path d="M19 7a8 8 0 0 1 0 10A8 8 0 0 1 19 7z" fill="#FF5F00"/>
+    </svg>
+    {/* Visa */}
+    <svg width="28" height="18" viewBox="0 0 38 24" fill="none">
+      <rect width="38" height="24" rx="4" fill="#F4F4F4"/>
+      <text x="6" y="16" fontFamily="Arial" fontWeight="bold" fontSize="11" fill="#1A1F71">VISA</text>
+    </svg>
+    {/* Elo */}
+    <svg width="28" height="18" viewBox="0 0 38 24" fill="none">
+      <rect width="38" height="24" rx="4" fill="#F4F4F4"/>
+      <text x="8" y="16" fontFamily="Arial" fontWeight="bold" fontSize="10" fill="#000">elo</text>
+    </svg>
+    {/* Amex */}
+    <svg width="28" height="18" viewBox="0 0 38 24" fill="none">
+      <rect width="38" height="24" rx="4" fill="#007BC1"/>
+      <text x="4" y="16" fontFamily="Arial" fontWeight="bold" fontSize="7.5" fill="white">AMEX</text>
+    </svg>
+  </div>
+);
 
-const CollapsibleAddress: React.FC<{
-  theme: Record<string, unknown>;
-  primaryColor: string;
-  isPreview: boolean;
-}> = ({ theme, primaryColor, isPreview }) => {
-  const [open, setOpen] = useState(false);
+const InlineCardForm: React.FC<{
+  data: CardState;
+  onChange: (d: CardState) => void;
+  errors?: FormErrors;
+  total: number;
+  inputClass?: string;
+  selectClass?: string;
+}> = ({ data, onChange, errors, total, inputClass, selectClass }) => {
+  const brand = detectCardBrand(data.number);
+  const maxInstallments = 12;
+
+  const baseInput: React.CSSProperties = {
+    width: '100%', height: '44px', padding: '0 12px', borderRadius: '10px',
+    border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827',
+    fontSize: '13px', outline: 'none', transition: 'border-color 0.15s',
+  };
 
   return (
-    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full px-5 py-4 flex items-center justify-between text-left"
-      >
-        <span className="font-semibold text-sm text-gray-800">Endereço de entrega</span>
-        {open
-          ? <ChevronUp className="w-4 h-4 text-gray-400" />
-          : <ChevronDown className="w-4 h-4 text-gray-400" />
-        }
+    <div className="px-4 py-4 bg-gray-50 space-y-3" style={{ borderTop: '1px solid #f3f4f6' }}>
+      {/* Bandeiras */}
+      <CardBrands />
+      {brand !== 'unknown' && (
+        <p className="text-xs text-indigo-600 font-medium capitalize">{brand} detectado ✓</p>
+      )}
+
+      {/* Nome no cartão */}
+      <div>
+        <input style={baseInput} placeholder="Nome no cartão *"
+          className={inputClass} value={data.holderName}
+          onChange={e => onChange({ ...data, holderName: e.target.value.toUpperCase() })} />
+        {errors?.holderName && <p className="text-xs text-red-500 mt-1">{errors.holderName}</p>}
+      </div>
+
+      {/* CPF do titular */}
+      <div>
+        <input style={baseInput} placeholder="CPF / CNPJ do titular *"
+          className={inputClass} value={data.cpf} inputMode="numeric"
+          onChange={e => onChange({ ...data, cpf: formatCPFCNPJ(e.target.value) })} />
+        {errors?.cpfCard && <p className="text-xs text-red-500 mt-1">{errors.cpfCard}</p>}
+      </div>
+
+      {/* Número do cartão */}
+      <div>
+        <input style={baseInput} placeholder="Número do cartão *"
+          className={inputClass} value={data.number} inputMode="numeric" maxLength={19}
+          onChange={e => onChange({ ...data, number: formatCardNumber(e.target.value) })} />
+        {errors?.cardNumber && <p className="text-xs text-red-500 mt-1">{errors.cardNumber}</p>}
+      </div>
+
+      {/* Validade + CVV */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <input style={baseInput} placeholder="MM/AA *"
+            className={inputClass} value={data.expiry} inputMode="numeric" maxLength={5}
+            onChange={e => onChange({ ...data, expiry: formatExpiry(e.target.value) })} />
+          {errors?.expiry && <p className="text-xs text-red-500 mt-1">{errors.expiry}</p>}
+        </div>
+        <div>
+          <input style={baseInput} placeholder="CVV *"
+            className={inputClass} value={data.cvv} inputMode="numeric" maxLength={4}
+            onChange={e => onChange({ ...data, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
+          {errors?.cvv && <p className="text-xs text-red-500 mt-1">{errors.cvv}</p>}
+        </div>
+      </div>
+
+      {/* Parcelas */}
+      {total > 0 && (
+        <select
+          style={{ ...baseInput, cursor: 'pointer' }}
+          className={selectClass}
+          value={data.installments}
+          onChange={e => onChange({ ...data, installments: Number(e.target.value) })}
+        >
+          {Array.from({ length: maxInstallments }, (_, i) => i + 1).map(n => (
+            <option key={n} value={n}>
+              {n === 1
+                ? `1x de ${fmtBRL(total)} (à vista)`
+                : `${n}x de ${fmtBRL(total / n)} sem juros`}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+};
+
+const PaymentSection: React.FC<{
+  primaryColor: string;
+  payMethod: string;
+  setPayMethod: (m: string) => void;
+  cardData: CardState;
+  onCardChange: (d: CardState) => void;
+  cardErrors?: FormErrors;
+  total: number;
+}> = ({ primaryColor, payMethod, setPayMethod, cardData, onCardChange, cardErrors, total }) => (
+  <div>
+    <PaymentRadio label="Pix" sublabel="Pague em até 24 horas e obtenha confirmação instantânea."
+      icon={<PIX_ICON />} selected={payMethod === 'pix'} onClick={() => setPayMethod('pix')} />
+
+    <PaymentRadio label="Cartão de crédito" sublabel="Sem juros" sublabelColor={primaryColor}
+      sublabel2="Pague em até 12 parcelas" icon={<CARD_ICON />}
+      selected={payMethod === 'credit'} onClick={() => setPayMethod('credit')} />
+
+    <AnimatePresence>
+      {payMethod === 'credit' && (
+        <motion.div key="card-form" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+          <InlineCardForm data={cardData} onChange={onCardChange} errors={cardErrors} total={total} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <PaymentRadio label="Apple Pay" icon={<APPLE_ICON />}
+      selected={payMethod === 'apple'} onClick={() => setPayMethod('apple')}
+      rightBadge={<span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full mr-2">Em breve</span>}
+    />
+
+    {payMethod === 'apple' && (
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-500 text-center">Apple Pay estará disponível em breve.</p>
+      </div>
+    )}
+  </div>
+);
+
+// ─── QTY SELECTOR ─────────────────────────────────────────────────────────────
+
+const QtySelector: React.FC<{ qty: number; onMinus: () => void; onPlus: () => void }> = ({ qty, onMinus, onPlus }) => (
+  <div className="flex items-center gap-2 mt-2">
+    <button type="button" onClick={onMinus} className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-gray-50">
+      <Minus className="w-3 h-3" />
+    </button>
+    <span className="text-sm font-semibold text-gray-800 w-4 text-center">{qty}</span>
+    <button type="button" onClick={onPlus} className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-gray-50">
+      <Plus className="w-3 h-3" />
+    </button>
+  </div>
+);
+
+// ─── MOBILE SECTION HELPERS ───────────────────────────────────────────────────
+
+const MobileExpandButton: React.FC<{ label: string; children: React.ReactNode; primaryColor: string; forceOpen?: boolean }> = ({ label, children, primaryColor, forceOpen }) => {
+  const [open, setOpen] = useState(false);
+  const isOpen = forceOpen !== undefined ? forceOpen : open;
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden">
+      <button type="button" onClick={() => setOpen(!isOpen)} className="w-full flex items-center gap-3 px-5 py-4 text-left">
+        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: isOpen ? primaryColor : '#e5e7eb' }}>
+          {isOpen ? <Minus className="w-3 h-3 text-white" /> : <Plus className="w-3 h-3 text-gray-500" />}
+        </div>
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="px-5 pb-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const MobileProgressBar: React.FC = () => {
+  const segments = ['#06B6D4', '#E91E8C', '#06B6D4', '#E91E8C', '#06B6D4', '#E91E8C', '#06B6D4', '#E91E8C'];
+  return (
+    <div className="flex gap-1 px-0 py-1">
+      {segments.map((color, i) => <div key={i} className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: color }} />)}
+    </div>
+  );
+};
+
+const MobileSummaryRow: React.FC<{ checkoutData: any; primaryColor: string }> = ({ checkoutData, primaryColor }) => {
+  const [open, setOpen] = useState(false);
+  const products: any[] = checkoutData?.products || [];
+  const total = products.reduce((s, p) => s + (p.price ?? 0) * (p.quantity ?? 1), 0) || 119.90;
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden">
+      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
+            <Package className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+          </div>
+          <span className="text-sm font-semibold text-gray-700">Resumo do Pedido</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-gray-900">{fmtBRL(total)}</span>
+          {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </div>
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-5 pb-5">
-              <MinimalStepShipping
-                theme={theme}
-                isPreview={isPreview}
-                onNext={() => setOpen(false)}
-                onBack={() => setOpen(false)}
-                primaryColor={primaryColor}
-              />
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-gray-100">
+            <div className="px-5 py-3 space-y-2">
+              {products.length > 0 ? products.map((p: any, i: number) => (
+                <div key={p.id ?? i} className="flex items-center justify-between py-1">
+                  <span className="text-xs text-gray-600 flex-1 mr-2 truncate">{p.name} × {p.quantity ?? 1}</span>
+                  <span className="text-xs font-bold" style={{ color: primaryColor }}>{fmtBRL(p.price ?? 0)}</span>
+                </div>
+              )) : (
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-xs text-gray-600">Produto de Demonstração × 1</span>
+                  <span className="text-xs font-bold" style={{ color: primaryColor }}>R$ 119,90</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -129,142 +585,547 @@ const CollapsibleAddress: React.FC<{
   );
 };
 
-// ============================================================
-// MAIN TEMPLATE
-// ============================================================
+// ─── FORM VALIDATION HELPER ───────────────────────────────────────────────────
 
-const TikTokTemplate: React.FC<TemplateRenderProps> = ({
-  orderId, checkoutData, theme, templateConfig, isPreview = false,
-  isMobile = false, onStepChange, onPaymentSuccess,
-}) => {
-  const primaryColor = (theme.primaryColor as string) || '#E91E8C';
-  const gradient = (theme.buttonGradient as string) || 'linear-gradient(135deg, #E91E8C, #FF4559)';
-  const scarcityEnabled = (theme.showCountdownTimer as boolean) !== false;
+function validateCheckoutForm(contact: ContactState, address: AddressState, cpf: string, payMethod: string, card: CardState): FormErrors {
+  const errors: FormErrors = {};
+  if (!contact.name.trim()) errors.name = 'Nome obrigatório';
+  if (!validateEmail(contact.email)) errors.email = 'E-mail inválido';
+  if (!validatePhone(contact.phone)) errors.phone = 'Telefone inválido (mínimo 10 dígitos)';
+  if (!validateCEP(address.cep)) errors.cep = 'CEP inválido';
+  if (!address.street.trim()) errors.street = 'Rua obrigatória';
+  if (!address.number.trim()) errors.number = 'Número obrigatório';
+  if (!address.neighborhood.trim()) errors.neighborhood = 'Bairro obrigatório';
+  if (!address.city.trim()) errors.city = 'Cidade obrigatória';
+  if (!address.state.trim()) errors.state = 'UF obrigatória';
+  if (!validateCPFCNPJ(cpf)) errors.cpf = 'CPF/CNPJ inválido';
+
+  if (payMethod === 'credit') {
+    if (!card.holderName.trim()) errors.holderName = 'Nome no cartão obrigatório';
+    if (!validateCPFCNPJ(card.cpf)) errors.cpfCard = 'CPF/CNPJ inválido';
+    if (!validateCardNumber(card.number)) errors.cardNumber = 'Número do cartão inválido';
+    if (!validateExpiry(card.expiry)) errors.expiry = 'Data de validade inválida ou expirada';
+    if (card.cvv.length < 3) errors.cvv = 'CVV inválido';
+  }
+  return errors;
+}
+
+// ─── DESKTOP ORDER PANEL ──────────────────────────────────────────────────────
+
+const DesktopOrderPanel: React.FC<{
+  checkoutData: any; theme: any; primaryColor: string; gradient: string;
+  isPreview: boolean; orderId: string; onSuccess?: (id: string) => void; templateSlug: string;
+  contact: ContactState; address: AddressState; cpf: string;
+  onFormError?: (errors: FormErrors) => void;
+}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError }) => {
+  const [payMethod, setPayMethod] = useState('pix');
+  const [coupon, setCoupon] = useState('');
+  const [summaryOpen, setSummaryOpen] = useState(true);
+  const [qtys, setQtys] = useState<Record<string, number>>({});
+  const [cardData, setCardData] = useState<CardState>(emptyCard());
+  const [cardErrors, setCardErrors] = useState<FormErrors>({});
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [paySuccess, setPaySuccess] = useState(false);
+
+  const products: any[] = checkoutData?.products || [];
+  const subtotal = products.reduce((s, p) => s + (p.price ?? 0) * (qtys[p.id] ?? p.quantity ?? 1), 0) || 119.90;
+  const shipping = checkoutData?.shipping ?? 0;
+  const discount = checkoutData?.discount ?? 0;
+  const total = subtotal + shipping - discount;
+
+  const getQty = (p: any) => qtys[p.id] ?? p.quantity ?? 1;
+  const setQty = (id: string, v: number) => setQtys(prev => ({ ...prev, [id]: Math.max(1, v) }));
+
+  const { processPayment, processing, error: processorError } = usePaymentProcessor({
+    orderId, total, templateSlug,
+  });
+
+  const handleSubmit = async () => {
+    if (isPreview) { onSuccess?.(orderId || 'preview'); return; }
+
+    const allErrors = validateCheckoutForm(contact, address, cpf, payMethod, cardData);
+    if (Object.keys(allErrors).length > 0) {
+      onFormError?.(allErrors);
+      const cardErrs: FormErrors = {};
+      if (allErrors.holderName) cardErrs.holderName = allErrors.holderName;
+      if (allErrors.cpfCard) cardErrs.cpfCard = allErrors.cpfCard;
+      if (allErrors.cardNumber) cardErrs.cardNumber = allErrors.cardNumber;
+      if (allErrors.expiry) cardErrs.expiry = allErrors.expiry;
+      if (allErrors.cvv) cardErrs.cvv = allErrors.cvv;
+      setCardErrors(cardErrs);
+      return;
+    }
+    setCardErrors({});
+    setLocalError(null);
+
+    // Parse expiry MM/YY
+    const [expiryMonth, expiryYear] = (cardData.expiry || '/').split('/');
+
+    await processPayment({
+      paymentMethod: payMethod === 'credit' ? 'CREDIT_CARD' : payMethod === 'pix' ? 'PIX' : 'BOLETO',
+      customerData: {
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        document: cpf,
+      },
+      addressData: {
+        zipCode: address.cep,
+        street: address.street,
+        number: address.number,
+        complement: address.complement,
+        neighborhood: address.neighborhood,
+        city: address.city,
+        state: address.state,
+      },
+      cardData: payMethod === 'credit' ? {
+        number: cardData.number,
+        holderName: cardData.holderName,
+        expirationMonth: expiryMonth || '',
+        expirationYear: expiryYear || '',
+        cvv: cardData.cvv,
+        installments: cardData.installments,
+        cpf: cardData.cpf,
+      } : undefined,
+    });
+
+    if (!processorError) {
+      setPaySuccess(true);
+      setTimeout(() => onSuccess?.(orderId || ''), 500);
+    } else {
+      setLocalError(processorError);
+    }
+  };
+
+  if (paySuccess) {
+    return (
+      <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900">Pedido confirmado!</h3>
+        <p className="text-sm text-gray-500">Redirecionando...</p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={cn("min-h-screen flex flex-col items-center", isMobile ? "pt-8 pb-16 px-4" : "p-4 lg:p-6")}
-      style={{
-        backgroundColor: '#0f172a',
-        fontFamily: (theme.fontFamily as string) || 'Inter, system-ui, sans-serif',
-      }}
-    >
-      <div 
-        className="w-full max-w-7xl bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col"
-        style={{ minHeight: isMobile ? 'calc(100vh - 32px)' : 'auto' }}
-      >
-        {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
-      <TikTokHeader theme={theme} gradient={gradient} isMobile={isMobile} />
-      {scarcityEnabled && <PinkScarcityBar theme={theme} />}
-
-      <div className={cn("max-w-7xl mx-auto", isMobile ? "p-0" : "px-4 py-6")}>
-        {/* TikTok: LEFT = dados/entrega, RIGHT = pagamento + resumo */}
-        <div className={cn("flex flex-col gap-6", isMobile ? "" : "lg:flex-row")}>
-
-          {/* LEFT COLUMN */}
-          <div className="flex-1 space-y-4">
-
-            {/* Dados pessoais */}
-            <div className="rounded-xl border bg-white shadow-sm p-5">
-              <h3 className="font-semibold text-sm text-gray-800 mb-4">
-                Informações de contato
-              </h3>
-              <MinimalStepCustomer
-                theme={theme}
-                isPreview={isPreview}
-                onNext={() => checkoutMonitor.stepAdvance(2, templateConfig.slug, orderId)}
-                primaryColor={primaryColor}
-              />
-            </div>
-
-            {/* Endereço colapsável */}
-            <CollapsibleAddress
-              theme={theme}
-              primaryColor={primaryColor}
-              isPreview={isPreview}
-            />
-
-            {/* CPF separado */}
-            <div className="rounded-xl border bg-white shadow-sm p-5">
-              <h3 className="font-semibold text-sm text-gray-800 mb-4">CPF do titular</h3>
-              <input
-                style={{
-                  width: '100%', height: '48px', padding: '0 12px',
-                  borderRadius: (theme.inputBorderRadius as string) || '6px',
-                  border: `1px solid ${(theme.inputBorderColor as string) || '#d1d5db'}`,
-                  fontSize: '14px', outline: 'none',
-                }}
-                placeholder="000.000.000-00"
-                maxLength={14}
-              />
-            </div>
-
-          </div>
-
-          {/* RIGHT COLUMN — Pagamento + Resumo */}
-          <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
-
-            {/* Resumo */}
-            <CheckoutSummaryPanel
-              checkoutData={checkoutData}
-              theme={theme}
-              isPreview={isPreview}
-              totalColor={primaryColor}
-            />
-
-            {/* Apple Pay */}
-            {(theme.applePayEnabled as boolean) && <ApplePayButton />}
-
-            {/* Pagamento */}
-            <div className="rounded-xl border bg-white shadow-sm p-5">
-              <h3 className="font-semibold text-sm text-gray-800 mb-4">Forma de pagamento</h3>
-
-              {/* Botão com gradiente pink + valor */}
-              <MinimalStepPayment
-                theme={{
-                  ...theme,
-                  buttonGradient: gradient,
-                  primaryColor,
-                }}
-                isPreview={isPreview}
-                checkoutData={checkoutData}
-                orderId={orderId}
-                onBack={() => {}}
-                onSuccess={onPaymentSuccess}
-                primaryColor={primaryColor}
-                templateSlug={templateConfig.slug}
-              />
-            </div>
-
-          </div>
+    <div className="bg-white rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+        <h3 className="font-bold text-gray-900 text-base">Resumo do Pedido</h3>
+        <div className="flex items-center gap-1.5 mt-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+          <span className="text-xs text-green-600 font-medium">Seus dados estão seguros e criptografados.</span>
         </div>
       </div>
 
-      {/* Standardized Payment Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-10 mt-6 border-t border-gray-100 bg-white rounded-b-2xl">
-        <div className="flex flex-col items-center gap-8">
-          <div className="w-full flex flex-col items-center gap-4">
-            <p className="text-sm font-semibold tracking-wide uppercase opacity-30 text-gray-500">
-              Formas de Pagamento
+      {/* Products */}
+      <div className="border-b border-gray-100">
+        <button type="button" onClick={() => setSummaryOpen(!summaryOpen)} className="w-full flex items-center justify-between px-5 py-3">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Produtos ({products.length || 1})</span>
+          {summaryOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+        <AnimatePresence>
+          {summaryOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <div className="px-5 pb-5 divide-y divide-gray-50">
+                {products.length > 0 ? products.map((p: any, i: number) => {
+                  const imgSrc = p.image || p.imageUrl || null;
+                  const origPrice = p.originalPrice ?? p.compareAtPrice ?? (p.price ? p.price * 1.4 : null);
+                  const discPct = origPrice ? Math.round((1 - p.price / origPrice) * 100) : null;
+                  return (
+                    <div key={p.id ?? i} className="flex items-start gap-3 py-4 first:pt-0">
+                      <div className="relative flex-shrink-0">
+                        {imgSrc ? <img src={imgSrc} alt={p.name} className="w-16 h-16 rounded-xl object-cover border border-gray-100" />
+                          : <div className="w-16 h-16 rounded-xl flex items-center justify-center border border-gray-100" style={{ background: 'linear-gradient(135deg,#f3f4f6,#e5e7eb)' }}><Package className="w-5 h-5 text-gray-400" /></div>}
+                        <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-gray-800 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">{getQty(p)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug">{p.name}</p>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <p className="text-sm font-bold" style={{ color: primaryColor }}>{fmtBRL(p.price ?? 0)}</p>
+                          {origPrice && <><p className="text-xs text-gray-400 line-through">{fmtBRL(origPrice)}</p>
+                            {discPct && <span className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ backgroundColor: primaryColor }}>-{discPct}%</span>}</>}
+                        </div>
+                        <QtySelector qty={getQty(p)} onMinus={() => setQty(p.id, getQty(p) - 1)} onPlus={() => setQty(p.id, getQty(p) + 1)} />
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="flex items-start gap-3 py-4">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-16 h-16 rounded-xl flex items-center justify-center border border-gray-100" style={{ background: 'linear-gradient(135deg,#fce7f3,#fdf2f8)' }}>
+                        <Package className="w-5 h-5" style={{ color: primaryColor }} />
+                      </div>
+                      <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white text-[10px] font-bold rounded-full flex items-center justify-center">1</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-800">Produto de Demonstração Premium</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <p className="text-sm font-bold" style={{ color: primaryColor }}>R$ 119,90</p>
+                        <p className="text-xs text-gray-400 line-through">R$ 199,90</p>
+                        <span className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ backgroundColor: primaryColor }}>-40%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Discount */}
+      {discount > 0 && (
+        <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100">
+          <span className="text-sm font-semibold text-gray-700">Desconto</span>
+          <span className="text-sm font-bold" style={{ color: primaryColor }}>- {fmtBRL(discount)}</span>
+        </div>
+      )}
+
+      {/* Coupon */}
+      <div className="border-b border-gray-100">
+        <div className="px-5 py-3 flex items-center justify-between">
+          <span className="text-sm text-gray-600">Não usar cupons</span>
+          <div className="w-5 h-5 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#d1d5db' }} />
+        </div>
+        <div className="px-5 pb-3 flex gap-2">
+          <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="Adicionar cupom de desconto"
+            className="flex-1 border border-gray-200 rounded-xl h-10 px-3 text-xs focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 bg-white" />
+          <button className="px-4 h-10 rounded-xl text-xs font-bold flex-shrink-0 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">Aplicar</button>
+        </div>
+      </div>
+
+      {/* Totals */}
+      <div className="px-5 py-3 border-b border-gray-100 space-y-2">
+        <div className="flex justify-between"><span className="text-xs text-gray-500">Subtotal</span><span className="text-xs font-medium text-gray-700">{fmtBRL(subtotal)}</span></div>
+        <div className="flex justify-between"><span className="text-xs text-gray-500">Frete</span>
+          {shipping > 0 ? <span className="text-xs font-medium text-gray-700">+ {fmtBRL(shipping)}</span> : <span className="text-xs font-semibold text-green-600">Grátis</span>}
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <span className="text-sm font-bold text-gray-900">Total ({products.length || 1} {(products.length || 1) === 1 ? 'item' : 'itens'})</span>
+          <span className="text-base font-extrabold" style={{ color: primaryColor }}>{fmtBRL(total)}</span>
+        </div>
+      </div>
+
+      {/* Payment */}
+      <div className="border-b border-gray-100">
+        <div className="px-5 pt-4 pb-2">
+          <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Forma de pagamento</h4>
+        </div>
+        <PaymentSection primaryColor={primaryColor} payMethod={payMethod} setPayMethod={setPayMethod}
+          cardData={cardData} onCardChange={setCardData} cardErrors={cardErrors} total={total} />
+      </div>
+
+        {localError && (
+          <div className="px-5 py-3 bg-red-50 border-t border-red-100">
+            <p className="text-xs text-red-600 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {localError}
             </p>
-            <PaymentMethodIcons 
-              isMobile={isMobile}
-              className="justify-center"
-              methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
-            />
           </div>
+        )}
+        {/* CTA */}
+      <div className="px-5 py-4">
+        <motion.button type="button" onClick={handleSubmit} disabled={processing}
+          className="w-full py-4 rounded-full text-white font-bold text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2"
+          style={{ background: processing ? '#9ca3af' : gradient }}
+          whileHover={{ opacity: processing ? 1 : 0.92 }} whileTap={{ scale: processing ? 1 : 0.97 }}>
+          {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Processando...</>
+            : <><Lock className="w-4 h-4" /> Fazer pedido</>}
+        </motion.button>
+        <div className="flex items-center justify-center gap-1.5 mt-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-[10px] text-gray-400 font-medium">Compra 100% Segura e Criptografada</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-          <div className="flex justify-center">
-            <div className="flex items-center gap-2.5 px-4 py-2 bg-[#F0FDF4] rounded-full border border-green-100 shadow-sm transition-all hover:scale-105">
-              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="text-[11px] font-bold text-[#166534] tracking-tight uppercase">Site Seguro</span>
-            </div>
+// ─── MOBILE CONTACT + PAYMENT CARD ──────────────────────────────────────────
+
+const MobileContactPaymentCard: React.FC<{
+  primaryColor: string; gradient: string; checkoutData: any; theme: any;
+  isPreview: boolean; orderId: string; onSuccess?: (id: string) => void; templateSlug: string;
+  address: AddressState; onAddressChange: (d: AddressState) => void;
+  cpf: string; onCpfChange: (v: string) => void;
+}> = ({ primaryColor, gradient, checkoutData, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug }) => {
+  const [payMethod, setPayMethod] = useState('pix');
+  const [cardData, setCardData] = useState<CardState>(emptyCard());
+  const [contact, setContact] = useState<ContactState>(emptyContact());
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [paySuccess, setPaySuccess] = useState(false);
+
+  const products: any[] = checkoutData?.products || [];
+  const subtotal = products.reduce((s, p) => s + (p.price ?? 0) * (p.quantity ?? 1), 0) || 119.90;
+  const shipping = checkoutData?.shipping ?? 0;
+  const discount = checkoutData?.discount ?? 0;
+  const total = subtotal + shipping - discount;
+
+  const { processPayment, processing, error: processorError } = usePaymentProcessor({
+    orderId, total, templateSlug,
+  });
+
+  const handleSubmit = async () => {
+    if (isPreview) { onSuccess?.(orderId || 'preview'); return; }
+
+    const allErrors = validateCheckoutForm(contact, address, cpf, payMethod, cardData);
+    if (Object.keys(allErrors).length > 0) { setErrors(allErrors); return; }
+    setErrors({});
+
+    const [expiryMonth, expiryYear] = (cardData.expiry || '/').split('/');
+
+    await processPayment({
+      paymentMethod: payMethod === 'credit' ? 'CREDIT_CARD' : payMethod === 'pix' ? 'PIX' : 'BOLETO',
+      customerData: {
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        document: cpf,
+      },
+      addressData: {
+        zipCode: address.cep,
+        street: address.street,
+        number: address.number,
+        complement: address.complement,
+        neighborhood: address.neighborhood,
+        city: address.city,
+        state: address.state,
+      },
+      cardData: payMethod === 'credit' ? {
+        number: cardData.number,
+        holderName: cardData.holderName,
+        expirationMonth: expiryMonth || '',
+        expirationYear: expiryYear || '',
+        cvv: cardData.cvv,
+        installments: cardData.installments,
+        cpf: cardData.cpf,
+      } : undefined,
+    });
+
+    if (!processorError) {
+      setPaySuccess(true);
+      setTimeout(() => onSuccess?.(orderId || ''), 500);
+    } else {
+      setErrors({ _global: processorError });
+    }
+  };
+
+  if (paySuccess) {
+    return (
+      <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900">Pedido confirmado!</h3>
+        <p className="text-sm text-gray-500">Redirecionando...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Contact */}
+      <div className="bg-white rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+            <User className="w-3.5 h-3.5 text-gray-500" />
+          </div>
+          <span className="text-sm font-semibold text-gray-700">Informações de Contato</span>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <PillInput value={contact.name} onChange={v => setContact(c => ({ ...c, name: v }))} placeholder="Nome completo *" error={errors.name} />
+          <div className="grid grid-cols-2 gap-3">
+            <PillInput value={contact.email} onChange={v => setContact(c => ({ ...c, email: v }))} placeholder="E-mail *" type="email" error={errors.email} />
+            <PillInput value={contact.phone} onChange={v => setContact(c => ({ ...c, phone: formatPhone(v) }))} placeholder="Telefone *" error={errors.phone} />
           </div>
         </div>
-      </footer>
-
-      <CheckoutFooter theme={theme as any} />
       </div>
+
+      {/* Address expandable */}
+      <MobileExpandButton label="Adicionar endereço de entrega" primaryColor={primaryColor}>
+        <AddressFields data={address} onChange={onAddressChange} errors={errors} />
+        {errors.cep && !errors.street && <p className="text-xs text-red-500 mt-2">{errors.cep}</p>}
+      </MobileExpandButton>
+
+      {/* CPF expandable */}
+      <MobileExpandButton label="Adicionar CPF" primaryColor={primaryColor}>
+        <PillInput value={cpf} onChange={v => onCpfChange(formatCPFCNPJ(v))} placeholder="000.000.000-00"
+          inputMode="numeric" error={errors.cpf} />
+      </MobileExpandButton>
+
+      {/* Payment */}
+      <div className="bg-white rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h4 className="text-sm font-semibold text-gray-700">Forma de pagamento</h4>
+        </div>
+        <PaymentSection primaryColor={primaryColor} payMethod={payMethod} setPayMethod={setPayMethod}
+          cardData={cardData} onCardChange={setCardData} cardErrors={errors} total={total} />
+      </div>
+
+      {/* Total + CTA */}
+      <div className="bg-white rounded-2xl px-5 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-gray-500">Total ({products.length || 1} {(products.length || 1) === 1 ? 'item' : 'itens'}):</span>
+          <span className="text-lg font-extrabold text-gray-900">{fmtBRL(total)}</span>
+        </div>
+        <motion.button type="button" onClick={handleSubmit} disabled={processing}
+          className="w-full py-4 rounded-full text-white font-bold text-sm tracking-wide hover:opacity-90 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2"
+          style={{ background: processing ? '#9ca3af' : gradient }}
+          whileTap={{ scale: processing ? 1 : 0.97 }}>
+          {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Processando...</>
+            : <><Lock className="w-4 h-4" /> Fazer pedido</>}
+        </motion.button>
+        <div className="flex items-center justify-center gap-1.5 mt-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-[10px] text-gray-400 font-medium">Compra 100% Segura</span>
+        </div>
+        {errors._global && (
+          <p className="flex items-center gap-1.5 text-xs text-red-500 mt-2 text-center justify-center">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {errors._global}
+          </p>
+        )}
+      </div>
+    </>
+  );
+};
+
+// ─── MOBILE DISCOUNT ROW ─────────────────────────────────────────────────────
+
+const MobileDiscountRow: React.FC<{ discount: number; primaryColor: string }> = ({ discount, primaryColor }) => {
+  if (discount <= 0) return null;
+  return (
+    <div className="bg-white rounded-2xl flex items-center justify-between px-5 py-3.5">
+      <span className="text-sm font-semibold text-gray-700">Desconto</span>
+      <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: primaryColor }}>- {fmtBRL(discount)}</span>
+    </div>
+  );
+};
+
+// ─── MAIN TEMPLATE ────────────────────────────────────────────────────────────
+
+const TikTokTemplate: React.FC<TemplateRenderProps> = ({
+  orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
+  isMobile = false, onPaymentSuccess,
+}) => {
+  // Resolve: store (novo) > theme (legado)
+  const primaryColor =
+    checkoutConfig?.buttons.primaryBg ??
+    (theme.primaryColor as string) ??
+    '#E91E8C';
+  const gradient =
+    (theme.buttonGradient as string) ||
+    `linear-gradient(135deg, ${primaryColor}, #FF4559)`;
+  const fontFamily =
+    checkoutConfig?.typography.fontFamily ??
+    (theme.fontFamily as string) ??
+    "'Inter', system-ui, sans-serif";
+  const noticeBarEnabled = checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean) ?? false;
+  const discount = checkoutData?.discount ?? 0;
+
+  // Favicon dinâmico
+  useEffect(() => {
+    const faviconUrl = checkoutConfig?.header.faviconUrl;
+    if (!faviconUrl) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    link.href = faviconUrl;
+  }, [checkoutConfig?.header.faviconUrl]);
+
+  // Banner state — lê do theme legado (vem do DB via TemplateRenderer)
+  // updateConfig usa campos canônicos banner.* para que o delete (null) seja persistido
+  const { updateConfig } = useCheckoutConfigStore();
+  const [bannerTop, setBannerTop] = useState<string | undefined>(
+    (theme.bannerTopUrl as string | null | undefined) || undefined
+  );
+  const [bannerLeft, setBannerLeft] = useState<string | undefined>(
+    (theme.bannerLeftUrl as string | null | undefined) || undefined
+  );
+  const [bannerRight, setBannerRight] = useState<string | undefined>(
+    (theme.bannerRightUrl as string | null | undefined) || undefined
+  );
+
+  // Shared form state (used by desktop forms + desktop order panel)
+  const [contactData, setContactData] = useState<ContactState>(emptyContact());
+  const [addressData, setAddressData] = useState<AddressState>(emptyAddress());
+  const [cpfData, setCpfData] = useState('');
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // Usa campos canônicos banner.* — null = explicitamente apagado, string = URL
+  const handleBannerTopChange = useCallback((url: string) => {
+    const val = url || null; setBannerTop(val || undefined);
+    updateConfig({ banner: { desktopUrl: val } });
+  }, [updateConfig]);
+
+  const handleBannerLeftChange = useCallback((url: string) => {
+    const val = url || null; setBannerLeft(val || undefined);
+    updateConfig({ banner: { leftTopUrl: val } });
+  }, [updateConfig]);
+
+  const handleBannerRightChange = useCallback((url: string) => {
+    const val = url || null; setBannerRight(val || undefined);
+    updateConfig({ banner: { rightTopUrl: val } });
+  }, [updateConfig]);
+
+  return (
+    <div className={cn('flex flex-col w-full', isPreview ? 'bg-[#f0f0f0]' : 'min-h-screen bg-[#f0f0f0]')}
+      style={{ fontFamily }}>
+
+      {/* NoticeBar */}
+      {noticeBarEnabled && (
+        <NoticeBar theme={theme as Record<string, unknown>} noticeBarConfig={checkoutConfig?.noticeBar} />
+      )}
+
+      {/* ─── DESKTOP LAYOUT ─────────────────────────────────────────── */}
+      {!isMobile && (
+        <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+          <DropZone imageUrl={bannerTop} isPreview={isPreview} minHeight={80} className="mb-4"
+            label="Solte aqui" recommendedSize="980 × 80px" onImageChange={handleBannerTopChange} />
+          <div className="grid grid-cols-[1fr_380px] gap-6 items-start">
+            {/* LEFT: Forms */}
+            <div className="space-y-4">
+              <DropZone imageUrl={bannerLeft} isPreview={isPreview} minHeight={80}
+                label="Solte aqui" recommendedSize="580 × 80px" onImageChange={handleBannerLeftChange} />
+              <DesktopAddressCard data={addressData} onChange={setAddressData} errors={formErrors} />
+              <DesktopCpfCard value={cpfData} onChange={setCpfData} error={formErrors.cpf} />
+              <DesktopContactCard data={contactData} onChange={setContactData} errors={formErrors} />
+            </div>
+            {/* RIGHT: Order Summary */}
+            <div className="sticky top-4">
+              <DropZone imageUrl={bannerRight} isPreview={isPreview} minHeight={80} className="mb-4"
+                label="Solte aqui" recommendedSize="380 × 80px" onImageChange={handleBannerRightChange} />
+              <DesktopOrderPanel
+                checkoutData={checkoutData} theme={theme} primaryColor={primaryColor} gradient={gradient}
+                isPreview={isPreview} orderId={orderId} onSuccess={onPaymentSuccess}
+                templateSlug={templateConfig.slug}
+                contact={contactData} address={addressData} cpf={cpfData}
+                onFormError={setFormErrors}
+              />
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* ─── MOBILE LAYOUT ──────────────────────────────────────────── */}
+      {isMobile && (
+        <main className="flex-1 px-4 py-4 space-y-3">
+          <DropZone imageUrl={bannerTop} isPreview={isPreview} minHeight={70}
+            label="Solte aqui" recommendedSize="360 × 70px" onImageChange={handleBannerTopChange} />
+
+          <MobileProgressBar />
+          <MobileSummaryRow checkoutData={checkoutData} primaryColor={primaryColor} />
+          <MobileDiscountRow discount={discount} primaryColor={primaryColor} />
+
+          <MobileContactPaymentCard
+            primaryColor={primaryColor} gradient={gradient} checkoutData={checkoutData}
+            theme={theme} isPreview={isPreview} orderId={orderId} onSuccess={onPaymentSuccess}
+            templateSlug={templateConfig.slug}
+            address={addressData} onAddressChange={setAddressData}
+            cpf={cpfData} onCpfChange={setCpfData}
+          />
+        </main>
+      )}
     </div>
   );
 };

@@ -1,11 +1,16 @@
 /**
- * MinimalTemplate — Checkout Minimalista (v2)
+ * MinimalTemplate — Checkout Minimalista
  *
  * Layout: 3 etapas progressivas bloqueadas (step-locking)
  * Design: Estilo Stripe/Shopify — clean, espaçado, profissional
  * Grid:   [1fr | 380px] com gap-6
  *
- * @version 2.0
+ * FUNCIONALIDADES REAIS:
+ *   - Estado de contato e endereço elevado para o template
+ *   - Cada step recebe data + onChange do template
+ *   - MinimalStepPayment usa usePaymentProcessor com os dados reais
+ *
+ * @version 3.0
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
@@ -17,8 +22,8 @@ import { NoticeBar } from '@/components/checkout/NoticeBar';
 import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import type { CheckoutConfig } from '@/types/checkout-config.types';
-import { MinimalStepCustomer } from './shared/steps/MinimalStepCustomer';
-import { MinimalStepShipping } from './shared/steps/MinimalStepShipping';
+import { MinimalStepCustomer, type CustomerData } from './shared/steps/MinimalStepCustomer';
+import { MinimalStepShipping, type AddressData } from './shared/steps/MinimalStepShipping';
 import { MinimalStepPayment } from './shared/steps/MinimalStepPayment';
 import { CheckoutSummaryPanel } from './shared/CheckoutSummaryPanel';
 
@@ -31,6 +36,7 @@ interface MinimalStepWrapperProps {
   title: string;
   subtitle: string;
   isLocked: boolean;
+  isFullHeight?: boolean;
   children?: React.ReactNode;
 }
 
@@ -304,49 +310,173 @@ const MinimalFakeSocialProof = ({ theme, isMobileView = false }: { theme: any; i
 };
 
 // ============================================================
-// MINIMAL FOOTER (Strictly matched to Image 2)
+// MINIMAL FOOTER — Dinâmico e Configuravel
 // ============================================================
-const MinimalFooter = ({ theme, isMobile }: { theme?: any; isMobile?: boolean }) => (
-  <footer
-    style={{
-      marginTop: 'auto',
-      padding: '40px 24px 24px',
-      backgroundColor: '#ffffff',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '24px',
-    }}
-  >
-    <div
+interface MinimalFooterProps {
+  theme?: any;
+  isMobile?: boolean;
+  checkoutConfig?: CheckoutConfig;
+  storeName?: string;
+}
+
+const MinimalFooter: React.FC<MinimalFooterProps> = ({ theme, isMobile, checkoutConfig, storeName }) => {
+  const footer = checkoutConfig?.footer;
+  const bgColor   = footer?.bgColor   ?? '#ffffff';
+  const textColor = footer?.textColor ?? '#9ca3af';
+  const showStoreName      = footer?.showStoreName      ?? true;
+  const showPaymentMethods = footer?.showPaymentMethods ?? true;
+  const showCnpj           = footer?.showCnpj           ?? false;
+  const showContactEmail   = footer?.showContactEmail   ?? false;
+  const showAddress        = footer?.showAddress        ?? false;
+  const showPhone          = footer?.showPhone          ?? false;
+  const showPrivacyPolicy  = footer?.showPrivacyPolicy  ?? true;
+  const showTermsConditions = footer?.showTermsConditions ?? true;
+  const showReturns        = footer?.showReturns        ?? false;
+
+  const cnpjValue        = footer?.cnpjValue        || '';
+  const contactEmail     = footer?.contactEmail     || '';
+  const address          = footer?.address          || '';
+  const phone            = footer?.phone            || '';
+  const privacyPolicyUrl = footer?.privacyPolicyUrl || '#';
+  const termsUrl         = footer?.termsConditionsUrl || '#';
+  const returnsUrl       = footer?.returnsUrl       || '#';
+
+  // Se não há nada para exibir, retorna null
+  const hasContent = showStoreName || showPaymentMethods || showCnpj || showContactEmail ||
+    showAddress || showPhone || showPrivacyPolicy || showTermsConditions || showReturns;
+  if (!hasContent) return null;
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: '11px',
+    color: textColor,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  };
+
+  const valueStyle: React.CSSProperties = {
+    fontSize: '12px',
+    color: textColor,
+    fontWeight: '400',
+  };
+
+  return (
+    <footer
       style={{
-        width: '100%',
-        maxWidth: '1280px',
+        marginTop: 'auto',
+        padding: isMobile ? '24px 16px 20px' : '40px 24px 24px',
+        backgroundColor: bgColor,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '24px',
-        paddingTop: '24px',
-        borderTop: '1px solid #E5E7EB',
+        gap: '20px',
       }}
     >
-        <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Formas de Pagamento
-        </span>
-        <PaymentMethodIcons
-          variant="horizontal"
-          methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
-          isMobile={isMobile}
-        />
-        <div 
-          className="flex items-center gap-2.5 px-4 py-2 bg-[#F0FDF4] rounded-full border border-green-100 shadow-sm transition-all hover:scale-105"
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1280px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          paddingTop: '24px',
+          borderTop: `1px solid ${textColor}33`,
+        }}
+      >
+        {/* Nome da loja */}
+        {showStoreName && storeName && (
+          <span style={{ fontSize: '13px', color: textColor, fontWeight: '600' }}>
+            {storeName}
+          </span>
+        )}
+
+        {/* Formas de Pagamento */}
+        {showPaymentMethods && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <span style={labelStyle}>Formas de Pagamento</span>
+            <PaymentMethodIcons
+              variant="horizontal"
+              methods={['visa', 'mastercard', 'elo', 'amex', 'discover', 'diners', 'aura', 'pix', 'boleto']}
+              isMobile={isMobile}
+            />
+          </div>
+        )}
+
+        {/* Site Seguro */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 16px',
+            backgroundColor: '#F0FDF4',
+            borderRadius: '99px',
+            border: '1px solid #dcfce7',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          }}
         >
-          <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-          <span className="text-[11px] font-bold text-[#166534] tracking-tight uppercase">Site Seguro</span>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+          <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Site Seguro</span>
         </div>
-    </div>
-  </footer>
-);
+
+        {/* Informações da empresa */}
+        {(showCnpj || showContactEmail || showAddress || showPhone) && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', textAlign: 'center' }}>
+            {showCnpj && cnpjValue && (
+              <span style={valueStyle}>CNPJ: {cnpjValue}</span>
+            )}
+            {showContactEmail && contactEmail && (
+              <a href={`mailto:${contactEmail}`} style={{ ...valueStyle, textDecoration: 'none' }}>{contactEmail}</a>
+            )}
+            {showAddress && address && (
+              <span style={valueStyle}>{address}</span>
+            )}
+            {showPhone && phone && (
+              <a href={`tel:${phone}`} style={{ ...valueStyle, textDecoration: 'none' }}>{phone}</a>
+            )}
+          </div>
+        )}
+
+        {/* Links legais */}
+        {(showPrivacyPolicy || showTermsConditions || showReturns) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px' }}>
+            {showPrivacyPolicy && (
+              <a
+                href={privacyPolicyUrl || '#'}
+                target={privacyPolicyUrl ? '_blank' : undefined}
+                rel="noreferrer"
+                style={{ fontSize: '11px', color: textColor, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              >
+                Política de Privacidade
+              </a>
+            )}
+            {showTermsConditions && (
+              <a
+                href={termsUrl || '#'}
+                target={termsUrl ? '_blank' : undefined}
+                rel="noreferrer"
+                style={{ fontSize: '11px', color: textColor, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              >
+                Termos e Condições
+              </a>
+            )}
+            {showReturns && (
+              <a
+                href={returnsUrl || '#'}
+                target={returnsUrl ? '_blank' : undefined}
+                rel="noreferrer"
+                style={{ fontSize: '11px', color: textColor, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              >
+                Trocas e Devoluções
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </footer>
+  );
+};
 
 // ============================================================
 // MAIN TEMPLATE
@@ -369,6 +499,23 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 
+  // ── Estado elevado — compartilhado entre os 3 steps ──────────
+  const [contactData, setContactData] = useState<CustomerData>({
+    name: '', email: '', phone: '', document: '',
+  });
+  const [addressData, setAddressData] = useState<AddressData>({
+    zipCode: '', street: '', number: '', complement: '',
+    neighborhood: '', city: '', state: '',
+  });
+
+  const handleContactChange = useCallback((field: keyof CustomerData, value: string) => {
+    setContactData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleAddressChange = useCallback((field: keyof AddressData, value: string) => {
+    setAddressData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   // Prioriza config tipada; faz fallback para valores do theme legado
   const primaryColor =
     primaryColorProp ||
@@ -376,18 +523,57 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
     (theme.primaryColor as string) ||
     '#0B1320';
 
-  const headerBgColor = checkoutConfig?.header.bgColor ?? '#ffffff';
+  const checkoutBtnColor = checkoutConfig?.buttons.checkoutBg ?? primaryColor;
+  const headerBgColor    = checkoutConfig?.header.bgColor    ?? '#ffffff';
+  const headerTextColor  = checkoutConfig?.header.textColor  ?? '#111827';
+  const logoAlign        = checkoutConfig?.header.logoAlign  ?? 'left';
+  const showSecBadge     = checkoutConfig?.header.showSecurityBadge ?? true;
   const storeName = checkoutConfig?.header.storeName ?? (theme.storeName as string) ?? 'Minha Loja';
-  const logoUrl = checkoutConfig?.header.logoUrl ?? (theme.logoUrl as string | null) ?? null;
+  const logoUrl   = checkoutConfig?.header.logoUrl   ?? (theme.logoUrl as string | null) ?? null;
   const fontFamily =
     checkoutConfig?.typography.fontFamily ??
     (theme.fontFamily as string) ??
     "'Rubik', 'Inter', system-ui, sans-serif";
   const navSteps = checkoutConfig?.form.navigationSteps ?? (theme.navigationSteps as number) ?? 3;
 
+  // Border-radius mapeado a partir do nextStepStyle
+  const radiusMap = { rectangular: '4px', rounded: '8px', oval: '999px' } as const;
+  const btnRadius = radiusMap[checkoutConfig?.buttons.nextStepStyle ?? 'rounded'];
+
+  /** Objeto consolidado de estilos de botões — passado para todos os steps */
+  const buttonCfg = {
+    primaryBg:      primaryColor,
+    primaryText:    checkoutConfig?.buttons.primaryText   ?? '#ffffff',
+    primaryRadius:  btnRadius,
+    primaryFlow:    checkoutConfig?.buttons.primaryFlow   ?? false,
+    primaryHover:   checkoutConfig?.buttons.primaryHover  ?? true,
+    checkoutBg:     checkoutBtnColor,
+    checkoutText:   checkoutConfig?.buttons.checkoutText  ?? '#ffffff',
+    checkoutRadius: btnRadius,
+    pulse:          checkoutConfig?.buttons.pulse          ?? true,
+  };
+
   // Escassez
   const scarcityEnabled =
     checkoutConfig?.scarcity.enabled ?? (theme.useVisible as boolean) ?? false;
+
+  // Banner
+  const bannerEnabled   = checkoutConfig?.banner.enabled  ?? false;
+  const bannerDesktop   = checkoutConfig?.banner.desktopUrl ?? null;
+  const bannerMobile    = checkoutConfig?.banner.mobileUrl  ?? null;
+
+  // Favicon dinâmico
+  useEffect(() => {
+    const faviconUrl = checkoutConfig?.header.faviconUrl;
+    if (!faviconUrl) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = faviconUrl;
+  }, [checkoutConfig?.header.faviconUrl]);
 
   // ------------------------------------------------------------------
 
@@ -439,9 +625,24 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
           boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
         }}
       >
-        {/* Notice Bar */}
-        {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) && (
-          <NoticeBar theme={theme as Record<string, unknown>} />
+        {/* Notice Bar — TOPO */}
+        {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) &&
+         (checkoutConfig?.noticeBar.position ?? 'top') === 'top' && (
+          <NoticeBar
+            theme={theme as Record<string, unknown>}
+            noticeBarConfig={checkoutConfig?.noticeBar}
+          />
+        )}
+
+        {/* Banner (Desktop e Mobile) */}
+        {bannerEnabled && (bannerDesktop || bannerMobile) && (
+          <div style={{ width: '100%', overflow: 'hidden', lineHeight: 0 }}>
+            <img
+              src={(isMobile ? bannerMobile : bannerDesktop) ?? bannerDesktop ?? bannerMobile ?? ''}
+              alt="Banner"
+              style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '150px', objectFit: 'cover' }}
+            />
+          </div>
         )}
 
       {/* ── HEADER ──────────────────────────────────────────── */}
@@ -479,7 +680,9 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-start',
+              justifyContent: logoAlign === 'center' ? 'center'
+                            : logoAlign === 'right'  ? 'flex-end'
+                            : 'flex-start',
               flex: 1,
             }}
           >
@@ -494,7 +697,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                 style={{
                   fontSize: isMobile ? '16px' : '22px',
                   fontWeight: '700',
-                  color: '#111827',
+                  color: headerTextColor,
                   letterSpacing: '-0.3px',
                 }}
               >
@@ -503,6 +706,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
             )}
           </div>
 
+          {showSecBadge && (
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50">
               <Lock className="w-4 h-4 text-green-500 fill-current" />
@@ -512,6 +716,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
               <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">100% Seguro</span>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -547,6 +752,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
              <CheckoutSummaryPanel
                 checkoutData={checkoutData}
                 theme={theme}
+                checkoutConfig={checkoutConfig}
                 isPreview={isPreview}
               />
           </motion.div>
@@ -590,10 +796,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                   isPreview={isPreview}
                   onNext={() => handleStepAdvance(navSteps === 1 ? 3 : 2)}
                   primaryColor={primaryColor}
+                  buttonCfg={buttonCfg}
+                  data={contactData}
+                  onChange={handleContactChange}
                 />
               ) : (
                 <div className="flex justify-between items-center py-2 text-sm text-gray-500 font-medium">
-                  <span>Informações de contato salvas.</span>
+                  <span>{contactData.name ? `${contactData.name} · ${contactData.email}` : 'Informações de contato salvas.'}</span>
                   <button onClick={() => setCurrentStep(1)} className="text-blue-600 hover:underline">Alterar</button>
                 </div>
               )}
@@ -615,10 +824,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                     onNext={() => handleStepAdvance(3)}
                     onBack={() => handleStepBack(1)}
                     primaryColor={primaryColor}
+                    buttonCfg={buttonCfg}
+                    data={addressData}
+                    onChange={handleAddressChange}
                   />
                 ) : (
                   <div className="flex justify-between items-center py-2 text-sm text-gray-500 font-medium">
-                    <span>Endereço de entrega confirmado.</span>
+                    <span>{addressData.street ? `${addressData.street}, ${addressData.number} — ${addressData.city}` : 'Endereço de entrega confirmado.'}</span>
                     <button onClick={() => setCurrentStep(2)} className="text-blue-600 hover:underline">Alterar</button>
                   </div>
                 )}
@@ -642,7 +854,10 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                   onBack={() => handleStepBack(navSteps > 1 ? 2 : 1)}
                   onSuccess={onPaymentSuccess}
                   primaryColor={primaryColor}
+                  buttonCfg={buttonCfg}
                   templateSlug={templateConfig.slug}
+                  customerData={contactData}
+                  addressData={addressData}
                 />
               </MinimalStepWrapper>
             )}
@@ -658,6 +873,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                 <CheckoutSummaryPanel
                   checkoutData={checkoutData}
                   theme={theme}
+                  checkoutConfig={checkoutConfig}
                   isPreview={isPreview}
                 />
               </div>
@@ -672,7 +888,21 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
       </div>
 
       {/* Footer */}
-      <MinimalFooter theme={theme} isMobile={isMobile} />
+      <MinimalFooter
+        theme={theme}
+        isMobile={isMobile}
+        checkoutConfig={checkoutConfig}
+        storeName={storeName}
+      />
+
+      {/* Notice Bar — RODAPÉ (position=bottom) */}
+      {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) &&
+       (checkoutConfig?.noticeBar.position ?? 'top') === 'bottom' && (
+        <NoticeBar
+          theme={theme as Record<string, unknown>}
+          noticeBarConfig={checkoutConfig?.noticeBar}
+        />
+      )}
 
       {/* ── ESTILOS RESPONSIVOS ──────────────────────────────── */}
       <style>{`

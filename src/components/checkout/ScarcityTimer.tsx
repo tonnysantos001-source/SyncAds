@@ -33,6 +33,8 @@ interface ScarcityTimerProps {
   customMessage?: string;
   compact?: boolean;
   showIcon?: boolean;
+  /** Se true, ignora localStorage e sempre cria timer fresco (modo preview) */
+  isPreview?: boolean;
 }
 
 interface TimeRemaining {
@@ -50,6 +52,7 @@ export const ScarcityTimer: React.FC<ScarcityTimerProps> = ({
   customMessage,
   compact = false,
   showIcon = true,
+  isPreview = false,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>({
     days: 0,
@@ -82,18 +85,32 @@ export const ScarcityTimer: React.FC<ScarcityTimerProps> = ({
   // ============================================
 
   const expirationTime = useMemo(() => {
+    // Em preview: sempre cria timer fresco (ignora localStorage expirado)
+    if (isPreview) {
+      const freshExpiration = new Date();
+      freshExpiration.setMinutes(freshExpiration.getMinutes() + expirationMinutes);
+      return freshExpiration;
+    }
     const storageKey = "checkout_expiration_time";
     const stored = localStorage.getItem(storageKey);
 
     if (stored) {
-      return new Date(stored);
+      const storedDate = new Date(stored);
+      // Se já expirou, criar novo timer
+      if (storedDate.getTime() <= Date.now()) {
+        const newExpiration = new Date();
+        newExpiration.setMinutes(newExpiration.getMinutes() + expirationMinutes);
+        localStorage.setItem(storageKey, newExpiration.toISOString());
+        return newExpiration;
+      }
+      return storedDate;
     } else {
       const newExpiration = new Date();
       newExpiration.setMinutes(newExpiration.getMinutes() + expirationMinutes);
       localStorage.setItem(storageKey, newExpiration.toISOString());
       return newExpiration;
     }
-  }, [expirationMinutes]);
+  }, [expirationMinutes, isPreview]);
 
   // ============================================
   // CALCULAR TEMPO RESTANTE

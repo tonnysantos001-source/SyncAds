@@ -168,6 +168,9 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
   const [open, setOpen] = useState(false);
   const [recentColors, setRecentColors] = useState<string[]>([]);
 
+  // Guard defensivo — evita crash quando value é undefined/null (localStorage corrompido)
+  const safeValue = (value && typeof value === 'string' && value.startsWith('#')) ? value : '#000000';
+
   const handleColorSelect = (color: string) => {
     const upperColor = color.toUpperCase();
     onChange(upperColor);
@@ -195,10 +198,10 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
           >
             <div
               className="w-8 h-8 rounded-md border-2 border-gray-300 dark:border-gray-600 shadow-sm transition-transform hover:scale-110"
-              style={{ backgroundColor: value }}
+              style={{ backgroundColor: safeValue }}
             />
             <span className="text-sm font-mono font-semibold flex-1 text-left">
-              {value.toUpperCase()}
+              {safeValue.toUpperCase()}
             </span>
             <Pipette className="h-4 w-4 text-gray-400" />
           </Button>
@@ -222,7 +225,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
               {/* Color Picker Principal */}
               <div className="space-y-3">
                 <HexColorPicker
-                  color={value}
+                  color={safeValue}
                   onChange={handleColorSelect}
                   style={{
                     width: "100%",
@@ -238,7 +241,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                         #
                       </span>
                       <HexColorInput
-                        color={value}
+                        color={safeValue}
                         onChange={handleColorSelect}
                         prefixed
                         className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono font-semibold bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all"
@@ -248,7 +251,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                   </div>
                   <div
                     className="w-12 h-10 rounded-lg border-2 border-gray-300 dark:border-gray-600 shadow-inner"
-                    style={{ backgroundColor: value }}
+                    style={{ backgroundColor: safeValue }}
                   />
                 </div>
               </div>
@@ -266,7 +269,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                           <ColorSwatch
                             key={color}
                             color={color}
-                            isSelected={value.toUpperCase() === color}
+                            isSelected={safeValue.toUpperCase() === color}
                             onClick={() => handleColorSelect(color)}
                           />
                         ))}
@@ -295,7 +298,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                                 key={color}
                                 color={color}
                                 isSelected={
-                                  value.toUpperCase() === color.toUpperCase()
+                                  safeValue.toUpperCase() === color.toUpperCase()
                                 }
                                 onClick={() => handleColorSelect(color)}
                               />

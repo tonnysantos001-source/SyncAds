@@ -468,7 +468,10 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] font-sans" style={{ color: 'rgb(34,34,34)' }}>
+    <div
+      className={cn("font-sans", isPreview ? "w-full" : "min-h-screen bg-[#0f172a]")}
+      style={{ color: 'rgb(34,34,34)' }}
+    >
       <div className={cn("flex justify-center", isMobile ? "pt-6 pb-12 px-4" : "p-4 lg:p-6")}>
         {/* Container Central 1280px */}
         <div 
@@ -477,7 +480,8 @@ const HighConversionTemplate: React.FC<TemplateRenderProps> = ({
           style={{ 
             width: '100%',
             maxWidth: '1280px', 
-            minHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 48px)',
+            // Em preview: sem minHeight forçada — cresce com conteúdo
+            minHeight: isPreview ? 'auto' : (isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 48px)'),
             borderRadius: '16px'
           }}
         >

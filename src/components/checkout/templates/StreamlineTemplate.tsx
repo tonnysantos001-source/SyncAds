@@ -98,14 +98,14 @@ const HeroBanner: React.FC<{ theme: Record<string, unknown>; primaryColor: strin
 // SCARCITY — vermelho
 // ============================================================
 
-const RedScarcityBar: React.FC<{ theme: Record<string, unknown>; primaryColor: string }> = ({
-  theme, primaryColor,
+const RedScarcityBar: React.FC<{ theme: Record<string, unknown>; primaryColor: string; isPreview?: boolean }> = ({
+  theme, primaryColor, isPreview,
 }) => (
   <div
     className="w-full py-2.5 text-white text-center text-sm font-semibold"
     style={{ backgroundColor: primaryColor }}
   >
-    <ScarcityTimer theme={theme as any} />
+    <ScarcityTimer theme={theme as any} isPreview={isPreview} />
   </div>
 );
 
@@ -228,15 +228,18 @@ const StreamlineTemplate: React.FC<TemplateRenderProps> = ({
 
   return (
     <div
-      className={cn("min-h-screen flex flex-col items-center", isMobile ? "pt-8 pb-16 px-4" : "p-4 lg:p-6")}
+      className={cn(
+        "flex flex-col items-center w-full",
+        isPreview
+          ? "bg-transparent"
+          : cn("min-h-screen bg-[#0f172a]", isMobile ? "pt-8 pb-16 px-4" : "p-4 lg:p-6"),
+      )}
       style={{
-        backgroundColor: '#0f172a',
         fontFamily: (theme.fontFamily as string) || 'Inter, system-ui, sans-serif',
       }}
     >
       <div 
         className="w-full max-w-7xl bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col"
-        style={{ minHeight: isMobile ? 'calc(100vh - 32px)' : 'auto' }}
       >
         {(theme.noticeBarEnabled as boolean) && <NoticeBar theme={theme as any} />}
         <StreamlineHeader theme={theme} primaryColor={primaryColor} isMobile={isMobile} />
@@ -245,7 +248,7 @@ const StreamlineTemplate: React.FC<TemplateRenderProps> = ({
       {heroBannerEnabled && <HeroBanner theme={theme} primaryColor={primaryColor} />}
 
       {/* Scarcity */}
-      {scarcityEnabled && <RedScarcityBar theme={theme} primaryColor={primaryColor} />}
+      {scarcityEnabled && <RedScarcityBar theme={theme} primaryColor={primaryColor} isPreview={isPreview} />}
 
       {/* Content — SPLIT */}
       <div className={cn("max-w-7xl mx-auto", isMobile ? "p-0" : "px-4 py-6")}>

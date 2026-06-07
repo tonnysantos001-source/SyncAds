@@ -89,21 +89,21 @@ class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Detalhes do Erro (apenas em desenvolvimento) */}
-              {process.env.NODE_ENV === "development" && this.state.error && (
+              {/* Detalhes do Erro — visível em dev E em páginas admin (/checkout) */}
+              {this.state.error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
                   <h3 className="font-semibold text-red-900 text-sm">
-                    Detalhes do Erro (Desenvolvimento):
+                    Erro Técnico:
                   </h3>
-                  <pre className="text-xs text-red-800 overflow-auto max-h-40 font-mono">
+                  <pre className="text-xs text-red-800 overflow-auto max-h-40 font-mono whitespace-pre-wrap">
                     {this.state.error.toString()}
                   </pre>
                   {this.state.errorInfo && (
-                    <details className="text-xs text-red-700">
+                    <details className="text-xs text-red-700" open>
                       <summary className="cursor-pointer font-semibold">
                         Stack Trace
                       </summary>
-                      <pre className="mt-2 overflow-auto max-h-60">
+                      <pre className="mt-2 overflow-auto max-h-60 whitespace-pre-wrap">
                         {this.state.errorInfo.componentStack}
                       </pre>
                     </details>

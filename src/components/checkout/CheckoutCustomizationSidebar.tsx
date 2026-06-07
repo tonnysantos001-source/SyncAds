@@ -91,15 +91,6 @@ export const CheckoutCustomizationSidebar: React.FC<
       badge: 'Preto',
     },
     {
-      slug: 'high-conversion',
-      version: 1,
-      name: 'Alto Impacto',
-      description: 'Máxima conversão',
-      color: '#1766DC',
-      emoji: '🔵',
-      badge: 'Azul',
-    },
-    {
       slug: 'tiktok',
       version: 1,
       name: 'Estilo TikTok',
@@ -109,31 +100,13 @@ export const CheckoutCustomizationSidebar: React.FC<
       badge: 'Pink',
     },
     {
-      slug: 'streamline',
-      version: 1,
-      name: 'Streamline',
-      description: 'Split-stepper Black Friday',
-      color: '#E60000',
-      emoji: '🔴',
-      badge: 'Vermelho',
-    },
-    {
       slug: 'premium',
       version: 1,
-      name: 'Checkout Premium',
+      name: 'Estilo Shopify Pay',
       description: 'Design luxuoso e sutil',
       color: '#10B981',
       emoji: '🟢',
       badge: 'Verde',
-    },
-    {
-      slug: 'confianca',
-      version: 1,
-      name: 'Checkout Confiança',
-      description: 'FAQ + depoimentos',
-      color: '#8DC63F',
-      emoji: '🟡',
-      badge: 'Lime',
     },
   ];
 
@@ -249,6 +222,16 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome da loja</Label>
+              <Input
+                className="mt-2"
+                value={config.header.storeName}
+                onChange={(e) => update({ header: { storeName: e.target.value } })}
+                placeholder="Minha Loja"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">Exibido quando não há logo cadastrada</p>
+            </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Exibir badge Pagamento Seguro
@@ -353,6 +336,13 @@ export const CheckoutCustomizationSidebar: React.FC<
                   <SelectItem value="scale">Escala</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Permitir fechar a barra</Label>
+              <Switch
+                checked={config.noticeBar.closeable}
+                onCheckedChange={(v) => update({ noticeBar: { closeable: v } })}
+              />
             </div>
           </div>
         );
@@ -490,28 +480,125 @@ export const CheckoutCustomizationSidebar: React.FC<
             <ModernColorPicker label="Cor do texto" value={config.footer.textColor} onChange={(c) => update({ footer: { textColor: c } })} />
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Informações a exibir</p>
-              {([
-                ['showStoreName',       'Nome da loja'],
-                ['showPaymentMethods',  'Formas de pagamento'],
-                ['showCnpj',           'CNPJ/CPF'],
-                ['showContactEmail',   'E-mail de contato'],
-                ['showAddress',        'Endereço'],
-                ['showPhone',          'Telefone'],
-                ['showPrivacyPolicy',  'Política de privacidade'],
-                ['showTermsConditions','Termos e condições'],
-                ['showReturns',        'Trocas e devoluções'],
-              ] as [keyof typeof config.footer, string][]).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="text-xs text-gray-700 dark:text-gray-300">{label}</Label>
-                  <Switch
-                    checked={config.footer[key] as boolean}
-                    onCheckedChange={(v) => update({ footer: { [key]: v } })}
-                  />
-                </div>
-              ))}
+
+              {/* Nome da loja */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Nome da loja</Label>
+                <Switch checked={config.footer.showStoreName} onCheckedChange={(v) => update({ footer: { showStoreName: v } })} />
+              </div>
+
+              {/* Formas de pagamento */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Formas de pagamento</Label>
+                <Switch checked={config.footer.showPaymentMethods} onCheckedChange={(v) => update({ footer: { showPaymentMethods: v } })} />
+              </div>
+
+              {/* CNPJ/CPF */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">CNPJ/CPF</Label>
+                <Switch checked={config.footer.showCnpj} onCheckedChange={(v) => update({ footer: { showCnpj: v } })} />
+              </div>
+              {config.footer.showCnpj && (
+                <Input
+                  className="mt-1 text-xs"
+                  value={config.footer.cnpjValue || ''}
+                  onChange={(e) => update({ footer: { cnpjValue: e.target.value } })}
+                  placeholder="00.000.000/0001-00"
+                />
+              )}
+
+              {/* E-mail de contato */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">E-mail de contato</Label>
+                <Switch checked={config.footer.showContactEmail} onCheckedChange={(v) => update({ footer: { showContactEmail: v } })} />
+              </div>
+              {config.footer.showContactEmail && (
+                <Input
+                  className="mt-1 text-xs"
+                  type="email"
+                  value={config.footer.contactEmail || ''}
+                  onChange={(e) => update({ footer: { contactEmail: e.target.value } })}
+                  placeholder="contato@sualooja.com.br"
+                />
+              )}
+
+              {/* Endereço */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Endereço</Label>
+                <Switch checked={config.footer.showAddress} onCheckedChange={(v) => update({ footer: { showAddress: v } })} />
+              </div>
+              {config.footer.showAddress && (
+                <Input
+                  className="mt-1 text-xs"
+                  value={config.footer.address || ''}
+                  onChange={(e) => update({ footer: { address: e.target.value } })}
+                  placeholder="Rua Exemplo, 123 — São Paulo, SP"
+                />
+              )}
+
+              {/* Telefone */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Telefone</Label>
+                <Switch checked={config.footer.showPhone} onCheckedChange={(v) => update({ footer: { showPhone: v } })} />
+              </div>
+              {config.footer.showPhone && (
+                <Input
+                  className="mt-1 text-xs"
+                  type="tel"
+                  value={config.footer.phone || ''}
+                  onChange={(e) => update({ footer: { phone: e.target.value } })}
+                  placeholder="(11) 99999-9999"
+                />
+              )}
+
+              {/* Política de privacidade */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Política de privacidade</Label>
+                <Switch checked={config.footer.showPrivacyPolicy} onCheckedChange={(v) => update({ footer: { showPrivacyPolicy: v } })} />
+              </div>
+              {config.footer.showPrivacyPolicy && (
+                <Input
+                  className="mt-1 text-xs"
+                  type="url"
+                  value={config.footer.privacyPolicyUrl || ''}
+                  onChange={(e) => update({ footer: { privacyPolicyUrl: e.target.value } })}
+                  placeholder="https://sualooja.com/privacidade"
+                />
+              )}
+
+              {/* Termos e condições */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Termos e condições</Label>
+                <Switch checked={config.footer.showTermsConditions} onCheckedChange={(v) => update({ footer: { showTermsConditions: v } })} />
+              </div>
+              {config.footer.showTermsConditions && (
+                <Input
+                  className="mt-1 text-xs"
+                  type="url"
+                  value={config.footer.termsConditionsUrl || ''}
+                  onChange={(e) => update({ footer: { termsConditionsUrl: e.target.value } })}
+                  placeholder="https://sualooja.com/termos"
+                />
+              )}
+
+              {/* Trocas e devoluções */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-gray-700 dark:text-gray-300">Trocas e devoluções</Label>
+                <Switch checked={config.footer.showReturns} onCheckedChange={(v) => update({ footer: { showReturns: v } })} />
+              </div>
+              {config.footer.showReturns && (
+                <Input
+                  className="mt-1 text-xs"
+                  type="url"
+                  value={config.footer.returnsUrl || ''}
+                  onChange={(e) => update({ footer: { returnsUrl: e.target.value } })}
+                  placeholder="https://sualooja.com/trocas"
+                />
+              )}
             </div>
           </div>
         );
+
 
       case "ESCASSEZ":
         return (
@@ -552,6 +639,16 @@ export const CheckoutCustomizationSidebar: React.FC<
                 placeholder="15"
                 min="1"
                 max="120"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mensagem customizada</Label>
+              <Textarea
+                value={config.scarcity.customMessage || ''}
+                onChange={(e) => update({ scarcity: { customMessage: e.target.value || null } })}
+                placeholder="Oferta termina em: (automático se vazio)"
+                className="mt-2 resize-none"
+                rows={2}
               />
             </div>
           </div>
@@ -652,6 +749,32 @@ export const CheckoutCustomizationSidebar: React.FC<
                 <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar gênero</Label>
                 <Switch checked={config.form.requestGender} onCheckedChange={(v) => update({ form: { requestGender: v } })} />
               </div>
+            </div>
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Métodos de pagamento aceitos</p>
+              {(['PIX', 'CREDIT_CARD', 'BOLETO'] as const).map((method) => {
+                const labels: Record<string, string> = {
+                  PIX: 'PIX',
+                  CREDIT_CARD: 'Cartão de Crédito',
+                  BOLETO: 'Boleto Bancário',
+                };
+                const isEnabled = config.form.paymentMethods.includes(method);
+                return (
+                  <div key={method} className="flex items-center justify-between">
+                    <Label className="text-xs text-gray-700 dark:text-gray-300">{labels[method]}</Label>
+                    <Switch
+                      checked={isEnabled}
+                      onCheckedChange={(v) => {
+                        const current = config.form.paymentMethods;
+                        const next = v
+                          ? [...current, method]
+                          : current.filter(m => m !== method);
+                        if (next.length > 0) update({ form: { paymentMethods: next } });
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

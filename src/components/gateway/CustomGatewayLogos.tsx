@@ -743,7 +743,7 @@ export const StripeLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Asaas - Logo oficial estilizado
+// Asaas - Logo oficial estilizado (identidade visual oficial: azul #0B4EAD)
 export const AsaasLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -753,25 +753,18 @@ export const AsaasLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="url(#asaas-gradient)" />
-    <circle cx="35" cy="45" r="8" fill="white" />
-    <circle cx="50" cy="45" r="8" fill="white" />
-    <circle cx="65" cy="45" r="8" fill="white" />
+    <rect width="100" height="100" rx="20" fill="#0B4EAD" />
+    {/* Letra A estilizada - identidade Asaas */}
     <path
-      d="M30 58Q35 65 50 65T70 58"
-      stroke="white"
-      strokeWidth="4"
-      fill="none"
-      strokeLinecap="round"
+      d="M50 22L72 72H60L55 58H45L40 72H28L50 22Z"
+      fill="white"
     />
-    <defs>
-      <linearGradient id="asaas-gradient" x1="0" y1="0" x2="100" y2="100">
-        <stop offset="0%" stopColor="#0B4EAD" />
-        <stop offset="100%" stopColor="#0A3D8A" />
-      </linearGradient>
-    </defs>
+    <rect x="43" y="50" width="14" height="5" fill="#0B4EAD" />
+    {/* Ponto decorativo topo - elemento característico Asaas */}
+    <circle cx="50" cy="16" r="5" fill="#4DA6FF" />
   </svg>
 );
+
 
 // Cielo - Logo oficial estilizado
 export const CieloLogo: React.FC<GatewayLogoProps> = ({

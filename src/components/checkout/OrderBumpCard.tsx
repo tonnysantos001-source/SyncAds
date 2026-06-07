@@ -21,6 +21,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Plus, Sparkles, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { OrderBumpConfig } from "@/types/checkout-config.types";
 
 interface OrderBump {
   id: string;
@@ -36,6 +37,8 @@ interface OrderBump {
 interface OrderBumpCardProps {
   orderBump: OrderBump;
   theme: any;
+  /** Config tipada do store — substitui os campos legados do theme */
+  orderBumpConfig?: OrderBumpConfig;
   selected?: boolean;
   onToggle: (orderBumpId: string) => void;
   className?: string;
@@ -44,6 +47,7 @@ interface OrderBumpCardProps {
 export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
   orderBump,
   theme,
+  orderBumpConfig,
   selected = false,
   onToggle,
   className = "",
@@ -54,7 +58,17 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
   // VERIFICAR SE ORDER BUMP ESTÁ HABILITADO
   // ============================================
 
-  if (!theme.orderBumpEnabled) return null;
+  // Resolve: store (novo) > theme (legado)
+  const isEnabled   = orderBumpConfig?.enabled ?? theme.orderBumpEnabled;
+  const bgColor     = orderBumpConfig?.bgColor      ?? theme.orderBumpBackgroundColor   ?? '#ffffff';
+  const borderColor = orderBumpConfig?.borderColor  ?? theme.orderBumpBorderColor       ?? '#e5e7eb';
+  const btnBg       = orderBumpConfig?.buttonBgColor   ?? theme.orderBumpButtonBackgroundColor ?? '#8b5cf6';
+  const btnText     = orderBumpConfig?.buttonTextColor ?? theme.orderBumpButtonTextColor ?? '#ffffff';
+  const textColor   = orderBumpConfig?.textColor    ?? theme.orderBumpTextColor         ?? '#111827';
+  const priceColor  = orderBumpConfig?.priceColor   ?? theme.orderBumpPriceColor        ?? '#10b981';
+  const accentColor = orderBumpConfig?.buttonBgColor ?? theme.primaryButtonBackgroundColor ?? '#8b5cf6';
+
+  if (!isEnabled) return null;
 
   // ============================================
   // CALCULAR DESCONTO
@@ -73,23 +87,21 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
   // ============================================
 
   const cardStyles: React.CSSProperties = {
-    backgroundColor: theme.orderBumpBackgroundColor || "#ffffff",
-    borderColor: selected
-      ? theme.primaryButtonBackgroundColor || "#8b5cf6"
-      : theme.orderBumpBorderColor || "#e5e7eb",
+    backgroundColor: bgColor,
+    borderColor: selected ? accentColor : borderColor,
     borderWidth: `${theme.orderBumpBorderWidth || 2}px`,
     borderRadius: `${theme.orderBumpBorderRadius || 12}px`,
     boxShadow: theme.orderBumpShadow
       ? selected
-        ? `0 8px 30px ${theme.primaryButtonBackgroundColor || "#8b5cf6"}30`
-        : "0 4px 6px rgba(0, 0, 0, 0.1)"
-      : "none",
-    transition: "all 0.3s ease",
+        ? `0 8px 30px ${accentColor}30`
+        : '0 4px 6px rgba(0, 0, 0, 0.1)'
+      : 'none',
+    transition: 'all 0.3s ease',
   };
 
   const buttonStyles: React.CSSProperties = {
-    backgroundColor: theme.orderBumpButtonBackgroundColor || "#8b5cf6",
-    color: theme.orderBumpButtonTextColor || "#ffffff",
+    backgroundColor: btnBg,
+    color: btnText,
     borderRadius: `${(theme.orderBumpBorderRadius || 12) - 4}px`,
   };
 
@@ -127,8 +139,8 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
           <motion.div
             className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg"
             style={{
-              backgroundColor: theme.discountTagBackgroundColor || "#ef4444",
-              color: theme.discountTagTextColor || "#ffffff",
+              backgroundColor: theme.discountTagBackgroundColor || '#ef4444',
+              color: theme.discountTagTextColor || '#ffffff',
             }}
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
@@ -186,7 +198,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
             {/* Título */}
             <h3
               className="text-lg font-bold mb-2"
-              style={{ color: theme.orderBumpTextColor || "#111827" }}
+              style={{ color: textColor }}
             >
               {orderBump.title}
             </h3>
@@ -194,11 +206,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
             {/* Descrição */}
             <p
               className="text-sm mb-3"
-              style={{
-                color: theme.orderBumpTextColor
-                  ? `${theme.orderBumpTextColor}80`
-                  : "#6b7280",
-              }}
+              style={{ color: `${textColor}80` }}
             >
               {orderBump.description}
             </p>
@@ -218,14 +226,10 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
               >
                 <Sparkles
                   className="w-4 h-4 flex-shrink-0 mt-0.5"
-                  style={{
-                    color: theme.orderBumpPriceColor || "#8b5cf6",
-                  }}
+                  style={{ color: priceColor }}
                 />
                 <span
-                  style={{
-                    color: theme.orderBumpTextColor || "#374151",
-                  }}
+                  style={{ color: textColor }}
                 >
                   {bullet}
                 </span>
@@ -240,9 +244,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
           {orderBump.originalPrice && (
             <span
               className="text-sm line-through opacity-60"
-              style={{
-                color: theme.orderBumpTextColor || "#6b7280",
-              }}
+              style={{ color: textColor }}
             >
               R$ {orderBump.originalPrice.toFixed(2)}
             </span>
@@ -261,11 +263,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
           {/* Texto "apenas" */}
           <span
             className="text-sm"
-            style={{
-              color: theme.orderBumpTextColor
-                ? `${theme.orderBumpTextColor}60`
-                : "#9ca3af",
-            }}
+            style={{ color: `${textColor}60` }}
           >
             à vista
           </span>
@@ -300,7 +298,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
           <motion.p
             className="text-center text-xs mt-3 font-medium"
             style={{
-              color: theme.orderBumpPriceColor || "#10b981",
+              color: priceColor,
             }}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -315,9 +313,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
       {selected && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `linear-gradient(135deg, ${theme.primaryButtonBackgroundColor || "#8b5cf6"}10, transparent)`,
-          }}
+          style={{ background: `linear-gradient(135deg, ${accentColor}10, transparent)` }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -329,9 +325,7 @@ export const OrderBumpCard: React.FC<OrderBumpCardProps> = ({
         {isHovered && !selected && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `linear-gradient(135deg, ${theme.orderBumpBorderColor || "#e5e7eb"}20, transparent)`,
-            }}
+            style={{ background: `linear-gradient(135deg, ${borderColor}20, transparent)` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

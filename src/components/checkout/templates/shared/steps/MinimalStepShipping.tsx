@@ -1,17 +1,24 @@
 /**
- * MinimalStepShipping — Endereço de entrega (v2)
+ * MinimalStepShipping — Endereço de entrega do checkout minimalista
  *
- * Inputs: 48px, border-radius 8px, padding 16px
- * Labels: 12px #6B7280
- * Botão Avançar: 48px bg primário, 100%; Voltar: borda cinza
+ * FUNCIONALIDADES REAIS:
+ *   - Estado controlado via props (estado elevado no MinimalTemplate)
+ *   - CEP lookup via ViaCEP (hook useCepLookup) — preenche endereço automaticamente
+ *   - Máscara de CEP
+ *   - Validação completa antes de avançar
+ *   - Erros inline por campo
+ *
+ * @version 3.0
  */
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
-import { formatCep, searchCep } from '@/lib/utils/cepUtils';
+import { Loader2, CheckCircle, ChevronRight, ChevronLeft, AlertCircle } from 'lucide-react';
+import { useCepLookup } from '@/hooks/useCepLookup';
+import { formatCEP, validateCEP } from '@/utils/checkoutValidators';
+import type { ButtonCfg } from './MinimalStepCustomer';
 
-interface AddressData {
+export interface AddressData {
   zipCode: string;
   street: string;
   number: string;
@@ -27,17 +34,25 @@ interface MinimalStepShippingProps {
   onNext: () => void;
   onBack: () => void;
   primaryColor: string;
+  buttonCfg?: ButtonCfg;
+  /** Estado elevado — controlado pelo MinimalTemplate */
+  data: AddressData;
+  onChange: (field: keyof AddressData, value: string) => void;
 }
 
-// ── estilos reutilizáveis ───────────────────────────────────
+// ── estilos reutilizáveis ─────────────────────────────────────
 
-const getInputStyle = (theme: Record<string, unknown>, overrides?: React.CSSProperties): React.CSSProperties => ({
+const getInputStyle = (
+  theme: Record<string, unknown>,
+  hasError?: boolean,
+  overrides?: React.CSSProperties
+): React.CSSProperties => ({
   width: '100%',
   height: '45px',
   padding: '0 16px',
   borderRadius: '8px',
-  border: `1px solid ${(theme.inputBorderColor as string) || '#E5E7EB'}`,
-  backgroundColor: (theme.inputBackgroundColor as string) || '#ffffff',
+  border: `1px solid ${hasError ? '#ef4444' : (theme.inputBorderColor as string) || '#E5E7EB'}`,
+  backgroundColor: hasError ? '#fff5f5' : (theme.inputBackgroundColor as string) || '#ffffff',
   color: '#111827',
   fontSize: '13px',
   fontFamily: '"Rubik", sans-serif',
@@ -56,51 +71,87 @@ const getLabelStyle = (theme: Record<string, unknown>): React.CSSProperties => (
   marginBottom: '6px',
 });
 
+const errorStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  fontSize: '11px',
+  color: '#ef4444',
+  marginTop: '4px',
+  fontFamily: '"Rubik", sans-serif',
+};
+
 // ── componente ─────────────────────────────────────────────
 
 export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
-  theme, isPreview, onNext, onBack, primaryColor,
+  theme, isPreview, onNext, onBack, primaryColor, buttonCfg, data, onChange,
 }) => {
-  const [data, setData] = useState<AddressData>({
-    zipCode: '', street: '', number: '', complement: '',
-    neighborhood: '', city: '', state: '',
-  });
-  const [loadingCep, setLoadingCep] = useState(false);
-  const [cepFound, setCepFound]     = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof AddressData, string>>>({});
+  const [cepFound, setCepFound] = useState(false);
 
-  const btnColor = primaryColor || '#0B1320';
+  const { lookup: lookupCep, loading: loadingCep } = useCepLookup();
 
+  const btnBg     = buttonCfg?.primaryBg     ?? primaryColor ?? '#0B1320';
+  const btnText   = buttonCfg?.primaryText   ?? '#ffffff';
+  const btnRadius = buttonCfg?.primaryRadius ?? '8px';
+  const btnFlow   = buttonCfg?.primaryFlow   ?? false;
+
+  const clearError = (field: keyof AddressData) => {
+    if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  // CEP lookup automático ao digitar 8 dígitos
   const handleCepChange = async (value: string) => {
-    const formatted = formatCep(value);
-    setData({ ...data, zipCode: formatted });
+    const formatted = formatCEP(value);
+    onChange('zipCode', formatted);
     setCepFound(false);
+    clearError('zipCode');
 
-    if (formatted.replace(/\D/g, '').length === 8) {
-      setLoadingCep(true);
-      try {
-        const result = await searchCep(formatted.replace(/\D/g, ''));
-        if (result) {
-          setData((prev) => ({
-            ...prev,
-            street:       result.street       || result.logradouro || '',
-            neighborhood: result.neighborhood  || result.bairro     || '',
-            city:         result.city          || result.localidade  || '',
-            state:        result.state         || result.uf          || '',
-          }));
-          setCepFound(true);
-        }
-      } catch {}
-      finally { setLoadingCep(false); }
+    const digits = formatted.replace(/\D/g, '');
+    if (digits.length === 8) {
+      const result = await lookupCep(digits);
+      if (result) {
+        onChange('street', result.street || '');
+        onChange('neighborhood', result.neighborhood || '');
+        onChange('city', result.city || '');
+        onChange('state', result.state || '');
+        setCepFound(true);
+        setErrors(prev => {
+          const n = { ...prev };
+          delete n.street; delete n.neighborhood; delete n.city; delete n.state; delete n.zipCode;
+          return n;
+        });
+      } else {
+        setErrors(prev => ({ ...prev, zipCode: 'CEP não encontrado' }));
+      }
     }
+  };
+
+  const validate = (): boolean => {
+    if (isPreview) return true;
+    const errs: Partial<Record<keyof AddressData, string>> = {};
+    if (!validateCEP(data.zipCode)) errs.zipCode = 'CEP inválido';
+    if (!data.street.trim()) errs.street = 'Rua obrigatória';
+    if (!data.number.trim()) errs.number = 'Número obrigatório';
+    if (!data.neighborhood.trim()) errs.neighborhood = 'Bairro obrigatório';
+    if (!data.city.trim()) errs.city = 'Cidade obrigatória';
+    if (!data.state.trim() || data.state.length !== 2) errs.state = 'UF obrigatória';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleNext = () => {
+    if (!validate()) return;
+    onNext();
   };
 
   const advanceBtnStyle: React.CSSProperties = {
     flex: 1,
     height: '45px',
-    backgroundColor: btnColor,
-    color: '#ffffff',
+    backgroundColor: btnBg,
+    color: btnText,
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: btnRadius,
     fontFamily: '"Inter", sans-serif',
     fontSize: '16px',
     fontWeight: '700',
@@ -110,6 +161,13 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
     justifyContent: 'center',
     gap: '8px',
     letterSpacing: '0.3px',
+    position: 'relative',
+    overflow: 'hidden',
+    ...(btnFlow ? {
+      backgroundImage: `linear-gradient(90deg, ${btnBg} 0%, ${btnBg}cc 40%, #ffffff33 50%, ${btnBg}cc 60%, ${btnBg} 100%)`,
+      backgroundSize: '200% 100%',
+      animation: 'btnFlow 1.8s linear infinite',
+    } : {}),
   };
 
   const backBtnStyle: React.CSSProperties = {
@@ -119,7 +177,7 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
     backgroundColor: 'transparent',
     color: (theme.textColor as string) || '#374151',
     border: '1px solid #D1D5DB',
-    borderRadius: '8px',
+    borderRadius: btnRadius,
     fontFamily: '"Inter", sans-serif',
     fontSize: '14px',
     fontWeight: '500',
@@ -131,6 +189,10 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
   };
 
   return (
+    <>
+      {btnFlow && (
+        <style>{`@keyframes btnFlow { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+      )}
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* CEP */}
@@ -138,12 +200,15 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
         <label style={getLabelStyle(theme)}>CEP *</label>
         <div style={{ position: 'relative' }}>
           <input
-            style={getInputStyle(theme, {
-              borderColor: cepFound ? '#16a34a' : (theme.inputBorderColor as string) || '#D1D5DB',
+            style={getInputStyle(theme, !!errors.zipCode, {
+              borderColor: cepFound && !errors.zipCode ? '#16a34a' : undefined,
+              paddingRight: '36px',
             })}
             placeholder="00000-000"
             maxLength={9}
+            inputMode="numeric"
             value={data.zipCode}
+            autoComplete="postal-code"
             onChange={(e) => handleCepChange(e.target.value)}
           />
           {loadingCep && (
@@ -153,6 +218,7 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
             <CheckCircle style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#16a34a' }} />
           )}
         </div>
+        {errors.zipCode && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.zipCode}</div>}
       </div>
 
       {/* Rua + Número */}
@@ -160,20 +226,23 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
         <div>
           <label style={getLabelStyle(theme)}>Rua *</label>
           <input
-            style={getInputStyle(theme)}
+            style={getInputStyle(theme, !!errors.street)}
             placeholder="Nome da rua"
             value={data.street}
-            onChange={(e) => setData({ ...data, street: e.target.value })}
+            autoComplete="address-line1"
+            onChange={(e) => { onChange('street', e.target.value); clearError('street'); }}
           />
+          {errors.street && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.street}</div>}
         </div>
         <div>
           <label style={getLabelStyle(theme)}>Nº *</label>
           <input
-            style={getInputStyle(theme)}
+            style={getInputStyle(theme, !!errors.number)}
             placeholder="123"
             value={data.number}
-            onChange={(e) => setData({ ...data, number: e.target.value })}
+            onChange={(e) => { onChange('number', e.target.value); clearError('number'); }}
           />
+          {errors.number && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.number}</div>}
         </div>
       </div>
 
@@ -185,17 +254,18 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
             style={getInputStyle(theme)}
             placeholder="Apto 101"
             value={data.complement}
-            onChange={(e) => setData({ ...data, complement: e.target.value })}
+            onChange={(e) => onChange('complement', e.target.value)}
           />
         </div>
         <div>
           <label style={getLabelStyle(theme)}>Bairro *</label>
           <input
-            style={getInputStyle(theme)}
+            style={getInputStyle(theme, !!errors.neighborhood)}
             placeholder="Bairro"
             value={data.neighborhood}
-            onChange={(e) => setData({ ...data, neighborhood: e.target.value })}
+            onChange={(e) => { onChange('neighborhood', e.target.value); clearError('neighborhood'); }}
           />
+          {errors.neighborhood && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.neighborhood}</div>}
         </div>
       </div>
 
@@ -204,21 +274,25 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
         <div>
           <label style={getLabelStyle(theme)}>Cidade *</label>
           <input
-            style={getInputStyle(theme)}
+            style={getInputStyle(theme, !!errors.city)}
             placeholder="Cidade"
             value={data.city}
-            onChange={(e) => setData({ ...data, city: e.target.value })}
+            autoComplete="address-level2"
+            onChange={(e) => { onChange('city', e.target.value); clearError('city'); }}
           />
+          {errors.city && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.city}</div>}
         </div>
         <div>
           <label style={getLabelStyle(theme)}>UF *</label>
           <input
-            style={getInputStyle(theme)}
+            style={getInputStyle(theme, !!errors.state)}
             placeholder="SP"
             maxLength={2}
             value={data.state}
-            onChange={(e) => setData({ ...data, state: e.target.value.toUpperCase() })}
+            autoComplete="address-level1"
+            onChange={(e) => { onChange('state', e.target.value.toUpperCase()); clearError('state'); }}
           />
+          {errors.state && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.state}</div>}
         </div>
       </div>
 
@@ -231,7 +305,7 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
 
         <motion.button
           type="button"
-          onClick={onNext}
+          onClick={handleNext}
           style={advanceBtnStyle}
           whileHover={{ opacity: 0.88 }}
           whileTap={{ scale: 0.98 }}
@@ -241,5 +315,6 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
         </motion.button>
       </div>
     </div>
+    </>
   );
 };

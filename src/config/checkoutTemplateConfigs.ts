@@ -1,11 +1,14 @@
 /**
  * Template Configs — SyncAds AI Multi-Template System
  *
- * Definições estáticas de todos os 6 templates de checkout.
+ * Definições estáticas dos 3 templates de checkout disponíveis.
  * Serve como fonte de verdade no frontend (complementa o banco de dados).
  *
- * @version 1.0
+ * Templates ativos: Minimalista, Estilo TikTok, Checkout Premium
+ *
+ * @version 2.0
  */
+
 
 import {
   CHECKOUT_BLOCKS,
@@ -76,68 +79,7 @@ export const MinimalTemplateConfig: TemplateConfig = {
 };
 
 // ============================================================
-// TEMPLATE 2: ALTO IMPACTO
-// ============================================================
-
-export const HighConversionTemplateConfig: TemplateConfig = {
-  slug: 'high-conversion',
-  version: 1,
-  name: 'Alto Impacto',
-  layoutType: 'single-page',
-  mobileOptimized: true,
-
-  defaultThemeOverrides: {
-    primaryColor: '#1766DC',
-    buttonColor: '#1766DC',
-    buttonTextColor: '#ffffff',
-    buttonBorderRadius: '9999px',
-    buttonIcon: 'lock',
-    headerBgColor: '#0A1628',
-    headerTextColor: '#ffffff',
-    scarcityBarBgColor: '#1766DC',
-    scarcityBarTextColor: '#ffffff',
-    backgroundColor: '#f8fafc',
-    stepLocking: false,
-    freeShippingBannerEnabled: true,
-  },
-
-  supportedBlocks: [
-    CHECKOUT_BLOCKS.CUSTOMER, CHECKOUT_BLOCKS.SHIPPING, CHECKOUT_BLOCKS.PAYMENT,
-    CHECKOUT_BLOCKS.SUMMARY, CHECKOUT_BLOCKS.SCARCITY, CHECKOUT_BLOCKS.ORDER_BUMP,
-    CHECKOUT_BLOCKS.BANNER, CHECKOUT_BLOCKS.TESTIMONIALS, CHECKOUT_BLOCKS.GUARANTEE,
-    CHECKOUT_BLOCKS.BENEFITS, CHECKOUT_BLOCKS.FAQ, CHECKOUT_BLOCKS.NOTICE_BAR,
-  ],
-
-  defaultBlockOrder: [
-    CHECKOUT_BLOCKS.SCARCITY, CHECKOUT_BLOCKS.CUSTOMER,
-    CHECKOUT_BLOCKS.SHIPPING, CHECKOUT_BLOCKS.PAYMENT, CHECKOUT_BLOCKS.SUMMARY,
-  ],
-
-  defaultSectionVisibility: {
-    [CHECKOUT_BLOCKS.SCARCITY]:     true,
-    [CHECKOUT_BLOCKS.ORDER_BUMP]:   false,
-    [CHECKOUT_BLOCKS.BANNER]:       false,
-    [CHECKOUT_BLOCKS.TESTIMONIALS]: false,
-    [CHECKOUT_BLOCKS.GUARANTEE]:    false,
-    [CHECKOUT_BLOCKS.FAQ]:          false,
-    [CHECKOUT_BLOCKS.NOTICE_BAR]:   false,
-  },
-
-  breakpoints: {
-    mobile: 768, tablet: 1024, desktop: 1280,
-    mobileLayout: 'stacked',
-    hideSidebarOnMobile: true,
-    stackOrderOnMobile: [
-      CHECKOUT_BLOCKS.SCARCITY, CHECKOUT_BLOCKS.CUSTOMER,
-      CHECKOUT_BLOCKS.SHIPPING, CHECKOUT_BLOCKS.PAYMENT,
-    ],
-  },
-
-  conversionFeatures: ['scarcity-timer', 'lock-button', 'frete-destaque', 'coupon-field'],
-};
-
-// ============================================================
-// TEMPLATE 3: TIKTOK / TOKVEX
+// TEMPLATE 4: CHECKOUT PREMIUM
 // ============================================================
 
 export const TikTokTemplateConfig: TemplateConfig = {
@@ -199,89 +141,13 @@ export const TikTokTemplateConfig: TemplateConfig = {
 };
 
 // ============================================================
-// TEMPLATE 4: STREAMLINE
-// ============================================================
-
-export const StreamlineTemplateConfig: TemplateConfig = {
-  slug: 'streamline',
-  version: 1,
-  name: 'Streamline',
-  layoutType: 'split-stepper',
-  mobileOptimized: true,
-
-  defaultThemeOverrides: {
-    primaryColor: '#E60000',
-    buttonColor: '#E60000',
-    buttonTextColor: '#ffffff',
-    buttonBorderRadius: '6px',
-    scarcityBarBgColor: '#E60000',
-    scarcityBarTextColor: '#ffffff',
-    backgroundColor: '#f5f5f5',
-    paymentColumnPosition: 'right-always-visible',
-    heroBannerEnabled: true,
-    benefitsCardEnabled: true,
-    benefitsItems: ['frete-gratis', 'entrega-rapida'],
-    completedStepSummaryEnabled: true,
-    testimonialsOnMobileEnabled: true,
-    cardVisualEnabled: true,
-    stepperLayout: 'vertical-desktop-horizontal-mobile',
-    stepLocking: true,
-    siteSeguroBadgeStyle: 'filled-red',
-  },
-
-  supportedBlocks: [
-    CHECKOUT_BLOCKS.CUSTOMER, CHECKOUT_BLOCKS.SHIPPING, CHECKOUT_BLOCKS.PAYMENT,
-    CHECKOUT_BLOCKS.SUMMARY, CHECKOUT_BLOCKS.SCARCITY, CHECKOUT_BLOCKS.BANNER,
-    CHECKOUT_BLOCKS.TESTIMONIALS, CHECKOUT_BLOCKS.ORDER_BUMP, CHECKOUT_BLOCKS.GUARANTEE,
-    CHECKOUT_BLOCKS.BENEFITS, CHECKOUT_BLOCKS.FAQ, CHECKOUT_BLOCKS.NOTICE_BAR,
-  ],
-
-  defaultBlockOrder: [
-    CHECKOUT_BLOCKS.BANNER, CHECKOUT_BLOCKS.SCARCITY,
-    CHECKOUT_BLOCKS.CUSTOMER, CHECKOUT_BLOCKS.SHIPPING,
-    CHECKOUT_BLOCKS.PAYMENT, CHECKOUT_BLOCKS.BENEFITS,
-    CHECKOUT_BLOCKS.TESTIMONIALS, CHECKOUT_BLOCKS.SUMMARY,
-  ],
-
-  defaultSectionVisibility: {
-    [CHECKOUT_BLOCKS.BANNER]:       true,
-    [CHECKOUT_BLOCKS.SCARCITY]:     true,
-    [CHECKOUT_BLOCKS.BENEFITS]:     true,
-    [CHECKOUT_BLOCKS.TESTIMONIALS]: true,
-    [CHECKOUT_BLOCKS.ORDER_BUMP]:   false,
-    [CHECKOUT_BLOCKS.GUARANTEE]:    false,
-    [CHECKOUT_BLOCKS.FAQ]:          false,
-    [CHECKOUT_BLOCKS.NOTICE_BAR]:   false,
-  },
-
-  breakpoints: {
-    mobile: 768, tablet: 1024, desktop: 1280,
-    mobileLayout: 'stacked',
-    hideSidebarOnMobile: true,
-    stackOrderOnMobile: [
-      CHECKOUT_BLOCKS.BANNER, CHECKOUT_BLOCKS.SUMMARY,
-      CHECKOUT_BLOCKS.TESTIMONIALS, CHECKOUT_BLOCKS.SCARCITY,
-      CHECKOUT_BLOCKS.CUSTOMER, CHECKOUT_BLOCKS.SHIPPING,
-      CHECKOUT_BLOCKS.PAYMENT, CHECKOUT_BLOCKS.BENEFITS,
-    ],
-  },
-
-  conversionFeatures: [
-    'scarcity-timer', 'hero-banner', 'split-stepper',
-    'benefits-card-persistent', 'card-visual-graphic',
-    'testimonials-before-form-mobile', 'step-locking',
-    'back-button-step', 'coupon-field',
-  ],
-};
-
-// ============================================================
-// TEMPLATE 5: CHECKOUT PREMIUM
+// TEMPLATE 3: CHECKOUT PREMIUM
 // ============================================================
 
 export const PremiumTemplateConfig: TemplateConfig = {
   slug: 'premium',
   version: 1,
-  name: 'Checkout Premium',
+  name: 'Estilo Shopify Pay',
   layoutType: 'two-column',
   mobileOptimized: true,
 
@@ -422,16 +288,13 @@ export const ConfiancaTemplateConfig: TemplateConfig = {
 };
 
 // ============================================================
-// REGISTRY — mapa de todos os templates por slug@version
+// REGISTRY — mapa dos 3 templates ativos por slug@version
 // ============================================================
 
 export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
-  [`minimal@1`]:          MinimalTemplateConfig,
-  [`high-conversion@1`]:  HighConversionTemplateConfig,
-  [`tiktok@1`]:           TikTokTemplateConfig,
-  [`streamline@1`]:       StreamlineTemplateConfig,
-  [`premium@1`]:          PremiumTemplateConfig,
-  [`confianca@1`]:        ConfiancaTemplateConfig,
+  [`minimal@1`]:  MinimalTemplateConfig,
+  [`tiktok@1`]:   TikTokTemplateConfig,
+  [`premium@1`]:  PremiumTemplateConfig,
 };
 
 /** Retorna a config de um template pelo slug e versão */

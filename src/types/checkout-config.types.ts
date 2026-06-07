@@ -213,18 +213,32 @@ export interface FooterConfig {
   showPaymentMethods: boolean;
   /** Exibir CNPJ/CPF */
   showCnpj: boolean;
+  /** Valor do CNPJ/CPF a exibir */
+  cnpjValue: string;
   /** Exibir email de contato */
   showContactEmail: boolean;
+  /** Email de contato a exibir */
+  contactEmail: string;
   /** Exibir endereço */
   showAddress: boolean;
+  /** Endereço a exibir */
+  address: string;
   /** Exibir telefone */
   showPhone: boolean;
+  /** Telefone a exibir */
+  phone: string;
   /** Exibir link de política de privacidade */
   showPrivacyPolicy: boolean;
+  /** URL da política de privacidade */
+  privacyPolicyUrl: string;
   /** Exibir link de termos e condições */
   showTermsConditions: boolean;
+  /** URL dos termos e condições */
+  termsConditionsUrl: string;
   /** Exibir política de devoluções */
   showReturns: boolean;
+  /** URL da política de trocas e devoluções */
+  returnsUrl: string;
 }
 
 /** Configuração do formulário */
@@ -385,12 +399,19 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
     showStoreName: true,
     showPaymentMethods: true,
     showCnpj: false,
+    cnpjValue: '',
     showContactEmail: false,
+    contactEmail: '',
     showAddress: false,
+    address: '',
     showPhone: false,
+    phone: '',
     showPrivacyPolicy: true,
+    privacyPolicyUrl: '',
     showTermsConditions: true,
+    termsConditionsUrl: '',
     showReturns: false,
+    returnsUrl: '',
   },
 
   form: {
