@@ -4,27 +4,54 @@
 (function () {
     console.log('🔧 [PASTE FIX] Habilitando suporte global para paste...');
 
-    // Garantir que eventos de clipboard funcionem
-    const ensurePasteWorks = () => {
-        // Permitir paste em todos os inputs e textareas
-        document.addEventListener('paste', (e) => {
-            const target = e.target as HTMLElement;
+    const handleForcePaste = (e: ClipboardEvent) => {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
 
-            // Verificar se o alvo é um input ou textarea
-            if (
-                target.tagName === 'INPUT' ||
-                target.tagName === 'TEXTAREA' ||
-                target.isContentEditable
-            ) {
-                // NÃO prevenir o comportamento padrão - deixar o paste acontecer
-                console.log('✅ [PASTE FIX] Paste permitido em:', target.tagName, target.id || target.className);
+        // Verificar se o alvo é um input ou textarea
+        if (
+            target && 
+            (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && 
+            !target.readOnly && 
+            !target.disabled
+        ) {
+            // Se for um campo de input normal, vamos forçar a colagem de texto
+            try {
+                const text = (e.clipboardData || (window as any).clipboardData).getData('text');
+                if (text) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                // Garantir que o evento propague normalmente
-                return true;
+                    const start = target.selectionStart ?? target.value.length;
+                    const end = target.selectionEnd ?? target.value.length;
+                    const val = target.value;
+                    
+                    const newValue = val.slice(0, start) + text + val.slice(end);
+                    target.value = newValue;
+                    
+                    // Ajustar posição do cursor
+                    target.selectionStart = target.selectionEnd = start + text.length;
+
+                    // Disparar eventos para o React detectar a mudança
+                    const tracker = (target as any)._valueTracker;
+                    if (tracker) {
+                        tracker.setValue(val);
+                    }
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    console.log('✅ [PASTE FIX] Colagem forçada com sucesso em:', target.tagName, target.id || target.className);
+                }
+            } catch (err) {
+                console.error('❌ [PASTE FIX] Erro ao forçar colagem:', err);
             }
-        }, { capture: true, passive: false }); // capture: true para pegar o evento antes de outros handlers
+        }
+    };
 
-        // GARANTIR paste via context menu (botão direito)
+    const ensurePasteWorks = () => {
+        // Usar capture: true para interceptar o evento no início do fluxo
+        document.addEventListener('paste', handleForcePaste, { capture: true });
+
+        // Permitir menu de contexto (botão direito)
         document.addEventListener('contextmenu', (e) => {
             const target = e.target as HTMLElement;
             if (
@@ -32,9 +59,10 @@
                 target.tagName === 'TEXTAREA' ||
                 target.isContentEditable
             ) {
-                console.log('✅ [PASTE FIX] Context menu permitido em:', target.tagName);
+                // Não previne o menu de contexto
+                return true;
             }
-        });
+        }, { capture: true });
 
         console.log('✅ [PASTE FIX] Listener de paste configurado com sucesso');
     };
@@ -46,3 +74,4 @@
         ensurePasteWorks();
     }
 })();
+
