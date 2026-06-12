@@ -651,6 +651,14 @@ const IntegrationDetailPage: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
                     }
+                    onPaste={(e) => {
+                      // Permite colar (Ctrl+V) em campos do tipo senha
+                      if (field.type === "password") {
+                        e.preventDefault();
+                        const pasted = e.clipboardData.getData("text");
+                        handleInputChange(field.id, pasted);
+                      }
+                    }}
                     className="pr-10"
                   />
                   {field.type === "password" && (
