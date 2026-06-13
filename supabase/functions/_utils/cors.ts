@@ -5,6 +5,8 @@
 
 // Domínios permitidos
 const ALLOWED_ORIGINS = [
+  "https://syncads.com.br",
+  "https://www.syncads.com.br",
   "https://syncads-dun.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
@@ -26,6 +28,12 @@ export function isOriginAllowed(origin: string | null): boolean {
 
   // Permitir localhost em desenvolvimento
   if (origin.includes("localhost") || origin.includes("127.0.0.1")) return true;
+
+  // Permitir qualquer subdomínio do syncads.com.br
+  if (origin.includes("syncads.com.br")) return true;
+
+  // Permitir vercel previews
+  if (origin.includes(".vercel.app")) return true;
 
   return false;
 }
