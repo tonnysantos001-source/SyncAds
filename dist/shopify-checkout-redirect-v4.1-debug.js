@@ -634,6 +634,14 @@
       price = product.price > 1000 ? product.price / 100 : product.price;
     }
 
+    const pTitle = product.title || document.querySelector('meta[property="og:title"]')?.content || document.title || "";
+    const cleanedProductTitle = pTitle.split(" - ")[0].split(" – ")[0].trim();
+    
+    let productName = cleanedProductTitle;
+    if (variant) {
+      productName = variant.name || (variant.title ? `${cleanedProductTitle} - ${variant.title}` : (variant.public_title ? `${cleanedProductTitle} - ${variant.public_title}` : cleanedProductTitle));
+    }
+
     const productData = {
       productId: String(product.id || ""),
       variantId: variant
@@ -641,13 +649,14 @@
         : variantId
           ? String(variantId)
           : String(product.id),
-      name: variant ? `${product.title} - ${variant.title}` : product.title,
+      name: productName,
       price: price,
       quantity: quantity,
       image:
         product.featured_image ||
         product.image ||
         (product.images && product.images[0]) ||
+        document.querySelector('meta[property="og:image"]')?.content ||
         "",
       sku: variant?.sku || "",
     };
