@@ -165,42 +165,50 @@ export function usePaymentProcessor({
         let isAdminGateway = false;
 
         // ──────────────────────────────────────────────────────────────────
-        // 4. Buscar GatewayConfig (admin ou cliente)
+        // 4. Buscar GatewayConfig (admin ou cliente) via RPC seguro (bypassa RLS)
         // ──────────────────────────────────────────────────────────────────
 
         // 4a. Tentar gateway do admin se a decisão foi 'admin'
         if (splitDecision?.decision === 'admin' && splitDecision?.gatewayId) {
-          console.log('[Split] Usando gateway do ADMIN');
-          const { data: adminConfig } = await supabase
-            .from('GatewayConfig')
-            .select('*, gateway:Gateway(*)')
-            .eq('userId', 'admin')
-            .eq('gatewayId', splitDecision.gatewayId)
-            .eq('isActive', true)
-            .single();
+          console.log('[Split] Usando gateway do ADMIN via RPC');
+          const { data: adminConfigs, error: adminRpcError } = await supabase.rpc(
+            'get_active_gateways_for_checkout',
+            { p_user_id: 'admin' }
+          );
 
-          if (adminConfig) {
-            selectedConfig = adminConfig;
-            isAdminGateway = true;
+          if (adminRpcError) {
+            console.error('[RPC get_active_gateways_for_checkout admin] Erro:', adminRpcError);
+          } else if (adminConfigs) {
+            const adminConfig = (adminConfigs as any[]).find(
+              (c) => c.gatewayId === splitDecision.gatewayId
+            );
+            if (adminConfig) {
+              selectedConfig = adminConfig;
+              isAdminGateway = true;
+            }
           }
         }
 
-        // 4b. Fallback: gateway do cliente
+        // 4b. Fallback: gateway do cliente via RPC
         if (!selectedConfig) {
-          console.log('[Split] Usando gateway do CLIENTE');
-          const { data: gatewayConfigs } = await supabase
-            .from('GatewayConfig')
-            .select('*, gateway:Gateway(*)')
-            .eq('userId', storeUserId)
-            .eq('isActive', true);
+          console.log('[Split] Usando gateway do CLIENTE via RPC');
+          const { data: gatewayConfigs, error: clientRpcError } = await supabase.rpc(
+            'get_active_gateways_for_checkout',
+            { p_user_id: storeUserId }
+          );
 
-          if (!gatewayConfigs || gatewayConfigs.length === 0) {
+          if (clientRpcError) {
+            console.error('[RPC get_active_gateways_for_checkout cliente] Erro:', clientRpcError);
+            throw new Error('Erro ao carregar os gateways de pagamento da loja.');
+          }
+
+          if (!gatewayConfigs || (gatewayConfigs as any[]).length === 0) {
             throw new Error(
               'Nenhum gateway de pagamento configurado para esta loja. Configure um gateway nas configurações.'
             );
           }
 
-          for (const config of gatewayConfigs) {
+          for (const config of (gatewayConfigs as any[])) {
             const gw = config.gateway;
             if (!gw) continue;
             const isDefault = config.isDefault || false;
