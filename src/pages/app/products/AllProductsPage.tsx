@@ -545,9 +545,6 @@ const AllProductsPage = () => {
                         Produto
                       </TableHead>
                       <TableHead className="font-semibold dark:text-gray-300">
-                        SKU
-                      </TableHead>
-                      <TableHead className="font-semibold dark:text-gray-300">
                         Preço
                       </TableHead>
                       <TableHead className="font-semibold dark:text-gray-300">
@@ -559,7 +556,6 @@ const AllProductsPage = () => {
                       <TableHead className="text-right font-semibold dark:text-gray-300">
                         Ações
                       </TableHead>
-                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -611,11 +607,6 @@ const AllProductsPage = () => {
                                 </Badge>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 px-2 py-1 rounded dark:text-gray-300">
-                              {product.sku || "N/A"}
-                            </code>
                           </TableCell>
                           <TableCell>
                             <div>
