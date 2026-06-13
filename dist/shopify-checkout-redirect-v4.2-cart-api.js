@@ -25,11 +25,11 @@
       "https://ovskepqggmxlfckxqgbr.supabase.co/functions/v1/shopify-create-order",
 
     // URL do checkout customizado
-    CHECKOUT_URL: "https://syncads-dun.vercel.app/checkout",
+    CHECKOUT_URL: "https://syncads.com.br/checkout",
 
     // Chave pública do Supabase
     SUPABASE_ANON_KEY:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA0ODAzNTEsImV4cCI6MjA0NjA1NjM1MX0.wjhZEkX0yQxLEJJhXqDXzN9vEZ-hEQYB5qE7X0HqE_I",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c2tlcHFnZ214bGZja3hxZ2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MjQ4NTUsImV4cCI6MjA3NjQwMDg1NX0.UdNgqpTN38An6FuoJPZlj_zLkmAqfJQXb6i1DdTQO_E",
 
     // Debug
     DEBUG: true,
@@ -555,7 +555,7 @@
       // Limpar carrinho e redirecionar
       await clearCart();
 
-      const checkoutUrl = `${CONFIG.CHECKOUT_URL}/${data.orderId}`;
+      const checkoutUrl = data.checkoutUrl || `${CONFIG.CHECKOUT_URL}/${data.orderId}`;
       log("🚀 Redirecionando para:", checkoutUrl);
       window.location.href = checkoutUrl;
     } catch (err) {
