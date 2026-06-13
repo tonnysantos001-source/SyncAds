@@ -688,13 +688,6 @@ const DesktopOrderPanel: React.FC<{
         cpf: cardData.cpf,
       } : undefined,
     });
-
-    if (!processorError) {
-      setPaySuccess(true);
-      setTimeout(() => onSuccess?.(orderId || ''), 500);
-    } else {
-      setLocalError(processorError);
-    }
   };
 
   if (paySuccess) {
@@ -818,10 +811,10 @@ const DesktopOrderPanel: React.FC<{
           cardData={cardData} onCardChange={setCardData} cardErrors={cardErrors} total={total} />
       </div>
 
-        {localError && (
+        {(localError || processorError) && (
           <div className="px-5 py-3 bg-red-50 border-t border-red-100">
             <p className="text-xs text-red-600 flex items-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {localError}
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {localError || processorError}
             </p>
           </div>
         )}
@@ -903,13 +896,6 @@ const MobileContactPaymentCard: React.FC<{
         cpf: cardData.cpf,
       } : undefined,
     });
-
-    if (!processorError) {
-      setPaySuccess(true);
-      setTimeout(() => onSuccess?.(orderId || ''), 500);
-    } else {
-      setErrors({ _global: processorError });
-    }
   };
 
   if (paySuccess) {
@@ -981,9 +967,9 @@ const MobileContactPaymentCard: React.FC<{
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           <span className="text-[10px] text-gray-400 font-medium">Compra 100% Segura</span>
         </div>
-        {errors._global && (
+        {(errors._global || processorError) && (
           <p className="flex items-center gap-1.5 text-xs text-red-500 mt-2 text-center justify-center">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {errors._global}
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {errors._global || processorError}
           </p>
         )}
       </div>
