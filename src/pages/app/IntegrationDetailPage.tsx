@@ -703,74 +703,76 @@ const IntegrationDetailPage: React.FC = () => {
               </CardContent>
             )}
           </Card>
+        </div>
+      )}
 
-          {/* Cards de script do tema */}
-          <div className="grid md:grid-cols-2 gap-4 pt-2">
-            <Card className="border-2 border-blue-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="h-5 w-5 text-blue-600" />
-                  Script do Checkout
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Após conectar, faça upload do arquivo{" "}
-                  <code className="bg-gray-100 px-1 rounded text-xs">shopify-checkout-redirect.js</code>{" "}
-                  em <strong>Assets</strong> no editor do tema Shopify.
-                </p>
-                <Button
-                  variant="default"
-                  className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
-                  onClick={() =>
-                    window.open(
-                      "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
-                      "_blank",
-                    )
-                  }
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Baixar Script
-                </Button>
-              </CardContent>
-            </Card>
+      {/* ===== SHOPIFY: INSTRUÇÕES DE INSTALAÇÃO DO SCRIPT ===== */}
+      {config.id === "shopify" && (
+        <div className="grid md:grid-cols-2 gap-4 pt-2">
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-600" />
+                Script do Checkout
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Após conectar, faça upload do arquivo{" "}
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">shopify-checkout-redirect.js</code>{" "}
+                em <strong>Assets</strong> no editor do tema Shopify.
+              </p>
+              <Button
+                variant="default"
+                className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() =>
+                  window.open(
+                    "/shopify-checkout-redirect.js",
+                    "_blank",
+                  )
+                }
+              >
+                <ExternalLink className="h-4 w-4" />
+                Baixar Script
+              </Button>
+            </CardContent>
+          </Card>
 
-            <Card className="border-2 border-purple-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Copy className="h-5 w-5 text-purple-600" />
-                  Inserir no Tema
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Abra <strong>Layout/theme.liquid</strong> e cole este código acima de{" "}
-                  <code className="bg-gray-100 px-1 rounded text-xs">&lt;/body&gt;</code>.
-                </p>
-                <div className="bg-gray-900 rounded p-2 mb-2">
-                  <code className="text-xs text-green-400 font-mono break-all">
-                    {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
-                  </code>
-                </div>
-                <Button
-                  variant="default"
-                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
-                    );
-                    toast({
-                      title: "✅ Código Copiado!",
-                      description: "Cole no theme.liquid acima da tag </body>",
-                    });
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar Código
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="border-2 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Copy className="h-5 w-5 text-purple-600" />
+                Inserir no Tema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Abra <strong>Layout/theme.liquid</strong> e cole este código acima de{" "}
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">&lt;/body&gt;</code>.
+              </p>
+              <div className="bg-gray-900 rounded p-2 mb-2">
+                <code className="text-xs text-green-400 font-mono break-all">
+                  {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
+                </code>
+              </div>
+              <Button
+                variant="default"
+                className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
+                  );
+                  toast({
+                    title: "✅ Código Copiado!",
+                    description: "Cole no theme.liquid acima da tag </body>",
+                  });
+                }}
+              >
+                <Copy className="h-4 w-4" />
+                Copiar Código
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
 
