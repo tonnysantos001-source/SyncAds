@@ -1,0 +1,19 @@
+name = "SyncAds"
+client_id = "acb4fb257cdbbab3fa0c60a99e6c2e08"
+application_url = "https://syncads.com.br"
+embedded = false
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,write_orders,read_customers,write_customers,read_checkouts,read_inventory,write_inventory"
+
+[auth]
+redirect_urls = [
+  "https://syncads.com.br/integrations/callback",
+  "https://syncads.com.br/integrations/shopify"
+]
+
+[webhooks]
+api_version = "2024-01"
+
+[pos]
+embedded = false
