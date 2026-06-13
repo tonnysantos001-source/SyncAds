@@ -869,7 +869,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           isPreview={previewMode}
           onStepChange={(step) => setCurrentStep(step)}
           onPaymentSuccess={(id) => {
-            navigate(`/checkout/sucesso/${id || orderId}`);
+            navigate(`/checkout/success/${id || orderId}`);
           }}
           isMobile={isMobile || false}
           onUpdateTheme={onUpdateTheme}
