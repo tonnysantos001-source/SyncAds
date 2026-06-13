@@ -22,6 +22,7 @@ import { vtexIntegrationApi } from "@/lib/api/vtexIntegrationApi";
 import { nuvemshopIntegrationApi } from "@/lib/api/nuvemshopIntegrationApi";
 import { woocommerceIntegrationApi } from "@/lib/api/woocommerceIntegrationApi";
 import { mercadolivreIntegrationApi } from "@/lib/api/mercadolivreIntegrationApi";
+import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -36,6 +37,10 @@ import {
   Store,
   Package,
   ShoppingCart,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Lock,
 } from "lucide-react";
 
 interface IntegrationField {
@@ -77,53 +82,38 @@ const INTEGRATIONS_CONFIG: Record<string, IntegrationConfig> = {
     fields: [
       {
         id: "shopDomain",
-        label: "Domínio da Loja",
+        label: "Domínio da Loja Shopify",
         placeholder: "minhaloja.myshopify.com",
         type: "text",
         required: true,
-        helpText: "Digite o domínio da sua loja Shopify (ex: minhaloja.myshopify.com)",
+        helpText: "Digite o domínio da sua loja (ex: minhaloja.myshopify.com)",
       },
       {
         id: "accessToken",
         label: "Access Token (Token de acesso da API Admin)",
         placeholder: "shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         type: "password",
-        required: true,
-        helpText: "O token de acesso gerado após a instalação do app (começa com shpat_)",
+        required: false,
+        helpText: "Token de acesso do app personalizado (começa com shpat_) — opcional se usar conexão 1 clique",
       },
       {
         id: "apiKey",
         label: "ID do cliente (API Key / Client ID)",
         placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         type: "text",
-        required: true,
-        helpText: "ID do cliente (Client ID) encontrado nas configurações do app no Dev Dashboard da Shopify",
+        required: false,
+        helpText: "ID do cliente encontrado nas credenciais do app no Dev Dashboard da Shopify",
       },
       {
         id: "apiSecret",
         label: "Chave secreta (API Secret / Client Secret)",
         placeholder: "shpss_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         type: "password",
-        required: true,
-        helpText: "Chave secreta (Client Secret) encontrada nas configurações do app no Dev Dashboard da Shopify",
+        required: false,
+        helpText: "Chave secreta encontrada nas credenciais do app no Dev Dashboard da Shopify",
       },
     ],
-    manual: [
-      {
-        step: 1,
-        title: "Configure as Credenciais",
-        description:
-          "Preencha os campos acima com as credenciais do seu App Shopify",
-      },
-      {
-        step: 2,
-        title: "Instale o Script no Tema",
-        description:
-          "Adicione o script de checkout no arquivo theme.liquid da sua loja",
-        link: "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
-        linkText: "Ver Script",
-      },
-    ],
+    manual: [],
   },
   vtex: {
     id: "vtex",
@@ -304,6 +294,9 @@ const IntegrationDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [showManualFields, setShowManualFields] = useState(false);
+  const [shopifyDomain, setShopifyDomain] = useState("");
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   const config = integrationId ? INTEGRATIONS_CONFIG[integrationId] : null;
 
@@ -327,6 +320,55 @@ const IntegrationDetailPage: React.FC = () => {
 
   const handleInputChange = (fieldId: string, value: string) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
+  // ===== SHOPIFY 1-CLICK OAUTH =====
+  const handleShopifyOAuth = async () => {
+    if (!user) return;
+
+    let domain = shopifyDomain.trim();
+    if (!domain) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Digite o domínio da sua loja Shopify",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Normalizar domínio
+    if (!domain.includes(".myshopify.com")) {
+      domain = `${domain}.myshopify.com`;
+    }
+
+    setIsOAuthLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth?action=install&shop=${domain}&userId=${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.authUrl) {
+        // Redirecionar para autorização da Shopify
+        window.location.href = result.authUrl;
+      } else {
+        throw new Error(result.error || "Erro ao gerar URL de autorização");
+      }
+    } catch (error: any) {
+      toast({
+        title: "❌ Erro ao conectar",
+        description: error.message || "Não foi possível iniciar a conexão. Verifique o domínio e tente novamente.",
+        variant: "destructive",
+      });
+      setIsOAuthLoading(false);
+    }
   };
 
   const handleConnect = async () => {
@@ -504,93 +546,240 @@ const IntegrationDetailPage: React.FC = () => {
         )}
       </Card>
 
-      {/* Alerta Crítico para Shopify */}
-
-      {/* Instruções Shopify - Sempre Visíveis */}
-      {config.id === "shopify" && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Card 1: Baixar Script */}
-          <Card className="border-2 border-blue-200">
+      {/* ===== SHOPIFY: CONEXÃO EM 1 CLIQUE ===== */}
+      {config.id === "shopify" && !isConnected && (
+        <div className="space-y-4">
+          {/* Card principal de conexão OAuth */}
+          <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-5 w-5 text-blue-600" />
-                Passo 1: Baixar Script
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Zap className="h-5 w-5 text-green-600" />
+                Conectar com Shopify — 1 Clique
               </CardTitle>
+              <CardDescription className="text-sm text-green-700 dark:text-green-400">
+                Digite o domínio da sua loja e clique em conectar. Você será redirecionado para autorizar o SyncAds na Shopify automaticamente.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Baixe o arquivo{" "}
-                <code className="bg-gray-100 px-1 rounded text-xs">
-                  shopify-checkout-redirect.js
-                </code>{" "}
-                e faça upload em: <strong>Assets</strong> →{" "}
-                <strong>Add a new asset</strong> no editor do seu tema Shopify.
-              </p>
-              <Button
-                variant="default"
-                className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
-                onClick={() =>
-                  window.open(
-                    "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
-                    "_blank",
-                  )
-                }
-              >
-                <ExternalLink className="h-4 w-4" />
-                Abrir Script
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Copiar Código */}
-          <Card className="border-2 border-green-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Copy className="h-5 w-5 text-green-600" />
-                Passo 2: Inserir no Tema
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Abra <strong>Layout/theme.liquid</strong> e cole este código
-                logo <strong>acima da tag</strong>{" "}
-                <code className="bg-gray-100 px-1 rounded text-xs">
-                  &lt;/body&gt;
-                </code>{" "}
-                no final do arquivo.
-              </p>
-              <div className="bg-gray-900 rounded p-2 mb-2">
-                <code className="text-xs text-green-400 font-mono break-all">
-                  {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
-                </code>
+            <CardContent className="space-y-4">
+              {/* Campo de domínio */}
+              <div className="space-y-2">
+                <Label htmlFor="shopify-domain-oauth" className="font-medium">
+                  Domínio da Loja Shopify <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none pointer-events-none">
+                      🏪
+                    </span>
+                    <Input
+                      id="shopify-domain-oauth"
+                      type="text"
+                      placeholder="minhaloja.myshopify.com"
+                      value={shopifyDomain}
+                      onChange={(e) => setShopifyDomain(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleShopifyOAuth(); }}
+                      className="pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Encontre em: Configurações → Domínios no seu painel Shopify (ex: <code className="bg-muted px-1 rounded">minha-loja.myshopify.com</code>)
+                </p>
               </div>
+
+              {/* Botão de conexão OAuth */}
               <Button
-                variant="default"
-                className="w-full gap-2 bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
-                  );
-                  toast({
-                    title: "✅ Código Copiado!",
-                    description: "Cole no theme.liquid acima da tag </body>",
-                  });
-                }}
+                onClick={handleShopifyOAuth}
+                disabled={isOAuthLoading}
+                className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 gap-3 shadow-lg shadow-green-200 dark:shadow-none"
               >
-                <Copy className="h-4 w-4" />
-                Copiar Código
+                {isOAuthLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Redirecionando para Shopify...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-5 w-5" />
+                    Conectar com Shopify
+                  </>
+                )}
               </Button>
+
+              {/* Explicação segurança */}
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-white/60 dark:bg-white/5 rounded-lg p-3">
+                <Lock className="h-4 w-4 shrink-0 mt-0.5 text-green-600" />
+                <span>
+                  Conexão segura via OAuth oficial da Shopify. Você será direcionado para a tela de autorização da Shopify e, após confirmar, voltará automaticamente para o SyncAds já conectado.
+                </span>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Separador */}
+          <div className="relative">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
+              ou use credenciais manuais
+            </span>
+          </div>
+
+          {/* Opção manual — colapsável */}
+          <Card className="border border-dashed">
+            <button
+              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors rounded-lg"
+              onClick={() => setShowManualFields((v) => !v)}
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Lock className="h-4 w-4" />
+                Inserir credenciais manualmente (avançado)
+              </div>
+              {showManualFields ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+
+            {showManualFields && (
+              <CardContent className="pt-0 space-y-4 border-t">
+                <p className="text-xs text-muted-foreground pt-4">
+                  Preencha os campos abaixo com as credenciais do app personalizado criado no{" "}
+                  <a href="https://partners.shopify.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    Dev Dashboard da Shopify
+                  </a>.
+                </p>
+                {config.fields.map((field) => (
+                  <div key={field.id} className="space-y-2">
+                    <Label htmlFor={`manual-${field.id}`}>
+                      {field.label}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={`manual-${field.id}`}
+                        type={
+                          field.type === "password"
+                            ? showPassword[field.id] ? "text" : "password"
+                            : field.type
+                        }
+                        placeholder={field.placeholder}
+                        value={formData[field.id] || ""}
+                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        className="pr-10"
+                      />
+                      {field.type === "password" && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2"
+                          onClick={() =>
+                            setShowPassword((prev) => ({
+                              ...prev,
+                              [field.id]: !prev[field.id],
+                            }))
+                          }
+                        >
+                          {showPassword[field.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {field.helpText && (
+                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  onClick={handleConnect}
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Conectando...</>
+                  ) : (
+                    "Conectar com Credenciais Manuais"
+                  )}
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Cards de script do tema */}
+          <div className="grid md:grid-cols-2 gap-4 pt-2">
+            <Card className="border-2 border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  Script do Checkout
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Após conectar, faça upload do arquivo{" "}
+                  <code className="bg-gray-100 px-1 rounded text-xs">shopify-checkout-redirect.js</code>{" "}
+                  em <strong>Assets</strong> no editor do tema Shopify.
+                </p>
+                <Button
+                  variant="default"
+                  className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={() =>
+                    window.open(
+                      "https://syncads-dun.vercel.app/shopify-checkout-redirect.js",
+                      "_blank",
+                    )
+                  }
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Baixar Script
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-purple-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Copy className="h-5 w-5 text-purple-600" />
+                  Inserir no Tema
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Abra <strong>Layout/theme.liquid</strong> e cole este código acima de{" "}
+                  <code className="bg-gray-100 px-1 rounded text-xs">&lt;/body&gt;</code>.
+                </p>
+                <div className="bg-gray-900 rounded p-2 mb-2">
+                  <code className="text-xs text-green-400 font-mono break-all">
+                    {`<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`}
+                  </code>
+                </div>
+                <Button
+                  variant="default"
+                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `<script src="{{ 'shopify-checkout-redirect.js' | asset_url }}" defer></script>`,
+                    );
+                    toast({
+                      title: "✅ Código Copiado!",
+                      description: "Cole no theme.liquid acima da tag </body>",
+                    });
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar Código
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
-      {/* Instruções Compactas (outras integrações) */}
+      {/* Instruções Compactas (outras integrações, não-Shopify) */}
       {config.manual.length > 0 && !isConnected && config.id !== "shopify" && (
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm space-y-3">
-            {config.manual.map((step, index) => (
+            {config.manual.map((step) => (
               <div key={step.step} className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
                   {step.step}
@@ -618,8 +807,8 @@ const IntegrationDetailPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Campos de Configuração */}
-      {!isConnected && config.fields.length > 0 && (
+      {/* Campos de Configuração — Integrações não-Shopify */}
+      {!isConnected && config.fields.length > 0 && config.id !== "shopify" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Credenciais</CardTitle>
@@ -652,7 +841,6 @@ const IntegrationDetailPage: React.FC = () => {
                       handleInputChange(field.id, e.target.value)
                     }
                     onPaste={(e) => {
-                      // Permite colar (Ctrl+V) em campos do tipo senha
                       if (field.type === "password") {
                         e.preventDefault();
                         const pasted = e.clipboardData.getData("text");
@@ -693,61 +881,63 @@ const IntegrationDetailPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Ações */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            {isConnected ? (
-              <>
-                <Button
-                  onClick={handleDisconnect}
-                  disabled={isLoading}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Desconectando...
-                    </>
-                  ) : (
-                    "Desconectar"
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/integrations")}
-                >
-                  Voltar
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={handleConnect}
-                  disabled={isLoading}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Conectando...
-                    </>
-                  ) : (
-                    "Conectar"
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/integrations")}
-                >
-                  Cancelar
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Ações — Integrações não-Shopify ou quando já está conectado */}
+      {(config.id !== "shopify" || isConnected) && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              {isConnected ? (
+                <>
+                  <Button
+                    onClick={handleDisconnect}
+                    disabled={isLoading}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Desconectando...
+                      </>
+                    ) : (
+                      "Desconectar"
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/integrations")}
+                  >
+                    Voltar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleConnect}
+                    disabled={isLoading}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Conectando...
+                      </>
+                    ) : (
+                      "Conectar"
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/integrations")}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
