@@ -367,6 +367,8 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
+
     // ====================================================================
     // CHECKOUT PÚBLICO: Usar service_role para bypass de RLS
     // O checkout é acessado por usuários anônimos, portanto não podemos
