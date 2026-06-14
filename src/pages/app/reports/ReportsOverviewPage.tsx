@@ -376,34 +376,34 @@ const MetricCard = ({
         transition={{ duration: 0.3, delay }}
         whileHover={{ y: -1 }}
       >
-        <Card className="relative overflow-hidden border border-gray-150/30 dark:border-gray-800/20 bg-white/40 dark:bg-gray-950/30 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-2.5 rounded-xl min-h-[82px] flex flex-col justify-between">
+        <Card className="relative overflow-hidden border border-gray-150/30 dark:border-gray-800/20 bg-white/40 dark:bg-gray-950/30 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-3.5 rounded-xl min-h-[98px] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               {title}
             </span>
             <div className={`p-1 rounded-md ${color} bg-opacity-10 flex-shrink-0`}>
-              <Icon className={`h-3 w-3 ${color.replace("bg-", "text-")}`} />
+              <Icon className={`h-4 w-4 ${color.replace("bg-", "text-")}`} />
             </div>
           </div>
           <div className="mt-1 flex items-baseline justify-between">
             <div className="flex flex-col min-w-0">
-              <div className="text-base font-extrabold text-gray-800 dark:text-gray-200 tracking-tight truncate">
+              <div className="text-xl font-extrabold text-gray-800 dark:text-gray-200 tracking-tight truncate">
                 {value}
               </div>
               {subtitle && (
-                <span className="text-[8px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5 truncate">
                   {subtitle}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-0.5 shrink-0 ml-1">
               {isPositive ? (
-                <ArrowUpRight className="h-3 w-3 text-green-500" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-green-500" />
               ) : (
-                <ArrowDownRight className="h-3 w-3 text-red-500" />
+                <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />
               )}
               <span
-                className={`text-[9px] font-bold ${
+                className={`text-[11px] font-bold ${
                   isPositive ? "text-green-500" : "text-red-500"
                 }`}
               >
@@ -423,36 +423,36 @@ const MetricCard = ({
       transition={{ duration: 0.3, delay }}
       whileHover={{ y: -1 }}
     >
-      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-3 rounded-xl min-h-[95px] flex flex-col justify-between">
+      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-4.5 rounded-xl min-h-[120px] flex flex-col justify-between">
         <div
           className={`absolute top-0 right-0 w-20 h-20 ${color} opacity-[0.08] rounded-full blur-2xl`}
         />
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             {title}
           </span>
           <div className={`p-1.5 rounded-lg ${color} bg-opacity-15 flex-shrink-0`}>
-            <Icon className={`h-3.5 w-3.5 ${color.replace("bg-", "text-")}`} />
+            <Icon className={`h-5 w-5 ${color.replace("bg-", "text-")}`} />
           </div>
         </div>
         <div className="mt-1.5">
-          <div className="text-lg md:text-xl font-black bg-gradient-to-r from-gray-950 via-gray-700 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
+          <div className="text-xl md:text-2xl font-black bg-gradient-to-r from-gray-950 via-gray-700 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
             {value}
           </div>
           <div className="flex items-center gap-1 mt-0.5">
             {isPositive ? (
-              <ArrowUpRight className="h-3 w-3 text-green-500" />
+              <ArrowUpRight className="h-3.5 w-3.5 text-green-500" />
             ) : (
-              <ArrowDownRight className="h-3 w-3 text-red-500" />
+              <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />
             )}
             <span
-              className={`text-[9px] font-bold ${
+              className={`text-xs font-bold ${
                 isPositive ? "text-green-500" : "text-red-500"
               }`}
             >
               {Math.abs(change).toFixed(1)}%
             </span>
-            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium">
+            <span className="text-[10.5px] text-gray-400 dark:text-gray-500 font-medium">
               vs anterior
             </span>
           </div>
@@ -640,13 +640,6 @@ const ReportsOverviewPage = () => {
   const primaryCards = metrics
     ? [
         {
-          title: "Receita Total",
-          value: formatCurrency(metrics.totalRevenue),
-          change: metrics.revenueChange,
-          icon: DollarSign,
-          color: "bg-green-500",
-        },
-        {
           title: "Total de Pedidos",
           value: formatNumber(metrics.totalOrders),
           change: metrics.ordersChange,
@@ -666,6 +659,13 @@ const ReportsOverviewPage = () => {
           change: metrics.ticketChange,
           icon: Package,
           color: "bg-pink-500",
+        },
+        {
+          title: "Receita Total",
+          value: formatCurrency(metrics.totalRevenue),
+          change: metrics.revenueChange,
+          icon: DollarSign,
+          color: "bg-green-500",
         },
       ]
     : [];
@@ -779,17 +779,17 @@ const ReportsOverviewPage = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-150/40 dark:border-gray-800/20 pb-2.5"
       >
         <div>
-          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight">
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight">
             Dashboard
           </h1>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
             Visão geral das suas métricas de vendas e conversão
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-[145px] h-8 text-[11px] font-semibold bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg">
+            <SelectTrigger className="w-[160px] h-9 text-xs font-semibold bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -803,57 +803,58 @@ const ReportsOverviewPage = () => {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 rounded-lg"
             onClick={() => loadDashboardData()}
           >
-            <Activity className="h-3.5 w-3.5" />
+            <Activity className="h-4 w-4" />
           </Button>
         </div>
       </motion.div>
 
       {/* Métricas Principais (Financeiras e Online) */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-        {primaryCards.map((metric, index) => (
-          <MetricCard key={index} {...metric} delay={index * 0.05} />
-        ))}
-        {/* Globo Online como o quinto card */}
+        {/* Globo Online como o primeiro card */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
           whileHover={{ y: -1 }}
         >
-          <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-3 rounded-xl flex justify-between items-center h-full min-h-[95px]">
+          <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-4.5 rounded-xl flex justify-between items-center h-full min-h-[120px]">
             <div className="flex flex-col flex-1 min-w-0 pr-1">
-              <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Visitantes Online
               </span>
               <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-lg md:text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                <span className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                   {metrics?.activeVisitors || 0}
                 </span>
-                <span className="text-[8px] font-bold text-green-500 flex items-center gap-1 shrink-0">
-                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="text-[11px] font-bold text-green-500 flex items-center gap-1 shrink-0">
+                  <span className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                   </span>
                   ativos
                 </span>
               </div>
-              <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 truncate">
+              <span className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 truncate">
                 Navegando no checkout
               </span>
             </div>
             {/* Globo Animado Shopify Style */}
-            <div className="relative h-14 w-14 flex items-center justify-center shrink-0 ml-1">
+            <div className="relative h-[68px] w-[68px] flex items-center justify-center shrink-0 ml-1">
               <ShopifyGlobe
                 activeCount={metrics?.activeVisitors || 0}
                 locations={activeLocations}
-                size={56}
+                size={68}
               />
             </div>
           </Card>
         </motion.div>
+
+        {primaryCards.map((metric, index) => (
+          <MetricCard key={index} {...metric} delay={(index + 1) * 0.05} />
+        ))}
       </div>
 
       {/* Gráfico Principal e Últimos Pedidos em Linha Lado a Lado */}
@@ -865,23 +866,23 @@ const ReportsOverviewPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3 rounded-xl h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800 mb-2">
+          <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-5 rounded-xl h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
-                <h3 className="text-xs md:text-sm font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                <h3 className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                   Desempenho de Vendas e Faturamento
                 </h3>
-                <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
                   Faturamento e volume de pedidos no período selecionado
                 </p>
               </div>
-              <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-sm text-[8px] px-1.5 py-0.5 animate-pulse">
+              <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-sm text-[10.5px] px-2 py-0.5 animate-pulse">
                 <Zap className="h-3 w-3 mr-1" />
                 Tempo Real
               </Badge>
             </div>
             <CardContent className="p-0 flex-1 flex items-center">
-              <ResponsiveContainer width="100%" height={185}>
+              <ResponsiveContainer width="100%" height={250}>
                 {displayData.length > 0 ? (
                   <ComposedChart data={displayData}>
                     <defs>
@@ -891,16 +892,16 @@ const ReportsOverviewPage = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
-                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "11px" }} />
                     <YAxis
                       yAxisId="left"
                       stroke="#06b6d4"
-                      style={{ fontSize: "9px" }}
+                      style={{ fontSize: "11px" }}
                       tickFormatter={(value) => `R$ ${value}`}
                     />
-                    <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" style={{ fontSize: "9px" }} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" style={{ fontSize: "11px" }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ paddingTop: "5px", fontSize: "9px" }} iconType="circle" />
+                    <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                     <Area
                       yAxisId="left"
                       type="monotone"
@@ -937,20 +938,20 @@ const ReportsOverviewPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-3 rounded-xl h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800 mb-2">
+          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-xl h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
-                <h3 className="text-xs md:text-sm font-bold flex items-center gap-1.5 text-gray-900 dark:text-white">
-                  <ShoppingBag className="h-4 w-4 text-purple-500" />
+                <h3 className="text-base md:text-lg font-bold flex items-center gap-1.5 text-gray-900 dark:text-white">
+                  <ShoppingBag className="h-4.5 w-4.5 text-purple-500" />
                   Últimos Pedidos
                 </h3>
-                <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   Últimas 5 vendas registradas em tempo real
                 </p>
               </div>
             </div>
             <CardContent className="p-0 flex-1 overflow-hidden">
-              <div className="space-y-1 max-h-[185px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
                 {recentOrders.length > 0 ? (
                   recentOrders.map((order) => {
                     const firstItem = getFirstItem(order);
@@ -960,34 +961,34 @@ const ReportsOverviewPage = () => {
                     return (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between p-1.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
                       >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           {productImg ? (
                             <img
                               src={productImg}
                               alt={productName}
-                              className="w-7 h-7 rounded-md object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
+                              className="w-9.5 h-9.5 rounded-md object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
                             />
                           ) : (
-                            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[9px] text-purple-600 dark:text-purple-400 shrink-0">
-                              <Package className="h-3.5 w-3.5" />
+                            <div className="w-9.5 h-9.5 rounded-md bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
+                              <Package className="h-5 w-5" />
                             </div>
                           )}
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-[9.5px] font-bold text-gray-800 dark:text-gray-200 truncate pr-2">
+                            <span className="text-xs md:text-[13px] font-bold text-gray-800 dark:text-gray-200 truncate pr-2">
                               {productName}
                             </span>
-                            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium">
+                            <span className="text-[10.5px] text-gray-400 dark:text-gray-500 font-medium">
                               {formatOrderDate(order.createdAt)}
                             </span>
                           </div>
                         </div>
                         <div className="text-right flex items-center gap-1 shrink-0">
-                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[7.5px] px-1 py-0.2 font-bold shadow-none border-0`}>
+                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9.5px] px-1 py-0.2 font-bold shadow-none border-0`}>
                             {getStatusBadge(order.paymentStatus).label}
                           </Badge>
-                          <span className="text-[10px] font-black text-gray-900 dark:text-white">
+                          <span className="text-xs md:text-[13px] font-black text-gray-900 dark:text-white">
                             {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : order.total)}
                           </span>
                         </div>
@@ -1008,20 +1009,20 @@ const ReportsOverviewPage = () => {
       </div>
 
       {/* Painel Analítico Tabulado com Gráficos e Funis Secundários */}
-      <Tabs defaultValue="conversion" className="space-y-3">
-        <TabsList className="bg-white/40 dark:bg-gray-950/20 border border-gray-150/30 dark:border-gray-800/30 p-1 rounded-xl inline-flex">
-          <TabsTrigger value="conversion" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+      <Tabs defaultValue="conversion" className="space-y-4">
+        <TabsList className="bg-white/40 dark:bg-gray-950/20 border border-gray-150/30 dark:border-gray-800/30 p-1 rounded-xl inline-flex h-10 items-center">
+          <TabsTrigger value="conversion" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
             Funil & Pagamentos
           </TabsTrigger>
-          <TabsTrigger value="traffic" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+          <TabsTrigger value="traffic" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
             Tráfego & Engajamento
           </TabsTrigger>
-          <TabsTrigger value="performance" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+          <TabsTrigger value="performance" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
             Velocidade & Rejeição
           </TabsTrigger>
         </TabsList>
 
-        <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+        <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5.5 rounded-xl">
           {/* Tab 1: Funil & Pagamentos */}
           <TabsContent value="conversion" className="mt-0 space-y-4">
             {/* Grid de Métricas do Checkout */}
@@ -1065,44 +1066,44 @@ const ReportsOverviewPage = () => {
               {/* Funil de Vendas */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Funil do Checkout</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Eficiência de conversão em cada etapa do checkout</p>
+                  <h4 className="text-base font-bold text-gray-800 dark:text-gray-200">Funil do Checkout</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Eficiência de conversão em cada etapa do checkout</p>
                 </div>
                 
                 <div className="space-y-3">
                   {/* Visitas / Iniciado */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">1. Checkout Iniciado (Visitas)</span>
                       <span className="text-gray-900 dark:text-white">{metrics?.uniqueVisitors || 0} (100%)</span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full w-full" />
                     </div>
                   </div>
 
                   {/* Dados Preenchidos */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">2. Dados do Frete Preenchidos</span>
                       <span className="text-gray-900 dark:text-white">
                         {Math.round((metrics?.uniqueVisitors || 0) * 0.72)} (72%)
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full" style={{ width: '72%' }} />
                     </div>
                   </div>
 
                   {/* Pago */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">3. Vendas Finalizadas (Pagas)</span>
                       <span className="text-gray-900 dark:text-white">
                         {metrics?.totalOrders || 0} ({metrics ? metrics.conversionRate.toFixed(1) : 0}%)
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full" 
                         style={{ width: `${Math.min(100, Math.max(5, metrics?.conversionRate || 0))}%` }} 
@@ -1112,23 +1113,23 @@ const ReportsOverviewPage = () => {
                 </div>
               </div>
 
-              {/* Métodos de Pagamento */}
+              {/* Meios de Pagamento */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Meios de Pagamento</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Preferência de pagamento usada pelos clientes nas compras</p>
+                  <h4 className="text-base font-bold text-gray-800 dark:text-gray-200">Meios de Pagamento</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Preferência de pagamento usada pelos clientes nas compras</p>
                 </div>
 
                 <div className="space-y-3">
                   {/* Cartão de Crédito */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">💳 Cartão de Crédito</span>
                       <span className="text-gray-900 dark:text-white">
                         {metrics?.paymentMethods?.card || 0} vendas
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full" 
                         style={{ 
@@ -1144,13 +1145,13 @@ const ReportsOverviewPage = () => {
 
                   {/* PIX */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">⚡ PIX</span>
                       <span className="text-gray-900 dark:text-white">
                         {metrics?.paymentMethods?.pix || 0} vendas
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full" 
                         style={{ 
@@ -1166,13 +1167,13 @@ const ReportsOverviewPage = () => {
 
                   {/* Boleto */}
                   <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">📄 Boleto Bancário</span>
                       <span className="text-gray-900 dark:text-white">
                         {metrics?.paymentMethods?.boleto || 0} vendas
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-orange-500 to-yellow-500 h-full rounded-full" 
                         style={{ 
@@ -1223,9 +1224,9 @@ const ReportsOverviewPage = () => {
               {/* Sessões e Tráfego */}
               <div className="space-y-2">
                 <div className="pb-1 border-b border-gray-100 dark:border-gray-800">
-                  <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Sessões e Tráfego</h4>
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Sessões e Tráfego</h4>
                 </div>
-                <ResponsiveContainer width="100%" height={140}>
+                <ResponsiveContainer width="100%" height={170}>
                   {displayData.length > 0 ? (
                     <AreaChart data={displayData}>
                       <defs>
@@ -1235,8 +1236,8 @@ const ReportsOverviewPage = () => {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
-                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
-                      <YAxis stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "10.5px" }} />
+                      <YAxis stroke="#9ca3af" style={{ fontSize: "10.5px" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Area
                         type="monotone"
@@ -1258,15 +1259,15 @@ const ReportsOverviewPage = () => {
               {/* Métricas de Engajamento */}
               <div className="space-y-2">
                 <div className="pb-1 border-b border-gray-100 dark:border-gray-800">
-                  <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Métricas de Engajamento</h4>
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Métricas de Engajamento</h4>
                 </div>
-                <ResponsiveContainer width="100%" height={140}>
+                <ResponsiveContainer width="100%" height={170}>
                   {displayData.length > 0 ? (
                     <LineChart data={displayData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
-                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
-                      <YAxis yAxisId="left" stroke="#f59e0b" style={{ fontSize: "9px" }} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#ec4899" style={{ fontSize: "9px" }} />
+                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "10.5px" }} />
+                      <YAxis yAxisId="left" stroke="#f59e0b" style={{ fontSize: "10.5px" }} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#ec4899" style={{ fontSize: "10.5px" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Line
                         yAxisId="left"
@@ -1328,15 +1329,15 @@ const ReportsOverviewPage = () => {
 
             <div className="space-y-2">
               <div className="pb-1 border-b border-gray-100 dark:border-gray-800 mb-1">
-                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Performance vs Taxa de Abandono (Rejeição)</h4>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Performance vs Taxa de Abandono (Rejeição)</h4>
               </div>
-              <ResponsiveContainer width="100%" height={140}>
+              <ResponsiveContainer width="100%" height={170}>
                 {displayData.length > 0 ? (
                   <ComposedChart data={displayData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
-                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
-                    <YAxis yAxisId="left" stroke="#06b6d4" style={{ fontSize: "9px" }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#ef4444" style={{ fontSize: "9px" }} />
+                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "10.5px" }} />
+                    <YAxis yAxisId="left" stroke="#06b6d4" style={{ fontSize: "10.5px" }} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#ef4444" style={{ fontSize: "10.5px" }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar
                       yAxisId="left"
