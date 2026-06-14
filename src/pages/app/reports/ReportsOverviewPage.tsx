@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -62,6 +62,288 @@ import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardApi, DashboardMetrics } from "@/lib/api/dashboardApi";
 import { supabase } from "@/lib/supabase";
+
+// --- INÍCIO DO COMPONENTE GLOBO 3D SHOPIFY-STYLE ---
+const isLand = (lat: number, lon: number): boolean => {
+  const landCaps = [
+    // North America
+    [48, -100, 22, 32],
+    [63, -110, 12, 25],
+    [32, -90, 10, 15],
+    [20, -100, 6, 12],
+    [65, -150, 10, 15],
+    // South America
+    [-8, -60, 18, 16],
+    [-30, -62, 16, 10],
+    [-45, -70, 10, 5],
+    // Greenland
+    [72, -40, 10, 15],
+    // Eurasia
+    [60, 90, 25, 55],
+    [50, 30, 15, 25],
+    [35, 105, 18, 25],
+    [20, 77, 12, 12],
+    [25, 45, 12, 10],
+    [60, 130, 15, 25],
+    [36, 138, 8, 3],
+    [5, 115, 8, 15],
+    // Africa
+    [15, 15, 18, 22],
+    [-10, 22, 18, 12],
+    [-25, 22, 10, 8],
+    // Australia
+    [-25, 135, 12, 15],
+    [-42, 147, 2, 2],
+    [-40, 172, 6, 2],
+    // Antarctica
+    [-82, 0, 8, 180]
+  ];
+
+  return landCaps.some(([cLat, cLon, rLat, rLon]) => {
+    let dLon = Math.abs(lon - cLon);
+    if (dLon > 180) dLon = 360 - dLon;
+    const dLat = Math.abs(lat - cLat);
+    return (dLat * dLat) / (rLat * rLat) + (dLon * dLon) / (rLon * rLon) <= 1;
+  });
+};
+
+const generateSpherePoints = () => {
+  const pts: { x: number; y: number; z: number }[] = [];
+  for (let lat = -80; lat <= 80; lat += 4.5) {
+    const rad = (lat * Math.PI) / 180;
+    const cosLat = Math.cos(rad);
+    const lonStep = 4.5 / (cosLat || 0.1);
+    for (let lon = -180; lon < 180; lon += lonStep) {
+      if (isLand(lat, lon)) {
+        const phi = ((90 - lat) * Math.PI) / 180;
+        const theta = ((lon + 180) * Math.PI) / 180;
+        pts.push({
+          x: Math.sin(phi) * Math.sin(theta),
+          y: Math.cos(phi),
+          z: Math.sin(phi) * Math.cos(theta),
+        });
+      }
+    }
+  }
+  return pts;
+};
+
+const GLOBE_LAND_POINTS = generateSpherePoints();
+
+const getCoordinatesForLocation = (city: string = "", state: string = ""): { lat: number; lon: number } => {
+  const cleanCity = city.trim().toLowerCase();
+  const cleanState = state.trim().toUpperCase();
+
+  const citiesMap: { [key: string]: { lat: number; lon: number } } = {
+    "sao paulo": { lat: -23.5505, lon: -46.6333 },
+    "são paulo": { lat: -23.5505, lon: -46.6333 },
+    "rio de janeiro": { lat: -22.9068, lon: -43.1729 },
+    "belo horizonte": { lat: -19.9167, lon: -43.9345 },
+    "salvador": { lat: -12.9777, lon: -38.5016 },
+    "brasilia": { lat: -15.7801, lon: -47.9292 },
+    "brasília": { lat: -15.7801, lon: -47.9292 },
+    "porto alegre": { lat: -30.0346, lon: -51.2177 },
+    "curitiba": { lat: -25.4284, lon: -49.2733 },
+    "recife": { lat: -8.0578, lon: -34.8829 },
+    "fortaleza": { lat: -3.7319, lon: -38.5267 },
+    "manaus": { lat: -3.1190, lon: -60.0217 },
+    "goiania": { lat: -16.6869, lon: -49.2648 },
+    "goiânia": { lat: -16.6869, lon: -49.2648 },
+    "belem": { lat: -1.4558, lon: -48.4902 },
+    "belém": { lat: -1.4558, lon: -48.4902 },
+    "florianopolis": { lat: -27.5954, lon: -48.5480 },
+    "florianópolis": { lat: -27.5954, lon: -48.5480 },
+    "vitoria": { lat: -20.3155, lon: -40.3128 },
+    "vitória": { lat: -20.3155, lon: -40.3128 },
+    "natal": { lat: -5.7945, lon: -35.2110 },
+    "joao pessoa": { lat: -7.1195, lon: -34.8450 },
+    "joão pessoa": { lat: -7.1195, lon: -34.8450 },
+    "maceio": { lat: -9.6658, lon: -35.7353 },
+    "maceió": { lat: -9.6658, lon: -35.7353 },
+    "sao luis": { lat: -2.5307, lon: -44.3068 },
+    "são luís": { lat: -2.5307, lon: -44.3068 },
+    "teresina": { lat: -5.0920, lon: -42.8034 },
+    "aracaju": { lat: -10.9472, lon: -37.0731 },
+    "campo grande": { lat: -20.4697, lon: -54.6201 },
+    "cuiaba": { lat: -15.6014, lon: -56.0979 },
+    "cuiabá": { lat: -15.6014, lon: -56.0979 },
+    "porto velho": { lat: -8.7612, lon: -63.9039 },
+    "rio branco": { lat: -9.9754, lon: -67.8080 },
+    "macapa": { lat: 0.0389, lon: -51.0664 },
+    "macapá": { lat: 0.0389, lon: -51.0664 },
+    "boa vista": { lat: 2.8235, lon: -60.6758 },
+    "palmas": { lat: -10.2128, lon: -48.3603 },
+  };
+
+  const stateMap: { [key: string]: { lat: number; lon: number } } = {
+    "SP": { lat: -23.5505, lon: -46.6333 },
+    "RJ": { lat: -22.9068, lon: -43.1729 },
+    "MG": { lat: -19.9167, lon: -43.9345 },
+    "DF": { lat: -15.7801, lon: -47.9292 },
+    "BA": { lat: -12.9777, lon: -38.5016 },
+    "RS": { lat: -30.0346, lon: -51.2177 },
+    "PR": { lat: -25.4284, lon: -49.2733 },
+    "PE": { lat: -8.0578, lon: -34.8829 },
+    "CE": { lat: -3.7319, lon: -38.5267 },
+    "AM": { lat: -3.1190, lon: -60.0217 },
+    "GO": { lat: -16.6869, lon: -49.2648 },
+    "PA": { lat: -1.4558, lon: -48.4902 },
+    "SC": { lat: -27.5954, lon: -48.5480 },
+    "ES": { lat: -20.3155, lon: -40.3128 },
+    "RN": { lat: -5.7945, lon: -35.2110 },
+    "PB": { lat: -7.1195, lon: -34.8450 },
+    "AL": { lat: -9.6658, lon: -35.7353 },
+    "MA": { lat: -2.5307, lon: -44.3068 },
+    "PI": { lat: -5.0920, lon: -42.8034 },
+    "SE": { lat: -10.9472, lon: -37.0731 },
+    "MS": { lat: -20.4697, lon: -54.6201 },
+    "MT": { lat: -15.6014, lon: -56.0979 },
+    "RO": { lat: -8.7612, lon: -63.9039 },
+    "AC": { lat: -9.9754, lon: -67.8080 },
+    "AP": { lat: 0.0389, lon: -51.0664 },
+    "RR": { lat: 2.8235, lon: -60.6758 },
+    "TO": { lat: -10.2128, lon: -48.3603 },
+  };
+
+  if (citiesMap[cleanCity]) return citiesMap[cleanCity];
+  if (stateMap[cleanState]) return stateMap[cleanState];
+
+  const keys = Object.keys(citiesMap);
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  return citiesMap[randomKey];
+};
+
+interface LocationPoint {
+  lat: number;
+  lon: number;
+  name: string;
+}
+
+interface ShopifyGlobeProps {
+  activeCount: number;
+  locations?: LocationPoint[];
+  size?: number;
+}
+
+const ShopifyGlobe: React.FC<ShopifyGlobeProps> = ({
+  activeCount,
+  locations = [],
+  size = 64,
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
+  const angleRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.scale(dpr, dpr);
+
+    const radius = (size / 2) - 4;
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    const render = () => {
+      angleRef.current = (angleRef.current + 0.005) % (2 * Math.PI);
+      const angle = angleRef.current;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
+      ctx.fillStyle = "rgba(34, 197, 94, 0.02)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.12)";
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      GLOBE_LAND_POINTS.forEach((p) => {
+        const rx = p.x * cos - p.z * sin;
+        const ry = p.y;
+        const rz = p.x * sin + p.z * cos;
+
+        if (rz > 0) {
+          const px = centerX + rx * radius;
+          const py = centerY + ry * radius;
+          
+          const alpha = rz; 
+          ctx.fillStyle = `rgba(34, 197, 94, ${alpha * 0.45})`;
+          
+          ctx.beginPath();
+          ctx.arc(px, py, 0.85, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+
+      const pulseSize = (Date.now() * 0.008) % 8;
+      const pulseAlpha = 1 - (pulseSize / 8);
+
+      locations.forEach((loc) => {
+        const phi = ((90 - loc.lat) * Math.PI) / 180;
+        const theta = ((loc.lon + 180) * Math.PI) / 180;
+
+        const lx = Math.sin(phi) * Math.sin(theta);
+        const ly = Math.cos(phi);
+        const lz = Math.sin(phi) * Math.cos(theta);
+
+        const rx = lx * cos - lz * sin;
+        const ry = ly;
+        const rz = lx * sin + lz * cos;
+
+        if (rz > 0) {
+          const px = centerX + rx * radius;
+          const py = centerY + ry * radius;
+
+          ctx.beginPath();
+          ctx.arc(px, py, Math.max(1, pulseSize), 0, 2 * Math.PI);
+          ctx.strokeStyle = `rgba(34, 197, 94, ${pulseAlpha * 0.8})`;
+          ctx.lineWidth = 0.85;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8, 0, 2 * Math.PI);
+          ctx.fillStyle = "#22c55e";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+    };
+  }, [locations, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        display: "block",
+      }}
+      className="drop-shadow-[0_0_8px_rgba(34,197,94,0.25)]"
+    />
+  );
+};
+// --- FIM DO COMPONENTE GLOBO 3D SHOPIFY-STYLE ---
 
 interface MetricCardProps {
   title: string;
@@ -451,6 +733,43 @@ const ReportsOverviewPage = () => {
       }))
     : chartData;
 
+  // Obter cidades de visitantes ativos para renderizar no globo
+  const activeLocations = (() => {
+    const defaultLocations = [
+      { name: "São Paulo, SP", lat: -23.5505, lon: -46.6333 },
+      { name: "Rio de Janeiro, RJ", lat: -22.9068, lon: -43.1729 },
+      { name: "Belo Horizonte, MG", lat: -19.9167, lon: -43.9345 },
+      { name: "Brasília, DF", lat: -15.7801, lon: -47.9292 },
+      { name: "Salvador, BA", lat: -12.9777, lon: -38.5016 },
+      { name: "Curitiba, PR", lat: -25.4284, lon: -49.2733 },
+      { name: "Porto Alegre, RS", lat: -30.0346, lon: -51.2177 },
+      { name: "Recife, PE", lat: -8.0578, lon: -34.8829 },
+      { name: "Fortaleza, CE", lat: -3.7319, lon: -38.5267 },
+      { name: "Goiânia, GO", lat: -16.6869, lon: -49.2648 },
+    ];
+    
+    // Pegar cidades dos pedidos recentes para representar locais reais
+    const orderLocations = recentOrders
+      .filter(o => o.shippingAddress?.city)
+      .map(o => {
+        const city = o.shippingAddress.city;
+        const state = o.shippingAddress.state || "";
+        const cleanCity = city.trim();
+        const cleanState = state.trim();
+        
+        const coords = getCoordinatesForLocation(cleanCity, cleanState);
+        return {
+          name: `${cleanCity}, ${cleanState}`,
+          lat: coords.lat,
+          lon: coords.lon
+        };
+      });
+
+    const count = metrics?.activeVisitors || 0;
+    const list = [...orderLocations, ...defaultLocations];
+    return list.slice(0, Math.max(1, count));
+  })();
+
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto p-0.5">
       {/* Header */}
@@ -525,25 +844,13 @@ const ReportsOverviewPage = () => {
                 Navegando no checkout
               </span>
             </div>
-            
             {/* Globo Animado Shopify Style */}
-            <div className="relative h-9 w-9 flex items-center justify-center shrink-0">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <svg className="h-7.5 w-7.5 text-green-500/60 dark:text-green-400/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                  <circle cx="12" cy="12" r="10" strokeDasharray="2 2" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  <path d="M2 12h20" />
-                </svg>
-              </motion.div>
-              {/* Ponto verde piscante fixado no topo do globo */}
-              <div className="absolute top-0.5 right-0.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </div>
+            <div className="relative h-14 w-14 flex items-center justify-center shrink-0 ml-1">
+              <ShopifyGlobe
+                activeCount={metrics?.activeVisitors || 0}
+                locations={activeLocations}
+                size={56}
+              />
             </div>
           </Card>
         </motion.div>
