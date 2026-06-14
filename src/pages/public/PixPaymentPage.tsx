@@ -200,7 +200,7 @@ const PixPaymentPage: React.FC = () => {
   if (!pixData) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-sm w-full border-slate-100 shadow-sm rounded-xl bg-white">
+        <Card className="max-w-sm w-full border border-slate-200 shadow-sm rounded-xl bg-white">
           <CardContent className="p-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
             <h2 className="text-xl font-bold tracking-tight text-slate-900">Dados não encontrados</h2>
@@ -223,7 +223,7 @@ const PixPaymentPage: React.FC = () => {
   if (isPaid) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-sm w-full border-slate-100 shadow-sm rounded-xl bg-white">
+        <Card className="max-w-sm w-full border border-slate-200 shadow-sm rounded-xl bg-white">
           <CardContent className="p-8 text-center space-y-4">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-50 text-emerald-500">
               <CheckCircle className="h-8 w-8" />
@@ -244,31 +244,31 @@ const PixPaymentPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center py-8 px-4">
-      <div className="w-full max-w-[460px] space-y-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-start py-6 px-4 w-full overflow-y-auto">
+      <div className="w-full max-w-[420px] space-y-4">
         
         {/* Header Voltar */}
         <div className="flex justify-between items-center px-1">
           <button
             onClick={() => navigate(`/checkout/${orderId}`)}
-            className="text-xs font-medium text-slate-400 hover:text-slate-900 transition-colors flex items-center gap-1"
+            className="text-xs font-semibold text-slate-500 hover:text-slate-850 transition-colors flex items-center gap-1"
           >
-            <ArrowLeft className="h-3 w-3" />
+            <ArrowLeft className="h-3 w-3 text-slate-500" />
             Alterar método de pagamento
           </button>
         </div>
 
         {/* Main Card */}
-        <Card className="border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.012)] rounded-2xl overflow-hidden bg-white">
-          <CardContent className="p-6 md:p-8 space-y-6">
+        <Card className="border border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl overflow-hidden bg-white">
+          <CardContent className="p-6 space-y-5">
             
             {/* Brand/PIX header */}
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold">
+              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Pagamento Instantâneo PIX
               </div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-lg font-bold text-slate-800">
                 Escaneie ou copie o código
               </h1>
               <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
@@ -278,9 +278,9 @@ const PixPaymentPage: React.FC = () => {
 
             {/* Timer status bar */}
             {!isExpired && (
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center justify-center gap-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-center gap-2">
                 <Clock className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs font-medium text-slate-600">
+                <span className="text-xs font-semibold text-slate-600">
                   Código expira em:
                 </span>
                 <span className="text-xs font-bold font-mono text-slate-800">
@@ -291,22 +291,22 @@ const PixPaymentPage: React.FC = () => {
 
             {/* Verification status loader */}
             {isChecking && !isExpired && (
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-600 font-medium">
-                <RefreshCw className="h-3 w-3 animate-spin" />
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-600 font-bold">
+                <RefreshCw className="h-3 w-3 animate-spin text-emerald-500" />
                 Aguardando confirmação do banco...
               </div>
             )}
 
             {/* Toggle QR Code / Copia e Cola */}
             {!isExpired && (
-              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100/80 border border-slate-200/60 rounded-xl">
                 <button
                   onClick={() => setShowQRCode(true)}
                   className={cn(
-                    "py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                    "py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5",
                     showQRCode
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-450 hover:text-slate-900"
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/30"
+                      : "text-slate-500 hover:text-slate-800"
                   )}
                 >
                   <QrCode className="h-3.5 w-3.5" />
@@ -315,10 +315,10 @@ const PixPaymentPage: React.FC = () => {
                 <button
                   onClick={() => setShowQRCode(false)}
                   className={cn(
-                    "py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                    "py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5",
                     !showQRCode
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-450 hover:text-slate-900"
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/30"
+                      : "text-slate-500 hover:text-slate-800"
                   )}
                 >
                   <Copy className="h-3.5 w-3.5" />
@@ -329,7 +329,7 @@ const PixPaymentPage: React.FC = () => {
 
             {/* Expirado UI */}
             {isExpired && (
-              <div className="bg-red-50/70 border border-red-100 p-5 rounded-xl text-center space-y-3">
+              <div className="bg-red-50/70 border border-red-200 p-5 rounded-xl text-center space-y-3">
                 <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
                 <div className="space-y-1">
                   <p className="text-sm font-bold text-red-800">Código PIX Expirado</p>
@@ -350,15 +350,15 @@ const PixPaymentPage: React.FC = () => {
             {/* QR Code Container */}
             {!isExpired && showQRCode && (
               <div className="space-y-3 text-center">
-                <div className="inline-block p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div className="inline-block p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   {qrCodeImage ? (
                     <img
                       src={qrCodeImage}
                       alt="QR Code PIX"
-                      className="w-48 h-48 mx-auto"
+                      className="w-44 h-44 mx-auto"
                     />
                   ) : (
-                    <div className="w-48 h-48 mx-auto bg-slate-50 rounded-xl flex items-center justify-center">
+                    <div className="w-44 h-44 mx-auto bg-slate-50 rounded-xl flex items-center justify-center">
                       <RefreshCw className="h-8 w-8 text-slate-300 animate-spin" />
                     </div>
                   )}
@@ -373,11 +373,11 @@ const PixPaymentPage: React.FC = () => {
             {!isExpired && !showQRCode && (
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                     Linha Digitável / Copia e Cola:
                   </label>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <code className="text-xs font-mono break-all block text-slate-600 max-h-20 overflow-y-auto scrollbar-thin select-all">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <code className="text-xs font-mono break-all block text-slate-650 max-h-20 overflow-y-auto scrollbar-thin select-all">
                       {pixData.qrCode}
                     </code>
                   </div>
@@ -407,32 +407,32 @@ const PixPaymentPage: React.FC = () => {
 
             {/* Como Pagar Instructions */}
             {!isExpired && (
-              <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100/60 space-y-3">
+              <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200/80 space-y-3">
                 <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                   <Smartphone className="h-4 w-4 text-emerald-500" />
                   Instruções de pagamento:
                 </h4>
                 <ol className="text-xs text-slate-500 space-y-2.5">
                   <li className="flex gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 text-[10px] font-bold text-slate-600">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 border border-slate-300/60">
                       1
                     </span>
                     <span>Abra o app do seu banco ou carteira digital de preferência.</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 text-[10px] font-bold text-slate-600">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 border border-slate-300/60">
                       2
                     </span>
                     <span>Selecione a opção de pagamento via <strong>PIX</strong>.</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 text-[10px] font-bold text-slate-600">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 border border-slate-300/60">
                       3
                     </span>
                     <span>Escolha a leitura de <strong>QR Code</strong> ou cole o código <strong>Pix Copia e Cola</strong>.</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 text-[10px] font-bold text-slate-600">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 border border-slate-300/60">
                       4
                     </span>
                     <span>Confirme os dados do pagamento e conclua. A aprovação é imediata!</span>
