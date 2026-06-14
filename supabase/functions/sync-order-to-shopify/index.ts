@@ -28,6 +28,17 @@ function log(level: string, message: string, data?: any) {
   console.log(JSON.stringify(logEntry));
 }
 
+function formatPhoneE164(phone: string | null | undefined): string | undefined {
+  if (!phone) return undefined;
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return undefined;
+  if (phone.trim().startsWith("+") && digits.length >= 10) return phone.trim();
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+  if (digits.length === 12 || digits.length === 13) return `+${digits}`;
+  if (digits.length >= 10) return `+${digits}`;
+  return undefined;
+}
+
 serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -349,7 +360,7 @@ serve(async (req) => {
             variantIdStr !== "null" &&
             variantIdStr !== "undefined"
           ) {
-            lineItem.variant_id = variantIdStr;
+            lineItem.variant_id = Number(variantIdStr);
           }
         }
 
@@ -362,6 +373,45 @@ serve(async (req) => {
       const firstName = nameParts[0] || "Cliente";
       const lastName = nameParts.slice(1).join(" ") || "SyncAds";
 
+      // Endereços de entrega e cobrança
+      let shippingAddress: any = undefined;
+      if (order.shippingAddress && typeof order.shippingAddress === "object") {
+        const sa = order.shippingAddress;
+        if (sa.street) {
+          shippingAddress = {
+            first_name: firstName,
+            last_name: lastName,
+            address1: `${sa.street}${sa.number ? `, ${sa.number}` : ""}`,
+            address2: sa.complement || sa.neighborhood || undefined,
+            city: sa.city || undefined,
+            province: sa.state || undefined,
+            zip: sa.zipCode || undefined,
+            country: "Brazil",
+            country_code: "BR",
+            phone: formatPhoneE164(order.customerPhone),
+          };
+        }
+      }
+
+      let billingAddress: any = undefined;
+      if (order.billingAddress && typeof order.billingAddress === "object") {
+        const ba = order.billingAddress;
+        if (ba.street) {
+          billingAddress = {
+            first_name: firstName,
+            last_name: lastName,
+            address1: `${ba.street}${ba.number ? `, ${ba.number}` : ""}`,
+            address2: ba.complement || ba.neighborhood || undefined,
+            city: ba.city || undefined,
+            province: ba.state || undefined,
+            zip: ba.zipCode || undefined,
+            country: "Brazil",
+            country_code: "BR",
+            phone: formatPhoneE164(order.customerPhone),
+          };
+        }
+      }
+
       shopifyPayload = {
         order: {
           line_items: lineItems,
@@ -369,8 +419,10 @@ serve(async (req) => {
             email: order.customerEmail || "cliente@syncads.com.br",
             first_name: firstName,
             last_name: lastName,
-            phone: order.customerPhone || undefined,
+            phone: formatPhoneE164(order.customerPhone),
           },
+          shipping_address: shippingAddress,
+          billing_address: billingAddress,
           financial_status: order.paymentStatus === "PAID" ? "paid" : "pending",
           note: `Pedido #${order.orderNumber} criado via SyncAds Checkout`,
           tags: "syncads,checkout-customizado",

@@ -633,8 +633,8 @@ const AllOrdersPage = () => {
                                             Status do Pagamento
                                           </div>
                                           <div className="mt-1">
-                                            <Badge className={`${getPaymentStatusBadge(selectedOrder.paymentStatus).color} font-medium px-2.5 py-0.5 border text-xs`}>
-                                              {getPaymentStatusBadge(selectedOrder.paymentStatus).label}
+                                            <Badge className={`${getStatusBadge(selectedOrder.paymentStatus).color} font-medium px-2.5 py-0.5 border text-xs`}>
+                                              {getStatusBadge(selectedOrder.paymentStatus).label}
                                             </Badge>
                                           </div>
                                         </div>
