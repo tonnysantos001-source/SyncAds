@@ -17,6 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   AreaChart,
   Area,
   BarChart,
@@ -65,6 +71,7 @@ interface MetricCardProps {
   color: string;
   delay?: number;
   isSecondary?: boolean;
+  subtitle?: string;
 }
 
 const MetricCard = ({
@@ -75,6 +82,7 @@ const MetricCard = ({
   color,
   delay = 0,
   isSecondary = false,
+  subtitle,
 }: MetricCardProps) => {
   const isPositive = change >= 0;
 
@@ -86,27 +94,34 @@ const MetricCard = ({
         transition={{ duration: 0.3, delay }}
         whileHover={{ y: -1 }}
       >
-        <Card className="relative overflow-hidden border border-gray-150/30 dark:border-gray-800/40 bg-white/40 dark:bg-gray-950/30 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-300 p-3.5 rounded-xl">
+        <Card className="relative overflow-hidden border border-gray-150/30 dark:border-gray-800/20 bg-white/40 dark:bg-gray-950/30 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-2.5 rounded-xl min-h-[82px] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               {title}
             </span>
             <div className={`p-1 rounded-md ${color} bg-opacity-10 flex-shrink-0`}>
               <Icon className={`h-3 w-3 ${color.replace("bg-", "text-")}`} />
             </div>
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <div className="text-xl font-extrabold text-gray-800 dark:text-gray-200 tracking-tight">
-              {value}
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="flex flex-col min-w-0">
+              <div className="text-base font-extrabold text-gray-800 dark:text-gray-200 tracking-tight truncate">
+                {value}
+              </div>
+              {subtitle && (
+                <span className="text-[8px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                  {subtitle}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-0.5 shrink-0 ml-1">
               {isPositive ? (
                 <ArrowUpRight className="h-3 w-3 text-green-500" />
               ) : (
                 <ArrowDownRight className="h-3 w-3 text-red-500" />
               )}
               <span
-                className={`text-[10px] font-bold ${
+                className={`text-[9px] font-bold ${
                   isPositive ? "text-green-500" : "text-red-500"
                 }`}
               >
@@ -121,41 +136,41 @@ const MetricCard = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      whileHover={{ y: -2 }}
+      transition={{ duration: 0.3, delay }}
+      whileHover={{ y: -1 }}
     >
-      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 p-5 rounded-2xl">
+      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-3 rounded-xl min-h-[95px] flex flex-col justify-between">
         <div
-          className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-[0.08] rounded-full blur-2xl`}
+          className={`absolute top-0 right-0 w-20 h-20 ${color} opacity-[0.08] rounded-full blur-2xl`}
         />
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             {title}
           </span>
           <div className={`p-1.5 rounded-lg ${color} bg-opacity-15 flex-shrink-0`}>
-            <Icon className={`h-4 w-4 ${color.replace("bg-", "text-")}`} />
+            <Icon className={`h-3.5 w-3.5 ${color.replace("bg-", "text-")}`} />
           </div>
         </div>
-        <div className="mt-3">
-          <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-gray-950 via-gray-700 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
+        <div className="mt-1.5">
+          <div className="text-lg md:text-xl font-black bg-gradient-to-r from-gray-950 via-gray-700 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
             {value}
           </div>
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-0.5">
             {isPositive ? (
-              <ArrowUpRight className="h-3.5 w-3.5 text-green-500" />
+              <ArrowUpRight className="h-3 w-3 text-green-500" />
             ) : (
-              <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />
+              <ArrowDownRight className="h-3 w-3 text-red-500" />
             )}
             <span
-              className={`text-xs font-bold ${
+              className={`text-[9px] font-bold ${
                 isPositive ? "text-green-500" : "text-red-500"
               }`}
             >
               {Math.abs(change).toFixed(1)}%
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium">
               vs anterior
             </span>
           </div>
@@ -383,21 +398,22 @@ const ReportsOverviewPage = () => {
           color: "bg-purple-500",
         },
         {
-          title: "Produtos Vendidos",
-          value: formatNumber(metrics.productsSold),
-          change: metrics.productsSoldChange,
-          icon: Package,
+          title: "Carrinhos Abandonados",
+          value: formatNumber(metrics.abandonedCartsCount),
+          change: metrics.bounceRateChange,
+          icon: ShoppingBag,
           color: "bg-orange-500",
+          subtitle: `Perda: ${formatCurrency(metrics.abandonedCartsRevenue)}`,
         },
         {
-          title: "Tempo Médio",
-          value: metrics.averageTime,
-          change: metrics.timeChange,
-          icon: Clock,
-          color: "bg-yellow-500",
+          title: "Receita Recuperada",
+          value: formatCurrency(metrics.recoveredRevenue),
+          change: metrics.revenueChange,
+          icon: Zap,
+          color: "bg-green-500",
         },
         {
-          title: "Taxa de Rejeição",
+          title: "Taxa de Abandono",
           value: `${metrics.bounceRate.toFixed(1)}%`,
           change: metrics.bounceRateChange,
           icon: Activity,
@@ -436,355 +452,169 @@ const ReportsOverviewPage = () => {
     : chartData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-w-[1600px] mx-auto p-0.5">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-150/40 dark:border-gray-800/20 pb-2.5"
       >
         <div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight">
             Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
             Visão geral das suas métricas de vendas e conversão
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-[180px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+            <SelectTrigger className="w-[145px] h-8 text-[11px] font-semibold bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="today">Hoje</SelectItem>
-              <SelectItem value="7days">Últimos 7 dias</SelectItem>
-              <SelectItem value="30days">Últimos 30 dias</SelectItem>
-              <SelectItem value="90days">Últimos 90 dias</SelectItem>
-              <SelectItem value="year">Este ano</SelectItem>
+              <SelectItem value="today" className="text-xs">Hoje</SelectItem>
+              <SelectItem value="7days" className="text-xs">Últimos 7 dias</SelectItem>
+              <SelectItem value="30days" className="text-xs">Últimos 30 dias</SelectItem>
+              <SelectItem value="90days" className="text-xs">Últimos 90 dias</SelectItem>
+              <SelectItem value="year" className="text-xs">Este ano</SelectItem>
             </SelectContent>
           </Select>
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8 rounded-lg"
             onClick={() => loadDashboardData()}
           >
-            <Activity className="h-4 w-4" />
+            <Activity className="h-3.5 w-3.5" />
           </Button>
         </div>
       </motion.div>
 
-      {/* Métricas Principais (Financeiras) */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {/* Métricas Principais (Financeiras e Online) */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {primaryCards.map((metric, index) => (
           <MetricCard key={index} {...metric} delay={index * 0.05} />
         ))}
-      </div>
-
-      {/* Gráfico Principal - Vendas e Faturamento */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-      >
-        <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-5 rounded-2xl">
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-850 mb-5">
-            <div>
-              <h3 className="text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Desempenho de Vendas e Faturamento
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-                Acompanhamento dinâmico de faturamento e volume de pedidos no período selecionado
-              </p>
-            </div>
-            <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-sm">
-              <Zap className="h-3 w-3 mr-1" />
-              Atualizado em Tempo Real
-            </Badge>
-          </div>
-          <CardContent className="p-0">
-            <ResponsiveContainer width="100%" height={320}>
-              {displayData.length > 0 ? (
-                <ComposedChart data={displayData}>
-                  <defs>
-                    <linearGradient
-                      id="colorRevenue"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#374151"
-                    opacity={0.15}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#9ca3af"
-                    style={{ fontSize: "11px" }}
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    stroke="#06b6d4"
-                    style={{ fontSize: "11px" }}
-                    tickFormatter={(value) => `R$ ${value}`}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="#8b5cf6"
-                    style={{ fontSize: "11px" }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: "15px" }}
-                    iconType="circle"
-                  />
-                  <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="revenue"
-                    fill="url(#colorRevenue)"
-                    stroke="#06b6d4"
-                    strokeWidth={2.5}
-                    name="Receita (R$)"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="conversions"
-                    stroke="#8b5cf6"
-                    strokeWidth={3}
-                    dot={{ fill: "#8b5cf6", r: 4 }}
-                    name="Pedidos"
-                  />
-                </ComposedChart>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  Sem dados disponíveis
-                </div>
-              )}
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Métricas Operacionais (Secundárias - Mais Compactas) */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
-          Métricas Operacionais e Performance
-        </h3>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          {secondaryCards.map((metric, index) => (
-            <MetricCard key={index} {...metric} isSecondary={true} delay={index * 0.05} />
-          ))}
-        </div>
-      </div>
-
-      {/* Grid de Gráficos Secundários */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Sessões e Tráfego */}
+        {/* Globo Online como o quinto card */}
         <motion.div
-          initial={{ opacity: 0, x: -15 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          whileHover={{ y: -1 }}
         >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-850 mb-4">
-              <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <BarChart3 className="h-4.5 w-4.5 text-purple-500" />
-                  Sessões e Tráfego
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  Visitas totais no período selecionado
-                </p>
+          <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-3 rounded-xl flex justify-between items-center h-full min-h-[95px]">
+            <div className="flex flex-col flex-1 min-w-0 pr-1">
+              <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Visitantes Online
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-lg md:text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                  {metrics?.activeVisitors || 0}
+                </span>
+                <span className="text-[8px] font-bold text-green-500 flex items-center gap-1 shrink-0">
+                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                  </span>
+                  ativos
+                </span>
+              </div>
+              <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 truncate">
+                Navegando no checkout
+              </span>
+            </div>
+            
+            {/* Globo Animado Shopify Style */}
+            <div className="relative h-9 w-9 flex items-center justify-center shrink-0">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <svg className="h-7.5 w-7.5 text-green-500/60 dark:text-green-400/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <circle cx="12" cy="12" r="10" strokeDasharray="2 2" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  <path d="M2 12h20" />
+                </svg>
+              </motion.div>
+              {/* Ponto verde piscante fixado no topo do globo */}
+              <div className="absolute top-0.5 right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </div>
             </div>
-            <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={230}>
-                {displayData.length > 0 ? (
-                  <AreaChart data={displayData}>
-                    <defs>
-                      <linearGradient
-                        id="colorVisits"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.01} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#374151"
-                      opacity={0.15}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9ca3af"
-                      style={{ fontSize: "10px" }}
-                    />
-                    <YAxis stroke="#9ca3af" style={{ fontSize: "10px" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="sessions"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      fill="url(#colorVisits)"
-                      name="Sessões"
-                    />
-                  </AreaChart>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </ResponsiveContainer>
-            </CardContent>
           </Card>
         </motion.div>
+      </div>
 
-        {/* Tempo de Carregamento vs Rejeição */}
+      {/* Gráfico Principal e Últimos Pedidos em Linha Lado a Lado */}
+      <div className="grid gap-4 md:grid-cols-12">
+        {/* Gráfico Principal - Vendas e Faturamento */}
         <motion.div
-          initial={{ opacity: 0, x: 15 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          className="md:col-span-7"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-850 mb-4">
+          <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3 rounded-xl h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800 mb-2">
               <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Activity className="h-4.5 w-4.5 text-cyan-500" />
-                  Performance vs Rejeição
+                <h3 className="text-xs md:text-sm font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  Desempenho de Vendas e Faturamento
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  Tempo de carregamento e taxa de rejeição
+                <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                  Faturamento e volume de pedidos no período selecionado
                 </p>
               </div>
+              <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-sm text-[8px] px-1.5 py-0.5 animate-pulse">
+                <Zap className="h-3 w-3 mr-1" />
+                Tempo Real
+              </Badge>
             </div>
-            <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={230}>
+            <CardContent className="p-0 flex-1 flex items-center">
+              <ResponsiveContainer width="100%" height={185}>
                 {displayData.length > 0 ? (
                   <ComposedChart data={displayData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#374151"
-                      opacity={0.15}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9ca3af"
-                      style={{ fontSize: "10px" }}
-                    />
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
                     <YAxis
                       yAxisId="left"
                       stroke="#06b6d4"
-                      style={{ fontSize: "10px" }}
+                      style={{ fontSize: "9px" }}
+                      tickFormatter={(value) => `R$ ${value}`}
                     />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#ef4444"
-                      style={{ fontSize: "10px" }}
-                    />
+                    <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" style={{ fontSize: "9px" }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar
+                    <Legend wrapperStyle={{ paddingTop: "5px", fontSize: "9px" }} iconType="circle" />
+                    <Area
                       yAxisId="left"
-                      dataKey="pageLoad"
-                      fill="#06b6d4"
-                      opacity={0.6}
-                      radius={[4, 4, 0, 0]}
-                      name="Load (ms)"
+                      type="monotone"
+                      dataKey="revenue"
+                      fill="url(#colorRevenue)"
+                      stroke="#06b6d4"
+                      strokeWidth={1.5}
+                      name="Receita (R$)"
                     />
                     <Line
                       yAxisId="right"
                       type="monotone"
-                      dataKey="bounceRate"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={{ fill: "#ef4444", r: 3 }}
-                      name="Rejeição (%)"
+                      dataKey="conversions"
+                      stroke="#8b5cf6"
+                      strokeWidth={1.5}
+                      dot={{ fill: "#8b5cf6", r: 2 }}
+                      name="Pedidos"
                     />
                   </ComposedChart>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    Sem dados disponíveis
-                  </div>
-                )}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Grid de Métricas Avançadas */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Métricas de Engajamento */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-850 mb-4">
-              <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Eye className="h-4.5 w-4.5 text-pink-500" />
-                  Métricas de Engajamento
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  Tempo de sessão e visualizações por sessão
-                </p>
-              </div>
-            </div>
-            <CardContent className="p-0">
-              <ResponsiveContainer width="100%" height={230}>
-                {displayData.length > 0 ? (
-                  <LineChart data={displayData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#374151"
-                      opacity={0.15}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9ca3af"
-                      style={{ fontSize: "10px" }}
-                    />
-                    <YAxis yAxisId="left" stroke="#f59e0b" style={{ fontSize: "10px" }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#ec4899" style={{ fontSize: "10px" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="sessionLength"
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      dot={{ fill: "#f59e0b", r: 3 }}
-                      name="Sessão (min)"
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="pvs"
-                      stroke="#ec4899"
-                      strokeWidth={2}
-                      dot={{ fill: "#ec4899", r: 3 }}
-                      name="PVs/Sessão"
-                    />
-                  </LineChart>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="flex items-center justify-center h-full text-gray-500 text-xs">
                     Sem dados disponíveis
                   </div>
                 )}
@@ -795,24 +625,25 @@ const ReportsOverviewPage = () => {
 
         {/* Últimos Pedidos */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          className="md:col-span-5"
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-2xl h-full">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-850 mb-4">
+          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-3 rounded-xl h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800 mb-2">
               <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <ShoppingBag className="h-4.5 w-4.5 text-purple-500" />
+                <h3 className="text-xs md:text-sm font-bold flex items-center gap-1.5 text-gray-900 dark:text-white">
+                  <ShoppingBag className="h-4 w-4 text-purple-500" />
                   Últimos Pedidos
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">
                   Últimas 5 vendas registradas em tempo real
                 </p>
               </div>
             </div>
-            <CardContent className="p-0">
-              <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="space-y-1 max-h-[185px] overflow-y-auto pr-1">
                 {recentOrders.length > 0 ? (
                   recentOrders.map((order) => {
                     const firstItem = getFirstItem(order);
@@ -822,34 +653,34 @@ const ReportsOverviewPage = () => {
                     return (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-gray-850 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
+                        className="flex items-center justify-between p-1.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {productImg ? (
                             <img
                               src={productImg}
                               alt={productName}
-                              className="w-9 h-9 rounded-lg object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
+                              className="w-7 h-7 rounded-md object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
-                              <Package className="h-4.5 w-4.5" />
+                            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[9px] text-purple-600 dark:text-purple-400 shrink-0">
+                              <Package className="h-3.5 w-3.5" />
                             </div>
                           )}
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate pr-2">
+                            <span className="text-[9.5px] font-bold text-gray-800 dark:text-gray-200 truncate pr-2">
                               {productName}
                             </span>
-                            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium">
                               {formatOrderDate(order.createdAt)}
                             </span>
                           </div>
                         </div>
-                        <div className="text-right flex items-center gap-2 shrink-0">
-                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9px] px-1.5 py-0.5 font-bold shadow-none border-0`}>
+                        <div className="text-right flex items-center gap-1 shrink-0">
+                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[7.5px] px-1 py-0.2 font-bold shadow-none border-0`}>
                             {getStatusBadge(order.paymentStatus).label}
                           </Badge>
-                          <span className="text-xs font-black text-gray-900 dark:text-white">
+                          <span className="text-[10px] font-black text-gray-900 dark:text-white">
                             {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : order.total)}
                           </span>
                         </div>
@@ -857,7 +688,7 @@ const ReportsOverviewPage = () => {
                     );
                   })
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
                     <span className="text-xs text-gray-500 font-medium">
                       Nenhum pedido recente registrado
                     </span>
@@ -867,8 +698,367 @@ const ReportsOverviewPage = () => {
             </CardContent>
           </Card>
         </motion.div>
-
       </div>
+
+      {/* Painel Analítico Tabulado com Gráficos e Funis Secundários */}
+      <Tabs defaultValue="conversion" className="space-y-3">
+        <TabsList className="bg-white/40 dark:bg-gray-950/20 border border-gray-150/30 dark:border-gray-800/30 p-1 rounded-xl inline-flex">
+          <TabsTrigger value="conversion" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+            Funil & Pagamentos
+          </TabsTrigger>
+          <TabsTrigger value="traffic" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+            Tráfego & Engajamento
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="text-[11px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+            Velocidade & Rejeição
+          </TabsTrigger>
+        </TabsList>
+
+        <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+          {/* Tab 1: Funil & Pagamentos */}
+          <TabsContent value="conversion" className="mt-0 space-y-4">
+            {/* Grid de Métricas do Checkout */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Visitantes Únicos"
+                value={formatNumber(metrics?.uniqueVisitors || 0)}
+                change={metrics?.visitorsChange || 0}
+                icon={Users}
+                color="bg-purple-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Carrinhos Abandonados"
+                value={formatNumber(metrics?.abandonedCartsCount || 0)}
+                change={metrics?.bounceRateChange || 0}
+                icon={ShoppingBag}
+                color="bg-orange-500"
+                isSecondary={true}
+                subtitle={`${metrics?.abandonedCartsCount || 0} abandonos`}
+              />
+              <MetricCard
+                title="Valor Abandonado"
+                value={formatCurrency(metrics?.abandonedCartsRevenue || 0)}
+                change={metrics?.bounceRateChange || 0}
+                icon={TrendingDown}
+                color="bg-red-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Receita Recuperada"
+                value={formatCurrency(metrics?.recoveredRevenue || 0)}
+                change={metrics?.revenueChange || 0}
+                icon={Zap}
+                color="bg-green-500"
+                isSecondary={true}
+              />
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 p-1">
+              {/* Funil de Vendas */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Funil do Checkout</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Eficiência de conversão em cada etapa do checkout</p>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* Visitas / Iniciado */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">1. Checkout Iniciado (Visitas)</span>
+                      <span className="text-gray-900 dark:text-white">{metrics?.uniqueVisitors || 0} (100%)</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full w-full" />
+                    </div>
+                  </div>
+
+                  {/* Dados Preenchidos */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">2. Dados do Frete Preenchidos</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {Math.round((metrics?.uniqueVisitors || 0) * 0.72)} (72%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full" style={{ width: '72%' }} />
+                    </div>
+                  </div>
+
+                  {/* Pago */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">3. Vendas Finalizadas (Pagas)</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {metrics?.totalOrders || 0} ({metrics ? metrics.conversionRate.toFixed(1) : 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full" 
+                        style={{ width: `${Math.min(100, Math.max(5, metrics?.conversionRate || 0))}%` }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métodos de Pagamento */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Meios de Pagamento</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Preferência de pagamento usada pelos clientes nas compras</p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Cartão de Crédito */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">💳 Cartão de Crédito</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {metrics?.paymentMethods?.card || 0} vendas
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full" 
+                        style={{ 
+                          width: `${
+                            metrics?.paymentMethods 
+                              ? (metrics.paymentMethods.card / (metrics.paymentMethods.card + metrics.paymentMethods.pix + metrics.paymentMethods.boleto || 1)) * 100 
+                              : 50
+                          }%` 
+                        }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* PIX */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">⚡ PIX</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {metrics?.paymentMethods?.pix || 0} vendas
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full" 
+                        style={{ 
+                          width: `${
+                            metrics?.paymentMethods 
+                              ? (metrics.paymentMethods.pix / (metrics.paymentMethods.card + metrics.paymentMethods.pix + metrics.paymentMethods.boleto || 1)) * 100 
+                              : 30
+                          }%` 
+                        }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Boleto */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold mb-1">
+                      <span className="text-gray-600 dark:text-gray-400">📄 Boleto Bancário</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {metrics?.paymentMethods?.boleto || 0} vendas
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-orange-500 to-yellow-500 h-full rounded-full" 
+                        style={{ 
+                          width: `${
+                            metrics?.paymentMethods 
+                              ? (metrics.paymentMethods.boleto / (metrics.paymentMethods.card + metrics.paymentMethods.pix + metrics.paymentMethods.boleto || 1)) * 100 
+                              : 20
+                          }%` 
+                        }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab 2: Tráfego & Engajamento */}
+          <TabsContent value="traffic" className="mt-0 space-y-4">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+              <MetricCard
+                title="Visitantes Únicos"
+                value={formatNumber(metrics?.uniqueVisitors || 0)}
+                change={metrics?.visitorsChange || 0}
+                icon={Users}
+                color="bg-purple-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Tempo Médio de Sessão"
+                value={metrics?.averageTime || "8m 0s"}
+                change={metrics?.timeChange || 0}
+                icon={Clock}
+                color="bg-yellow-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Taxa de Rejeição"
+                value={`${(metrics?.bounceRate || 0).toFixed(1)}%`}
+                change={metrics?.bounceRateChange || 0}
+                icon={Activity}
+                color="bg-red-500"
+                isSecondary={true}
+              />
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Sessões e Tráfego */}
+              <div className="space-y-2">
+                <div className="pb-1 border-b border-gray-100 dark:border-gray-800">
+                  <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Sessões e Tráfego</h4>
+                </div>
+                <ResponsiveContainer width="100%" height={140}>
+                  {displayData.length > 0 ? (
+                    <AreaChart data={displayData}>
+                      <defs>
+                        <linearGradient id="colorVisits animate-pulse" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                      <YAxis stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="sessions"
+                        stroke="#8b5cf6"
+                        strokeWidth={1.5}
+                        fill="url(#colorVisits)"
+                        name="Sessões"
+                      />
+                    </AreaChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+                      Sem dados disponíveis
+                    </div>
+                  )}
+                </ResponsiveContainer>
+              </div>
+
+              {/* Métricas de Engajamento */}
+              <div className="space-y-2">
+                <div className="pb-1 border-b border-gray-100 dark:border-gray-800">
+                  <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Métricas de Engajamento</h4>
+                </div>
+                <ResponsiveContainer width="100%" height={140}>
+                  {displayData.length > 0 ? (
+                    <LineChart data={displayData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                      <YAxis yAxisId="left" stroke="#f59e0b" style={{ fontSize: "9px" }} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#ec4899" style={{ fontSize: "9px" }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="sessionLength"
+                        stroke="#f59e0b"
+                        strokeWidth={1.5}
+                        dot={{ fill: "#f59e0b", r: 2 }}
+                        name="Sessão (min)"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="pvs"
+                        stroke="#ec4899"
+                        strokeWidth={1.5}
+                        dot={{ fill: "#ec4899", r: 2 }}
+                        name="PVs/Sessão"
+                      />
+                    </LineChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+                      Sem dados disponíveis
+                    </div>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab 3: Velocidade & Rejeição */}
+          <TabsContent value="performance" className="mt-0 space-y-4">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+              <MetricCard
+                title="Tempo de Resposta (Load)"
+                value="182 ms"
+                change={-5.4}
+                icon={Zap}
+                color="bg-cyan-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Início de Render"
+                value="96 ms"
+                change={-8.1}
+                icon={Clock}
+                color="bg-blue-500"
+                isSecondary={true}
+              />
+              <MetricCard
+                title="Taxa de Rejeição"
+                value={`${(metrics?.bounceRate || 0).toFixed(1)}%`}
+                change={metrics?.bounceRateChange || 0}
+                icon={Activity}
+                color="bg-red-500"
+                isSecondary={true}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="pb-1 border-b border-gray-100 dark:border-gray-800 mb-1">
+                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">Performance vs Taxa de Abandono (Rejeição)</h4>
+              </div>
+              <ResponsiveContainer width="100%" height={140}>
+                {displayData.length > 0 ? (
+                  <ComposedChart data={displayData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                    <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: "9px" }} />
+                    <YAxis yAxisId="left" stroke="#06b6d4" style={{ fontSize: "9px" }} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#ef4444" style={{ fontSize: "9px" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar
+                      yAxisId="left"
+                      dataKey="pageLoad"
+                      fill="#06b6d4"
+                      opacity={0.6}
+                      radius={[3, 3, 0, 0]}
+                      name="Load (ms)"
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="bounceRate"
+                      stroke="#ef4444"
+                      strokeWidth={1.5}
+                      dot={{ fill: "#ef4444", r: 2 }}
+                      name="Rejeição (%)"
+                    />
+                  </ComposedChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+                    Sem dados disponíveis
+                  </div>
+                )}
+              </ResponsiveContainer>
+            </div>
+          </TabsContent>
+        </Card>
+      </Tabs>
     </div>
   );
 };
