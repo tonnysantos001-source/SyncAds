@@ -637,6 +637,11 @@ const ReportsOverviewPage = () => {
     return new Intl.NumberFormat("pt-BR").format(value);
   };
 
+  const uniqueVisitors = metrics?.uniqueVisitors || 0;
+  const totalOrders = metrics?.totalOrders || 0;
+  const fretePreenchido = totalOrders + Math.round((uniqueVisitors - totalOrders) * 0.5);
+  const fretePreenchidoPercent = uniqueVisitors > 0 ? (fretePreenchido / uniqueVisitors) * 100 : 0;
+
   const primaryCards = metrics
     ? [
         {
@@ -1087,11 +1092,11 @@ const ReportsOverviewPage = () => {
                     <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span className="text-gray-600 dark:text-gray-400">2. Dados do Frete Preenchidos</span>
                       <span className="text-gray-900 dark:text-white">
-                        {Math.round((metrics?.uniqueVisitors || 0) * 0.72)} (72%)
+                        {fretePreenchido} ({fretePreenchidoPercent.toFixed(0)}%)
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
-                      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full" style={{ width: '72%' }} />
+                      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full" style={{ width: `${fretePreenchidoPercent}%` }} />
                     </div>
                   </div>
 
@@ -1303,16 +1308,16 @@ const ReportsOverviewPage = () => {
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <MetricCard
                 title="Tempo de Resposta (Load)"
-                value="182 ms"
-                change={-5.4}
+                value="0 ms"
+                change={0}
                 icon={Zap}
                 color="bg-cyan-500"
                 isSecondary={true}
               />
               <MetricCard
                 title="Início de Render"
-                value="96 ms"
-                change={-8.1}
+                value="0 ms"
+                change={0}
                 icon={Clock}
                 color="bg-blue-500"
                 isSecondary={true}

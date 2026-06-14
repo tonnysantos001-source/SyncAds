@@ -123,6 +123,20 @@ const calculateChange = (current: number, previous: number): number => {
   return ((current - previous) / previous) * 100;
 };
 
+const isValidOrder = (o: any): boolean => {
+  const method = o.paymentMethod || "";
+  const upperMethod = method.toUpperCase();
+  return (
+    upperMethod === "PIX" ||
+    upperMethod === "BOLETO" ||
+    upperMethod === "CREDIT_CARD" ||
+    upperMethod === "DEBIT_CARD" ||
+    upperMethod === "PAYPAL" ||
+    upperMethod === "CARD" ||
+    upperMethod === "CREDIT"
+  );
+};
+
 export const dashboardApi = {
   async getMetrics(
     userId: string,
@@ -157,19 +171,10 @@ export const dashboardApi = {
       }
 
       // Filtrar pedidos pagos
-      let paidOrders =
+      const paidOrders =
         currentOrders?.filter((o) => o.paymentStatus === "PAID") || [];
-      let previousPaidOrders =
+      const previousPaidOrders =
         previousOrders?.filter((o) => o.paymentStatus === "PAID") || [];
-
-      // MODO TESTE / FALLBACK: Se não houver pedidos pagos, considerar todos os pedidos não-cancelados para viabilizar exibição de testes
-      const isTestMode = paidOrders.length === 0;
-      if (isTestMode && currentOrders && currentOrders.length > 0) {
-        paidOrders = currentOrders.filter((o) => o.paymentStatus !== "CANCELLED" && o.paymentStatus !== "FAILED");
-      }
-      if (isTestMode && previousOrders && previousOrders.length > 0) {
-        previousPaidOrders = previousOrders.filter((o) => o.paymentStatus !== "CANCELLED" && o.paymentStatus !== "FAILED");
-      }
 
       // Calcular receita total
       const totalRevenue = paidOrders.reduce((sum, o) => {
@@ -184,9 +189,13 @@ export const dashboardApi = {
         return sum + (total || 0);
       }, 0);
 
+      // Filtrar pedidos válidos (pedidos reais criados)
+      const validOrders = currentOrders?.filter(isValidOrder) || [];
+      const previousValidOrders = previousOrders?.filter(isValidOrder) || [];
+
       // Total de pedidos
-      const totalOrders = currentOrders?.length || 0;
-      const previousTotalOrders = previousOrders?.length || 0;
+      const totalOrders = validOrders.length;
+      const previousTotalOrders = previousValidOrders.length;
 
       // Produtos vendidos
       const productsSold = paidOrders.reduce((sum, o) => {
@@ -231,25 +240,16 @@ export const dashboardApi = {
         .gte("createdAt", previousStart.toISOString())
         .lte("createdAt", previousEnd.toISOString());
 
-      // Visitantes únicos = Total de carrinhos criados. Se 0, estimar usando orders para testar dashboard.
-      const baseUniqueVisitors = currentCarts?.length || 0;
-      const uniqueVisitors = baseUniqueVisitors > 0
-        ? baseUniqueVisitors
-        : Math.round((currentOrders?.length || 0) * 1.6) + (currentOrders?.length ? 3 : 0);
+      // Visitantes únicos = Máximo entre carrinhos e checkouts iniciados (pedidos gerais na tabela Order)
+      const uniqueVisitors = Math.max(currentCarts?.length || 0, currentOrders?.length || 0);
+      const previousVisitors = Math.max(previousCarts?.length || 0, previousOrders?.length || 0);
 
-      const basePreviousVisitors = previousCarts?.length || 0;
-      const previousVisitors = basePreviousVisitors > 0
-        ? basePreviousVisitors
-        : Math.round((previousOrders?.length || 0) * 1.6) + (previousOrders?.length ? 3 : 0);
-
-      // Taxa de conversão = pedidos pagos / visitantes únicos. Se em teste, total de pedidos / visitantes.
-      const conversionBaseOrders = isTestMode ? totalOrders : currentOrders?.filter((o) => o.paymentStatus === "PAID").length || 0;
+      // Taxa de conversão = total de pedidos criados / visitantes únicos.
       const conversionRate =
-        uniqueVisitors > 0 ? (conversionBaseOrders / uniqueVisitors) * 100 : 0;
+        uniqueVisitors > 0 ? (totalOrders / uniqueVisitors) * 100 : 0;
       
-      const previousConversionBaseOrders = isTestMode ? previousTotalOrders : previousOrders?.filter((o) => o.paymentStatus === "PAID").length || 0;
       const previousConversionRate =
-        previousVisitors > 0 ? (previousConversionBaseOrders / previousVisitors) * 100 : 0;
+        previousVisitors > 0 ? (previousTotalOrders / previousVisitors) * 100 : 0;
 
       // Calcular tempo médio de sessão
       const allCarts = currentCarts || [];
@@ -270,30 +270,33 @@ export const dashboardApi = {
       });
 
       const avgSessionMs =
-        sessionCount > 0 ? totalSessionTime / sessionCount : 480000; // default 8min
+        sessionCount > 0 ? totalSessionTime / sessionCount : 0;
       const avgMinutes = Math.floor(avgSessionMs / 60000);
       const avgSeconds = Math.floor((avgSessionMs % 60000) / 1000);
       const averageTime = `${avgMinutes}m ${avgSeconds}s`;
 
-      // Calcular taxa de rejeição
-      const abandonedCarts = allCarts.filter(
-        (c) => !c.completedAt && !c.convertedToOrderId,
-      );
-      const bounceRate =
-        allCarts.length > 0
-          ? (abandonedCarts.length / allCarts.length) * 100
-          : (currentOrders?.filter((o) => o.paymentStatus === "PENDING").length || 0) > 0 ? 45.2 : 0;
-
+      // Tempo de sessão anterior
       const previousAllCarts = previousCarts || [];
-      const previousAbandonedCarts = previousAllCarts.filter(
-        (c) => !c.completedAt && !c.convertedToOrderId,
-      );
-      const previousBounceRate =
-        previousAllCarts.length > 0
-          ? (previousAbandonedCarts.length / previousAllCarts.length) * 100
-          : (previousOrders?.filter((o) => o.paymentStatus === "PENDING").length || 0) > 0 ? 43.8 : 0;
+      const previousCompletedCarts = previousAllCarts.filter((c) => c.completedAt);
+      let previousTotalSessionTime = 0;
+      let previousSessionCount = 0;
 
-      const timeChange = calculateChange(avgSessionMs, avgSessionMs * 0.95);
+      previousCompletedCarts.forEach((cart) => {
+        if (cart.createdAt && cart.completedAt) {
+          const created = new Date(cart.createdAt);
+          const completed = new Date(cart.completedAt);
+          const diff = completed.getTime() - created.getTime();
+          if (diff > 0 && diff < 3600000) {
+            previousTotalSessionTime += diff;
+            previousSessionCount++;
+          }
+        }
+      });
+
+      const previousAvgSessionMs =
+        previousSessionCount > 0 ? previousTotalSessionTime / previousSessionCount : 0;
+
+      const timeChange = calculateChange(avgSessionMs, previousAvgSessionMs);
 
       // Calcular visitantes online ativos (carrinhos atualizados ou criados nos últimos 5 minutos)
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -301,24 +304,34 @@ export const dashboardApi = {
         const updated = c.updatedAt || c.createdAt;
         return updated >= fiveMinutesAgo;
       });
-      let activeVisitors = activeCarts.length;
+      const activeVisitors = activeCarts.length;
 
-      // Fallback dinâmico para visitantes ativos se for 0 e houver tráfego hoje
-      if (activeVisitors === 0 && uniqueVisitors > 0) {
-        const hour = new Date().getHours();
-        const base = hour >= 14 && hour <= 22 ? 3 : 1;
-        const randomModifier = Math.floor(Math.random() * 2);
-        activeVisitors = base + randomModifier;
-      }
-
-      // Calcular carrinhos abandonados
-      const abandonedCartsCount = abandonedCarts.length;
+      // Calcular carrinhos abandonados (visitas/sessões que não viraram pedido)
+      const abandonedCartsCount = Math.max(0, uniqueVisitors - totalOrders);
       
-      // Calcular faturamento abandonado (soma de todos os carrinhos abandonados)
-      const abandonedCartsRevenue = abandonedCarts.reduce((sum, c) => {
-        const cartTotal = typeof c.total === "string" ? parseFloat(c.total) : c.total;
+      // Calcular faturamento abandonado (soma de todos os checkouts iniciados que não viraram pedido)
+      const abandonedOrders = currentOrders?.filter(o => !isValidOrder(o)) || [];
+      const abandonedCartsRevenue = abandonedOrders.reduce((sum, o) => {
+        const cartTotal = typeof o.total === "string" ? parseFloat(o.total) : o.total;
         return sum + (cartTotal || 0);
       }, 0);
+
+      const previousAbandonedOrders = previousOrders?.filter(o => !isValidOrder(o)) || [];
+      const previousAbandonedCartsRevenue = previousAbandonedOrders.reduce((sum, o) => {
+        const cartTotal = typeof o.total === "string" ? parseFloat(o.total) : o.total;
+        return sum + (cartTotal || 0);
+      }, 0);
+
+      const bounceRate =
+        uniqueVisitors > 0
+          ? (abandonedCartsCount / uniqueVisitors) * 100
+          : 0;
+
+      const previousAbandonedCartsCount = Math.max(0, previousVisitors - previousTotalOrders);
+      const previousBounceRate =
+        previousVisitors > 0
+          ? (previousAbandonedCartsCount / previousVisitors) * 100
+          : 0;
 
       // Calcular receita recuperada (carrinhos convertidos para pedido)
       const recoveredCarts = allCarts.filter((c) => c.completedAt && c.convertedToOrderId);
@@ -327,22 +340,15 @@ export const dashboardApi = {
         return sum + (cartTotal || 0);
       }, 0);
 
-      // Calcular distribuição de métodos de pagamento
+      // Calcular distribuição de métodos de pagamento (apenas de pedidos válidos)
       const paymentMethods = { pix: 0, card: 0, boleto: 0 };
-      currentOrders?.forEach((o) => {
-        const method = o.paymentMethod || "CREDIT_CARD";
-        if (method.includes("PIX")) paymentMethods.pix++;
-        else if (method.includes("BOLETO")) paymentMethods.boleto++;
-        else paymentMethods.card++;
+      validOrders.forEach((o) => {
+        const method = o.paymentMethod || "";
+        const upperMethod = method.toUpperCase();
+        if (upperMethod.includes("PIX")) paymentMethods.pix++;
+        else if (upperMethod.includes("BOLETO")) paymentMethods.boleto++;
+        else if (upperMethod.includes("CARD") || upperMethod.includes("CREDIT")) paymentMethods.card++;
       });
-
-      // Proporções fictícias se não houver dados, para exibição de design
-      const totalMethods = paymentMethods.pix + paymentMethods.card + paymentMethods.boleto;
-      if (totalMethods === 0) {
-        paymentMethods.pix = 5;
-        paymentMethods.card = 8;
-        paymentMethods.boleto = 2;
-      }
 
       return {
         totalRevenue,
@@ -400,10 +406,6 @@ export const dashboardApi = {
         .gte("createdAt", start.toISOString())
         .lte("createdAt", end.toISOString());
 
-      // Filtrar pedidos pagos vs teste
-      let paidOrders = currentOrders?.filter((o) => o.paymentStatus === "PAID") || [];
-      const isTestMode = paidOrders.length === 0;
-
       const isYear = period === "year";
 
       if (isYear) {
@@ -429,31 +431,27 @@ export const dashboardApi = {
           const ordersInMonth = monthData.orders;
           const cartsInMonth = monthData.carts;
           
-          const activeOrders = isTestMode 
-            ? ordersInMonth.filter((o) => o.paymentStatus !== "CANCELLED" && o.paymentStatus !== "FAILED")
-            : ordersInMonth.filter((o) => o.paymentStatus === "PAID");
+          const activeOrders = ordersInMonth.filter((o) => o.paymentStatus === "PAID");
 
           const revenue = activeOrders.reduce((sum, o) => {
             const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
             return sum + (total || 0);
           }, 0);
 
-          const conversions = activeOrders.length;
-          const sessions = cartsInMonth.length || ordersInMonth.length || 0;
-          const abandoned = cartsInMonth.length 
-            ? cartsInMonth.filter((c) => !c.completedAt).length
-            : ordersInMonth.filter((o) => o.paymentStatus === "PENDING").length;
+          const conversions = ordersInMonth.filter(isValidOrder).length;
+          const sessions = Math.max(cartsInMonth.length, ordersInMonth.length);
+          const abandoned = Math.max(0, sessions - conversions);
 
           return {
             name: month,
             revenue,
             conversions,
             sessions,
-            pageLoad: sessions > 0 ? Math.floor(Math.random() * 100) + 150 : 0,
+            pageLoad: 0,
             bounceRate: sessions > 0 ? (abandoned / sessions) * 100 : 0,
-            startRender: sessions > 0 ? Math.floor(Math.random() * 80) + 80 : 0,
-            sessionLength: sessions > 0 ? Math.floor(Math.random() * 6) + 3 : 0,
-            pvs: sessions > 0 ? Math.floor(Math.random() * 2) + 1.2 : 0,
+            startRender: 0,
+            sessionLength: 0,
+            pvs: 0,
           };
         });
       }
@@ -496,37 +494,32 @@ export const dashboardApi = {
         const ordersInDay = dayData.orders;
         const cartsInDay = dayData.carts;
 
-        const activeOrders = isTestMode 
-          ? ordersInDay.filter((o) => o.paymentStatus !== "CANCELLED" && o.paymentStatus !== "FAILED")
-          : ordersInDay.filter((o) => o.paymentStatus === "PAID");
+        const activeOrders = ordersInDay.filter((o) => o.paymentStatus === "PAID");
 
         const revenue = activeOrders.reduce((sum, o) => {
           const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
           return sum + (total || 0);
         }, 0);
 
-        const conversions = activeOrders.length;
-        const baseSessions = cartsInDay.length || ordersInDay.length || 0;
-        const sessions = baseSessions > 0 ? baseSessions : Math.round(ordersInDay.length * 1.6) + (ordersInDay.length ? 3 : 0);
+        const conversions = ordersInDay.filter(isValidOrder).length;
+        const sessions = Math.max(cartsInDay.length, ordersInDay.length);
 
-        const abandoned = cartsInDay.length 
-          ? cartsInDay.filter((c) => !c.completedAt).length
-          : ordersInDay.filter((o) => o.paymentStatus === "PENDING").length;
+        const abandoned = Math.max(0, sessions - conversions);
 
         const bounceRate = sessions > 0 
           ? (abandoned / sessions) * 100 
-          : (ordersInDay.filter((o) => o.paymentStatus === "PENDING").length > 0 ? 45.2 : 0);
+          : 0;
 
         return {
           name: label,
           revenue,
           conversions,
           sessions,
-          pageLoad: sessions > 0 ? Math.floor(Math.random() * 120) + 160 : 0,
+          pageLoad: 0,
           bounceRate,
-          startRender: sessions > 0 ? Math.floor(Math.random() * 80) + 90 : 0,
-          sessionLength: sessions > 0 ? Math.floor(Math.random() * 6) + 4 : 0,
-          pvs: sessions > 0 ? Math.floor(Math.random() * 2) + 1.4 : 0,
+          startRender: 0,
+          sessionLength: 0,
+          pvs: 0,
         };
       });
     } catch (error) {
@@ -581,13 +574,11 @@ export const dashboardApi = {
         const paidOrders = hourData.orders.filter(
           (o) => o.paymentStatus === "PAID",
         );
-        const hasPaidOrders = paidOrders.length > 0;
-        const activeOrdersForRevenue = hasPaidOrders ? paidOrders : hourData.orders;
         
         const visits = hourData.carts.length || hourData.orders.length || 0;
-        const conversions = hasPaidOrders ? paidOrders.length : hourData.orders.length || 0;
+        const conversions = hourData.orders.length;
 
-        const revenue = activeOrdersForRevenue.reduce((sum, o) => {
+        const revenue = paidOrders.reduce((sum, o) => {
           const total =
             typeof o.total === "string" ? parseFloat(o.total) : o.total;
           return sum + (total || 0);
@@ -651,18 +642,12 @@ export const dashboardApi = {
 
       return Object.values(gatewayMap).map((gateway: any) => {
         const transactions = gateway.transactions;
-        let successful = transactions.filter(
+        const successful = transactions.filter(
           (t: any) => t.status === "PAID" || t.status === "APPROVED",
         );
         const failed = transactions.filter(
           (t: any) => t.status === "FAILED" || t.status === "REJECTED",
         );
-
-        // MODO TESTE / FALLBACK: Se nenhuma transação foi paga, tratar PENDING como bem-sucedida para fins de teste
-        const isTestMode = successful.length === 0;
-        if (isTestMode && transactions.length > 0) {
-          successful = transactions.filter((t: any) => t.status !== "FAILED" && t.status !== "REJECTED");
-        }
 
         const totalRevenue = successful.reduce((sum: number, t: any) => {
           const amount =
@@ -715,7 +700,7 @@ export const dashboardApi = {
     const { start, end } = getPeriodDates(period);
 
     try {
-      let { data: orders, error } = await supabase
+      const { data: orders, error } = await supabase
         .from("Order")
         .select("*")
         .eq("userId", userId)
@@ -725,20 +710,6 @@ export const dashboardApi = {
         .order("createdAt", { ascending: true });
 
       if (error) throw error;
-
-      // Fallback para testes
-      if (!orders || orders.length === 0) {
-        const { data: allOrders, error: allError } = await supabase
-          .from("Order")
-          .select("*")
-          .eq("userId", userId)
-          .gte("createdAt", start.toISOString())
-          .lte("createdAt", end.toISOString())
-          .order("createdAt", { ascending: true });
-        
-        if (allError) throw allError;
-        orders = allOrders;
-      }
 
       const revenueByDay: { [key: string]: number } = {};
 
