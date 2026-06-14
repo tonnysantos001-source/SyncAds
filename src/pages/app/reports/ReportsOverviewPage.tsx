@@ -866,7 +866,7 @@ const ReportsOverviewPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-5 rounded-xl h-full flex flex-col justify-between">
+          <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
                 <h3 className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
@@ -882,7 +882,7 @@ const ReportsOverviewPage = () => {
               </Badge>
             </div>
             <CardContent className="p-0 flex-1 flex items-center">
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={185}>
                 {displayData.length > 0 ? (
                   <ComposedChart data={displayData}>
                     <defs>
@@ -938,7 +938,7 @@ const ReportsOverviewPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5 rounded-xl h-full flex flex-col justify-between">
+          <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
                 <h3 className="text-base md:text-lg font-bold flex items-center gap-1.5 text-gray-900 dark:text-white">
@@ -951,7 +951,7 @@ const ReportsOverviewPage = () => {
               </div>
             </div>
             <CardContent className="p-0 flex-1 overflow-hidden">
-              <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[185px] overflow-y-auto pr-1">
                 {recentOrders.length > 0 ? (
                   recentOrders.map((order) => {
                     const firstItem = getFirstItem(order);
@@ -961,18 +961,18 @@ const ReportsOverviewPage = () => {
                     return (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
+                        className="flex items-center justify-between p-2 rounded-lg border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           {productImg ? (
                             <img
                               src={productImg}
                               alt={productName}
-                              className="w-9.5 h-9.5 rounded-md object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
+                              className="w-8 h-8 rounded-md object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
                             />
                           ) : (
-                            <div className="w-9.5 h-9.5 rounded-md bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
-                              <Package className="h-5 w-5" />
+                            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[10px] text-purple-600 dark:text-purple-400 shrink-0">
+                              <Package className="h-4 w-4" />
                             </div>
                           )}
                           <div className="flex flex-col min-w-0 flex-1">
