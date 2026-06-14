@@ -65,10 +65,14 @@ const PixPaymentPage: React.FC = () => {
             .single();
 
           if (!error && data) {
+            // pixQrCode é a coluna direta salva pela edge function
+            // metadata.pixData é o fallback para registros mais antigos
+            const qrCodeValue = data.pixQrCode || data.pixCopyPaste || data.metadata?.pixData?.qrCode || data.metadata?.qrCode || "";
             const pixInfo: PixData = {
-              qrCode: data.metadata?.pixData?.qrCode || "",
+              qrCode: qrCodeValue,
+              qrCodeBase64: data.metadata?.pixData?.qrCodeBase64,
               amount: data.amount,
-              expiresAt: data.metadata?.pixData?.expiresAt,
+              expiresAt: data.pixExpiresAt || data.metadata?.pixData?.expiresAt,
               transactionId: data.id,
             };
             setPixData(pixInfo);
