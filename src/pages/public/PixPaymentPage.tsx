@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ArrowLeft,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import QRCode from "qrcode";
@@ -47,16 +48,6 @@ const PixPaymentPage: React.FC = () => {
   useEffect(() => {
     const loadPixData = async () => {
       try {
-        // Tentar carregar do localStorage primeiro
-        const savedData = localStorage.getItem(`pix-${orderId}`);
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          setPixData(parsed);
-          setLoading(false);
-          return;
-        }
-
-        // Se não tiver no localStorage, buscar do banco
         if (transactionId) {
           const { data, error } = await supabase
             .from("Transaction")
@@ -65,8 +56,6 @@ const PixPaymentPage: React.FC = () => {
             .single();
 
           if (!error && data) {
-            // pixQrCode é a coluna direta salva pela edge function
-            // metadata.pixData é o fallback para registros mais antigos
             const qrCodeValue = data.pixQrCode || data.pixCopyPaste || data.metadata?.pixData?.qrCode || data.metadata?.qrCode || "";
             const pixInfo: PixData = {
               qrCode: qrCodeValue,
@@ -97,11 +86,11 @@ const PixPaymentPage: React.FC = () => {
   useEffect(() => {
     if (pixData?.qrCode) {
       QRCode.toDataURL(pixData.qrCode, {
-        width: 400,
+        width: 300,
         margin: 1,
         color: {
-          dark: "#000000",
-          light: "#FFFFFF",
+          dark: "#0f172a", // slate-900 para contraste moderno
+          light: "#ffffff",
         },
         errorCorrectionLevel: "H",
       })
@@ -153,7 +142,6 @@ const PixPaymentPage: React.FC = () => {
         if (!error && data) {
           if (data.status === "PAID" || data.status === "approved") {
             setIsPaid(true);
-            // Aguardar 2 segundos e redirecionar
             setTimeout(() => {
               navigate(`/checkout/success/${transactionId}`);
             }, 2000);
@@ -166,7 +154,6 @@ const PixPaymentPage: React.FC = () => {
       }
     };
 
-    // Verificar imediatamente e depois a cada 5 segundos
     checkPayment();
     const interval = setInterval(checkPayment, 5000);
 
@@ -199,10 +186,10 @@ const PixPaymentPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <div className="text-center">
-          <RefreshCw className="h-12 w-12 text-green-600 animate-spin mx-auto mb-4" />
-          <p className="text-lg text-gray-600 dark:text-gray-300">
+      <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-gray-500 dark:text-neutral-400">
             Carregando dados do pagamento...
           </p>
         </div>
@@ -212,19 +199,19 @@ const PixPaymentPage: React.FC = () => {
 
   if (!pixData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Dados não encontrados</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 flex items-center justify-center p-4">
+        <Card className="max-w-sm w-full border-gray-100 dark:border-neutral-800 shadow-sm rounded-xl">
+          <CardContent className="p-6 text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-neutral-50">Dados não encontrados</h2>
+            <p className="text-sm text-gray-500 dark:text-neutral-400">
               Não conseguimos encontrar os dados do seu pagamento PIX.
             </p>
             <Button
               onClick={() => navigate(`/checkout/${orderId}`)}
-              className="w-full"
+              className="w-full bg-neutral-900 hover:bg-neutral-850 dark:bg-white dark:text-neutral-900 dark:hover:bg-gray-100"
             >
-              <ArrowLeft className="h-5 w-5 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar ao Checkout
             </Button>
           </CardContent>
@@ -233,23 +220,22 @@ const PixPaymentPage: React.FC = () => {
     );
   }
 
-  // Página de pagamento confirmado
   if (isPaid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500 mb-6 animate-bounce">
-              <CheckCircle className="h-12 w-12 text-white" />
+      <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 flex items-center justify-center p-4">
+        <Card className="max-w-sm w-full border-gray-100 dark:border-neutral-800 shadow-sm rounded-xl">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950/30">
+              <CheckCircle className="h-8 w-8" />
             </div>
-            <h2 className="text-3xl font-bold text-green-600 mb-2">
-              Pagamento Confirmado! 🎉
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-neutral-50">
+              Pagamento Confirmado!
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
-              Seu pagamento via PIX foi aprovado com sucesso.
+            <p className="text-sm text-gray-500 dark:text-neutral-400">
+              Seu pagamento via PIX foi recebido e aprovado com sucesso.
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Redirecionando...
+            <p className="text-xs text-emerald-600 dark:text-emerald-500 font-medium animate-pulse">
+              Redirecionando para a confirmação...
             </p>
           </CardContent>
         </Card>
@@ -258,270 +244,215 @@ const PixPaymentPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
+    <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 flex flex-col justify-center items-center py-8 px-4">
+      <div className="w-full max-w-[460px] space-y-6">
+        
+        {/* Header Voltar */}
+        <div className="flex justify-between items-center px-1">
+          <button
             onClick={() => navigate(`/checkout/${orderId}`)}
-            className="mb-4"
+            className="text-xs font-medium text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
           >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Voltar
-          </Button>
-
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-lg mb-4">
-              <QrCode className="h-10 w-10 text-white" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Pagamento via PIX
-            </h1>
-            <p className="text-xl md:text-2xl font-bold text-green-600">
-              R$ {pixData.amount.toFixed(2)}
-            </p>
-          </div>
+            <ArrowLeft className="h-3 w-3" />
+            Alterar método de pagamento
+          </button>
         </div>
 
-        {/* Timer */}
-        {pixData.expiresAt && (
-          <Card
-            className={cn(
-              "mb-6 border-2",
-              isExpired
-                ? "bg-red-50 border-red-300 dark:bg-red-950/30 dark:border-red-800"
-                : timeLeft < 60
-                  ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/30 dark:border-yellow-800 animate-pulse"
-                  : "bg-blue-50 border-blue-300 dark:bg-blue-950/30 dark:border-blue-800"
-            )}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center gap-3">
-                <Clock
-                  className={cn(
-                    "h-7 w-7",
-                    isExpired
-                      ? "text-red-600"
-                      : timeLeft < 60
-                        ? "text-yellow-600"
-                        : "text-blue-600"
-                  )}
-                />
-                <div className="text-center">
-                  <p
-                    className={cn(
-                      "text-3xl font-bold font-mono",
-                      isExpired
-                        ? "text-red-700"
-                        : timeLeft < 60
-                          ? "text-yellow-700"
-                          : "text-blue-700"
-                    )}
-                  >
-                    {isExpired ? "Expirado" : formatTime(timeLeft)}
-                  </p>
-                  {!isExpired && (
-                    <p className="text-sm text-gray-600">
-                      Tempo restante para pagamento
-                    </p>
-                  )}
-                </div>
+        {/* Main Card */}
+        <Card className="border-gray-100 dark:border-neutral-800 shadow-[0_8px_30px_rgb(0,0,0,0.012)] rounded-2xl overflow-hidden bg-white dark:bg-neutral-900">
+          <CardContent className="p-6 md:p-8 space-y-6">
+            
+            {/* Brand/PIX header */}
+            <div className="text-center space-y-2">
+              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 rounded-full text-xs font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Pagamento Instantâneo PIX
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <h1 className="text-xl font-bold text-gray-800 dark:text-neutral-100">
+                Escaneie ou copie o código
+              </h1>
+              <p className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                R$ {pixData.amount.toFixed(2)}
+              </p>
+            </div>
 
-        {/* Status de verificação */}
-        {isChecking && (
-          <div className="flex items-center justify-center gap-2 mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <RefreshCw className="h-5 w-5 text-blue-600 animate-spin" />
-            <p className="text-blue-700 dark:text-blue-300 font-medium">
-              Verificando pagamento...
-            </p>
-          </div>
-        )}
-
-        {/* Toggle QR Code / Código */}
-        <div className="flex gap-2 p-1 bg-white dark:bg-gray-800 rounded-xl mb-6 shadow-sm">
-          <button
-            onClick={() => setShowQRCode(true)}
-            className={cn(
-              "flex-1 py-4 px-6 rounded-lg font-semibold text-base transition-all",
-              showQRCode
-                ? "bg-green-500 text-white shadow-md"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+            {/* Timer status bar */}
+            {!isExpired && (
+              <div className="bg-slate-50 dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-xl p-3 flex items-center justify-center gap-2">
+                <Clock className="h-4 w-4 text-emerald-500" />
+                <span className="text-xs font-medium text-gray-600 dark:text-neutral-400">
+                  Código expira em:
+                </span>
+                <span className="text-xs font-bold font-mono text-gray-800 dark:text-neutral-200">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
             )}
-          >
-            <QrCode className="h-5 w-5 inline mr-2" />
-            QR Code
-          </button>
-          <button
-            onClick={() => setShowQRCode(false)}
-            className={cn(
-              "flex-1 py-4 px-6 rounded-lg font-semibold text-base transition-all",
-              !showQRCode
-                ? "bg-green-500 text-white shadow-md"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
-            )}
-          >
-            <Copy className="h-5 w-5 inline mr-2" />
-            Copia e Cola
-          </button>
-        </div>
 
-        {/* QR Code */}
-        {showQRCode && (
-          <Card className="mb-6 shadow-xl">
-            <CardContent className="p-8 md:p-12">
-              <div className="text-center space-y-6">
-                {qrCodeImage ? (
-                  <div className="inline-block p-6 bg-white rounded-3xl shadow-2xl">
+            {/* Verification status loader */}
+            {isChecking && !isExpired && (
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-500 font-medium">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                Aguardando confirmação do banco...
+              </div>
+            )}
+
+            {/* Toggle QR Code / Copia e Cola */}
+            {!isExpired && (
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 dark:bg-neutral-950 rounded-lg">
+                <button
+                  onClick={() => setShowQRCode(true)}
+                  className={cn(
+                    "py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                    showQRCode
+                      ? "bg-white dark:bg-neutral-900 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-400 hover:text-gray-900 dark:text-neutral-500 dark:hover:text-neutral-300"
+                  )}
+                >
+                  <QrCode className="h-3.5 w-3.5" />
+                  Visualizar QR Code
+                </button>
+                <button
+                  onClick={() => setShowQRCode(false)}
+                  className={cn(
+                    "py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                    !showQRCode
+                      ? "bg-white dark:bg-neutral-900 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-400 hover:text-gray-900 dark:text-neutral-500 dark:hover:text-neutral-300"
+                  )}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copia e Cola
+                </button>
+              </div>
+            )}
+
+            {/* Expirado UI */}
+            {isExpired && (
+              <div className="bg-red-50/70 dark:bg-red-950/20 border border-red-100 dark:border-red-900 p-5 rounded-xl text-center space-y-3">
+                <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-red-800 dark:text-red-400">Código PIX Expirado</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    O tempo limite para pagamento deste código expirou. Gere um novo código.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => navigate(`/checkout/${orderId}`)}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white text-xs h-10 font-semibold shadow-sm"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Gerar Novo Código PIX
+                </Button>
+              </div>
+            )}
+
+            {/* QR Code Container */}
+            {!isExpired && showQRCode && (
+              <div className="space-y-3 text-center">
+                <div className="inline-block p-4 bg-white dark:bg-white rounded-2xl border border-gray-150 shadow-sm">
+                  {qrCodeImage ? (
                     <img
                       src={qrCodeImage}
                       alt="QR Code PIX"
-                      className="w-72 h-72 md:w-96 md:h-96 mx-auto"
+                      className="w-48 h-48 mx-auto"
                     />
-                  </div>
-                ) : (
-                  <div className="w-72 h-72 md:w-96 md:h-96 mx-auto bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center">
-                    <RefreshCw className="h-16 w-16 text-gray-400 animate-spin" />
-                  </div>
-                )}
-                <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                  Abra o app do seu banco e escaneie o QR Code
+                  ) : (
+                    <div className="w-48 h-48 mx-auto bg-slate-50 rounded-xl flex items-center justify-center">
+                      <RefreshCw className="h-8 w-8 text-slate-300 animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400 max-w-[280px] mx-auto leading-relaxed">
+                  Abra o aplicativo de seu banco, escolha a opção "Pagar com Pix" e aponte a câmera para o QR Code acima.
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* Código Copia e Cola */}
-        {!showQRCode && (
-          <Card className="mb-6 shadow-xl">
-            <CardContent className="p-8 md:p-12 space-y-6">
-              <div>
-                <label className="text-base font-semibold block mb-4 text-gray-700 dark:text-gray-300">
-                  Código PIX Copia e Cola:
-                </label>
-                <div className="p-5 bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 overflow-hidden">
-                  <code className="text-sm font-mono break-all block text-gray-800 dark:text-gray-200">
-                    {pixData.qrCode}
-                  </code>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleCopyCode}
-                className={cn(
-                  "w-full h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all",
-                  copied ? "bg-green-600" : "bg-green-500"
-                )}
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-6 w-6 mr-2" />
-                    Código Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-6 w-6 mr-2" />
-                    Copiar Código PIX
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Instruções */}
-        <Card className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-2 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-6 md:p-8">
-            <div className="flex items-start gap-4">
-              <Smartphone className="h-8 w-8 text-blue-600 flex-shrink-0 mt-1" />
+            {/* Copia e Cola Container */}
+            {!isExpired && !showQRCode && (
               <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  Como pagar:
-                </h3>
-                <ol className="space-y-3 text-base text-gray-700 dark:text-gray-300">
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">
+                    Linha Digitável / Copia e Cola:
+                  </label>
+                  <div className="p-3 bg-slate-50 dark:bg-neutral-950 rounded-xl border border-slate-100 dark:border-neutral-900">
+                    <code className="text-xs font-mono break-all block text-gray-600 dark:text-neutral-300 max-h-20 overflow-y-auto scrollbar-thin select-all">
+                      {pixData.qrCode}
+                    </code>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleCopyCode}
+                  className={cn(
+                    "w-full h-11 text-xs font-bold shadow-sm transition-all rounded-lg",
+                    copied ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  )}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Código Copiado com Sucesso!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar Código Pix
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Como Pagar Instructions */}
+            {!isExpired && (
+              <div className="p-4 bg-slate-50/50 dark:bg-neutral-950/30 rounded-xl border border-slate-100/60 dark:border-neutral-900/60 space-y-3">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-neutral-300 flex items-center gap-1.5">
+                  <Smartphone className="h-4 w-4 text-emerald-500" />
+                  Instruções de pagamento:
+                </h4>
+                <ol className="text-xs text-gray-500 dark:text-neutral-400 space-y-2.5">
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 dark:bg-neutral-800 text-[10px] font-bold text-gray-600 dark:text-neutral-400">
                       1
                     </span>
-                    <span className="pt-0.5">
-                      Abra o app do seu banco ou carteira digital
-                    </span>
+                    <span>Abra o app do seu banco ou carteira digital de preferência.</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold">
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 dark:bg-neutral-800 text-[10px] font-bold text-gray-600 dark:text-neutral-400">
                       2
                     </span>
-                    <span className="pt-0.5">
-                      Escolha <strong>Pix Copia e Cola</strong> ou{" "}
-                      <strong>Ler QR Code</strong>
-                    </span>
+                    <span>Selecione a opção de pagamento via <strong>PIX</strong>.</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold">
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 dark:bg-neutral-800 text-[10px] font-bold text-gray-600 dark:text-neutral-400">
                       3
                     </span>
-                    <span className="pt-0.5">
-                      Cole o código ou escaneie o QR Code acima
-                    </span>
+                    <span>Escolha a leitura de <strong>QR Code</strong> ou cole o código <strong>Pix Copia e Cola</strong>.</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold">
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/60 dark:bg-neutral-800 text-[10px] font-bold text-gray-600 dark:text-neutral-400">
                       4
                     </span>
-                    <span className="pt-0.5">
-                      Confirme o pagamento e pronto! ✅ Aprovação automática
-                    </span>
+                    <span>Confirme os dados do pagamento e conclua. A aprovação é imediata!</span>
                   </li>
                 </ol>
               </div>
-            </div>
+            )}
+
           </CardContent>
         </Card>
 
-        {/* Aviso de segurança */}
-        <div className="flex items-center gap-3 p-5 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-800 mb-6">
-          <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-          <p className="text-sm md:text-base text-green-700 dark:text-green-300 font-medium">
-            Pagamento 100% seguro e aprovação instantânea
-          </p>
+        {/* Security Footer Info */}
+        <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          <span>Ambiente de pagamento 100% seguro</span>
         </div>
-
-        {/* Aviso de expiração */}
-        {isExpired && (
-          <Card className="bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800">
-            <CardContent className="p-6">
-              <div className="flex gap-3">
-                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
-                <div>
-                  <p className="text-red-700 dark:text-red-300 font-bold mb-2">
-                    Código PIX Expirado
-                  </p>
-                  <p className="text-sm text-red-600 dark:text-red-400 mb-4">
-                    Este código expirou. Clique no botão abaixo para gerar um
-                    novo código PIX.
-                  </p>
-                  <Button
-                    onClick={() => navigate(`/checkout/${orderId}`)}
-                    variant="outline"
-                    className="border-red-600 text-red-600 hover:bg-red-50"
-                  >
-                    <RefreshCw className="h-5 w-5 mr-2" />
-                    Gerar Novo Código
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        
       </div>
     </div>
   );
 };
 
 export default PixPaymentPage;
-
