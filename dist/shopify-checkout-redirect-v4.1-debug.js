@@ -55,6 +55,13 @@
     console.error("[SyncAds ERROR]", ...args);
   }
 
+  function formatMoney(value) {
+    if (typeof value !== "number") value = parseFloat(value) || 0;
+    const parts = value.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(",");
+  }
+
   // ============================================
   // FUNÇÕES DO CARRINHO
   // ============================================
@@ -270,7 +277,7 @@
               ${item.name}
             </div>
             <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
-              R$ ${item.price.toFixed(2)}
+              R$ ${formatMoney(item.price)}
             </div>
             <div style="display: flex; align-items: center; gap: 8px; margin-top: auto;">
               <button
@@ -329,7 +336,7 @@
     }
 
     if (totalElement) {
-      totalElement.textContent = `R$ ${getCartTotal().toFixed(2)}`;
+      totalElement.textContent = `R$ ${formatMoney(getCartTotal())}`;
     }
   }
 

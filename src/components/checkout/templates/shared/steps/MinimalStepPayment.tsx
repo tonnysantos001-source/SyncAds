@@ -104,7 +104,7 @@ export const MinimalStepPayment: React.FC<MinimalStepPaymentProps> = ({
     if (total <= 0) return [{ value: 1, label: '1x sem juros' }];
     return Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
       value: n,
-      label: `${n}x de R$ ${(total / n).toFixed(2).replace('.', ',')} sem juros`,
+      label: `${n}x de R$ ${(total / n).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} sem juros`,
     }));
   }, [total]);
 

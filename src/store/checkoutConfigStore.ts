@@ -258,6 +258,7 @@ export const useCheckoutConfigStore = create<CheckoutConfigStore>()(
           typography:{ ...DEFAULT_CHECKOUT_CONFIG.typography,...(persisted.config.typography?? {}) },
           footer:    { ...DEFAULT_CHECKOUT_CONFIG.footer,    ...(persisted.config.footer    ?? {}) },
           form:      { ...DEFAULT_CHECKOUT_CONFIG.form,      ...(persisted.config.form      ?? {}) },
+          pixBar:    { ...DEFAULT_CHECKOUT_CONFIG.pixBar,    ...(persisted.config.pixBar    ?? {}) },
         };
         return { config: safeConfig };
       },
@@ -292,3 +293,6 @@ export const selectFormConfig = (s: CheckoutConfigStore) => s.config.form;
 
 /** Selector: config do rodapé */
 export const selectFooterConfig = (s: CheckoutConfigStore) => s.config.footer;
+
+/** Selector: config da barra do PIX */
+export const selectPixBarConfig = (s: CheckoutConfigStore) => s.config.pixBar;

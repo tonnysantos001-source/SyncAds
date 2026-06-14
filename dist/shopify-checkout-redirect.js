@@ -54,6 +54,13 @@
     console.error("[SyncAds ERROR]", ...args);
   }
 
+  function formatMoney(value) {
+    if (typeof value !== "number") value = parseFloat(value) || 0;
+    const parts = value.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(",");
+  }
+
   // ============================================
   // FUNÇÕES DO CARRINHO
   // ============================================
@@ -327,7 +334,7 @@
               </h4>
               ${item.sku ? `<p style="margin: 0 0 4px; font-size: 11px; color: #9ca3af;">SKU: ${item.sku}</p>` : ""}
               <p style="margin: 0; font-size: 16px; font-weight: 700; color: #667eea;">
-                R$ ${item.price.toFixed(2)}
+                R$ ${formatMoney(item.price)}
               </p>
             </div>
 
@@ -378,7 +385,7 @@
       .join("");
 
     if (totalElement) {
-      totalElement.textContent = `R$ ${getCartTotal().toFixed(2)}`;
+      totalElement.textContent = `R$ ${formatMoney(getCartTotal())}`;
     }
   }
 

@@ -189,6 +189,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const formatCurrency = (v: number) => {
+    return `R$ ${v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+  };
+
   // Estados
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -1576,10 +1580,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                             isMobile ? "text-xs mt-0.5" : "text-sm mt-1",
                           )}
                         >
-                          R${" "}
-                          {(
-                            (product?.price || 0) * (product?.quantity || 1)
-                          ).toFixed(2)}
+                          {formatCurrency((product?.price || 0) * (product?.quantity || 1))}
                         </p>
                       </div>
                     </div>
@@ -1599,7 +1600,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 >
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
-                    R$ {checkoutData.subtotal.toFixed(2)}
+                    {formatCurrency(checkoutData.subtotal)}
                   </span>
                 </div>
                 {checkoutData.shipping > 0 && (
@@ -1611,7 +1612,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                   >
                     <span className="text-gray-600">Frete</span>
                     <span className="font-medium">
-                      R$ {checkoutData.shipping.toFixed(2)}
+                      {formatCurrency(checkoutData.shipping)}
                     </span>
                   </div>
                 )}
@@ -1624,7 +1625,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                   >
                     <span>Desconto</span>
                     <span className="font-medium">
-                      - R$ {checkoutData.discount.toFixed(2)}
+                      -{formatCurrency(checkoutData.discount)}
                     </span>
                   </div>
                 )}
@@ -1653,7 +1654,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       color: theme.primaryButtonBackgroundColor || "#8b5cf6",
                     }}
                   >
-                    R$ {finalTotalWithBumps.toFixed(2)}
+                    {formatCurrency(finalTotalWithBumps)}
                   </span>
                 </div>
               </div>
@@ -1687,7 +1688,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                       >
                         <span className="text-gray-600">{bump.title}</span>
                         <span className="font-medium text-gray-900">
-                          R$ {Number(bump.price || 0).toFixed(2)}
+                          {formatCurrency(Number(bump.price || 0))}
                         </span>
                       </div>
                     ))}

@@ -343,7 +343,7 @@ const MethodItem: React.FC<MethodItemProps> = ({
     const maxInstallments = 12;
     return Array.from({ length: maxInstallments }, (_, i) => i + 1).map(n => ({
       value: n,
-      label: `${n}x de R$ ${(total / n).toFixed(2).replace('.', ',')} sem juros`,
+      label: `${n}x de R$ ${(total / n).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} sem juros`,
     }));
   }, [total]);
 
@@ -497,7 +497,7 @@ const SummaryPanelContent = ({
               <div className="flex-1 min-w-0 flex flex-col">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h4 className="text-[14px] font-medium text-[#222222] leading-tight flex-1 line-clamp-2">{it.name || 'Produto'}</h4>
-                  <p className="text-[14px] font-semibold text-[#222222] flex-shrink-0">R$ {(it.price * (it.quantity || 1)).toFixed(2).replace('.', ',')}</p>
+                  <p className="text-[14px] font-semibold text-[#222222] flex-shrink-0">R$ {(it.price * (it.quantity || 1)).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</p>
                 </div>
                 {it.variant && <p className="text-xs text-gray-500">{it.variant}</p>}
               </div>
@@ -509,21 +509,21 @@ const SummaryPanelContent = ({
       <div className="border-t border-gray-200 pt-4 space-y-2 text-[14px]">
         <div className="flex justify-between text-gray-600">
           <span>Subtotal</span>
-          <span>{totalPrefix} {subtotal.toFixed(2).replace('.', ',')}</span>
+          <span>{totalPrefix} {subtotal.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
         </div>
         {discount > 0 && (
           <div className="flex justify-between" style={{ color: primaryColor }}>
             <span>Desconto</span>
-            <span>-{totalPrefix} {discount.toFixed(2).replace('.', ',')}</span>
+            <span>-{totalPrefix} {discount.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
           </div>
         )}
         <div className="flex justify-between text-gray-600">
           <span>Frete</span>
-          <span>{shipping === 0 ? <span className="font-medium text-green-600">Grátis</span> : `${totalPrefix} ${shipping.toFixed(2).replace('.', ',')}`}</span>
+          <span>{shipping === 0 ? <span className="font-medium text-green-600">Grátis</span> : `${totalPrefix} ${shipping.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`}</span>
         </div>
         <div className="flex justify-between font-bold text-[16px] text-[#222222] pt-2 border-t border-gray-200">
           <span>Total</span>
-          <span>{totalPrefix} {total.toFixed(2).replace('.', ',')}</span>
+          <span>{totalPrefix} {total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
         </div>
       </div>
     </div>
@@ -549,7 +549,7 @@ const MobileSummaryAccordion = ({ checkoutData, totalPrefix, primaryColor }: {
           🛒 Resumo do pedido
           {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
-        <span className="text-[16px] font-bold text-[#111827]">R$ {total.toFixed(2).replace('.', ',')}</span>
+        <span className="text-[16px] font-bold text-[#111827]">R$ {total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
       </button>
       <AnimatePresence>
         {open && (
@@ -848,7 +848,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                           <Lock className="w-5 h-5" />
                           <span>Finalizar Pedido</span>
                           {total > 0 && (
-                            <span className="ml-1 opacity-90">· R$ {total.toFixed(2).replace('.', ',')}</span>
+                            <span className="ml-1 opacity-90">· R$ {total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
                           )}
                         </>
                       )}

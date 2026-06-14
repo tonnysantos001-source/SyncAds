@@ -23,6 +23,7 @@ interface PixData {
   qrCode: string;
   qrCodeBase64?: string;
   expiresAt?: string;
+  createdAt?: string;
   amount: number;
   transactionId?: string;
 }
@@ -43,6 +44,7 @@ const PixPaymentPage: React.FC = () => {
   const [isPaid, setIsPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(true);
+  const [customization, setCustomization] = useState<any>(null);
 
   // Carregar dados do PIX
   useEffect(() => {
@@ -62,6 +64,7 @@ const PixPaymentPage: React.FC = () => {
               qrCodeBase64: data.metadata?.pixData?.qrCodeBase64,
               amount: data.amount,
               expiresAt: data.pixExpiresAt || data.metadata?.pixData?.expiresAt,
+              createdAt: data.createdAt,
               transactionId: data.id,
             };
             setPixData(pixInfo);
@@ -103,14 +106,68 @@ const PixPaymentPage: React.FC = () => {
     }
   }, [pixData]);
 
+  // Carregar personalização
+  useEffect(() => {
+    const loadCustomization = async () => {
+      try {
+        if (!orderId) return;
+        const { data: orderData, error: orderError } = await supabase
+          .from("Order")
+          .select("userId")
+          .eq("id", orderId)
+          .single();
+
+        if (!orderError && orderData?.userId) {
+          const { data: customData, error: customError } = await supabase
+            .from("CheckoutCustomization")
+            .select("theme")
+            .eq("userId", orderData.userId)
+            .eq("isActive", true)
+            .single();
+
+          if (!customError && customData) {
+            setCustomization(customData.theme);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar personalização do PIX:", error);
+      }
+    };
+
+    loadCustomization();
+  }, [orderId]);
+
+  const pixBarConfig = customization?.pixBar || {
+    enabled: true,
+    durationMinutes: 20,
+    durationSeconds: 0,
+    bgColor: "#f8fafc",
+    borderColor: "#e2e8f0",
+    textColor: "#475569",
+    iconColor: "#10b981",
+    fontStyle: "normal",
+    fontSize: "text-xs",
+  };
+
   // Timer de expiração
   useEffect(() => {
-    if (!pixData?.expiresAt) return;
+    if (!pixData) return;
 
     const calculateTimeLeft = () => {
       const now = new Date().getTime();
-      const expiry = new Date(pixData.expiresAt!).getTime();
-      const diff = expiry - now;
+      
+      let expiryTime = 0;
+      if (pixBarConfig.enabled && pixData.createdAt) {
+        const created = new Date(pixData.createdAt).getTime();
+        const durationMs = ((pixBarConfig.durationMinutes ?? 20) * 60 + (pixBarConfig.durationSeconds ?? 0)) * 1000;
+        expiryTime = created + durationMs;
+      } else if (pixData.expiresAt) {
+        expiryTime = new Date(pixData.expiresAt).getTime();
+      } else {
+        expiryTime = now + 20 * 60 * 1000;
+      }
+
+      const diff = expiryTime - now;
 
       if (diff <= 0) {
         setTimeLeft(0);
@@ -124,7 +181,7 @@ const PixPaymentPage: React.FC = () => {
     const interval = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(interval);
-  }, [pixData?.expiresAt]);
+  }, [pixData, pixBarConfig.enabled, pixBarConfig.durationMinutes, pixBarConfig.durationSeconds]);
 
   // Verificar pagamento periodicamente
   useEffect(() => {
@@ -182,7 +239,11 @@ const PixPaymentPage: React.FC = () => {
     }
   };
 
-  const isExpired = timeLeft <= 0 && pixData?.expiresAt;
+  const isExpired = pixData ? timeLeft <= 0 : false;
+
+  const formatCurrency = (v: number) => {
+    return v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
 
   if (loading) {
     return (
@@ -272,18 +333,35 @@ const PixPaymentPage: React.FC = () => {
                 Escaneie ou copie o código
               </h1>
               <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-                R$ {pixData.amount.toFixed(2)}
+                R$ {formatCurrency(pixData.amount)}
               </p>
             </div>
 
             {/* Timer status bar */}
-            {!isExpired && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-center gap-2">
-                <Clock className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs font-semibold text-slate-600">
+            {pixBarConfig.enabled && !isExpired && (
+              <div 
+                style={{
+                  backgroundColor: pixBarConfig.bgColor,
+                  borderColor: pixBarConfig.borderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                }}
+                className={cn(
+                  "rounded-xl p-3 flex items-center justify-center gap-2",
+                  pixBarConfig.fontStyle === 'italic' ? 'italic' : ''
+                )}
+              >
+                <Clock style={{ color: pixBarConfig.iconColor }} className="h-4 w-4" />
+                <span 
+                  style={{ color: pixBarConfig.textColor }} 
+                  className={cn("font-semibold", pixBarConfig.fontSize || "text-xs")}
+                >
                   Código expira em:
                 </span>
-                <span className="text-xs font-bold font-mono text-slate-800">
+                <span 
+                  style={{ color: pixBarConfig.textColor }} 
+                  className={cn("font-bold font-mono", pixBarConfig.fontSize || "text-xs")}
+                >
                   {formatTime(timeLeft)}
                 </span>
               </div>

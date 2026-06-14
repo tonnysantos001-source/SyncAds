@@ -259,6 +259,28 @@ export interface FormConfig {
   paymentMethods: PaymentMethod[];
 }
 
+/** Configuração da barra de expiração do PIX */
+export interface PixBarConfig {
+  /** Se a barra deve ser exibida */
+  enabled: boolean;
+  /** Duração em minutos */
+  durationMinutes: number;
+  /** Duração em segundos */
+  durationSeconds: number;
+  /** Cor de fundo */
+  bgColor: string;
+  /** Cor da borda */
+  borderColor: string;
+  /** Cor do texto */
+  textColor: string;
+  /** Cor do ícone de relógio */
+  iconColor: string;
+  /** Estilo da fonte ('normal' | 'italic') */
+  fontStyle: 'normal' | 'italic';
+  /** Tamanho da fonte (ex: 'text-xs', 'text-sm') */
+  fontSize: string;
+}
+
 // ─────────────────────────────────────────────
 // SCHEMA PRINCIPAL
 // ─────────────────────────────────────────────
@@ -295,6 +317,7 @@ export interface CheckoutConfig {
   typography: TypographyConfig;
   footer: FooterConfig;
   form: FormConfig;
+  pixBar: PixBarConfig;
 }
 
 // ─────────────────────────────────────────────
@@ -423,6 +446,18 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
     requestGender: false,
     paymentMethods: ['PIX', 'CREDIT_CARD', 'BOLETO'],
   },
+
+  pixBar: {
+    enabled: true,
+    durationMinutes: 20,
+    durationSeconds: 0,
+    bgColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    textColor: '#475569',
+    iconColor: '#10b981',
+    fontStyle: 'normal',
+    fontSize: 'text-xs',
+  },
 };
 
 // ─────────────────────────────────────────────
@@ -541,6 +576,18 @@ export function legacyThemeToConfig(
       requestCpfOnlyAtPayment: (theme.requestCpfOnlyAtPayment as boolean) ?? false,
       requestBirthDate: (theme.requestBirthDate as boolean) ?? false,
       requestGender: (theme.requestGender as boolean) ?? false,
+    },
+
+    pixBar: {
+      enabled: (theme.pixBarEnabled as boolean) ?? ((theme.pixBar?.enabled as boolean) ?? true),
+      durationMinutes: (theme.pixBarDurationMinutes as number) ?? ((theme.pixBar?.durationMinutes as number) ?? 20),
+      durationSeconds: (theme.pixBarDurationSeconds as number) ?? ((theme.pixBar?.durationSeconds as number) ?? 0),
+      bgColor: (theme.pixBarBgColor as string) || ((theme.pixBar?.bgColor as string) || '#f8fafc'),
+      borderColor: (theme.pixBarBorderColor as string) || ((theme.pixBar?.borderColor as string) || '#e2e8f0'),
+      textColor: (theme.pixBarTextColor as string) || ((theme.pixBar?.textColor as string) || '#475569'),
+      iconColor: (theme.pixBarIconColor as string) || ((theme.pixBar?.iconColor as string) || '#10b981'),
+      fontStyle: (theme.pixBarFontStyle as 'normal' | 'italic') || ((theme.pixBar?.fontStyle as 'normal' | 'italic') || 'normal'),
+      fontSize: (theme.pixBarFontSize as string) || ((theme.pixBar?.fontSize as string) || 'text-xs'),
     },
   });
 }

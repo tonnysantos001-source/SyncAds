@@ -147,7 +147,7 @@ export const ModernCheckoutPage = () => {
                   <div className="flex justify-between text-lg">
                     <span>Total</span>
                     <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                      R$ {finalTotal.toFixed(2)}
+                      R$ {finalTotal.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
                     </span>
                   </div>
                 </div>

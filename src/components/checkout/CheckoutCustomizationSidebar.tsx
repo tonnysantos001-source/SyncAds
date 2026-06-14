@@ -63,6 +63,7 @@ const sections: Section[] = [
   { id: "RODAPE",          label: "Rodapé",           icon: AlignJustify },
   { id: "ESCASSEZ",        label: "Escassez",          icon: Clock        },
   { id: "ORDER_BUMP",      label: "Order Bump",        icon: Zap          },
+  { id: "BARRA_PIX",       label: "Barra do PIX",      icon: Clock        },
   { id: "CONFIGURACOES",   label: "Configurações",     icon: Settings     },
 ];
 
@@ -670,6 +671,93 @@ export const CheckoutCustomizationSidebar: React.FC<
             <ModernColorPicker label="Cor da borda" value={config.orderBump.borderColor} onChange={(c) => update({ orderBump: { borderColor: c } })} />
             <ModernColorPicker label="Cor do texto do botão" value={config.orderBump.buttonTextColor} onChange={(c) => update({ orderBump: { buttonTextColor: c } })} />
             <ModernColorPicker label="Cor de fundo do botão" value={config.orderBump.buttonBgColor} onChange={(c) => update({ orderBump: { buttonBgColor: c } })} />
+          </div>
+        );
+
+      case "BARRA_PIX":
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Ativar barra do PIX
+              </Label>
+              <Switch
+                checked={config.pixBar?.enabled ?? true}
+                onCheckedChange={(v) => update({ pixBar: { enabled: v } })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Minutos</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={config.pixBar?.durationMinutes ?? 20}
+                  onChange={(e) => update({ pixBar: { durationMinutes: parseInt(e.target.value) || 0 } })}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Segundos</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={config.pixBar?.durationSeconds ?? 0}
+                  onChange={(e) => update({ pixBar: { durationSeconds: parseInt(e.target.value) || 0 } })}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+            <ModernColorPicker
+              label="Cor de fundo"
+              value={config.pixBar?.bgColor ?? "#f8fafc"}
+              onChange={(c) => update({ pixBar: { bgColor: c } })}
+            />
+            <ModernColorPicker
+              label="Cor da borda"
+              value={config.pixBar?.borderColor ?? "#e2e8f0"}
+              onChange={(c) => update({ pixBar: { borderColor: c } })}
+            />
+            <ModernColorPicker
+              label="Cor do texto"
+              value={config.pixBar?.textColor ?? "#475569"}
+              onChange={(c) => update({ pixBar: { textColor: c } })}
+            />
+            <ModernColorPicker
+              label="Cor do ícone"
+              value={config.pixBar?.iconColor ?? "#10b981"}
+              onChange={(c) => update({ pixBar: { iconColor: c } })}
+            />
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Estilo da letra</Label>
+              <Select
+                value={config.pixBar?.fontStyle ?? "normal"}
+                onValueChange={(v) => update({ pixBar: { fontStyle: v as 'normal'|'italic' } })}
+              >
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="italic">Itálico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tamanho da letra</Label>
+              <Select
+                value={config.pixBar?.fontSize ?? "text-xs"}
+                onValueChange={(v) => update({ pixBar: { fontSize: v } })}
+              >
+                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text-[10px]">Muito Pequeno (10px)</SelectItem>
+                  <SelectItem value="text-xs">Pequeno (12px)</SelectItem>
+                  <SelectItem value="text-sm">Médio (14px)</SelectItem>
+                  <SelectItem value="text-base">Grande (16px)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         );
 

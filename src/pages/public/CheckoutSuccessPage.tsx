@@ -71,7 +71,7 @@ const CheckoutSuccessPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-gray-600">Valor:</span>
-                    <p className="font-medium">R$ {transaction.amount?.toFixed(2)}</p>
+                    <p className="font-medium">R$ {transaction.amount ? transaction.amount.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : "0,00"}</p>
                   </div>
                   <div>
                     <span className="text-gray-600">Status:</span>

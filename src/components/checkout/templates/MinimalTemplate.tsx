@@ -229,7 +229,7 @@ const MinimalMobileSteps = ({ currentStep, navSteps, isMobile }: { currentStep: 
 
 const MinimalMobileSummary = ({ productsCount, total, isOpen, onToggle, isMobile }: { productsCount: number; total: number; isOpen: boolean; onToggle: () => void; isMobile: boolean }) => {
   if (!isMobile) return null;
-  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
+  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
   return (
     <div style={{ display: 'flex' }} className="w-full bg-white border-b border-t border-gray-100 mb-4 px-4 py-3.5 items-center justify-between cursor-pointer active:bg-gray-50 transition-colors" onClick={onToggle}>
