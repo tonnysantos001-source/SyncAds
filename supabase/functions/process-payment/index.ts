@@ -367,36 +367,28 @@ serve(async (req) => {
   }
 
   try {
-    // Autenticação
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
+    // ====================================================================
+    // CHECKOUT PÚBLICO: Usar service_role para bypass de RLS
+    // O checkout é acessado por usuários anônimos, portanto não podemos
+    // exigir JWT de usuário autenticado. Usamos service_role para DB.
+    // ====================================================================
 
-    const supabaseClient = createClient(
+    // Cliente com service_role para DB (bypassa RLS - operações privilegiadas)
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error("Unauthorized");
-    }
-
-    // Parse request
-
+    // Parse request (sem exigir auth de usuário)
     const body = await req.json();
-    const allowUnverifiedRequested = !!body?.allow_unverified;
     const paymentRequest: PaymentRequest = body;
+
+    console.log("[PAYMENT] Request recebida para checkout público:", {
+      orderId: paymentRequest.orderId,
+      userId: paymentRequest.userId,
+      amount: paymentRequest.amount,
+      paymentMethod: paymentRequest.paymentMethod,
+    });
 
     // ===== VALIDAÇÃO #1: Campos obrigatórios =====
     if (
@@ -411,8 +403,8 @@ serve(async (req) => {
       throw new Error("Amount must be greater than 0");
     }
 
-    // ===== VALIDAÇÃO #2: Verificar se pedido já foi pago =====
-    const { data: existingTransactions } = await supabaseClient
+    // ===== VALIDAÇÃO #2: Verificar se pedido já foi pago (via service_role) =====
+    const { data: existingTransactions } = await supabaseAdmin
       .from("Transaction")
       .select("id, status, paymentMethod, createdAt")
       .eq("orderId", paymentRequest.orderId)
@@ -448,9 +440,9 @@ serve(async (req) => {
       );
     }
 
-    // ===== VALIDAÇÃO #3: Rate Limiting (máx 5 tentativas por minuto por usuário) =====
+    // ===== VALIDAÇÃO #3: Rate Limiting via service_role =====
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-    const { data: recentAttempts, error: rateLimitError } = await supabaseClient
+    const { data: recentAttempts, error: rateLimitError } = await supabaseAdmin
       .from("Transaction")
       .select("id")
       .eq("userId", paymentRequest.userId)
@@ -482,15 +474,6 @@ serve(async (req) => {
       );
     }
 
-    // ===== VALIDAÇÃO #4: Determinar se é super admin =====
-    const { data: profile } = await supabaseClient
-      .from("User")
-      .select("isSuperAdmin")
-      .eq("id", user.id)
-      .single();
-    const isSuperAdmin = !!profile?.isSuperAdmin;
-    const allowUnverified = allowUnverifiedRequested && isSuperAdmin;
-
     console.log("✅ Validações iniciais passaram:", {
       orderId: paymentRequest.orderId,
       userId: paymentRequest.userId,
@@ -498,42 +481,33 @@ serve(async (req) => {
       paymentMethod: paymentRequest.paymentMethod,
     });
 
-    let query = supabaseClient
+    // ===== BUSCAR GATEWAY via service_role (bypassa RLS) =====
+    // Busca gateway ativo padrão; permite sandbox/não-verificado para testes
+    const { data: gatewayConfigs, error: gatewayError } = await supabaseAdmin
       .from("GatewayConfig")
-
       .select("*, Gateway(*)")
-
       .eq("userId", paymentRequest.userId)
-
       .eq("isActive", true)
-
-      .eq("isDefault", true);
-
-    // Only relax constraints when explicitly requested AND requester is super admin
-    if (!allowUnverified) {
-      query = query.eq("environment", "production").eq("isVerified", true);
-    }
-
-    const { data: gatewayConfigs, error: gatewayError } = await query.limit(1);
+      .eq("isDefault", true)
+      .limit(1);
 
     if (gatewayError || !gatewayConfigs || gatewayConfigs.length === 0) {
+      console.error("[PAYMENT] Gateway não encontrado:", {
+        userId: paymentRequest.userId,
+        gatewayError,
+      });
       return new Response(
         JSON.stringify({
           success: false,
-
           status: "failed",
-
           message:
-            "Nenhum gateway de pagamento em produção verificado disponível.",
-          error: "NO_VERIFIED_PRODUCTION_GATEWAY",
-          hint: "Configure um gateway em Produção e verifique as credenciais no painel de administração em Configurações > Pagamentos",
-
+            "Nenhum gateway de pagamento disponível para esta loja.",
+          error: "NO_ACTIVE_GATEWAY",
+          hint: "Configure um gateway ativo e padrão no painel de Configurações > Pagamentos",
           requiresSetup: true,
         }),
-
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-
           status: 422,
         },
       );
@@ -541,6 +515,9 @@ serve(async (req) => {
 
     const gatewayConfig = gatewayConfigs[0];
     const gateway = gatewayConfig.Gateway;
+
+    // Usar supabaseAdmin para todas as operações subsequentes de banco
+    const supabaseClient = supabaseAdmin;
 
     console.log("[PAYMENT] ========== INICIANDO PROCESSAMENTO ==========");
     console.log("[PAYMENT] Gateway selecionado:", gateway.slug);
@@ -775,8 +752,8 @@ serve(async (req) => {
       paymentResponse.gatewayTransactionId = gatewayTransactionId;
     }
 
-    // Salvar transação no banco
-    const { data: transaction, error: transactionError } = await supabaseClient
+    // Salvar transação no banco via supabaseAdmin (service_role, bypassa RLS)
+    const { data: transaction, error: transactionError } = await supabaseAdmin
       .from("Transaction")
       .insert({
         userId: paymentRequest.userId,

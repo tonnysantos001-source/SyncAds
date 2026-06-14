@@ -239,48 +239,30 @@ export function usePaymentProcessor({
         );
 
         // ──────────────────────────────────────────────────────────────────
-        // 5. Criar Transaction no banco
+        // 5. Chamar Edge Function process-payment
+        // A edge function cria a Transaction internamente com service_role
+        // (bypassa RLS), processa o pagamento e retorna o transactionId.
         // ──────────────────────────────────────────────────────────────────
-        const { data: transaction, error: transactionError } = await supabase
-          .from('Transaction')
-          .insert({
-            orderId,
-            gatewayId: selectedConfig.gatewayId,
-            userId: storeUserId,
-            amount: orderTotal,
-            status: 'PENDING',
-            paymentMethod,
-            metadata: {
-              templateSlug,
-              customerData,
-              addressData,
-              cardData: paymentMethod === 'CREDIT_CARD' ? cardData : null,
-            },
-          })
-          .select()
-          .single();
+        const paymentMethodMap: Record<string, string> = {
+          PIX: 'pix',
+          CREDIT_CARD: 'credit_card',
+          BOLETO: 'boleto',
+        };
 
-        if (transactionError || !transaction) {
-          throw new Error('Erro ao registrar transação: ' + (transactionError?.message || 'Erro desconhecido'));
-        }
-
-        // ──────────────────────────────────────────────────────────────────
-        // 6. Chamar Edge Function process-payment
-        // ──────────────────────────────────────────────────────────────────
         const { data: paymentResponse, error: paymentError } =
           await supabase.functions.invoke('process-payment', {
             body: {
-              transactionId: transaction.id,
-              gatewaySlug: selectedConfig.gateway.slug,
-              paymentMethod,
+              userId: storeUserId,
+              orderId,
               amount: orderTotal,
-              customerData: {
+              paymentMethod: paymentMethodMap[paymentMethod] || paymentMethod.toLowerCase(),
+              customer: {
                 name: customerData.name,
                 email: customerData.email,
                 phone: customerData.phone.replace(/\D/g, ''),
                 document: customerData.document.replace(/\D/g, ''),
               },
-              addressData: {
+              billingAddress: {
                 zipCode: addressData.zipCode.replace(/\D/g, ''),
                 street: addressData.street,
                 number: addressData.number,
@@ -289,28 +271,26 @@ export function usePaymentProcessor({
                 city: addressData.city,
                 state: addressData.state,
               },
-              cardData:
+              card:
                 paymentMethod === 'CREDIT_CARD' && cardData
                   ? {
                       number: cardData.number.replace(/\D/g, ''),
                       holderName: cardData.holderName,
-                      expirationMonth: cardData.expirationMonth,
-                      expirationYear: cardData.expirationYear,
+                      expiryMonth: cardData.expirationMonth,
+                      expiryYear: cardData.expirationYear,
                       cvv: cardData.cvv,
-                      installments: cardData.installments,
-                      cpf: cardData.cpf.replace(/\D/g, ''),
                     }
-                  : null,
+                  : undefined,
+              installments: paymentMethod === 'CREDIT_CARD' && cardData ? cardData.installments : undefined,
+              metadata: {
+                templateSlug,
+                gatewayConfigId: selectedConfig.id,
+                isAdminGateway,
+              },
             },
           });
 
         if (paymentError || !paymentResponse?.success) {
-          // Atualizar transação para FAILED
-          await supabase
-            .from('Transaction')
-            .update({ status: 'FAILED', updatedAt: new Date().toISOString() })
-            .eq('id', transaction.id);
-
           throw new Error(
             paymentResponse?.error ||
             paymentResponse?.message ||
@@ -318,41 +298,50 @@ export function usePaymentProcessor({
           );
         }
 
+        console.log('[usePaymentProcessor] Pagamento processado com sucesso:', paymentResponse);
+
+        // transactionId retornado pela edge function (Transaction criada com service_role)
+        const transactionId = paymentResponse.transactionId || '';
+
         // ──────────────────────────────────────────────────────────────────
-        // 7. Registrar PaymentSplitLog
+        // 6. Registrar PaymentSplitLog (opcional, não bloqueia o fluxo)
         // ──────────────────────────────────────────────────────────────────
-        if (splitDecision) {
-          await supabase.from('PaymentSplitLog').insert({
-            transactionId: transaction.id,
-            orderId,
-            userId: storeUserId,
-            ruleId: splitDecision.ruleId || null,
-            decision: splitDecision.decision || 'client',
-            gatewayId: selectedConfig.gatewayId,
-            gatewayName: selectedConfig.gateway?.name,
-            amount: orderTotal,
-            adminRevenue: isAdminGateway ? orderTotal : 0,
-            clientRevenue: isAdminGateway ? 0 : orderTotal,
-            ruleType: splitDecision.ruleType || null,
-            ruleName: splitDecision.ruleName || null,
-            reason: splitDecision.reason || 'No split rule active',
-            counterValue: splitDecision.counterValue || null,
-            metadata: {
-              templateSlug,
-              paymentMethod,
-              isAdminGateway,
-            },
-          });
-          console.log('[Split] Log registrado com sucesso');
+        if (splitDecision && transactionId) {
+          try {
+            await supabase.from('PaymentSplitLog').insert({
+              transactionId,
+              orderId,
+              userId: storeUserId,
+              ruleId: splitDecision.ruleId || null,
+              decision: splitDecision.decision || 'client',
+              gatewayId: selectedConfig.gatewayId,
+              gatewayName: selectedConfig.gateway?.name,
+              amount: orderTotal,
+              adminRevenue: isAdminGateway ? orderTotal : 0,
+              clientRevenue: isAdminGateway ? 0 : orderTotal,
+              ruleType: splitDecision.ruleType || null,
+              ruleName: splitDecision.ruleName || null,
+              reason: splitDecision.reason || 'No split rule active',
+              counterValue: splitDecision.counterValue || null,
+              metadata: {
+                templateSlug,
+                paymentMethod,
+                isAdminGateway,
+              },
+            });
+            console.log('[Split] Log registrado com sucesso');
+          } catch (splitLogError) {
+            console.warn('[Split] Falha ao registrar log (não crítico):', splitLogError);
+          }
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // 8. Redirecionar
+        // 7. Redirecionar
         // ──────────────────────────────────────────────────────────────────
         if (paymentMethod === 'PIX') {
-          navigate(`/pix/${orderId}/${transaction.id}`);
+          navigate(`/pix/${orderId}/${transactionId}`);
         } else {
-          navigate(`/checkout/success/${transaction.id}`);
+          navigate(`/checkout/success/${transactionId}`);
         }
       } catch (err: unknown) {
         const message =
