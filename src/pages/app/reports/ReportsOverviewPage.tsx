@@ -252,6 +252,22 @@ const ReportsOverviewPage = () => {
     );
   };
 
+  const getFirstItem = (order: any) => {
+    if (!order.items) return null;
+    let items: any[] = [];
+    if (Array.isArray(order.items)) {
+      items = order.items;
+    } else if (typeof order.items === "object") {
+      const itemsObj = order.items as any;
+      if (Array.isArray(itemsObj.items)) {
+        items = itemsObj.items;
+      } else {
+        items = [itemsObj];
+      }
+    }
+    return items.length > 0 ? items[0] : null;
+  };
+
   useEffect(() => {
     if (user?.id) {
       loadDashboardData();
@@ -798,41 +814,48 @@ const ReportsOverviewPage = () => {
             <CardContent className="p-0">
               <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
                 {recentOrders.length > 0 ? (
-                  recentOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-gray-850 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
-                          {order.customerName
-                            ? order.customerName
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .slice(0, 2)
-                                .join("")
-                                .toUpperCase()
-                            : "U"}
+                  recentOrders.map((order) => {
+                    const firstItem = getFirstItem(order);
+                    const productName = firstItem?.name || `Pedido #${order.orderNumber}`;
+                    const productImg = firstItem?.image;
+
+                    return (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-gray-850 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {productImg ? (
+                            <img
+                              src={productImg}
+                              alt={productName}
+                              className="w-9 h-9 rounded-lg object-cover border border-gray-150/10 dark:border-gray-800/20 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
+                              <Package className="h-4.5 w-4.5" />
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate pr-2">
+                              {productName}
+                            </span>
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                              {formatOrderDate(order.createdAt)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate max-w-[150px]">
-                            #{order.orderNumber} - {order.customerName || "Cliente"}
-                          </span>
-                          <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
-                            {formatOrderDate(order.createdAt)}
+                        <div className="text-right flex items-center gap-2 shrink-0">
+                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9px] px-1.5 py-0.5 font-bold shadow-none border-0`}>
+                            {getStatusBadge(order.paymentStatus).label}
+                          </Badge>
+                          <span className="text-xs font-black text-gray-900 dark:text-white">
+                            {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : order.total)}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right flex items-center gap-2">
-                        <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9px] px-1.5 py-0.5 font-bold shadow-none border-0`}>
-                          {getStatusBadge(order.paymentStatus).label}
-                        </Badge>
-                        <span className="text-xs font-black text-gray-900 dark:text-white shrink-0">
-                          {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : order.total)}
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <span className="text-xs text-gray-500 font-medium">
