@@ -296,7 +296,7 @@ async function processPayPalPayment(
   };
 }
 
-// ===== ASAAS INTEGRATION =====
+// ===== ASAAS INTEGRATION (COMPLETO COM PIX) =====
 
 async function processAsaasPayment(
   request: PaymentRequest,
@@ -304,55 +304,192 @@ async function processAsaasPayment(
 ): Promise<PaymentResponse> {
   try {
     const apiKey = gatewayConfig.credentials.apiKey;
+    const isSandbox = gatewayConfig.environment !== "production";
+    const baseUrl = isSandbox
+      ? "https://sandbox.asaas.com/api/v3"
+      : "https://www.asaas.com/api/v3";
 
-    // Criar cobrança
-    const charge = {
-      customer: request.customer.email,
-      billingType:
-        request.paymentMethod === "pix"
-          ? "PIX"
-          : request.paymentMethod === "boleto"
-            ? "BOLETO"
-            : "CREDIT_CARD",
+    const headers = {
+      "Content-Type": "application/json",
+      "access_token": apiKey,
+    };
+
+    console.log("[ASAAS] Iniciando pagamento:", {
+      method: request.paymentMethod,
+      amount: request.amount,
+      isSandbox,
+      baseUrl,
+    });
+
+    // ── PASSO 1: Criar ou buscar cliente no Asaas ──
+    // Buscar por cpfCnpj primeiro
+    const cpfCnpj = request.customer.document.replace(/\D/g, "");
+    let customerId: string | null = null;
+
+    const searchResp = await fetch(
+      `${baseUrl}/customers?cpfCnpj=${cpfCnpj}`,
+      { headers },
+    );
+
+    if (searchResp.ok) {
+      const searchData = await searchResp.json();
+      if (searchData.data && searchData.data.length > 0) {
+        customerId = searchData.data[0].id;
+        console.log("[ASAAS] Cliente encontrado:", customerId);
+      }
+    }
+
+    // Se não encontrou, criar o cliente
+    if (!customerId) {
+      const nameParts = request.customer.name.split(" ");
+      const createCustomer = await fetch(`${baseUrl}/customers`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          name: request.customer.name,
+          cpfCnpj,
+          email: request.customer.email,
+          phone: request.customer.phone || "",
+          notificationDisabled: false,
+        }),
+      });
+
+      if (!createCustomer.ok) {
+        const errData = await createCustomer.json().catch(() => ({}));
+        throw new Error(
+          `Erro ao criar cliente no Asaas: ${JSON.stringify(errData?.errors || errData)}`,
+        );
+      }
+
+      const customerData = await createCustomer.json();
+      customerId = customerData.id;
+      console.log("[ASAAS] Cliente criado:", customerId);
+    }
+
+    // ── PASSO 2: Criar cobrança ──
+    const billingType =
+      request.paymentMethod === "pix"
+        ? "PIX"
+        : request.paymentMethod === "boleto"
+        ? "BOLETO"
+        : "CREDIT_CARD";
+
+    const dueDate = new Date(Date.now() + 30 * 60 * 1000) // 30 minutos para PIX
+      .toISOString()
+      .split("T")[0];
+
+    const chargePayload: any = {
+      customer: customerId,
+      billingType,
       value: request.amount,
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0], // 7 dias
+      dueDate,
       description: `Pedido ${request.orderId}`,
       externalReference: request.orderId,
     };
 
-    const response = await fetch("https://www.asaas.com/api/v3/payments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        access_token: apiKey,
-      },
-      body: JSON.stringify(charge),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Erro ao criar cobrança Asaas");
+    // Para PIX, definir tempo de expiração curto
+    if (billingType === "PIX") {
+      chargePayload.pixAddressKeyType = "RANDOM";
+      // expirationSeconds: 30 minutos
+      chargePayload.expirationSeconds = 1800;
     }
 
-    const data = await response.json();
+    console.log("[ASAAS] Criando cobrança:", JSON.stringify(chargePayload));
 
+    const chargeResp = await fetch(`${baseUrl}/payments`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(chargePayload),
+    });
+
+    if (!chargeResp.ok) {
+      const errData = await chargeResp.json().catch(() => ({}));
+      console.error("[ASAAS] Erro ao criar cobrança:", errData);
+      throw new Error(
+        `Erro ao criar cobrança Asaas: ${JSON.stringify(errData?.errors || errData?.message || errData)}`,
+      );
+    }
+
+    const chargeData = await chargeResp.json();
+    console.log("[ASAAS] Cobrança criada:", chargeData.id, "status:", chargeData.status);
+
+    // ── PASSO 3: Buscar QR Code PIX ──
+    if (billingType === "PIX") {
+      const pixResp = await fetch(
+        `${baseUrl}/payments/${chargeData.id}/pixQrCode`,
+        { headers },
+      );
+
+      if (!pixResp.ok) {
+        const errData = await pixResp.json().catch(() => ({}));
+        console.error("[ASAAS] Erro ao buscar QR Code PIX:", errData);
+        // Mesmo sem QR Code, retornar sucesso com o que temos
+        return {
+          success: true,
+          transactionId: chargeData.id,
+          gatewayTransactionId: chargeData.id,
+          status: "pending",
+          paymentUrl: chargeData.invoiceUrl,
+          message: "PIX gerado via Asaas (QR Code em processamento)",
+          pixData: {
+            qrCode: chargeData.payload || "",
+            expiresAt: chargeData.dueDate,
+            amount: request.amount,
+          },
+        };
+      }
+
+      const pixData = await pixResp.json();
+      console.log("[ASAAS] PIX QR Code obtido:", !!pixData.encodedImage, !!pixData.payload);
+
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+      return {
+        success: true,
+        transactionId: chargeData.id,
+        gatewayTransactionId: chargeData.id,
+        status: "pending",
+        paymentUrl: chargeData.invoiceUrl,
+        qrCode: pixData.payload,
+        qrCodeBase64: pixData.encodedImage,
+        expiresAt,
+        message: "PIX gerado com sucesso via Asaas",
+        pixData: {
+          qrCode: pixData.payload || "",
+          qrCodeBase64: pixData.encodedImage,
+          expiresAt,
+          amount: request.amount,
+        },
+      };
+    }
+
+    // ── Boleto ou Cartão ──
     return {
       success: true,
-      transactionId: data.id,
-      gatewayTransactionId: data.id,
+      transactionId: chargeData.id,
+      gatewayTransactionId: chargeData.id,
       status: "pending",
-      paymentUrl: data.invoiceUrl || data.bankSlipUrl,
-      qrCode: data.pixQrCode,
+      paymentUrl: chargeData.invoiceUrl || chargeData.bankSlipUrl,
+      barcodeNumber: chargeData.nossoNumero,
+      digitableLine: chargeData.identificationField,
       message: "Cobrança criada com sucesso via Asaas",
+      boletoData:
+        billingType === "BOLETO"
+          ? {
+              boletoUrl: chargeData.bankSlipUrl || chargeData.invoiceUrl || "",
+              barcode: chargeData.nossoNumero || "",
+              digitableLine: chargeData.identificationField || "",
+              dueDate: chargeData.dueDate || dueDate,
+              amount: request.amount,
+            }
+          : undefined,
     };
   } catch (error: any) {
-    console.error("Erro Asaas:", error);
+    console.error("[ASAAS] ❌ Erro:", error);
     return {
       success: false,
       status: "failed",
-      message: "Erro ao processar pagamento via Asaas",
+      message: "Erro ao processar pagamento via Asaas: " + error.message,
       error: error.message,
     };
   }
