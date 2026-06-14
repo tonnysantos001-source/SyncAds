@@ -217,41 +217,53 @@ const AllOrdersPage = () => {
       PENDING: {
         label: "Pendente",
         variant: "secondary" as const,
-        color: "bg-yellow-100 text-yellow-800",
+        color: "bg-yellow-100 text-yellow-800 border border-yellow-250/20 dark:bg-yellow-950/45 dark:text-yellow-400 dark:border-yellow-900/50",
       },
       PROCESSING: {
         label: "Processando",
         variant: "default" as const,
-        color: "bg-blue-100 text-blue-800",
+        color: "bg-blue-100 text-blue-800 border border-blue-250/20 dark:bg-blue-950/45 dark:text-blue-400 dark:border-blue-900/50",
       },
       PAID: {
         label: "Pago",
         variant: "default" as const,
-        color: "bg-green-100 text-green-800",
+        color: "bg-green-100 text-green-800 border border-green-250/20 dark:bg-green-950/45 dark:text-green-400 dark:border-green-900/50",
       },
       FAILED: {
         label: "Falhou",
         variant: "destructive" as const,
-        color: "bg-red-100 text-red-800",
+        color: "bg-red-100 text-red-800 border border-red-250/20 dark:bg-red-950/45 dark:text-red-400 dark:border-red-900/50",
       },
       REFUNDED: {
         label: "Reembolsado",
         variant: "secondary" as const,
-        color: "bg-gray-100 text-gray-800",
+        color: "bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-900/45 dark:text-gray-400 dark:border-gray-800/50",
       },
       CANCELLED: {
         label: "Cancelado",
         variant: "secondary" as const,
-        color: "bg-gray-100 text-gray-800",
+        color: "bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-900/45 dark:text-gray-400 dark:border-gray-800/50",
       },
     };
     return (
       statusMap[status] || {
-        label: "Desconhecido",
+        label: status || "Pendente",
         variant: "secondary" as const,
-        color: "bg-gray-100 text-gray-800",
+        color: "bg-gray-100 text-gray-800 dark:bg-gray-950/45 dark:text-gray-400",
       }
     );
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const methodMap: Record<string, string> = {
+      CREDIT_CARD: "💳 Cartão de Crédito",
+      DEBIT_CARD: "💳 Cartão de Débito",
+      PIX: "⚡ PIX",
+      BOLETO: "📄 Boleto Bancário",
+      PAYPAL: "🅿️ PayPal",
+      WALLET: "👛 Carteira Digital",
+    };
+    return methodMap[method] || method || "Não especificado";
   };
 
   const getOrderItems = (order: Order): OrderItemData[] => {
@@ -486,56 +498,99 @@ const AllOrdersPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                whileHover={{ scale: 1.01 }}
+                whileHover={{ scale: 1.005 }}
               >
-                <Card className="relative overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-300 group">
+                <Card className="relative overflow-hidden border border-gray-100 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-300 group">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
                   <CardContent className="relative p-6">
-                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row items-stretch justify-between gap-6">
                       {/* Informações principais */}
-                      <div className="flex-1 space-y-2">
+                      <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           <div className="font-mono text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                             #{order.orderNumber}
                           </div>
-                          <Badge className={statusInfo.color}>
+                          <Badge className={`${statusInfo.color} font-medium border text-xs`}>
                             {statusInfo.label}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs font-medium border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300">
+                            {getPaymentMethodLabel(order.paymentMethod)}
                           </Badge>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium dark:text-white">
-                            {order.customerName}
-                          </span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">
+                              {order.customerName || "Cliente"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mail className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{order.customerEmail || "Não informado"}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4 flex-shrink-0" />
+                            <span>
+                              {format(
+                                new Date(order.createdAt),
+                                "dd/MM/yyyy 'às' HH:mm",
+                                {
+                                  locale: ptBR,
+                                },
+                              )}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span>{order.customerEmail}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {format(
-                              new Date(order.createdAt),
-                              "dd/MM/yyyy 'às' HH:mm",
-                              {
-                                locale: ptBR,
-                              },
-                            )}
-                          </span>
-                        </div>
+                        {/* Listagem de produtos no card */}
+                        {items && items.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/60 space-y-2">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                              Produtos Comprados
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {items.map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-2.5 bg-gray-50/50 dark:bg-gray-800/30 p-2 rounded-xl border border-gray-100/50 dark:border-gray-800/30">
+                                  {item.image ? (
+                                    <img
+                                      src={item.image}
+                                      alt={item.name || "Produto"}
+                                      className="w-10 h-10 object-cover rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          "https://via.placeholder.com/100?text=Produto";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-300 dark:border-gray-750 flex-shrink-0">
+                                      <ShoppingBag className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                                      {item.name || "Produto sem nome"}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Qtd: {item.quantity} × {formatCurrency(item.price || 0)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Valor e Ação */}
-                      <div className="sm:text-right space-y-3 sm:min-w-[180px]">
-                        <div>
-                          <div className="text-sm text-muted-foreground">
-                            Total
+                      <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-4 lg:min-w-[180px] pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-800/60 lg:pl-6">
+                        <div className="text-left lg:text-right">
+                          <div className="text-xs text-muted-foreground">
+                            Valor do Pedido
                           </div>
-                          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          <div className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                             {formatCurrency(order.total)}
                           </div>
                         </div>
@@ -545,274 +600,241 @@ const AllOrdersPage = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-md hover:shadow-lg px-4"
                               onClick={() => setSelectedOrder(order)}
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               Ver Detalhes
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0">
-                            <DialogHeader>
-                              <DialogTitle className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                Pedido #{order.orderNumber}
+                          <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl p-0 overflow-hidden">
+                            <DialogHeader className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+                              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                Pedido #{selectedOrder?.orderNumber || order.orderNumber}
                               </DialogTitle>
-                              <DialogDescription>
-                                Informações completas do pedido
+                              <DialogDescription className="text-sm font-medium">
+                                Informações e status do pedido
                               </DialogDescription>
                             </DialogHeader>
 
                             {selectedOrder && (
-                              <div className="space-y-6 pt-4">
-                                {/* Status */}
-                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl">
-                                  <h4 className="font-semibold mb-3 text-lg dark:text-white">
-                                    Status
-                                  </h4>
-                                  <div className="flex gap-2">
-                                    <Badge className={statusInfo.color}>
-                                      {statusInfo.label}
-                                    </Badge>
-                                  </div>
-                                </div>
-
-                                {/* Cliente */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 text-lg dark:text-white">
-                                    Informações do Cliente
-                                  </h4>
-                                  <div className="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl space-y-3 backdrop-blur-sm">
-                                    <div className="flex items-start gap-2">
-                                      <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                      <div>
-                                        <div className="text-sm text-muted-foreground">
-                                          Nome
-                                        </div>
-                                        <div className="font-medium dark:text-white">
-                                          {selectedOrder.customerName}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                      <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                      <div>
-                                        <div className="text-sm text-muted-foreground">
-                                          Email
-                                        </div>
-                                        <div className="font-medium dark:text-white">
-                                          {selectedOrder.customerEmail}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {selectedOrder.customerPhone && (
-                                      <div className="flex items-start gap-2">
-                                        <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Coluna da Esquerda: Dados do Cliente e Pagamento */}
+                                  <div className="space-y-6">
+                                    {/* Status & Pagamento */}
+                                    <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-850 dark:to-gray-800/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-800/80 shadow-sm space-y-4">
+                                      <h4 className="font-bold text-base text-gray-850 dark:text-gray-200">
+                                        Status & Pagamento
+                                      </h4>
+                                      <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                          <div className="text-sm text-muted-foreground">
-                                            Telefone
+                                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                            Status do Pagamento
                                           </div>
-                                          <div className="font-medium dark:text-white">
-                                            {selectedOrder.customerPhone}
+                                          <div className="mt-1">
+                                            <Badge className={`${getPaymentStatusBadge(selectedOrder.paymentStatus).color} font-medium px-2.5 py-0.5 border text-xs`}>
+                                              {getPaymentStatusBadge(selectedOrder.paymentStatus).label}
+                                            </Badge>
                                           </div>
                                         </div>
-                                      </div>
-                                    )}
-                                    <div className="flex items-start gap-2">
-                                      <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                      <div>
-                                        <div className="text-sm text-muted-foreground">
-                                          Data do Pedido
-                                        </div>
-                                        <div className="font-medium">
-                                          {format(
-                                            new Date(selectedOrder.createdAt),
-                                            "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
-                                            {
-                                              locale: ptBR,
-                                            },
-                                          )}
+                                        <div>
+                                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                            Método
+                                          </div>
+                                          <div className="mt-1.5 font-bold text-sm text-gray-700 dark:text-gray-300">
+                                            {getPaymentMethodLabel(selectedOrder.paymentMethod)}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
 
-                                {/* Produtos */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 text-lg">
-                                    Produtos ({items.length})
-                                  </h4>
-                                  <div className="space-y-3">
-                                    {items.map((item, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                      >
-                                        {item.image ? (
-                                          <img
-                                            src={item.image}
-                                            alt={item.name || "Produto"}
-                                            className="w-20 h-20 object-cover rounded-lg border"
-                                            onError={(e) => {
-                                              (
-                                                e.target as HTMLImageElement
-                                              ).src =
-                                                "https://via.placeholder.com/100?text=Produto";
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center border">
-                                            <ShoppingBag className="h-10 w-10 text-gray-400" />
+                                    {/* Informações do Cliente */}
+                                    <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 dark:from-gray-850 dark:to-gray-800/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-800/80 shadow-sm space-y-4">
+                                      <h4 className="font-bold text-base text-gray-850 dark:text-gray-200">
+                                        Dados do Comprador
+                                      </h4>
+                                      <div className="space-y-3.5">
+                                        <div className="flex items-center gap-2.5">
+                                          <User className="h-4.5 w-4.5 text-blue-500 flex-shrink-0" />
+                                          <div className="min-w-0">
+                                            <div className="text-[10px] text-muted-foreground">Nome</div>
+                                            <div className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">
+                                              {selectedOrder.customerName || "Cliente"}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2.5">
+                                          <Mail className="h-4.5 w-4.5 text-purple-500 flex-shrink-0" />
+                                          <div className="min-w-0">
+                                            <div className="text-[10px] text-muted-foreground">Email</div>
+                                            <div className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">
+                                              {selectedOrder.customerEmail || "Não informado"}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {selectedOrder.customerPhone && (
+                                          <div className="flex items-center gap-2.5">
+                                            <Phone className="h-4.5 w-4.5 text-green-500 flex-shrink-0" />
+                                            <div>
+                                              <div className="text-[10px] text-muted-foreground">Telefone</div>
+                                              <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                {selectedOrder.customerPhone}
+                                              </div>
+                                            </div>
                                           </div>
                                         )}
-                                        <div className="flex-1">
-                                          <div className="font-semibold text-base">
-                                            {item.name || "Produto sem nome"}
-                                          </div>
-                                          <div className="text-sm text-muted-foreground mt-1">
-                                            Quantidade: {item.quantity}
-                                          </div>
-                                          {item.sku && (
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              SKU: {item.sku}
+                                        {selectedOrder.customerCpf && (
+                                          <div className="flex items-center gap-2.5">
+                                            <Package className="h-4.5 w-4.5 text-amber-500 flex-shrink-0" />
+                                            <div>
+                                              <div className="text-[10px] text-muted-foreground">CPF</div>
+                                              <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                {selectedOrder.customerCpf}
+                                              </div>
                                             </div>
-                                          )}
-                                        </div>
-                                        <div className="text-right">
-                                          <div className="font-bold text-lg">
-                                            {formatCurrency(
-                                              (item.price || 0) *
-                                                (item.quantity || 1),
-                                            )}
                                           </div>
-                                          <div className="text-sm text-muted-foreground">
-                                            {formatCurrency(item.price || 0)} /
-                                            un
+                                        )}
+                                        <div className="flex items-center gap-2.5">
+                                          <Calendar className="h-4.5 w-4.5 text-pink-500 flex-shrink-0" />
+                                          <div>
+                                            <div className="text-[10px] text-muted-foreground">Data do Pedido</div>
+                                            <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                              {format(
+                                                new Date(selectedOrder.createdAt),
+                                                "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
+                                                { locale: ptBR }
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
+                                    </div>
 
-                                {/* Resumo Financeiro */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 text-lg">
-                                    Resumo Financeiro
-                                  </h4>
-                                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                      <span>Subtotal:</span>
-                                      <span className="font-medium">
-                                        {formatCurrency(selectedOrder.subtotal)}
-                                      </span>
-                                    </div>
-                                    {selectedOrder.discount > 0 && (
-                                      <div className="flex justify-between text-sm text-green-600">
-                                        <span>Desconto:</span>
-                                        <span className="font-medium">
-                                          -
-                                          {formatCurrency(
-                                            selectedOrder.discount,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <div className="flex justify-between text-sm">
-                                      <span>Frete:</span>
-                                      <span className="font-medium">
-                                        {formatCurrency(selectedOrder.shipping)}
-                                      </span>
-                                    </div>
-                                    {selectedOrder.tax > 0 && (
-                                      <div className="flex justify-between text-sm">
-                                        <span>Impostos:</span>
-                                        <span className="font-medium">
-                                          {formatCurrency(selectedOrder.tax)}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
-                                      <span>Total:</span>
-                                      <span className="text-blue-600">
-                                        {formatCurrency(selectedOrder.total)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Endereço de Entrega */}
-                                {selectedOrder.shippingAddress &&
-                                  selectedOrder.shippingAddress.street && (
-                                    <div>
-                                      <h4 className="font-semibold mb-3 text-lg">
-                                        Endereço de Entrega
-                                      </h4>
-                                      <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="flex items-start gap-2">
-                                          <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                          <div className="space-y-1">
-                                            <p className="font-medium">
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .street
-                                              }
-                                              ,{" "}
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .number
-                                              }
+                                    {/* Endereço de Entrega */}
+                                    {selectedOrder.shippingAddress && selectedOrder.shippingAddress.street && (
+                                      <div className="bg-gradient-to-br from-gray-50 to-pink-50/30 dark:from-gray-850 dark:to-gray-800/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-800/80 shadow-sm space-y-3">
+                                        <h4 className="font-bold text-base text-gray-850 dark:text-gray-200">
+                                          Endereço de Entrega
+                                        </h4>
+                                        <div className="flex gap-2.5">
+                                          <MapPin className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                                          <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                                            <p className="font-bold text-gray-800 dark:text-gray-200">
+                                              {selectedOrder.shippingAddress.street}, {selectedOrder.shippingAddress.number}
                                             </p>
-                                            {selectedOrder.shippingAddress
-                                              .complement && (
-                                              <p className="text-sm text-muted-foreground">
-                                                {
-                                                  selectedOrder.shippingAddress
-                                                    .complement
-                                                }
+                                            {selectedOrder.shippingAddress.complement && (
+                                              <p className="text-xs text-muted-foreground">
+                                                {selectedOrder.shippingAddress.complement}
                                               </p>
                                             )}
-                                            <p className="text-sm">
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .neighborhood
-                                              }{" "}
-                                              -{" "}
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .city
-                                              }
-                                              /
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .state
-                                              }
+                                            <p>
+                                              {selectedOrder.shippingAddress.neighborhood}
                                             </p>
-                                            <p className="text-sm text-muted-foreground">
-                                              CEP:{" "}
-                                              {
-                                                selectedOrder.shippingAddress
-                                                  .zipCode
-                                              }
+                                            <p>
+                                              {selectedOrder.shippingAddress.city} - {selectedOrder.shippingAddress.state}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              CEP: {selectedOrder.shippingAddress.zipCode}
                                             </p>
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
 
-                                {/* Método de Pagamento */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 text-lg">
-                                    Pagamento
-                                  </h4>
-                                  <div className="bg-gray-50 p-4 rounded-lg">
-                                    <div className="text-sm text-muted-foreground">
-                                      Método de Pagamento
+                                  {/* Coluna da Direita: Produtos e Resumo Financeiro */}
+                                  <div className="space-y-6">
+                                    {/* Produtos */}
+                                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/60 p-5 rounded-2xl shadow-sm space-y-4">
+                                      <h4 className="font-bold text-base text-gray-800 dark:text-gray-200">
+                                        Produtos Comprados ({items.length})
+                                      </h4>
+                                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                                        {items.map((item, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors"
+                                          >
+                                            {item.image ? (
+                                              <img
+                                                src={item.image}
+                                                alt={item.name || "Produto"}
+                                                className="w-14 h-14 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                onError={(e) => {
+                                                  (e.target as HTMLImageElement).src =
+                                                    "https://via.placeholder.com/100?text=Produto";
+                                                }}
+                                              />
+                                            ) : (
+                                              <div className="w-14 h-14 bg-gray-200 dark:bg-gray-850 rounded-lg flex items-center justify-center border border-gray-300 dark:border-gray-700">
+                                                <ShoppingBag className="h-6 w-6 text-gray-400" />
+                                              </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="font-bold text-sm text-gray-800 dark:text-gray-200 truncate">
+                                                {item.name || "Produto sem nome"}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                Qtd: {item.quantity} × {formatCurrency(item.price || 0)}
+                                              </div>
+                                              {item.sku && (
+                                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                                  SKU: {item.sku}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="text-right flex flex-col justify-center">
+                                              <div className="font-bold text-sm text-gray-800 dark:text-gray-100">
+                                                {formatCurrency((item.price || 0) * (item.quantity || 1))}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
-                                    <div className="font-medium">
-                                      {selectedOrder.paymentMethod ||
-                                        "Não especificado"}
+
+                                    {/* Resumo Financeiro */}
+                                    <div className="bg-gradient-to-br from-gray-50 to-emerald-50/10 dark:from-gray-850 dark:to-gray-800/40 p-5 rounded-2xl border border-gray-100 dark:border-gray-800/80 shadow-sm space-y-4">
+                                      <h4 className="font-bold text-base text-gray-800 dark:text-gray-200">
+                                        Resumo Financeiro
+                                      </h4>
+                                      <div className="space-y-2.5 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-muted-foreground">Subtotal:</span>
+                                          <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                            {formatCurrency(selectedOrder.subtotal)}
+                                          </span>
+                                        </div>
+                                        {selectedOrder.discount > 0 && (
+                                          <div className="flex justify-between text-green-600 dark:text-green-400">
+                                            <span>Desconto:</span>
+                                            <span className="font-semibold">
+                                              -{formatCurrency(selectedOrder.discount)}
+                                            </span>
+                                          </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                          <span className="text-muted-foreground">Frete:</span>
+                                          <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                            {formatCurrency(selectedOrder.shipping)}
+                                          </span>
+                                        </div>
+                                        {selectedOrder.tax > 0 && (
+                                          <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Impostos:</span>
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                              {formatCurrency(selectedOrder.tax)}
+                                            </span>
+                                          </div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-base pt-3 border-t border-gray-200 dark:border-gray-700">
+                                          <span className="text-gray-800 dark:text-gray-200">Total do Pedido:</span>
+                                          <span className="text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                            {formatCurrency(selectedOrder.total)}
+                                          </span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

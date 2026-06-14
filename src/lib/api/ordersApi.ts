@@ -97,7 +97,6 @@ export const ordersApi = {
       .select(
         `
         *,
-        items:OrderItem(*),
         history:OrderHistory(*)
       `,
       )
@@ -105,7 +104,7 @@ export const ordersApi = {
       .order("createdAt", { ascending: false });
 
     if (error) throw error;
-    return data as (Order & { items: OrderItem[]; history: OrderHistory[] })[];
+    return data as (Order & { history: OrderHistory[] })[];
   },
 
   // Get order by ID
@@ -115,7 +114,6 @@ export const ordersApi = {
       .select(
         `
         *,
-        items:OrderItem(*),
         history:OrderHistory(*)
       `,
       )
@@ -123,7 +121,7 @@ export const ordersApi = {
       .single();
 
     if (error) throw error;
-    return data as Order & { items: OrderItem[]; history: OrderHistory[] };
+    return data as Order & { history: OrderHistory[] };
   },
 
   // Get orders by customer
@@ -132,15 +130,14 @@ export const ordersApi = {
       .from("Order")
       .select(
         `
-        *,
-        items:OrderItem(*)
+        *
       `,
       )
       .eq("customerId", customerId)
       .order("createdAt", { ascending: false });
 
     if (error) throw error;
-    return data as (Order & { items: OrderItem[] })[];
+    return data as Order[];
   },
 
   // Create order

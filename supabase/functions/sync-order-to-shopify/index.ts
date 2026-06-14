@@ -203,6 +203,78 @@ serve(async (req) => {
     }
 
     // ============================================
+    // VERIFICAÇÃO DE DUPLICIDADE / ATUALIZAÇÃO DE STATUS
+    // ============================================
+    if (order.metadata?.shopifyOrderId) {
+      log("info", "Pedido já sincronizado com Shopify. Verificando atualização de status...", {
+        shopifyOrderId: order.metadata.shopifyOrderId,
+        paymentStatus: order.paymentStatus,
+      });
+
+      if (order.paymentStatus === "PAID") {
+        // Criar transação de captura no Shopify para marcar o pedido como pago
+        try {
+          const shopifyTransactionUrl = `https://${integration.shopDomain}/admin/api/2024-01/orders/${order.metadata.shopifyOrderId}/transactions.json`;
+          const transactionPayload = {
+            transaction: {
+              kind: "capture",
+              status: "success",
+              amount: String(order.total.toFixed(2)),
+            }
+          };
+
+          log("info", "📤 Enviando transação de captura para Shopify", {
+            url: shopifyTransactionUrl,
+            shopifyOrderId: order.metadata.shopifyOrderId,
+          });
+
+          const response = await fetch(shopifyTransactionUrl, {
+            method: "POST",
+            headers: {
+              "X-Shopify-Access-Token": integration.accessToken,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(transactionPayload),
+          });
+
+          if (response.ok) {
+            log("info", "✅ Pedido marcado como PAGO na Shopify com sucesso!");
+            return new Response(
+              JSON.stringify({
+                success: true,
+                message: "Shopify order marked as PAID via capture transaction",
+                shopifyOrderId: order.metadata.shopifyOrderId,
+                shopifyOrderNumber: order.metadata.shopifyOrderNumber,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          } else {
+            const errorText = await response.text();
+            log("error", "❌ Falha ao marcar pedido como PAGO na Shopify", {
+              status: response.status,
+              error: errorText,
+            });
+          }
+        } catch (captureError: any) {
+          log("error", "❌ Erro ao tentar enviar captura para Shopify", {
+            error: captureError.message,
+          });
+        }
+      }
+
+      // Se já sincronizado e não foi pago, ou se falhou a captura, apenas retorna sucesso sem duplicar
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Order already synced to Shopify previously",
+          shopifyOrderId: order.metadata.shopifyOrderId,
+          shopifyOrderNumber: order.metadata.shopifyOrderNumber,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ============================================
     // ETAPA 5: PREPARAR ITEMS
     // ============================================
     let items: any[] = [];

@@ -549,6 +549,47 @@ serve(async (req) => {
       paymentMethod: paymentRequest.paymentMethod,
     });
 
+    // 1. Atualizar o pedido no banco de dados com os dados do cliente reais (bypassa RLS via supabaseAdmin)
+    if (paymentRequest.orderId && !paymentRequest.orderId.startsWith("verification-")) {
+      // Mapear método de pagamento para o formato do enum do Order
+      let mappedPaymentMethod = "PIX";
+      if (paymentRequest.paymentMethod === "credit_card" || paymentRequest.paymentMethod === "debit_card") {
+        mappedPaymentMethod = "CREDIT_CARD";
+      } else if (paymentRequest.paymentMethod === "boleto") {
+        mappedPaymentMethod = "BOLETO";
+      } else if (paymentRequest.paymentMethod === "paypal") {
+        mappedPaymentMethod = "PAYPAL";
+      }
+
+      console.log(`[PAYMENT] Atualizando dados do cliente para pedido ${paymentRequest.orderId} via supabaseAdmin...`);
+      const { error: orderUpdateError } = await supabaseAdmin
+        .from("Order")
+        .update({
+          customerName: paymentRequest.customer?.name || "Cliente",
+          customerEmail: paymentRequest.customer?.email || "",
+          customerPhone: paymentRequest.customer?.phone || "",
+          customerCpf: paymentRequest.customer?.document?.replace(/\D/g, "") || "",
+          shippingAddress: {
+            zipCode: paymentRequest.billingAddress?.zipCode?.replace(/\D/g, "") || "",
+            street: paymentRequest.billingAddress?.street || "",
+            number: paymentRequest.billingAddress?.number || "",
+            complement: paymentRequest.billingAddress?.complement || "",
+            neighborhood: paymentRequest.billingAddress?.neighborhood || "",
+            city: paymentRequest.billingAddress?.city || "",
+            state: paymentRequest.billingAddress?.state || "",
+          },
+          paymentMethod: mappedPaymentMethod,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq("id", paymentRequest.orderId);
+
+      if (orderUpdateError) {
+        console.error("[PAYMENT] Erro ao atualizar pedido com dados do cliente:", orderUpdateError);
+      } else {
+        console.log("[PAYMENT] Pedido atualizado com dados do cliente com sucesso");
+      }
+    }
+
     // ===== VALIDAÇÃO #1: Campos obrigatórios =====
     if (
       !paymentRequest.userId ||
@@ -1017,6 +1058,30 @@ serve(async (req) => {
     console.log("[PAYMENT] 🚀 Objeto final com spread:");
     console.log("   - finalResponse.pixData existe?", !!finalResponse.pixData);
     console.log("   - finalResponse.success:", finalResponse.success);
+
+    // Trigger Shopify order sync in background
+    if (finalResponse.success && paymentRequest.orderId && !paymentRequest.orderId.startsWith("verification-")) {
+      try {
+        console.log(`[PAYMENT] Triggering shopify sync for order ${paymentRequest.orderId}...`);
+        // Disparar invocação da Edge Function sync-order-to-shopify de forma assíncrona
+        supabaseAdmin.functions.invoke("sync-order-to-shopify", {
+          body: {
+            orderId: paymentRequest.orderId,
+            userId: paymentRequest.userId,
+          },
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error("[PAYMENT] Error syncing to Shopify:", error);
+          } else {
+            console.log("[PAYMENT] Shopify sync triggered successfully:", data);
+          }
+        }).catch((err) => {
+          console.error("[PAYMENT] Failed to invoke Shopify sync:", err);
+        });
+      } catch (syncErr) {
+        console.error("[PAYMENT] Error triggering Shopify sync:", syncErr);
+      }
+    }
 
     // Retornar resposta
     return new Response(JSON.stringify(finalResponse), {
