@@ -303,8 +303,10 @@ async function processAsaasPayment(
   gatewayConfig: any,
 ): Promise<PaymentResponse> {
   try {
-    const apiKey = gatewayConfig.credentials.apiKey;
-    const isSandbox = gatewayConfig.environment !== "production";
+    const apiKey = gatewayConfig.credentials?.apiKey || "";
+    const isSandbox =
+      gatewayConfig.environment !== "production" ||
+      (typeof apiKey === "string" && apiKey.startsWith("$aact_hmlg_"));
     const baseUrl = isSandbox
       ? "https://sandbox.asaas.com/api/v3"
       : "https://www.asaas.com/api/v3";
@@ -890,6 +892,34 @@ serve(async (req) => {
       );
       paymentResponse.gatewayTransactionId = gatewayTransactionId;
     }
+    // Normalizar status para os valores válidos do check constraint da tabela Transaction:
+    // 'PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED', 'CANCELLED'
+    let dbStatus = "PENDING";
+    const rawStatusUpper = (paymentResponse.status || "PENDING").toUpperCase();
+    if (
+      rawStatusUpper === "APPROVED" ||
+      rawStatusUpper === "PAID" ||
+      rawStatusUpper === "SUCCESS" ||
+      rawStatusUpper === "SUCCEEDED"
+    ) {
+      dbStatus = "PAID";
+    } else if (
+      rawStatusUpper === "FAILED" ||
+      rawStatusUpper === "FAIL" ||
+      rawStatusUpper === "REJECTED"
+    ) {
+      dbStatus = "FAILED";
+    } else if (
+      rawStatusUpper === "CANCELLED" ||
+      rawStatusUpper === "CANCELED"
+    ) {
+      dbStatus = "CANCELLED";
+    } else if (rawStatusUpper === "PROCESSING") {
+      dbStatus = "PROCESSING";
+    } else if (rawStatusUpper === "REFUNDED") {
+      dbStatus = "REFUNDED";
+    }
+    paymentResponse.status = dbStatus as any;
 
     // Salvar transação no banco via supabaseAdmin (service_role, bypassa RLS)
     const { data: transaction, error: transactionError } = await supabaseAdmin
@@ -900,7 +930,7 @@ serve(async (req) => {
         gatewayId: gateway.id,
         amount: paymentRequest.amount,
         currency: paymentRequest.currency || "BRL",
-        status: paymentResponse.status,
+        status: dbStatus,
         transactionId: gatewayTransactionId,
         paymentMethod: paymentRequest.paymentMethod,
         // Campos específicos do PIX
