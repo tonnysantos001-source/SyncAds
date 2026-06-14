@@ -417,14 +417,35 @@ async function processAsaasPayment(
 
     // ── PASSO 3: Buscar QR Code PIX ──
     if (billingType === "PIX") {
-      const pixResp = await fetch(
-        `${baseUrl}/payments/${chargeData.id}/pixQrCode`,
-        { headers },
-      );
+      let pixData: any = null;
+      let retries = 3;
 
-      if (!pixResp.ok) {
+      while (retries > 0) {
+        console.log(`[ASAAS] Buscando QR Code PIX (tentativa ${4 - retries}/3)...`);
+        const pixResp = await fetch(
+          `${baseUrl}/payments/${chargeData.id}/pixQrCode`,
+          { headers },
+        );
+
+        if (pixResp.ok) {
+          pixData = await pixResp.json();
+          break;
+        }
+
         const errData = await pixResp.json().catch(() => ({}));
-        console.error("[ASAAS] Erro ao buscar QR Code PIX:", errData);
+        console.warn(`[ASAAS] Falha ao obter QR Code PIX (status: ${pixResp.status}):`, errData);
+
+        retries--;
+        if (retries > 0) {
+          // Espera 1.5s antes de tentar de novo
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+      if (!pixData) {
+        console.error("[ASAAS] Erro definitivo ao buscar QR Code PIX.");
         // Mesmo sem QR Code, retornar sucesso com o que temos
         return {
           success: true,
@@ -432,19 +453,16 @@ async function processAsaasPayment(
           gatewayTransactionId: chargeData.id,
           status: "pending",
           paymentUrl: chargeData.invoiceUrl,
-          message: "PIX gerado via Asaas (QR Code em processamento)",
+          message: "PIX gerado via Asaas (QR Code indisponível)",
           pixData: {
-            qrCode: chargeData.payload || "",
-            expiresAt: chargeData.dueDate,
+            qrCode: "",
+            expiresAt,
             amount: request.amount,
           },
         };
       }
 
-      const pixData = await pixResp.json();
       console.log("[ASAAS] PIX QR Code obtido:", !!pixData.encodedImage, !!pixData.payload);
-
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
       return {
         success: true,
