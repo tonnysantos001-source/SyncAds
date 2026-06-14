@@ -470,7 +470,7 @@ serve(async (req) => {
         accessTokenLength: integration.accessToken?.length,
       });
 
-      const shopifyResponse = await fetch(shopifyApiUrl, {
+      let shopifyResponse = await fetch(shopifyApiUrl, {
         method: "POST",
         headers: {
           "X-Shopify-Access-Token": integration.accessToken,
@@ -479,7 +479,7 @@ serve(async (req) => {
         body: JSON.stringify(shopifyPayload),
       });
 
-      const responseText = await shopifyResponse.text();
+      let responseText = await shopifyResponse.text();
 
       log("info", "📥 Resposta da Shopify", {
         status: shopifyResponse.status,
@@ -487,6 +487,53 @@ serve(async (req) => {
         ok: shopifyResponse.ok,
         bodyLength: responseText.length,
       });
+
+      // Se der erro 422 de conflito de telefone ("phone has already been taken" ou similar),
+      // tentamos remover o telefone e enviar novamente.
+      if (!shopifyResponse.ok && shopifyResponse.status === 422 && responseText.toLowerCase().includes("phone")) {
+        log("warn", "⚠️ Conflito de telefone detectado na Shopify (422). Removendo campos de telefone e tentando novamente...", {
+          originalPayload: {
+            customerPhone: shopifyPayload.order.customer?.phone,
+            shippingPhone: shopifyPayload.order.shipping_address?.phone,
+            billingPhone: shopifyPayload.order.billing_address?.phone,
+          }
+        });
+
+        // Remover telefone do cliente e dos endereços
+        const retryPayload = JSON.parse(JSON.stringify(shopifyPayload));
+        if (retryPayload.order.customer) {
+          delete retryPayload.order.customer.phone;
+        }
+        if (retryPayload.order.shipping_address) {
+          delete retryPayload.order.shipping_address.phone;
+        }
+        if (retryPayload.order.billing_address) {
+          delete retryPayload.order.billing_address.phone;
+        }
+
+        log("info", "📤 Reenviando para Shopify sem telefone", {
+          url: shopifyApiUrl,
+          customerEmail: retryPayload.order.customer?.email,
+        });
+
+        shopifyResponse = await fetch(shopifyApiUrl, {
+          method: "POST",
+          headers: {
+            "X-Shopify-Access-Token": integration.accessToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(retryPayload),
+        });
+
+        responseText = await shopifyResponse.text();
+
+        log("info", "📥 Resposta da Shopify (Tentativa de recuperação)", {
+          status: shopifyResponse.status,
+          statusText: shopifyResponse.statusText,
+          ok: shopifyResponse.ok,
+          bodyLength: responseText.length,
+        });
+      }
 
       if (!shopifyResponse.ok) {
         let errorDetails;

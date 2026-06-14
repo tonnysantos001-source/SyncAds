@@ -37,6 +37,7 @@ import {
   TrendingDown,
   Users,
   ShoppingCart,
+  ShoppingBag,
   DollarSign,
   Package,
   ArrowUpRight,
@@ -197,9 +198,59 @@ const ReportsOverviewPage = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
-  const [gatewayData, setGatewayData] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const user = useAuthStore((state) => state.user);
   const { toast } = useToast();
+
+  const formatOrderDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      }) + " - " + date.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; color: string }> = {
+      PENDING: {
+        label: "Pendente",
+        color: "bg-yellow-100/80 text-yellow-800 border border-yellow-250/20 dark:bg-yellow-950/45 dark:text-yellow-400 dark:border-yellow-900/50",
+      },
+      PROCESSING: {
+        label: "Processando",
+        color: "bg-blue-100/80 text-blue-800 border border-blue-250/20 dark:bg-blue-950/45 dark:text-blue-400 dark:border-blue-900/50",
+      },
+      PAID: {
+        label: "Pago",
+        color: "bg-green-100/80 text-green-800 border border-green-250/20 dark:bg-green-950/45 dark:text-green-400 dark:border-green-900/50",
+      },
+      FAILED: {
+        label: "Falhou",
+        color: "bg-red-100/80 text-red-800 border border-red-250/20 dark:bg-red-950/45 dark:text-red-400 dark:border-red-900/50",
+      },
+      REFUNDED: {
+        label: "Reembolsado",
+        color: "bg-gray-100/80 text-gray-800 border border-gray-200 dark:bg-gray-900/45 dark:text-gray-400 dark:border-gray-800/50",
+      },
+      CANCELLED: {
+        label: "Cancelado",
+        color: "bg-gray-100/80 text-gray-800 border border-gray-200 dark:bg-gray-900/45 dark:text-gray-400 dark:border-gray-800/50",
+      },
+    };
+    return (
+      statusMap[status] || {
+        label: status || "Pendente",
+        color: "bg-gray-100/80 text-gray-800 dark:bg-gray-950/45 dark:text-gray-400 border border-gray-200/20",
+      }
+    );
+  };
 
   useEffect(() => {
     if (user?.id) {
@@ -234,18 +285,18 @@ const ReportsOverviewPage = () => {
 
     try {
       setLoading(true);
-      const [metricsData, chartDataResult, hourlyDataResult, gatewayDataResult] =
+      const [metricsData, chartDataResult, hourlyDataResult, recentOrdersResult] =
         await Promise.all([
           dashboardApi.getMetrics(user.id, period),
           dashboardApi.getChartData(user.id, period),
           dashboardApi.getHourlyData(user.id),
-          dashboardApi.getGatewayPerformance(user.id, period),
+          dashboardApi.getRecentOrders(user.id, 5),
         ]);
 
       setMetrics(metricsData);
       setChartData(chartDataResult);
       setHourlyData(hourlyDataResult);
-      setGatewayData(gatewayDataResult);
+      setRecentOrders(recentOrdersResult);
     } catch (error: any) {
       console.error("Erro ao carregar dashboard:", error);
       toast({
@@ -726,7 +777,7 @@ const ReportsOverviewPage = () => {
           </Card>
         </motion.div>
 
-        {/* Desempenho dos Gateways */}
+        {/* Últimos Pedidos */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -736,36 +787,48 @@ const ReportsOverviewPage = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-850 mb-4">
               <div>
                 <h3 className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Zap className="h-4.5 w-4.5 text-yellow-500" />
-                  Desempenho dos Gateways
+                  <ShoppingBag className="h-4.5 w-4.5 text-purple-500" />
+                  Últimos Pedidos
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  Conversões e faturamento por gateway de pagamento
+                  Últimas 5 vendas registradas em tempo real
                 </p>
               </div>
             </div>
             <CardContent className="p-0">
               <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
-                {gatewayData.length > 0 ? (
-                  gatewayData.map((gate, index) => (
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order) => (
                     <div
-                      key={index}
-                      className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-850 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
+                      key={order.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-gray-850 bg-white/50 dark:bg-gray-950/40 hover:bg-white/80 dark:hover:bg-gray-950/60 transition-all duration-200"
                     >
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                          {gate.gatewayName}
-                        </span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">
-                          {gate.successfulTransactions} de {gate.totalTransactions} transações ({gate.successRate.toFixed(0)}% sucesso)
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-purple-500/10 dark:border-purple-500/20 flex items-center justify-center font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0">
+                          {order.customerName
+                            ? order.customerName
+                                .split(" ")
+                                .map((n: string) => n[0])
+                                .slice(0, 2)
+                                .join("")
+                                .toUpperCase()
+                            : "U"}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate max-w-[150px]">
+                            #{order.orderNumber} - {order.customerName || "Cliente"}
+                          </span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                            {formatOrderDate(order.createdAt)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right flex flex-col">
-                        <span className="text-sm font-black text-gray-900 dark:text-white">
-                          {formatCurrency(gate.totalRevenue)}
-                        </span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">
-                          Tkt Médio: {formatCurrency(gate.avgTicket)}
+                      <div className="text-right flex items-center gap-2">
+                        <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9px] px-1.5 py-0.5 font-bold shadow-none border-0`}>
+                          {getStatusBadge(order.paymentStatus).label}
+                        </Badge>
+                        <span className="text-xs font-black text-gray-900 dark:text-white shrink-0">
+                          {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : order.total)}
                         </span>
                       </div>
                     </div>
@@ -773,7 +836,7 @@ const ReportsOverviewPage = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <span className="text-xs text-gray-500 font-medium">
-                      Nenhuma transação registrada no período
+                      Nenhum pedido recente registrado
                     </span>
                   </div>
                 )}
@@ -781,6 +844,7 @@ const ReportsOverviewPage = () => {
             </CardContent>
           </Card>
         </motion.div>
+
       </div>
     </div>
   );
