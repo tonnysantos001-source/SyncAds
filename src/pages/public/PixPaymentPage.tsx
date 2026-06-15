@@ -45,6 +45,7 @@ const PixPaymentPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(true);
   const [customization, setCustomization] = useState<any>(null);
+  const [shopUrl, setShopUrl] = useState<string>("");
 
   // Carregar dados do PIX
   useEffect(() => {
@@ -128,35 +129,43 @@ const PixPaymentPage: React.FC = () => {
     }
   }, [pixData]);
 
-  // Carregar personalização
+  // Carregar personalização e dados da loja
   useEffect(() => {
-    const loadCustomization = async () => {
+    const loadCustomizationAndStore = async () => {
       try {
         if (!orderId) return;
         const { data: orderData, error: orderError } = await supabase
           .from("Order")
-          .select("userId")
+          .select("userId, metadata")
           .eq("id", orderId)
           .single();
 
-        if (!orderError && orderData?.userId) {
-          const { data: customData, error: customError } = await supabase
-            .from("CheckoutCustomization")
-            .select("theme")
-            .eq("userId", orderData.userId)
-            .eq("isActive", true)
-            .single();
+        if (!orderError && orderData) {
+          // Extrair shopDomain do metadata
+          const domain = orderData.metadata?.shopDomain;
+          if (domain) {
+            setShopUrl(`https://${domain}`);
+          }
 
-          if (!customError && customData) {
-            setCustomization(customData.theme);
+          if (orderData.userId) {
+            const { data: customData, error: customError } = await supabase
+              .from("CheckoutCustomization")
+              .select("theme")
+              .eq("userId", orderData.userId)
+              .eq("isActive", true)
+              .single();
+
+            if (!customError && customData) {
+              setCustomization(customData.theme);
+            }
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar personalização do PIX:", error);
+        console.error("Erro ao carregar dados adicionais do PIX:", error);
       }
     };
 
-    loadCustomization();
+    loadCustomizationAndStore();
   }, [orderId]);
 
   const pixBarConfig = customization?.pixBar || {
@@ -219,11 +228,17 @@ const PixPaymentPage: React.FC = () => {
           .single();
 
         if (!error && data) {
-          if (data.status === "PAID" || data.status === "approved") {
+          const status = (data.status || "").toUpperCase();
+          const paidStatuses = ["PAID", "APPROVED", "CONFIRMADO", "SUCCESS", "COMPLETED"];
+          if (paidStatuses.includes(status)) {
             setIsPaid(true);
             setTimeout(() => {
-              navigate(`/checkout/success/${transactionId}`);
-            }, 2000);
+              if (shopUrl) {
+                window.location.href = shopUrl;
+              } else {
+                navigate(`/checkout/success/${transactionId}`);
+              }
+            }, 4000); // 4 segundos de tela verde
           }
         }
       } catch (error) {
@@ -234,10 +249,10 @@ const PixPaymentPage: React.FC = () => {
     };
 
     checkPayment();
-    const interval = setInterval(checkPayment, 5000);
+    const interval = setInterval(checkPayment, 3000);
 
     return () => clearInterval(interval);
-  }, [transactionId, isPaid, navigate]);
+  }, [transactionId, isPaid, navigate, shopUrl]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -305,20 +320,20 @@ const PixPaymentPage: React.FC = () => {
 
   if (isPaid) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-sm w-full border border-slate-200 shadow-sm rounded-xl bg-white">
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4 transition-colors duration-500">
+        <Card className="max-w-sm w-full border border-emerald-100 shadow-lg rounded-2xl bg-white">
           <CardContent className="p-8 text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-50 text-emerald-500">
-              <CheckCircle className="h-8 w-8" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 animate-bounce">
+              <CheckCircle className="h-10 w-10" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="text-2xl font-extrabold tracking-tight text-emerald-950">
               Pagamento Confirmado!
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-emerald-800">
               Seu pagamento via PIX foi recebido e aprovado com sucesso.
             </p>
-            <p className="text-xs text-emerald-600 font-medium animate-pulse">
-              Redirecionando para a confirmação...
+            <p className="text-xs text-emerald-600 font-semibold animate-pulse">
+              Redirecionando de volta para a loja...
             </p>
           </CardContent>
         </Card>
@@ -333,11 +348,17 @@ const PixPaymentPage: React.FC = () => {
         {/* Header Voltar */}
         <div className="flex justify-between items-center px-1">
           <button
-            onClick={() => navigate(`/checkout/${orderId}`)}
+            onClick={() => {
+              if (shopUrl) {
+                window.location.href = shopUrl;
+              } else {
+                window.history.back();
+              }
+            }}
             className="text-xs font-semibold text-slate-500 hover:text-slate-850 transition-colors flex items-center gap-1"
           >
             <ArrowLeft className="h-3 w-3 text-slate-500" />
-            Alterar método de pagamento
+            Voltar para a loja
           </button>
         </div>
 
