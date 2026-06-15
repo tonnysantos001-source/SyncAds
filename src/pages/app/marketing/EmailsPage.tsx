@@ -829,14 +829,14 @@ const EmailsPage = () => {
               <Label htmlFor="test-email" className="text-gray-700 dark:text-gray-300 text-xs font-semibold">
                 Destinatário (E-mail de teste)
               </Label>
-              <Input
+              <input
                 id="test-email"
                 type="email"
                 placeholder="seuemail@exemplo.com"
                 value={testEmailAddress}
                 onChange={(e) => setTestEmailAddress(e.target.value)}
                 data-native-paste="true"
-                className="border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-950/50 text-sm dark:text-white"
+                className="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-950/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white"
               />
             </div>
           </div>

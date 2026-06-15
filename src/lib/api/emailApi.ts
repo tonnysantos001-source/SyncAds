@@ -141,17 +141,20 @@ export const emailApi = {
     }
   },
 
-  /**
-   * Enviar e-mail de teste
-   */
   async sendTestEmail(userId: string, event: EmailEvent, emailAddress: string): Promise<boolean> {
     try {
-      // Simula uma chamada para enviar email de teste.
-      console.log(`Sending test email for ${event} to ${emailAddress}`);
-      
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: { userId, event, emailAddress }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       return true;
     } catch (error) {
       console.error('Error sending test email:', error);
