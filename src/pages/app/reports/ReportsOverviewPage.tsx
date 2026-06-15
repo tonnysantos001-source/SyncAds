@@ -423,7 +423,7 @@ const MetricCard = ({
       transition={{ duration: 0.3, delay }}
       whileHover={{ y: -1 }}
     >
-      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-4.5 rounded-xl min-h-[120px] flex flex-col justify-between">
+      <Card className="relative overflow-hidden border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-5 rounded-xl min-h-[120px] flex flex-col justify-between">
         <div
           className={`absolute top-0 right-0 w-20 h-20 ${color} opacity-[0.08] rounded-full blur-2xl`}
         />
@@ -825,7 +825,7 @@ const ReportsOverviewPage = () => {
           transition={{ duration: 0.3, delay: 0.05 }}
           whileHover={{ y: -1 }}
         >
-          <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-4.5 rounded-xl flex justify-between items-center h-full min-h-[120px]">
+          <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md hover:shadow-lg transition-all duration-200 p-5 rounded-xl flex justify-between items-center h-full min-h-[120px]">
             <div className="flex flex-col flex-1 min-w-0 pr-1">
               <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Visitantes Online
@@ -947,7 +947,7 @@ const ReportsOverviewPage = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
                 <h3 className="text-base md:text-lg font-bold flex items-center gap-1.5 text-gray-900 dark:text-white">
-                  <ShoppingBag className="h-4.5 w-4.5 text-purple-500" />
+                  <ShoppingBag className="h-5 w-5 text-purple-500" />
                   Últimos Pedidos
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -1015,19 +1015,19 @@ const ReportsOverviewPage = () => {
 
       {/* Painel Analítico Tabulado com Gráficos e Funis Secundários */}
       <Tabs defaultValue="conversion" className="space-y-4">
-        <TabsList className="bg-white/40 dark:bg-gray-950/20 border border-gray-150/30 dark:border-gray-800/30 p-1 rounded-xl inline-flex h-10 items-center">
-          <TabsTrigger value="conversion" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+        <TabsList className="bg-white/40 dark:bg-gray-950/20 border border-gray-150/30 dark:border-gray-800/30 p-1 rounded-xl inline-flex h-10 items-center gap-1.5">
+          <TabsTrigger value="conversion" className="text-sm font-bold px-5 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm transition-all duration-200">
             Funil & Pagamentos
           </TabsTrigger>
-          <TabsTrigger value="traffic" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+          <TabsTrigger value="traffic" className="text-sm font-bold px-5 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm transition-all duration-200">
             Tráfego & Engajamento
           </TabsTrigger>
-          <TabsTrigger value="performance" className="text-sm font-bold px-4.5 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm">
+          <TabsTrigger value="performance" className="text-sm font-bold px-5 py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm transition-all duration-200">
             Velocidade & Rejeição
           </TabsTrigger>
         </TabsList>
 
-        <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-5.5 rounded-xl">
+        <Card className="border border-gray-150/40 dark:border-gray-800/40 bg-white/70 dark:bg-gray-900/75 backdrop-blur-xl shadow-md p-6 rounded-xl">
           {/* Tab 1: Funil & Pagamentos */}
           <TabsContent value="conversion" className="mt-0 space-y-4">
             {/* Grid de Métricas do Checkout */}
