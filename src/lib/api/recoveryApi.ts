@@ -407,16 +407,116 @@ export const recoveryApi = {
    */
   async getPixRecovered(userId: string) {
     try {
-      const { data, error } = await supabase
+      // 1. Buscar todos os carrinhos de recuperação via PIX
+      const { data: recoveredCarts, error: recError } = await supabase
         .from('RecoveredCart')
         .select('*')
         .eq('userId', userId)
-        .eq('recoveryMethod', 'PIX')
-        .eq('recovered', true)
-        .order('recoveredAt', { ascending: false });
+        .eq('recoveryMethod', 'PIX');
 
-      if (error) throw error;
-      return data as RecoveredCart[];
+      if (recError) throw recError;
+
+      // 2. Buscar pedidos do banco criados via PIX (desconsiderando previews)
+      const { data: orders, error: ordersError } = await supabase
+        .from('Order')
+        .select('*')
+        .eq('userId', userId)
+        .ilike('paymentMethod', '%pix%')
+        .neq('status', 'PREVIEW');
+
+      if (ordersError) throw ordersError;
+
+      // 3. Buscar transações vinculadas a esses pedidos para capturar QR Code e Expiração
+      let transactions: any[] = [];
+      if (orders && orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const { data: transData, error: transError } = await supabase
+          .from('Transaction')
+          .select('*')
+          .in('orderId', orderIds);
+        
+        if (!transError && transData) {
+          transactions = transData;
+        }
+      }
+
+      const mergedMap = new Map<string, RecoveredCart>();
+
+      // Adicionar carrinhos de recuperação existentes no map
+      if (recoveredCarts) {
+        for (const rc of recoveredCarts) {
+          const key = rc.orderId || rc.cartId || rc.id;
+          mergedMap.set(key, rc);
+        }
+      }
+
+      // Adicionar/atualizar com dados de pedidos PIX reais
+      if (orders) {
+        for (const order of orders) {
+          const associatedTrans = transactions.find(t => t.orderId === order.id);
+          
+          const isPaid = order.paymentStatus === 'PAID';
+          
+          let expiresAt = associatedTrans?.pixExpiresAt || order.metadata?.pixExpiresAt || order.metadata?.expiresAt || order.metadata?.expirationDate;
+          if (!expiresAt) {
+            const createdDate = new Date(order.createdAt);
+            expiresAt = new Date(createdDate.getTime() + 24 * 60 * 60 * 1000).toISOString();
+          }
+
+          if (['FAILED', 'CANCELLED'].includes(order.paymentStatus)) {
+            expiresAt = new Date(0).toISOString();
+          }
+
+          const key = order.id || order.cartId;
+          const existing = mergedMap.get(key);
+
+          if (existing) {
+            mergedMap.set(key, {
+              ...existing,
+              recovered: isPaid || existing.recovered,
+              recoveredAt: order.paidAt || existing.recoveredAt || (isPaid ? order.updatedAt : undefined),
+              orderId: order.id,
+              pixQrCode: associatedTrans?.pixQrCode || order.metadata?.pixQrCode || existing.pixQrCode,
+              pixCopyPaste: associatedTrans?.pixCopyPaste || order.metadata?.pixCopyPaste || existing.pixCopyPaste,
+              pixExpiresAt: expiresAt || existing.pixExpiresAt,
+              cartValue: order.total,
+              customerEmail: order.customerEmail || existing.customerEmail,
+              customerPhone: order.customerPhone || existing.customerPhone,
+            });
+          } else {
+            const newRc: RecoveredCart = {
+              id: order.id,
+              userId: order.userId,
+              cartId: order.cartId || order.id,
+              customerId: order.customerId,
+              customerEmail: order.customerEmail,
+              customerPhone: order.customerPhone,
+              cartValue: order.total,
+              recoveryMethod: 'PIX',
+              pixQrCode: associatedTrans?.pixQrCode || order.metadata?.pixQrCode || order.metadata?.qrCode,
+              pixCopyPaste: associatedTrans?.pixCopyPaste || order.metadata?.pixCopyPaste || order.metadata?.copyPaste || order.metadata?.qr_code_text,
+              pixExpiresAt: expiresAt,
+              recoveryEmailSent: false,
+              recoverySmsSent: false,
+              recoveryWhatsappSent: false,
+              recoveryAttempts: 1,
+              recovered: isPaid,
+              recoveredAt: order.paidAt || (isPaid ? order.updatedAt : undefined),
+              orderId: order.id,
+              discountOffered: order.discount || 0,
+              createdAt: order.createdAt,
+              updatedAt: order.updatedAt,
+            };
+            mergedMap.set(key, newRc);
+          }
+        }
+      }
+
+      const result = Array.from(mergedMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      return result;
     } catch (error: any) {
       console.error('Error getting PIX recovered carts:', error);
       throw error;
