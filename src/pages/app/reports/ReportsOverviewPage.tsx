@@ -1308,16 +1308,16 @@ const ReportsOverviewPage = () => {
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <MetricCard
                 title="Tempo de Resposta (Load)"
-                value="0 ms"
-                change={0}
+                value={metrics ? `${metrics.pageLoad} ms` : "0 ms"}
+                change={metrics?.pageLoadChange || 0}
                 icon={Zap}
                 color="bg-cyan-500"
                 isSecondary={true}
               />
               <MetricCard
                 title="Início de Render"
-                value="0 ms"
-                change={0}
+                value={metrics ? `${metrics.startRender} ms` : "0 ms"}
+                change={metrics?.startRenderChange || 0}
                 icon={Clock}
                 color="bg-blue-500"
                 isSecondary={true}

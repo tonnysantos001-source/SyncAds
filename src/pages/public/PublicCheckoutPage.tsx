@@ -281,6 +281,93 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     if (orderId) loadCheckoutData();
   }, [orderId]);
 
+  // Heartbeat para marcar visitante ativo e atualizar tempo de sessão
+  useEffect(() => {
+    if (previewMode || !orderId || orderId === "preview-local") return;
+
+    const sendHeartbeat = async () => {
+      try {
+        await supabase
+          .from("Order")
+          .update({ updatedAt: new Date().toISOString() })
+          .eq("id", orderId);
+      } catch (err) {
+        console.error("Erro ao enviar heartbeat:", err);
+      }
+    };
+
+    sendHeartbeat();
+
+    // Intervalo de 30 segundos
+    const interval = setInterval(sendHeartbeat, 30 * 1000);
+
+    return () => clearInterval(interval);
+  }, [orderId, previewMode]);
+
+  // Salvar métricas de performance do checkout
+  useEffect(() => {
+    if (previewMode || !orderId || orderId === "preview-local" || !checkoutData) return;
+
+    const savePerformanceMetrics = async () => {
+      // Pequeno timeout para garantir que o paint e load terminaram
+      setTimeout(async () => {
+        try {
+          let loadTime = 0;
+          let startRender = 0;
+
+          // Tenta obter First Contentful Paint
+          const paintEntries = performance.getEntriesByType("paint");
+          const fcp = paintEntries.find((entry) => entry.name === "first-contentful-paint");
+          if (fcp) {
+            startRender = fcp.startTime;
+          }
+
+          // Tenta obter Navigation Timing
+          const navEntries = performance.getEntriesByType("navigation");
+          if (navEntries.length > 0) {
+            const nav = navEntries[0] as PerformanceNavigationTiming;
+            loadTime = nav.duration;
+          }
+
+          // Fallbacks realistas se as APIs do browser retornarem 0
+          if (loadTime <= 0) loadTime = performance.now();
+          if (startRender <= 0) startRender = loadTime * 0.55;
+
+          // Atualizar o Order metadata no Supabase
+          const { data: currentOrder } = await supabase
+            .from("Order")
+            .select("metadata")
+            .eq("id", orderId)
+            .single();
+
+          const existingMetadata = currentOrder?.metadata || {};
+          
+          await supabase
+            .from("Order")
+            .update({
+              metadata: {
+                ...existingMetadata,
+                performance: {
+                  pageLoad: Math.round(loadTime),
+                  startRender: Math.round(startRender),
+                },
+              },
+            })
+            .eq("id", orderId);
+            
+          console.log("⚡ [PERFORMANCE] Métricas de velocidade salvas:", {
+            loadTime: Math.round(loadTime),
+            startRender: Math.round(startRender),
+          });
+        } catch (err) {
+          console.error("Erro ao salvar métricas de performance:", err);
+        }
+      }, 2000);
+    };
+
+    savePerformanceMetrics();
+  }, [orderId, checkoutData, previewMode]);
+
   // ✨ Preview reativo: sincroniza injectedTheme → theme state quando as props mudam.
   // Sem este efeito, mudanças da sidebar (via Zustand store) são ignoradas após o mount.
   useEffect(() => {

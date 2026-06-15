@@ -85,6 +85,28 @@ const PixPaymentPage: React.FC = () => {
     loadPixData();
   }, [orderId, transactionId]);
 
+  // Heartbeat para marcar visitante ativo e atualizar tempo de sessão na página de PIX
+  useEffect(() => {
+    if (!orderId) return;
+
+    const sendHeartbeat = async () => {
+      try {
+        await supabase
+          .from("Order")
+          .update({ updatedAt: new Date().toISOString() })
+          .eq("id", orderId);
+      } catch (err) {
+        console.error("Erro ao enviar heartbeat no PIX:", err);
+      }
+    };
+
+    sendHeartbeat();
+
+    const interval = setInterval(sendHeartbeat, 30 * 1000);
+
+    return () => clearInterval(interval);
+  }, [orderId]);
+
   // Gerar QR Code
   useEffect(() => {
     if (pixData?.qrCode) {

@@ -158,7 +158,7 @@ serve(async (req) => {
     log("info", "Integration found", { userId, shopDomain });
     // Calcular totais
     const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-    const tax = subtotal * 0.17; // 17% de impostos
+    const tax = 0; // Removido o imposto simulado de 17% para bater com o valor real
     const shipping = 0; // Será calculado no checkout
     const total = subtotal + tax + shipping;
 
