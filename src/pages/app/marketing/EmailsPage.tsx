@@ -45,6 +45,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 import { emailApi, EmailConfig, EmailEvent, EmailTemplateType } from "@/lib/api/emailApi";
 import { ImageUploadField } from "@/components/checkout/ImageUploadField";
@@ -834,6 +835,7 @@ const EmailsPage = () => {
                 placeholder="seuemail@exemplo.com"
                 value={testEmailAddress}
                 onChange={(e) => setTestEmailAddress(e.target.value)}
+                data-native-paste="true"
                 className="border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-950/50 text-sm dark:text-white"
               />
             </div>

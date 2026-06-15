@@ -7,12 +7,13 @@
     const handleForcePaste = (e: ClipboardEvent) => {
         const target = e.target as HTMLInputElement | HTMLTextAreaElement;
 
-        // Verificar se o alvo é um input ou textarea
+        // Verificar se o alvo é um input ou textarea e se não exige colagem nativa
         if (
             target && 
             (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && 
             !target.readOnly && 
-            !target.disabled
+            !target.disabled &&
+            target.getAttribute('data-native-paste') !== 'true'
         ) {
             // Se for um campo de input normal, vamos forçar a colagem de texto
             try {
