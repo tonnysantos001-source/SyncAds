@@ -733,30 +733,32 @@ const UtmsPage = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
             {/* Top Fontes */}
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
-                  Top Fontes
-                </CardTitle>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+              <CardHeader className="p-0">
+                <div className="flex items-center pb-2 border-b border-gray-100 dark:border-gray-800 mb-3">
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-cyan-500" />
+                    Top Fontes
+                  </CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="space-y-3">
                   {stats.topPerformers.sources.map((source, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10"
+                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-cyan-500/10 to-purple-500/10"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">
+                        <span className="font-semibold text-lg text-cyan-600 dark:text-cyan-400">
                           #{index + 1}
                         </span>
                         <span className="text-gray-900 dark:text-gray-100 font-medium">
-                          {source.utmSource || "Direto"}
+                          {source.name || "Direto"}
                         </span>
                       </div>
-                      <Badge className="bg-blue-500 text-white">
-                        {source.totalConversions} vendas
+                      <Badge className="bg-cyan-500 text-white font-medium">
+                        {source.conversions} {source.conversions === 1 ? 'venda' : 'vendas'}
                       </Badge>
                     </div>
                   ))}
@@ -765,14 +767,16 @@ const UtmsPage = () => {
             </Card>
 
             {/* Top Meios */}
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-purple-500" />
-                  Top Meios
-                </CardTitle>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+              <CardHeader className="p-0">
+                <div className="flex items-center pb-2 border-b border-gray-100 dark:border-gray-800 mb-3">
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-purple-500" />
+                    Top Meios
+                  </CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="space-y-3">
                   {stats.topPerformers.mediums.map((medium, index) => (
                     <div
@@ -784,11 +788,11 @@ const UtmsPage = () => {
                           #{index + 1}
                         </span>
                         <span className="text-gray-900 dark:text-gray-100 font-medium">
-                          {medium.utmMedium || "Não definido"}
+                          {medium.name || "Não definido"}
                         </span>
                       </div>
-                      <Badge className="bg-purple-500 text-white">
-                        {medium.totalConversions} vendas
+                      <Badge className="bg-purple-500 text-white font-medium">
+                        {medium.conversions} {medium.conversions === 1 ? 'venda' : 'vendas'}
                       </Badge>
                     </div>
                   ))}
@@ -797,31 +801,32 @@ const UtmsPage = () => {
             </Card>
 
             {/* Top Campanhas */}
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-pink-500" />
-                  Top Campanhas
-                </CardTitle>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+              <CardHeader className="p-0">
+                <div className="flex items-center pb-2 border-b border-gray-100 dark:border-gray-800 mb-3">
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-pink-500" />
+                    Top Campanhas
+                  </CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="space-y-3">
                   {stats.topPerformers.campaigns.map((campaign, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 rounded-lg bg-
-gradient-to-r from-pink-500/10 to-red-500/10"
+                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-pink-500/10 to-red-500/10"
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-lg text-pink-600 dark:text-pink-400">
                           #{index + 1}
                         </span>
                         <span className="text-gray-900 dark:text-gray-100 font-medium">
-                          {campaign.utmCampaign || "Sem campanha"}
+                          {campaign.name || "Sem campanha"}
                         </span>
                       </div>
-                      <Badge className="bg-pink-500 text-white">
-                        {campaign.totalConversions} vendas
+                      <Badge className="bg-pink-500 text-white font-medium">
+                        {campaign.conversions} {campaign.conversions === 1 ? 'venda' : 'vendas'}
                       </Badge>
                     </div>
                   ))}
