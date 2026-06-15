@@ -347,26 +347,59 @@ export const utmApi = {
     }
   ): Promise<UTMStats> {
     try {
-      let query = supabase
+      // 1. Buscar pedidos do SyncAds
+      let querySyncAds = supabase
         .from('Order')
         .select('*')
         .eq('userId', userId)
         .neq('status', 'PREVIEW');
 
+      // 2. Buscar pedidos da Shopify
+      let queryShopify = supabase
+        .from('ShopifyOrder')
+        .select('*')
+        .eq('userId', userId);
+
       if (period) {
-        query = query
+        querySyncAds = querySyncAds
+          .gte('createdAt', period.from)
+          .lte('createdAt', period.to);
+        queryShopify = queryShopify
           .gte('createdAt', period.from)
           .lte('createdAt', period.to);
       }
 
-      const { data, error } = await query;
+      const [syncAdsResult, shopifyResult] = await Promise.all([
+        querySyncAds,
+        queryShopify,
+      ]);
 
-      if (error) throw error;
+      if (syncAdsResult.error) throw syncAdsResult.error;
+      if (shopifyResult.error) throw shopifyResult.error;
 
-      const orders = data || [];
+      const syncAdsOrders = syncAdsResult.data || [];
+      const shopifyOrders = shopifyResult.data || [];
 
-      // Mapear orders para simular registros UTMTracking
-      const utms: UTMTracking[] = orders.map((o: any) => ({
+      // Helper para extrair UTMs do landing_site (campo shopifyData.landing_site)
+      const extractUtmsFromLandingSite = (landingSite: string | null) => {
+        if (!landingSite) return { utmSource: null, utmMedium: null, utmCampaign: null, utmTerm: null, utmContent: null };
+        try {
+          const urlStr = landingSite.startsWith('/') ? `https://dummy.com${landingSite}` : landingSite;
+          const url = new URL(urlStr);
+          return {
+            utmSource: url.searchParams.get('utm_source'),
+            utmMedium: url.searchParams.get('utm_medium'),
+            utmCampaign: url.searchParams.get('utm_campaign'),
+            utmTerm: url.searchParams.get('utm_term'),
+            utmContent: url.searchParams.get('utm_content'),
+          };
+        } catch (e) {
+          return { utmSource: null, utmMedium: null, utmCampaign: null, utmTerm: null, utmContent: null };
+        }
+      };
+
+      // Mapear orders do SyncAds para simular registros UTMTracking
+      const syncAdsUtms: UTMTracking[] = syncAdsOrders.map((o: any) => ({
         id: o.id,
         userId: o.userId,
         sessionId: o.id,
@@ -379,6 +412,27 @@ export const utmApi = {
         updatedAt: o.updatedAt,
         landingPage: '',
       }));
+
+      // Mapear orders do Shopify para simular registros UTMTracking
+      const shopifyUtms: UTMTracking[] = shopifyOrders.map((o: any) => {
+        const extracted = extractUtmsFromLandingSite(o.shopifyData?.landing_site || null);
+        return {
+          id: o.id.toString(),
+          userId: o.userId,
+          sessionId: o.id.toString(),
+          utmSource: extracted.utmSource || 'Direto',
+          utmMedium: extracted.utmMedium || 'Organico',
+          utmCampaign: extracted.utmCampaign || 'Nenhum',
+          converted: ['paid', 'pending'].includes(o.financialStatus?.toLowerCase()),
+          orderValue: typeof o.totalPrice === 'string' ? parseFloat(o.totalPrice) : (parseFloat(o.totalPrice || 0)),
+          createdAt: o.createdAt,
+          updatedAt: o.updatedAt,
+          landingPage: o.shopifyData?.landing_site || '',
+        };
+      });
+
+      // Combinar os resultados
+      const utms = [...syncAdsUtms, ...shopifyUtms];
 
       // Calcular estatísticas gerais
       const totalSessions = utms.length;

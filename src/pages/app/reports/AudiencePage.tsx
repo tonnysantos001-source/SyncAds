@@ -473,55 +473,66 @@ const AudiencePage = () => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl">
+          <CardHeader className="p-0">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
               <div>
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
                   <Award className="h-5 w-5 text-yellow-500" />
                   Top 10 Estados por Receita
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
                   Estados com maior faturamento no período
                 </CardDescription>
               </div>
-              <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+              <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-sm text-[10.5px] px-2 py-0.5">
                 <Eye className="h-3 w-3 mr-1" />
                 Top Performers
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {topStates.length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={topStates}>
+                  <defs>
+                    <linearGradient id="colorStateRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.5} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="#374151"
-                    opacity={0.2}
+                    opacity={0.15}
                   />
                   <XAxis
                     dataKey="state"
                     stroke="#9ca3af"
-                    style={{ fontSize: "12px" }}
+                    style={{ fontSize: "11px" }}
+                    tickLine={false}
+                    padding={{ left: 30, right: 30 }}
                   />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />
+                  <YAxis
+                    stroke="#06b6d4"
+                    style={{ fontSize: "11px" }}
+                    tickLine={false}
+                    tickFormatter={(value) => `R$ ${value}`}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" radius={[8, 8, 0, 0]}>
-                    {topStates.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={`hsl(${(index * 36) % 360}, 70%, 50%)`}
-                      />
-                    ))}
-                  </Bar>
+                  <Bar
+                    dataKey="revenue"
+                    fill="url(#colorStateRevenue)"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={50}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-96 text-gray-500">
-                <MapPin className="h-16 w-16 mb-4 opacity-50" />
-                <p className="text-lg font-semibold">Nenhum dado disponível</p>
-                <p className="text-sm">Aguardando pedidos com localização</p>
+              <div className="flex flex-col items-center justify-center h-72 text-gray-500">
+                <MapPin className="h-12 w-12 mb-3 opacity-50 text-cyan-500" />
+                <p className="text-sm font-semibold">Nenhum dado disponível</p>
+                <p className="text-xs">Aguardando pedidos com localização</p>
               </div>
             )}
           </CardContent>

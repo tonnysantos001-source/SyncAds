@@ -62,6 +62,51 @@
     return parts.join(",");
   }
 
+  // Capturar parâmetros UTM da URL e salvar na sessionStorage
+  function captureAndStoreUtms() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+      
+      const storedUtms = {};
+      let hasNewUtms = false;
+
+      utmParams.forEach(param => {
+        const value = urlParams.get(param);
+        if (value) {
+          sessionStorage.setItem('syncads_' + param, value);
+          storedUtms[param] = value;
+          hasNewUtms = true;
+        } else {
+          const storedValue = sessionStorage.getItem('syncads_' + param);
+          if (storedValue) {
+            storedUtms[param] = storedValue;
+          }
+        }
+      });
+
+      // Se não houver nada na sessionStorage mas tiver referrer, podemos guardar
+      if (!sessionStorage.getItem('syncads_utm_source') && document.referrer) {
+        try {
+          const referrerUrl = new URL(document.referrer);
+          if (referrerUrl.hostname !== window.location.hostname) {
+            sessionStorage.setItem('syncads_utm_source', referrerUrl.hostname);
+            sessionStorage.setItem('syncads_utm_medium', 'referral');
+            storedUtms['utm_source'] = referrerUrl.hostname;
+            storedUtms['utm_medium'] = 'referral';
+          }
+        } catch (e) {
+          // Ignorar
+        }
+      }
+
+      return storedUtms;
+    } catch (e) {
+      console.error('[SyncAds] Erro ao capturar UTMs:', e);
+      return {};
+    }
+  }
+
   // ============================================
   // CART API - FONTE DE VERDADE DA SHOPIFY
   // ============================================
@@ -515,6 +560,7 @@
       log("🔄 Criando pedido no SyncAds...");
 
       const shopDomain = window.Shopify?.shop || window.location.hostname;
+      const utms = captureAndStoreUtms();
 
       // Sincronizar com Cart API para garantir dados mais recentes
       const cartItems = await syncWithShopifyCart();
@@ -542,6 +588,11 @@
             source: "shopify-checkout-redirect-v4.2-cart-api",
             timestamp: new Date().toISOString(),
             method: "cart-api",
+            utmSource: utms.utm_source || null,
+            utmMedium: utms.utm_medium || null,
+            utmCampaign: utms.utm_campaign || null,
+            utmTerm: utms.utm_term || null,
+            utmContent: utms.utm_content || null,
           },
         }),
       });
@@ -562,7 +613,20 @@
       // Limpar carrinho e redirecionar
       await clearCart();
 
-      const checkoutUrl = data.checkoutUrl || `${CONFIG.CHECKOUT_URL}/${data.orderId}`;
+      let checkoutUrl = data.checkoutUrl || `${CONFIG.CHECKOUT_URL}/${data.orderId}`;
+      
+      // Anexar UTMs para o checkout
+      const queryParams = [];
+      if (utms.utm_source) queryParams.push(`utm_source=${encodeURIComponent(utms.utm_source)}`);
+      if (utms.utm_medium) queryParams.push(`utm_medium=${encodeURIComponent(utms.utm_medium)}`);
+      if (utms.utm_campaign) queryParams.push(`utm_campaign=${encodeURIComponent(utms.utm_campaign)}`);
+      if (utms.utm_term) queryParams.push(`utm_term=${encodeURIComponent(utms.utm_term)}`);
+      if (utms.utm_content) queryParams.push(`utm_content=${encodeURIComponent(utms.utm_content)}`);
+      
+      if (queryParams.length > 0) {
+        checkoutUrl += (checkoutUrl.includes('?') ? '&' : '?') + queryParams.join('&');
+      }
+
       log("🚀 Redirecionando para:", checkoutUrl);
       window.location.href = checkoutUrl;
     } catch (err) {
@@ -720,6 +784,7 @@
   function init() {
     log("🚀 Inicializando SyncAds Checkout Redirect v4.2 (Cart API)");
 
+    captureAndStoreUtms();
     // Criar UI
     createCartDrawer();
 

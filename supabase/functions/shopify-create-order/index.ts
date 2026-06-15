@@ -261,9 +261,9 @@ serve(async (req) => {
         shippingCarrier: null,
         shippedAt: null,
         deliveredAt: null,
-        utmSource: metadata?.referrer || null,
-        utmMedium: "shopify",
-        utmCampaign: "shopify_checkout",
+        utmSource: metadata?.utmSource || metadata?.utm_source || metadata?.referrer || null,
+        utmMedium: metadata?.utmMedium || metadata?.utm_medium || "shopify",
+        utmCampaign: metadata?.utmCampaign || metadata?.utm_campaign || "shopify_checkout",
         notes: null,
         metadata: {
           source: "shopify",

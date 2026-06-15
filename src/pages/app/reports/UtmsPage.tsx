@@ -366,44 +366,47 @@ const UtmsPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-blue-500" />
-                  Performance por Fonte
-                </CardTitle>
-                <CardDescription>
-                  Visitas e conversões por origem do tráfego
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-cyan-500" />
+                    Performance por Fonte
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                    Visitas e conversões por origem do tráfego
+                  </CardDescription>
+                </div>
+              </div>
+              <CardContent className="p-0 flex-1 flex items-center">
                 <ResponsiveContainer width="100%" height={300}>
                   {sourceChartData.length > 0 ? (
                     <ComposedChart data={sourceChartData}>
                       <defs>
                         <linearGradient id="colorVisitsUtm" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.01} />
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
                       <XAxis
                         dataKey="name"
-                        stroke="#9CA3AF"
-                        fontSize={11}
+                        stroke="#9ca3af"
+                        style={{ fontSize: "11px" }}
                         tickLine={false}
+                        padding={{ left: 30, right: 30 }}
                       />
-                      <YAxis yAxisId="left" stroke="#3B82F6" fontSize={11} tickLine={false} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#10B981" fontSize={11} tickLine={false} />
+                      <YAxis yAxisId="left" stroke="#06b6d4" style={{ fontSize: "11px" }} tickLine={false} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" style={{ fontSize: "11px" }} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                       <Area
                         yAxisId="left"
                         type="monotone"
                         dataKey="visitas"
                         name="Visitas"
                         fill="url(#colorVisitsUtm)"
-                        stroke="#3B82F6"
+                        stroke="#06b6d4"
                         strokeWidth={1.5}
                       />
                       <Line
@@ -411,14 +414,14 @@ const UtmsPage = () => {
                         type="monotone"
                         dataKey="conversões"
                         name="Conversões"
-                        stroke="#10B981"
+                        stroke="#8b5cf6"
                         strokeWidth={1.5}
-                        dot={{ fill: "#10B981", r: 3 }}
+                        dot={{ fill: "#8b5cf6", r: 2 }}
                       />
                     </ComposedChart>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
-                      <BarChart3 className="h-10 w-10 mb-2 opacity-50 text-blue-500" />
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16 w-full">
+                      <BarChart3 className="h-10 w-10 mb-2 opacity-50 text-cyan-500" />
                       <p className="text-sm font-semibold">Sem dados de tráfego</p>
                     </div>
                   )}
@@ -433,45 +436,50 @@ const UtmsPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-green-500" />
-                  Receita por Fonte
-                </CardTitle>
-                <CardDescription>Faturamento gerado por origem</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-purple-500" />
+                    Receita por Fonte
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                    Faturamento gerado por origem
+                  </CardDescription>
+                </div>
+              </div>
+              <CardContent className="p-0 flex-1 flex items-center">
                 <ResponsiveContainer width="100%" height={300}>
                   {sourceChartData.length > 0 ? (
                     <AreaChart data={sourceChartData}>
                       <defs>
                         <linearGradient id="colorRevenueUtm" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01} />
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
                       <XAxis
                         dataKey="name"
-                        stroke="#9CA3AF"
-                        fontSize={11}
+                        stroke="#9ca3af"
+                        style={{ fontSize: "11px" }}
                         tickLine={false}
+                        padding={{ left: 30, right: 30 }}
                       />
-                      <YAxis stroke="#8B5CF6" fontSize={11} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                      <YAxis stroke="#8b5cf6" style={{ fontSize: "11px" }} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                       <Area
                         type="monotone"
                         dataKey="receita"
                         name="Receita (R$)"
                         fill="url(#colorRevenueUtm)"
-                        stroke="#8B5CF6"
+                        stroke="#8b5cf6"
                         strokeWidth={1.5}
                       />
                     </AreaChart>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16 w-full">
                       <DollarSign className="h-10 w-10 mb-2 opacity-50 text-purple-500" />
                       <p className="text-sm font-semibold">Sem dados de receita</p>
                     </div>
@@ -487,42 +495,45 @@ const UtmsPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-purple-500" />
-                  Taxa de Conversão por Meio
-                </CardTitle>
-                <CardDescription>
-                  Performance de conversão por canal
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-pink-500" />
+                    Taxa de Conversão por Meio
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                    Performance de conversão por canal
+                  </CardDescription>
+                </div>
+              </div>
+              <CardContent className="p-0 flex-1 flex items-center">
                 <ResponsiveContainer width="100%" height={300}>
                   {mediumChartData.length > 0 ? (
                     <LineChart data={mediumChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
                       <XAxis
                         dataKey="name"
-                        stroke="#9CA3AF"
-                        fontSize={11}
+                        stroke="#9ca3af"
+                        style={{ fontSize: "11px" }}
                         tickLine={false}
+                        padding={{ left: 30, right: 30 }}
                       />
-                      <YAxis stroke="#9CA3AF" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                      <YAxis stroke="#ec4899" style={{ fontSize: "11px" }} tickLine={false} tickFormatter={(v) => `${v}%`} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                       <Line
                         type="monotone"
                         dataKey="taxa"
                         name="Taxa (%)"
-                        stroke="#EC4899"
+                        stroke="#ec4899"
                         strokeWidth={2}
-                        dot={{ fill: "#EC4899", r: 4 }}
-                        activeDot={{ r: 6 }}
+                        dot={{ fill: "#ec4899", r: 3 }}
+                        activeDot={{ r: 5 }}
                       />
                     </LineChart>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16 w-full">
                       <Activity className="h-10 w-10 mb-2 opacity-50 text-pink-500" />
                       <p className="text-sm font-semibold">Sem dados de conversão</p>
                     </div>
@@ -538,42 +549,51 @@ const UtmsPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
           >
-            <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  Top 10 Campanhas
-                </CardTitle>
-                <CardDescription>
-                  Campanhas com melhor desempenho
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border border-purple-500/10 dark:border-purple-500/20 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl shadow-md p-3.5 rounded-xl h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-500" />
+                    Top 10 Campanhas
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                    Campanhas com melhor desempenho
+                  </CardDescription>
+                </div>
+              </div>
+              <CardContent className="p-0 flex-1 flex items-center">
                 <ResponsiveContainer width="100%" height={300}>
                   {campaignChartData.length > 0 ? (
                     <BarChart data={campaignChartData} layout="vertical">
+                      <defs>
+                        <linearGradient id="colorCampaignUtm" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#059669" stopOpacity={0.5} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
-                      <XAxis type="number" stroke="#9CA3AF" fontSize={11} tickLine={false} />
+                      <XAxis type="number" stroke="#9ca3af" style={{ fontSize: "11px" }} tickLine={false} />
                       <YAxis
                         type="category"
                         dataKey="name"
-                        stroke="#9CA3AF"
-                        fontSize={10}
+                        stroke="#9ca3af"
+                        style={{ fontSize: "11px" }}
                         width={90}
                         tickLine={false}
                       />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                       <Bar
                         dataKey="conversões"
                         name="Conversões"
-                        fill="#10B981"
+                        fill="url(#colorCampaignUtm)"
                         radius={[0, 4, 4, 0]}
                         barSize={12}
+                        maxBarSize={20}
                       />
                     </BarChart>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16 w-full">
                       <Zap className="h-10 w-10 mb-2 opacity-50 text-yellow-500" />
                       <p className="text-sm font-semibold">Sem dados de campanhas</p>
                     </div>
