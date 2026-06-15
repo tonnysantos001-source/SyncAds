@@ -361,7 +361,7 @@ export const cartItemsApi = {
 // ============================================
 
 export const abandonedCartApi = {
-  // Get all abandoned carts (combined from AbandonedCart and ShopifyAbandonedCart)
+  // Get all abandoned carts (combined from AbandonedCart, ShopifyAbandonedCart, Order and ShopifyOrder)
   async getAll(userId: string) {
     // Buscar da tabela principal
     const { data: mainCarts, error: mainError } = await supabase
@@ -380,6 +380,36 @@ export const abandonedCartApi = {
       .order("abandonedAt", { ascending: false });
 
     if (shopifyError) throw shopifyError;
+
+    // Buscar pedidos pendentes SyncAds
+    const { data: pendingOrders, error: ordersError } = await supabase
+      .from("Order")
+      .select("*")
+      .eq("userId", userId)
+      .eq("paymentStatus", "PENDING")
+      .neq("status", "PREVIEW");
+
+    if (ordersError) throw ordersError;
+
+    // Buscar pedidos pendentes Shopify
+    const { data: shopifyPendingOrders, error: shopifyOrdersError } = await supabase
+      .from("ShopifyOrder")
+      .select("*")
+      .eq("userId", userId)
+      .eq("financialStatus", "pending");
+
+    if (shopifyOrdersError) throw shopifyOrdersError;
+
+    // Filtrar inativos há mais de 1 hora
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const activePendingOrders = (pendingOrders || []).filter(
+      (o) => (o.updatedAt || o.createdAt) < oneHourAgo
+    );
+    
+    const activeShopifyPendingOrders = (shopifyPendingOrders || []).filter(
+      (o) => (o.updatedAt || o.createdAt) < oneHourAgo
+    );
 
     // Converter carrinhos da Shopify para formato padrão
     const convertedShopifyCarts: AbandonedCart[] = (shopifyCarts || []).map(
@@ -406,14 +436,90 @@ export const abandonedCartApi = {
       }),
     );
 
+    // Converter pedidos pendentes do SyncAds para formato padrão
+    const convertedPendingOrders: AbandonedCart[] = activePendingOrders.map((o: any) => ({
+      id: o.id,
+      userId: o.userId,
+      cartId: o.id,
+      customerEmail: o.customerEmail || "",
+      customerName: o.customerName || "Cliente",
+      items: o.items || [],
+      subtotal: typeof o.subtotal === "string" ? parseFloat(o.subtotal) : (o.subtotal || 0),
+      total: typeof o.total === "string" ? parseFloat(o.total) : (o.total || 0),
+      recoveryEmailSent: false,
+      recovered: false,
+      metadata: {
+        source: "order_pending",
+        orderNumber: o.orderNumber,
+      },
+      createdAt: o.createdAt,
+    }));
+
+    // Converter pedidos pendentes da Shopify para formato padrão
+    const convertedShopifyPending: AbandonedCart[] = activeShopifyPendingOrders.map((o: any) => ({
+      id: o.id.toString(),
+      userId: o.userId,
+      cartId: o.id.toString(),
+      customerEmail: o.email || "",
+      customerName: o.name || (o.customerData?.first_name ? `${o.customerData.first_name} ${o.customerData.last_name || ""}`.trim() : "Cliente"),
+      items: o.lineItems || [],
+      subtotal: parseFloat(o.subtotalPrice || 0),
+      total: parseFloat(o.totalPrice || 0),
+      recoveryEmailSent: false,
+      recovered: false,
+      metadata: {
+        source: "shopify_order_pending",
+        orderNumber: o.orderNumber?.toString() || o.id.toString(),
+      },
+      createdAt: o.createdAt,
+    }));
+
     // Combinar e remover duplicatas (priorizar AbandonedCart)
-    const allCarts = [...(mainCarts || []), ...convertedShopifyCarts];
+    const allCarts = [
+      ...(mainCarts || []), 
+      ...convertedShopifyCarts, 
+      ...convertedPendingOrders, 
+      ...convertedShopifyPending
+    ];
+    
     const uniqueCarts = allCarts.filter(
       (cart, index, self) =>
         index === self.findIndex((c) => c.cartId === cart.cartId),
     );
 
-    return uniqueCarts.sort(
+    // Helpers para calcular dados dinâmicos
+    const getItemsCount = (items: any): number => {
+      if (!items) return 0;
+      if (Array.isArray(items)) {
+        return items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      }
+      if (typeof items === "object") {
+        if (Array.isArray(items.items)) {
+          return items.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        }
+        return Object.keys(items).length;
+      }
+      return 0;
+    };
+
+    const getDaysBetween = (createdAtStr: string): number => {
+      try {
+        const created = new Date(createdAtStr).getTime();
+        const diffMs = Date.now() - created;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        return Math.max(0, diffDays);
+      } catch {
+        return 0;
+      }
+    };
+
+    const formattedCarts = uniqueCarts.map((cart) => ({
+      ...cart,
+      itemCount: (cart as any).itemCount !== undefined ? (cart as any).itemCount : getItemsCount(cart.items),
+      abandonedDays: (cart as any).abandonedDays !== undefined ? (cart as any).abandonedDays : getDaysBetween(cart.createdAt),
+    }));
+
+    return formattedCarts.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );

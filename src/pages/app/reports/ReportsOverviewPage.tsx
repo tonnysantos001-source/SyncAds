@@ -10,6 +10,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -496,8 +511,32 @@ const ReportsOverviewPage = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"PAID" | "PENDING" | "CANCELLED">("PAID");
+  const [modalOrders, setModalOrders] = useState<any[]>([]);
+  const [modalOrdersLoading, setModalOrdersLoading] = useState(false);
   const user = useAuthStore((state) => state.user);
   const { toast } = useToast();
+
+  const handleOpenOrdersModal = async (type: "PAID" | "PENDING" | "CANCELLED") => {
+    if (!user?.id) return;
+    setModalType(type);
+    setIsModalOpen(true);
+    setModalOrdersLoading(true);
+    try {
+      const data = await dashboardApi.getOrdersByStatus(user.id, type, period);
+      setModalOrders(data);
+    } catch (error) {
+      console.error("Erro ao carregar pedidos para modal:", error);
+      toast({
+        title: "Erro ao carregar pedidos",
+        description: "Não foi possível buscar a lista de pedidos do gateway.",
+        variant: "destructive",
+      });
+    } finally {
+      setModalOrdersLoading(false);
+    }
+  };
 
   const formatOrderDate = (dateString: string) => {
     try {
@@ -666,7 +705,7 @@ const ReportsOverviewPage = () => {
           color: "bg-pink-500",
         },
         {
-          title: "Receita Total",
+          title: "Receita Total Pagos",
           value: formatCurrency(metrics.totalRevenue),
           change: metrics.revenueChange,
           icon: DollarSign,
@@ -860,6 +899,100 @@ const ReportsOverviewPage = () => {
         {primaryCards.map((metric, index) => (
           <MetricCard key={index} {...metric} delay={(index + 1) * 0.05} />
         ))}
+      </div>
+
+      {/* Monitoramento de Transações do Gateway */}
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+          <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Monitoramento de Transações do Gateway
+          </h4>
+          <span className="text-[10px] text-gray-400 font-semibold dark:text-gray-550">
+            Clique nos cards para ver a lista de pedidos detalhada
+          </span>
+        </div>
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
+          {/* Card Aprovados */}
+          <motion.div
+            whileHover={{ y: -1 }}
+            onClick={() => handleOpenOrdersModal("PAID")}
+            className="cursor-pointer"
+          >
+            <Card className="relative overflow-hidden border border-green-500/10 dark:border-green-500/20 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-4 rounded-xl flex items-center justify-between min-h-[88px]">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-gray-450 dark:text-gray-500 block uppercase tracking-wider">Aprovados</span>
+                  <span className="text-lg font-black text-gray-800 dark:text-gray-250 mt-0.5 block tracking-tight">
+                    {metrics ? formatCurrency(metrics.totalRevenue) : "R$ 0,00"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-green-500 block leading-none">
+                  {metrics?.paidOrdersCount || 0}
+                </span>
+                <span className="text-[9.5px] font-bold text-gray-400 dark:text-gray-500 block mt-0.5 uppercase tracking-wide">Pedidos</span>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Card Pendentes */}
+          <motion.div
+            whileHover={{ y: -1 }}
+            onClick={() => handleOpenOrdersModal("PENDING")}
+            className="cursor-pointer"
+          >
+            <Card className="relative overflow-hidden border border-yellow-500/10 dark:border-yellow-500/20 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-4 rounded-xl flex items-center justify-between min-h-[88px]">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-gray-450 dark:text-gray-500 block uppercase tracking-wider">Aguardando</span>
+                  <span className="text-lg font-black text-gray-800 dark:text-gray-250 mt-0.5 block tracking-tight">
+                    {metrics ? formatCurrency(metrics.pendingRevenue) : "R$ 0,00"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-yellow-500 block leading-none">
+                  {metrics?.pendingOrdersCount || 0}
+                </span>
+                <span className="text-[9.5px] font-bold text-gray-400 dark:text-gray-500 block mt-0.5 uppercase tracking-wide">Pedidos</span>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Card Cancelados */}
+          <motion.div
+            whileHover={{ y: -1 }}
+            onClick={() => handleOpenOrdersModal("CANCELLED")}
+            className="cursor-pointer"
+          >
+            <Card className="relative overflow-hidden border border-red-500/10 dark:border-red-500/20 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 p-4 rounded-xl flex items-center justify-between min-h-[88px]">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                  <TrendingDown className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-gray-450 dark:text-gray-500 block uppercase tracking-wider">Cancelados / Falhos</span>
+                  <span className="text-lg font-black text-gray-800 dark:text-gray-250 mt-0.5 block tracking-tight">
+                    {metrics ? formatCurrency(metrics.cancelledRevenue) : "R$ 0,00"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-red-500 block leading-none">
+                  {metrics?.cancelledOrdersCount || 0}
+                </span>
+                <span className="text-[9.5px] font-bold text-gray-400 dark:text-gray-500 block mt-0.5 uppercase tracking-wide">Pedidos</span>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
       </div>
 
       {/* Gráfico Principal e Últimos Pedidos em Linha Lado a Lado */}
@@ -1103,9 +1236,9 @@ const ReportsOverviewPage = () => {
                   {/* Pago */}
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">3. Vendas Finalizadas (Pagas)</span>
+                      <span className="text-gray-650 dark:text-gray-400">3. Vendas Finalizadas (Pagas)</span>
                       <span className="text-gray-900 dark:text-white">
-                        {metrics?.totalOrders || 0} ({metrics ? metrics.conversionRate.toFixed(1) : 0}%)
+                        {metrics?.paidOrdersCount || 0} ({metrics ? metrics.conversionRate.toFixed(1) : 0}%)
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden">
@@ -1372,6 +1505,80 @@ const ReportsOverviewPage = () => {
           </TabsContent>
         </Card>
       </Tabs>
+
+      {/* Modais de Monitoramento de Gateway */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl bg-gray-900 border border-gray-800 text-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black flex items-center gap-2">
+              Gateway - Pedidos 
+              {modalType === "PAID" && <Badge className="bg-green-500 text-white border-0 font-bold px-2 py-0.5">Aprovados</Badge>}
+              {modalType === "PENDING" && <Badge className="bg-yellow-500 text-black border-0 font-bold px-2 py-0.5">Aguardando</Badge>}
+              {modalType === "CANCELLED" && <Badge className="bg-red-500 text-white border-0 font-bold px-2 py-0.5">Cancelados / Falhos</Badge>}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 font-medium">
+              Monitoramento em tempo real de todas as informações vindas do gateway de pagamento para o período selecionado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[500px] overflow-y-auto mt-4 pr-1">
+            {modalOrdersLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2">
+                <Activity className="animate-spin h-8 w-8 text-purple-500" />
+                <span className="text-xs text-gray-400 font-bold">Carregando pedidos do gateway...</span>
+              </div>
+            ) : modalOrders.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 font-bold text-xs">
+                Nenhum pedido encontrado com este status no período selecionado.
+              </div>
+            ) : (
+              <div className="rounded-lg overflow-hidden border border-gray-800">
+                <Table>
+                  <TableHeader className="bg-gray-950">
+                    <TableRow className="border-gray-800 hover:bg-gray-950">
+                      <TableHead className="text-gray-400 font-bold">Pedido</TableHead>
+                      <TableHead className="text-gray-400 font-bold">Cliente</TableHead>
+                      <TableHead className="text-gray-400 font-bold">Data/Hora</TableHead>
+                      <TableHead className="text-gray-400 font-bold">Valor</TableHead>
+                      <TableHead className="text-gray-400 font-bold">Método</TableHead>
+                      <TableHead className="text-gray-400 font-bold">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {modalOrders.map((order) => (
+                      <TableRow key={order.id} className="border-gray-850 hover:bg-gray-850/40 transition-colors">
+                        <TableCell className="font-extrabold text-white">#{order.orderNumber}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-200">{order.customerName || "Cliente"}</span>
+                            <span className="text-[10.5px] text-gray-400">{order.customerEmail || "-"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-300 text-xs font-semibold">
+                          {formatOrderDate(order.createdAt)}
+                        </TableCell>
+                        <TableCell className="font-black text-white">
+                          {formatCurrency(typeof order.total === "string" ? parseFloat(order.total) : (order.total || 0))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-purple-950/45 text-purple-300 border border-purple-900/50 font-bold text-[9.5px]">
+                            {order.paymentMethod || "CREDIT_CARD"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${getStatusBadge(order.paymentStatus).color} text-[9.5px] px-1.5 py-0.2 font-bold border-0 shadow-none`}>
+                            {getStatusBadge(order.paymentStatus).label}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

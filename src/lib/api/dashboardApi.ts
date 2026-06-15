@@ -26,6 +26,11 @@ export interface DashboardMetrics {
   pageLoadChange: number;
   startRender: number;
   startRenderChange: number;
+  paidOrdersCount: number;
+  pendingOrdersCount: number;
+  cancelledOrdersCount: number;
+  pendingRevenue: number;
+  cancelledRevenue: number;
 }
 
 export interface ChartData {
@@ -230,13 +235,23 @@ export const dashboardApi = {
       // Buscar pedidos combinados do período anterior
       const previousOrders = await getMergedOrders(userId, previousStart, previousEnd);
 
-      // Filtrar pedidos pagos (inclui PENDING para testes e exclui PREVIEW)
+      // Filtrar pedidos pagos (apenas PAID e exclui PREVIEW)
       const paidOrders =
-        currentOrders?.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW") || [];
+        currentOrders?.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW") || [];
       const previousPaidOrders =
-        previousOrders?.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW") || [];
+        previousOrders?.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW") || [];
 
-      // Calcular receita total
+      // Filtrar pedidos pendentes
+      const pendingOrders =
+        currentOrders?.filter((o) => o.paymentStatus === "PENDING" && o.status !== "PREVIEW") || [];
+      const previousPendingOrders =
+        previousOrders?.filter((o) => o.paymentStatus === "PENDING" && o.status !== "PREVIEW") || [];
+
+      // Filtrar pedidos cancelados / falhos
+      const cancelledOrders =
+        currentOrders?.filter((o) => ["FAILED", "CANCELLED", "REFUNDED"].includes(o.paymentStatus) && o.status !== "PREVIEW") || [];
+
+      // Calcular receita total pagos
       const totalRevenue = paidOrders.reduce((sum, o) => {
         const total =
           typeof o.total === "string" ? parseFloat(o.total) : o.total;
@@ -244,6 +259,20 @@ export const dashboardApi = {
       }, 0);
 
       const previousRevenue = previousPaidOrders.reduce((sum, o) => {
+        const total =
+          typeof o.total === "string" ? parseFloat(o.total) : o.total;
+        return sum + (total || 0);
+      }, 0);
+
+      // Calcular receita pendente
+      const pendingRevenue = pendingOrders.reduce((sum, o) => {
+        const total =
+          typeof o.total === "string" ? parseFloat(o.total) : o.total;
+        return sum + (total || 0);
+      }, 0);
+
+      // Calcular receita cancelada
+      const cancelledRevenue = cancelledOrders.reduce((sum, o) => {
         const total =
           typeof o.total === "string" ? parseFloat(o.total) : o.total;
         return sum + (total || 0);
@@ -304,12 +333,12 @@ export const dashboardApi = {
       const uniqueVisitors = Math.max(currentCarts?.length || 0, currentOrders?.length || 0);
       const previousVisitors = Math.max(previousCarts?.length || 0, previousOrders?.length || 0);
 
-      // Taxa de conversão = total de pedidos criados / visitantes únicos.
+      // Taxa de conversão = total de pedidos pagos / visitantes únicos.
       const conversionRate =
-        uniqueVisitors > 0 ? (totalOrders / uniqueVisitors) * 100 : 0;
+        uniqueVisitors > 0 ? (paidOrders.length / uniqueVisitors) * 100 : 0;
       
       const previousConversionRate =
-        previousVisitors > 0 ? (previousTotalOrders / previousVisitors) * 100 : 0;
+        previousVisitors > 0 ? (previousPaidOrders.length / previousVisitors) * 100 : 0;
 
       // Calcular tempo médio de sessão real (baseado no tempo ativo dos pedidos)
       let totalSessionTime = 0;
@@ -471,6 +500,11 @@ export const dashboardApi = {
         pageLoadChange,
         startRender,
         startRenderChange,
+        paidOrdersCount: paidOrders.length,
+        pendingOrdersCount: pendingOrders.length,
+        cancelledOrdersCount: cancelledOrders.length,
+        pendingRevenue,
+        cancelledRevenue,
       };
     } catch (error) {
       console.error("Erro ao buscar métricas:", error);
@@ -519,14 +553,14 @@ export const dashboardApi = {
           const ordersInMonth = monthData.orders;
           const cartsInMonth = monthData.carts;
           
-          const activeOrders = ordersInMonth.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
+          const activeOrders = ordersInMonth.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW");
 
           const revenue = activeOrders.reduce((sum, o) => {
             const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
             return sum + (total || 0);
           }, 0);
 
-          const conversions = ordersInMonth.filter(isValidOrder).length;
+          const conversions = activeOrders.length;
           const sessions = Math.max(cartsInMonth.length, ordersInMonth.length);
           const abandoned = Math.max(0, sessions - conversions);
 
@@ -582,14 +616,14 @@ export const dashboardApi = {
         const ordersInDay = dayData.orders;
         const cartsInDay = dayData.carts;
 
-        const activeOrders = ordersInDay.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
+        const activeOrders = ordersInDay.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW");
 
         const revenue = activeOrders.reduce((sum, o) => {
           const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
           return sum + (total || 0);
         }, 0);
 
-        const conversions = ordersInDay.filter(isValidOrder).length;
+        const conversions = activeOrders.length;
         const sessions = Math.max(cartsInDay.length, ordersInDay.length);
 
         const abandoned = Math.max(0, sessions - conversions);
@@ -676,11 +710,11 @@ export const dashboardApi = {
       return Array.from({ length: 24 }, (_, i) => {
         const hourData = hourlyData[i] || { orders: [], carts: [] };
         const paidOrders = hourData.orders.filter(
-          (o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW",
+          (o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW",
         );
         
         const visits = hourData.carts.length || hourData.orders.length || 0;
-        const conversions = hourData.orders.length;
+        const conversions = paidOrders.length;
 
         const revenue = paidOrders.reduce((sum, o) => {
           const total =
@@ -801,7 +835,7 @@ export const dashboardApi = {
 
     try {
       const orders = await getMergedOrders(userId, start, end);
-      const paidOrders = orders.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
+      const paidOrders = orders.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW");
 
       const revenueByDay: { [key: string]: number } = {};
 
@@ -819,6 +853,28 @@ export const dashboardApi = {
       }));
     } catch (error) {
       console.error("Erro ao buscar receita por dia:", error);
+      return [];
+    }
+  },
+
+  async getOrdersByStatus(
+    userId: string,
+    status: "PAID" | "PENDING" | "CANCELLED",
+    period: string = "7days"
+  ): Promise<any[]> {
+    const { start, end } = getPeriodDates(period);
+    try {
+      const orders = await getMergedOrders(userId, start, end);
+      
+      if (status === "PAID") {
+        return orders.filter((o) => o.paymentStatus === "PAID" && o.status !== "PREVIEW");
+      } else if (status === "PENDING") {
+        return orders.filter((o) => o.paymentStatus === "PENDING" && o.status !== "PREVIEW");
+      } else {
+        return orders.filter((o) => ["FAILED", "CANCELLED", "REFUNDED"].includes(o.paymentStatus) && o.status !== "PREVIEW");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar pedidos por status:", error);
       return [];
     }
   },
