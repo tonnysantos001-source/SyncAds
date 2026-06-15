@@ -181,7 +181,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   injectedOrderId,
   injectedTheme,
   previewMode = false,
-  isMobile = false,
+  isMobile: isMobileProp = false,
   onUpdateTheme,
 }) => {
   const { orderId: paramOrderId } = useParams<{ orderId: string }>();
@@ -215,6 +215,21 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [templateSlug, setTemplateSlug] = useState<string>('minimal');
   const [templateVersion, setTemplateVersion] = useState<number>(1);
   const [isTemplateDisabled, setIsTemplateDisabled] = useState<boolean>(false);
+
+  // Responsividade dinâmica para uso público (fora do preview do customizador)
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    if (previewMode) return;
+    const checkMobile = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [previewMode]);
+
+  const isMobile = previewMode ? isMobileProp : isMobileScreen;
 
   // Dados do formulário
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -511,8 +526,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           }
           // Carregar template selecionado pelo usuário
           if (USE_NEW_CHECKOUT && customData) {
-            const slug    = customData.templateSlug    || customData.theme?.templateSlug    || 'minimal';
-            const version = customData.templateVersion || customData.theme?.templateVersion || 1;
+            const slug    = customData.template_slug    || customData.templateSlug    || customData.theme?.templateSlug    || 'minimal';
+            const version = customData.template_version || customData.templateVersion || customData.theme?.templateVersion || 1;
             const active  = customData.isActive !== false; // default: ativo
             setTemplateSlug(slug);
             setTemplateVersion(Number(version));

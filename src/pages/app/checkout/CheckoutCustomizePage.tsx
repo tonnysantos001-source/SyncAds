@@ -249,6 +249,8 @@ const CheckoutCustomizePage: React.FC = () => {
             name: customization.name || 'Checkout Principal',
             theme: newTheme,
             isActive: true,
+            template_slug: slug,
+            template_version: 1,
             updatedAt: new Date().toISOString(),
           })
           .select()
@@ -258,7 +260,12 @@ const CheckoutCustomizePage: React.FC = () => {
       } else {
         const { data, error } = await supabase
           .from('CheckoutCustomization')
-          .update({ theme: newTheme, updatedAt: new Date().toISOString() })
+          .update({ 
+            theme: newTheme, 
+            template_slug: slug,
+            template_version: 1,
+            updatedAt: new Date().toISOString() 
+          })
           .eq('id', customization.id)
           .select()
           .single();
@@ -351,6 +358,8 @@ const CheckoutCustomizePage: React.FC = () => {
             name: customization.name || 'Checkout Principal',
             theme: mergedTheme,
             isActive: true,
+            template_slug: mergedTheme.templateSlug || 'minimal',
+            template_version: Number(mergedTheme.templateVersion || 1),
             updatedAt: new Date().toISOString(),
           })
           .select()
@@ -363,6 +372,8 @@ const CheckoutCustomizePage: React.FC = () => {
           .update({
             theme: mergedTheme,
             name: customization.name,
+            template_slug: mergedTheme.templateSlug || 'minimal',
+            template_version: Number(mergedTheme.templateVersion || 1),
             updatedAt: new Date().toISOString(),
           })
           .eq('id', customization.id);
