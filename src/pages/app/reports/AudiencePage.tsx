@@ -197,32 +197,136 @@ const AudiencePage = () => {
     }
   }, [user?.id, period]);
 
+  const getStateCode = (address: any): string => {
+    if (!address) return "BR";
+
+    // Extrair o estado/província do endereço
+    const rawState = (
+      address.state ||
+      address.uf ||
+      address.province_code ||
+      address.province ||
+      ""
+    ).trim();
+
+    if (!rawState) return "BR";
+
+    const upperState = rawState.toUpperCase();
+
+    // Se for código de 2 letras, retornar diretamente
+    if (upperState.length === 2) {
+      return upperState;
+    }
+
+    // Se for o nome completo do estado, tentar mapear para o código de 2 letras
+    const stateMatch = BRAZILIAN_STATES.find(
+      (s) => s.name.toUpperCase() === upperState
+    );
+    if (stateMatch) {
+      return stateMatch.code;
+    }
+
+    return upperState; // Retorna o valor original em maiúsculo (ex: "BR" ou nome desconhecido)
+  };
+
   const loadAudienceData = async () => {
     if (!user?.id) return;
 
     try {
       setLoading(true);
 
-      // Buscar pedidos com endereço
-      const { data: orders, error } = await supabase
+      const now = new Date();
+      let dateLimit = new Date();
+      let dateFilter = "";
+      if (period === "today") {
+        dateLimit.setHours(0, 0, 0, 0);
+        dateFilter = dateLimit.toISOString();
+      } else if (period === "7days") {
+        dateLimit.setDate(now.getDate() - 7);
+        dateFilter = dateLimit.toISOString();
+      } else if (period === "30days") {
+        dateLimit.setDate(now.getDate() - 30);
+        dateFilter = dateLimit.toISOString();
+      } else if (period === "90days") {
+        dateLimit.setDate(now.getDate() - 90);
+        dateFilter = dateLimit.toISOString();
+      }
+
+      // Buscar pedidos com endereço e aplicar filtros de período
+      let syncAdsQuery = supabase
         .from("Order")
         .select("*")
         .eq("userId", user.id)
-        .eq("paymentStatus", "PAID")
-        .not("shippingAddress", "is", null);
+        .in("paymentStatus", ["PAID", "PENDING"])
+        .neq("status", "PREVIEW");
 
-      if (error) throw error;
+      let shopifyQuery = supabase
+        .from("ShopifyOrder")
+        .select("*")
+        .eq("userId", user.id)
+        .in("financialStatus", ["paid", "pending"]);
+
+      if (dateFilter) {
+        syncAdsQuery = syncAdsQuery.gte("createdAt", dateFilter);
+        shopifyQuery = shopifyQuery.gte("createdAt", dateFilter);
+      }
+
+      const [syncAdsResult, shopifyResult] = await Promise.all([
+        syncAdsQuery,
+        shopifyQuery,
+      ]);
+
+      if (syncAdsResult.error) throw syncAdsResult.error;
+      if (shopifyResult.error) throw shopifyResult.error;
+
+      const syncAdsOrders = syncAdsResult.data || [];
+      const shopifyOrders = shopifyResult.data || [];
+
+      // Mapear pedidos da Shopify
+      const convertedShopifyOrders = shopifyOrders.map((so: any) => ({
+        id: so.id.toString(),
+        userId: so.userId,
+        orderNumber: so.orderNumber?.toString() || so.id.toString(),
+        customerId: so.customerData?.id || "shopify-customer",
+        customerEmail: so.email || "",
+        customerName:
+          so.name ||
+          so.customerData?.first_name + " " + so.customerData?.last_name ||
+          "Cliente",
+        customerPhone: so.phone,
+        shippingAddress: so.shippingAddress || {},
+        total: parseFloat(so.totalPrice || 0),
+        createdAt: so.createdAt,
+      }));
+
+      // Combinar pedidos e remover duplicados por orderNumber
+      const allOrders = [
+        ...syncAdsOrders.map(o => ({
+          id: o.id,
+          userId: o.userId,
+          orderNumber: o.orderNumber,
+          customerId: o.customerId,
+          customerEmail: o.customerEmail,
+          customerName: o.customerName,
+          customerPhone: o.customerPhone,
+          shippingAddress: o.shippingAddress || {},
+          total: typeof o.total === "string" ? parseFloat(o.total) : o.total,
+          createdAt: o.createdAt,
+        })),
+        ...convertedShopifyOrders,
+      ];
+
+      const uniqueOrders = allOrders.filter(
+        (order, index, self) =>
+          index === self.findIndex((o) => o.orderNumber === order.orderNumber),
+      );
 
       // Agrupar por estado
-      const stateMap: { [key: string]: StateData } = {};
+      const stateMap: { [key: string]: StateData & { customerIds: Set<string> } } = {};
 
-      orders?.forEach((order) => {
+      uniqueOrders.forEach((order) => {
         const address = order.shippingAddress as any;
-        const state = address?.state || address?.uf || "BR";
-        const total =
-          typeof order.total === "string"
-            ? parseFloat(order.total)
-            : order.total;
+        const state = getStateCode(address);
 
         if (!stateMap[state]) {
           const stateName =
@@ -235,17 +339,26 @@ const AudiencePage = () => {
             customers: 0,
             avgTicket: 0,
             conversionRate: 0,
+            customerIds: new Set<string>(),
           };
         }
 
         stateMap[state].orders += 1;
-        stateMap[state].revenue += total || 0;
+        stateMap[state].revenue += order.total || 0;
+
+        const clientIdentifier = order.customerId || order.customerEmail || order.customerName || `anon-${order.id}`;
+        stateMap[state].customerIds.add(clientIdentifier);
       });
 
       // Calcular métricas
       const data = Object.values(stateMap).map((item) => ({
-        ...item,
+        state: item.state,
+        stateName: item.stateName,
+        orders: item.orders,
+        revenue: item.revenue,
+        customers: item.customerIds.size,
         avgTicket: item.orders > 0 ? item.revenue / item.orders : 0,
+        conversionRate: 0,
       }));
 
       // Ordenar por receita

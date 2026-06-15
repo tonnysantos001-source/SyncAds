@@ -141,6 +141,81 @@ const isValidOrder = (o: any): boolean => {
   );
 };
 
+const mapShopifyOrderToOrder = (so: any) => ({
+  id: so.id.toString(),
+  userId: so.userId,
+  orderNumber: so.orderNumber?.toString() || so.id.toString(),
+  customerId: so.customerData?.id || "shopify-customer",
+  customerEmail: so.email || "",
+  customerName:
+    so.name ||
+    so.customerData?.first_name + " " + so.customerData?.last_name ||
+    "Cliente",
+  customerPhone: so.phone,
+  shippingAddress: so.shippingAddress || {},
+  billingAddress: so.billingAddress || {},
+  items: so.lineItems || [],
+  subtotal: parseFloat(so.subtotalPrice || 0),
+  discount: 0,
+  shipping: 0,
+  tax: parseFloat(so.totalTax || 0),
+  total: parseFloat(so.totalPrice || 0),
+  currency: so.currency || "BRL",
+  paymentMethod: "CREDIT_CARD",
+  paymentStatus:
+    so.financialStatus === "paid"
+      ? "PAID"
+      : so.financialStatus === "pending"
+        ? "PENDING"
+        : "FAILED",
+  fulfillmentStatus:
+    so.fulfillmentStatus === "fulfilled"
+      ? "DELIVERED"
+      : "PENDING",
+  createdAt: so.createdAt,
+  updatedAt: so.updatedAt,
+});
+
+const getMergedOrders = async (
+  userId: string,
+  start: Date,
+  end: Date
+): Promise<any[]> => {
+  const [syncAdsResult, shopifyResult] = await Promise.all([
+    supabase
+      .from("Order")
+      .select("*")
+      .eq("userId", userId)
+      .gte("createdAt", start.toISOString())
+      .lte("createdAt", end.toISOString()),
+    supabase
+      .from("ShopifyOrder")
+      .select("*")
+      .eq("userId", userId)
+      .gte("createdAt", start.toISOString())
+      .lte("createdAt", end.toISOString()),
+  ]);
+
+  if (syncAdsResult.error) throw syncAdsResult.error;
+
+  const syncAdsOrders = syncAdsResult.data || [];
+  const shopifyOrders = shopifyResult.data || [];
+
+  const allOrders = [
+    ...syncAdsOrders.map(o => ({
+      ...o,
+      total: typeof o.total === "string" ? parseFloat(o.total) : o.total,
+      subtotal: typeof o.subtotal === "string" ? parseFloat(o.subtotal) : o.subtotal,
+    })),
+    ...shopifyOrders.map(mapShopifyOrderToOrder)
+  ];
+
+  return allOrders.filter(
+    (order, index, self) =>
+      index === self.findIndex((o) => o.orderNumber === order.orderNumber),
+  );
+};
+
 export const dashboardApi = {
   async getMetrics(
     userId: string,
@@ -149,36 +224,17 @@ export const dashboardApi = {
     const { start, end, previousStart, previousEnd } = getPeriodDates(period);
 
     try {
-      // Buscar pedidos do período atual
-      const { data: currentOrders, error: currentError } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .gte("createdAt", start.toISOString())
-        .lte("createdAt", end.toISOString());
+      // Buscar pedidos combinados do período atual
+      const currentOrders = await getMergedOrders(userId, start, end);
 
-      if (currentError) {
-        console.error("Erro ao buscar pedidos atuais:", currentError);
-        throw currentError;
-      }
+      // Buscar pedidos combinados do período anterior
+      const previousOrders = await getMergedOrders(userId, previousStart, previousEnd);
 
-      // Buscar pedidos do período anterior
-      const { data: previousOrders, error: previousError } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .gte("createdAt", previousStart.toISOString())
-        .lte("createdAt", previousEnd.toISOString());
-
-      if (previousError) {
-        console.error("Erro ao buscar pedidos anteriores:", previousError);
-      }
-
-      // Filtrar pedidos pagos
+      // Filtrar pedidos pagos (inclui PENDING para testes e exclui PREVIEW)
       const paidOrders =
-        currentOrders?.filter((o) => o.paymentStatus === "PAID") || [];
+        currentOrders?.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW") || [];
       const previousPaidOrders =
-        previousOrders?.filter((o) => o.paymentStatus === "PAID") || [];
+        previousOrders?.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW") || [];
 
       // Calcular receita total
       const totalRevenue = paidOrders.reduce((sum, o) => {
@@ -194,8 +250,8 @@ export const dashboardApi = {
       }, 0);
 
       // Filtrar pedidos válidos (pedidos reais criados)
-      const validOrders = currentOrders?.filter(isValidOrder) || [];
-      const previousValidOrders = previousOrders?.filter(isValidOrder) || [];
+      const validOrders = currentOrders?.filter((o) => isValidOrder(o) && o.status !== "PREVIEW") || [];
+      const previousValidOrders = previousOrders?.filter((o) => isValidOrder(o) && o.status !== "PREVIEW") || [];
 
       // Total de pedidos
       const totalOrders = validOrders.length;
@@ -429,15 +485,7 @@ export const dashboardApi = {
     const { start, end } = getPeriodDates(period);
 
     try {
-      const { data: currentOrders, error: ordersError } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .gte("createdAt", start.toISOString())
-        .lte("createdAt", end.toISOString())
-        .order("createdAt", { ascending: true });
-
-      if (ordersError) throw ordersError;
+      const currentOrders = await getMergedOrders(userId, start, end);
 
       const { data: currentCarts } = await supabase
         .from("Cart")
@@ -471,7 +519,7 @@ export const dashboardApi = {
           const ordersInMonth = monthData.orders;
           const cartsInMonth = monthData.carts;
           
-          const activeOrders = ordersInMonth.filter((o) => o.paymentStatus === "PAID");
+          const activeOrders = ordersInMonth.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
 
           const revenue = activeOrders.reduce((sum, o) => {
             const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
@@ -534,7 +582,7 @@ export const dashboardApi = {
         const ordersInDay = dayData.orders;
         const cartsInDay = dayData.carts;
 
-        const activeOrders = ordersInDay.filter((o) => o.paymentStatus === "PAID");
+        const activeOrders = ordersInDay.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
 
         const revenue = activeOrders.reduce((sum, o) => {
           const total = typeof o.total === "string" ? parseFloat(o.total) : o.total;
@@ -598,15 +646,7 @@ export const dashboardApi = {
     start.setHours(0, 0, 0, 0);
 
     try {
-      const { data: orders, error } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .gte("createdAt", start.toISOString())
-        .lte("createdAt", now.toISOString())
-        .order("createdAt", { ascending: true });
-
-      if (error) throw error;
+      const orders = await getMergedOrders(userId, start, now);
 
       const { data: carts } = await supabase
         .from("Cart")
@@ -636,7 +676,7 @@ export const dashboardApi = {
       return Array.from({ length: 24 }, (_, i) => {
         const hourData = hourlyData[i] || { orders: [], carts: [] };
         const paidOrders = hourData.orders.filter(
-          (o) => o.paymentStatus === "PAID",
+          (o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW",
         );
         
         const visits = hourData.carts.length || hourData.orders.length || 0;
@@ -745,15 +785,11 @@ export const dashboardApi = {
 
   async getRecentOrders(userId: string, limit: number = 10) {
     try {
-      const { data, error } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .order("createdAt", { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      return data || [];
+      const start = new Date();
+      start.setDate(start.getDate() - 30); // últimos 30 dias
+      const orders = await getMergedOrders(userId, start, new Date());
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return orders.slice(0, limit);
     } catch (error) {
       console.error("Erro ao buscar pedidos recentes:", error);
       return [];
@@ -764,29 +800,17 @@ export const dashboardApi = {
     const { start, end } = getPeriodDates(period);
 
     try {
-      const { data: orders, error } = await supabase
-        .from("Order")
-        .select("*")
-        .eq("userId", userId)
-        .eq("paymentStatus", "PAID")
-        .gte("createdAt", start.toISOString())
-        .lte("createdAt", end.toISOString())
-        .order("createdAt", { ascending: true });
-
-      if (error) throw error;
+      const orders = await getMergedOrders(userId, start, end);
+      const paidOrders = orders.filter((o) => ["PAID", "PENDING"].includes(o.paymentStatus) && o.status !== "PREVIEW");
 
       const revenueByDay: { [key: string]: number } = {};
 
-      orders?.forEach((order) => {
+      paidOrders.forEach((order) => {
         const date = new Date(order.createdAt).toLocaleDateString("pt-BR");
         if (!revenueByDay[date]) {
           revenueByDay[date] = 0;
         }
-        const total =
-          typeof order.total === "string"
-            ? parseFloat(order.total)
-            : order.total;
-        revenueByDay[date] += total || 0;
+        revenueByDay[date] += order.total || 0;
       });
 
       return Object.entries(revenueByDay).map(([date, revenue]) => ({
