@@ -581,7 +581,7 @@ const UtmsPage = () => {
                         width={90}
                         tickLine={false}
                       />
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip />} cursor={false} />
                       <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12.5px" }} iconType="circle" />
                       <Bar
                         dataKey="conversões"

@@ -519,7 +519,7 @@ const AudiencePage = () => {
                     tickLine={false}
                     tickFormatter={(value) => `R$ ${value}`}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} cursor={false} />
                   <Bar
                     dataKey="revenue"
                     fill="url(#colorStateRevenue)"
