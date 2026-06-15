@@ -48,7 +48,7 @@ import { PaymentMethodIcons } from "@/components/checkout/PaymentMethodIcons";
 // ============================================
 // MULTI-TEMPLATE SYSTEM (feature flag)
 // ============================================
-const USE_NEW_CHECKOUT = import.meta.env.VITE_USE_NEW_CHECKOUT === 'true';
+const USE_NEW_CHECKOUT = import.meta.env.VITE_USE_NEW_CHECKOUT !== 'false';
 
 // Lazy import — só carrega o bundle se a flag estiver ativa
 const TemplateRenderer = USE_NEW_CHECKOUT
