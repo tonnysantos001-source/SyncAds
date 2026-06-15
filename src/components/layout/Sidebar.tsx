@@ -32,6 +32,7 @@ import {
   IoColorPalette,
   IoShieldCheckmark,
   IoSwapHorizontal,
+  IoMail,
 } from "react-icons/io5";
 import { Badge } from "../ui/badge";
 
@@ -122,6 +123,7 @@ const navItems: NavItem[] = [
       },
       { to: "/marketing/cashback", label: "Cashback", icon: IoTicket },
       { to: "/marketing/pixels", label: "Pixels", icon: IoBarcode },
+      { to: "/marketing/emails", label: "E-mails", icon: IoMail },
     ],
   },
   {

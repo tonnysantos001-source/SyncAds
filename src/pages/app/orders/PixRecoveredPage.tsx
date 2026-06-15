@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -46,6 +47,7 @@ import { ptBR } from "date-fns/locale";
 type RecoveryStatus = "PENDING" | "RECOVERED" | "EXPIRED" | "FAILED";
 
 const PixRecoveredPage = () => {
+  const navigate = useNavigate();
   const [recoveries, setRecoveries] = useState<RecoveredCart[]>([]);
   const [filteredRecoveries, setFilteredRecoveries] = useState<RecoveredCart[]>(
     [],
@@ -567,6 +569,7 @@ const PixRecoveredPage = () => {
                                   variant="ghost"
                                   size="sm"
                                   className="hover:bg-gradient-to-r hover:from-green-50 hover:to-teal-50 dark:hover:from-gray-800 dark:hover:to-gray-800"
+                                  onClick={() => navigate(`/orders/all?search=${recovery.orderId}`)}
                                 >
                                   Ver pedido
                                 </Button>
