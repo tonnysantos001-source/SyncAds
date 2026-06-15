@@ -62,8 +62,8 @@ body {
 }
 
 /* Força containers flex a respeitar altura do viewport */
-[class*="flex"][class*="h-full"],
-[class*="flex"][class*="h-screen"] {
+.flex.h-full,
+.flex.h-screen {
     max-height: 100dvh;
     overflow: hidden;
 }
