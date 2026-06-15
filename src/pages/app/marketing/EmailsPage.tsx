@@ -47,6 +47,7 @@ import {
   Eye,
 } from "lucide-react";
 import { emailApi, EmailConfig, EmailEvent, EmailTemplateType } from "@/lib/api/emailApi";
+import { ImageUploadField } from "@/components/checkout/ImageUploadField";
 
 // Dados informativos dos placeholders suportados
 const PLACEHOLDERS = [
@@ -633,12 +634,23 @@ const EmailsPage = () => {
 
                 {/* Logo URL */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">URL da Logo da Loja</Label>
-                  <Input
-                    placeholder="https://sualoja.com/logo.png"
+                  <Label className="text-sm font-semibold">Logo da Loja</Label>
+                  <ImageUploadField
+                    label="Carregar Logo"
+                    description="Tamanho recomendado: 200x50px ou proporção semelhante (máx. 2MB, formatos PNG, JPG, SVG, WEBP)."
                     value={currentConfig.headerLogo || ""}
-                    onChange={(e) => updateCurrentConfig({ headerLogo: e.target.value })}
-                    className="border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-950/50"
+                    onChange={(url) => updateCurrentConfig({ headerLogo: url })}
+                    bucket="checkout-images"
+                    path="logos"
+                    maxSizeMB={2}
+                    acceptedFormats={[
+                      "image/png",
+                      "image/jpeg",
+                      "image/jpg",
+                      "image/webp",
+                      "image/svg+xml",
+                      "image/gif",
+                    ]}
                   />
                 </div>
 
