@@ -27,6 +27,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
+  ComposedChart,
 } from "recharts";
 import {
   TrendingUp,
@@ -375,30 +378,50 @@ const UtmsPage = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={sourceChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                      tickLine={false}
-                    />
-                    <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar
-                      dataKey="visitas"
-                      name="Visitas"
-                      fill="#3B82F6"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="conversões"
-                      name="Conversões"
-                      fill="#10B981"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
+                  {sourceChartData.length > 0 ? (
+                    <ComposedChart data={sourceChartData}>
+                      <defs>
+                        <linearGradient id="colorVisitsUtm" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#9CA3AF"
+                        fontSize={11}
+                        tickLine={false}
+                      />
+                      <YAxis yAxisId="left" stroke="#3B82F6" fontSize={11} tickLine={false} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#10B981" fontSize={11} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Area
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="visitas"
+                        name="Visitas"
+                        fill="url(#colorVisitsUtm)"
+                        stroke="#3B82F6"
+                        strokeWidth={1.5}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="conversões"
+                        name="Conversões"
+                        stroke="#10B981"
+                        strokeWidth={1.5}
+                        dot={{ fill: "#10B981", r: 3 }}
+                      />
+                    </ComposedChart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                      <BarChart3 className="h-10 w-10 mb-2 opacity-50 text-blue-500" />
+                      <p className="text-sm font-semibold">Sem dados de tráfego</p>
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -420,35 +443,39 @@ const UtmsPage = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={sourceChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                      tickLine={false}
-                    />
-                    <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar
-                      dataKey="receita"
-                      name="Receita (R$)"
-                      fill="url(#colorGradient)"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <defs>
-                      <linearGradient
-                        id="colorGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop offset="0%" stopColor="#8B5CF6" />
-                        <stop offset="100%" stopColor="#EC4899" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
+                  {sourceChartData.length > 0 ? (
+                    <AreaChart data={sourceChartData}>
+                      <defs>
+                        <linearGradient id="colorRevenueUtm" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#9CA3AF"
+                        fontSize={11}
+                        tickLine={false}
+                      />
+                      <YAxis stroke="#8B5CF6" fontSize={11} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Area
+                        type="monotone"
+                        dataKey="receita"
+                        name="Receita (R$)"
+                        fill="url(#colorRevenueUtm)"
+                        stroke="#8B5CF6"
+                        strokeWidth={1.5}
+                      />
+                    </AreaChart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                      <DollarSign className="h-10 w-10 mb-2 opacity-50 text-purple-500" />
+                      <p className="text-sm font-semibold">Sem dados de receita</p>
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -472,27 +499,34 @@ const UtmsPage = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mediumChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                      tickLine={false}
-                    />
-                    <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="taxa"
-                      name="Taxa (%)"
-                      stroke="#8B5CF6"
-                      strokeWidth={3}
-                      dot={{ fill: "#8B5CF6", r: 5 }}
-                      activeDot={{ r: 7 }}
-                    />
-                  </LineChart>
+                  {mediumChartData.length > 0 ? (
+                    <LineChart data={mediumChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#9CA3AF"
+                        fontSize={11}
+                        tickLine={false}
+                      />
+                      <YAxis stroke="#9CA3AF" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Line
+                        type="monotone"
+                        dataKey="taxa"
+                        name="Taxa (%)"
+                        stroke="#EC4899"
+                        strokeWidth={2}
+                        dot={{ fill: "#EC4899", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                      <Activity className="h-10 w-10 mb-2 opacity-50 text-pink-500" />
+                      <p className="text-sm font-semibold">Sem dados de conversão</p>
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -516,24 +550,34 @@ const UtmsPage = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={campaignChartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      stroke="#9CA3AF"
-                      fontSize={10}
-                      width={100}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar
-                      dataKey="conversões"
-                      name="Conversões"
-                      fill="#10B981"
-                      radius={[0, 8, 8, 0]}
-                    />
-                  </BarChart>
+                  {campaignChartData.length > 0 ? (
+                    <BarChart data={campaignChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                      <XAxis type="number" stroke="#9CA3AF" fontSize={11} tickLine={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        stroke="#9CA3AF"
+                        fontSize={10}
+                        width={90}
+                        tickLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: "8px", fontSize: "12px" }} iconType="circle" />
+                      <Bar
+                        dataKey="conversões"
+                        name="Conversões"
+                        fill="#10B981"
+                        radius={[0, 4, 4, 0]}
+                        barSize={12}
+                      />
+                    </BarChart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 py-16">
+                      <Zap className="h-10 w-10 mb-2 opacity-50 text-yellow-500" />
+                      <p className="text-sm font-semibold">Sem dados de campanhas</p>
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </CardContent>
             </Card>

@@ -348,9 +348,10 @@ export const utmApi = {
   ): Promise<UTMStats> {
     try {
       let query = supabase
-        .from('UTMTracking')
+        .from('Order')
         .select('*')
-        .eq('userId', userId);
+        .eq('userId', userId)
+        .neq('status', 'PREVIEW');
 
       if (period) {
         query = query
@@ -362,7 +363,22 @@ export const utmApi = {
 
       if (error) throw error;
 
-      const utms = data as UTMTracking[];
+      const orders = data || [];
+
+      // Mapear orders para simular registros UTMTracking
+      const utms: UTMTracking[] = orders.map((o: any) => ({
+        id: o.id,
+        userId: o.userId,
+        sessionId: o.id,
+        utmSource: o.utmSource || 'Direto',
+        utmMedium: o.utmMedium || 'Organico',
+        utmCampaign: o.utmCampaign || 'Nenhum',
+        converted: ['PAID', 'PENDING'].includes(o.paymentStatus),
+        orderValue: typeof o.total === 'string' ? parseFloat(o.total) : (o.total || 0),
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+        landingPage: '',
+      }));
 
       // Calcular estatísticas gerais
       const totalSessions = utms.length;

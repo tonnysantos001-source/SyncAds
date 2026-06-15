@@ -319,6 +319,45 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     return () => clearInterval(interval);
   }, [orderId, previewMode]);
 
+  // Capturar e salvar parâmetros UTM
+  useEffect(() => {
+    if (previewMode || !orderId || orderId === "preview-local") return;
+
+    const captureUtms = async () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const utmSource = searchParams.get("utm_source");
+        const utmMedium = searchParams.get("utm_medium");
+        const utmCampaign = searchParams.get("utm_campaign");
+
+        if (utmSource || utmMedium || utmCampaign) {
+          const { error } = await supabase
+            .from("Order")
+            .update({
+              utmSource: utmSource || undefined,
+              utmMedium: utmMedium || undefined,
+              utmCampaign: utmCampaign || undefined,
+            })
+            .eq("id", orderId);
+
+          if (error) {
+            console.error("Erro ao salvar parâmetros UTM no banco:", error);
+          } else {
+            console.log("🎯 [UTM] Parâmetros salvos no pedido:", {
+              utmSource,
+              utmMedium,
+              utmCampaign,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao processar parâmetros UTM:", err);
+      }
+    };
+
+    captureUtms();
+  }, [orderId, previewMode]);
+
   // Salvar métricas de performance do checkout
   useEffect(() => {
     if (previewMode || !orderId || orderId === "preview-local" || !checkoutData) return;
