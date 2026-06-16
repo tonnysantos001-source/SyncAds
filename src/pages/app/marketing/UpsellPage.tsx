@@ -109,8 +109,8 @@ const UpsellPage = () => {
 
   const [formData, setFormData] = useState({
     name: "",
-    triggerProductId: "",
-    upsellProductId: "",
+    fromProductId: "",
+    toProductId: "",
     title: "",
     description: "",
     discountType: "PERCENTAGE" as "PERCENTAGE" | "FIXED_AMOUNT",
@@ -128,13 +128,20 @@ const UpsellPage = () => {
 
   const loadData = async () => {
     try {
-      if (!user?.organizationId) return;
-      const [upsellsData, productsData] = await Promise.all([
-        marketingApi.upsells.getAll(user.organizationId),
+      if (!user?.id) return;
+      const [upsellsData, localProducts, shopifyProducts] = await Promise.all([
+        marketingApi.upsells.getAll(user.id),
         productsApi.list(),
+        productsApi.listFromShopify(user.id).catch(() => []),
       ]);
+
+      const mergedProducts = [
+        ...localProducts.map(p => ({ ...p, isShopify: false })),
+        ...shopifyProducts.map(p => ({ ...p, isShopify: true }))
+      ];
+
       setUpsells(upsellsData);
-      setProducts(productsData);
+      setProducts(mergedProducts);
       setFilteredUpsells(upsellsData);
     } catch (error: any) {
       toast({
@@ -163,14 +170,14 @@ const UpsellPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
       if (editingUpsell) {
         await marketingApi.upsells.update(editingUpsell.id, formData);
         toast({ title: "Upsell atualizado!" });
       } else {
         await marketingApi.upsells.create({
           ...formData,
-          organizationId: user.organizationId,
+          userId: user.id,
         });
         toast({ title: "Upsell criado!" });
       }
@@ -205,8 +212,8 @@ const UpsellPage = () => {
     setEditingUpsell(upsell);
     setFormData({
       name: upsell.name,
-      triggerProductId: upsell.triggerProductId,
-      upsellProductId: upsell.upsellProductId,
+      fromProductId: upsell.fromProductId,
+      toProductId: upsell.toProductId,
       title: upsell.title,
       description: upsell.description || "",
       discountType: upsell.discountType || "PERCENTAGE",
@@ -220,8 +227,8 @@ const UpsellPage = () => {
     setEditingUpsell(null);
     setFormData({
       name: "",
-      triggerProductId: "",
-      upsellProductId: "",
+      fromProductId: "",
+      toProductId: "",
       title: "",
       description: "",
       discountType: "PERCENTAGE",
@@ -235,7 +242,8 @@ const UpsellPage = () => {
 
   const getProductName = (productId: string) => {
     const product = products.find((p) => p.id === productId);
-    return product?.name || "Produto não encontrado";
+    if (!product) return "Produto não encontrado";
+    return `${product.name}${product.isShopify ? " (Shopify)" : ""}`;
   };
 
   return (
@@ -288,9 +296,9 @@ const UpsellPage = () => {
                 <div>
                   <Label>Produto Gatilho *</Label>
                   <Select
-                    value={formData.triggerProductId}
+                    value={formData.fromProductId}
                     onValueChange={(v) =>
-                      setFormData({ ...formData, triggerProductId: v })
+                      setFormData({ ...formData, fromProductId: v })
                     }
                     required
                   >
@@ -300,7 +308,7 @@ const UpsellPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name}
+                          {product.name}{product.isShopify ? " (Shopify)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -309,9 +317,9 @@ const UpsellPage = () => {
                 <div>
                   <Label>Produto Upsell *</Label>
                   <Select
-                    value={formData.upsellProductId}
+                    value={formData.toProductId}
                     onValueChange={(v) =>
-                      setFormData({ ...formData, upsellProductId: v })
+                      setFormData({ ...formData, toProductId: v })
                     }
                     required
                   >
@@ -321,7 +329,7 @@ const UpsellPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} - R$ {product.price.toFixed(2)}
+                          {product.name}{product.isShopify ? " (Shopify)" : ""} - R$ {Number(product.price || 0).toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -533,10 +541,10 @@ const UpsellPage = () => {
                           {upsell.name}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                          {getProductName(upsell.triggerProductId)}
+                          {getProductName(upsell.fromProductId)}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                          {getProductName(upsell.upsellProductId)}
+                          {getProductName(upsell.toProductId)}
                         </TableCell>
                         <TableCell>{upsell.title}</TableCell>
                         <TableCell>
