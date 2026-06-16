@@ -325,7 +325,7 @@ const CrossSellPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} - R$ {product.price.toFixed(2)} {product.isShopify ? "(Shopify)" : "(Local)"}
+                          {product.name} - R$ {Number(product.price || 0).toFixed(2)} {product.isShopify ? "(Shopify)" : "(Local)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -526,7 +526,7 @@ const CrossSellPage = () => {
                           {crossSell.discountValue
                             ? crossSell.discountType === "PERCENTAGE"
                               ? `${crossSell.discountValue}%`
-                              : `R$ ${crossSell.discountValue.toFixed(2)}`
+                              : `R$ ${Number(crossSell.discountValue || 0).toFixed(2)}`
                             : "-"}
                         </TableCell>
                         <TableCell>
