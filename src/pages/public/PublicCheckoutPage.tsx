@@ -612,7 +612,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           console.log("Erro ao carregar dados da loja:", e);
         }
 
-        // Buscar order bumps ativos
+        // Buscar order bumps ativos e enriquecê-los com os dados dos produtos
         try {
           const { data: bumps, error: bumpsError } = await supabase
             .from("OrderBump")
@@ -622,7 +622,79 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             .order("createdAt", { ascending: true });
 
           if (!bumpsError && bumps) {
-            setOrderBumps(bumps);
+            const enrichedBumps = await Promise.all(
+              bumps.map(async (bump) => {
+                // Tenta buscar na tabela Product (local)
+                const { data: localProd } = await supabase
+                  .from("Product")
+                  .select("*, ProductImage(url)")
+                  .eq("id", bump.productId)
+                  .maybeSingle();
+
+                if (localProd) {
+                  const originalPrice = Number(localProd.price || 0);
+                  let price = originalPrice;
+                  if (bump.discountType === "PERCENTAGE" && bump.discountValue) {
+                    price = originalPrice * (1 - bump.discountValue / 100);
+                  } else if (bump.discountType === "FIXED_AMOUNT" && bump.discountValue) {
+                    price = Math.max(0, originalPrice - bump.discountValue);
+                  }
+
+                  const images = (localProd as any).ProductImage || [];
+                  const image = images.length > 0 ? images[0].url : "";
+
+                  return {
+                    ...bump,
+                    name: localProd.name,
+                    originalPrice,
+                    price,
+                    image,
+                  };
+                }
+
+                // Se não encontrar, tenta buscar na tabela ShopifyProduct
+                const { data: shopifyProd } = await supabase
+                  .from("ShopifyProduct")
+                  .select("*")
+                  .eq("id", bump.productId)
+                  .maybeSingle();
+
+                if (shopifyProd) {
+                  const shopifyData = shopifyProd.shopifyData || {};
+                  const originalPrice = Number(shopifyData.variants?.[0]?.price || 0);
+                  let price = originalPrice;
+                  if (bump.discountType === "PERCENTAGE" && bump.discountValue) {
+                    price = originalPrice * (1 - bump.discountValue / 100);
+                  } else if (bump.discountType === "FIXED_AMOUNT" && bump.discountValue) {
+                    price = Math.max(0, originalPrice - bump.discountValue);
+                  }
+
+                  let image = "";
+                  if (shopifyProd.images && Array.isArray(shopifyProd.images) && shopifyProd.images.length > 0) {
+                    image = typeof shopifyProd.images[0] === 'string' ? shopifyProd.images[0] : shopifyProd.images[0]?.src || "";
+                  } else if (shopifyData.images && Array.isArray(shopifyData.images) && shopifyData.images.length > 0) {
+                    image = shopifyData.images[0]?.src || "";
+                  }
+
+                  return {
+                    ...bump,
+                    name: shopifyProd.title,
+                    originalPrice,
+                    price,
+                    image,
+                  };
+                }
+
+                return {
+                  ...bump,
+                  name: bump.title,
+                  originalPrice: 0,
+                  price: 0,
+                  image: "",
+                };
+              })
+            );
+            setOrderBumps(enrichedBumps);
           }
         } catch (e) {
           console.log("Erro ao carregar order bumps:", e);
@@ -1117,11 +1189,22 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   // O checkout legado abaixo permanece como fallback seguro.
   // ──────────────────────────────────────────────────────────────────────
   if (USE_NEW_CHECKOUT && TemplateRenderer && checkoutData) {
+    const selectedBumpsItems = orderBumps
+      .filter((bump) => selectedOrderBumps.includes(bump.id))
+      .map((bump) => ({
+        id: bump.id,
+        name: bump.title || bump.name,
+        price: bump.price,
+        quantity: 1,
+        image: bump.image,
+        variant: "Oferta Especial",
+      }));
+
     const checkoutPayload = {
       orderId:      orderId,
-      products:     checkoutData.products,
+      products:     [...checkoutData.products, ...selectedBumpsItems],
       total:        finalTotalWithBumps,
-      subtotal:     checkoutData.subtotal,
+      subtotal:     checkoutData.subtotal + calculateOrderBumpsTotal(),
       shipping:     checkoutData.shipping,
       discount:     (checkoutData.discount || 0) + couponDiscount,
     };
@@ -1155,6 +1238,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           onRemoveCoupon={handleRemoveCoupon}
           appliedCouponCode={appliedCouponCode}
           couponError={couponError}
+          orderBumps={orderBumps}
+          selectedOrderBumps={selectedOrderBumps}
+          onToggleOrderBump={handleToggleOrderBump}
         />
       </React.Suspense>
     );

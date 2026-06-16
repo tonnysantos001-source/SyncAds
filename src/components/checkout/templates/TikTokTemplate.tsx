@@ -27,6 +27,7 @@ import { useCheckoutConfigStore } from '@/store/checkoutConfigStore';
 import { useCepLookup } from '@/hooks/useCepLookup';
 import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
+import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import {
   fmtBRL, formatCEP, formatCPFCNPJ, formatPhone, formatCardNumber, formatExpiry,
   validateCPFCNPJ, validateEmail, validatePhone, validateCEP,
@@ -621,7 +622,10 @@ const DesktopOrderPanel: React.FC<{
   onRemoveCoupon?: () => void;
   appliedCouponCode?: string;
   couponError?: string;
-}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError }) => {
+  orderBumps?: any[];
+  selectedOrderBumps?: string[];
+  onToggleOrderBump?: (id: string) => void;
+}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump }) => {
   const [payMethod, setPayMethod] = useState('pix');
   const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
   const [loading, setLoading] = useState(false);
@@ -721,6 +725,9 @@ const DesktopOrderPanel: React.FC<{
         installments: cardData.installments,
         cpf: cardData.cpf,
       } : undefined,
+      items: products,
+      couponCode: appliedCouponCode || null,
+      discount: discount,
     });
   };
 
@@ -802,6 +809,23 @@ const DesktopOrderPanel: React.FC<{
           )}
         </AnimatePresence>
       </div>
+
+      {/* ORDER BUMPS */}
+      {theme?.orderBumpEnabled && orderBumps && orderBumps.length > 0 && (
+        <div className="border-b border-gray-100 px-5 py-4 space-y-3 bg-gray-50/50">
+          <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">🎁 Oferta Especial</h4>
+          {orderBumps.map((bump: any) => (
+            <OrderBumpCard
+              key={bump.id}
+              orderBump={bump}
+              theme={theme}
+              orderBumpConfig={theme?._checkoutConfig?.orderBump}
+              selected={selectedOrderBumps?.includes(bump.id)}
+              onToggle={onToggleOrderBump || (() => {})}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Discount */}
       {discount > 0 && (
@@ -910,7 +934,10 @@ const MobileContactPaymentCard: React.FC<{
   isPreview: boolean; orderId: string; onSuccess?: (id: string) => void; templateSlug: string;
   address: AddressState; onAddressChange: (d: AddressState) => void;
   cpf: string; onCpfChange: (v: string) => void;
-}> = ({ primaryColor, gradient, checkoutData, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug }) => {
+  orderBumps?: any[];
+  selectedOrderBumps?: string[];
+  onToggleOrderBump?: (id: string) => void;
+}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump }) => {
   const [payMethod, setPayMethod] = useState('pix');
   const [cardData, setCardData] = useState<CardState>(emptyCard());
   const [contact, setContact] = useState<ContactState>(emptyContact());
@@ -962,6 +989,8 @@ const MobileContactPaymentCard: React.FC<{
         installments: cardData.installments,
         cpf: cardData.cpf,
       } : undefined,
+      items: products,
+      discount: discount,
     });
   };
 
@@ -1007,6 +1036,23 @@ const MobileContactPaymentCard: React.FC<{
         <PillInput value={cpf} onChange={v => onCpfChange(formatCPFCNPJ(v))} placeholder="000.000.000-00"
           inputMode="numeric" error={errors.cpf} />
       </MobileExpandButton>
+
+      {/* ORDER BUMPS */}
+      {theme?.orderBumpEnabled && orderBumps && orderBumps.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden px-5 py-4 space-y-3">
+          <h4 className="text-sm font-semibold text-gray-700">🎁 Oferta Especial</h4>
+          {orderBumps.map((bump: any) => (
+            <OrderBumpCard
+              key={bump.id}
+              orderBump={bump}
+              theme={theme}
+              orderBumpConfig={theme?._checkoutConfig?.orderBump}
+              selected={selectedOrderBumps?.includes(bump.id)}
+              onToggle={onToggleOrderBump || (() => {})}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Payment */}
       <div className="bg-white rounded-2xl overflow-hidden">
@@ -1150,6 +1196,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
   isMobile = false, onPaymentSuccess,
   onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
+  orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
 }) => {
   // Resolve: store (novo) > theme (legado)
   const primaryColor =
@@ -1232,6 +1279,16 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
               <DesktopAddressCard data={addressData} onChange={setAddressData} errors={formErrors} />
               <DesktopCpfCard value={cpfData} onChange={setCpfData} error={formErrors.cpf} />
               <DesktopContactCard data={contactData} onChange={setContactData} errors={formErrors} />
+              {checkoutConfig?.orderBump?.enabled !== false && orderBumps.map(bump => (
+                <OrderBumpCard
+                  key={bump.id}
+                  orderBump={bump}
+                  theme={theme}
+                  orderBumpConfig={checkoutConfig?.orderBump}
+                  selected={selectedOrderBumps.includes(bump.id)}
+                  onToggle={onToggleOrderBump || (() => {})}
+                />
+              ))}
             </div>
             {/* RIGHT: Order Summary */}
             <div className="sticky top-4">
@@ -1247,6 +1304,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                 onRemoveCoupon={onRemoveCoupon}
                 appliedCouponCode={appliedCouponCode}
                 couponError={couponError}
+                orderBumps={orderBumps}
+                selectedOrderBumps={selectedOrderBumps}
+                onToggleOrderBump={onToggleOrderBump}
               />
             </div>
           </div>
@@ -1276,6 +1336,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             templateSlug={templateConfig.slug}
             address={addressData} onAddressChange={setAddressData}
             cpf={cpfData} onCpfChange={setCpfData}
+            orderBumps={orderBumps}
+            selectedOrderBumps={selectedOrderBumps}
+            onToggleOrderBump={onToggleOrderBump}
           />
         </main>
       )}

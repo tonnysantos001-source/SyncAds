@@ -167,6 +167,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   onRemoveCoupon,
   appliedCouponCode,
   couponError,
+  orderBumps,
+  selectedOrderBumps,
+  onToggleOrderBump,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -292,6 +295,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     onRemoveCoupon,
     appliedCouponCode,
     couponError,
+    orderBumps,
+    selectedOrderBumps,
+    onToggleOrderBump,
   };
 
   // ------------------------------------------------------------------

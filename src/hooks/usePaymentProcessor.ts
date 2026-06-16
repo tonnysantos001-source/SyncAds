@@ -55,6 +55,10 @@ export interface ProcessPaymentOptions {
   customerData: ProcessorCustomerData;
   addressData: ProcessorAddressData;
   cardData?: ProcessorCardData; // obrigatório quando method === 'CREDIT_CARD'
+  items?: any[];
+  couponCode?: string | null;
+  couponDiscount?: number | null;
+  discount?: number | null;
 }
 
 export interface UsePaymentProcessorOptions {
@@ -90,6 +94,10 @@ export function usePaymentProcessor({
       customerData,
       addressData,
       cardData,
+      items,
+      couponCode,
+      couponDiscount,
+      discount,
     }: ProcessPaymentOptions) => {
       if (!orderId) {
         setError('ID do pedido não encontrado');
@@ -136,6 +144,11 @@ export function usePaymentProcessor({
               state: addressData.state,
             },
             paymentMethod,
+            total: orderTotal,
+            ...(items ? { items } : {}),
+            ...(couponCode !== undefined ? { couponCode } : {}),
+            ...(couponDiscount !== undefined ? { couponDiscount } : {}),
+            ...(discount !== undefined ? { discount } : {}),
             updatedAt: new Date().toISOString(),
           })
           .eq('id', orderId);

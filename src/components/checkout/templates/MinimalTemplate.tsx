@@ -495,6 +495,13 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   isMobile = false,
   isPreview = false,
   customization,
+  onApplyCoupon,
+  onRemoveCoupon,
+  appliedCouponCode,
+  couponError,
+  orderBumps = [],
+  selectedOrderBumps = [],
+  onToggleOrderBump,
 }) => {
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -846,6 +853,23 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                 isLocked={false}
                 isFullHeight={currentStep === 3}
               >
+                {/* ORDER BUMPS */}
+                {checkoutConfig?.orderBump?.enabled !== false && orderBumps && orderBumps.length > 0 && currentStep === 3 && (
+                  <div className="mb-5 space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700">🎁 Oferta Especial</h4>
+                    {orderBumps.map((bump) => (
+                      <OrderBumpCard
+                        key={bump.id}
+                        orderBump={bump}
+                        theme={theme}
+                        orderBumpConfig={checkoutConfig?.orderBump}
+                        selected={selectedOrderBumps.includes(bump.id)}
+                        onToggle={onToggleOrderBump || (() => {})}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 <MinimalStepPayment
                   theme={theme}
                   isPreview={isPreview}
@@ -858,6 +882,7 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                   templateSlug={templateConfig.slug}
                   customerData={contactData}
                   addressData={addressData}
+                  appliedCouponCode={appliedCouponCode}
                 />
               </MinimalStepWrapper>
             )}
@@ -875,6 +900,10 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                   theme={theme}
                   checkoutConfig={checkoutConfig}
                   isPreview={isPreview}
+                  onApplyCoupon={onApplyCoupon}
+                  onRemoveCoupon={onRemoveCoupon}
+                  appliedCouponCode={appliedCouponCode}
+                  couponError={couponError}
                 />
               </div>
               

@@ -129,13 +129,20 @@ const OrderBumpPage = () => {
 
   const loadData = async () => {
     try {
-      if (!user?.organizationId) return;
-      const [bumpsData, productsData] = await Promise.all([
-        marketingApi.orderBumps.getAll(user.organizationId),
+      if (!user?.id) return;
+      const [bumpsData, localProducts, shopifyProducts] = await Promise.all([
+        marketingApi.orderBumps.getAll(user.id),
         productsApi.list(),
+        productsApi.listFromShopify(user.id).catch(() => []),
       ]);
+      
+      const mergedProducts = [
+        ...localProducts.map(p => ({ ...p, isShopify: false })),
+        ...shopifyProducts.map(p => ({ ...p, isShopify: true }))
+      ];
+
       setOrderBumps(bumpsData);
-      setProducts(productsData);
+      setProducts(mergedProducts);
       setFilteredBumps(bumpsData);
     } catch (error: any) {
       toast({
@@ -164,7 +171,7 @@ const OrderBumpPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
 
       if (editingBump) {
         await marketingApi.orderBumps.update(editingBump.id, formData);
@@ -172,7 +179,7 @@ const OrderBumpPage = () => {
       } else {
         await marketingApi.orderBumps.create({
           ...formData,
-          organizationId: user.organizationId,
+          userId: user.id,
         });
         toast({
           title: "Order Bump criado!",
@@ -241,7 +248,8 @@ const OrderBumpPage = () => {
 
   const getProductName = (productId: string) => {
     const product = products.find((p) => p.id === productId);
-    return product?.name || "Produto não encontrado";
+    if (!product) return "Produto não encontrado";
+    return `${product.name}${product.isShopify ? " (Shopify)" : ""}`;
   };
 
   return (
@@ -306,7 +314,7 @@ const OrderBumpPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} - R$ {product.price.toFixed(2)}
+                          {product.name}{product.isShopify ? " (Shopify)" : ""} - R$ {Number(product.price || 0).toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -26,6 +26,7 @@ import type { CheckoutConfig } from '@/types/checkout-config.types';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import { useCepLookup } from '@/hooks/useCepLookup';
 import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
+import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import {
   formatCEP,
   formatCPFCNPJ,
@@ -672,6 +673,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, checkoutConfig, templateConfig,
   isPreview = false, isMobile = false, onPaymentSuccess,
   onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
+  orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
 }) => {
   // ── Configurações visuais ──────────────────────────────────
   const primaryColor = checkoutConfig?.buttons.primaryBg ?? (theme.primaryColor as string) ?? '#10B981';
@@ -824,8 +826,11 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
             },
           }
         : {}),
+      items: checkoutData?.products,
+      couponCode: appliedCouponCode || null,
+      discount: checkoutData?.discount || 0,
     });
-  }, [isPreview, validate, paymentMethod, contact, address, card, processPayment, orderId, onPaymentSuccess, templateConfig, checkoutMonitor]);
+  }, [isPreview, validate, paymentMethod, contact, address, card, processPayment, orderId, onPaymentSuccess, templateConfig, checkoutMonitor, checkoutData, appliedCouponCode]);
 
   return (
     <div
@@ -879,6 +884,25 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                   onChange={handleAddressChange}
                   onCepBlur={handleCepBlur}
                 />
+
+                {/* ORDER BUMPS */}
+                {checkoutConfig?.orderBump?.enabled !== false && orderBumps && orderBumps.length > 0 && (
+                  <div className="mb-6 space-y-4">
+                    <h3 className="font-semibold text-[17px] text-[#222222]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                      🎁 Ofertas Especiais para você!
+                    </h3>
+                    {orderBumps.map((bump) => (
+                      <OrderBumpCard
+                        key={bump.id}
+                        orderBump={bump}
+                        theme={theme}
+                        orderBumpConfig={checkoutConfig?.orderBump}
+                        selected={selectedOrderBumps.includes(bump.id)}
+                        onToggle={onToggleOrderBump || (() => {})}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Pagamento */}
                 <div className="mb-6">

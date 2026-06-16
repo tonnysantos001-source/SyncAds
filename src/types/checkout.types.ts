@@ -225,6 +225,11 @@ export interface TemplateRenderProps {
   onRemoveCoupon?: () => void;
   appliedCouponCode?: string;
   couponError?: string;
+
+  /** Callbacks e estados para Order Bumps */
+  orderBumps?: any[];
+  selectedOrderBumps?: string[];
+  onToggleOrderBump?: (id: string) => void;
 }
 
 // ============================================================

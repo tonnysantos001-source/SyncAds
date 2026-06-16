@@ -60,6 +60,7 @@ interface MinimalStepPaymentProps {
   customerData: CustomerData;
   /** Dados de endereço (coletados na etapa 2) */
   addressData: AddressData;
+  appliedCouponCode?: string;
 }
 
 const METHODS = [
@@ -89,7 +90,7 @@ const METHODS = [
 export const MinimalStepPayment: React.FC<MinimalStepPaymentProps> = ({
   theme, isPreview, checkoutData, orderId, onBack, onSuccess,
   primaryColor, buttonCfg, templateSlug, initialMethod,
-  customerData, addressData,
+  customerData, addressData, appliedCouponCode,
 }) => {
   const [method, setMethod] = useState<CheckoutPaymentMethod>(initialMethod || 'PIX');
   const [card, setCard] = useState<CardState>({
@@ -169,6 +170,9 @@ export const MinimalStepPayment: React.FC<MinimalStepPaymentProps> = ({
             },
           }
         : {}),
+      items: checkoutData?.products,
+      couponCode: appliedCouponCode || null,
+      discount: checkoutData?.discount || 0,
     });
   };
 
