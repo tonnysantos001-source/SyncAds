@@ -170,6 +170,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   orderBumps,
   selectedOrderBumps,
   onToggleOrderBump,
+  crossSells,
+  selectedCrossSells,
+  onToggleCrossSell,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -298,6 +301,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     orderBumps,
     selectedOrderBumps,
     onToggleOrderBump,
+    crossSells,
+    selectedCrossSells,
+    onToggleCrossSell,
   };
 
   // ------------------------------------------------------------------

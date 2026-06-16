@@ -28,14 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Search,
   Edit,
   Trash2,
   ShoppingCart,
-  Percent,
   Zap,
   Target,
   DollarSign,
@@ -110,8 +108,8 @@ const CrossSellPage = () => {
 
   const [formData, setFormData] = useState({
     name: "",
-    triggerProductId: "",
-    suggestedProductIds: [] as string[],
+    productId: "",
+    relatedProductIds: [] as string[],
     discountType: "PERCENTAGE" as "PERCENTAGE" | "FIXED_AMOUNT",
     discountValue: 0,
     isActive: true,
@@ -127,13 +125,20 @@ const CrossSellPage = () => {
 
   const loadData = async () => {
     try {
-      if (!user?.organizationId) return;
-      const [crossSellsData, productsData] = await Promise.all([
-        marketingApi.crossSells.getAll(user.organizationId),
+      if (!user?.id) return;
+      const [crossSellsData, localProducts, shopifyProducts] = await Promise.all([
+        marketingApi.crossSells.getAll(user.id),
         productsApi.list(),
+        productsApi.listFromShopify(user.id).catch(() => []),
       ]);
+
+      const mergedProducts = [
+        ...localProducts.map((p: any) => ({ ...p, isShopify: false })),
+        ...shopifyProducts.map((p: any) => ({ ...p, isShopify: true }))
+      ];
+
       setCrossSells(crossSellsData);
-      setProducts(productsData);
+      setProducts(mergedProducts);
       setFilteredCrossSells(crossSellsData);
     } catch (error: any) {
       toast({
@@ -160,7 +165,7 @@ const CrossSellPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
 
       if (editingCrossSell) {
         await marketingApi.crossSells.update(editingCrossSell.id, formData);
@@ -168,8 +173,8 @@ const CrossSellPage = () => {
       } else {
         await marketingApi.crossSells.create({
           ...formData,
-          organizationId: user.organizationId,
-        });
+          userId: user.id,
+        } as any);
         toast({ title: "Cross-sell criado!" });
       }
 
@@ -204,8 +209,8 @@ const CrossSellPage = () => {
     setEditingCrossSell(crossSell);
     setFormData({
       name: crossSell.name,
-      triggerProductId: crossSell.triggerProductId,
-      suggestedProductIds: crossSell.suggestedProductIds || [],
+      productId: crossSell.productId,
+      relatedProductIds: crossSell.relatedProductIds || [],
       discountType: crossSell.discountType || "PERCENTAGE",
       discountValue: crossSell.discountValue || 0,
       isActive: crossSell.isActive,
@@ -217,8 +222,8 @@ const CrossSellPage = () => {
     setEditingCrossSell(null);
     setFormData({
       name: "",
-      triggerProductId: "",
-      suggestedProductIds: [],
+      productId: "",
+      relatedProductIds: [],
       discountType: "PERCENTAGE",
       discountValue: 0,
       isActive: true,
@@ -230,7 +235,8 @@ const CrossSellPage = () => {
 
   const getProductName = (productId: string) => {
     const product = products.find((p) => p.id === productId);
-    return product?.name || "Produto não encontrado";
+    if (!product) return "Produto não encontrado";
+    return `${product.name} ${product.isShopify ? "(Shopify)" : "(Local)"}`;
   };
 
   return (
@@ -283,9 +289,9 @@ const CrossSellPage = () => {
                 <div className="col-span-2">
                   <Label>Produto Gatilho *</Label>
                   <Select
-                    value={formData.triggerProductId}
+                    value={formData.productId}
                     onValueChange={(v) =>
-                      setFormData({ ...formData, triggerProductId: v })
+                      setFormData({ ...formData, productId: v })
                     }
                     required
                   >
@@ -295,7 +301,7 @@ const CrossSellPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name}
+                          {product.name} {product.isShopify ? "(Shopify)" : "(Local)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -304,11 +310,11 @@ const CrossSellPage = () => {
                 <div className="col-span-2">
                   <Label>Produtos Sugeridos *</Label>
                   <Select
-                    value={formData.suggestedProductIds[0] || ""}
+                    value={formData.relatedProductIds[0] || ""}
                     onValueChange={(v) =>
                       setFormData({
                         ...formData,
-                        suggestedProductIds: [v],
+                        relatedProductIds: [v],
                       })
                     }
                     required
@@ -319,7 +325,7 @@ const CrossSellPage = () => {
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} - R$ {product.price.toFixed(2)}
+                          {product.name} - R$ {product.price.toFixed(2)} {product.isShopify ? "(Shopify)" : "(Local)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -354,7 +360,7 @@ const CrossSellPage = () => {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        discountValue: parseFloat(e.target.value),
+                        discountValue: parseFloat(e.target.value) || 0,
                       })
                     }
                   />
@@ -511,11 +517,10 @@ const CrossSellPage = () => {
                           {crossSell.name}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                          {getProductName(crossSell.triggerProductId)}
+                          {getProductName(crossSell.productId)}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                          {crossSell.suggestedProductIds?.length || 0}{" "}
-                          produto(s)
+                          {crossSell.relatedProductIds?.length || 0} produto(s)
                         </TableCell>
                         <TableCell>
                           {crossSell.discountValue
@@ -572,4 +577,3 @@ const CrossSellPage = () => {
 };
 
 export default CrossSellPage;
-

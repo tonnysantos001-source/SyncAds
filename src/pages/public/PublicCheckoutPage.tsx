@@ -213,6 +213,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   });
   const [orderBumps, setOrderBumps] = useState<any[]>([]);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
+  const [crossSells, setCrossSells] = useState<any[]>([]);
+  const [selectedCrossSells, setSelectedCrossSells] = useState<string[]>([]);
 
   // ============================================
   // TEMPLATE STATE (multi-template system)
@@ -699,6 +701,106 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         } catch (e) {
           console.log("Erro ao carregar order bumps:", e);
         }
+
+        // Buscar cross-sells ativos e enriquecê-los com os dados dos produtos
+        try {
+          const { data: csList, error: csError } = await supabase
+            .from("CrossSell")
+            .select("*")
+            .eq("userId", order.userId)
+            .eq("isActive", true);
+
+          if (!csError && csList && csList.length > 0) {
+            const purchasedProductIds = items.map((item: any) => item.productId || item.id).filter(Boolean);
+            const matchedCS = csList.filter((cs) =>
+              purchasedProductIds.includes(cs.productId)
+            );
+
+            if (matchedCS.length > 0) {
+              const enrichedCrossSells: any[] = [];
+
+              for (const cs of matchedCS) {
+                for (const relId of cs.relatedProductIds || []) {
+                  // Tenta buscar no Product local
+                  const { data: localProd } = await supabase
+                    .from("Product")
+                    .select("*, ProductImage(url)")
+                    .eq("id", relId)
+                    .maybeSingle();
+
+                  if (localProd) {
+                    const originalPrice = Number(localProd.price || 0);
+                    let price = originalPrice;
+                    let discountLabel = "";
+                    if (cs.discountType === "PERCENTAGE" && cs.discountValue) {
+                      price = originalPrice * (1 - cs.discountValue / 100);
+                      discountLabel = `${cs.discountValue}% OFF`;
+                    } else if (cs.discountType === "FIXED_AMOUNT" && cs.discountValue) {
+                      price = Math.max(0, originalPrice - cs.discountValue);
+                      discountLabel = `R$ ${cs.discountValue} OFF`;
+                    }
+
+                    const images = (localProd as any).ProductImage || [];
+                    const image = images.length > 0 ? images[0].url : "";
+
+                    enrichedCrossSells.push({
+                      id: localProd.id,
+                      name: localProd.name,
+                      description: cs.description || localProd.description || "",
+                      originalPrice,
+                      price,
+                      image,
+                      discountLabel,
+                      crossSellId: cs.id,
+                    });
+                  } else {
+                    // Tenta no ShopifyProduct
+                    const { data: shopifyProd } = await supabase
+                      .from("ShopifyProduct")
+                      .select("*")
+                      .eq("id", relId)
+                      .maybeSingle();
+
+                    if (shopifyProd) {
+                      const shopifyData = shopifyProd.shopifyData || {};
+                      const originalPrice = Number(shopifyData.variants?.[0]?.price || 0);
+                      let price = originalPrice;
+                      let discountLabel = "";
+                      if (cs.discountType === "PERCENTAGE" && cs.discountValue) {
+                        price = originalPrice * (1 - cs.discountValue / 100);
+                        discountLabel = `${cs.discountValue}% OFF`;
+                      } else if (cs.discountType === "FIXED_AMOUNT" && cs.discountValue) {
+                        price = Math.max(0, originalPrice - cs.discountValue);
+                        discountLabel = `R$ ${cs.discountValue} OFF`;
+                      }
+
+                      let image = "";
+                      if (shopifyProd.images && Array.isArray(shopifyProd.images) && shopifyProd.images.length > 0) {
+                        image = typeof shopifyProd.images[0] === 'string' ? shopifyProd.images[0] : shopifyProd.images[0]?.src || "";
+                      } else if (shopifyData.images && Array.isArray(shopifyData.images) && shopifyData.images.length > 0) {
+                        image = shopifyData.images[0]?.src || "";
+                      }
+
+                      enrichedCrossSells.push({
+                        id: shopifyProd.id,
+                        name: shopifyProd.title,
+                        description: cs.description || shopifyProd.description || "",
+                        originalPrice,
+                        price,
+                        image,
+                        discountLabel,
+                        crossSellId: cs.id,
+                      });
+                    }
+                  }
+                }
+              }
+              setCrossSells(enrichedCrossSells);
+            }
+          }
+        } catch (e) {
+          console.log("Erro ao carregar cross sells:", e);
+        }
       }
     } catch (error: any) {
       console.error("❌ [DEBUG] Erro ao carregar checkout:", error);
@@ -739,11 +841,32 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       .reduce((total, bump) => total + Number(bump.price || 0), 0);
   };
 
+  // ============================================
+  // CROSS-SELL
+  // ============================================
+
+  const handleToggleCrossSell = (productId: string) => {
+    setSelectedCrossSells((prev) => {
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+
+  const calculateCrossSellsTotal = () => {
+    return crossSells
+      .filter((cs) => selectedCrossSells.includes(cs.id))
+      .reduce((total, cs) => total + Number(cs.price || 0), 0);
+  };
+
   const finalTotalWithBumps = Math.max(
     0,
     (checkoutData?.subtotal || 0) +
       (checkoutData?.shipping || 0) +
-      calculateOrderBumpsTotal() -
+      calculateOrderBumpsTotal() +
+      calculateCrossSellsTotal() -
       (checkoutData?.discount || 0) -
       couponDiscount
   );
@@ -1200,11 +1323,22 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         variant: "Oferta Especial",
       }));
 
+    const selectedCrossSellsItems = crossSells
+      .filter((cs) => selectedCrossSells.includes(cs.id))
+      .map((cs) => ({
+        id: cs.id,
+        name: cs.name,
+        price: cs.price,
+        quantity: 1,
+        image: cs.image,
+        variant: "Recomendado",
+      }));
+
     const checkoutPayload = {
       orderId:      orderId,
-      products:     [...checkoutData.products, ...selectedBumpsItems],
+      products:     [...checkoutData.products, ...selectedBumpsItems, ...selectedCrossSellsItems],
       total:        finalTotalWithBumps,
-      subtotal:     checkoutData.subtotal + calculateOrderBumpsTotal(),
+      subtotal:     checkoutData.subtotal + calculateOrderBumpsTotal() + calculateCrossSellsTotal(),
       shipping:     checkoutData.shipping,
       discount:     (checkoutData.discount || 0) + couponDiscount,
     };
@@ -1241,6 +1375,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           orderBumps={orderBumps}
           selectedOrderBumps={selectedOrderBumps}
           onToggleOrderBump={handleToggleOrderBump}
+          crossSells={crossSells}
+          selectedCrossSells={selectedCrossSells}
+          onToggleCrossSell={handleToggleCrossSell}
         />
       </React.Suspense>
     );

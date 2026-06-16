@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Lock, User, Truck, CreditCard, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
+import { CrossSellCard } from '@/components/checkout/CrossSellCard';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import PaymentMethodIcons from '@/components/checkout/PaymentMethodIcons';
 import type { TemplateRenderProps } from '@/types/checkout.types';
@@ -502,6 +503,9 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   orderBumps = [],
   selectedOrderBumps = [],
   onToggleOrderBump,
+  crossSells = [],
+  selectedCrossSells = [],
+  onToggleCrossSell,
 }) => {
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -867,6 +871,24 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                         onToggle={onToggleOrderBump || (() => {})}
                       />
                     ))}
+                  </div>
+                )}
+
+                {/* CROSS-SELLS */}
+                {crossSells && crossSells.length > 0 && currentStep === 3 && (
+                  <div className="mb-5 space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700">🔥 Aproveite e compre junto</h4>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {crossSells.map((product) => (
+                        <CrossSellCard
+                          key={product.id}
+                          product={product}
+                          selected={selectedCrossSells.includes(product.id)}
+                          onToggle={() => onToggleCrossSell && onToggleCrossSell(product.id)}
+                          primaryColor={primaryColor}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
 

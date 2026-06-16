@@ -230,6 +230,11 @@ export interface TemplateRenderProps {
   orderBumps?: any[];
   selectedOrderBumps?: string[];
   onToggleOrderBump?: (id: string) => void;
+
+  /** Callbacks e estados para Cross-Sells */
+  crossSells?: any[];
+  selectedCrossSells?: string[];
+  onToggleCrossSell?: (id: string) => void;
 }
 
 // ============================================================

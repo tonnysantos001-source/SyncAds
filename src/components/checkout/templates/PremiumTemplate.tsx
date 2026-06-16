@@ -27,6 +27,7 @@ import { NoticeBar } from '@/components/checkout/NoticeBar';
 import { useCepLookup } from '@/hooks/useCepLookup';
 import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
+import { CrossSellCard } from '@/components/checkout/CrossSellCard';
 import {
   formatCEP,
   formatCPFCNPJ,
@@ -674,6 +675,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   isPreview = false, isMobile = false, onPaymentSuccess,
   onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
   orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
+  crossSells = [], selectedCrossSells = [], onToggleCrossSell,
 }) => {
   // ── Configurações visuais ──────────────────────────────────
   const primaryColor = checkoutConfig?.buttons.primaryBg ?? (theme.primaryColor as string) ?? '#10B981';
@@ -901,6 +903,26 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                         onToggle={onToggleOrderBump || (() => {})}
                       />
                     ))}
+                  </div>
+                )}
+
+                {/* CROSS-SELLS */}
+                {crossSells && crossSells.length > 0 && (
+                  <div className="mb-6 space-y-4">
+                    <h3 className="font-semibold text-[17px] text-[#222222]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                      🔥 Aproveite e compre junto!
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {crossSells.map((product) => (
+                        <CrossSellCard
+                          key={product.id}
+                          product={product}
+                          selected={selectedCrossSells.includes(product.id)}
+                          onToggle={() => onToggleCrossSell && onToggleCrossSell(product.id)}
+                          primaryColor={primaryColor}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
 

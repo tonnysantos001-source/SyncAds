@@ -28,6 +28,7 @@ import { useCepLookup } from '@/hooks/useCepLookup';
 import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
+import { CrossSellCard } from '@/components/checkout/CrossSellCard';
 import {
   fmtBRL, formatCEP, formatCPFCNPJ, formatPhone, formatCardNumber, formatExpiry,
   validateCPFCNPJ, validateEmail, validatePhone, validateCEP,
@@ -625,7 +626,10 @@ const DesktopOrderPanel: React.FC<{
   orderBumps?: any[];
   selectedOrderBumps?: string[];
   onToggleOrderBump?: (id: string) => void;
-}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump }) => {
+  crossSells?: any[];
+  selectedCrossSells?: string[];
+  onToggleCrossSell?: (id: string) => void;
+}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell }) => {
   const [payMethod, setPayMethod] = useState('pix');
   const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
   const [loading, setLoading] = useState(false);
@@ -827,6 +831,24 @@ const DesktopOrderPanel: React.FC<{
         </div>
       )}
 
+      {/* CROSS-SELLS */}
+      {crossSells && crossSells.length > 0 && (
+        <div className="border-b border-gray-100 px-5 py-4 space-y-3 bg-gray-50/50">
+          <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">🔥 Aproveite e compre junto</h4>
+          <div className="grid grid-cols-1 gap-2.5">
+            {crossSells.map((product: any) => (
+              <CrossSellCard
+                key={product.id}
+                product={product}
+                selected={selectedCrossSells?.includes(product.id)}
+                onToggle={() => onToggleCrossSell && onToggleCrossSell(product.id)}
+                primaryColor={primaryColor}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Discount */}
       {discount > 0 && (
         <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100">
@@ -937,7 +959,10 @@ const MobileContactPaymentCard: React.FC<{
   orderBumps?: any[];
   selectedOrderBumps?: string[];
   onToggleOrderBump?: (id: string) => void;
-}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump }) => {
+  crossSells?: any[];
+  selectedCrossSells?: string[];
+  onToggleCrossSell?: (id: string) => void;
+}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell }) => {
   const [payMethod, setPayMethod] = useState('pix');
   const [cardData, setCardData] = useState<CardState>(emptyCard());
   const [contact, setContact] = useState<ContactState>(emptyContact());
@@ -1051,6 +1076,24 @@ const MobileContactPaymentCard: React.FC<{
               onToggle={onToggleOrderBump || (() => {})}
             />
           ))}
+        </div>
+      )}
+
+      {/* CROSS-SELLS */}
+      {crossSells && crossSells.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden px-5 py-4 space-y-3">
+          <h4 className="text-sm font-semibold text-gray-700">🔥 Aproveite e compre junto</h4>
+          <div className="grid grid-cols-1 gap-2.5">
+            {crossSells.map((product: any) => (
+              <CrossSellCard
+                key={product.id}
+                product={product}
+                selected={selectedCrossSells?.includes(product.id)}
+                onToggle={() => onToggleCrossSell && onToggleCrossSell(product.id)}
+                primaryColor={primaryColor}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -1197,6 +1240,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   isMobile = false, onPaymentSuccess,
   onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
   orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
+  crossSells = [], selectedCrossSells = [], onToggleCrossSell,
 }) => {
   // Resolve: store (novo) > theme (legado)
   const primaryColor =
@@ -1289,6 +1333,22 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                   onToggle={onToggleOrderBump || (() => {})}
                 />
               ))}
+              {crossSells && crossSells.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">🔥 Aproveite e compre junto</h4>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {crossSells.map(product => (
+                      <CrossSellCard
+                        key={product.id}
+                        product={product}
+                        selected={selectedCrossSells.includes(product.id)}
+                        onToggle={() => onToggleCrossSell && onToggleCrossSell(product.id)}
+                        primaryColor={primaryColor}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {/* RIGHT: Order Summary */}
             <div className="sticky top-4">
@@ -1307,6 +1367,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                 orderBumps={orderBumps}
                 selectedOrderBumps={selectedOrderBumps}
                 onToggleOrderBump={onToggleOrderBump}
+                crossSells={crossSells}
+                selectedCrossSells={selectedCrossSells}
+                onToggleCrossSell={onToggleCrossSell}
               />
             </div>
           </div>
@@ -1339,6 +1402,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             orderBumps={orderBumps}
             selectedOrderBumps={selectedOrderBumps}
             onToggleOrderBump={onToggleOrderBump}
+            crossSells={crossSells}
+            selectedCrossSells={selectedCrossSells}
+            onToggleCrossSell={onToggleCrossSell}
           />
         </main>
       )}
