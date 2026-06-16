@@ -721,30 +721,145 @@ const AllProductsPage = () => {
         <DialogContent className="max-w-2xl">
           {(() => {
             const isShopifyProduct = !!editingProduct?.metadata?.shopifyId;
+            const shopifyImages = editingProduct?.metadata?.images || [];
+            const imageUrl =
+              shopifyImages.length > 0
+                ? shopifyImages[0]?.src || shopifyImages[0]
+                : null;
+
+            if (isShopifyProduct && editingProduct) {
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      <ShoppingBag className="h-5 w-5 text-purple-500" />
+                      Visualizar Produto Shopify
+                    </DialogTitle>
+                    <DialogDescription className="dark:text-gray-400">
+                      Detalhes do produto sincronizado da Shopify
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-6 py-4">
+                    {/* Top Header/Product Title and Image */}
+                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={editingProduct.name}
+                          className="w-24 h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-800 shadow-md bg-white/5"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl flex items-center justify-center border border-purple-500/20">
+                          <Package className="h-10 w-10 text-purple-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold px-2 py-0.5">
+                            Shopify
+                          </Badge>
+                          <Badge className={
+                            editingProduct.status === "ACTIVE"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                              : editingProduct.status === "DRAFT"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                                : "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20 hover:bg-gray-500/20"
+                          }>
+                            {editingProduct.status === "ACTIVE" ? "Ativo" : editingProduct.status === "DRAFT" ? "Rascunho" : "Arquivado"}
+                          </Badge>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                          {editingProduct.name}
+                        </h2>
+                        {editingProduct.sku && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">SKU:</span> {editingProduct.sku}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Info Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Preço Card */}
+                      <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/60">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Preço Shopify</p>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          {formatCurrency(editingProduct.price)}
+                        </p>
+                        {editingProduct.comparePrice && editingProduct.comparePrice > editingProduct.price && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 line-through mt-0.5">
+                            {formatCurrency(editingProduct.comparePrice)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Estoque Card */}
+                      <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/60">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Estoque</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {editingProduct.stock} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">un.</span>
+                        </p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                          Sincronizado Shopify
+                        </p>
+                      </div>
+
+                      {/* Shopify ID Card */}
+                      <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/60">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">ID Shopify</p>
+                        <p className="text-sm font-mono font-medium text-gray-600 dark:text-gray-300 truncate mt-2" title={editingProduct.metadata?.shopifyId}>
+                          {editingProduct.metadata?.shopifyId || "Integrado"}
+                        </p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                          Sincronização Ativa
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Descrição */}
+                    {editingProduct.description && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Descrição do Produto
+                        </h4>
+                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/60 max-h-40 overflow-y-auto">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {editingProduct.description}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Fechar
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            }
+
             return (
               <>
                 <DialogHeader>
                   <DialogTitle>
-                    {editingProduct ? (isShopifyProduct ? "Visualizar Produto Shopify" : "Editar Produto") : "Novo Produto"}
+                    {editingProduct ? "Editar Produto" : "Novo Produto"}
                   </DialogTitle>
                   <DialogDescription>
                     {editingProduct
-                      ? (isShopifyProduct ? "Detalhes do produto sincronizado do Shopify" : "Atualize as informações do produto")
+                      ? "Atualize as informações do produto"
                       : "Adicione um novo produto ao catálogo"}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                   <div className="grid gap-4 py-4">
-                    {isShopifyProduct && (
-                      <Alert className="mb-2 bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
-                        <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <AlertTitle className="font-semibold text-sm">Produto Integrado com a Shopify</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          Este produto é gerenciado pela Shopify. Para evitar erros e divergências de checkout, as alterações de preço, estoque e outros dados devem ser realizadas diretamente no painel da Shopify.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
                     <div className="grid gap-2">
                       <Label htmlFor="name">Nome do Produto *</Label>
                       <Input
@@ -754,7 +869,6 @@ const AllProductsPage = () => {
                           setFormData({ ...formData, name: e.target.value })
                         }
                         required
-                        disabled={isShopifyProduct}
                       />
                     </div>
 
@@ -767,7 +881,6 @@ const AllProductsPage = () => {
                           setFormData({ ...formData, description: e.target.value })
                         }
                         rows={3}
-                        disabled={isShopifyProduct}
                       />
                     </div>
 
@@ -786,7 +899,6 @@ const AllProductsPage = () => {
                             })
                           }
                           required
-                          disabled={isShopifyProduct}
                         />
                       </div>
 
@@ -803,7 +915,6 @@ const AllProductsPage = () => {
                               comparePrice: parseFloat(e.target.value),
                             })
                           }
-                          disabled={isShopifyProduct}
                         />
                       </div>
                     </div>
@@ -817,7 +928,6 @@ const AllProductsPage = () => {
                           onChange={(e) =>
                             setFormData({ ...formData, sku: e.target.value })
                           }
-                          disabled={isShopifyProduct}
                         />
                       </div>
 
@@ -834,7 +944,6 @@ const AllProductsPage = () => {
                             })
                           }
                           required
-                          disabled={isShopifyProduct}
                         />
                       </div>
                     </div>
@@ -846,7 +955,6 @@ const AllProductsPage = () => {
                         onValueChange={(value: "DRAFT" | "ACTIVE" | "ARCHIVED") =>
                           setFormData({ ...formData, status: value })
                         }
-                        disabled={isShopifyProduct}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -866,13 +974,11 @@ const AllProductsPage = () => {
                       variant="outline"
                       onClick={() => setIsDialogOpen(false)}
                     >
-                      {isShopifyProduct ? "Fechar" : "Cancelar"}
+                      Cancelar
                     </Button>
-                    {!isShopifyProduct && (
-                      <Button type="submit">
-                        {editingProduct ? "Atualizar" : "Criar"} Produto
-                      </Button>
-                    )}
+                    <Button type="submit">
+                      {editingProduct ? "Atualizar" : "Criar"} Produto
+                    </Button>
                   </DialogFooter>
                 </form>
               </>
