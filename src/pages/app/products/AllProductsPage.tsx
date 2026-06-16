@@ -110,8 +110,10 @@ const AllProductsPage = () => {
   // Estatísticas
   const stats = {
     total: totalCount,
-    active: products.filter((p) => p.status === "ACTIVE").length,
-    totalValue: products.reduce((sum, p) => sum + p.price * p.stock, 0),
+    active: (products || []).filter((p) => p.status === "ACTIVE").length,
+    totalValue: (products || [])
+      .filter((p) => p.status === "ACTIVE")
+      .reduce((sum, p) => sum + (Number(p.price) || 0), 0),
   };
 
   useEffect(() => {
@@ -422,7 +424,7 @@ const AllProductsPage = () => {
                 {formatCurrency(stats.totalValue)}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Estoque valorizado
+                Soma dos preços ativos
               </p>
             </CardContent>
           </Card>
@@ -717,139 +719,165 @@ const AllProductsPage = () => {
       {/* Add/Edit Product Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Editar Produto" : "Novo Produto"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingProduct
-                ? "Atualize as informações do produto"
-                : "Adicione um novo produto ao catálogo"}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nome do Produto *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
+          {(() => {
+            const isShopifyProduct = !!editingProduct?.metadata?.shopifyId;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProduct ? (isShopifyProduct ? "Visualizar Produto Shopify" : "Editar Produto") : "Novo Produto"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingProduct
+                      ? (isShopifyProduct ? "Detalhes do produto sincronizado do Shopify" : "Atualize as informações do produto")
+                      : "Adicione um novo produto ao catálogo"}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                  <div className="grid gap-4 py-4">
+                    {isShopifyProduct && (
+                      <Alert className="mb-2 bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
+                        <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <AlertTitle className="font-semibold text-sm">Produto Integrado com a Shopify</AlertTitle>
+                        <AlertDescription className="text-xs">
+                          Este produto é gerenciado pela Shopify. Para evitar erros e divergências de checkout, as alterações de preço, estoque e outros dados devem ser realizadas diretamente no painel da Shopify.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-              <div className="grid gap-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  rows={3}
-                />
-              </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Nome do Produto *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        required
+                        disabled={isShopifyProduct}
+                      />
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="price">Preço *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        price: parseFloat(e.target.value),
-                      })
-                    }
-                    required
-                  />
-                </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="description">Descrição</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value })
+                        }
+                        rows={3}
+                        disabled={isShopifyProduct}
+                      />
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="comparePrice">Preço Comparação</Label>
-                  <Input
-                    id="comparePrice"
-                    type="number"
-                    step="0.01"
-                    value={formData.comparePrice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        comparePrice: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="price">Preço *</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              price: parseFloat(e.target.value),
+                            })
+                          }
+                          required
+                          disabled={isShopifyProduct}
+                        />
+                      </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sku: e.target.value })
-                    }
-                  />
-                </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="comparePrice">Preço Comparação</Label>
+                        <Input
+                          id="comparePrice"
+                          type="number"
+                          step="0.01"
+                          value={formData.comparePrice}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              comparePrice: parseFloat(e.target.value),
+                            })
+                          }
+                          disabled={isShopifyProduct}
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="stock">Estoque *</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        stock: parseInt(e.target.value),
-                      })
-                    }
-                    required
-                  />
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="sku">SKU</Label>
+                        <Input
+                          id="sku"
+                          value={formData.sku}
+                          onChange={(e) =>
+                            setFormData({ ...formData, sku: e.target.value })
+                          }
+                          disabled={isShopifyProduct}
+                        />
+                      </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: "DRAFT" | "ACTIVE" | "ARCHIVED") =>
-                    setFormData({ ...formData, status: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Ativo</SelectItem>
-                    <SelectItem value="DRAFT">Rascunho</SelectItem>
-                    <SelectItem value="ARCHIVED">Arquivado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="stock">Estoque *</Label>
+                        <Input
+                          id="stock"
+                          type="number"
+                          value={formData.stock}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              stock: parseInt(e.target.value),
+                            })
+                          }
+                          required
+                          disabled={isShopifyProduct}
+                        />
+                      </div>
+                    </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {editingProduct ? "Atualizar" : "Criar"} Produto
-              </Button>
-            </DialogFooter>
-          </form>
+                    <div className="grid gap-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value: "DRAFT" | "ACTIVE" | "ARCHIVED") =>
+                          setFormData({ ...formData, status: value })
+                        }
+                        disabled={isShopifyProduct}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">Ativo</SelectItem>
+                          <SelectItem value="DRAFT">Rascunho</SelectItem>
+                          <SelectItem value="ARCHIVED">Arquivado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      {isShopifyProduct ? "Fechar" : "Cancelar"}
+                    </Button>
+                    {!isShopifyProduct && (
+                      <Button type="submit">
+                        {editingProduct ? "Atualizar" : "Criar"} Produto
+                      </Button>
+                    )}
+                  </DialogFooter>
+                </form>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
