@@ -149,18 +149,94 @@ const LeadsPage = () => {
     try {
       toast({
         title: "Preparando download...",
-        description: "Buscando todos os leads para exportação.",
+        description: "Carregando base de leads completa para exportação.",
       });
 
-      const { data: allLeads, error } = await supabase
-        .from("Lead")
-        .select("*")
-        .eq("userId", user.id)
-        .order("createdAt", { ascending: false });
+      const [leadsRes, abandonedRes, shopifyAbandonedRes, ordersRes] = await Promise.all([
+        supabase.from('Lead').select('*').eq('userId', user.id),
+        supabase.from('AbandonedCart').select('*').eq('userId', user.id),
+        supabase.from('ShopifyAbandonedCart').select('*').eq('userId', user.id),
+        supabase.from('Order').select('*').eq('userId', user.id),
+      ]);
 
-      if (error) throw error;
+      if (leadsRes.error) throw leadsRes.error;
 
-      if (!allLeads || allLeads.length === 0) {
+      const dbLeads = leadsRes.data || [];
+      const dbAbandoned = abandonedRes.data || [];
+      const dbShopifyAbandoned = shopifyAbandonedRes.data || [];
+      const dbOrders = (ordersRes.data || []).filter(o => o.paymentStatus !== 'PAID');
+
+      const leadMap = new Map<string, any>();
+
+      for (const l of dbLeads) {
+        if (!l.email) continue;
+        const emailKey = l.email.toLowerCase().trim();
+        leadMap.set(emailKey, {
+          name: l.name || '',
+          email: l.email,
+          phone: l.phone || null,
+          source: l.source || 'Manual',
+          status: l.status || 'NEW',
+          createdAt: l.createdAt || new Date().toISOString(),
+        });
+      }
+
+      for (const a of dbAbandoned) {
+        if (!a.email) continue;
+        const emailKey = a.email.toLowerCase().trim();
+        if (!leadMap.has(emailKey)) {
+          leadMap.set(emailKey, {
+            name: a.customerName || 'Lead de Abandono',
+            email: a.email,
+            phone: a.customerPhone || null,
+            source: 'Abandono de Checkout',
+            status: 'NEW',
+            createdAt: a.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      for (const sa of dbShopifyAbandoned) {
+        if (!sa.email) continue;
+        const emailKey = sa.email.toLowerCase().trim();
+        if (!leadMap.has(emailKey)) {
+          const customerName = sa.shopifyData?.customer
+            ? `${sa.shopifyData.customer.first_name || ''} ${sa.shopifyData.customer.last_name || ''}`.trim()
+            : 'Lead Shopify';
+          leadMap.set(emailKey, {
+            name: customerName || 'Lead Shopify',
+            email: sa.email,
+            phone: sa.phone || null,
+            source: 'Shopify Abandono',
+            status: 'NEW',
+            createdAt: sa.abandonedAt || sa.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      for (const o of dbOrders) {
+        if (!o.customerEmail) continue;
+        const emailKey = o.customerEmail.toLowerCase().trim();
+        const existing = leadMap.get(emailKey);
+
+        if (existing) {
+          if (!existing.name && o.customerName) existing.name = o.customerName;
+          if (!existing.phone && o.customerPhone) existing.phone = o.customerPhone;
+        } else {
+          leadMap.set(emailKey, {
+            name: o.customerName || 'Lead Pendente',
+            email: o.customerEmail,
+            phone: o.customerPhone || null,
+            source: o.paymentMethod ? `Checkout (${o.paymentMethod})` : 'Checkout Pendente',
+            status: 'NEW',
+            createdAt: o.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      const allLeadsList = Array.from(leadMap.values());
+
+      if (allLeadsList.length === 0) {
         toast({
           title: "Aviso",
           description: "Não há leads cadastrados para exportar.",
@@ -169,8 +245,10 @@ const LeadsPage = () => {
         return;
       }
 
+      allLeadsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
       const headers = ["Nome", "E-mail", "Telefone", "Origem", "Status", "Data de Cadastro"];
-      const rows = allLeads.map((lead) => [
+      const rows = allLeadsList.map((lead) => [
         lead.name || "",
         lead.email || "",
         lead.phone || "",
