@@ -22,6 +22,12 @@ interface CheckoutSummaryPanelProps {
   collapsibleOnMobile?: boolean;
   totalPrefix?: string;
   totalColor?: string;
+
+  // Props de cupom
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  appliedCouponCode?: string;
+  couponError?: string;
 }
 
 // Produto de preview
@@ -37,10 +43,45 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   collapsibleOnMobile = false,
   totalPrefix,
   totalColor,
+  onApplyCoupon,
+  onRemoveCoupon,
+  appliedCouponCode,
+  couponError,
 }) => {
-  const [couponCode, setCouponCode]     = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponCode, setCouponCode]     = useState(appliedCouponCode || '');
+  const [loading, setLoading]           = useState(false);
+  const [localError, setLocalError]     = useState('');
   const [isExpanded, setIsExpanded]       = useState(() => (checkoutConfig?.cart.display ?? 'open') !== 'closed');
+
+  // Sincronizar se appliedCouponCode mudar
+  React.useEffect(() => {
+    if (appliedCouponCode) {
+      setCouponCode(appliedCouponCode);
+    } else {
+      setCouponCode('');
+    }
+  }, [appliedCouponCode]);
+
+  const handleApply = async () => {
+    if (!couponCode) return;
+    setLoading(true);
+    setLocalError('');
+    if (onApplyCoupon) {
+      const res = await onApplyCoupon(couponCode);
+      if (!res.success) {
+        setLocalError(res.error || 'Erro ao aplicar cupom');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleRemove = () => {
+    setCouponCode('');
+    setLocalError('');
+    if (onRemoveCoupon) {
+      onRemoveCoupon();
+    }
+  };
 
   const products = checkoutData?.products ?? (isPreview ? PREVIEW_PRODUCTS : []);
   const subtotal  = checkoutData?.subtotal ?? (isPreview ? 197.00 : 0);
@@ -117,58 +158,72 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
               {/* Campo de cupom */}
-              {couponEnabled && !couponApplied ? (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <Tag
+              {couponEnabled && !appliedCouponCode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <Tag
+                        style={{
+                          position: 'absolute', left: '10px', top: '50%',
+                          transform: 'translateY(-50%)', width: '14px', height: '14px', color: '#9CA3AF',
+                        }}
+                      />
+                      <input
+                        style={{
+                          width: '100%',
+                          height: '38px',
+                          paddingLeft: '30px',
+                          paddingRight: '10px',
+                          borderRadius: '7px',
+                          border: `1px solid ${(theme.inputBorderColor as string) || cartBorderColor}`,
+                          backgroundColor: (theme.inputBackgroundColor as string) || '#fff',
+                          fontSize: '13px',
+                          color: '#111827',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                        placeholder="Código de desconto"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApply}
+                      disabled={loading || !couponCode}
                       style={{
-                        position: 'absolute', left: '10px', top: '50%',
-                        transform: 'translateY(-50%)', width: '14px', height: '14px', color: '#9CA3AF',
-                      }}
-                    />
-                    <input
-                      style={{
-                        width: '100%',
                         height: '38px',
-                        paddingLeft: '30px',
-                        paddingRight: '10px',
+                        paddingLeft: '14px',
+                        paddingRight: '14px',
+                        backgroundColor: primaryColor,
+                        color: '#fff',
+                        border: 'none',
                         borderRadius: '7px',
-                        border: `1px solid ${(theme.inputBorderColor as string) || cartBorderColor}`,
-                        backgroundColor: (theme.inputBackgroundColor as string) || '#fff',
                         fontSize: '13px',
-                        color: '#111827',
-                        outline: 'none',
-                        boxSizing: 'border-box',
+                        fontWeight: '600',
+                        cursor: loading || !couponCode ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'opacity 0.15s',
+                        opacity: loading || !couponCode ? 0.6 : 1,
                       }}
-                      placeholder="Código de desconto"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                    />
+                      onMouseOver={(e) => {
+                        if (!loading && couponCode) e.currentTarget.style.opacity = '0.85';
+                      }}
+                      onMouseOut={(e) => {
+                        if (!loading && couponCode) e.currentTarget.style.opacity = '1';
+                      }}
+                    >
+                      {loading ? 'Aplicando...' : 'Aplicar'}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => couponCode && setCouponApplied(true)}
-                    style={{
-                      height: '38px',
-                      paddingLeft: '14px',
-                      paddingRight: '14px',
-                      backgroundColor: primaryColor,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '7px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'opacity 0.15s',
-                    }}
-                    onMouseOver={(e) => (e.currentTarget.style.opacity = '0.85')}
-                    onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
-                  >
-                    Aplicar
-                  </button>
+                  {(localError || couponError) && (
+                    <span style={{ fontSize: '12px', color: '#ef4444', marginLeft: '2px' }}>
+                      {localError || couponError}
+                    </span>
+                  )}
                 </div>
-              ) : (
+              ) : couponEnabled && (
                 <div
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -178,11 +233,11 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#16a34a' }}>
                     <Tag style={{ width: '14px', height: '14px' }} />
-                    <span style={{ fontWeight: '600' }}>{couponCode}</span>
+                    <span style={{ fontWeight: '600' }}>{appliedCouponCode}</span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setCouponApplied(false); setCouponCode(''); }}
+                    onClick={handleRemove}
                     style={{ background: 'none', border: 'none', fontSize: '12px', color: '#ef4444', cursor: 'pointer' }}
                   >
                     Remover

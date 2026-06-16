@@ -457,11 +457,49 @@ const MethodItem: React.FC<MethodItemProps> = ({
 
 const SummaryPanelContent = ({
   checkoutData, totalPrefix, primaryColor,
+  onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
 }: {
   checkoutData?: TemplateRenderProps['checkoutData'];
   totalPrefix: string;
   primaryColor: string;
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  appliedCouponCode?: string;
+  couponError?: string;
 }) => {
+  const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    if (appliedCouponCode) {
+      setCouponCode(appliedCouponCode);
+    } else {
+      setCouponCode('');
+    }
+  }, [appliedCouponCode]);
+
+  const handleApply = async () => {
+    if (!couponCode) return;
+    setLoading(true);
+    setLocalError('');
+    if (onApplyCoupon) {
+      const res = await onApplyCoupon(couponCode);
+      if (!res.success) {
+        setLocalError(res.error || 'Erro ao aplicar cupom');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleRemove = () => {
+    setCouponCode('');
+    setLocalError('');
+    if (onRemoveCoupon) {
+      onRemoveCoupon();
+    }
+  };
+
   const products = checkoutData?.products?.filter((p: any) => p.id !== 'shipping') ?? [];
   const subtotal = checkoutData?.subtotal ?? checkoutData?.total ?? 0;
   const shipping = checkoutData?.shipping ?? 0;
@@ -469,7 +507,49 @@ const SummaryPanelContent = ({
   const total = checkoutData?.total ?? 0;
 
   return (
-    <div className="w-full min-w-0 pt-0 lg:pt-[10px] rounded-xl font-inter">
+    <div className="w-full min-w-0 pt-0 lg:pt-[10px] rounded-xl font-inter space-y-4">
+      {/* Bloco de Cupom de Desconto */}
+      <div className="pb-3 border-b border-gray-200">
+        {!appliedCouponCode ? (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                placeholder="Código de desconto"
+                disabled={loading}
+                className="flex-1 border border-gray-200 rounded-lg h-10 px-3 text-xs focus:outline-none focus:border-gray-400 bg-white"
+              />
+              <button
+                type="button"
+                onClick={handleApply}
+                disabled={loading || !couponCode}
+                className="px-4 h-10 rounded-lg text-xs font-semibold text-white transition-opacity disabled:opacity-60"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {loading ? 'Aplicando...' : 'Aplicar'}
+              </button>
+            </div>
+            {(localError || couponError) && (
+              <span className="text-[11px] text-red-500 ml-1">
+                {localError || couponError}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2 px-3">
+            <span className="text-xs font-bold text-green-600 uppercase tracking-wider">🎟️ {appliedCouponCode}</span>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="text-xs font-semibold text-red-500 hover:text-red-600"
+            >
+              Remover
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="mb-5 flex flex-col gap-5">
         {products.length === 0 ? (
           <div className="flex gap-4">
@@ -534,10 +614,17 @@ const SummaryPanelContent = ({
 // COMPONENTE: MOBILE SUMMARY ACCORDION
 // ============================================================
 
-const MobileSummaryAccordion = ({ checkoutData, totalPrefix, primaryColor }: {
+const MobileSummaryAccordion = ({
+  checkoutData, totalPrefix, primaryColor,
+  onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
+}: {
   checkoutData?: TemplateRenderProps['checkoutData'];
   totalPrefix: string;
   primaryColor: string;
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  appliedCouponCode?: string;
+  couponError?: string;
 }) => {
   const [open, setOpen] = useState(false);
   const total = checkoutData?.total ?? 0;
@@ -560,7 +647,15 @@ const MobileSummaryAccordion = ({ checkoutData, totalPrefix, primaryColor }: {
             className="overflow-hidden"
           >
             <div className="px-4 pb-6 pt-2">
-              <SummaryPanelContent checkoutData={checkoutData} totalPrefix={totalPrefix} primaryColor={primaryColor} />
+              <SummaryPanelContent
+                checkoutData={checkoutData}
+                totalPrefix={totalPrefix}
+                primaryColor={primaryColor}
+                onApplyCoupon={onApplyCoupon}
+                onRemoveCoupon={onRemoveCoupon}
+                appliedCouponCode={appliedCouponCode}
+                couponError={couponError}
+              />
             </div>
           </motion.div>
         )}
@@ -576,6 +671,7 @@ const MobileSummaryAccordion = ({ checkoutData, totalPrefix, primaryColor }: {
 const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, checkoutConfig, templateConfig,
   isPreview = false, isMobile = false, onPaymentSuccess,
+  onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
 }) => {
   // ── Configurações visuais ──────────────────────────────────
   const primaryColor = checkoutConfig?.buttons.primaryBg ?? (theme.primaryColor as string) ?? '#10B981';
@@ -743,7 +839,15 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
 
       {/* Mobile: Accordion Resumo */}
       {isMobile && (
-        <MobileSummaryAccordion checkoutData={checkoutData} totalPrefix={totalPrefix} primaryColor={primaryColor} />
+        <MobileSummaryAccordion
+          checkoutData={checkoutData}
+          totalPrefix={totalPrefix}
+          primaryColor={primaryColor}
+          onApplyCoupon={onApplyCoupon}
+          onRemoveCoupon={onRemoveCoupon}
+          appliedCouponCode={appliedCouponCode}
+          couponError={couponError}
+        />
       )}
 
       <main className="flex-1 flex flex-col items-start min-w-0 overflow-x-hidden">
@@ -869,7 +973,15 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
               <div className="flex pt-6 pb-6 w-full min-w-0 min-h-full self-stretch justify-start" style={{ backgroundColor: '#F9FAFB', paddingLeft: '38px', paddingRight: '38px' }}>
                 <div className="w-full max-w-[480px]">
                   <div className="sticky top-6 w-full min-w-0">
-                    <SummaryPanelContent checkoutData={checkoutData} totalPrefix={totalPrefix} primaryColor={primaryColor} />
+                    <SummaryPanelContent
+                      checkoutData={checkoutData}
+                      totalPrefix={totalPrefix}
+                      primaryColor={primaryColor}
+                      onApplyCoupon={onApplyCoupon}
+                      onRemoveCoupon={onRemoveCoupon}
+                      appliedCouponCode={appliedCouponCode}
+                      couponError={couponError}
+                    />
                   </div>
                 </div>
               </div>

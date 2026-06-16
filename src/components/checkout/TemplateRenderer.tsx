@@ -163,6 +163,10 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   onUpdateTheme,
   customization,
   isMobile = false,
+  onApplyCoupon,
+  onRemoveCoupon,
+  appliedCouponCode,
+  couponError,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -284,6 +288,10 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     isMobile,
     // Extrai primaryColor do config tipado para fácil acesso nos templates
     primaryColor: checkoutConfig.buttons.primaryBg,
+    onApplyCoupon,
+    onRemoveCoupon,
+    appliedCouponCode,
+    couponError,
   };
 
   // ------------------------------------------------------------------

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import {
   ShieldCheck, ChevronDown, ChevronUp,
   Package, User, Plus, Minus, Camera, Loader2, X as XIcon, Lock,
-  CheckCircle2, AlertCircle, CreditCard,
+  CheckCircle2, AlertCircle, CreditCard, Tag,
 } from 'lucide-react';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import { supabase } from '@/lib/supabase';
@@ -617,15 +617,49 @@ const DesktopOrderPanel: React.FC<{
   isPreview: boolean; orderId: string; onSuccess?: (id: string) => void; templateSlug: string;
   contact: ContactState; address: AddressState; cpf: string;
   onFormError?: (errors: FormErrors) => void;
-}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError }) => {
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  appliedCouponCode?: string;
+  couponError?: string;
+}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError }) => {
   const [payMethod, setPayMethod] = useState('pix');
-  const [coupon, setCoupon] = useState('');
+  const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [qtys, setQtys] = useState<Record<string, number>>({});
   const [cardData, setCardData] = useState<CardState>(emptyCard());
   const [cardErrors, setCardErrors] = useState<FormErrors>({});
-  const [localError, setLocalError] = useState<string | null>(null);
   const [paySuccess, setPaySuccess] = useState(false);
+
+  useEffect(() => {
+    if (appliedCouponCode) {
+      setCouponCode(appliedCouponCode);
+    } else {
+      setCouponCode('');
+    }
+  }, [appliedCouponCode]);
+
+  const handleApply = async () => {
+    if (!couponCode) return;
+    setLoading(true);
+    setLocalError('');
+    if (onApplyCoupon) {
+      const res = await onApplyCoupon(couponCode);
+      if (!res.success) {
+        setLocalError(res.error || 'Erro ao aplicar cupom');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleRemove = () => {
+    setCouponCode('');
+    setLocalError('');
+    if (onRemoveCoupon) {
+      onRemoveCoupon();
+    }
+  };
 
   const products: any[] = checkoutData?.products || [];
   const subtotal = products.reduce((s, p) => s + (p.price ?? 0) * (qtys[p.id] ?? p.quantity ?? 1), 0) || 119.90;
@@ -778,16 +812,49 @@ const DesktopOrderPanel: React.FC<{
       )}
 
       {/* Coupon */}
-      <div className="border-b border-gray-100">
-        <div className="px-5 py-3 flex items-center justify-between">
-          <span className="text-sm text-gray-600">Não usar cupons</span>
-          <div className="w-5 h-5 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#d1d5db' }} />
+      <div className="border-b border-gray-100 px-5 py-3.5 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <Tag className="w-4 h-4 text-gray-500" />
+          <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Cupom de Desconto</span>
         </div>
-        <div className="px-5 pb-3 flex gap-2">
-          <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="Adicionar cupom de desconto"
-            className="flex-1 border border-gray-200 rounded-xl h-10 px-3 text-xs focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 bg-white" />
-          <button className="px-4 h-10 rounded-xl text-xs font-bold flex-shrink-0 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">Aplicar</button>
-        </div>
+        {!appliedCouponCode ? (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                placeholder="Código de desconto"
+                disabled={loading}
+                className="flex-1 border border-gray-200 rounded-xl h-10 px-3 text-xs focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 bg-white"
+              />
+              <button
+                type="button"
+                onClick={handleApply}
+                disabled={loading || !couponCode}
+                className="px-4 h-10 rounded-xl text-xs font-bold text-white transition-opacity disabled:opacity-60"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {loading ? 'Aplicando...' : 'Aplicar'}
+              </button>
+            </div>
+            {(localError || couponError) && (
+              <span className="text-[10px] text-red-500 ml-1">
+                {localError || couponError}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-2 px-3">
+            <span className="text-xs font-bold text-green-600 uppercase tracking-wider">{appliedCouponCode}</span>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="text-xs font-semibold text-red-500 hover:text-red-600"
+            >
+              Remover
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Totals */}
@@ -989,11 +1056,100 @@ const MobileDiscountRow: React.FC<{ discount: number; primaryColor: string }> = 
   );
 };
 
+// ─── MOBILE COUPON ROW ────────────────────────────────────────────────────────
+
+const MobileCouponRow: React.FC<{
+  appliedCouponCode?: string;
+  couponError?: string;
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  primaryColor: string;
+}> = ({ appliedCouponCode, couponError, onApplyCoupon, onRemoveCoupon, primaryColor }) => {
+  const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    if (appliedCouponCode) {
+      setCouponCode(appliedCouponCode);
+    } else {
+      setCouponCode('');
+    }
+  }, [appliedCouponCode]);
+
+  const handleApply = async () => {
+    if (!couponCode) return;
+    setLoading(true);
+    setLocalError('');
+    if (onApplyCoupon) {
+      const res = await onApplyCoupon(couponCode);
+      if (!res.success) {
+        setLocalError(res.error || 'Erro ao aplicar cupom');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleRemove = () => {
+    setCouponCode('');
+    setLocalError('');
+    if (onRemoveCoupon) {
+      onRemoveCoupon();
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-4 space-y-2.5">
+      <div className="flex items-center gap-1.5 pb-1 border-b border-gray-50">
+        <Tag className="w-3.5 h-3.5 text-gray-500" />
+        <span className="text-xs font-semibold text-gray-700">Cupom de Desconto</span>
+      </div>
+      {!appliedCouponCode ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2">
+            <input
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value)}
+              placeholder="Adicionar cupom"
+              disabled={loading}
+              className="flex-1 border border-gray-200 rounded-xl h-10 px-3 text-xs focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 bg-white"
+            />
+            <button
+              onClick={handleApply}
+              disabled={loading || !couponCode}
+              className="px-4 h-10 rounded-xl text-xs font-bold text-white transition-opacity disabled:opacity-60"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {loading ? 'Aplicando...' : 'Aplicar'}
+            </button>
+          </div>
+          {(localError || couponError) && (
+            <span className="text-[10px] text-red-500 ml-1">
+              {localError || couponError}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-2 px-3">
+          <span className="text-xs font-bold text-green-600 uppercase tracking-wider">{appliedCouponCode}</span>
+          <button
+            onClick={handleRemove}
+            className="text-xs font-semibold text-red-500 hover:text-red-600"
+          >
+            Remover
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN TEMPLATE ────────────────────────────────────────────────────────────
 
 const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
   isMobile = false, onPaymentSuccess,
+  onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
 }) => {
   // Resolve: store (novo) > theme (legado)
   const primaryColor =
@@ -1087,6 +1243,10 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                 templateSlug={templateConfig.slug}
                 contact={contactData} address={addressData} cpf={cpfData}
                 onFormError={setFormErrors}
+                onApplyCoupon={onApplyCoupon}
+                onRemoveCoupon={onRemoveCoupon}
+                appliedCouponCode={appliedCouponCode}
+                couponError={couponError}
               />
             </div>
           </div>
@@ -1102,6 +1262,13 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
           <MobileProgressBar />
           <MobileSummaryRow checkoutData={checkoutData} primaryColor={primaryColor} />
           <MobileDiscountRow discount={discount} primaryColor={primaryColor} />
+          <MobileCouponRow
+            appliedCouponCode={appliedCouponCode}
+            couponError={couponError}
+            onApplyCoupon={onApplyCoupon}
+            onRemoveCoupon={onRemoveCoupon}
+            primaryColor={primaryColor}
+          />
 
           <MobileContactPaymentCard
             primaryColor={primaryColor} gradient={gradient} checkoutData={checkoutData}

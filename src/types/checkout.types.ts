@@ -219,6 +219,12 @@ export interface TemplateRenderProps {
 
   /** Step atual passado externamente (usado pelo MinimalTemplate para controle externo) */
   currentStep?: number;
+
+  /** Callbacks e estados para Cupons de Desconto */
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
+  onRemoveCoupon?: () => void;
+  appliedCouponCode?: string;
+  couponError?: string;
 }
 
 // ============================================================

@@ -143,9 +143,24 @@ const CouponsPage = () => {
 
     try {
       setLoading(true);
-      const data = await shopifyDiscountsApi.listFromShopify(user.id);
-      setCoupons(data);
-      setFilteredCoupons(data);
+      const [localData, shopifyData] = await Promise.all([
+        marketingApi.coupons.getAll(user.id).catch(() => []),
+        shopifyDiscountsApi.listFromShopify(user.id).catch(() => []),
+      ]);
+
+      const consolidated = [
+        ...localData.map((c) => ({
+          ...c,
+          isLocal: true,
+        })),
+        ...shopifyData.map((c) => ({
+          ...c,
+          isLocal: false,
+        })),
+      ];
+
+      setCoupons(consolidated);
+      setFilteredCoupons(consolidated);
     } catch (error: any) {
       console.error("Erro ao carregar cupons:", error);
       toast({
@@ -217,20 +232,34 @@ const CouponsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
+
+      const couponPayload = {
+        code: formData.code.toUpperCase().trim(),
+        name: formData.name,
+        type: formData.type,
+        value: Number(formData.value) || 0,
+        minPurchaseAmount: Number(formData.minPurchaseAmount) || 0,
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || 0,
+        usageLimit: formData.usageLimit ? Number(formData.usageLimit) : undefined,
+        perCustomerLimit: formData.perCustomerLimit ? Number(formData.perCustomerLimit) : undefined,
+        startsAt: formData.startsAt ? new Date(formData.startsAt).toISOString() : undefined,
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : undefined,
+        isActive: formData.isActive,
+        userId: user.id,
+      };
 
       if (editingCoupon) {
-        await marketingApi.coupons.update(editingCoupon.id, formData);
+        await marketingApi.coupons.update(editingCoupon.id, couponPayload);
         toast({
           title: "Cupom atualizado!",
           description: "As alterações foram salvas.",
         });
       } else {
         await marketingApi.coupons.create({
-          ...formData,
-          organizationId: user.organizationId,
+          ...couponPayload,
           usageCount: 0,
-        });
+        } as any);
         toast({
           title: "Cupom criado!",
           description: "O cupom está pronto para uso.",
@@ -705,12 +734,24 @@ const CouponsPage = () => {
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                             <Ticket className="h-5 w-5 text-white" />
                           </div>
-                          <span className="font-mono font-semibold">
-                            {coupon.code}
-                          </span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                            <span className="font-mono font-semibold">
+                              {coupon.code}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                coupon.isLocal
+                                  ? "text-blue-500 border-blue-500/20 bg-blue-500/5"
+                                  : "text-green-500 border-green-500/20 bg-green-500/5"
+                              }
+                            >
+                              {coupon.isLocal ? "Local" : "Shopify"}
+                            </Badge>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">

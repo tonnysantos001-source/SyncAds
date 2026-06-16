@@ -30,6 +30,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
+import { marketingApi } from "@/lib/api/marketingApi";
+import { shopifyDiscountsApi } from "@/lib/api/shopifyDiscounts";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
 import { cn } from "@/lib/utils";
@@ -198,6 +200,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [processing, setProcessing] = useState(false);
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string>("");
+  const [couponDiscount, setCouponDiscount] = useState<number>(0);
+  const [couponError, setCouponError] = useState<string>("");
   const [theme, setTheme] = useState<any>(DEFAULT_CHECKOUT_THEME);
   const [currentStep, setCurrentStep] = useState(1);
   const [storeData, setStoreData] = useState<any>({
@@ -534,6 +539,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       setCheckoutData(checkoutInfo);
       setOrderData(order);
 
+      if (order.couponCode) {
+        setAppliedCouponCode(order.couponCode);
+      }
+      if (order.couponDiscount) {
+        setCouponDiscount(Number(order.couponDiscount) || 0);
+      }
+
       console.log("🔍 [DEBUG] Verificando paymentMethod:", order.paymentMethod);
 
       // Definir método de pagamento padrão se estiver vazio ou inválido
@@ -655,8 +667,111 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       .reduce((total, bump) => total + Number(bump.price || 0), 0);
   };
 
-  const finalTotalWithBumps =
-    (checkoutData?.total || 0) + calculateOrderBumpsTotal();
+  const finalTotalWithBumps = Math.max(
+    0,
+    (checkoutData?.subtotal || 0) +
+      (checkoutData?.shipping || 0) +
+      calculateOrderBumpsTotal() -
+      (checkoutData?.discount || 0) -
+      couponDiscount
+  );
+
+  const handleApplyCoupon = async (code: string) => {
+    if (!code) {
+      setCouponError("Insira um código de cupom");
+      return { success: false, error: "Insira um código de cupom" };
+    }
+
+    const formattedCode = code.trim().toUpperCase();
+    const userId = orderData?.userId;
+
+    if (!userId) {
+      setCouponError("Erro de identificação do lojista");
+      return { success: false, error: "Erro de identificação do lojista" };
+    }
+
+    try {
+      // 1. Procurar cupom local
+      const localResult = await marketingApi.coupons.validate(formattedCode, userId);
+      
+      if (localResult.valid && localResult.coupon) {
+        const coupon = localResult.coupon;
+        let discountAmount = 0;
+        const subtotal = checkoutData?.subtotal || 0;
+        const shipping = checkoutData?.shipping || 0;
+
+        if (coupon.minPurchaseAmount && subtotal < coupon.minPurchaseAmount) {
+          const err = `Compra mínima de R$ ${coupon.minPurchaseAmount.toFixed(2)} necessária`;
+          setCouponError(err);
+          return { success: false, error: err };
+        }
+
+        if (coupon.type === "FREE_SHIPPING") {
+          discountAmount = shipping;
+        } else if (coupon.type === "PERCENTAGE") {
+          discountAmount = (subtotal * coupon.value) / 100;
+          if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
+            discountAmount = coupon.maxDiscountAmount;
+          }
+        } else if (coupon.type === "FIXED_AMOUNT") {
+          discountAmount = coupon.value;
+        }
+
+        const maxAllowed = subtotal + shipping;
+        discountAmount = Math.min(discountAmount, maxAllowed);
+
+        setAppliedCouponCode(formattedCode);
+        setCouponDiscount(discountAmount);
+        setCouponError("");
+        return { success: true, discountAmount };
+      }
+
+      if (localResult.error && localResult.error !== "Coupon not found") {
+        const err =
+          localResult.error === "Coupon is inactive"
+            ? "Cupom inativo"
+            : localResult.error === "Coupon not yet active"
+              ? "Cupom ainda não está ativo"
+              : localResult.error === "Coupon has expired"
+                ? "Cupom expirado"
+                : localResult.error === "Coupon usage limit reached"
+                  ? "Cupom esgotado"
+                  : localResult.error;
+        setCouponError(err);
+        return { success: false, error: err };
+      }
+
+      // 2. Tentar Shopify
+      const shopifyResult = await shopifyDiscountsApi.validateCode(userId, formattedCode);
+      if (shopifyResult.valid && shopifyResult.discount) {
+        const discount = shopifyResult.discount;
+        const subtotal = checkoutData?.subtotal || 0;
+        const shipping = checkoutData?.shipping || 0;
+        const discountAmount = shopifyDiscountsApi.calculateDiscount(discount, subtotal, shipping);
+
+        setAppliedCouponCode(formattedCode);
+        setCouponDiscount(discountAmount);
+        setCouponError("");
+        return { success: true, discountAmount };
+      } else if (shopifyResult.reason && shopifyResult.reason !== "Código não encontrado") {
+        setCouponError(shopifyResult.reason);
+        return { success: false, error: shopifyResult.reason };
+      }
+
+      setCouponError("Cupom inválido ou não encontrado");
+      return { success: false, error: "Cupom inválido ou não encontrado" };
+    } catch (e: any) {
+      console.error("Erro ao validar cupom:", e);
+      setCouponError("Erro ao validar cupom");
+      return { success: false, error: "Erro ao validar cupom" };
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCouponCode("");
+    setCouponDiscount(0);
+    setCouponError("");
+  };
 
   // ============================================
   // NAVEGAÇÃO
@@ -734,6 +849,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           customerCpf: getCPFNumbers(customerData.document),
           shippingAddress: addressData,
           paymentMethod: paymentMethod,
+          couponCode: appliedCouponCode || null,
+          couponDiscount: couponDiscount || null,
+          discount: (checkoutData.discount || 0) + couponDiscount,
+          total: finalTotalWithBumps,
           updatedAt: new Date().toISOString(),
         })
         .eq("id", orderId);
@@ -844,7 +963,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           orderId: orderId,
           gatewayId: selectedConfig.gatewayId,
           userId: orderData.userId,
-          amount: checkoutData.total,
+          amount: finalTotalWithBumps,
           status: "PENDING",
           paymentMethod: paymentMethod,
           metadata: {
@@ -867,7 +986,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             transactionId: transaction.id,
             gatewaySlug: selectedConfig.gateway.slug,
             paymentMethod: paymentMethod,
-            amount: checkoutData.total,
+            amount: finalTotalWithBumps,
             customerData,
             addressData,
             cardData: paymentMethod === "CREDIT_CARD" ? cardData : null,
@@ -907,6 +1026,20 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         });
 
         console.log("[Split] Log registrado com sucesso");
+      }
+
+      // Registrar uso do cupom
+      if (appliedCouponCode) {
+        try {
+          const localCoupon = await marketingApi.coupons.getByCode(appliedCouponCode, orderData.userId);
+          if (localCoupon) {
+            await marketingApi.coupons.incrementUsage(localCoupon.id);
+          } else {
+            await shopifyDiscountsApi.incrementUsage(orderData.userId, appliedCouponCode);
+          }
+        } catch (couponErr) {
+          console.error("Erro ao incrementar uso do cupom:", couponErr);
+        }
       }
 
       // Redirecionar conforme método
@@ -990,7 +1123,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       total:        finalTotalWithBumps,
       subtotal:     checkoutData.subtotal,
       shipping:     checkoutData.shipping,
-      discount:     checkoutData.discount,
+      discount:     (checkoutData.discount || 0) + couponDiscount,
     };
 
     return (
@@ -1018,6 +1151,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           }}
           isMobile={isMobile || false}
           onUpdateTheme={onUpdateTheme}
+          onApplyCoupon={handleApplyCoupon}
+          onRemoveCoupon={handleRemoveCoupon}
+          appliedCouponCode={appliedCouponCode}
+          couponError={couponError}
         />
       </React.Suspense>
     );
