@@ -378,6 +378,193 @@ export const productsApi = {
       }
     },
   },
+
+  // Kits Locais
+  kits: {
+    async list(userId: string) {
+      try {
+        // Buscar os kits do usuário
+        const { data: kits, error: kitsError } = await supabase
+          .from("Kit")
+          .select("*")
+          .or(`userId.eq.${userId},userId.is.null`)
+          .order("createdAt", { ascending: false });
+
+        if (kitsError) throw kitsError;
+
+        if (!kits || kits.length === 0) return [];
+
+        const kitIds = kits.map((k) => k.id);
+
+        // Buscar todos os KitItem associados e os produtos
+        const { data: items, error: itemsError } = await supabase
+          .from("KitItem")
+          .select("*, Product(*)")
+          .in("kitId", kitIds);
+
+        if (itemsError) throw itemsError;
+
+        return kits.map((kit) => {
+          const kitItems = (items || [])
+            .filter((item) => item.kitId === kit.id)
+            .map((item) => ({
+              id: item.id,
+              kitId: item.kitId,
+              productId: item.productId,
+              quantity: item.quantity || 1,
+              product: item.Product,
+            }));
+
+          return {
+            id: kit.id,
+            name: kit.name,
+            slug: kit.slug,
+            description: kit.description || "",
+            imageUrl: kit.imageUrl || null,
+            totalPrice: Number(kit.totalPrice || 0),
+            discount: Number(kit.discount || 0),
+            price: Number(kit.finalPrice || kit.totalPrice || 0), // preço exibido
+            isActive: kit.status === "ACTIVE",
+            items: kitItems,
+            createdAt: kit.createdAt,
+            updatedAt: kit.updatedAt,
+          };
+        });
+      } catch (error) {
+        console.error("Error listing local kits:", error);
+        throw error;
+      }
+    },
+
+    async create(kit: {
+      name: string;
+      description?: string;
+      price: number;
+      isActive: boolean;
+      items: { productId: string; quantity: number }[];
+      userId: string;
+    }) {
+      try {
+        // Calcular totalPrice dos produtos do kit
+        const totalPrice = kit.price; // simplificado ou informado pelo usuário
+
+        const { data: createdKit, error: kitError } = await supabase
+          .from("Kit")
+          .insert({
+            name: kit.name,
+            slug: kit.name
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, ""),
+            description: kit.description || "",
+            totalPrice: totalPrice,
+            discount: 0,
+            finalPrice: kit.price,
+            status: kit.isActive ? "ACTIVE" : "INACTIVE",
+            userId: kit.userId,
+          })
+          .select()
+          .single();
+
+        if (kitError) throw kitError;
+
+        if (kit.items && kit.items.length > 0) {
+          const kitItemsPayload = kit.items.map((item) => ({
+            kitId: createdKit.id,
+            productId: item.productId,
+            quantity: item.quantity || 1,
+          }));
+
+          const { error: itemsError } = await supabase
+            .from("KitItem")
+            .insert(kitItemsPayload);
+
+          if (itemsError) throw itemsError;
+        }
+
+        return createdKit;
+      } catch (error) {
+        console.error("Error creating local kit:", error);
+        throw error;
+      }
+    },
+
+    async update(
+      id: string,
+      updates: {
+        name: string;
+        description?: string;
+        price: number;
+        isActive: boolean;
+        items: { productId: string; quantity: number }[];
+      }
+    ) {
+      try {
+        const { data: updatedKit, error: kitError } = await supabase
+          .from("Kit")
+          .update({
+            name: updates.name,
+            description: updates.description || "",
+            totalPrice: updates.price,
+            finalPrice: updates.price,
+            status: updates.isActive ? "ACTIVE" : "INACTIVE",
+            updatedAt: new Date().toISOString(),
+          })
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (kitError) throw kitError;
+
+        // Deletar os itens antigos do kit
+        const { error: deleteError } = await supabase
+          .from("KitItem")
+          .delete()
+          .eq("kitId", id);
+
+        if (deleteError) throw deleteError;
+
+        // Inserir os novos itens
+        if (updates.items && updates.items.length > 0) {
+          const kitItemsPayload = updates.items.map((item) => ({
+            kitId: id,
+            productId: item.productId,
+            quantity: item.quantity || 1,
+          }));
+
+          const { error: itemsError } = await supabase
+            .from("KitItem")
+            .insert(kitItemsPayload);
+
+          if (itemsError) throw itemsError;
+        }
+
+        return updatedKit;
+      } catch (error) {
+        console.error("Error updating local kit:", error);
+        throw error;
+      }
+    },
+
+    async delete(id: string) {
+      try {
+        // Deletar itens primeiro
+        await supabase.from("KitItem").delete().eq("kitId", id);
+        
+        const { error } = await supabase
+          .from("Kit")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error deleting local kit:", error);
+        throw error;
+      }
+    },
+  },
 };
 
 // ============================================

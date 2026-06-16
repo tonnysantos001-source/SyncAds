@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { productsApi } from "@/lib/api/productsApi";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
 
 const KitsPage = () => {
   const [kits, setKits] = useState<any[]>([]);
@@ -43,22 +44,37 @@ const KitsPage = () => {
     description: "",
     price: 0,
     isActive: true,
+    items: [] as { productId: string; quantity: number }[],
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
 
   const loadData = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
-      if (!user?.organizationId) return;
-      const [kitsData, productsData] = await Promise.all([
-        productsApi.kits.list(user.organizationId),
-        productsApi.list(),
+      setLoading(true);
+      const [kitsData, productsDataResult] = await Promise.all([
+        productsApi.kits.list(user.id),
+        supabase
+          .from("Product")
+          .select("id, name, price")
+          .eq("userId", user.id)
+          .order("name", { ascending: true }),
       ]);
-      setKits(kitsData);
-      setProducts(productsData);
+
+      if (productsDataResult.error) throw productsDataResult.error;
+
+      setKits(kitsData || []);
+      setProducts(productsDataResult.data || []);
     } catch (error: any) {
+      console.error("Erro ao carregar dados dos kits:", error);
       toast({
         title: "Erro ao carregar",
         description: error.message,
@@ -72,14 +88,23 @@ const KitsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
+      if (formData.items.length === 0) {
+        toast({
+          title: "Selecione produtos",
+          description: "Um kit precisa de pelo menos 1 produto associado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (editingKit) {
         await productsApi.kits.update(editingKit.id, formData);
         toast({ title: "Kit atualizado!" });
       } else {
         await productsApi.kits.create({
           ...formData,
-          organizationId: user.organizationId,
+          userId: user.id,
         });
         toast({ title: "Kit criado!" });
       }
@@ -140,6 +165,7 @@ const KitsPage = () => {
                   description: "",
                   price: 0,
                   isActive: true,
+                  items: [],
                 });
               }}
               className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 hover:from-teal-600 hover:to-emerald-600 transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -148,7 +174,7 @@ const KitsPage = () => {
               Criar Kit
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingKit ? "Editar Kit" : "Novo Kit"}
@@ -176,7 +202,7 @@ const KitsPage = () => {
                   />
                 </div>
                 <div>
-                  <Label>Preço</Label>
+                  <Label>Preço do Kit</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -190,6 +216,98 @@ const KitsPage = () => {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Produtos do Kit</Label>
+                  <div
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white/50 dark:bg-gray-900/50 space-y-1"
+                    style={{ maxHeight: "180px", overflowY: "auto" }}
+                  >
+                    {products.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        Nenhum produto cadastrado no catálogo.
+                      </p>
+                    ) : (
+                      products.map((product) => {
+                        const itemIndex = formData.items.findIndex((item) => item.productId === product.id);
+                        const isChecked = itemIndex > -1;
+                        const quantity = isChecked ? formData.items[itemIndex].quantity : 1;
+
+                        return (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors gap-3 border-b border-gray-100/50 dark:border-gray-800/50 last:border-b-0"
+                          >
+                            <label className="flex items-center gap-3 cursor-pointer min-w-0 flex-1">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setFormData({
+                                      ...formData,
+                                      items: formData.items.filter((item) => item.productId !== product.id),
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      items: [...formData.items, { productId: product.id, quantity: 1 }],
+                                    });
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                  {product.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Intl.NumberFormat("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  }).format(product.price)}
+                                </span>
+                              </div>
+                            </label>
+
+                            {isChecked && (
+                              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-850 rounded-lg p-1 border">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newQty = Math.max(1, quantity - 1);
+                                    const updatedItems = [...formData.items];
+                                    updatedItems[itemIndex].quantity = newQty;
+                                    setFormData({ ...formData, items: updatedItems });
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors dark:text-white"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-bold w-6 text-center dark:text-white">
+                                  {quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newQty = quantity + 1;
+                                    const updatedItems = [...formData.items];
+                                    updatedItems[itemIndex].quantity = newQty;
+                                    setFormData({ ...formData, items: updatedItems });
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors dark:text-white"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -322,9 +440,32 @@ const KitsPage = () => {
                         className="border-b border-gray-100 dark:border-gray-800 hover:bg-gradient-to-r hover:from-teal-50/50 hover:to-emerald-50/50 dark:hover:from-gray-800/50 dark:hover:to-gray-800/50 transition-all duration-200"
                       >
                         <TableCell className="font-medium">
-                          {kit.name}
+                          <div>
+                            <div className="font-bold text-gray-900 dark:text-white">{kit.name}</div>
+                            {kit.items && kit.items.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {kit.items.map((item: any, idx: number) => (
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className="text-[10px] py-0 px-1.5 bg-teal-500/5 text-teal-600 dark:text-teal-400 border-teal-500/10 font-normal"
+                                  >
+                                    {item.quantity}x {item.product?.name || "Produto"}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell>R$ {kit.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {kit.description || "Sem descrição"}
+                        </TableCell>
+                        <TableCell className="font-bold text-teal-600 dark:text-teal-400">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(kit.price)}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant={kit.isActive ? "default" : "secondary"}
@@ -349,6 +490,10 @@ const KitsPage = () => {
                                   description: kit.description,
                                   price: kit.price,
                                   isActive: kit.isActive,
+                                  items: kit.items.map((item: any) => ({
+                                    productId: item.productId,
+                                    quantity: item.quantity,
+                                  })) || [],
                                 });
                                 setIsDialogOpen(true);
                               }}
