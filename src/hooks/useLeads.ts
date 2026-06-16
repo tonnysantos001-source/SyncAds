@@ -6,27 +6,17 @@ export interface Lead {
   name: string;
   email: string;
   phone: string | null;
-  cpfCnpj: string | null;
-  type: 'LEAD' | 'CUSTOMER' | 'VIP';
-  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
+  source: string | null;
+  status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST';
   userId: string;
-  organizationId: string | null;
-  address: any;
-  city: string | null;
-  state: string | null;
-  zipCode: string | null;
-  country: string | null;
-  notes: string | null;
-  tags: string[];
-  totalOrders: number;
-  totalSpent: number;
-  averageOrderValue: number;
-  lastOrderAt: string | null;
-  shopifyCustomerId: string | null;
-  whatsappNumber: string | null;
-  conversationId: string | null;
   createdAt: string;
   updatedAt: string;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  notes?: string | null;
+  convertedAt?: string | null;
+  customerId?: string | null;
 }
 
 export interface UseLeadsParams {
@@ -63,22 +53,21 @@ export const useLeads = ({
       }
 
       let query = supabase
-        .from('Customer')
+        .from('Lead')
         .select('*', { count: 'exact' })
         .eq('userId', userId)
-        .eq('type', 'LEAD') // Apenas leads
         .order('createdAt', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      // Filtro de busca (nome, email, telefone, CPF/CNPJ)
+      // Filtro de busca (nome, email, telefone)
       if (search) {
         query = query.or(
-          `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,cpfCnpj.ilike.%${search}%,whatsappNumber.ilike.%${search}%`
+          `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`
         );
       }
 
-      // Filtro de status (ACTIVE, INACTIVE, BLOCKED)
-      if (status !== 'all') {
+      // Filtro de status (NEW, CONTACTED, QUALIFIED, CONVERTED)
+      if (status !== 'all' && status !== 'ALL') {
         query = query.eq('status', status);
       }
 
@@ -90,7 +79,7 @@ export const useLeads = ({
       }
 
       return {
-        leads: leads || [],
+        leads: (leads || []) as Lead[],
         count: count || 0,
       };
     },
@@ -113,3 +102,4 @@ export const useLeads = ({
 };
 
 export default useLeads;
+

@@ -24,11 +24,13 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { customersApi, Customer } from "@/lib/api/customersApi";
 import { shopifySyncApi } from "@/lib/api/shopifySync";
 import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -167,6 +169,186 @@ const AllCustomersPage = () => {
     }
   };
 
+  const handleExportCustomers = async () => {
+    if (!user?.id) return;
+    try {
+      toast({
+        title: "Preparando download...",
+        description: "Carregando base de clientes completa para exportação.",
+      });
+
+      const [customersRes, shopifyCustomersRes, ordersRes] = await Promise.all([
+        supabase.from('Customer').select('*').eq('userId', user.id),
+        supabase.from('ShopifyCustomer').select('*').eq('userId', user.id),
+        supabase.from('Order').select('*').eq('userId', user.id),
+      ]);
+
+      if (customersRes.error) throw customersRes.error;
+
+      const dbCustomers = customersRes.data || [];
+      const dbShopifyCustomers = shopifyCustomersRes.data || [];
+      const dbOrders = ordersRes.data || [];
+
+      const customerMap = new Map<string, any>();
+
+      for (const c of dbCustomers) {
+        if (!c.email) continue;
+        const emailKey = c.email.toLowerCase().trim();
+        customerMap.set(emailKey, {
+          name: c.name || '',
+          email: c.email,
+          phone: c.phone || null,
+          totalOrders: Number(c.totalOrders) || 0,
+          totalSpent: Number(c.totalSpent) || 0,
+          lastOrderAt: c.lastOrderAt || null,
+          status: c.status || 'ACTIVE',
+          createdAt: c.createdAt || new Date().toISOString(),
+        });
+      }
+
+      for (const c of dbShopifyCustomers) {
+        if (!c.email) continue;
+        const emailKey = c.email.toLowerCase().trim();
+        const existing = customerMap.get(emailKey);
+
+        const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Cliente Shopify';
+        const ordersCount = Number(c.ordersCount) || 0;
+        const totalSpent = parseFloat(c.totalSpent || '0');
+        const lastOrderDate = c.shopifyData?.last_order_date || null;
+
+        if (existing) {
+          if (!existing.name) existing.name = name;
+          if (!existing.phone && c.phone) existing.phone = c.phone;
+          if (existing.totalOrders === 0) {
+            existing.totalOrders = ordersCount;
+            existing.totalSpent = totalSpent;
+          }
+          if (!existing.lastOrderAt) existing.lastOrderAt = lastOrderDate;
+        } else {
+          customerMap.set(emailKey, {
+            name,
+            email: c.email,
+            phone: c.phone || null,
+            totalOrders: ordersCount,
+            totalSpent: totalSpent,
+            lastOrderAt: lastOrderDate,
+            status: 'ACTIVE',
+            createdAt: c.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      const ordersByEmail: Record<string, typeof dbOrders> = {};
+      for (const order of dbOrders) {
+        if (!order.customerEmail) continue;
+        const emailKey = order.customerEmail.toLowerCase().trim();
+        if (!ordersByEmail[emailKey]) {
+          ordersByEmail[emailKey] = [];
+        }
+        ordersByEmail[emailKey].push(order);
+      }
+
+      for (const [emailKey, ords] of Object.entries(ordersByEmail)) {
+        ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const latestOrder = ords[0];
+
+        const localOrdersCount = ords.length;
+        const localTotalSpent = ords.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+        const localLastOrderAt = latestOrder.createdAt;
+
+        const existing = customerMap.get(emailKey);
+
+        if (existing) {
+          existing.totalOrders += localOrdersCount;
+          existing.totalSpent += localTotalSpent;
+          if (!existing.lastOrderAt || new Date(localLastOrderAt).getTime() > new Date(existing.lastOrderAt).getTime()) {
+            existing.lastOrderAt = localLastOrderAt;
+          }
+          if (!existing.name && latestOrder.customerName) existing.name = latestOrder.customerName;
+          if (!existing.phone && latestOrder.customerPhone) existing.phone = latestOrder.customerPhone;
+        } else {
+          customerMap.set(emailKey, {
+            name: latestOrder.customerName || 'Cliente sem Nome',
+            email: latestOrder.customerEmail,
+            phone: latestOrder.customerPhone || null,
+            totalOrders: localOrdersCount,
+            totalSpent: localTotalSpent,
+            lastOrderAt: localLastOrderAt,
+            status: 'ACTIVE',
+            createdAt: latestOrder.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      const allCustomersList = Array.from(customerMap.values());
+
+      if (allCustomersList.length === 0) {
+        toast({
+          title: "Aviso",
+          description: "Não há clientes cadastrados para exportar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      allCustomersList.sort((a, b) => {
+        const dateA = a.lastOrderAt || a.createdAt;
+        const dateB = b.lastOrderAt || b.createdAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+
+      const headers = [
+        "Nome",
+        "E-mail",
+        "Telefone",
+        "Total de Pedidos",
+        "Total Gasto (R$)",
+        "Ticket Médio (R$)",
+        "Última Compra",
+        "Status"
+      ];
+
+      const rows = allCustomersList.map((c) => {
+        const ticket = c.totalOrders > 0 ? c.totalSpent / c.totalOrders : 0;
+        return [
+          c.name || "",
+          c.email || "",
+          c.phone || "",
+          String(c.totalOrders),
+          c.totalSpent.toFixed(2),
+          ticket.toFixed(2),
+          c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString("pt-BR") : "",
+          c.status === "ACTIVE" ? "Ativo" : "Bloqueado",
+        ];
+      });
+
+      const csvContent = 
+        "\uFEFF" +
+        [headers.join(";"), ...rows.map((r) => r.map((val) => `"${val.replace(/"/g, '""')}"`).join(";"))].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `clientes_syncads_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Sucesso",
+        description: "Clientes exportados com sucesso!",
+      });
+    } catch (err: any) {
+      console.error("Erro ao exportar clientes:", err);
+      toast({
+        title: "Erro ao exportar",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -200,7 +382,18 @@ const AllCustomersPage = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex gap-3 items-center flex-wrap"
         >
+          <Button
+            onClick={handleExportCustomers}
+            variant="outline"
+            size="lg"
+            className="border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            <Download className="mr-2 h-5 w-5" />
+            Baixar Clientes
+          </Button>
+
           <Button
             onClick={handleSyncShopify}
             disabled={syncing}

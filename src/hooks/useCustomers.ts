@@ -64,45 +64,235 @@ export const useCustomers = ({
         throw new Error('User ID is required');
       }
 
-      let query = supabase
-        .from('Customer')
-        .select('*', { count: 'exact' })
-        .eq('userId', userId)
-        .order('createdAt', { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
+      // Buscar de Customer, ShopifyCustomer e Order para o userId em paralelo
+      const [customersRes, shopifyCustomersRes, ordersRes] = await Promise.all([
+        supabase.from('Customer').select('*').eq('userId', userId),
+        supabase.from('ShopifyCustomer').select('*').eq('userId', userId),
+        supabase.from('Order').select('*').eq('userId', userId),
+      ]);
 
-      // Filtro de busca (nome, email, telefone, CPF/CNPJ)
+      if (customersRes.error) {
+        console.error('Error fetching Customer:', customersRes.error);
+      }
+      if (shopifyCustomersRes.error) {
+        console.error('Error fetching ShopifyCustomer:', shopifyCustomersRes.error);
+      }
+      if (ordersRes.error) {
+        console.error('Error fetching Order:', ordersRes.error);
+      }
+
+      const dbCustomers = customersRes.data || [];
+      const dbShopifyCustomers = shopifyCustomersRes.data || [];
+      const dbOrders = ordersRes.data || [];
+
+      // Mapeamento consolidado por e-mail (case-insensitive)
+      const customerMap = new Map<string, Customer>();
+
+      // 1. Processar dados de Customer
+      for (const c of dbCustomers) {
+        if (!c.email) continue;
+        const emailKey = c.email.toLowerCase().trim();
+        customerMap.set(emailKey, {
+          id: c.id,
+          name: c.name || '',
+          email: c.email,
+          phone: c.phone || null,
+          cpfCnpj: c.cpf || null,
+          type: (c.type || 'CUSTOMER') as any,
+          status: (c.status || 'ACTIVE') as any,
+          userId: c.userId,
+          organizationId: null,
+          address: null,
+          city: null,
+          state: null,
+          zipCode: null,
+          country: null,
+          notes: c.notes || null,
+          tags: c.tags || [],
+          totalOrders: Number(c.totalOrders) || 0,
+          totalSpent: Number(c.totalSpent) || 0,
+          averageOrderValue: Number(c.averageOrderValue) || 0,
+          lastOrderAt: c.lastOrderAt || null,
+          shopifyCustomerId: null,
+          whatsappNumber: c.phone || null,
+          conversationId: null,
+          createdAt: c.createdAt || new Date().toISOString(),
+          updatedAt: c.updatedAt || new Date().toISOString(),
+        });
+      }
+
+      // 2. Processar dados de ShopifyCustomer
+      for (const c of dbShopifyCustomers) {
+        if (!c.email) continue;
+        const emailKey = c.email.toLowerCase().trim();
+        const existing = customerMap.get(emailKey);
+
+        const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Cliente Shopify';
+        const ordersCount = Number(c.ordersCount) || 0;
+        const totalSpent = parseFloat(c.totalSpent || '0');
+        const lastOrderDate = c.shopifyData?.last_order_date || null;
+
+        if (existing) {
+          if (!existing.name) existing.name = name;
+          if (!existing.phone && c.phone) {
+            existing.phone = c.phone;
+            existing.whatsappNumber = c.phone;
+          }
+          if (existing.totalOrders === 0) {
+            existing.totalOrders = ordersCount;
+            existing.totalSpent = totalSpent;
+            existing.averageOrderValue = ordersCount > 0 ? totalSpent / ordersCount : 0;
+          }
+          if (!existing.lastOrderAt) existing.lastOrderAt = lastOrderDate;
+          existing.shopifyCustomerId = String(c.id);
+        } else {
+          customerMap.set(emailKey, {
+            id: String(c.id),
+            name,
+            email: c.email,
+            phone: c.phone || null,
+            cpfCnpj: null,
+            type: 'CUSTOMER',
+            status: 'ACTIVE',
+            userId: c.userId,
+            organizationId: null,
+            address: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            country: null,
+            notes: null,
+            tags: c.shopifyData?.tags ? c.shopifyData.tags.split(',').map((t: string) => t.trim()) : [],
+            totalOrders: ordersCount,
+            totalSpent: totalSpent,
+            averageOrderValue: ordersCount > 0 ? totalSpent / ordersCount : 0,
+            lastOrderAt: lastOrderDate,
+            shopifyCustomerId: String(c.id),
+            whatsappNumber: c.phone || null,
+            conversationId: null,
+            createdAt: c.createdAt || new Date().toISOString(),
+            updatedAt: c.updatedAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      // 3. Processar dados de Order
+      const ordersByEmail: Record<string, typeof dbOrders> = {};
+      for (const order of dbOrders) {
+        if (!order.customerEmail) continue;
+        const emailKey = order.customerEmail.toLowerCase().trim();
+        if (!ordersByEmail[emailKey]) {
+          ordersByEmail[emailKey] = [];
+        }
+        ordersByEmail[emailKey].push(order);
+      }
+
+      for (const [emailKey, ords] of Object.entries(ordersByEmail)) {
+        ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const latestOrder = ords[0];
+
+        const localOrdersCount = ords.length;
+        const localTotalSpent = ords.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+        const localLastOrderAt = latestOrder.createdAt;
+
+        const existing = customerMap.get(emailKey);
+
+        if (existing) {
+          existing.totalOrders += localOrdersCount;
+          existing.totalSpent += localTotalSpent;
+          existing.averageOrderValue = existing.totalOrders > 0 ? existing.totalSpent / existing.totalOrders : 0;
+
+          if (!existing.lastOrderAt || new Date(localLastOrderAt).getTime() > new Date(existing.lastOrderAt).getTime()) {
+            existing.lastOrderAt = localLastOrderAt;
+          }
+
+          if (!existing.name && latestOrder.customerName) {
+            existing.name = latestOrder.customerName;
+          }
+          if (!existing.phone && latestOrder.customerPhone) {
+            existing.phone = latestOrder.customerPhone;
+            existing.whatsappNumber = latestOrder.customerPhone;
+          }
+          if (!existing.cpfCnpj && latestOrder.customerCpf) {
+            existing.cpfCnpj = latestOrder.customerCpf;
+          }
+        } else {
+          customerMap.set(emailKey, {
+            id: latestOrder.id || latestOrder.customerId || String(Math.random()),
+            name: latestOrder.customerName || 'Cliente sem Nome',
+            email: latestOrder.customerEmail,
+            phone: latestOrder.customerPhone || null,
+            cpfCnpj: latestOrder.customerCpf || null,
+            type: 'CUSTOMER',
+            status: 'ACTIVE',
+            userId: latestOrder.userId || userId,
+            organizationId: null,
+            address: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            country: null,
+            notes: null,
+            tags: [],
+            totalOrders: localOrdersCount,
+            totalSpent: localTotalSpent,
+            averageOrderValue: localOrdersCount > 0 ? localTotalSpent / localOrdersCount : 0,
+            lastOrderAt: localLastOrderAt,
+            shopifyCustomerId: null,
+            whatsappNumber: latestOrder.customerPhone || null,
+            conversationId: null,
+            createdAt: latestOrder.createdAt || new Date().toISOString(),
+            updatedAt: latestOrder.createdAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      // Converter mapa para array e aplicar filtros
+      let consolidatedList = Array.from(customerMap.values());
+
+      // Filtro de busca textual
       if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,cpfCnpj.ilike.%${search}%,whatsappNumber.ilike.%${search}%`
-        );
+        const searchLower = search.toLowerCase().trim();
+        consolidatedList = consolidatedList.filter((c) => {
+          return (
+            (c.name && c.name.toLowerCase().includes(searchLower)) ||
+            (c.email && c.email.toLowerCase().includes(searchLower)) ||
+            (c.phone && c.phone.toLowerCase().includes(searchLower)) ||
+            (c.cpfCnpj && c.cpfCnpj.toLowerCase().includes(searchLower))
+          );
+        });
       }
 
-      // Filtro de tipo (LEAD, CUSTOMER, VIP)
+      // Filtro de tipo
       if (type !== 'all') {
-        query = query.eq('type', type);
+        consolidatedList = consolidatedList.filter((c) => c.type === type);
       }
 
-      // Filtro de status (ACTIVE, INACTIVE, BLOCKED)
+      // Filtro de status
       if (status !== 'all') {
-        query = query.eq('status', status);
+        consolidatedList = consolidatedList.filter((c) => c.status === status);
       }
 
-      const { data: customers, error: queryError, count } = await query;
+      // Ordenar decrescente pela última compra/data de cadastro
+      consolidatedList.sort((a, b) => {
+        const dateA = a.lastOrderAt || a.createdAt;
+        const dateB = b.lastOrderAt || b.createdAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
 
-      if (queryError) {
-        console.error('Error fetching customers:', queryError);
-        throw queryError;
-      }
+      const totalCount = consolidatedList.length;
+
+      // Paginação
+      const paginatedList = consolidatedList.slice(page * pageSize, (page + 1) * pageSize);
 
       return {
-        customers: customers || [],
-        count: count || 0,
+        customers: paginatedList,
+        count: totalCount,
       };
     },
     enabled: enabled && !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const totalCount = data?.count || 0;

@@ -40,10 +40,12 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { customersApi } from "@/lib/api/customersApi";
+import { customersApi, leadsApi } from "@/lib/api/customersApi";
 import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLeads } from "@/hooks/useLeads";
@@ -142,17 +144,89 @@ const LeadsPage = () => {
     setCurrentPage(0);
   }, [searchTerm, statusFilter]);
 
+  const handleExportLeads = async () => {
+    if (!user?.id) return;
+    try {
+      toast({
+        title: "Preparando download...",
+        description: "Buscando todos os leads para exportação.",
+      });
+
+      const { data: allLeads, error } = await supabase
+        .from("Lead")
+        .select("*")
+        .eq("userId", user.id)
+        .order("createdAt", { ascending: false });
+
+      if (error) throw error;
+
+      if (!allLeads || allLeads.length === 0) {
+        toast({
+          title: "Aviso",
+          description: "Não há leads cadastrados para exportar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const headers = ["Nome", "E-mail", "Telefone", "Origem", "Status", "Data de Cadastro"];
+      const rows = allLeads.map((lead) => [
+        lead.name || "",
+        lead.email || "",
+        lead.phone || "",
+        lead.source || "",
+        lead.status || "",
+        lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("pt-BR") : "",
+      ]);
+
+      const csvContent = 
+        "\uFEFF" +
+        [headers.join(";"), ...rows.map((r) => r.map((val) => `"${val.replace(/"/g, '""')}"`).join(";"))].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `leads_syncads_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Sucesso",
+        description: "Leads exportados com sucesso!",
+      });
+    } catch (err: any) {
+      console.error("Erro ao exportar leads:", err);
+      toast({
+        title: "Erro ao exportar",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
       if (editingLead) {
-        await customersApi.leads.update(editingLead.id, formData);
+        await leadsApi.update(editingLead.id, {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          status: formData.status as any,
+          source: formData.source,
+        });
         toast({ title: "Lead atualizado!" });
       } else {
-        await customersApi.leads.create({
-          ...formData,
-          organizationId: user.organizationId,
+        await leadsApi.create({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          status: formData.status as any,
+          source: formData.source,
+          userId: user.id,
         });
         toast({
           title: "Lead criado!",
@@ -174,7 +248,7 @@ const LeadsPage = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja deletar este lead?")) return;
     try {
-      await customersApi.leads.delete(id);
+      await leadsApi.delete(id);
       toast({ title: "Lead deletado" });
       refetchLeads();
     } catch (error: any) {
@@ -275,7 +349,18 @@ const LeadsPage = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex gap-3 items-center flex-wrap"
         >
+          <Button
+            onClick={handleExportLeads}
+            variant="outline"
+            size="lg"
+            className="border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            <Download className="mr-2 h-5 w-5" />
+            Baixar Leads
+          </Button>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button
