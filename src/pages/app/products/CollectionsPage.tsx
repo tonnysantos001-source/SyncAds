@@ -273,7 +273,7 @@ const CollectionsPage = () => {
               Criar Coleção
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingCollection ? "Editar Coleção" : "Nova Coleção"}
@@ -310,7 +310,10 @@ const CollectionsPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Produtos da Coleção</Label>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto bg-white/50 dark:bg-gray-900/50 space-y-1">
+                  <div
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white/50 dark:bg-gray-900/50 space-y-1"
+                    style={{ maxHeight: "180px", overflowY: "auto" }}
+                  >
                     {allProducts.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-4">
                         Nenhum produto cadastrado no catálogo.
