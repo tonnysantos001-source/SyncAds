@@ -793,22 +793,28 @@ const CouponsPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(coupon)}
-                            className="hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(coupon.id)}
-                            className="hover:bg-red-100 dark:hover:bg-red-900/30"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {coupon.isLocal ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(coupon)}
+                                className="hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(coupon.id)}
+                                className="hover:bg-red-100 dark:hover:bg-red-900/30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic px-2">Gerenciar na Shopify</span>
+                          )}
                         </div>
                       </TableCell>
                     </motion.tr>
