@@ -38,10 +38,12 @@ import { shopifyCollectionsApi } from "@/lib/api/shopifyCollections";
 import { shopifySyncApi } from "@/lib/api/shopifySync";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
 
 const CollectionsPage = () => {
   const [collections, setCollections] = useState<any[]>([]);
   const [filteredCollections, setFilteredCollections] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,17 +57,35 @@ const CollectionsPage = () => {
     slug: "",
     description: "",
     isActive: true,
+    productIds: [] as string[],
   });
 
   useEffect(() => {
     if (user?.id) {
       loadCollections();
+      loadProducts();
     }
   }, [user?.id]);
 
   useEffect(() => {
     filterCollections();
   }, [searchTerm, collections]);
+
+  const loadProducts = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("Product")
+        .select("id, name, price")
+        .eq("userId", user.id)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setAllProducts(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar produtos:", error);
+    }
+  };
 
   const loadCollections = async () => {
     if (!user?.id) {
@@ -75,8 +95,8 @@ const CollectionsPage = () => {
 
     try {
       setLoading(true);
-      // Buscar coleções sincronizadas da Shopify
-      const data = await shopifyCollectionsApi.listFromShopify(user.id);
+      // Buscar coleções locais (tabela Collection)
+      const data = await productsApi.collections.list(user.id);
       setCollections(data);
       setFilteredCollections(data);
     } catch (error: any) {
@@ -167,7 +187,7 @@ const CollectionsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!user?.organizationId) return;
+      if (!user?.id) return;
 
       if (editingCollection) {
         await productsApi.collections.update(editingCollection.id, formData);
@@ -175,7 +195,7 @@ const CollectionsPage = () => {
       } else {
         await productsApi.collections.create({
           ...formData,
-          organizationId: user.organizationId,
+          userId: user.id,
         });
         toast({
           title: "Coleção criada!",
@@ -217,6 +237,7 @@ const CollectionsPage = () => {
       slug: collection.slug,
       description: collection.description || "",
       isActive: collection.isActive,
+      productIds: collection.productIds || [],
     });
     setIsDialogOpen(true);
   };
@@ -228,6 +249,7 @@ const CollectionsPage = () => {
       slug: "",
       description: "",
       isActive: true,
+      productIds: [],
     });
   };
 
@@ -285,6 +307,49 @@ const CollectionsPage = () => {
                       setFormData({ ...formData, description: e.target.value })
                     }
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Produtos da Coleção</Label>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto bg-white/50 dark:bg-gray-900/50 space-y-1">
+                    {allProducts.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        Nenhum produto cadastrado no catálogo.
+                      </p>
+                    ) : (
+                      allProducts.map((product) => {
+                        const isChecked = formData.productIds.includes(product.id);
+                        return (
+                          <label
+                            key={product.id}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const newProductIds = isChecked
+                                  ? formData.productIds.filter((id) => id !== product.id)
+                                  : [...formData.productIds, product.id];
+                                setFormData({ ...formData, productIds: newProductIds });
+                              }}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <div className="flex-1 flex items-center justify-between min-w-0">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {product.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(product.price)}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <input

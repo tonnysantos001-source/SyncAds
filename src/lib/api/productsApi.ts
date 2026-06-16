@@ -265,6 +265,119 @@ export const productsApi = {
       throw error;
     }
   },
+
+  // Coleções Locais
+  collections: {
+    async list(userId: string) {
+      try {
+        const { data, error } = await supabase
+          .from("Collection")
+          .select("*")
+          .or(`userId.eq.${userId},userId.is.null`)
+          .order("createdAt", { ascending: false });
+
+        if (error) throw error;
+        
+        return (data || []).map((c: any) => ({
+          id: String(c.id),
+          userId: c.userId,
+          name: c.name,
+          slug: c.slug,
+          description: c.description || "",
+          imageUrl: c.imageUrl || null,
+          productIds: c.productIds || [],
+          isActive: c.isPublished ?? true,
+          productCount: (c.productIds || []).length,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        }));
+      } catch (error) {
+        console.error("Error listing local collections:", error);
+        throw error;
+      }
+    },
+
+    async create(collection: {
+      name: string;
+      slug: string;
+      description?: string;
+      isActive: boolean;
+      productIds?: string[];
+      organizationId?: string;
+      userId?: string;
+    }) {
+      try {
+        const { data, error } = await supabase
+          .from("Collection")
+          .insert({
+            name: collection.name,
+            slug: collection.slug,
+            description: collection.description,
+            isPublished: collection.isActive,
+            productIds: collection.productIds || [],
+            userId: collection.userId,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error creating local collection:", error);
+        throw error;
+      }
+    },
+
+    async update(
+      id: string,
+      updates: {
+        name?: string;
+        slug?: string;
+        description?: string;
+        isActive?: boolean;
+        productIds?: string[];
+      }
+    ) {
+      try {
+        const payload: any = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.slug !== undefined) payload.slug = updates.slug;
+        if (updates.description !== undefined) payload.description = updates.description;
+        if (updates.productIds !== undefined) payload.productIds = updates.productIds;
+        if (updates.isActive !== undefined) payload.isPublished = updates.isActive;
+
+        const { data, error } = await supabase
+          .from("Collection")
+          .update({
+            ...payload,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error updating local collection:", error);
+        throw error;
+      }
+    },
+
+    async delete(id: string) {
+      try {
+        const { error } = await supabase
+          .from("Collection")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error deleting local collection:", error);
+        throw error;
+      }
+    },
+  },
 };
 
 // ============================================
