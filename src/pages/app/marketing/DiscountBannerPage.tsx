@@ -397,7 +397,7 @@ const DiscountBannerPage = () => {
 
     return (
       <div 
-        className="w-[340px] mx-auto rounded-[2.5rem] border-[10px] border-[#1e293b] dark:border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col h-[525px] relative overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300 ring-4 ring-slate-900/10 dark:ring-white/5"
+        className="w-[360px] mx-auto rounded-[2.5rem] border-[10px] border-[#1e293b] dark:border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col h-[550px] relative overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300 ring-4 ring-slate-900/10 dark:ring-white/5"
       >
         {/* Phone Simulation Side Buttons */}
         <div className="absolute -left-[11px] top-16 w-[2px] h-6 bg-[#334155] rounded-l-sm" /> {/* Vol Up */}
@@ -431,7 +431,7 @@ const DiscountBannerPage = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-4 text-xs">
+        <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-4 text-xs">
           {/* HEADER Discount Banner inside mock checkout */}
           {isHeader && (
             <div
@@ -460,23 +460,35 @@ const DiscountBannerPage = () => {
             </div>
           )}
 
-          {/* Checkout Content Placeholder */}
-          <div className="flex-1 space-y-4 opacity-40 select-none pointer-events-none mt-2">
+          {/* Checkout Content Placeholder - Flex layout to fit without scrolling */}
+          <div className="flex-1 flex flex-col justify-between select-none pointer-events-none my-1">
             {/* Header / Logo */}
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
               <div className="h-4 w-20 bg-slate-300 dark:bg-slate-800 rounded"></div>
               <div className="h-4 w-10 bg-slate-300 dark:bg-slate-800 rounded"></div>
             </div>
-            {/* Checkout body layout: stacked in mobile */}
-            <div className="space-y-3">
-              <div className="h-3.5 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
-              <div className="h-3.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
-              <div className="h-3.5 w-1/4 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-10 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
-              <div className="h-3.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+            
+            {/* Delivery address mockup */}
+            <div className="space-y-2">
+              <div className="h-3 w-1/2 bg-slate-350 dark:bg-slate-800 rounded"></div>
+              <div className="h-14 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md flex flex-col justify-center px-3 gap-2">
+                <div className="h-2 w-full bg-slate-300 dark:bg-slate-800 rounded"></div>
+                <div className="h-2 w-2/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              </div>
+            </div>
+
+            {/* Payment method mockup */}
+            <div className="space-y-2">
+              <div className="h-3 w-1/3 bg-slate-350 dark:bg-slate-800 rounded"></div>
+              <div className="h-14 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md flex flex-col justify-center px-3 gap-2">
+                <div className="h-2 w-full bg-slate-300 dark:bg-slate-800 rounded"></div>
+                <div className="h-2 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              </div>
+            </div>
+
+            {/* Pay Button */}
+            <div className="pt-2">
+              <div className="h-9 w-full bg-slate-400 dark:bg-slate-800 rounded-md"></div>
             </div>
           </div>
 
@@ -775,7 +787,7 @@ const DiscountBannerPage = () => {
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent
-          className="h-[85vh] max-h-[730px] flex flex-col bg-[#0b0f19] border border-slate-800/80 text-white p-0 overflow-hidden rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] transition-all duration-300"
+          className="h-[85vh] max-h-[750px] flex flex-col bg-[#0b0f19] border border-slate-800/80 text-white p-0 overflow-hidden rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] transition-all duration-300"
           style={{ maxWidth: '1020px', width: '95vw' }}
         >
 
@@ -833,7 +845,7 @@ const DiscountBannerPage = () => {
                               setFormData({ ...formData, type: value })
                             }
                           >
-                            <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
+                            <SelectTrigger className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">

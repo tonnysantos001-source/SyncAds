@@ -141,10 +141,10 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
 
 Com base nos feedbacks de design, refinamos o modal de faixas de desconto (`DiscountBannerPage.tsx`) para proporcionar uma experiência visual deslumbrante e focada:
 
-1. **Visualização em Tempo Real Ampliada**:
-   - Redimensionamos o mockup de celular de `w-[320px] h-[490px]` para **`w-[340px] h-[525px]`**, fazendo com que ele ocupe o espaço útil do container (quadrado) que o envolve.
-   - Adicionamos `overflow-hidden` ao container do preview e removemos qualquer margem ociosa, **eliminando completamente a barra de rolagem lateral cinza** indesejada que aparecia ao lado do celular.
-   - Adicionamos novos esqueletos de esqueleto no placeholder do checkout para preencher de forma proporcional e elegante a tela estendida do mockup.
+1. **Visualização em Tempo Real Ampliada (Tamanho Exato do Container)**:
+   - Redimensionamos o mockup de celular para **`w-[360px] h-[550px]`**, ocupando de forma precisa a totalidade da área interna útil do container (quadrado) do preview à direita.
+   - Removemos a barra de rolagem cinza de dentro do celular definindo a div interna como `overflow-hidden` e reestruturando o placeholder do checkout usando flexbox (`flex-1 flex flex-col justify-between`) para caber perfeitamente no espaço sem qualquer necessidade de rolagem.
+   - Expandimos a altura útil máxima do modal de `730px` para **`750px`** para acomodar o celular maior com folga elegante nas bordas.
 
 2. **Abas e Seletores Fixos**:
    - Fixamos os seletores de abas (`TabsList`) no topo da coluna de formulário.
