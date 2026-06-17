@@ -390,7 +390,7 @@ const DiscountBannerPage = () => {
     const isPopup = data.type === "POPUP";
 
     return (
-      <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xl flex flex-col h-[480px] relative">
+      <div className="max-w-[360px] mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xl flex flex-col h-[480px] relative">
         {/* Mock browser header */}
         <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
           <div className="flex gap-1.5">
@@ -749,7 +749,10 @@ const DiscountBannerPage = () => {
 
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-6xl h-[90vh] max-h-[820px] flex flex-col bg-slate-900 border-slate-800 text-white p-0 overflow-hidden">
+        <DialogContent
+          className="h-[90vh] max-h-[820px] flex flex-col bg-slate-900 border-slate-800 text-white p-0 overflow-hidden"
+          style={{ maxWidth: '1200px', width: '95vw' }}
+        >
 
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-800 flex-shrink-0">
             <DialogTitle className="text-xl font-bold text-white">
@@ -762,7 +765,7 @@ const DiscountBannerPage = () => {
 
           <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 px-6 py-4 overflow-hidden">
             {/* Formulário (Col 7) */}
-            <div className="lg:col-span-7 overflow-y-auto pr-3 space-y-6 h-full pb-8">
+            <div className="lg:col-span-7 overflow-y-auto overflow-x-hidden pr-3 space-y-6 h-full pb-8">
               {/* Seção 1: Informações Básicas */}
               <div className="space-y-4 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
                 <h3 className="text-sm font-semibold text-orange-500 uppercase tracking-wider">Geral</h3>
