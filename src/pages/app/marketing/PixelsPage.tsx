@@ -55,6 +55,68 @@ import type {
   CreatePixelConfigInput,
 } from "@/types/pixel";
 
+// ─── Ícones SVG Oficiais das Plataformas ──────────────────────────────────────
+const MetaLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M16.51 7.21c-.88 0-1.73.34-2.39.95L8.71 13.1a2.23 2.23 0 0 1-1.5 1.7c-.57.17-1.17.1-1.69-.2a2.31 2.31 0 0 1-1.01-1.63 2.38 2.38 0 0 1 .63-1.83c.66-.61 1.51-.95 2.39-.95.88 0 1.73.34 2.39.95l.76.7c.36.33.91.33 1.27 0a.78.78 0 0 0 0-1.17l-.76-.7a3.86 3.86 0 0 0-5.32 0 3.97 3.97 0 0 0-1.07 3.07 3.84 3.84 0 0 0 1.68 2.72c.86.5 1.86.6 2.79.32a3.81 3.81 0 0 0 2.53-2.83l5.41-4.94a2.23 2.23 0 0 1 1.5-1.7c.57-.17 1.17-.1 1.69.2a2.31 2.31 0 0 1 1.01 1.63 2.38 2.38 0 0 1-.63 1.83c-.66.61-1.51.95-2.39.95-.88 0-1.73-.34-2.39-.95l-.76-.7a.89.89 0 0 0-1.27 0 .78.78 0 0 0 0 1.17l.76.7a3.86 3.86 0 0 0 5.32 0 3.97 3.97 0 0 0 1.07-3.07 3.84 3.84 0 0 0-1.68-2.72c-.86-.5-1.86-.6-2.79-.32a3.81 3.81 0 0 0-2.53 2.83L16.51 7.21z"
+      fill="url(#meta-gradient)"
+    />
+    <defs>
+      <linearGradient id="meta-gradient" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#0064E0" />
+        <stop offset="0.5" stopColor="#007FEA" />
+        <stop offset="1" stopColor="#00F7A7" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const TikTokLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path
+      d="M19.589 6.686a4.793 4.793 0 0 1-3.28-1.358 4.794 4.794 0 0 1-1.358-3.28h-3.92v13.5c0 .762-.303 1.493-.842 2.033a2.875 2.875 0 0 1-2.033.842 2.875 2.875 0 0 1-2.033-.842 2.875 2.875 0 0 1-.842-2.033 2.875 2.875 0 0 1 .842-2.033 2.875 2.875 0 0 1 2.033-.842c.19 0 .38.02.57.06v-3.97a6.85 6.85 0 0 0-.57-.03 6.85 6.85 0 0 0-6.85 6.85 6.85 6.85 0 0 0 6.85 6.85 6.85 6.85 0 0 0 6.85-6.85V8.66c1.17.82 2.56 1.28 4.01 1.32V6.69z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+const GoogleLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+      fill="#EA4335"
+    />
+  </svg>
+);
+
+const PlatformIcon: React.FC<{ platform: PixelPlatform; className?: string }> = ({ platform, className }) => {
+  switch (platform) {
+    case "FACEBOOK":
+      return <MetaLogo className={className} />;
+    case "TIKTOK":
+      return <TikTokLogo className={className} />;
+    case "GOOGLE_ADS":
+      return <GoogleLogo className={className} />;
+    default:
+      return null;
+  }
+};
+
 // ─── Helper: formatar data relativa ───────────────────────────────────────────
 function formatRelativeTime(isoDate: string | null | undefined): string {
   if (!isoDate) return "Nunca";
@@ -320,59 +382,84 @@ const PixelsPage: React.FC = () => {
         <MetricCard title="Plataformas" value={3} icon={BarChart3} color="bg-blue-500" delay={0.4} subtitle="Meta · TikTok · Google" />
       </div>
 
-      {/* Alerta informativo */}
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>Integrado com o Checkout</AlertTitle>
-        <AlertDescription>
-          Os pixels cadastrados aqui são disparados automaticamente no checkout público:
-          <strong> PageView</strong> ao entrar, <strong>InitiateCheckout</strong> ao avançar para pagamento,
-          <strong> AddPaymentInfo</strong> ao clicar em pagar, e <strong>Purchase</strong> após confirmação.
-        </AlertDescription>
-      </Alert>
-
       {/* Plataformas Disponíveis */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
         <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
           Plataformas Disponíveis
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           {Object.values(PIXEL_PLATFORMS).map((platform) => {
             const hasPixel = hasPixelForPlatform(platform.platform);
             return (
-              <Card key={platform.platform} className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl" style={{ backgroundColor: platform.color + "20" }}>
-                        {platform.icon}
+              <motion.div
+                key={platform.platform}
+                whileHover={{ y: -6, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800/80 bg-white/70 dark:bg-gray-950/70 backdrop-blur-xl p-6 shadow-md hover:shadow-xl transition-all duration-300"
+              >
+                {/* Glow decorativo de marca no fundo */}
+                <div
+                  className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-10"
+                  style={{
+                    backgroundColor:
+                      platform.platform === "FACEBOOK"
+                        ? "#1877F2"
+                        : platform.platform === "TIKTOK"
+                        ? "#FFFFFF"
+                        : "#4285F4",
+                  }}
+                />
+                
+                <div className="flex flex-col h-full justify-between gap-4">
+                  <div>
+                    {/* Header: Logo + Badge */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className="w-14 h-14 rounded-xl flex items-center justify-center shadow-inner border border-gray-100/10"
+                        style={{
+                          backgroundColor:
+                            platform.platform === "FACEBOOK"
+                              ? "#1877F215"
+                              : platform.platform === "TIKTOK"
+                              ? "#FFFFFF10"
+                              : "#4285F415",
+                        }}
+                      >
+                        <PlatformIcon platform={platform.platform} className="w-7 h-7" />
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{platform.name}</CardTitle>
-                        {hasPixel && (
-                          <Badge variant="secondary" className="mt-1">
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Configurado
-                          </Badge>
-                        )}
-                      </div>
+                      {hasPixel && (
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 border-none px-2.5 py-1 text-xs font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Configurado
+                        </Badge>
+                      )}
                     </div>
+
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      {platform.platform === "FACEBOOK"
+                        ? "Meta Ads"
+                        : platform.platform === "TIKTOK"
+                        ? "TikTok Ads"
+                        : "Google Ads"}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                      {platform.description}
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{platform.description}</p>
-                  <div className="flex items-center justify-between">
-                    <a href={platform.documentation} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      Documentação
-                    </a>
-                    <Button size="sm" onClick={() => handleOpenCreateDialog(platform.platform)} disabled={creating} variant={hasPixel ? "outline" : "default"}>
-                      <Plus className="w-4 h-4 mr-1" />
+
+                  <div className="pt-2">
+                    <Button
+                      className="w-full font-semibold rounded-xl gap-2 transition-all duration-300"
+                      onClick={() => handleOpenCreateDialog(platform.platform)}
+                      disabled={creating}
+                      variant={hasPixel ? "outline" : "default"}
+                    >
+                      <Plus className="w-4 h-4" />
                       {hasPixel ? "Adicionar Outro" : "Cadastrar Pixel"}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </motion.div>
             );
           })}
         </div>
@@ -426,10 +513,17 @@ const PixelsPage: React.FC = () => {
                         {/* Ícone + Info */}
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           <div
-                            className="w-12 h-12 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
-                            style={{ backgroundColor: platformMeta.color + "20" }}
+                            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-950/50 shadow-sm"
+                            style={{
+                              backgroundColor:
+                                config.platform === "FACEBOOK"
+                                  ? "#1877F210"
+                                  : config.platform === "TIKTOK"
+                                  ? "#FFFFFF08"
+                                  : "#4285F410",
+                            }}
                           >
-                            {platformMeta.icon}
+                            <PlatformIcon platform={config.platform} className="w-6 h-6" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
