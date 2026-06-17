@@ -676,14 +676,85 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError,
   orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
   crossSells = [], selectedCrossSells = [], onToggleCrossSell,
+  discountBanners = [],
 }) => {
+  // Mapeamento dinâmico das faixas de desconto ativas
+  const headerNoticeBarConfig = useMemo(() => {
+    const activeHeaderBanner = (discountBanners || []).find(
+      (b) => b.type === "HEADER" && b.status === "ACTIVE"
+    );
+    if (activeHeaderBanner) {
+      return {
+        enabled: true,
+        message: activeHeaderBanner.message,
+        style: 'normal',
+        position: 'top',
+        animation: 'slide',
+        bgColor: activeHeaderBanner.backgroundColor,
+        textColor: activeHeaderBanner.textColor,
+        ctaText: activeHeaderBanner.ctaText,
+        ctaLink: activeHeaderBanner.ctaLink,
+        discountCode: activeHeaderBanner.discountCode,
+        buttonBackgroundColor: activeHeaderBanner.buttonBackgroundColor,
+        buttonTextColor: activeHeaderBanner.buttonTextColor,
+        closeable: activeHeaderBanner.closable ?? activeHeaderBanner.showCloseButton,
+      };
+    }
+    return checkoutConfig?.noticeBar;
+  }, [discountBanners, checkoutConfig?.noticeBar]);
+
+  const footerNoticeBarConfig = useMemo(() => {
+    const activeFooterBanner = (discountBanners || []).find(
+      (b) => b.type === "FOOTER" && b.status === "ACTIVE"
+    );
+    if (activeFooterBanner) {
+      return {
+        enabled: true,
+        message: activeFooterBanner.message,
+        style: 'normal',
+        position: 'bottom',
+        animation: 'slide',
+        bgColor: activeFooterBanner.backgroundColor,
+        textColor: activeFooterBanner.textColor,
+        ctaText: activeFooterBanner.ctaText,
+        ctaLink: activeFooterBanner.ctaLink,
+        discountCode: activeFooterBanner.discountCode,
+        buttonBackgroundColor: activeFooterBanner.buttonBackgroundColor,
+        buttonTextColor: activeFooterBanner.buttonTextColor,
+        closeable: activeFooterBanner.closable ?? activeFooterBanner.showCloseButton,
+      };
+    }
+    return checkoutConfig?.noticeBar;
+  }, [discountBanners, checkoutConfig?.noticeBar]);
+
+  const showHeaderNoticeBar = useMemo(() => {
+    const activeHeaderBanner = (discountBanners || []).find(
+      (b) => b.type === "HEADER" && b.status === "ACTIVE"
+    );
+    if (activeHeaderBanner) return true;
+
+    const enabled = checkoutConfig?.noticeBar?.enabled ?? theme?.noticeBarEnabled;
+    const position = checkoutConfig?.noticeBar?.position ?? theme?.noticeBarPosition ?? 'top';
+    return !!enabled && position === 'top';
+  }, [discountBanners, checkoutConfig?.noticeBar, theme]);
+
+  const showFooterNoticeBar = useMemo(() => {
+    const activeFooterBanner = (discountBanners || []).find(
+      (b) => b.type === "FOOTER" && b.status === "ACTIVE"
+    );
+    if (activeFooterBanner) return true;
+
+    const enabled = checkoutConfig?.noticeBar?.enabled ?? theme?.noticeBarEnabled;
+    const position = checkoutConfig?.noticeBar?.position ?? theme?.noticeBarPosition ?? 'top';
+    return !!enabled && position === 'bottom';
+  }, [discountBanners, checkoutConfig?.noticeBar, theme]);
+
   // ── Configurações visuais ──────────────────────────────────
   const primaryColor = checkoutConfig?.buttons.primaryBg ?? (theme.primaryColor as string) ?? '#10B981';
   const fontFamily = checkoutConfig?.typography.fontFamily ?? (theme.fontFamily as string) ?? 'Inter, system-ui, sans-serif';
   const bgColor = (theme.backgroundColor as string) ?? '#FFFFFF';
   const totalPrefix = (theme.totalPrefix as string) ?? 'R$';
   const scarcityEnabled = checkoutConfig?.scarcity.enabled ?? ((theme.showCountdownTimer as boolean) !== false);
-  const noticeBarEnabled = checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean) ?? false;
   const total = checkoutData?.total ?? 0;
 
   // Favicon dinâmico
@@ -840,8 +911,12 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
       style={{ backgroundColor: bgColor, fontFamily }}
     >
       {/* NoticeBar */}
-      {noticeBarEnabled && (
-        <NoticeBar theme={theme as Record<string, unknown>} noticeBarConfig={checkoutConfig?.noticeBar} />
+      {showHeaderNoticeBar && (
+        <NoticeBar
+          theme={theme as Record<string, unknown>}
+          noticeBarConfig={headerNoticeBarConfig}
+          onApplyCoupon={onApplyCoupon}
+        />
       )}
 
       {/* Mobile: Accordion Resumo */}
@@ -1058,6 +1133,15 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
           </div>
         </div>
       </footer>
+
+      {/* NoticeBar — RODAPÉ (position=bottom) */}
+      {showFooterNoticeBar && (
+        <NoticeBar
+          theme={theme as Record<string, unknown>}
+          noticeBarConfig={footerNoticeBarConfig}
+          onApplyCoupon={onApplyCoupon}
+        />
+      )}
     </div>
   );
 };

@@ -173,6 +173,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   crossSells,
   selectedCrossSells,
   onToggleCrossSell,
+  discountBanners,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -304,6 +305,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     crossSells,
     selectedCrossSells,
     onToggleCrossSell,
+    discountBanners,
   };
 
   // ------------------------------------------------------------------

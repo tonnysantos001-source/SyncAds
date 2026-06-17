@@ -235,6 +235,7 @@ export interface TemplateRenderProps {
   crossSells?: any[];
   selectedCrossSells?: string[];
   onToggleCrossSell?: (id: string) => void;
+  discountBanners?: any[];
 }
 
 // ============================================================

@@ -506,9 +506,81 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   crossSells = [],
   selectedCrossSells = [],
   onToggleCrossSell,
+  discountBanners = [],
 }) => {
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+
+  // Mapeamento dinâmico das faixas de desconto ativas
+  const headerNoticeBarConfig = useMemo(() => {
+    const activeHeaderBanner = (discountBanners || []).find(
+      (b) => b.type === "HEADER" && b.status === "ACTIVE"
+    );
+    if (activeHeaderBanner) {
+      return {
+        enabled: true,
+        message: activeHeaderBanner.message,
+        style: 'normal',
+        position: 'top',
+        animation: 'slide',
+        bgColor: activeHeaderBanner.backgroundColor,
+        textColor: activeHeaderBanner.textColor,
+        ctaText: activeHeaderBanner.ctaText,
+        ctaLink: activeHeaderBanner.ctaLink,
+        discountCode: activeHeaderBanner.discountCode,
+        buttonBackgroundColor: activeHeaderBanner.buttonBackgroundColor,
+        buttonTextColor: activeHeaderBanner.buttonTextColor,
+        closeable: activeHeaderBanner.closable ?? activeHeaderBanner.showCloseButton,
+      };
+    }
+    return checkoutConfig?.noticeBar;
+  }, [discountBanners, checkoutConfig?.noticeBar]);
+
+  const footerNoticeBarConfig = useMemo(() => {
+    const activeFooterBanner = (discountBanners || []).find(
+      (b) => b.type === "FOOTER" && b.status === "ACTIVE"
+    );
+    if (activeFooterBanner) {
+      return {
+        enabled: true,
+        message: activeFooterBanner.message,
+        style: 'normal',
+        position: 'bottom',
+        animation: 'slide',
+        bgColor: activeFooterBanner.backgroundColor,
+        textColor: activeFooterBanner.textColor,
+        ctaText: activeFooterBanner.ctaText,
+        ctaLink: activeFooterBanner.ctaLink,
+        discountCode: activeFooterBanner.discountCode,
+        buttonBackgroundColor: activeFooterBanner.buttonBackgroundColor,
+        buttonTextColor: activeFooterBanner.buttonTextColor,
+        closeable: activeFooterBanner.closable ?? activeFooterBanner.showCloseButton,
+      };
+    }
+    return checkoutConfig?.noticeBar;
+  }, [discountBanners, checkoutConfig?.noticeBar]);
+
+  const showHeaderNoticeBar = useMemo(() => {
+    const activeHeaderBanner = (discountBanners || []).find(
+      (b) => b.type === "HEADER" && b.status === "ACTIVE"
+    );
+    if (activeHeaderBanner) return true;
+
+    const enabled = checkoutConfig?.noticeBar?.enabled ?? theme?.noticeBarEnabled;
+    const position = checkoutConfig?.noticeBar?.position ?? theme?.noticeBarPosition ?? 'top';
+    return !!enabled && position === 'top';
+  }, [discountBanners, checkoutConfig?.noticeBar, theme]);
+
+  const showFooterNoticeBar = useMemo(() => {
+    const activeFooterBanner = (discountBanners || []).find(
+      (b) => b.type === "FOOTER" && b.status === "ACTIVE"
+    );
+    if (activeFooterBanner) return true;
+
+    const enabled = checkoutConfig?.noticeBar?.enabled ?? theme?.noticeBarEnabled;
+    const position = checkoutConfig?.noticeBar?.position ?? theme?.noticeBarPosition ?? 'top';
+    return !!enabled && position === 'bottom';
+  }, [discountBanners, checkoutConfig?.noticeBar, theme]);
 
   // ── Estado elevado — compartilhado entre os 3 steps ──────────
   const [contactData, setContactData] = useState<CustomerData>({
@@ -637,11 +709,11 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
         }}
       >
         {/* Notice Bar — TOPO */}
-        {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) &&
-         (checkoutConfig?.noticeBar.position ?? 'top') === 'top' && (
+        {showHeaderNoticeBar && (
           <NoticeBar
             theme={theme as Record<string, unknown>}
-            noticeBarConfig={checkoutConfig?.noticeBar}
+            noticeBarConfig={headerNoticeBarConfig}
+            onApplyCoupon={onApplyCoupon}
           />
         )}
 
@@ -947,11 +1019,11 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
       />
 
       {/* Notice Bar — RODAPÉ (position=bottom) */}
-      {(checkoutConfig?.noticeBar.enabled ?? (theme.noticeBarEnabled as boolean)) &&
-       (checkoutConfig?.noticeBar.position ?? 'top') === 'bottom' && (
+      {showFooterNoticeBar && (
         <NoticeBar
           theme={theme as Record<string, unknown>}
-          noticeBarConfig={checkoutConfig?.noticeBar}
+          noticeBarConfig={footerNoticeBarConfig}
+          onApplyCoupon={onApplyCoupon}
         />
       )}
 

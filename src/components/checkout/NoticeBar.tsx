@@ -31,13 +31,19 @@ import type { NoticeBarConfig } from "@/types/checkout-config.types";
 
 interface NoticeBarProps {
   theme: any;
-  /** Config tipada do store — substitui os campos legados do theme */
-  noticeBarConfig?: NoticeBarConfig;
+  noticeBarConfig?: NoticeBarConfig & {
+    ctaText?: string;
+    ctaLink?: string;
+    discountCode?: string;
+    buttonBackgroundColor?: string;
+    buttonTextColor?: string;
+  };
   className?: string;
   isMobile?: boolean;
   closeable?: boolean;
   autoHide?: boolean;
   autoHideDelay?: number;
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
 }
 
 export const NoticeBar: React.FC<NoticeBarProps> = ({
@@ -48,14 +54,18 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
   closeable = false,
   autoHide = false,
   autoHideDelay = 5000,
+  onApplyCoupon,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
 
   // Resolve valores: store (novo) > theme (legado)
   const enabled   = noticeBarConfig?.enabled ?? theme.noticeBarEnabled;
   const message   = noticeBarConfig?.message  ?? theme.noticeBarText ?? '';
   const isCloseable = noticeBarConfig?.closeable ?? closeable ?? theme.noticeBarCloseable ?? false;
+
 
   if (!enabled || !message) {
     return null;
@@ -85,6 +95,33 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
   const animation = noticeBarConfig?.animation ?? theme.noticeBarAnimation ?? 'slide';
   const bgColor   = noticeBarConfig?.bgColor   ?? theme.noticeBarBackgroundColor;
   const textColor = noticeBarConfig?.textColor ?? theme.noticeBarTextColor;
+
+  const ctaText      = noticeBarConfig?.ctaText      ?? theme.noticeBarCtaText;
+  const ctaLink      = noticeBarConfig?.ctaLink      ?? theme.noticeBarCtaLink;
+  const discountCode = noticeBarConfig?.discountCode ?? theme.noticeBarDiscountCode;
+  const btnBgColor   = noticeBarConfig?.buttonBackgroundColor   ?? theme.noticeBarButtonBackgroundColor ?? '#ffffff';
+  const btnTextColor = noticeBarConfig?.buttonTextColor ?? theme.noticeBarButtonTextColor ?? '#000000';
+
+  const handleCtaClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (discountCode && onApplyCoupon) {
+      setApplying(true);
+      try {
+        const result = await onApplyCoupon(discountCode);
+        if (result.success) {
+          setApplied(true);
+        }
+      } catch (err) {
+        console.error("Erro ao aplicar cupom do banner:", err);
+      } finally {
+        setApplying(false);
+      }
+    }
+    if (ctaLink) {
+      window.open(ctaLink, "_blank");
+    }
+  };
+
 
   // Cores baseadas no estilo — usa cores do store se disponíveis
   const getStyleColors = () => {
@@ -249,7 +286,7 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
             {/* Texto */}
             <motion.p
               className={cn(
-                "font-semibold text-center flex-1",
+                "font-semibold text-center",
                 isMobile ? "text-xs" : "text-sm"
               )}
               initial={{ opacity: 0, x: -20 }}
@@ -258,6 +295,33 @@ export const NoticeBar: React.FC<NoticeBarProps> = ({
             >
               {message}
             </motion.p>
+
+            {/* Botão de Chamada para Ação (CTA) */}
+            {ctaText && (
+              <motion.button
+                onClick={handleCtaClick}
+                disabled={applying || applied}
+                className={cn(
+                  "flex-shrink-0 px-3 py-1 rounded-md font-bold transition-all text-xs shadow-sm flex items-center gap-1",
+                  (applying || applied) ? "opacity-75 cursor-not-allowed" : "hover:scale-105 active:scale-95"
+                )}
+                style={{
+                  backgroundColor: btnBgColor,
+                  color: btnTextColor,
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {applying ? (
+                  <span>Aplicando...</span>
+                ) : applied ? (
+                  <span>✓ Aplicado</span>
+                ) : (
+                  <span>{ctaText}</span>
+                )}
+              </motion.button>
+            )}
+
 
             {/* Botão de fechar */}
             {isCloseable && (

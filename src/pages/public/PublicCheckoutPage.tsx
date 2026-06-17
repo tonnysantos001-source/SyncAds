@@ -215,6 +215,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [crossSells, setCrossSells] = useState<any[]>([]);
   const [selectedCrossSells, setSelectedCrossSells] = useState<string[]>([]);
+  const [discountBanners, setDiscountBanners] = useState<any[]>([]);
+  const [activePopupBanner, setActivePopupBanner] = useState<any | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+
 
   // ============================================
   // TEMPLATE STATE (multi-template system)
@@ -439,6 +443,129 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       setTemplateVersion(injectedTheme.templateVersion || 1);
     }
   }, [injectedTheme]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const trackBannerConversions = async () => {
+    if (!discountBanners || discountBanners.length === 0) return;
+    try {
+      await Promise.all(
+        discountBanners.map((b) =>
+          supabase.rpc("increment_banner_conversion", { banner_id: b.id }).catch((e) => {
+            console.error("Erro ao registrar conversao do banner:", e);
+          })
+        )
+      );
+    } catch (e) {
+      console.error("Erro geral no trackBannerConversions:", e);
+    }
+  };
+
+  const setupPopupTrigger = (popup: any) => {
+    const trigger = popup.trigger || 'ALWAYS';
+    const delay = (popup.triggerDelay || 0) * 1000;
+
+    if (trigger === 'ALWAYS') {
+      setShowPopup(true);
+    } else if (trigger === 'FIRST_VISIT') {
+      const visited = localStorage.getItem(`visited_checkout_${orderId}`);
+      if (!visited) {
+        setShowPopup(true);
+        localStorage.setItem(`visited_checkout_${orderId}`, 'true');
+      }
+    } else if (trigger === 'TIME_DELAY') {
+      setTimeout(() => {
+        setShowPopup(true);
+      }, delay || 3000);
+    } else if (trigger === 'EXIT_INTENT') {
+      const handleMouseLeave = (e: MouseEvent) => {
+        if (e.clientY < 50) {
+          setShowPopup(true);
+          document.removeEventListener('mouseleave', handleMouseLeave);
+        }
+      };
+      document.addEventListener('mouseleave', handleMouseLeave);
+    } else if (trigger === 'SCROLL_PERCENTAGE') {
+      const handleScroll = () => {
+        const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+        if (scrollPercent >= (popup.triggerScrollPercentage || 50)) {
+          setShowPopup(true);
+          window.removeEventListener('scroll', handleScroll);
+        }
+      };
+      window.addEventListener('scroll', handleScroll);
+    }
+  };
+
+  const renderPopupBanner = () => {
+    if (!activePopupBanner || !showPopup) return null;
+
+    const data = activePopupBanner;
+
+    const handlePopupCtaClick = async () => {
+      // track click
+      try {
+        await supabase.rpc("increment_banner_click", { banner_id: data.id });
+      } catch (err) {
+        console.error("Erro ao registrar clique do popup:", err);
+      }
+
+      // apply discount coupon
+      if (data.discountCode) {
+        await handleApplyCoupon(data.discountCode);
+      }
+
+      // redirect if link
+      if (data.ctaLink) {
+        window.open(data.ctaLink, "_blank");
+      }
+
+      setShowPopup(false);
+    };
+
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999] backdrop-blur-[2px]">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="p-6 rounded-2xl text-center max-w-sm w-full shadow-2xl relative border border-white/10"
+            style={{
+              backgroundColor: data.backgroundColor || "#EC4899",
+              color: data.textColor || "#FFFFFF",
+            }}
+          >
+            {data.showCloseButton && (
+              <button
+                onClick={() => setShowPopup(false)}
+                className="absolute top-3 right-4 text-xl font-bold opacity-80 hover:opacity-100 transition-opacity"
+              >
+                ×
+              </button>
+            )}
+            <div className="text-xl font-black mb-2 uppercase tracking-wide">
+              {data.title || "Oferta Especial!"}
+            </div>
+            <p className="text-xs opacity-90 leading-relaxed mb-6">
+              {data.message || "Aproveite agora esta promoção incrível."}
+            </p>
+            {data.ctaText && (
+              <button
+                onClick={handlePopupCtaClick}
+                className="w-full py-2.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl"
+                style={{
+                  backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
+                  color: data.buttonTextColor || "#EC4899",
+                }}
+              >
+                {data.ctaText}
+              </button>
+            )}
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    );
+  };
+
 
   const loadCheckoutData = async () => {
     try {
@@ -801,8 +928,42 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         } catch (e) {
           console.log("Erro ao carregar cross sells:", e);
         }
+
+
+        // Buscar faixas de desconto ativas
+        try {
+          const { data: banners, error: bannersError } = await supabase
+            .from("DiscountBanner")
+            .select("*")
+            .eq("userId", order.userId)
+            .eq("status", "ACTIVE")
+            .order("priority", { ascending: false });
+
+          if (!bannersError && banners) {
+            setDiscountBanners(banners);
+
+            // Configurar popup se houver
+            const popup = banners.find(b => b.type === 'POPUP');
+            if (popup) {
+              setActivePopupBanner(popup);
+              setupPopupTrigger(popup);
+            }
+
+            // Incrementar impressões de forma assíncrona
+            banners.forEach(async (b) => {
+              try {
+                await supabase.rpc('increment_banner_impression', { banner_id: b.id });
+              } catch (trackErr) {
+                console.error("Erro ao registrar impressao do banner:", trackErr);
+              }
+            });
+          }
+        } catch (e) {
+          console.log("Erro ao carregar faixas de desconto:", e);
+        }
       }
     } catch (error: any) {
+
       console.error("❌ [DEBUG] Erro ao carregar checkout:", error);
       console.error("❌ [DEBUG] Stack trace:", error.stack);
       toast({
@@ -1238,11 +1399,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       }
 
       // Redirecionar conforme método
+      await trackBannerConversions();
       if (paymentMethod === "PIX") {
         navigate(`/pix/${orderId}/${transaction.id}`);
       } else {
         navigate(`/checkout/success/${transaction.id}`);
       }
+
     } catch (error: any) {
       console.error("Erro ao processar pagamento:", error);
       toast({
@@ -1363,7 +1526,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           theme={theme}
           isPreview={previewMode}
           onStepChange={(step) => setCurrentStep(step)}
-          onPaymentSuccess={(id) => {
+          onPaymentSuccess={async (id) => {
+            await trackBannerConversions();
             navigate(`/checkout/success/${id || orderId}`);
           }}
           isMobile={isMobile || false}
@@ -1378,7 +1542,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           crossSells={crossSells}
           selectedCrossSells={selectedCrossSells}
           onToggleCrossSell={handleToggleCrossSell}
+          discountBanners={discountBanners}
         />
+        {renderPopupBanner()}
       </React.Suspense>
     );
   }
@@ -2213,6 +2379,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           }
         }
       />
+      {renderPopupBanner()}
     </div>
   );
 };
