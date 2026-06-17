@@ -397,7 +397,7 @@ const DiscountBannerPage = () => {
 
     return (
       <div 
-        className="w-[320px] mx-auto rounded-[2.5rem] border-[10px] border-[#1e293b] dark:border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col h-[490px] relative overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300 ring-4 ring-slate-900/10 dark:ring-white/5"
+        className="w-[340px] mx-auto rounded-[2.5rem] border-[10px] border-[#1e293b] dark:border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col h-[525px] relative overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300 ring-4 ring-slate-900/10 dark:ring-white/5"
       >
         {/* Phone Simulation Side Buttons */}
         <div className="absolute -left-[11px] top-16 w-[2px] h-6 bg-[#334155] rounded-l-sm" /> {/* Vol Up */}
@@ -474,7 +474,9 @@ const DiscountBannerPage = () => {
               <div className="h-3.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
               <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
               <div className="h-3.5 w-1/4 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-12 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+              <div className="h-10 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+              <div className="h-3.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
             </div>
           </div>
 
@@ -482,7 +484,7 @@ const DiscountBannerPage = () => {
           {isPopup && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-5 backdrop-blur-[2px] z-50">
               <div
-                className="p-4.5 rounded-xl text-center max-w-[240px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
+                className="p-4.5 rounded-xl text-center max-w-[250px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
                 style={{
                   backgroundColor: data.backgroundColor || "#EC4899",
                   color: data.textColor || "#FFFFFF",
@@ -773,7 +775,7 @@ const DiscountBannerPage = () => {
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent
-          className="h-[85vh] max-h-[680px] flex flex-col bg-[#0b0f19] border border-slate-800/80 text-white p-0 overflow-hidden rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] transition-all duration-300"
+          className="h-[85vh] max-h-[730px] flex flex-col bg-[#0b0f19] border border-slate-800/80 text-white p-0 overflow-hidden rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] transition-all duration-300"
           style={{ maxWidth: '1020px', width: '95vw' }}
         >
 
@@ -788,9 +790,9 @@ const DiscountBannerPage = () => {
 
           <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 px-6 py-4 overflow-hidden">
             {/* Formulário (Col 7) */}
-            <div className="lg:col-span-7 overflow-y-auto overflow-x-hidden pr-3 h-full pb-6">
-              <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-[#030712]/60 p-1 rounded-xl border border-slate-800/60 mb-5">
+            <div className="lg:col-span-7 flex flex-col h-full overflow-hidden">
+              <Tabs defaultValue="general" className="w-full flex flex-col h-full">
+                <TabsList className="grid w-full grid-cols-3 bg-[#030712]/60 p-1 rounded-xl border border-slate-800/60 mb-4 flex-shrink-0">
                   <TabsTrigger value="general" className="text-xs font-semibold py-2 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-orange-500/10">
                     ⚙️ Geral & Regras
                   </TabsTrigger>
@@ -802,332 +804,334 @@ const DiscountBannerPage = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* ABA 1: GERAL & REGRAS */}
-                <TabsContent value="general" className="space-y-4 outline-none">
-                  {/* Seção 1: Informações Básicas */}
-                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
-                    <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Geral</h3>
-                    
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="name" className="text-xs text-slate-300">Nome do Banner *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="Ex: Frete Grátis Black Friday"
-                        className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
-                      />
+                <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 pb-6 space-y-4">
+                  {/* ABA 1: GERAL & REGRAS */}
+                  <TabsContent value="general" className="space-y-4 outline-none mt-0">
+                    {/* Seção 1: Informações Básicas */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
+                      <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Geral</h3>
+                      
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="name" className="text-xs text-slate-300">Nome do Banner *</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          placeholder="Ex: Frete Grátis Black Friday"
+                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="type" className="text-xs text-slate-300">Tipo / Posicionamento *</Label>
+                          <Select
+                            value={formData.type}
+                            onValueChange={(value: BannerType) =>
+                              setFormData({ ...formData, type: value })
+                            }
+                          >
+                            <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
+                              <SelectItem value="HEADER">Topo (Barra de Aviso)</SelectItem>
+                              <SelectItem value="FOOTER">Rodapé</SelectItem>
+                              <SelectItem value="POPUP">Pop-up (Overlay)</SelectItem>
+                              <SelectItem value="STICKY">Fixo</SelectItem>
+                              <SelectItem value="INLINE">Inline</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="priority" className="text-xs text-slate-300">Prioridade de Exibição</Label>
+                          <Input
+                            id="priority"
+                            type="number"
+                            value={formData.priority}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                priority: parseInt(e.target.value) || 1,
+                              })
+                            }
+                            className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Seção 5: Comportamento / Regras de Exibição */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
+                      <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Regras de Exibição</h3>
+
                       <div className="grid gap-1.5">
-                        <Label htmlFor="type" className="text-xs text-slate-300">Tipo / Posicionamento *</Label>
+                        <Label htmlFor="trigger" className="text-xs text-slate-300">Quando exibir o Banner</Label>
                         <Select
-                          value={formData.type}
-                          onValueChange={(value: BannerType) =>
-                            setFormData({ ...formData, type: value })
+                          value={formData.trigger}
+                          onValueChange={(value: BannerTrigger) =>
+                            setFormData({ ...formData, trigger: value })
                           }
                         >
                           <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
-                            <SelectItem value="HEADER">Topo (Barra de Aviso)</SelectItem>
-                            <SelectItem value="FOOTER">Rodapé</SelectItem>
-                            <SelectItem value="POPUP">Pop-up (Overlay)</SelectItem>
-                            <SelectItem value="STICKY">Fixo</SelectItem>
-                            <SelectItem value="INLINE">Inline</SelectItem>
+                            <SelectItem value="ALWAYS">Sempre (Ao carregar a página)</SelectItem>
+                            <SelectItem value="FIRST_VISIT">Apenas na Primeira Visita</SelectItem>
+                            <SelectItem value="EXIT_INTENT">Intenção de Saída (Mouse fora da tela)</SelectItem>
+                            <SelectItem value="TIME_DELAY">Delay de Tempo (Segundos)</SelectItem>
+                            <SelectItem value="SCROLL_PERCENTAGE">Porcentagem de Rolagem</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
+                      <div className="grid grid-cols-2 gap-4 pt-1">
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            id="closable"
+                            checked={formData.closable}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, closable: checked })
+                            }
+                            className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
+                          />
+                          <Label htmlFor="closable" className="cursor-pointer text-xs text-slate-300 font-medium">Permitir Fechar</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            id="showCloseButton"
+                            checked={formData.showCloseButton}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, showCloseButton: checked })
+                            }
+                            className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
+                          />
+                          <Label htmlFor="showCloseButton" className="cursor-pointer text-xs text-slate-300 font-medium">Mostrar Botão</Label>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* ABA 2: CONTEÚDO & CUPOM */}
+                  <TabsContent value="content" className="space-y-4 outline-none mt-0">
+                    {/* Seção 2: Conteúdo */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
+                      <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Conteúdo</h3>
+
                       <div className="grid gap-1.5">
-                        <Label htmlFor="priority" className="text-xs text-slate-300">Prioridade de Exibição</Label>
+                        <Label htmlFor="title" className="text-xs text-slate-300">Título *</Label>
                         <Input
-                          id="priority"
-                          type="number"
-                          value={formData.priority}
+                          id="title"
+                          value={formData.title}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              priority: parseInt(e.target.value) || 1,
-                            })
+                            setFormData({ ...formData, title: e.target.value })
                           }
-                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Seção 5: Comportamento / Regras de Exibição */}
-                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
-                    <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Regras de Exibição</h3>
-
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="trigger" className="text-xs text-slate-300">Quando exibir o Banner</Label>
-                      <Select
-                        value={formData.trigger}
-                        onValueChange={(value: BannerTrigger) =>
-                          setFormData({ ...formData, trigger: value })
-                        }
-                      >
-                        <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
-                          <SelectItem value="ALWAYS">Sempre (Ao carregar a página)</SelectItem>
-                          <SelectItem value="FIRST_VISIT">Apenas na Primeira Visita</SelectItem>
-                          <SelectItem value="EXIT_INTENT">Intenção de Saída (Mouse fora da tela)</SelectItem>
-                          <SelectItem value="TIME_DELAY">Delay de Tempo (Segundos)</SelectItem>
-                          <SelectItem value="SCROLL_PERCENTAGE">Porcentagem de Rolagem</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 pt-1">
-                      <div className="flex items-center space-x-3">
-                        <Switch
-                          id="closable"
-                          checked={formData.closable}
-                          onCheckedChange={(checked) =>
-                            setFormData({ ...formData, closable: checked })
-                          }
-                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
-                        />
-                        <Label htmlFor="closable" className="cursor-pointer text-xs text-slate-300 font-medium">Permitir Fechar</Label>
-                      </div>
-
-                      <div className="flex items-center space-x-3">
-                        <Switch
-                          id="showCloseButton"
-                          checked={formData.showCloseButton}
-                          onCheckedChange={(checked) =>
-                            setFormData({ ...formData, showCloseButton: checked })
-                          }
-                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
-                        />
-                        <Label htmlFor="showCloseButton" className="cursor-pointer text-xs text-slate-300 font-medium">Mostrar Botão</Label>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* ABA 2: CONTEÚDO & CUPOM */}
-                <TabsContent value="content" className="space-y-4 outline-none">
-                  {/* Seção 2: Conteúdo */}
-                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
-                    <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Conteúdo</h3>
-
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="title" className="text-xs text-slate-300">Título *</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) =>
-                          setFormData({ ...formData, title: e.target.value })
-                        }
-                        placeholder="Ex: 🎉 GANHE 10% DE DESCONTO AGORA!"
-                        className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
-                      />
-                    </div>
-
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="message" className="text-xs text-slate-300">Mensagem de Descrição *</Label>
-                      <Textarea
-                        id="message"
-                        value={formData.message}
-                        onChange={(e) =>
-                          setFormData({ ...formData, message: e.target.value })
-                        }
-                        placeholder="Use o cupom abaixo e garanta um desconto especial no checkout."
-                        rows={2}
-                        className="bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg resize-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="ctaText" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
-                        <Input
-                          id="ctaText"
-                          value={formData.ctaText || ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, ctaText: e.target.value })
-                          }
-                          placeholder="Ex: Aplicar Desconto"
+                          placeholder="Ex: 🎉 GANHE 10% DE DESCONTO AGORA!"
                           className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                         />
                       </div>
 
                       <div className="grid gap-1.5">
-                        <Label htmlFor="ctaLink" className="text-xs text-slate-300">Link de Redirecionamento</Label>
-                        <Input
-                          id="ctaLink"
-                          value={formData.ctaLink || ""}
+                        <Label htmlFor="message" className="text-xs text-slate-300">Mensagem de Descrição *</Label>
+                        <Textarea
+                          id="message"
+                          value={formData.message}
                           onChange={(e) =>
-                            setFormData({ ...formData, ctaLink: e.target.value })
+                            setFormData({ ...formData, message: e.target.value })
                           }
-                          placeholder="https://..."
-                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
+                          placeholder="Use o cupom abaixo e garanta um desconto especial no checkout."
+                          rows={2}
+                          className="bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg resize-none"
                         />
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Seção 3: Conexão com Integrações e Cupons */}
-                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
-                    <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Sincronização e Cupons</h3>
-
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="discountCode" className="text-xs text-slate-300">Cupom Vinculado (Opcional)</Label>
-                      <Select
-                        value={formData.discountCode || "none"}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, discountCode: value === "none" ? "" : value })
-                        }
-                      >
-                        <SelectTrigger className="h-10 bg-[#030712] border-slate-855 text-white w-full text-xs rounded-lg">
-                          <SelectValue placeholder="Selecione um cupom para vincular" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
-                          <SelectItem value="none">Nenhum cupom (Apenas texto informativo)</SelectItem>
-                          {coupons.map((c) => (
-                            <SelectItem key={c.code} value={c.code}>
-                              {c.code} ({c.isLocal ? "Local" : "Shopify"}) {c.value > 0 ? `- ${c.value}%` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-slate-400 leading-normal">
-                        Ao clicar no banner ou botão, este cupom será aplicado automaticamente no checkout do cliente!
-                      </p>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* ABA 3: DESIGN & CORES */}
-                <TabsContent value="design" className="space-y-4 outline-none">
-                  {/* Seção 4: Visual e Cores */}
-                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
-                    <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Cores e Estilo</h3>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="backgroundColor" className="text-xs text-slate-300">Cor de Fundo do Banner</Label>
-                        <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="ctaText" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
                           <Input
-                            id="backgroundColor"
-                            type="color"
-                            value={formData.backgroundColor}
+                            id="ctaText"
+                            value={formData.ctaText || ""}
                             onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                backgroundColor: e.target.value,
-                              })
+                              setFormData({ ...formData, ctaText: e.target.value })
                             }
-                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
-                          />
-                          <Input
-                            value={formData.backgroundColor}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                backgroundColor: e.target.value,
-                              })
-                            }
-                            placeholder="#EC4899"
-                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            placeholder="Ex: Aplicar Desconto"
+                            className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                           />
                         </div>
-                      </div>
 
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="textColor" className="text-xs text-slate-300">Cor do Texto do Banner</Label>
-                        <div className="flex gap-2">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="ctaLink" className="text-xs text-slate-300">Link de Redirecionamento</Label>
                           <Input
-                            id="textColor"
-                            type="color"
-                            value={formData.textColor}
+                            id="ctaLink"
+                            value={formData.ctaLink || ""}
                             onChange={(e) =>
-                              setFormData({ ...formData, textColor: e.target.value })
+                              setFormData({ ...formData, ctaLink: e.target.value })
                             }
-                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
-                          />
-                          <Input
-                            value={formData.textColor}
-                            onChange={(e) =>
-                              setFormData({ ...formData, textColor: e.target.value })
-                            }
-                            placeholder="#FFFFFF"
-                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            placeholder="https://..."
+                            className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Seção 3: Conexão com Integrações e Cupons */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
+                      <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Sincronização e Cupons</h3>
+
                       <div className="grid gap-1.5">
-                        <Label htmlFor="buttonBackgroundColor" className="text-xs text-slate-300">Fundo do Botão (CTA)</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="buttonBackgroundColor"
-                            type="color"
-                            value={formData.buttonBackgroundColor || "#FFFFFF"}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                buttonBackgroundColor: e.target.value,
-                              })
-                            }
-                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
-                          />
-                          <Input
-                            value={formData.buttonBackgroundColor || "#FFFFFF"}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                buttonBackgroundColor: e.target.value,
-                              })
-                            }
-                            placeholder="#FFFFFF"
-                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
-                          />
+                        <Label htmlFor="discountCode" className="text-xs text-slate-300">Cupom Vinculado (Opcional)</Label>
+                        <Select
+                          value={formData.discountCode || "none"}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, discountCode: value === "none" ? "" : value })
+                          }
+                        >
+                          <SelectTrigger className="h-10 bg-[#030712] border-slate-855 text-white w-full text-xs rounded-lg">
+                            <SelectValue placeholder="Selecione um cupom para vincular" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
+                            <SelectItem value="none">Nenhum cupom (Apenas texto informativo)</SelectItem>
+                            {coupons.map((c) => (
+                              <SelectItem key={c.code} value={c.code}>
+                                {c.code} ({c.isLocal ? "Local" : "Shopify"}) {c.value > 0 ? `- ${c.value}%` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-slate-400 leading-normal">
+                          Ao clicar no banner ou botão, este cupom será aplicado automaticamente no checkout do cliente!
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* ABA 3: DESIGN & CORES */}
+                  <TabsContent value="design" className="space-y-4 outline-none mt-0">
+                    {/* Seção 4: Visual e Cores */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
+                      <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Cores e Estilo</h3>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="backgroundColor" className="text-xs text-slate-300">Cor de Fundo do Banner</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="backgroundColor"
+                              type="color"
+                              value={formData.backgroundColor}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  backgroundColor: e.target.value,
+                                })
+                              }
+                              className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={formData.backgroundColor}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  backgroundColor: e.target.value,
+                                })
+                              }
+                              placeholder="#EC4899"
+                              className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="textColor" className="text-xs text-slate-300">Cor do Texto do Banner</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="textColor"
+                              type="color"
+                              value={formData.textColor}
+                              onChange={(e) =>
+                                setFormData({ ...formData, textColor: e.target.value })
+                              }
+                              className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={formData.textColor}
+                              onChange={(e) =>
+                                setFormData({ ...formData, textColor: e.target.value })
+                              }
+                              placeholder="#FFFFFF"
+                              className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="buttonTextColor" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="buttonTextColor"
-                            type="color"
-                            value={formData.buttonTextColor || "#EC4899"}
-                            onChange={(e) =>
-                              setFormData({ ...formData, buttonTextColor: e.target.value })
-                            }
-                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
-                          />
-                          <Input
-                            value={formData.buttonTextColor || "#EC4899"}
-                            onChange={(e) =>
-                              setFormData({ ...formData, buttonTextColor: e.target.value })
-                            }
-                            placeholder="#EC4899"
-                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
-                          />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="buttonBackgroundColor" className="text-xs text-slate-300">Fundo do Botão (CTA)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="buttonBackgroundColor"
+                              type="color"
+                              value={formData.buttonBackgroundColor || "#FFFFFF"}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  buttonBackgroundColor: e.target.value,
+                                })
+                              }
+                              className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={formData.buttonBackgroundColor || "#FFFFFF"}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  buttonBackgroundColor: e.target.value,
+                                })
+                              }
+                              placeholder="#FFFFFF"
+                              className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="buttonTextColor" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="buttonTextColor"
+                              type="color"
+                              value={formData.buttonTextColor || "#EC4899"}
+                              onChange={(e) =>
+                                setFormData({ ...formData, buttonTextColor: e.target.value })
+                              }
+                              className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={formData.buttonTextColor || "#EC4899"}
+                              onChange={(e) =>
+                                setFormData({ ...formData, buttonTextColor: e.target.value })
+                              }
+                              placeholder="#EC4899"
+                              className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
+                </div>
               </Tabs>
             </div>
 
             {/* Preview (Col 5) */}
-            <div className="lg:col-span-5 flex flex-col justify-center items-center space-y-4 h-full bg-[#030712]/30 rounded-2xl border border-slate-850/60 p-5 self-center">
-              <div className="text-center">
+            <div className="lg:col-span-5 flex flex-col justify-center items-center space-y-3 h-full bg-[#030712]/30 rounded-2xl border border-slate-850/60 p-4 self-center overflow-hidden">
+              <div className="text-center flex-shrink-0">
                 <h3 className="text-xs font-bold text-slate-200 tracking-wide uppercase">Visualização em Tempo Real</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">
                   Veja como o banner ficará no checkout.

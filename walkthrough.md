@@ -142,12 +142,13 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
 Com base nos feedbacks de design, refinamos o modal de faixas de desconto (`DiscountBannerPage.tsx`) para proporcionar uma experiência visual deslumbrante e focada:
 
 1. **Visualização em Tempo Real Ampliada**:
-   - Redimensionamos o mockup de celular de `w-[280px] h-[350px]` para `w-[320px] h-[490px]`, mantendo proporções ultra-realistas.
-   - Aumentamos o tamanho das fontes internas (título para `text-xs font-bold`, mensagem para `text-[10px]`) e do botão de CTA para garantir legibilidade impecável no tamanho normal do modal.
+   - Redimensionamos o mockup de celular de `w-[320px] h-[490px]` para **`w-[340px] h-[525px]`**, fazendo com que ele ocupe o espaço útil do container (quadrado) que o envolve.
+   - Adicionamos `overflow-hidden` ao container do preview e removemos qualquer margem ociosa, **eliminando completamente a barra de rolagem lateral cinza** indesejada que aparecia ao lado do celular.
+   - Adicionamos novos esqueletos de esqueleto no placeholder do checkout para preencher de forma proporcional e elegante a tela estendida do mockup.
 
-2. **Compactação de Bordas e Espaços Ociosos**:
-   - Diminuímos a largura máxima do modal de `1200px` para `1020px` e a altura máxima de `820px` para `680px` (`h-[85vh]`).
-   - Isso eliminou as áreas pretas ociosas, mantendo os elementos do formulário e o mockup perfeitamente aninhados e visíveis sem rolagem em telas normais.
+2. **Abas e Seletores Fixos**:
+   - Fixamos os seletores de abas (`TabsList`) no topo da coluna de formulário.
+   - Apenas o conteúdo interno das configurações rola verticalmente (`flex-1 overflow-y-auto`), o que garante que os botões de mudar de aba estejam **sempre visíveis e clicáveis** instantaneamente, sem precisar rolar de volta ao topo.
 
 3. **Estética Futurista e Elegante**:
    - Fundo do modal atualizado para o tom tecnológico `bg-[#0b0f19]` com sombra neon brilhante laranja/rosa (`shadow-[0_0_50px_rgba(249,115,22,0.15)]`).
