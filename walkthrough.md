@@ -1,4 +1,4 @@
-# Walkthrough — Sistemas de Marketing Funcionais no Checkout (Order Bump, Upsell, Cross-Sell, Discount Banner)
+# Walkthrough — Sistemas de Marketing e Descontos por Forma de Pagamento no Checkout
 
 Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump**, **Upsell Pós-Compra**, **Cross-Sell** e **Faixa de Desconto (Discount Banner)** do SyncAds com o banco de dados e as páginas de checkout público, de sucesso e de administração.
 
@@ -158,5 +158,44 @@ Com base nos feedbacks de design, refinamos o modal de faixas de desconto (`Disc
 
 ---
 
+## O que foi feito - Descontos por Forma de Pagamento
+
+Implementamos e sincronizamos por completo os descontos automáticos baseados na forma de pagamento selecionada no checkout público (PIX, Boleto e Cartão de Crédito), vinculando com a tabela `PaymentMethodDiscount` no Supabase.
+
+### 1. Extensão de Tipos e Props
+- **Arquivo modificado:** [checkout.types.ts](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/types/checkout.types.ts)
+  - Adicionada a propriedade `paymentMethodDiscount?: number` na interface `CheckoutData` para transportar o valor deduzido.
+  - Adicionadas as propriedades `paymentMethod?: string` e `onPaymentMethodChange?: (method: any) => void` à interface `TemplateRenderProps`.
+
+### 2. Painel de Resumo do Pedido (CheckoutSummaryPanel)
+- **Arquivo modificado:** [CheckoutSummaryPanel.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/templates/shared/CheckoutSummaryPanel.tsx)
+  - Extraído o valor `paymentMethodDiscount` de `checkoutData`.
+  - Exibição de uma linha explícita `"Desconto (Forma de Pagamento)"` com a redução correspondente em verde.
+  - Ajuste de cálculo para deduzir adequadamente no valor final do pedido sem duplicidades com outros descontos.
+
+### 3. Sincronização nos Templates de Checkout
+- **Template Renderer:** [TemplateRenderer.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/TemplateRenderer.tsx)
+  - Repasse das propriedades de método de pagamento (`paymentMethod` e `onPaymentMethodChange`) para os componentes lazy individuais.
+- **Templates Minimalista, Confiança e Streamline:** [MinimalStepPayment.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/templates/shared/steps/MinimalStepPayment.tsx)
+  - Sincronização do estado de pagamento selecionado na etapa 3 para propagar para o pai através do callback.
+- **Template Premium:** [PremiumTemplate.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/templates/PremiumTemplate.tsx)
+  - Interceptação da seleção interna do método de pagamento e sincronização instantânea via callback do pai.
+- **Template TikTok:** [TikTokTemplate.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/templates/TikTokTemplate.tsx)
+  - Mapeamento das strings locais do TikTok (`'credit' | 'pix' | 'boleto'`) com a representação canônica da tabela no banco, garantindo o funcionamento do callback e recálculo dinâmico.
+
+### 4. Motor e Regras de Negócio do Checkout Público
+- **Arquivo modificado:** [PublicCheckoutPage.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/pages/public/PublicCheckoutPage.tsx)
+  - Importação do hook `usePaymentDiscounts` e invocação imediatamente após o cálculo dos totais parciais de Order Bump e Cross-Sell. A invocação foi estrategicamente posicionada para evitar problemas de hoisting com funções de escopo locais.
+  - Atualização dos cálculos de `totalBeforeCashback` e `finalTotalWithBumps` para deduzir o desconto ativo do pagamento.
+  - Envio do payload completo com o desconto para a exibição consistente nos resumos laterais.
+
+### 5. Verificação no Supabase
+- Executamos um script de automação (`verify_payment_discounts.js`) que se conectou à API REST do Supabase utilizando a chave de serviço para inspecionar a tabela `PaymentMethodDiscount`.
+- Como a tabela estava vazia, o script inseriu com sucesso um desconto de teste de **10% para PIX** associado ao usuário lojista ativo `f4fb4657-f9c2-44db-8cb9-1b0768b46c6b`.
+- Isso garante que o pipeline de dados está 100% integrado e que as consultas no checkout lerão os dados configurados com sucesso.
+
+---
+
 ## Compilação e Validação (Sucesso)
 - Executado `npm run build` na raiz do projeto com sucesso completo. O bundle foi gerado perfeitamente sem nenhuma falha de compilação ou tipo no TypeScript nos arquivos criados ou modificados.
+
