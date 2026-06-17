@@ -397,27 +397,27 @@ const DiscountBannerPage = () => {
 
     return (
       <div 
-        className="w-[280px] mx-auto rounded-[2rem] border-[8px] border-[#1e293b] shadow-2xl flex flex-col h-[350px] relative overflow-hidden bg-white dark:bg-slate-900"
+        className="w-[320px] mx-auto rounded-[2.5rem] border-[10px] border-[#1e293b] dark:border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col h-[490px] relative overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300 ring-4 ring-slate-900/10 dark:ring-white/5"
       >
         {/* Phone Simulation Side Buttons */}
-        <div className="absolute -left-[9px] top-12 w-[2px] h-4 bg-[#334155] rounded-l-sm" /> {/* Vol Up */}
-        <div className="absolute -left-[9px] top-18 w-[2px] h-4 bg-[#334155] rounded-l-sm" /> {/* Vol Down */}
-        <div className="absolute -right-[9px] top-16 w-[2px] h-6 bg-[#334155] rounded-r-sm" /> {/* Power */}
+        <div className="absolute -left-[11px] top-16 w-[2px] h-6 bg-[#334155] rounded-l-sm" /> {/* Vol Up */}
+        <div className="absolute -left-[11px] top-24 w-[2px] h-6 bg-[#334155] rounded-l-sm" /> {/* Vol Down */}
+        <div className="absolute -right-[11px] top-20 w-[2px] h-8 bg-[#334155] rounded-r-sm" /> {/* Power */}
 
         {/* Dynamic Island / Status Bar UI */}
-        <div className="sticky top-0 left-0 right-0 h-9 flex items-center justify-between px-4 z-[100] bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 flex-shrink-0 pointer-events-none">
+        <div className="sticky top-0 left-0 right-0 h-10 flex items-center justify-between px-5 z-[100] bg-white dark:bg-slate-950 border-b border-gray-100 dark:border-slate-900 flex-shrink-0 pointer-events-none">
           {/* Clock */}
-          <span className="text-[9px] font-bold text-gray-900 dark:text-gray-100">9:41</span>
+          <span className="text-[10px] font-bold text-gray-900 dark:text-gray-100">9:41</span>
           
           {/* Dynamic Island Pill */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-1.5 w-[64px] h-[16px] bg-black rounded-[8px] flex items-center justify-between px-2 shadow-md">
+          <div className="absolute left-1/2 -translate-x-1/2 top-2 w-[72px] h-[20px] bg-black rounded-[10px] flex items-center justify-between px-2.5 shadow-md">
              {/* Camera Lens dot */}
-             <div className="w-[8px] h-[1px] bg-zinc-800 rounded-full" />
+             <div className="w-[8px] h-[2px] bg-zinc-800 rounded-full" />
              <div className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a] border border-white/5" />
           </div>
 
           {/* Icons (WiFi, Signal, Battery) */}
-          <div className="flex items-center gap-0.5 scale-75 origin-right">
+          <div className="flex items-center gap-1 scale-90 origin-right">
              <svg width="15" height="10" viewBox="0 0 15 10" fill="none" className="text-gray-900 dark:text-gray-100 fill-current">
                 <path d="M0 7.5V10H2V7.5H0ZM3.25 5V10H5.25V5H3.25ZM6.5 2.5V10H8.5V2.5H6.5ZM9.75 0V10H11.75V0H9.75Z"/>
              </svg>
@@ -431,24 +431,24 @@ const DiscountBannerPage = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-3 text-xs">
+        <div className="flex-1 flex flex-col relative overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-4 text-xs">
           {/* HEADER Discount Banner inside mock checkout */}
           {isHeader && (
             <div
-              className="w-full p-2 rounded-md mb-3 text-center transition-all duration-300 relative shadow-sm border border-white/5"
+              className="w-full p-3 rounded-lg mb-4 text-center transition-all duration-300 relative shadow-sm border border-white/5"
               style={{
                 backgroundColor: data.backgroundColor || "#EC4899",
                 color: data.textColor || "#FFFFFF",
               }}
             >
               {data.showCloseButton && (
-                <span className="absolute top-1 right-1.5 text-[10px] opacity-75">×</span>
+                <span className="absolute top-1 right-2 text-xs opacity-75 cursor-pointer">×</span>
               )}
-              <div className="font-bold text-[10px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-              <div className="text-[8px] opacity-90 mt-0.5 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
+              <div className="font-bold text-xs truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+              <div className="text-[10px] opacity-90 mt-1 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
               {data.ctaText && (
                 <button
-                  className="mt-1 px-3 py-0.5 rounded text-[8px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
+                  className="mt-2 px-4 py-1 rounded text-[10px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
                   style={{
                     backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                     color: data.buttonTextColor || "#EC4899",
@@ -461,39 +461,41 @@ const DiscountBannerPage = () => {
           )}
 
           {/* Checkout Content Placeholder */}
-          <div className="flex-1 space-y-3 opacity-40 select-none pointer-events-none">
+          <div className="flex-1 space-y-4 opacity-40 select-none pointer-events-none mt-2">
             {/* Header / Logo */}
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-1.5">
-              <div className="h-3 w-16 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-3 w-8 bg-slate-300 dark:bg-slate-800 rounded"></div>
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="h-4 w-20 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-4 w-10 bg-slate-300 dark:bg-slate-800 rounded"></div>
             </div>
             {/* Checkout body layout: stacked in mobile */}
-            <div className="space-y-2">
-              <div className="h-2.5 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-6 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
-              <div className="h-2.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-6 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+            <div className="space-y-3">
+              <div className="h-3.5 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+              <div className="h-3.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+              <div className="h-3.5 w-1/4 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-12 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
             </div>
           </div>
 
           {/* POPUP Discount Banner Modal Overlay */}
           {isPopup && (
-            <div className="absolute inset-0 bg-black/55 flex items-center justify-center p-4 backdrop-blur-[1px] z-50">
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-5 backdrop-blur-[2px] z-50">
               <div
-                className="p-3.5 rounded-lg text-center max-w-[210px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
+                className="p-4.5 rounded-xl text-center max-w-[240px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
                 style={{
                   backgroundColor: data.backgroundColor || "#EC4899",
                   color: data.textColor || "#FFFFFF",
                 }}
               >
                 {data.showCloseButton && (
-                  <span className="absolute top-1 right-2 text-xs font-bold opacity-75 cursor-pointer">×</span>
+                  <span className="absolute top-1.5 right-2.5 text-sm font-bold opacity-75 cursor-pointer">×</span>
                 )}
-                <div className="font-extrabold text-[10px] mb-0.5 uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-                <p className="text-[8px] opacity-90 leading-tight mb-2.5">{data.message || "Aproveite esta oferta especial!"}</p>
+                <div className="font-extrabold text-xs mb-1 uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+                <p className="text-[10px] opacity-90 leading-tight mb-3">{data.message || "Aproveite esta oferta especial!"}</p>
                 {data.ctaText && (
                   <button
-                    className="w-full py-1 px-3 rounded text-[8px] font-black tracking-wide uppercase transition-transform hover:scale-105 active:scale-95 shadow-md"
+                    className="w-full py-1.5 px-4 rounded text-[10px] font-black tracking-wide uppercase transition-transform hover:scale-105 active:scale-95 shadow-md"
                     style={{
                       backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                       color: data.buttonTextColor || "#EC4899",
@@ -509,20 +511,20 @@ const DiscountBannerPage = () => {
           {/* FOOTER Discount Banner inside mock checkout */}
           {isFooter && (
             <div
-              className="w-full p-2 rounded-md mt-3 text-center transition-all duration-300 relative shadow-sm border border-white/5"
+              className="w-full p-3 rounded-lg mt-4 text-center transition-all duration-300 relative shadow-sm border border-white/5"
               style={{
                 backgroundColor: data.backgroundColor || "#EC4899",
                 color: data.textColor || "#FFFFFF",
               }}
             >
               {data.showCloseButton && (
-                <span className="absolute top-1 right-1.5 text-[10px] opacity-75">×</span>
+                <span className="absolute top-1 right-2 text-xs opacity-75 cursor-pointer">×</span>
               )}
-              <div className="font-bold text-[10px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-              <div className="text-[8px] opacity-90 mt-0.5 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
+              <div className="font-bold text-xs truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+              <div className="text-[10px] opacity-90 mt-1 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
               {data.ctaText && (
                 <button
-                  className="mt-1 px-3 py-0.5 rounded text-[8px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
+                  className="mt-2 px-4 py-1 rounded text-[10px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
                   style={{
                     backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                     color: data.buttonTextColor || "#EC4899",
@@ -771,8 +773,8 @@ const DiscountBannerPage = () => {
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent
-          className="h-[90vh] max-h-[820px] flex flex-col bg-slate-900 border-slate-800 text-white p-0 overflow-hidden"
-          style={{ maxWidth: '1200px', width: '95vw' }}
+          className="h-[85vh] max-h-[680px] flex flex-col bg-[#0b0f19] border border-slate-800/80 text-white p-0 overflow-hidden rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] transition-all duration-300"
+          style={{ maxWidth: '1020px', width: '95vw' }}
         >
 
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-800 flex-shrink-0">
@@ -784,18 +786,18 @@ const DiscountBannerPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 px-6 py-4 overflow-hidden">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 px-6 py-4 overflow-hidden">
             {/* Formulário (Col 7) */}
-            <div className="lg:col-span-7 overflow-y-auto overflow-x-hidden pr-3 h-full pb-8">
+            <div className="lg:col-span-7 overflow-y-auto overflow-x-hidden pr-3 h-full pb-6">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-950 p-1 rounded-lg border border-slate-800 mb-4">
-                  <TabsTrigger value="general" className="text-xs font-semibold data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                <TabsList className="grid w-full grid-cols-3 bg-[#030712]/60 p-1 rounded-xl border border-slate-800/60 mb-5">
+                  <TabsTrigger value="general" className="text-xs font-semibold py-2 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-orange-500/10">
                     ⚙️ Geral & Regras
                   </TabsTrigger>
-                  <TabsTrigger value="content" className="text-xs font-semibold data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <TabsTrigger value="content" className="text-xs font-semibold py-2 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-orange-500/10">
                     📝 Conteúdo & Cupom
                   </TabsTrigger>
-                  <TabsTrigger value="design" className="text-xs font-semibold data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <TabsTrigger value="design" className="text-xs font-semibold py-2 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-orange-500/10">
                     🎨 Design & Cores
                   </TabsTrigger>
                 </TabsList>
@@ -803,10 +805,10 @@ const DiscountBannerPage = () => {
                 {/* ABA 1: GERAL & REGRAS */}
                 <TabsContent value="general" className="space-y-4 outline-none">
                   {/* Seção 1: Informações Básicas */}
-                  <div className="space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
                     <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Geral</h3>
                     
-                    <div className="grid gap-1">
+                    <div className="grid gap-1.5">
                       <Label htmlFor="name" className="text-xs text-slate-300">Nome do Banner *</Label>
                       <Input
                         id="name"
@@ -815,12 +817,12 @@ const DiscountBannerPage = () => {
                           setFormData({ ...formData, name: e.target.value })
                         }
                         placeholder="Ex: Frete Grátis Black Friday"
-                        className="h-9 bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                        className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="type" className="text-xs text-slate-300">Tipo / Posicionamento *</Label>
                         <Select
                           value={formData.type}
@@ -828,7 +830,7 @@ const DiscountBannerPage = () => {
                             setFormData({ ...formData, type: value })
                           }
                         >
-                          <SelectTrigger className="h-9 bg-slate-950 border-slate-800 text-white text-xs">
+                          <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
@@ -841,7 +843,7 @@ const DiscountBannerPage = () => {
                         </Select>
                       </div>
 
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="priority" className="text-xs text-slate-300">Prioridade de Exibição</Label>
                         <Input
                           id="priority"
@@ -853,17 +855,17 @@ const DiscountBannerPage = () => {
                               priority: parseInt(e.target.value) || 1,
                             })
                           }
-                          className="h-9 bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Seção 5: Comportamento / Regras de Exibição */}
-                  <div className="space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
                     <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Regras de Exibição</h3>
 
-                    <div className="grid gap-1">
+                    <div className="grid gap-1.5">
                       <Label htmlFor="trigger" className="text-xs text-slate-300">Quando exibir o Banner</Label>
                       <Select
                         value={formData.trigger}
@@ -871,7 +873,7 @@ const DiscountBannerPage = () => {
                           setFormData({ ...formData, trigger: value })
                         }
                       >
-                        <SelectTrigger className="h-9 bg-slate-950 border-slate-800 text-white text-xs">
+                        <SelectTrigger className="h-10 bg-[#030712] border-slate-850 text-white text-xs rounded-lg">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
@@ -892,9 +894,9 @@ const DiscountBannerPage = () => {
                           onCheckedChange={(checked) =>
                             setFormData({ ...formData, closable: checked })
                           }
-                          className="data-[state=checked]:bg-orange-500"
+                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
                         />
-                        <Label htmlFor="closable" className="cursor-pointer text-xs text-slate-300">Permitir Fechar</Label>
+                        <Label htmlFor="closable" className="cursor-pointer text-xs text-slate-300 font-medium">Permitir Fechar</Label>
                       </div>
 
                       <div className="flex items-center space-x-3">
@@ -904,9 +906,9 @@ const DiscountBannerPage = () => {
                           onCheckedChange={(checked) =>
                             setFormData({ ...formData, showCloseButton: checked })
                           }
-                          className="data-[state=checked]:bg-orange-500"
+                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-pink-500"
                         />
-                        <Label htmlFor="showCloseButton" className="cursor-pointer text-xs text-slate-300">Mostrar Botão de Fechar</Label>
+                        <Label htmlFor="showCloseButton" className="cursor-pointer text-xs text-slate-300 font-medium">Mostrar Botão</Label>
                       </div>
                     </div>
                   </div>
@@ -915,10 +917,10 @@ const DiscountBannerPage = () => {
                 {/* ABA 2: CONTEÚDO & CUPOM */}
                 <TabsContent value="content" className="space-y-4 outline-none">
                   {/* Seção 2: Conteúdo */}
-                  <div className="space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
                     <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Conteúdo</h3>
 
-                    <div className="grid gap-1">
+                    <div className="grid gap-1.5">
                       <Label htmlFor="title" className="text-xs text-slate-300">Título *</Label>
                       <Input
                         id="title"
@@ -927,11 +929,11 @@ const DiscountBannerPage = () => {
                           setFormData({ ...formData, title: e.target.value })
                         }
                         placeholder="Ex: 🎉 GANHE 10% DE DESCONTO AGORA!"
-                        className="h-9 bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                        className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                       />
                     </div>
 
-                    <div className="grid gap-1">
+                    <div className="grid gap-1.5">
                       <Label htmlFor="message" className="text-xs text-slate-300">Mensagem de Descrição *</Label>
                       <Textarea
                         id="message"
@@ -941,12 +943,12 @@ const DiscountBannerPage = () => {
                         }
                         placeholder="Use o cupom abaixo e garanta um desconto especial no checkout."
                         rows={2}
-                        className="bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                        className="bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg resize-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="ctaText" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
                         <Input
                           id="ctaText"
@@ -955,12 +957,12 @@ const DiscountBannerPage = () => {
                             setFormData({ ...formData, ctaText: e.target.value })
                           }
                           placeholder="Ex: Aplicar Desconto"
-                          className="h-9 bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                         />
                       </div>
 
-                      <div className="grid gap-1">
-                        <Label htmlFor="ctaLink" className="text-xs text-slate-300">Link de Redirecionamento (Opcional)</Label>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="ctaLink" className="text-xs text-slate-300">Link de Redirecionamento</Label>
                         <Input
                           id="ctaLink"
                           value={formData.ctaLink || ""}
@@ -968,17 +970,17 @@ const DiscountBannerPage = () => {
                             setFormData({ ...formData, ctaLink: e.target.value })
                           }
                           placeholder="https://..."
-                          className="h-9 bg-slate-950 border-slate-800 text-white focus:border-orange-500 focus:ring-orange-500 text-xs"
+                          className="h-10 bg-[#030712] border-slate-850 text-white focus-visible:ring-1 focus-visible:ring-orange-500/50 focus-visible:border-orange-500/50 text-xs rounded-lg"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Seção 3: Conexão com Integrações e Cupons */}
-                  <div className="space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
                     <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Sincronização e Cupons</h3>
 
-                    <div className="grid gap-1">
+                    <div className="grid gap-1.5">
                       <Label htmlFor="discountCode" className="text-xs text-slate-300">Cupom Vinculado (Opcional)</Label>
                       <Select
                         value={formData.discountCode || "none"}
@@ -986,7 +988,7 @@ const DiscountBannerPage = () => {
                           setFormData({ ...formData, discountCode: value === "none" ? "" : value })
                         }
                       >
-                        <SelectTrigger className="h-9 bg-slate-950 border-slate-800 text-white w-full text-xs">
+                        <SelectTrigger className="h-10 bg-[#030712] border-slate-855 text-white w-full text-xs rounded-lg">
                           <SelectValue placeholder="Selecione um cupom para vincular" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-950 border-slate-800 text-white text-xs">
@@ -998,8 +1000,8 @@ const DiscountBannerPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-[10px] text-slate-400">
-                        Selecione um cupom sincronizado da sua loja **Shopify** ou criado localmente. Ao clicar no banner ou botão, este cupom será aplicado automaticamente no checkout do cliente!
+                      <p className="text-[10px] text-slate-400 leading-normal">
+                        Ao clicar no banner ou botão, este cupom será aplicado automaticamente no checkout do cliente!
                       </p>
                     </div>
                   </div>
@@ -1008,11 +1010,11 @@ const DiscountBannerPage = () => {
                 {/* ABA 3: DESIGN & CORES */}
                 <TabsContent value="design" className="space-y-4 outline-none">
                   {/* Seção 4: Visual e Cores */}
-                  <div className="space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                  <div className="space-y-4 p-5 rounded-2xl bg-[#0d1527]/30 border border-slate-800/60 hover:border-slate-700/30 transition-all">
                     <h3 className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Cores e Estilo</h3>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="backgroundColor" className="text-xs text-slate-300">Cor de Fundo do Banner</Label>
                         <div className="flex gap-2">
                           <Input
@@ -1025,7 +1027,7 @@ const DiscountBannerPage = () => {
                                 backgroundColor: e.target.value,
                               })
                             }
-                            className="w-10 h-8 p-0.5 bg-slate-950 border-slate-800"
+                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
                           />
                           <Input
                             value={formData.backgroundColor}
@@ -1036,12 +1038,12 @@ const DiscountBannerPage = () => {
                               })
                             }
                             placeholder="#EC4899"
-                            className="h-8 bg-slate-950 border-slate-800 text-white text-xs"
+                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
                           />
                         </div>
                       </div>
 
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="textColor" className="text-xs text-slate-300">Cor do Texto do Banner</Label>
                         <div className="flex gap-2">
                           <Input
@@ -1051,7 +1053,7 @@ const DiscountBannerPage = () => {
                             onChange={(e) =>
                               setFormData({ ...formData, textColor: e.target.value })
                             }
-                            className="w-10 h-8 p-0.5 bg-slate-950 border-slate-800"
+                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
                           />
                           <Input
                             value={formData.textColor}
@@ -1059,14 +1061,14 @@ const DiscountBannerPage = () => {
                               setFormData({ ...formData, textColor: e.target.value })
                             }
                             placeholder="#FFFFFF"
-                            className="h-8 bg-slate-950 border-slate-800 text-white text-xs"
+                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
                           />
                         </div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="buttonBackgroundColor" className="text-xs text-slate-300">Fundo do Botão (CTA)</Label>
                         <div className="flex gap-2">
                           <Input
@@ -1079,7 +1081,7 @@ const DiscountBannerPage = () => {
                                 buttonBackgroundColor: e.target.value,
                               })
                             }
-                            className="w-10 h-8 p-0.5 bg-slate-950 border-slate-800"
+                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
                           />
                           <Input
                             value={formData.buttonBackgroundColor || "#FFFFFF"}
@@ -1090,12 +1092,12 @@ const DiscountBannerPage = () => {
                               })
                             }
                             placeholder="#FFFFFF"
-                            className="h-8 bg-slate-950 border-slate-800 text-white text-xs"
+                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
                           />
                         </div>
                       </div>
 
-                      <div className="grid gap-1">
+                      <div className="grid gap-1.5">
                         <Label htmlFor="buttonTextColor" className="text-xs text-slate-300">Texto do Botão (CTA)</Label>
                         <div className="flex gap-2">
                           <Input
@@ -1105,7 +1107,7 @@ const DiscountBannerPage = () => {
                             onChange={(e) =>
                               setFormData({ ...formData, buttonTextColor: e.target.value })
                             }
-                            className="w-10 h-8 p-0.5 bg-slate-950 border-slate-800"
+                            className="w-10 h-10 p-0.5 bg-[#030712] border-slate-850 rounded-lg cursor-pointer"
                           />
                           <Input
                             value={formData.buttonTextColor || "#EC4899"}
@@ -1113,7 +1115,7 @@ const DiscountBannerPage = () => {
                               setFormData({ ...formData, buttonTextColor: e.target.value })
                             }
                             placeholder="#EC4899"
-                            className="h-8 bg-slate-950 border-slate-800 text-white text-xs"
+                            className="h-10 bg-[#030712] border-slate-855 text-white text-xs rounded-lg"
                           />
                         </div>
                       </div>
@@ -1124,18 +1126,18 @@ const DiscountBannerPage = () => {
             </div>
 
             {/* Preview (Col 5) */}
-            <div className="lg:col-span-5 flex flex-col justify-start space-y-3 h-full">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Visualização em Tempo Real</h3>
-                <p className="text-[11px] text-slate-400">
-                  Veja como o banner ficará posicionado e estilizado no checkout.
+            <div className="lg:col-span-5 flex flex-col justify-center items-center space-y-4 h-full bg-[#030712]/30 rounded-2xl border border-slate-850/60 p-5 self-center">
+              <div className="text-center">
+                <h3 className="text-xs font-bold text-slate-200 tracking-wide uppercase">Visualização em Tempo Real</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Veja como o banner ficará no checkout.
                 </p>
               </div>
               <BannerPreview data={formData} />
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t border-slate-800 bg-slate-950/20 flex-shrink-0">
+          <DialogFooter className="px-6 py-4 border-t border-slate-800 bg-[#030712]/40 flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
@@ -1143,11 +1145,11 @@ const DiscountBannerPage = () => {
                 setEditingBanner(null);
                 resetForm();
               }}
-              className="bg-transparent border-slate-850 hover:bg-slate-800 text-white"
+              className="bg-transparent border-slate-800 hover:bg-slate-800 text-white"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold">
+            <Button onClick={handleSave} className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold shadow-lg shadow-orange-500/20">
               Salvar Banner
             </Button>
           </DialogFooter>

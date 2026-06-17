@@ -137,5 +137,25 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
 
 ---
 
+## Ajustes de UI e Redesign Futurista do Modal de Banners
+
+Com base nos feedbacks de design, refinamos o modal de faixas de desconto (`DiscountBannerPage.tsx`) para proporcionar uma experiência visual deslumbrante e focada:
+
+1. **Visualização em Tempo Real Ampliada**:
+   - Redimensionamos o mockup de celular de `w-[280px] h-[350px]` para `w-[320px] h-[490px]`, mantendo proporções ultra-realistas.
+   - Aumentamos o tamanho das fontes internas (título para `text-xs font-bold`, mensagem para `text-[10px]`) e do botão de CTA para garantir legibilidade impecável no tamanho normal do modal.
+
+2. **Compactação de Bordas e Espaços Ociosos**:
+   - Diminuímos a largura máxima do modal de `1200px` para `1020px` e a altura máxima de `820px` para `680px` (`h-[85vh]`).
+   - Isso eliminou as áreas pretas ociosas, mantendo os elementos do formulário e o mockup perfeitamente aninhados e visíveis sem rolagem em telas normais.
+
+3. **Estética Futurista e Elegante**:
+   - Fundo do modal atualizado para o tom tecnológico `bg-[#0b0f19]` com sombra neon brilhante laranja/rosa (`shadow-[0_0_50px_rgba(249,115,22,0.15)]`).
+   - Abas (`TabsTrigger`) redesenhadas com cantos mais arredondados e gradiente moderno (`from-orange-500 to-pink-500`) ao serem selecionadas.
+   - Centralizamos o mockup verticalmente com a classe `justify-center items-center` envolto em um container moderno com fundo escurecido de vidro fosco (`bg-[#030712]/30 border border-slate-850/60`).
+   - Efeitos de hover suaves e foco neon nos inputs (`focus-visible:ring-orange-500/50`) para aprimorar a usabilidade.
+
+---
+
 ## Compilação e Validação (Sucesso)
 - Executado `npm run build` na raiz do projeto com sucesso completo. O bundle foi gerado perfeitamente sem nenhuma falha de compilação ou tipo no TypeScript nos arquivos criados ou modificados.
