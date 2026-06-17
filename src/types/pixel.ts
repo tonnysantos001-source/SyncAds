@@ -37,9 +37,12 @@ export interface PixelConfig {
   isActive: boolean;
   events: PixelEventType[];
   config: Record<string, any>;
+  eventCount?: number;
+  lastFiredAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
 
 // Interface para criação de configuração de pixel
 export interface CreatePixelConfigInput {

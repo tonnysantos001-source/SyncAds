@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { usePixelTracking } from "@/hooks/usePixelTracking";
 
 interface PixData {
   qrCode: string;
@@ -46,6 +47,12 @@ const PixPaymentPage: React.FC = () => {
   const [showQRCode, setShowQRCode] = useState(true);
   const [customization, setCustomization] = useState<any>(null);
   const [shopUrl, setShopUrl] = useState<string>("");
+  const [sellerUserId, setSellerUserId] = useState<string | null>(null);
+  const [orderAmount, setOrderAmount] = useState<number>(0);
+  const pixelPurchaseFired = useRef(false);
+
+  // Pixel tracking do vendedor
+  const { trackPurchase, trackPageView, initialized: pixelsInitialized } = usePixelTracking(sellerUserId);
 
   // Carregar dados do PIX
   useEffect(() => {
@@ -148,6 +155,8 @@ const PixPaymentPage: React.FC = () => {
           }
 
           if (orderData.userId) {
+            setSellerUserId(orderData.userId);
+            setOrderAmount(orderData.total || 0);
             const { data: customData, error: customError } = await supabase
               .from("CheckoutCustomization")
               .select("theme")
@@ -232,6 +241,16 @@ const PixPaymentPage: React.FC = () => {
           const paidStatuses = ["PAID", "APPROVED", "CONFIRMADO", "SUCCESS", "COMPLETED"];
           if (paidStatuses.includes(status)) {
             setIsPaid(true);
+            // Disparar evento Purchase via pixel quando PIX confirmado
+            if (!pixelPurchaseFired.current && pixelsInitialized) {
+              pixelPurchaseFired.current = true;
+              trackPurchase(
+                transactionId || "",
+                orderAmount || (data as any)?.amount || 0,
+                [],
+                {}
+              );
+            }
             setTimeout(() => {
               if (shopUrl) {
                 window.location.href = shopUrl;

@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { CheckCircle, Download, Share2, Home, Package, Zap, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCardNumber, formatExpiry } from '@/utils/checkoutValidators';
+import { usePixelTracking } from '@/hooks/usePixelTracking';
 
 const CheckoutSuccessPage: React.FC = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -38,6 +39,11 @@ const CheckoutSuccessPage: React.FC = () => {
   const [upsellSuccessMessage, setUpsellSuccessMessage] = useState<string | null>(null);
 
   const timerRef = useRef<any>(null);
+  // Pixel tracking
+  const [sellerUserId, setSellerUserId] = useState<string | null>(null);
+  const [purchaseData, setPurchaseData] = useState<{ orderId: string; amount: number; items: any[]; customer: any } | null>(null);
+  const pixelPurchaseFired = useRef(false);
+  const { trackPurchase, initialized: pixelsInitialized } = usePixelTracking(sellerUserId);
 
   useEffect(() => {
     if (transactionId) {
@@ -47,6 +53,23 @@ const CheckoutSuccessPage: React.FC = () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [transactionId]);
+
+  // Disparar Purchase nos pixels do vendedor quando a página de sucesso carregar
+  useEffect(() => {
+    if (
+      pixelsInitialized &&
+      purchaseData &&
+      !pixelPurchaseFired.current
+    ) {
+      pixelPurchaseFired.current = true;
+      trackPurchase(
+        purchaseData.orderId,
+        purchaseData.amount,
+        purchaseData.items,
+        purchaseData.customer
+      );
+    }
+  }, [pixelsInitialized, purchaseData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTransactionAndUpsells = async () => {
     try {
@@ -60,7 +83,25 @@ const CheckoutSuccessPage: React.FC = () => {
       if (error) throw error;
       setTransaction(data);
 
+      // Extrair userId do vendedor e dados de compra para pixel tracking
       const order = data?.Order;
+      if (order?.userId) {
+        setSellerUserId(order.userId);
+        setPurchaseData({
+          orderId: order.id,
+          amount: Number(data.amount || order.total || 0),
+          items: Array.isArray(order.items) ? order.items : [],
+          customer: {
+            email: order.customerEmail,
+            name: order.customerName,
+            phone: order.customerPhone,
+            city: order.shippingAddress?.city,
+            state: order.shippingAddress?.state,
+            zip: order.shippingAddress?.zipCode,
+            country: 'BR',
+          },
+        });
+      }
       if (order && order.items && Array.isArray(order.items)) {
         // Obter os IDs de produtos comprados
         const purchasedProductIds = order.items.map((item: any) => item.id || item.productId).filter(Boolean);

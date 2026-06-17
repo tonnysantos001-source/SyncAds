@@ -9,7 +9,8 @@
  * ✅ Integração Shopify + Paggue-X
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -201,6 +202,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [processing, setProcessing] = useState(false);
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
+  const [sellerUserId, setSellerUserId] = useState<string | null>(null);
+  const pixelPurchaseFired = useRef(false); // evitar disparo duplo de Purchase
   const [appliedCouponCode, setAppliedCouponCode] = useState<string>("");
   const [couponDiscount, setCouponDiscount] = useState<number>(0);
   const [couponError, setCouponError] = useState<string>("");
@@ -283,6 +286,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [gender, setGender] = useState("");
 
   const navigationSteps = theme.navigationSteps || 3;
+
+  // ============================================
+  // PIXEL TRACKING
+  // ============================================
+  const {
+    trackPageView,
+    trackInitiateCheckout,
+    trackAddPaymentInfo,
+    trackPurchase,
+    initialized: pixelsInitialized,
+  } = usePixelTracking(previewMode ? null : sellerUserId);
 
   // ============================================
   // HELPERS DE ESTILO GLOBAL
@@ -739,6 +753,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       console.log("📝 [DEBUG] Setando checkoutData e orderData");
       setCheckoutData(checkoutInfo);
       setOrderData(order);
+      setSellerUserId(order.userId || null);
 
       if (order.couponCode) {
         setAppliedCouponCode(order.couponCode);
@@ -1212,12 +1227,21 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const handleNext = () => {
     if (navigationSteps === 1) {
       // Se é 1 etapa, vai direto para pagamento
+      // Disparar InitiateCheckout antes de processar
+      if (pixelsInitialized && !previewMode) {
+        trackInitiateCheckout(finalTotalWithBumps, checkoutData?.products || []);
+      }
       handleSubmitPayment();
     } else {
       // 3 etapas normais
       if (currentStep < 3) {
-        setCurrentStep(currentStep + 1);
+        const nextStep = currentStep + 1;
+        setCurrentStep(nextStep);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        // Ao entrar na etapa de pagamento (step 3), disparar InitiateCheckout
+        if (nextStep === 3 && pixelsInitialized && !previewMode) {
+          trackInitiateCheckout(finalTotalWithBumps, checkoutData?.products || []);
+        }
       } else {
         handleSubmitPayment();
       }
@@ -1267,6 +1291,11 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
   const handleSubmitPayment = async () => {
     if (!orderId || !checkoutData) return;
+
+    // Disparar AddPaymentInfo ao clicar em pagar
+    if (pixelsInitialized && !previewMode) {
+      trackAddPaymentInfo(finalTotalWithBumps, paymentMethod);
+    }
 
     setProcessing(true);
 
@@ -1498,6 +1527,24 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       if (paymentMethod === "PIX") {
         navigate(`/pix/${orderId}/${transaction.id}`);
       } else {
+        // Para cartão/boleto: disparar Purchase antes de redirecionar
+        if (pixelsInitialized && !previewMode && !pixelPurchaseFired.current) {
+          pixelPurchaseFired.current = true;
+          trackPurchase(
+            orderId,
+            finalTotalWithBumps,
+            checkoutData?.products || [],
+            {
+              email: customerData.email,
+              name: customerData.name,
+              phone: customerData.phone,
+              city: addressData.city,
+              state: addressData.state,
+              zip: addressData.zipCode,
+              country: "BR",
+            }
+          );
+        }
         navigate(`/checkout/success/${transaction.id}`);
       }
 
