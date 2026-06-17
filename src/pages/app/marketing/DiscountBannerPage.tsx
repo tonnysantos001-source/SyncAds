@@ -396,37 +396,59 @@ const DiscountBannerPage = () => {
     const isPopup = data.type === "POPUP";
 
     return (
-      <div className="max-w-[360px] mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xl flex flex-col h-[380px] relative">
-        {/* Mock browser header */}
-        <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>
-            <span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span>
+      <div 
+        className="w-[280px] mx-auto rounded-[2rem] border-[8px] border-[#1e293b] shadow-2xl flex flex-col h-[350px] relative overflow-hidden bg-white dark:bg-slate-900"
+      >
+        {/* Phone Simulation Side Buttons */}
+        <div className="absolute -left-[9px] top-12 w-[2px] h-4 bg-[#334155] rounded-l-sm" /> {/* Vol Up */}
+        <div className="absolute -left-[9px] top-18 w-[2px] h-4 bg-[#334155] rounded-l-sm" /> {/* Vol Down */}
+        <div className="absolute -right-[9px] top-16 w-[2px] h-6 bg-[#334155] rounded-r-sm" /> {/* Power */}
+
+        {/* Dynamic Island / Status Bar UI */}
+        <div className="sticky top-0 left-0 right-0 h-9 flex items-center justify-between px-4 z-[100] bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 flex-shrink-0 pointer-events-none">
+          {/* Clock */}
+          <span className="text-[9px] font-bold text-gray-900 dark:text-gray-100">9:41</span>
+          
+          {/* Dynamic Island Pill */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-1.5 w-[64px] h-[16px] bg-black rounded-[8px] flex items-center justify-between px-2 shadow-md">
+             {/* Camera Lens dot */}
+             <div className="w-[8px] h-[1px] bg-zinc-800 rounded-full" />
+             <div className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a] border border-white/5" />
           </div>
-          <div className="bg-slate-200/50 dark:bg-slate-900/60 rounded-md px-3 py-0.5 text-[10px] text-slate-500 w-64 text-center truncate mx-auto select-none">
-            syncads.com.br/checkout/preview
+
+          {/* Icons (WiFi, Signal, Battery) */}
+          <div className="flex items-center gap-0.5 scale-75 origin-right">
+             <svg width="15" height="10" viewBox="0 0 15 10" fill="none" className="text-gray-900 dark:text-gray-100 fill-current">
+                <path d="M0 7.5V10H2V7.5H0ZM3.25 5V10H5.25V5H3.25ZM6.5 2.5V10H8.5V2.5H6.5ZM9.75 0V10H11.75V0H9.75Z"/>
+             </svg>
+             <svg width="15" height="11" viewBox="0 0 15 11" fill="none" className="text-gray-900 dark:text-gray-100 fill-current">
+                <path d="M7.5 11L15 2.5C14.7 2.2 12 0 7.5 0C3 0 0.3 2.2 0 2.5L7.5 11ZM7.5 1.5C10.5 1.5 12.5 2.8 13.5 3.5L7.5 10.3L1.5 3.5C2.5 2.8 4.5 1.5 7.5 1.5Z"/>
+             </svg>
+             <div className="w-[18px] h-[9px] border border-gray-400 dark:border-gray-500 rounded-[2px] relative p-[0.5px]">
+                <div className="h-full w-[90%] bg-gray-800 dark:bg-gray-200 rounded-[0.5px]" />
+                <div className="absolute -right-[2px] top-[2px] w-[1px] h-[3px] bg-gray-400 dark:bg-gray-500 rounded-r-[0.5px]" />
+             </div>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-4 text-xs">
+        <div className="flex-1 flex flex-col relative overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 p-3 text-xs">
           {/* HEADER Discount Banner inside mock checkout */}
           {isHeader && (
             <div
-              className="w-full p-3 rounded-lg mb-4 text-center transition-all duration-300 relative shadow-sm border border-white/5"
+              className="w-full p-2 rounded-md mb-3 text-center transition-all duration-300 relative shadow-sm border border-white/5"
               style={{
                 backgroundColor: data.backgroundColor || "#EC4899",
                 color: data.textColor || "#FFFFFF",
               }}
             >
               {data.showCloseButton && (
-                <span className="absolute top-1.5 right-2 text-xs opacity-75">×</span>
+                <span className="absolute top-1 right-1.5 text-[10px] opacity-75">×</span>
               )}
-              <div className="font-bold text-[12px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-              <div className="text-[10px] opacity-90 mt-0.5">{data.message || "Aproveite esta oferta imperdível!"}</div>
+              <div className="font-bold text-[10px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+              <div className="text-[8px] opacity-90 mt-0.5 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
               {data.ctaText && (
                 <button
-                  className="mt-2 px-4 py-1 rounded-md text-[10px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
+                  className="mt-1 px-3 py-0.5 rounded text-[8px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
                   style={{
                     backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                     color: data.buttonTextColor || "#EC4899",
@@ -439,46 +461,39 @@ const DiscountBannerPage = () => {
           )}
 
           {/* Checkout Content Placeholder */}
-          <div className="flex-1 space-y-4 opacity-40 select-none pointer-events-none">
+          <div className="flex-1 space-y-3 opacity-40 select-none pointer-events-none">
             {/* Header / Logo */}
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
-              <div className="h-4 w-20 bg-slate-300 dark:bg-slate-800 rounded"></div>
-              <div className="h-4 w-12 bg-slate-300 dark:bg-slate-800 rounded"></div>
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-1.5">
+              <div className="h-3 w-16 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-3 w-8 bg-slate-300 dark:bg-slate-800 rounded"></div>
             </div>
-            {/* Split Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-3">
-                <div className="h-3 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
-                <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg"></div>
-                <div className="h-3 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
-                <div className="h-8 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg"></div>
-              </div>
-              <div className="col-span-1 bg-slate-100 dark:bg-slate-900/40 p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
-                <div className="h-3.5 w-full bg-slate-300 dark:bg-slate-800 rounded"></div>
-                <div className="h-3 w-2/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
-                <div className="h-6 w-full bg-slate-300 dark:bg-slate-800 rounded mt-4"></div>
-              </div>
+            {/* Checkout body layout: stacked in mobile */}
+            <div className="space-y-2">
+              <div className="h-2.5 w-1/2 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-6 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
+              <div className="h-2.5 w-1/3 bg-slate-300 dark:bg-slate-800 rounded"></div>
+              <div className="h-6 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md"></div>
             </div>
           </div>
 
           {/* POPUP Discount Banner Modal Overlay */}
           {isPopup && (
-            <div className="absolute inset-0 bg-black/55 flex items-center justify-center p-6 backdrop-blur-[1px] z-50">
+            <div className="absolute inset-0 bg-black/55 flex items-center justify-center p-4 backdrop-blur-[1px] z-50">
               <div
-                className="p-5 rounded-xl text-center max-w-[260px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
+                className="p-3.5 rounded-lg text-center max-w-[210px] w-full shadow-2xl transition-all duration-300 relative border border-white/10"
                 style={{
                   backgroundColor: data.backgroundColor || "#EC4899",
                   color: data.textColor || "#FFFFFF",
                 }}
               >
                 {data.showCloseButton && (
-                  <span className="absolute top-2 right-3 text-xs font-bold opacity-75 cursor-pointer">×</span>
+                  <span className="absolute top-1 right-2 text-xs font-bold opacity-75 cursor-pointer">×</span>
                 )}
-                <div className="font-extrabold text-xs mb-1 uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-                <p className="text-[10px] opacity-90 leading-relaxed mb-4">{data.message || "Aproveite esta oferta especial!"}</p>
+                <div className="font-extrabold text-[10px] mb-0.5 uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+                <p className="text-[8px] opacity-90 leading-tight mb-2.5">{data.message || "Aproveite esta oferta especial!"}</p>
                 {data.ctaText && (
                   <button
-                    className="w-full py-2 px-4 rounded-lg text-[10px] font-black tracking-wide uppercase transition-transform hover:scale-105 active:scale-95 shadow-md"
+                    className="w-full py-1 px-3 rounded text-[8px] font-black tracking-wide uppercase transition-transform hover:scale-105 active:scale-95 shadow-md"
                     style={{
                       backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                       color: data.buttonTextColor || "#EC4899",
@@ -494,20 +509,20 @@ const DiscountBannerPage = () => {
           {/* FOOTER Discount Banner inside mock checkout */}
           {isFooter && (
             <div
-              className="w-full p-3 rounded-lg mt-4 text-center transition-all duration-300 relative shadow-sm border border-white/5"
+              className="w-full p-2 rounded-md mt-3 text-center transition-all duration-300 relative shadow-sm border border-white/5"
               style={{
                 backgroundColor: data.backgroundColor || "#EC4899",
                 color: data.textColor || "#FFFFFF",
               }}
             >
               {data.showCloseButton && (
-                <span className="absolute top-1.5 right-2 text-xs opacity-75">×</span>
+                <span className="absolute top-1 right-1.5 text-[10px] opacity-75">×</span>
               )}
-              <div className="font-bold text-[12px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
-              <div className="text-[10px] opacity-90 mt-0.5">{data.message || "Aproveite esta oferta imperdível!"}</div>
+              <div className="font-bold text-[10px] truncate uppercase tracking-wider">{data.title || "TÍTULO DO BANNER"}</div>
+              <div className="text-[8px] opacity-90 mt-0.5 leading-tight">{data.message || "Aproveite esta oferta imperdível!"}</div>
               {data.ctaText && (
                 <button
-                  className="mt-2 px-4 py-1 rounded-md text-[10px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
+                  className="mt-1 px-3 py-0.5 rounded text-[8px] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
                   style={{
                     backgroundColor: data.buttonBackgroundColor || "#FFFFFF",
                     color: data.buttonTextColor || "#EC4899",

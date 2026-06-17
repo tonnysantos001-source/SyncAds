@@ -16,10 +16,10 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
 - **Integração de Cupons/Shopify**:
   - Carrega cupons do lojista (locais e sincronizados do Shopify) via `marketingApi.coupons.getAll` e `shopifyDiscountsApi.listFromShopify`.
   - Exibe campo de seleção no formulário ("Aplicar Cupom automaticamente ao clicar") listando os códigos de desconto disponíveis.
-- **Redesign do Modal para Horizontal com Abas e Visualização Compacta**:
+- **Redesign do Modal para Horizontal com Abas e Mockup Realista de Celular**:
   - Aumentamos a largura do modal para `max-w-6xl` (estilo inline de `1200px` e largura `95vw` para evitar restrições do Dialog padrão) e fixamos a sua altura máxima em `h-[90vh]` (ou no máximo `820px`).
-  - Dividimos o formulário na coluna da esquerda em **Abas (Tabs)** estruturadas (`Geral & Regras`, `Conteúdo & Cupom` e `Design & Cores`) e diminuímos o espaçamento vertical entre os elementos (`gap-4` para `gap-3` e `space-y-6` para `space-y-3`). Isso tornou a exibição extremamente compacta, eliminando completamente a necessidade de rolagem sob resoluções normais.
-  - Removemos o card de bordas extras ao redor do painel de visualização à direita para maximizar o espaço vertical útil, e ajustamos a altura do mockup do navegador (`BannerPreview`) de `480px` para `380px` para que ele caiba perfeitamente no viewport sem qualquer corte.
+  - Dividimos o formulário na coluna da esquerda em **Abas (Tabs)** estruturadas (`Geral & Regras`, `Conteúdo & Cupom` e `Design & Cores`) e diminuímos o espaçamento vertical entre os elementos. Isso tornou a exibição compacta e eliminou a necessidade de rolagem sob resoluções normais.
+  - Redesenhamos a visualização em tempo real à direita para exibir um **mockup realista de celular** idêntico ao do painel de personalização de templates (com borda de bezel de 8px, botões laterais físicos simulados, relógio `9:41`, Dynamic Island e ícones de status bar). Ajustamos as proporções internas e a altura total para `350px` para que o frame caiba perfeitamente no viewport sem qualquer corte ou distorção.
 
 ### 3. Componente de Aviso Reativo
 - **Arquivo modificado:** [NoticeBar.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/NoticeBar.tsx)
