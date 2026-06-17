@@ -797,6 +797,38 @@ export const cashbackApi = {
       throw error;
     }
   },
+
+  /**
+   * Consumir o saldo de cashback de um cliente
+   */
+  async useCustomerCashbackBalance(
+    customerId: string,
+    orderId: string,
+    amountToUse: number
+  ): Promise<void> {
+    try {
+      const { data: transactions, error } = await supabase
+        .from('CashbackTransaction')
+        .select('*')
+        .eq('customerId', customerId)
+        .eq('status', 'AVAILABLE')
+        .order('expiresAt', { ascending: true });
+
+      if (error) throw error;
+
+      let remainingToUse = amountToUse;
+      for (const t of transactions || []) {
+        if (remainingToUse <= 0) break;
+
+        const amountFromThisTransaction = Math.min(t.amount, remainingToUse);
+        await cashbackApi.useCashback(t.id, orderId, amountFromThisTransaction);
+        remainingToUse -= amountFromThisTransaction;
+      }
+    } catch (error: any) {
+      console.error('Error using customer cashback balance:', error);
+      throw error;
+    }
+  },
 };
 
 export default cashbackApi;

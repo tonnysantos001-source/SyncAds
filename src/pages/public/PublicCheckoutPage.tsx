@@ -32,6 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { checkoutApi } from "@/lib/api/checkoutApi";
 import { marketingApi } from "@/lib/api/marketingApi";
 import { shopifyDiscountsApi } from "@/lib/api/shopifyDiscounts";
+import { cashbackApi } from "@/lib/api/cashbackApi";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
 import { cn } from "@/lib/utils";
@@ -218,6 +219,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [discountBanners, setDiscountBanners] = useState<any[]>([]);
   const [activePopupBanner, setActivePopupBanner] = useState<any | null>(null);
   const [showPopup, setShowPopup] = useState(false);
+
+  // Estados de Cashback
+  const [availableCashback, setAvailableCashback] = useState<number>(0);
+  const [useCashback, setUseCashback] = useState<boolean>(false);
+  const [customerUuid, setCustomerUuid] = useState<string | null>(null);
+  const [activeCashbackRule, setActiveCashbackRule] = useState<any>(null);
 
 
   // ============================================
@@ -432,6 +439,71 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
     savePerformanceMetrics();
   }, [orderId, checkoutData, previewMode]);
+
+  // Carregar regras de cashback ativas para o lojista
+  useEffect(() => {
+    const fetchActiveCashbackRule = async () => {
+      if (!orderData?.userId) return;
+      try {
+        const rules = await cashbackApi.listRules(orderData.userId, { active: true });
+        if (rules && rules.length > 0) {
+          // Usar a primeira regra ativa encontrada
+          setActiveCashbackRule(rules[0]);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar regras de cashback:", err);
+      }
+    };
+
+    fetchActiveCashbackRule();
+  }, [orderData?.userId]);
+
+  // Buscar cashback do cliente com base no e-mail digitado
+  useEffect(() => {
+    const fetchCustomerCashback = async () => {
+      if (!customerData.email || !orderData?.userId) {
+        setAvailableCashback(0);
+        setCustomerUuid(null);
+        return;
+      }
+      
+      const email = customerData.email.trim().toLowerCase();
+      // Validação simples de e-mail para evitar requisições a cada caractere
+      if (!email.includes("@") || !email.includes(".") || email.length < 5) {
+        setAvailableCashback(0);
+        setCustomerUuid(null);
+        return;
+      }
+
+      try {
+        const { data: customer, error } = await supabase
+          .from("Customer")
+          .select("id")
+          .eq("email", email)
+          .eq("userId", orderData.userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Erro ao buscar cliente para cashback:", error);
+          return;
+        }
+
+        if (customer) {
+          setCustomerUuid(customer.id);
+          const cashbackAmount = await cashbackApi.getAvailableCashback(customer.id);
+          setAvailableCashback(cashbackAmount);
+        } else {
+          setAvailableCashback(0);
+          setCustomerUuid(null);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar cashback do cliente:", err);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchCustomerCashback, 600);
+    return () => clearTimeout(debounceTimer);
+  }, [customerData.email, orderData?.userId]);
 
   // ✨ Preview reativo: sincroniza injectedTheme → theme state quando as props mudam.
   // Sem este efeito, mudanças da sidebar (via Zustand store) são ignoradas após o mount.
@@ -1022,7 +1094,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       .reduce((total, cs) => total + Number(cs.price || 0), 0);
   };
 
-  const finalTotalWithBumps = Math.max(
+  const totalBeforeCashback = Math.max(
     0,
     (checkoutData?.subtotal || 0) +
       (checkoutData?.shipping || 0) +
@@ -1031,6 +1103,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       (checkoutData?.discount || 0) -
       couponDiscount
   );
+
+  const cashbackDiscount = useCashback ? Math.min(availableCashback, totalBeforeCashback) : 0;
+
+  const finalTotalWithBumps = Math.max(0, totalBeforeCashback - cashbackDiscount);
 
   const handleApplyCoupon = async (code: string) => {
     if (!code) {
@@ -1207,8 +1283,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           paymentMethod: paymentMethod,
           couponCode: appliedCouponCode || null,
           couponDiscount: couponDiscount || null,
-          discount: (checkoutData.discount || 0) + couponDiscount,
+          discount: (checkoutData.discount || 0) + couponDiscount + cashbackDiscount,
           total: finalTotalWithBumps,
+          metadata: {
+            ...orderData?.metadata,
+            cashbackDiscountApplied: cashbackDiscount,
+            cashbackUsed: cashbackDiscount > 0,
+          },
           updatedAt: new Date().toISOString(),
         })
         .eq("id", orderId);
@@ -1353,6 +1434,20 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         throw new Error(
           paymentResponse?.error || "Erro ao processar pagamento",
         );
+      }
+
+      // Consumir saldo de cashback se aplicável
+      if (cashbackDiscount > 0 && customerUuid) {
+        try {
+          await cashbackApi.useCustomerCashbackBalance(
+            customerUuid,
+            orderId,
+            cashbackDiscount
+          );
+          console.log("[Cashback] Saldo consumido com sucesso");
+        } catch (cashbackErr) {
+          console.error("Erro ao consumir cashback do cliente:", cashbackErr);
+        }
       }
 
       // ============================================
@@ -1503,7 +1598,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       total:        finalTotalWithBumps,
       subtotal:     checkoutData.subtotal + calculateOrderBumpsTotal() + calculateCrossSellsTotal(),
       shipping:     checkoutData.shipping,
-      discount:     (checkoutData.discount || 0) + couponDiscount,
+      discount:     (checkoutData.discount || 0) + couponDiscount + cashbackDiscount,
+      couponDiscount: couponDiscount,
+      cashbackDiscount: cashbackDiscount,
     };
 
     return (
@@ -1543,6 +1640,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           selectedCrossSells={selectedCrossSells}
           onToggleCrossSell={handleToggleCrossSell}
           discountBanners={discountBanners}
+          availableCashback={availableCashback}
+          useCashback={useCashback}
+          onToggleCashback={(checked) => setUseCashback(checked)}
+          potentialCashback={calculatePotentialCashback()}
         />
         {renderPopupBanner()}
       </React.Suspense>
@@ -2298,6 +2399,25 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                 )}
               </div>
 
+              {/* Cashback no checkout legado */}
+              {availableCashback > 0 && (
+                <div className="mt-3 p-3 bg-green-50 border border-dashed border-green-300 rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-green-700 m-0">Cashback Disponível</p>
+                    <p className="text-sm font-bold text-green-800 m-0">{formatCurrency(availableCashback)}</p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-green-700">
+                    <input
+                      type="checkbox"
+                      checked={useCashback}
+                      onChange={(e) => setUseCashback(e.target.checked)}
+                      className="w-4 h-4 accent-green-600 cursor-pointer"
+                    />
+                    Resgatar
+                  </label>
+                </div>
+              )}
+
               {/* Total */}
               <div
                 className={cn("border-t", isMobile ? "mt-3 pt-3" : "mt-4 pt-4")}
@@ -2325,6 +2445,12 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
                   </span>
                 </div>
               </div>
+
+              {calculatePotentialCashback() > 0 && (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg text-center text-xs text-blue-800 font-medium">
+                  🎉 Ganhe <strong>{formatCurrency(calculatePotentialCashback())}</strong> de cashback com esta compra!
+                </div>
+              )}
 
               {/* Order Bumps no Resumo */}
               {selectedOrderBumps.length > 0 && (

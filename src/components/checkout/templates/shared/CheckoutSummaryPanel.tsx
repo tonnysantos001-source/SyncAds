@@ -28,6 +28,12 @@ interface CheckoutSummaryPanelProps {
   onRemoveCoupon?: () => void;
   appliedCouponCode?: string;
   couponError?: string;
+
+  // Props de cashback
+  availableCashback?: number;
+  useCashback?: boolean;
+  onToggleCashback?: (checked: boolean) => void;
+  potentialCashback?: number;
 }
 
 // Produto de preview
@@ -47,6 +53,10 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   onRemoveCoupon,
   appliedCouponCode,
   couponError,
+  availableCashback: propAvailableCashback = 0,
+  useCashback: propUseCashback = false,
+  onToggleCashback: propOnToggleCashback,
+  potentialCashback: propPotentialCashback = 0,
 }) => {
   const [couponCode, setCouponCode]     = useState(appliedCouponCode || '');
   const [loading, setLoading]           = useState(false);
@@ -86,8 +96,18 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   const products = checkoutData?.products ?? (isPreview ? PREVIEW_PRODUCTS : []);
   const subtotal  = checkoutData?.subtotal ?? (isPreview ? 197.00 : 0);
   const shipping  = checkoutData?.shipping ?? (isPreview ? 15.00 : 0);
-  const discount  = checkoutData?.discount ?? 0;
+  const couponDiscount = checkoutData?.couponDiscount ?? 0;
+  const cashbackDiscount = checkoutData?.cashbackDiscount ?? 0;
+  const discount  = (couponDiscount > 0 || cashbackDiscount > 0)
+    ? 0
+    : (checkoutData?.discount ?? 0);
   const total     = checkoutData?.total     ?? (isPreview ? 212.00 : 0);
+
+  // Sincronização de Cashback
+  const availableCashback = checkoutData?.availableCashback ?? propAvailableCashback;
+  const useCashback = checkoutData?.useCashback ?? propUseCashback;
+  const onToggleCashback = checkoutData?.onToggleCashback ?? propOnToggleCashback;
+  const potentialCashback = checkoutData?.potentialCashback ?? propPotentialCashback;
 
   // Resolve: store (novo) > theme (legado)
   const primaryColor         = checkoutConfig?.buttons.checkoutBg
@@ -244,6 +264,45 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                   </button>
                 </div>
               )}
+              {availableCashback > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: '#f0fdf4',
+                    border: '1px dashed #34d399',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    marginTop: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Cashback Disponível
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#065f46' }}>
+                      {formatCurrency(availableCashback)}
+                    </span>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={useCashback}
+                      onChange={(e) => onToggleCashback && onToggleCashback(e.target.checked)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        accentColor: '#059669',
+                        cursor: 'pointer',
+                      }}
+                    />
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#047857' }}>
+                      Resgatar
+                    </span>
+                  </label>
+                </div>
+              )}
 
               {/* Separador */}
               <div style={{ height: '1px', backgroundColor: cartBorderColor }} />
@@ -333,11 +392,27 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                   </span>
                 </div>
 
-                {/* Desconto */}
+                {/* Desconto genérico */}
                 {discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', color: '#16a34a' }}>Desconto</span>
                     <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>- {formatCurrency(discount)}</span>
+                  </div>
+                )}
+
+                {/* Desconto de Cupom */}
+                {couponDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#16a34a' }}>Desconto (Cupom)</span>
+                    <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>- {formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
+
+                {/* Desconto de Cashback */}
+                {cashbackDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#059669', fontWeight: '500' }}>Cashback Utilizado</span>
+                    <span style={{ fontSize: '13px', color: '#059669', fontWeight: '600' }}>- {formatCurrency(cashbackDiscount)}</span>
                   </div>
                 )}
 
@@ -364,6 +439,28 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Acúmulo Estimado de Cashback */}
+                {potentialCashback > 0 && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      backgroundColor: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span style={{ fontSize: '16px' }}>🎉</span>
+                    <span style={{ fontSize: '12px', color: '#1e40af', fontWeight: '500', textAlign: 'center' }}>
+                      Ganhe <strong style={{ color: '#1e3a8a' }}>{formatCurrency(potentialCashback)}</strong> de cashback com este pedido!
+                    </span>
+                  </div>
+                )}
               </div>
 
             </div>

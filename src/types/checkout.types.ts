@@ -236,6 +236,12 @@ export interface TemplateRenderProps {
   selectedCrossSells?: string[];
   onToggleCrossSell?: (id: string) => void;
   discountBanners?: any[];
+
+  /** Callbacks e estados para Cashback */
+  availableCashback?: number;
+  useCashback?: boolean;
+  onToggleCashback?: (checked: boolean) => void;
+  potentialCashback?: number;
 }
 
 // ============================================================
@@ -259,6 +265,12 @@ export interface CheckoutData {
   shipping: number;
   discount?: number;
   coupon?: string;
+  couponDiscount?: number;
+  cashbackDiscount?: number;
+  availableCashback?: number;
+  useCashback?: boolean;
+  onToggleCashback?: (checked: boolean) => void;
+  potentialCashback?: number;
 }
 
 // ============================================================
