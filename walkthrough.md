@@ -17,10 +17,11 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
   - Carrega cupons do lojista (locais e sincronizados do Shopify) via `marketingApi.coupons.getAll` e `shopifyDiscountsApi.listFromShopify`.
   - Exibe campo de seleção no formulário ("Aplicar Cupom automaticamente ao clicar") listando os códigos de desconto disponíveis.
 - **Redesign do Modal para Horizontal**:
-  - Aumentamos a largura do modal para `max-w-6xl` para dar espaço à disposição lado a lado.
-  - Dividimos o layout em 2 colunas amplas:
-    - **Esquerda (Configurações do Banner)**: Formulário estruturado em seções colapsáveis e abas visualmente limpas (Conteúdo, Estilização e Cores, Regras e Gatilhos, Cupons).
-    - **Direita (Preview de Alta Fidelidade)**: Renderiza um mockup em miniatura de um navegador exibindo a página de checkout. O banner é renderizado reativamente dentro desse mockup de acordo com o `type` selecionado (`HEADER` no topo, `FOOTER` no rodapé, `POPUP` flutuando no meio), atualizando cores, textos e botões dinamicamente em tempo real.
+  - Aumentamos a largura do modal para `max-w-6xl` e fixamos a sua altura máxima em `h-[90vh]` (ou no máximo `820px`).
+  - Ajustamos a estrutura para que o cabeçalho (`DialogHeader`) e o rodapé de ações (`DialogFooter`) fiquem fixados no topo e no rodapé do modal, respectivamente.
+  - Dividimos o layout interno em 2 colunas independentes:
+    - **Esquerda (Formulário)**: Rola de forma interna e independente (`overflow-y-auto h-full`), garantindo que o usuário consiga preencher todos os campos sem precisar rolar a página inteira ou o modal completo.
+    - **Direita (Preview de Alta Fidelidade)**: Mantém-se fixa e sempre visível ao lado do formulário, permitindo que as alterações visuais de estilo, texto e posicionamento do banner sejam observadas em tempo real sem sair do viewport.
 
 ### 3. Componente de Aviso Reativo
 - **Arquivo modificado:** [NoticeBar.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/NoticeBar.tsx)

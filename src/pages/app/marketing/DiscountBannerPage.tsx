@@ -749,9 +749,9 @@ const DiscountBannerPage = () => {
 
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-800 text-white">
+        <DialogContent className="max-w-6xl h-[90vh] max-h-[820px] flex flex-col bg-slate-900 border-slate-800 text-white p-0 overflow-hidden">
 
-          <DialogHeader>
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-800 flex-shrink-0">
             <DialogTitle className="text-xl font-bold text-white">
               {editingBanner ? "Editar Banner Promocional" : "Novo Banner Promocional"}
             </DialogTitle>
@@ -760,9 +760,9 @@ const DiscountBannerPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-4">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 px-6 py-4 overflow-hidden">
             {/* Formulário (Col 7) */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 overflow-y-auto pr-3 space-y-6 h-full pb-8">
               {/* Seção 1: Informações Básicas */}
               <div className="space-y-4 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
                 <h3 className="text-sm font-semibold text-orange-500 uppercase tracking-wider">Geral</h3>
@@ -1077,7 +1077,7 @@ const DiscountBannerPage = () => {
             </div>
 
             {/* Preview (Col 5) */}
-            <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-0 h-fit">
+            <div className="lg:col-span-5 h-full flex flex-col justify-start">
               <div className="bg-slate-950/40 p-4 border border-slate-800 rounded-xl space-y-3">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-200">Visualização em Tempo Real</h3>
@@ -1090,7 +1090,7 @@ const DiscountBannerPage = () => {
             </div>
           </div>
 
-          <DialogFooter className="border-t border-slate-800 pt-4">
+          <DialogFooter className="px-6 py-4 border-t border-slate-800 bg-slate-950/20 flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
