@@ -61,6 +61,8 @@ interface MinimalStepPaymentProps {
   /** Dados de endereço (coletados na etapa 2) */
   addressData: AddressData;
   appliedCouponCode?: string;
+  paymentMethod?: CheckoutPaymentMethod;
+  onPaymentMethodChange?: (method: CheckoutPaymentMethod) => void;
 }
 
 const METHODS = [
@@ -91,8 +93,17 @@ export const MinimalStepPayment: React.FC<MinimalStepPaymentProps> = ({
   theme, isPreview, checkoutData, orderId, onBack, onSuccess,
   primaryColor, buttonCfg, templateSlug, initialMethod,
   customerData, addressData, appliedCouponCode,
+  paymentMethod, onPaymentMethodChange,
 }) => {
-  const [method, setMethod] = useState<CheckoutPaymentMethod>(initialMethod || 'PIX');
+  const [localMethod, setLocalMethod] = useState<CheckoutPaymentMethod>(initialMethod || 'PIX');
+  const method = paymentMethod || localMethod;
+  const setMethod = (m: CheckoutPaymentMethod) => {
+    if (onPaymentMethodChange) {
+      onPaymentMethodChange(m);
+    } else {
+      setLocalMethod(m);
+    }
+  };
   const [card, setCard] = useState<CardState>({
     number: '', holderName: '', expiry: '', cvv: '', installments: 1,
   });

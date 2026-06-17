@@ -178,6 +178,8 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   useCashback,
   onToggleCashback,
   potentialCashback,
+  paymentMethod,
+  onPaymentMethodChange,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -314,6 +316,8 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     useCashback,
     onToggleCashback,
     potentialCashback,
+    paymentMethod,
+    onPaymentMethodChange,
   };
 
   // ------------------------------------------------------------------

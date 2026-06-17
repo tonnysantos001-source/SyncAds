@@ -34,6 +34,7 @@ import { checkoutApi } from "@/lib/api/checkoutApi";
 import { marketingApi } from "@/lib/api/marketingApi";
 import { shopifyDiscountsApi } from "@/lib/api/shopifyDiscounts";
 import { cashbackApi } from "@/lib/api/cashbackApi";
+import { usePaymentDiscounts } from "@/hooks/usePaymentDiscounts";
 import { DEFAULT_CHECKOUT_THEME } from "@/config/defaultCheckoutTheme";
 import { getCPFNumbers } from "@/lib/utils/cpfValidation";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,9 @@ interface CheckoutData {
   subtotal: number;
   shipping: number;
   discount?: number;
+  couponDiscount?: number;
+  cashbackDiscount?: number;
+  paymentMethodDiscount?: number;
 }
 
 interface CustomerData {
@@ -1109,6 +1113,25 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       .reduce((total, cs) => total + Number(cs.price || 0), 0);
   };
 
+  // Hook de descontos por forma de pagamento
+  const {
+    calculation: paymentDiscountCalculation,
+  } = usePaymentDiscounts({
+    userId: previewMode ? null : sellerUserId,
+    paymentMethod: paymentMethod,
+    purchaseAmount: Math.max(
+      0,
+      (checkoutData?.subtotal || 0) +
+        calculateOrderBumpsTotal() +
+        calculateCrossSellsTotal() -
+        couponDiscount
+    ),
+  });
+
+  const paymentMethodDiscountAmount = paymentDiscountCalculation.hasDiscount
+    ? paymentDiscountCalculation.discountAmount
+    : 0;
+
   const totalBeforeCashback = Math.max(
     0,
     (checkoutData?.subtotal || 0) +
@@ -1116,7 +1139,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       calculateOrderBumpsTotal() +
       calculateCrossSellsTotal() -
       (checkoutData?.discount || 0) -
-      couponDiscount
+      couponDiscount -
+      paymentMethodDiscountAmount
   );
 
   const cashbackDiscount = useCashback ? Math.min(availableCashback, totalBeforeCashback) : 0;
@@ -1645,9 +1669,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       total:        finalTotalWithBumps,
       subtotal:     checkoutData.subtotal + calculateOrderBumpsTotal() + calculateCrossSellsTotal(),
       shipping:     checkoutData.shipping,
-      discount:     (checkoutData.discount || 0) + couponDiscount + cashbackDiscount,
+      discount:     (checkoutData.discount || 0) + couponDiscount + cashbackDiscount + paymentMethodDiscountAmount,
       couponDiscount: couponDiscount,
       cashbackDiscount: cashbackDiscount,
+      paymentMethodDiscount: paymentMethodDiscountAmount,
     };
 
     return (
@@ -1691,6 +1716,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           useCashback={useCashback}
           onToggleCashback={(checked) => setUseCashback(checked)}
           potentialCashback={calculatePotentialCashback()}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod as any}
         />
         {renderPopupBanner()}
       </React.Suspense>

@@ -321,7 +321,7 @@ const GreenSiteSeguro: React.FC<{ primaryColor: string }> = ({ primaryColor }) =
 
 const ConfiancaTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, checkoutConfig, templateConfig, isPreview = false,
-  isMobile = false, onStepChange, onPaymentSuccess,
+  isMobile = false, onStepChange, onPaymentSuccess, paymentMethod, onPaymentMethodChange,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -453,6 +453,8 @@ const ConfiancaTemplate: React.FC<TemplateRenderProps> = ({
                       onSuccess={onPaymentSuccess}
                       primaryColor={primaryColor}
                       templateSlug={templateConfig.slug}
+                      paymentMethod={paymentMethod as any}
+                      onPaymentMethodChange={onPaymentMethodChange}
                     />
                   </motion.div>
                 )}

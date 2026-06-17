@@ -677,6 +677,8 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
   crossSells = [], selectedCrossSells = [], onToggleCrossSell,
   discountBanners = [],
+  paymentMethod: externalPaymentMethod,
+  onPaymentMethodChange,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -769,7 +771,15 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   // ── Estado dos formulários ─────────────────────────────────
   const [contact, setContact] = useState<ContactState>(emptyContact);
   const [address, setAddress] = useState<AddressState>(emptyAddress);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('PIX');
+  const [localPaymentMethod, setLocalPaymentMethod] = useState<PaymentMethodType>('PIX');
+  const paymentMethod = (externalPaymentMethod as PaymentMethodType) || localPaymentMethod;
+  const setPaymentMethod = (m: PaymentMethodType) => {
+    if (onPaymentMethodChange) {
+      onPaymentMethodChange(m);
+    } else {
+      setLocalPaymentMethod(m);
+    }
+  };
   const [card, setCard] = useState<CardState>(emptyCard);
   const [errors, setErrors] = useState<FormErrors>({});
 

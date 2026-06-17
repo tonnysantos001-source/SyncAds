@@ -212,7 +212,7 @@ type StreamlineStep = 1 | 2;
 
 const StreamlineTemplate: React.FC<TemplateRenderProps> = ({
   orderId, checkoutData, theme, templateConfig, isPreview = false,
-  isMobile = false, onStepChange, onPaymentSuccess,
+  isMobile = false, onStepChange, onPaymentSuccess, paymentMethod, onPaymentMethodChange,
 }) => {
   const [leftStep, setLeftStep] = useState<StreamlineStep>(1);
 
@@ -365,6 +365,8 @@ const StreamlineTemplate: React.FC<TemplateRenderProps> = ({
                 onSuccess={onPaymentSuccess}
                 primaryColor={primaryColor}
                 templateSlug={templateConfig.slug}
+                paymentMethod={paymentMethod as any}
+                onPaymentMethodChange={onPaymentMethodChange}
               />
             </div>
 

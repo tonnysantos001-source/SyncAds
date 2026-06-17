@@ -629,8 +629,20 @@ const DesktopOrderPanel: React.FC<{
   crossSells?: any[];
   selectedCrossSells?: string[];
   onToggleCrossSell?: (id: string) => void;
-}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell }) => {
-  const [payMethod, setPayMethod] = useState('pix');
+  paymentMethod?: string;
+  onPaymentMethodChange?: (method: string) => void;
+}> = ({ checkoutData, theme, primaryColor, gradient, isPreview, orderId, onSuccess, templateSlug, contact, address, cpf, onFormError, onApplyCoupon, onRemoveCoupon, appliedCouponCode, couponError, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell, paymentMethod, onPaymentMethodChange }) => {
+  const [localPayMethod, setLocalPayMethod] = useState('pix');
+  const payMethod = paymentMethod 
+    ? (paymentMethod === 'CREDIT_CARD' ? 'credit' : paymentMethod === 'PIX' ? 'pix' : 'boleto') 
+    : localPayMethod;
+  const setPayMethod = (m: string) => {
+    if (onPaymentMethodChange) {
+      onPaymentMethodChange(m === 'credit' ? 'CREDIT_CARD' : m === 'pix' ? 'PIX' : 'BOLETO');
+    } else {
+      setLocalPayMethod(m);
+    }
+  };
   const [couponCode, setCouponCode] = useState(appliedCouponCode || '');
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -962,8 +974,20 @@ const MobileContactPaymentCard: React.FC<{
   crossSells?: any[];
   selectedCrossSells?: string[];
   onToggleCrossSell?: (id: string) => void;
-}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell }) => {
-  const [payMethod, setPayMethod] = useState('pix');
+  paymentMethod?: string;
+  onPaymentMethodChange?: (method: string) => void;
+}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell, paymentMethod, onPaymentMethodChange }) => {
+  const [localPayMethod, setLocalPayMethod] = useState('pix');
+  const payMethod = paymentMethod 
+    ? (paymentMethod === 'CREDIT_CARD' ? 'credit' : paymentMethod === 'PIX' ? 'pix' : 'boleto') 
+    : localPayMethod;
+  const setPayMethod = (m: string) => {
+    if (onPaymentMethodChange) {
+      onPaymentMethodChange(m === 'credit' ? 'CREDIT_CARD' : m === 'pix' ? 'PIX' : 'BOLETO');
+    } else {
+      setLocalPayMethod(m);
+    }
+  };
   const [cardData, setCardData] = useState<CardState>(emptyCard());
   const [contact, setContact] = useState<ContactState>(emptyContact());
   const [errors, setErrors] = useState<FormErrors>({});
@@ -1242,6 +1266,8 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   orderBumps = [], selectedOrderBumps = [], onToggleOrderBump,
   crossSells = [], selectedCrossSells = [], onToggleCrossSell,
   discountBanners = [],
+  paymentMethod,
+  onPaymentMethodChange,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -1445,6 +1471,8 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                 crossSells={crossSells}
                 selectedCrossSells={selectedCrossSells}
                 onToggleCrossSell={onToggleCrossSell}
+                paymentMethod={paymentMethod}
+                onPaymentMethodChange={onPaymentMethodChange}
               />
             </div>
           </div>
@@ -1480,6 +1508,8 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             crossSells={crossSells}
             selectedCrossSells={selectedCrossSells}
             onToggleCrossSell={onToggleCrossSell}
+            paymentMethod={paymentMethod}
+            onPaymentMethodChange={onPaymentMethodChange}
           />
         </main>
       )}

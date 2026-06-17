@@ -507,6 +507,8 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
   selectedCrossSells = [],
   onToggleCrossSell,
   discountBanners = [],
+  paymentMethod,
+  onPaymentMethodChange,
 }) => {
   const [currentStep, setCurrentStep] = useState(currentStepProp || 1);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -977,6 +979,8 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                   customerData={contactData}
                   addressData={addressData}
                   appliedCouponCode={appliedCouponCode}
+                  paymentMethod={paymentMethod as any}
+                  onPaymentMethodChange={onPaymentMethodChange}
                 />
               </MinimalStepWrapper>
             )}

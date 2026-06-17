@@ -98,7 +98,8 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
   const shipping  = checkoutData?.shipping ?? (isPreview ? 15.00 : 0);
   const couponDiscount = checkoutData?.couponDiscount ?? 0;
   const cashbackDiscount = checkoutData?.cashbackDiscount ?? 0;
-  const discount  = (couponDiscount > 0 || cashbackDiscount > 0)
+  const paymentMethodDiscount = checkoutData?.paymentMethodDiscount ?? 0;
+  const discount  = (couponDiscount > 0 || cashbackDiscount > 0 || paymentMethodDiscount > 0)
     ? 0
     : (checkoutData?.discount ?? 0);
   const total     = checkoutData?.total     ?? (isPreview ? 212.00 : 0);
@@ -405,6 +406,14 @@ export const CheckoutSummaryPanel: React.FC<CheckoutSummaryPanelProps> = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', color: '#16a34a' }}>Desconto (Cupom)</span>
                     <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>- {formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
+
+                {/* Desconto de Forma de Pagamento */}
+                {paymentMethodDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#16a34a' }}>Desconto (Forma de Pagamento)</span>
+                    <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>- {formatCurrency(paymentMethodDiscount)}</span>
                   </div>
                 )}
 

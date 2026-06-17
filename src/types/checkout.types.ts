@@ -220,6 +220,10 @@ export interface TemplateRenderProps {
   /** Step atual passado externamente (usado pelo MinimalTemplate para controle externo) */
   currentStep?: number;
 
+  /** Forma de pagamento selecionada e callback de atualização */
+  paymentMethod?: string;
+  onPaymentMethodChange?: (method: any) => void;
+
   /** Callbacks e estados para Cupons de Desconto */
   onApplyCoupon?: (code: string) => Promise<{ success: boolean; discountAmount?: number; error?: string }>;
   onRemoveCoupon?: () => void;
@@ -267,6 +271,7 @@ export interface CheckoutData {
   coupon?: string;
   couponDiscount?: number;
   cashbackDiscount?: number;
+  paymentMethodDiscount?: number;
   availableCashback?: number;
   useCashback?: boolean;
   onToggleCashback?: (checked: boolean) => void;
