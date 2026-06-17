@@ -16,12 +16,10 @@ Nesta etapa, implementamos e conectamos por completo os sistemas de **Order Bump
 - **Integração de Cupons/Shopify**:
   - Carrega cupons do lojista (locais e sincronizados do Shopify) via `marketingApi.coupons.getAll` e `shopifyDiscountsApi.listFromShopify`.
   - Exibe campo de seleção no formulário ("Aplicar Cupom automaticamente ao clicar") listando os códigos de desconto disponíveis.
-- **Redesign do Modal para Horizontal**:
-  - Aumentamos a largura do modal para `max-w-6xl` e fixamos a sua altura máxima em `h-[90vh]` (ou no máximo `820px`).
-  - Ajustamos a estrutura para que o cabeçalho (`DialogHeader`) e o rodapé de ações (`DialogFooter`) fiquem fixados no topo e no rodapé do modal, respectivamente.
-  - Dividimos o layout interno em 2 colunas independentes:
-    - **Esquerda (Formulário)**: Rola de forma interna e independente (`overflow-y-auto h-full`), garantindo que o usuário consiga preencher todos os campos sem precisar rolar a página inteira ou o modal completo.
-    - **Direita (Preview de Alta Fidelidade)**: Mantém-se fixa e sempre visível ao lado do formulário, permitindo que as alterações visuais de estilo, texto e posicionamento do banner sejam observadas em tempo real sem sair do viewport.
+- **Redesign do Modal para Horizontal com Abas e Visualização Compacta**:
+  - Aumentamos a largura do modal para `max-w-6xl` (estilo inline de `1200px` e largura `95vw` para evitar restrições do Dialog padrão) e fixamos a sua altura máxima em `h-[90vh]` (ou no máximo `820px`).
+  - Dividimos o formulário na coluna da esquerda em **Abas (Tabs)** estruturadas (`Geral & Regras`, `Conteúdo & Cupom` e `Design & Cores`) e diminuímos o espaçamento vertical entre os elementos (`gap-4` para `gap-3` e `space-y-6` para `space-y-3`). Isso tornou a exibição extremamente compacta, eliminando completamente a necessidade de rolagem sob resoluções normais.
+  - Removemos o card de bordas extras ao redor do painel de visualização à direita para maximizar o espaço vertical útil, e ajustamos a altura do mockup do navegador (`BannerPreview`) de `480px` para `380px` para que ele caiba perfeitamente no viewport sem qualquer corte.
 
 ### 3. Componente de Aviso Reativo
 - **Arquivo modificado:** [NoticeBar.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/NoticeBar.tsx)
