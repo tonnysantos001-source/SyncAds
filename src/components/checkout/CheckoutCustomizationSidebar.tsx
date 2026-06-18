@@ -911,7 +911,7 @@ export const CheckoutCustomizationSidebar: React.FC<
       </div>
 
       {/* Seções Colapsáveis */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-2">
         {sections.map((section, index) => {
           const isExpanded = expandedSections.includes(section.id);
           const Icon = section.icon;
@@ -922,54 +922,56 @@ export const CheckoutCustomizationSidebar: React.FC<
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: index * 0.03 }}
-              className="border-b border-white/5"
+              className="overflow-hidden rounded-xl"
             >
               <button
+                type="button"
                 onClick={() => onToggleSection(section.id)}
                 className={cn(
-                  "w-full px-4 py-3.5 flex items-center justify-between text-sm font-medium transition-all duration-200 group",
+                  "relative w-full px-4 py-3.5 flex items-center justify-between text-sm font-semibold transition-all duration-300 group rounded-xl outline-none",
                   isExpanded
-                    ? "bg-gradient-to-r from-blue-500/5 to-pink-500/5 border-l-[3px] border-pink-500 text-white"
+                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : "text-gray-400 hover:text-white hover:bg-white/5",
                 )}
               >
+                {/* Barrinha vertical branca na extrema esquerda do botão ativo */}
+                {isExpanded && (
+                  <div className="absolute left-0 w-1 h-7 bg-white rounded-r-full" />
+                )}
+
                 <div className="flex items-center gap-3">
-                  <div
+                  <Icon
                     className={cn(
-                      "p-1.5 rounded-lg transition-all duration-200",
+                      "h-[18px] w-[18px] transition-colors duration-200",
                       isExpanded
-                        ? "bg-pink-500/20"
-                        : "bg-white/5 group-hover:bg-white/10",
+                        ? "text-white"
+                        : "text-gray-400 group-hover:text-white",
                     )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-4 w-4 transition-colors",
-                        isExpanded
-                          ? "text-pink-400"
-                          : "text-gray-400 group-hover:text-gray-200",
-                      )}
-                    />
-                  </div>
+                  />
                   <span>{section.label}</span>
                 </div>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-pink-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-500 group-hover:text-gray-350" />
-                )}
+
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-250",
+                    isExpanded 
+                      ? "text-white rotate-180" 
+                      : "text-gray-500 group-hover:text-gray-300",
+                  )}
+                />
               </button>
 
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {isExpanded && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="p-4 bg-[#070b13]/40 border-t border-white/5">
+                    {/* Divisão vertical azul como nas sub-opções da dashboard */}
+                    <div className="ml-6 mt-2.5 pl-4 border-l-2 border-blue-500/40 space-y-4 pb-4">
                       {renderSectionContent(section.id)}
                     </div>
                   </motion.div>
