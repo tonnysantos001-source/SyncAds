@@ -699,6 +699,17 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           { id: "p2", name: "Produto de Demonstração Extra", price: 149.99, quantity: 2, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400" },
         ];
         setCheckoutData({ orderId: "preview-local", products: previewProducts, total: 499.97, subtotal: 470.00, shipping: 29.97, discount: 0 });
+        
+        // Recupera a sessão ativa para podermos exibir as provas sociais ativas do lojista no preview
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            setSellerUserId(session.user.id);
+          }
+        } catch (err) {
+          console.error("Erro ao recuperar sessao no preview local:", err);
+        }
+
         // Carregar tema do usuário
         if (injectedTheme) {
           setTheme({ ...DEFAULT_CHECKOUT_THEME, ...injectedTheme });

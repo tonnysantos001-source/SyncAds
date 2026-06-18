@@ -736,7 +736,7 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                 Criar Prova Social
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl p-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+            <DialogContent className="max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl p-6 overflow-hidden">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
@@ -746,6 +746,32 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              {/* Switch Toggle de Status Moderno (Estilo iOS) no Topo */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/60 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <Zap className={`h-4.5 w-4.5 transition-colors ${formData.isActive ? "text-amber-500 animate-pulse" : "text-gray-400"}`} />
+                  <div>
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Status da Prova Social</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                      {formData.isActive ? "Exibindo no checkout em tempo real" : "Desativado / Oculto no checkout"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                    formData.isActive ? "bg-purple-600" : "bg-gray-300 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                      formData.isActive ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -852,15 +878,6 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                       </div>
                     </div>
                   </div>
-
-                  <div className="pt-1.5">
-                    <ImageUploadField
-                      label="Foto / Avatar do Cliente"
-                      description="Envie a foto de perfil do cliente (opcional)"
-                      value={formData.avatarUrl}
-                      onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
-                    />
-                  </div>
                 </div>
               )}
 
@@ -881,39 +898,22 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                 />
               </div>
 
-              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800/60 pt-4 mt-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActiveForm"
-                    checked={formData.isActive}
-                    onChange={(e) =>
-                      setFormData({ ...formData, isActive: e.target.checked })
-                    }
-                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2 cursor-pointer"
-                  />
-                  <Label htmlFor="isActiveForm" className="text-xs font-semibold cursor-pointer flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <Zap className="h-3.5 w-3.5 text-purple-600" />
-                    Ativo
-                  </Label>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800 h-9 text-xs px-3"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-md hover:shadow-lg transition-all duration-300 h-9 text-xs px-4"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    {editingProof ? "Salvar" : "Criar"}
-                  </Button>
-                </div>
+              <div className="flex justify-end gap-2 border-t border-gray-100 dark:border-gray-800/60 pt-4 mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800 h-9 text-xs px-3"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-md hover:shadow-lg transition-all duration-300 h-9 text-xs px-4"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  {editingProof ? "Salvar" : "Criar"}
+                </Button>
               </div>
             </form>
           </DialogContent>
