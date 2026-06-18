@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import {
   ShieldCheck, ChevronDown, ChevronUp,
   Package, User, Plus, Minus, Camera, Loader2, X as XIcon, Lock,
-  CheckCircle2, AlertCircle, CreditCard, Tag,
+  CheckCircle2, AlertCircle, CreditCard, Tag, Heart, MessageCircle
 } from 'lucide-react';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import { supabase } from '@/lib/supabase';
@@ -1257,6 +1257,193 @@ const MobileCouponRow: React.FC<{
   );
 };
 
+// ─── TIKTOK COMMENTS SECTION ──────────────────────────────────────────────────
+interface TikTokCommentProps {
+  id: string;
+  authorName: string;
+  rating: number;
+  avatarUrl?: string;
+  relativeTime: string;
+  message: string;
+  likes: number;
+  likedByUser?: boolean;
+}
+
+const TikTokComments = ({ socialProofs }: { socialProofs?: any[] }) => {
+  const [reviewsList, setReviewsList] = useState<TikTokCommentProps[]>([]);
+
+  const initialReviews: TikTokCommentProps[] = useMemo(() => {
+    const raw = socialProofs?.filter((p) => p.type === 'REVIEW') || [];
+    if (raw.length === 0) {
+      return [
+        {
+          id: "tiktok-1",
+          authorName: "Mariana Costa",
+          rating: 5,
+          avatarUrl: "",
+          relativeTime: "2h atrás",
+          message: "Gente, comprem sem medo! Chegou super rápido e o produto é perfeito, amei real 😍✨",
+          likes: 142,
+        },
+        {
+          id: "tiktok-2",
+          authorName: "Carlos Eduardo",
+          rating: 5,
+          avatarUrl: "",
+          relativeTime: "1d atrás",
+          message: "Chegou tudo certinho, vendedor super atencioso. Nota 10/10!!",
+          likes: 89,
+        },
+        {
+          id: "tiktok-3",
+          authorName: "Camila Rodrigues",
+          rating: 5,
+          avatarUrl: "",
+          relativeTime: "3d atrás",
+          message: "Melhor compra que fiz esse ano, super recomendo pra todo mundo!",
+          likes: 56,
+        }
+      ];
+    }
+    return raw.map((p) => ({
+      id: p.id,
+      authorName: p.display?.authorName || "Cliente Anônimo",
+      rating: Number(p.display?.rating || 5),
+      avatarUrl: p.display?.avatarUrl || "",
+      relativeTime: p.display?.relativeTime || "recente",
+      message: p.message,
+      likes: Math.floor(Math.random() * 80) + 12,
+    }));
+  }, [socialProofs]);
+
+  useEffect(() => {
+    setReviewsList(initialReviews);
+  }, [initialReviews]);
+
+  const toggleLike = (id: string) => {
+    setReviewsList((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return {
+            ...r,
+            likedByUser: !r.likedByUser,
+            likes: r.likedByUser ? r.likes - 1 : r.likes + 1,
+          };
+        }
+        return r;
+      })
+    );
+  };
+
+  const getUsername = (name: string) => {
+    const clean = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+    return `@${clean || "cliente"}_${Math.floor(Math.random() * 90) + 10}`;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 mt-6 w-full shadow-sm">
+      <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
+        <MessageCircle size={20} className="text-gray-800" />
+        <h3 className="font-bold text-sm text-gray-800">
+          Comentários ({reviewsList.length * 2})
+        </h3>
+      </div>
+
+      <div className="space-y-6">
+        {reviewsList.map((review) => {
+          const username = getUsername(review.authorName);
+          return (
+            <div key={review.id} className="relative">
+              {/* Comentário Pai */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1">
+                  {review.avatarUrl ? (
+                    <img
+                      src={review.avatarUrl}
+                      alt={review.authorName}
+                      className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-semibold text-xs border border-gray-200">
+                      {review.authorName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-gray-900">
+                        {review.authorName}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {username}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-700 mt-1 leading-normal">
+                      {review.message}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-gray-400 font-semibold">
+                      <span>{review.relativeTime}</span>
+                      <span className="cursor-pointer hover:text-gray-600">
+                        Responder
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Curtida do Comentário Pai */}
+                <button
+                  onClick={() => toggleLike(review.id)}
+                  className="flex flex-col items-center justify-center text-gray-400 hover:text-red-500 transition-colors animate-none"
+                >
+                  <Heart
+                    size={14}
+                    className={cn(
+                      "transition-all",
+                      review.likedByUser ? "text-rose-500 fill-rose-500 scale-110" : ""
+                    )}
+                  />
+                  <span className="text-[9px] mt-0.5 font-medium">
+                    {review.likes}
+                  </span>
+                </button>
+              </div>
+
+              {/* Linha vertical conectora azul */}
+              <div className="absolute left-[15px] top-9 bottom-3 w-[2px] bg-blue-500/20 rounded" />
+
+              {/* Resposta do Criador (Sub-reply) */}
+              <div className="ml-10 mt-3 flex items-start gap-2.5">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[9px]">
+                  SA
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs text-gray-900">
+                      SyncAds
+                    </span>
+                    <span className="text-[9px] bg-red-500 text-white px-1.5 py-0.2 rounded font-bold uppercase tracking-wider scale-90 origin-left">
+                      Criador
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1 leading-normal font-normal">
+                    Muito obrigado pelo feedback, <span className="text-blue-500 font-medium">{username}</span>! Nosso objetivo é sempre oferecer o melhor atendimento e qualidade. ❤️🚀
+                  </p>
+                  <div className="flex items-center gap-3 mt-1.5 text-[10px] text-gray-400 font-semibold">
+                    <span>{review.relativeTime}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── MAIN TEMPLATE ────────────────────────────────────────────────────────────
 
 const TikTokTemplate: React.FC<TemplateRenderProps> = ({
@@ -1268,6 +1455,7 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   discountBanners = [],
   paymentMethod,
   onPaymentMethodChange,
+  socialProofs,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -1450,6 +1638,8 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
                   </div>
                 </div>
               )}
+              {/* REAL SOCIAL PROOFS / COMMENTS */}
+              <TikTokComments socialProofs={socialProofs} />
             </div>
             {/* RIGHT: Order Summary */}
             <div className="sticky top-4">
@@ -1511,6 +1701,8 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             paymentMethod={paymentMethod}
             onPaymentMethodChange={onPaymentMethodChange}
           />
+          {/* REAL SOCIAL PROOFS / COMMENTS */}
+          <TikTokComments socialProofs={socialProofs} />
         </main>
       )}
 

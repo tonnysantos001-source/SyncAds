@@ -49,6 +49,7 @@ import { ExtraFields } from "@/components/checkout/ExtraFields";
 import { NoticeBar } from "@/components/checkout/NoticeBar";
 import { SecurityBadges } from "@/components/checkout/SecurityBadges";
 import { PaymentMethodIcons } from "@/components/checkout/PaymentMethodIcons";
+import { SocialProofNotifications } from "@/components/checkout/SocialProofNotifications";
 
 // ============================================
 // MULTI-TEMPLATE SYSTEM (feature flag)
@@ -240,6 +241,27 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [templateSlug, setTemplateSlug] = useState<string>('minimal');
   const [templateVersion, setTemplateVersion] = useState<number>(1);
   const [isTemplateDisabled, setIsTemplateDisabled] = useState<boolean>(false);
+  const [socialProofs, setSocialProofs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!sellerUserId) return;
+    const fetchSocialProofs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("SocialProof")
+          .select("*")
+          .eq("userId", sellerUserId)
+          .eq("isActive", true);
+        if (error) throw error;
+        if (data) {
+          setSocialProofs(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar provas sociais do lojista:", err);
+      }
+    };
+    fetchSocialProofs();
+  }, [sellerUserId]);
 
   // Responsividade dinâmica para uso público (fora do preview do customizador)
   const [isMobileScreen, setIsMobileScreen] = useState(false);
@@ -1741,8 +1763,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           potentialCashback={calculatePotentialCashback()}
           paymentMethod={paymentMethod}
           onPaymentMethodChange={setPaymentMethod as any}
+          socialProofs={socialProofs}
         />
         {renderPopupBanner()}
+        <SocialProofNotifications userId={sellerUserId} />
       </React.Suspense>
     );
   }
@@ -2603,6 +2627,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         }
       />
       {renderPopupBanner()}
+      <SocialProofNotifications userId={sellerUserId} />
     </div>
   );
 };

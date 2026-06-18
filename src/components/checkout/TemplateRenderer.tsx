@@ -180,6 +180,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   potentialCashback,
   paymentMethod,
   onPaymentMethodChange,
+  socialProofs,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -318,6 +319,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     potentialCashback,
     paymentMethod,
     onPaymentMethodChange,
+    socialProofs,
   };
 
   // ------------------------------------------------------------------

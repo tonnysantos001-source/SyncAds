@@ -19,7 +19,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Lock, ChevronDown, ChevronUp, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, ChevronDown, ChevronUp, AlertCircle, Loader2, Star, Check } from 'lucide-react';
 import { checkoutMonitor } from '@/lib/checkoutMonitor';
 import type { TemplateRenderProps } from '@/types/checkout.types';
 import type { CheckoutConfig } from '@/types/checkout-config.types';
@@ -667,6 +667,122 @@ const MobileSummaryAccordion = ({
 };
 
 // ============================================================
+// PREMIUM SOCIAL PROOFS / REVIEWS
+// ============================================================
+interface ReviewData {
+  id: string;
+  authorName: string;
+  rating: number;
+  avatarUrl?: string;
+  relativeTime: string;
+  message: string;
+}
+
+const PremiumReviews = ({ socialProofs }: { socialProofs?: any[] }) => {
+  const reviews: ReviewData[] = useMemo(() => {
+    if (!socialProofs || socialProofs.length === 0) return [];
+    return socialProofs
+      .filter((p) => p.type === 'REVIEW')
+      .map((p) => ({
+        id: p.id,
+        authorName: p.display?.authorName || "Cliente Anônimo",
+        rating: Number(p.display?.rating || 5),
+        avatarUrl: p.display?.avatarUrl || "",
+        relativeTime: p.display?.relativeTime || "Compra recente",
+        message: p.message
+      }));
+  }, [socialProofs]);
+
+  const finalReviews = reviews.length > 0 ? reviews : [
+    {
+      id: "premium-1",
+      authorName: "Mariana Costa",
+      rating: 5,
+      avatarUrl: "",
+      relativeTime: "há 2 horas",
+      message: "Excelente produto! Entrega super rápida e o atendimento foi sensacional. Com certeza voltarei a comprar."
+    },
+    {
+      id: "premium-2",
+      authorName: "Carlos Eduardo",
+      rating: 5,
+      avatarUrl: "",
+      relativeTime: "há 1 dia",
+      message: "Muito seguro e prático de comprar. Chegou tudo certinho, muito bem embalado."
+    },
+    {
+      id: "premium-3",
+      authorName: "Camila Rodrigues",
+      rating: 5,
+      avatarUrl: "",
+      relativeTime: "há 3 dias",
+      message: "Adorei a experiência! O produto é de altíssima qualidade. Recomendo muito."
+    }
+  ];
+
+  return (
+    <div className="mt-6 bg-[#FFFFFF] rounded-2xl border border-[#EDEDED] p-6 w-full shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+      <div className="flex items-center justify-between border-b border-[#F5F5F5] pb-4 mb-4">
+        <div>
+          <h3 className="text-base font-bold text-[#111827] tracking-tight">Avaliações dos Clientes</h3>
+          <p className="text-xs text-[#707070] mt-0.5">Opiniões de quem já comprou conosco</p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-[#FDF8E2] px-2.5 py-1 rounded-full border border-[#F6E9C3]">
+          <Star className="text-[#D97706] fill-[#D97706] w-3.5 h-3.5" />
+          <span className="text-xs font-bold text-[#92400E]">4.9</span>
+        </div>
+      </div>
+
+      <div className="space-y-4 divide-y divide-[#F5F5F5]">
+        {finalReviews.map((review, index) => (
+          <div
+            key={review.id}
+            className={cn("flex flex-col gap-2 pt-4", index === 0 ? "pt-0" : "")}
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2.5">
+                {review.avatarUrl ? (
+                  <img src={review.avatarUrl} alt={review.authorName} className="w-8 h-8 rounded-full object-cover border border-[#EDEDED]" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#F3F4F6] text-[#4B5563] flex items-center justify-center font-semibold text-xs border border-[#E5E7EB]">
+                    {review.authorName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
+                    {review.authorName}
+                    <span className="inline-flex items-center gap-0.5 text-[9px] text-[#047857] font-semibold">
+                      <Check className="w-3 h-3 text-[#047857]" /> verificado
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "w-2.5 h-2.5",
+                            i < review.rating ? "text-[#D97706] fill-[#D97706]" : "text-gray-200"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-[#909090]">{review.relativeTime}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-[#4B5563] leading-relaxed mt-0.5 font-normal">
+              {review.message}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // TEMPLATE PRINCIPAL
 // ============================================================
 
@@ -679,6 +795,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   discountBanners = [],
   paymentMethod: externalPaymentMethod,
   onPaymentMethodChange,
+  socialProofs,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -1091,6 +1208,12 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                   </div>
                 </div>
 
+                {isMobile && (
+                  <div className="pt-4">
+                    <PremiumReviews socialProofs={socialProofs} />
+                  </div>
+                )}
+
               </div>
             </div>
 
@@ -1113,6 +1236,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                       appliedCouponCode={appliedCouponCode}
                       couponError={couponError}
                     />
+                    <PremiumReviews socialProofs={socialProofs} />
                   </div>
                 </div>
               </div>

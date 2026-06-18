@@ -246,6 +246,9 @@ export interface TemplateRenderProps {
   useCashback?: boolean;
   onToggleCashback?: (checked: boolean) => void;
   potentialCashback?: number;
+
+  /** Provas sociais (reviews/depoimentos e notificações) */
+  socialProofs?: any[];
 }
 
 // ============================================================

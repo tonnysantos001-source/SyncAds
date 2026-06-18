@@ -39,6 +39,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUploadField } from "@/components/checkout/ImageUploadField";
 
 interface MetricCardProps {
   title: string;
@@ -92,19 +93,19 @@ const MetricCard = ({
 
 interface SocialProof {
   id: string;
-
   userId: string;
   type: "RECENT_PURCHASE" | "VISITOR_COUNT" | "REVIEW";
-
   message: string;
-
   displayDuration: number;
-
   isActive: boolean;
-
   createdAt: string;
-
   updatedAt: string;
+  display?: {
+    authorName?: string;
+    rating?: number;
+    avatarUrl?: string;
+    relativeTime?: string;
+  } | null;
 }
 
 const SocialProofPage = () => {
@@ -122,6 +123,10 @@ const SocialProofPage = () => {
     message: "",
     displayDuration: 5,
     isActive: true,
+    authorName: "",
+    rating: 5,
+    avatarUrl: "",
+    relativeTime: "Há 2 horas",
   });
 
   useEffect(() => {
@@ -171,17 +176,32 @@ const SocialProofPage = () => {
     try {
       if (!user?.id) return;
 
+      const displayData = formData.type === "REVIEW" ? {
+        authorName: formData.authorName || "Cliente Anônimo",
+        rating: formData.rating || 5,
+        avatarUrl: formData.avatarUrl || "",
+        relativeTime: formData.relativeTime || "Compra recente"
+      } : null;
+
+      const submissionData = {
+        type: formData.type,
+        message: formData.message,
+        displayDuration: formData.displayDuration,
+        isActive: formData.isActive,
+        display: displayData,
+      };
+
       if (editingProof) {
         const { error } = await supabase
           .from("SocialProof")
-          .update({ ...formData, updatedAt: new Date().toISOString() })
+          .update({ ...submissionData, updatedAt: new Date().toISOString() })
           .eq("id", editingProof.id);
         if (error) throw error;
         toast({ title: "Prova social atualizada!" });
       } else {
         const { error } = await supabase
           .from("SocialProof")
-          .insert({ ...formData, userId: user.id });
+          .insert({ ...submissionData, userId: user.id });
         if (error) throw error;
         toast({
           title: "Prova social criada!",
@@ -220,13 +240,17 @@ const SocialProofPage = () => {
     }
   };
 
-  const handleEdit = (proof: SocialProof) => {
+  const handleEdit = (proof: any) => {
     setEditingProof(proof);
     setFormData({
       type: proof.type,
       message: proof.message,
       displayDuration: proof.displayDuration,
       isActive: proof.isActive,
+      authorName: proof.display?.authorName || "",
+      rating: proof.display?.rating || 5,
+      avatarUrl: proof.display?.avatarUrl || "",
+      relativeTime: proof.display?.relativeTime || "Há 2 horas",
     });
     setIsDialogOpen(true);
   };
@@ -238,6 +262,10 @@ const SocialProofPage = () => {
       message: "",
       displayDuration: 5,
       isActive: true,
+      authorName: "",
+      rating: 5,
+      avatarUrl: "",
+      relativeTime: "Há 2 horas",
     });
   };
 
@@ -334,6 +362,63 @@ const SocialProofPage = () => {
                   </p>
                 </div>
               </div>
+
+              {formData.type === "REVIEW" && (
+                <div className="space-y-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                        Nome do Autor *
+                      </Label>
+                      <Input
+                        value={formData.authorName}
+                        onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
+                        placeholder="Ex: Maria Silva"
+                        required={formData.type === "REVIEW"}
+                        className="bg-white dark:bg-gray-800"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                        Tempo Relativo
+                      </Label>
+                      <Input
+                        value={formData.relativeTime}
+                        onChange={(e) => setFormData({ ...formData, relativeTime: e.target.value })}
+                        placeholder="Ex: Há 2 horas, Há 3 dias"
+                        className="bg-white dark:bg-gray-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                      Avaliação (Estrelas)
+                    </Label>
+                    <select
+                      className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
+                      value={formData.rating}
+                      onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
+                    >
+                      <option value="5">★★★★★ (5 Estrelas)</option>
+                      <option value="4">★★★★☆ (4 Estrelas)</option>
+                      <option value="3">★★★☆☆ (3 Estrelas)</option>
+                      <option value="2">★★☆☆☆ (2 Estrelas)</option>
+                      <option value="1">★☆☆☆☆ (1 Estrela)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <ImageUploadField
+                      label="Foto / Avatar do Cliente"
+                      description="Envie a foto de perfil do cliente para o depoimento"
+                      value={formData.avatarUrl}
+                      onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-sm font-semibold flex items-center gap-2">
                   <div className="p-1 rounded bg-gradient-to-br from-blue-500 to-cyan-600">
@@ -541,8 +626,31 @@ const SocialProofPage = () => {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="max-w-md truncate">
-                          {proof.message}
+                        <TableCell className="max-w-md">
+                          {proof.type === "REVIEW" ? (
+                            <div className="flex items-center gap-3 py-1">
+                              {proof.display?.avatarUrl ? (
+                                <img
+                                  src={proof.display.avatarUrl}
+                                  alt={proof.display.authorName}
+                                  className="w-8 h-8 rounded-full object-cover border border-white/10 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                  {(proof.display?.authorName || "C").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="text-xs min-w-0">
+                                <div className="font-bold dark:text-gray-200 flex items-center gap-1.5 truncate">
+                                  <span>{proof.display?.authorName || "Cliente"}</span>
+                                  <span className="text-yellow-500 font-mono">{"★".repeat(proof.display?.rating || 5)}</span>
+                                </div>
+                                <div className="text-gray-500 truncate max-w-xs">{proof.message}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="truncate block max-w-xs">{proof.message}</span>
+                          )}
                         </TableCell>
                         <TableCell>{proof.displayDuration}s</TableCell>
                         <TableCell>
