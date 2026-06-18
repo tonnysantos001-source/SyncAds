@@ -41,6 +41,22 @@ import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadField } from "@/components/checkout/ImageUploadField";
 
+const FEMALE_AVATARS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80",
+];
+
+const MALE_AVATARS = [
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&h=150&q=80",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80",
+];
+
 interface MetricCardProps {
   title: string;
   value: string | number;
@@ -127,7 +143,18 @@ const SocialProofPage = () => {
     rating: 5,
     avatarUrl: "",
     relativeTime: "Há 2 horas",
+    gender: "female" as "female" | "male",
   });
+
+  const handleGenderChange = (gender: "female" | "male") => {
+    const list = gender === "female" ? FEMALE_AVATARS : MALE_AVATARS;
+    const randomAvatar = list[Math.floor(Math.random() * list.length)];
+    setFormData({
+      ...formData,
+      gender,
+      avatarUrl: randomAvatar,
+    });
+  };
 
   useEffect(() => {
     loadSocialProofs();
@@ -147,6 +174,76 @@ const SocialProofPage = () => {
         .order("createdAt", { ascending: false });
 
       if (error) throw error;
+
+      if (!data || data.length === 0) {
+        // Seed database with examples!
+        const examples = [
+          {
+            userId: user.id,
+            type: "REVIEW",
+            message: "Gente, comprem sem medo! Chegou super rápido e o produto é perfeito, amei real 😍✨",
+            displayDuration: 5,
+            isActive: false,
+            display: {
+              authorName: "Mariana Costa",
+              rating: 5,
+              avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
+              relativeTime: "há 2 horas",
+              gender: "female"
+            }
+          },
+          {
+            userId: user.id,
+            type: "REVIEW",
+            message: "Chegou tudo certinho, vendedor super atencioso. Nota 10/10!!",
+            displayDuration: 5,
+            isActive: false,
+            display: {
+              authorName: "Carlos Eduardo",
+              rating: 5,
+              avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+              relativeTime: "há 1 dia",
+              gender: "male"
+            }
+          },
+          {
+            userId: user.id,
+            type: "REVIEW",
+            message: "Melhor compra que fiz esse ano, super recomendo pra todo mundo!",
+            displayDuration: 5,
+            isActive: false,
+            display: {
+              authorName: "Camila Rodrigues",
+              rating: 5,
+              avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80",
+              relativeTime: "há 3 dias",
+              gender: "female"
+            }
+          }
+        ];
+
+        const { error: seedError } = await supabase
+          .from("SocialProof")
+          .insert(examples);
+
+        if (seedError) {
+          console.error("Erro ao inserir exemplos:", seedError);
+        } else {
+          // Re-load proofs after seeding
+          const { data: seededData } = await supabase
+            .from("SocialProof")
+            .select("*")
+            .eq("userId", user.id)
+            .order("createdAt", { ascending: false });
+          
+          if (seededData) {
+            setSocialProofs(seededData);
+            setFilteredProofs(seededData);
+            return;
+          }
+        }
+      }
+
       setSocialProofs(data || []);
       setFilteredProofs(data || []);
     } catch (error: any) {
@@ -180,7 +277,8 @@ const SocialProofPage = () => {
         authorName: formData.authorName || "Cliente Anônimo",
         rating: formData.rating || 5,
         avatarUrl: formData.avatarUrl || "",
-        relativeTime: formData.relativeTime || "Compra recente"
+        relativeTime: formData.relativeTime || "Compra recente",
+        gender: formData.gender || "female",
       } : null;
 
       const submissionData = {
@@ -251,6 +349,7 @@ const SocialProofPage = () => {
       rating: proof.display?.rating || 5,
       avatarUrl: proof.display?.avatarUrl || "",
       relativeTime: proof.display?.relativeTime || "Há 2 horas",
+      gender: proof.display?.gender || "female",
     });
     setIsDialogOpen(true);
   };
@@ -266,6 +365,7 @@ const SocialProofPage = () => {
       rating: 5,
       avatarUrl: "",
       relativeTime: "Há 2 horas",
+      gender: "female",
     });
   };
 
@@ -406,6 +506,36 @@ const SocialProofPage = () => {
                       <option value="2">★★☆☆☆ (2 Estrelas)</option>
                       <option value="1">★☆☆☆☆ (1 Estrela)</option>
                     </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                      Gênero do Autor (Define avatar automático)
+                    </Label>
+                    <div className="flex gap-4 mt-1">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer font-normal">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="female"
+                          checked={formData.gender === "female"}
+                          onChange={() => handleGenderChange("female")}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        Feminino
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer font-normal">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="male"
+                          checked={formData.gender === "male"}
+                          onChange={() => handleGenderChange("male")}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        Masculino
+                      </label>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

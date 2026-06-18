@@ -278,32 +278,7 @@ const MinimalReviews = ({ socialProofs }: { socialProofs?: any[] }) => {
       }));
   }, [socialProofs]);
 
-  const finalReviews = reviews.length > 0 ? reviews : [
-    {
-      id: "fallback-1",
-      authorName: "Mariana Costa",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 2 horas",
-      message: "Excelente produto! Entrega super rápida e o atendimento foi sensacional. Com certeza voltarei a comprar."
-    },
-    {
-      id: "fallback-2",
-      authorName: "Carlos Eduardo",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 1 dia",
-      message: "Muito seguro e prático de comprar. Chegou tudo certinho, muito bem embalado."
-    },
-    {
-      id: "fallback-3",
-      authorName: "Camila Rodrigues",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 3 dias",
-      message: "Adorei a experiência! O produto é de altíssima qualidade. Recomendo muito."
-    }
-  ];
+  if (reviews.length === 0) return null;
 
   return (
     <div style={{ marginTop: '20px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #E5E7EB', padding: '20px', width: '100%', boxSizing: 'border-box' }}>
@@ -323,15 +298,15 @@ const MinimalReviews = ({ socialProofs }: { socialProofs?: any[] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {finalReviews.map((review, index) => (
+        {reviews.map((review, index) => (
           <div
             key={review.id}
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '6px',
-              borderBottom: index === finalReviews.length - 1 ? 'none' : '1px solid #F3F4F6',
-              paddingBottom: index === finalReviews.length - 1 ? '0' : '16px',
+              borderBottom: index === reviews.length - 1 ? 'none' : '1px solid #F3F4F6',
+              paddingBottom: index === reviews.length - 1 ? '0' : '16px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>

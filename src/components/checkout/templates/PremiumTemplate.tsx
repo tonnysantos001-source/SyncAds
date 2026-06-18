@@ -693,32 +693,7 @@ const PremiumReviews = ({ socialProofs }: { socialProofs?: any[] }) => {
       }));
   }, [socialProofs]);
 
-  const finalReviews = reviews.length > 0 ? reviews : [
-    {
-      id: "premium-1",
-      authorName: "Mariana Costa",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 2 horas",
-      message: "Excelente produto! Entrega super rápida e o atendimento foi sensacional. Com certeza voltarei a comprar."
-    },
-    {
-      id: "premium-2",
-      authorName: "Carlos Eduardo",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 1 dia",
-      message: "Muito seguro e prático de comprar. Chegou tudo certinho, muito bem embalado."
-    },
-    {
-      id: "premium-3",
-      authorName: "Camila Rodrigues",
-      rating: 5,
-      avatarUrl: "",
-      relativeTime: "há 3 dias",
-      message: "Adorei a experiência! O produto é de altíssima qualidade. Recomendo muito."
-    }
-  ];
+  if (reviews.length === 0) return null;
 
   return (
     <div className="mt-6 bg-[#FFFFFF] rounded-2xl border border-[#EDEDED] p-6 w-full shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
@@ -734,7 +709,7 @@ const PremiumReviews = ({ socialProofs }: { socialProofs?: any[] }) => {
       </div>
 
       <div className="space-y-4 divide-y divide-[#F5F5F5]">
-        {finalReviews.map((review, index) => (
+        {reviews.map((review, index) => (
           <div
             key={review.id}
             className={cn("flex flex-col gap-2 pt-4", index === 0 ? "pt-0" : "")}

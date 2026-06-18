@@ -1274,37 +1274,6 @@ const TikTokComments = ({ socialProofs }: { socialProofs?: any[] }) => {
 
   const initialReviews: TikTokCommentProps[] = useMemo(() => {
     const raw = socialProofs?.filter((p) => p.type === 'REVIEW') || [];
-    if (raw.length === 0) {
-      return [
-        {
-          id: "tiktok-1",
-          authorName: "Mariana Costa",
-          rating: 5,
-          avatarUrl: "",
-          relativeTime: "2h atrás",
-          message: "Gente, comprem sem medo! Chegou super rápido e o produto é perfeito, amei real 😍✨",
-          likes: 142,
-        },
-        {
-          id: "tiktok-2",
-          authorName: "Carlos Eduardo",
-          rating: 5,
-          avatarUrl: "",
-          relativeTime: "1d atrás",
-          message: "Chegou tudo certinho, vendedor super atencioso. Nota 10/10!!",
-          likes: 89,
-        },
-        {
-          id: "tiktok-3",
-          authorName: "Camila Rodrigues",
-          rating: 5,
-          avatarUrl: "",
-          relativeTime: "3d atrás",
-          message: "Melhor compra que fiz esse ano, super recomendo pra todo mundo!",
-          likes: 56,
-        }
-      ];
-    }
     return raw.map((p) => ({
       id: p.id,
       authorName: p.display?.authorName || "Cliente Anônimo",
@@ -1343,6 +1312,8 @@ const TikTokComments = ({ socialProofs }: { socialProofs?: any[] }) => {
       .replace(/[^a-z0-9]/g, "");
     return `@${clean || "cliente"}_${Math.floor(Math.random() * 90) + 10}`;
   };
+
+  if (reviewsList.length === 0) return null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-5 mt-6 w-full shadow-sm">
