@@ -158,7 +158,7 @@ const SocialProofPage = () => {
 
   useEffect(() => {
     loadSocialProofs();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     filterProofs();
@@ -175,12 +175,17 @@ const SocialProofPage = () => {
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
+      const mappedData = (data || []).map((p) => ({
+        ...p,
+        type: p.type === 'REVIEWS' ? 'REVIEW' : p.type === 'LIVE_VIEWS' ? 'VISITOR_COUNT' : p.type,
+      }));
+
+      if (mappedData.length === 0) {
         // Seed database with examples!
         const examples = [
           {
             userId: user.id,
-            type: "REVIEW",
+            type: "REVIEWS",
             message: "Gente, comprem sem medo! Chegou super rápido e o produto é perfeito, amei real 😍✨",
             displayDuration: 5,
             isActive: false,
@@ -194,7 +199,7 @@ const SocialProofPage = () => {
           },
           {
             userId: user.id,
-            type: "REVIEW",
+            type: "REVIEWS",
             message: "Chegou tudo certinho, vendedor super atencioso. Nota 10/10!!",
             displayDuration: 5,
             isActive: false,
@@ -208,7 +213,7 @@ const SocialProofPage = () => {
           },
           {
             userId: user.id,
-            type: "REVIEW",
+            type: "REVIEWS",
             message: "Melhor compra que fiz esse ano, super recomendo pra todo mundo!",
             displayDuration: 5,
             isActive: false,
@@ -237,15 +242,19 @@ const SocialProofPage = () => {
             .order("createdAt", { ascending: false });
           
           if (seededData) {
-            setSocialProofs(seededData);
-            setFilteredProofs(seededData);
+            const mappedSeeded = seededData.map((p) => ({
+              ...p,
+              type: p.type === 'REVIEWS' ? 'REVIEW' : p.type === 'LIVE_VIEWS' ? 'VISITOR_COUNT' : p.type,
+            }));
+            setSocialProofs(mappedSeeded);
+            setFilteredProofs(mappedSeeded);
             return;
           }
         }
       }
 
-      setSocialProofs(data || []);
-      setFilteredProofs(data || []);
+      setSocialProofs(mappedData);
+      setFilteredProofs(mappedData);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar",
@@ -279,10 +288,10 @@ const SocialProofPage = () => {
         avatarUrl: formData.avatarUrl || "",
         relativeTime: formData.relativeTime || "Compra recente",
         gender: formData.gender || "female",
-      } : null;
+      } : {};
 
       const submissionData = {
-        type: formData.type,
+        type: formData.type === 'REVIEW' ? 'REVIEWS' : formData.type === 'VISITOR_COUNT' ? 'LIVE_VIEWS' : formData.type,
         message: formData.message,
         displayDuration: formData.displayDuration,
         isActive: formData.isActive,

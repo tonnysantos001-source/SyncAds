@@ -254,7 +254,11 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           .eq("isActive", true);
         if (error) throw error;
         if (data) {
-          setSocialProofs(data);
+          const mapped = data.map((p) => ({
+            ...p,
+            type: p.type === 'REVIEWS' ? 'REVIEW' : p.type === 'LIVE_VIEWS' ? 'VISITOR_COUNT' : p.type,
+          }));
+          setSocialProofs(mapped);
         }
       } catch (err) {
         console.error("Erro ao carregar provas sociais do lojista:", err);

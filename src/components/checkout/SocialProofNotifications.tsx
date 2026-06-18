@@ -51,8 +51,12 @@ export function SocialProofNotifications({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setProofs(data);
-        console.log('✅ Provas sociais carregadas:', data.length);
+        const mapped = data.map((p) => ({
+          ...p,
+          type: p.type === 'REVIEWS' ? 'REVIEW' : p.type === 'LIVE_VIEWS' ? 'VISITOR_COUNT' : p.type,
+        }));
+        setProofs(mapped);
+        console.log('✅ Provas sociais carregadas:', mapped.length);
       }
     } catch (error) {
       console.error('Erro ao carregar provas sociais:', error);
