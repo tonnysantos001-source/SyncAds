@@ -102,7 +102,7 @@ const CheckoutCustomizePage: React.FC = () => {
   const switchTemplate = useCheckoutConfigStore((s) => s.switchTemplate);
   // ──────────────────────────────────────────────────────────────────────
 
-  const [expandedSections, setExpandedSections] = useState<string[]>(["CABECALHO"]);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [showPreview, setShowPreview] = useState(true);
   // customization: dados brutos do Supabase (legado) — mantido para compatibilidade de persistência
@@ -433,10 +433,7 @@ const CheckoutCustomizePage: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#070b13] text-white">
-      {/* Marcador de Versão para Debug */}
-      <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-2 py-1 rounded text-[10px] font-mono pointer-events-none">
-        {UI_VERSION}
-      </div>
+
 
       {/* Sidebar de Personalização — envolvida em ErrorBoundary local */}
       <ErrorBoundary>
