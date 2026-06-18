@@ -197,9 +197,11 @@ Implementamos e sincronizamos por completo os descontos automáticos baseados na
 ---
 
 ## Correções Adicionais - Hotfix do Preview de Templates (Customize)
-- **Problema:** A página de personalização de templates (`/checkout/customize`) exibia uma tela preta de erro com `ReferenceError: calculatePotentialCashback is not defined` ao tentar carregar o preview em tempo real de qualquer template (Minimalista, Estilo TikTok, Estilo Shopify Pay). Isso ocorria porque a função era chamada no render JSX mas sua definição estava ausente no arquivo do checkout público.
-- **Solução:** Implementamos a função `calculatePotentialCashback` síncrona dentro de `PublicCheckoutPage.tsx` para avaliar dinamicamente o retorno com base no total do carrinho (`finalTotalWithBumps`) e na regra de cashback ativa do banco (`activeCashbackRule`).
-- **Resultado:** O preview do customizador de templates agora renderiza e atualiza perfeitamente de forma reativa e sem travar.
+- **Problema 1 (Geral):** A página de personalização de templates (`/checkout/customize`) exibia uma tela preta de erro com `ReferenceError: calculatePotentialCashback is not defined` ao tentar carregar o preview em tempo real de qualquer template. Isso ocorria porque a função era chamada no render JSX mas sua definição estava ausente no arquivo do checkout público.
+  - **Solução:** Implementamos a função `calculatePotentialCashback` síncrona dentro de `PublicCheckoutPage.tsx` para avaliar dinamicamente o retorno com base no total do carrinho (`finalTotalWithBumps`) e na regra de cashback ativa do banco (`activeCashbackRule`).
+- **Problema 2 (TikTok):** O template estilo TikTok apresentava uma falha de tela vermelha de erro interna com `ReferenceError: useMemo is not defined` após a correção geral. Isso ocorria porque o arquivo utilizava a função `useMemo` na inicialização das Notice Bars dinâmicas mas ela não havia sido importada do React no topo do arquivo.
+  - **Solução:** Adicionamos `useMemo` ao import de React no arquivo [TikTokTemplate.tsx](file:///c:/Users/dinho/Documents/GitHub/SyncAds/src/components/checkout/templates/TikTokTemplate.tsx#L15).
+- **Resultado:** O preview do customizador de templates agora renderiza todos os modelos (incluindo o TikTok) e atualiza perfeitamente de forma reativa e sem travar.
 
 ---
 
