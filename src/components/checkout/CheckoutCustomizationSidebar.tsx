@@ -890,7 +890,7 @@ export const CheckoutCustomizationSidebar: React.FC<
   return (
     <div className="w-80 bg-[#070b13] border-r border-white/5 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar - Logo e Branding */}
-      <div className="px-4 py-4 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
+      <div className="px-4 pt-6 pb-16 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
         <div className="flex items-center gap-2 mb-3">
           <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-pink-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Sparkles className="h-4 w-4 text-white" />
