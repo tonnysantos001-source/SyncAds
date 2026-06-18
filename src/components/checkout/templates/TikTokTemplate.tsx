@@ -12,7 +12,7 @@
  * ✅ Botões Trocar/Apagar nas zonas de banner
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
