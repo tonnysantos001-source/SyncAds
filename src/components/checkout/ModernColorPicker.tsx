@@ -119,8 +119,8 @@ const ColorSwatch: React.FC<ColorSwatchProps> = ({
         className={cn(
           "relative w-10 h-10 rounded-lg shadow-md transition-all cursor-pointer overflow-hidden",
           isSelected
-            ? "ring-2 ring-violet-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900"
-            : "hover:shadow-lg",
+            ? "ring-2 ring-pink-500 ring-offset-2 ring-offset-[#0b0f19]"
+            : "hover:shadow-lg hover:scale-105",
         )}
         style={{ backgroundColor: color }}
       >
@@ -185,7 +185,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
   return (
     <div className={cn("space-y-2", className)}>
       {label && (
-        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+        <Label className="text-xs font-semibold text-gray-300">
           {label}
         </Label>
       )}
@@ -194,29 +194,29 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-start gap-3 h-11 px-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="w-full justify-start gap-3 h-11 px-3 bg-[#111827] border-white/5 hover:border-pink-500/20 hover:bg-[#111827] text-white hover:text-white transition-all duration-200 group"
           >
             <div
-              className="w-8 h-8 rounded-md border-2 border-gray-300 dark:border-gray-600 shadow-sm transition-transform hover:scale-110"
+              className="w-7 h-7 rounded-md border border-white/10 shadow-sm transition-transform group-hover:scale-110"
               style={{ backgroundColor: safeValue }}
             />
-            <span className="text-sm font-mono font-semibold flex-1 text-left">
+            <span className="text-sm font-mono font-semibold flex-1 text-left text-gray-200 group-hover:text-white">
               {safeValue.toUpperCase()}
             </span>
-            <Pipette className="h-4 w-4 text-gray-400" />
+            <Pipette className="h-4 w-4 text-gray-400 group-hover:text-pink-400 transition-colors" />
           </Button>
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-80 p-0 border-0 shadow-2xl"
+          className="w-80 p-0 border border-white/10 shadow-2xl rounded-xl overflow-hidden"
           align="start"
           sideOffset={8}
         >
-          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-lg overflow-hidden">
+          <div className="bg-[#0b0f19] rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Pipette className="h-4 w-4 text-violet-500" />
+            <div className="p-4 border-b border-white/5 bg-[#070b13]/80 backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Pipette className="h-4 w-4 text-pink-500 animate-pulse" />
                 Seletor de Cores
               </h3>
             </div>
@@ -237,20 +237,20 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-gray-500 dark:text-gray-400">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-gray-500">
                         #
                       </span>
                       <HexColorInput
                         color={safeValue}
                         onChange={handleColorSelect}
                         prefixed
-                        className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono font-semibold bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all"
+                        className="w-full pl-7 pr-3 py-2 border border-white/10 rounded-lg text-sm font-mono font-semibold bg-[#111827] text-white focus:ring-1 focus:ring-pink-500 focus:border-transparent outline-none transition-all placeholder:text-gray-600"
                         placeholder="000000"
                       />
                     </div>
                   </div>
                   <div
-                    className="w-12 h-10 rounded-lg border-2 border-gray-300 dark:border-gray-600 shadow-inner"
+                    className="w-12 h-10 rounded-lg border border-white/10 shadow-inner"
                     style={{ backgroundColor: safeValue }}
                   />
                 </div>
@@ -261,7 +261,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                   {/* Cores Recentes */}
                   {recentColors.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase mb-2">
                         Cores Recentes
                       </p>
                       <div className="grid grid-cols-8 gap-2">
@@ -282,7 +282,7 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
                     {Object.entries(MODERN_COLOR_PRESETS).map(
                       ([key, palette]) => (
                         <div key={key}>
-                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                          <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase mb-2">
                             {palette.name}
                           </p>
                           <div
@@ -313,9 +313,9 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
             </div>
 
             {/* Footer com dica */}
-            <div className="px-4 py-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+            <div className="px-4 py-3 bg-gradient-to-r from-blue-500/5 to-pink-500/5 border-t border-white/5">
+              <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />
                 Passe o mouse sobre as cores para ver o código
               </p>
             </div>

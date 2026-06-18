@@ -419,10 +419,11 @@ const CheckoutCustomizePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-850 dark:to-purple-900/40">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-violet-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
+      <div className="flex items-center justify-center h-screen bg-[#070b13] text-white">
+        <div className="text-center relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full blur-2xl opacity-20 animate-pulse" />
+          <Loader2 className="relative h-12 w-12 animate-spin text-pink-500 mx-auto mb-4" />
+          <p className="relative text-gray-450 text-sm font-semibold tracking-wide">
             Carregando personalização...
           </p>
         </div>
@@ -431,7 +432,7 @@ const CheckoutCustomizePage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-850 dark:to-purple-900/40">
+    <div className="flex h-screen overflow-hidden bg-[#070b13] text-white">
       {/* Marcador de Versão para Debug */}
       <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-2 py-1 rounded text-[10px] font-mono pointer-events-none">
         {UI_VERSION}
@@ -467,7 +468,7 @@ const CheckoutCustomizePage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-3 shadow-lg"
+          className="bg-[#0b0f19]/95 backdrop-blur-xl border-b border-white/5 px-6 py-3 shadow-2xl relative z-10"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -475,7 +476,7 @@ const CheckoutCustomizePage: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/checkout/gateways")}
-                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="text-gray-300 hover:text-white hover:bg-white/5 border border-white/5"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
@@ -486,7 +487,7 @@ const CheckoutCustomizePage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPreview(!showPreview)}
-                className="gap-2"
+                className="gap-2 border-white/5 bg-[#111827] text-gray-300 hover:bg-[#111827]/80 hover:text-white"
               >
                 {showPreview ? (
                   <>
@@ -503,18 +504,19 @@ const CheckoutCustomizePage: React.FC = () => {
 
               {/* Preview Mode Toggle */}
               {showPreview && (
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                <div className="flex items-center gap-1 bg-[#111827] border border-white/5 rounded-lg p-0.5">
                   <Button
                     size="sm"
                     variant={previewMode === "desktop" ? "default" : "ghost"}
                     onClick={() => setPreviewMode("desktop")}
                     className={cn(
-                      "gap-2",
-                      previewMode === "desktop" &&
-                        "bg-violet-500 hover:bg-violet-600",
+                      "gap-2 h-7 text-xs",
+                      previewMode === "desktop"
+                        ? "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white font-semibold shadow-md"
+                        : "text-gray-400 hover:text-white hover:bg-white/5",
                     )}
                   >
-                    <Monitor className="h-4 w-4" />
+                    <Monitor className="h-3.5 w-3.5" />
                     Desktop
                   </Button>
                   <Button
@@ -522,12 +524,13 @@ const CheckoutCustomizePage: React.FC = () => {
                     variant={previewMode === "mobile" ? "default" : "ghost"}
                     onClick={() => setPreviewMode("mobile")}
                     className={cn(
-                      "gap-2",
-                      previewMode === "mobile" &&
-                        "bg-violet-500 hover:bg-violet-600",
+                      "gap-2 h-7 text-xs",
+                      previewMode === "mobile"
+                        ? "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white font-semibold shadow-md"
+                        : "text-gray-400 hover:text-white hover:bg-white/5",
                     )}
                   >
-                    <Smartphone className="h-4 w-4" />
+                    <Smartphone className="h-3.5 w-3.5" />
                     Mobile
                   </Button>
                 </div>
@@ -541,7 +544,7 @@ const CheckoutCustomizePage: React.FC = () => {
                 }}
                 disabled={isActivating}
                 variant="outline"
-                className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 font-semibold transition-all duration-200"
+                className="gap-2 border-green-500/30 text-green-400 hover:text-green-300 bg-green-500/5 hover:bg-green-500/10 font-semibold transition-all duration-200"
               >
                 {isActivating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -555,7 +558,7 @@ const CheckoutCustomizePage: React.FC = () => {
               <Button
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 hover:from-blue-700 hover:via-indigo-700 hover:to-pink-700 text-white font-semibold shadow-[0_0_15px_rgba(236,72,153,0.3)] hover:shadow-[0_0_20px_rgba(236,72,153,0.45)] transition-all duration-200"
               >
                 {isSaving ? (
                   <>
@@ -582,24 +585,25 @@ const CheckoutCustomizePage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Preview Area - Background unificado azul marinho (#0f172a) */}
+        {/* Preview Area - Background unificado azul marinho (#070b13) */}
         {showPreview ? (
-          <div className={cn("flex-1 overflow-y-auto overflow-x-hidden bg-[#0f172a]", previewMode === "mobile" ? "p-4 pt-12" : "p-8 pt-16")}>
+          <div className={cn("flex-1 overflow-y-auto overflow-x-hidden bg-[#070b13]", previewMode === "mobile" ? "p-4 pt-12" : "p-8 pt-16")}>
              {/* Global style to hide the scrollbar track and make it look premium */}
              <style dangerouslySetInnerHTML={{ __html: `
                 ::-webkit-scrollbar {
                   width: 8px;
                 }
-                ::-webkit-scrollbar-track {
-                  background: #0f172a;
-                }
-                ::-webkit-scrollbar-thumb {
-                  background: #1e293b;
-                  border-radius: 4px;
-                }
-                ::-webkit-scrollbar-thumb:hover {
-                  background: #334155;
-                }
+                 ::-webkit-scrollbar-track {
+                   background: #070b13;
+                 }
+                 ::-webkit-scrollbar-thumb {
+                   background: #111827;
+                   border-radius: 4px;
+                   border: 1px solid rgba(255, 255, 255, 0.05);
+                 }
+                 ::-webkit-scrollbar-thumb:hover {
+                   background: #1e293b;
+                 }
              `}} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -760,17 +764,17 @@ const CheckoutCustomizePage: React.FC = () => {
         animate={{ opacity: 1, x: 0 }}
         className="fixed bottom-6 right-6 z-50"
       >
-        <Card className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl px-4 py-3">
+        <Card className="bg-[#0b0f19]/90 backdrop-blur-xl border border-white/5 shadow-2xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 "w-2 h-2 rounded-full",
                 hasChanges
-                  ? "bg-amber-500 animate-pulse"
-                  : "bg-green-500 animate-pulse",
+                  ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] animate-pulse"
+                  : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse",
               )}
             />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-200">
               {hasChanges ? "Alterações pendentes" : "Tudo salvo"}
             </span>
           </div>

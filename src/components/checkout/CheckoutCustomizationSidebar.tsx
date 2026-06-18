@@ -124,7 +124,7 @@ export const CheckoutCustomizationSidebar: React.FC<
       case "MODELOS":
         return (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               Escolha um modelo para o seu checkout. Cada modelo tem layout,
               cores e funcionalidades únicas para maximizar suas conversões.
             </p>
@@ -139,17 +139,17 @@ export const CheckoutCustomizationSidebar: React.FC<
                     type="button"
                     onClick={() => handleSelectTemplate(tpl.slug, tpl.version)}
                     className={cn(
-                      "w-full text-left p-3 rounded-xl border-2 transition-all duration-200 group",
+                      "w-full text-left p-3 rounded-xl border transition-all duration-200 group relative overflow-hidden",
                       isActive
-                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
-                        : "border-gray-200 dark:border-gray-700 hover:border-violet-300 bg-white dark:bg-gray-800"
+                        ? "border-pink-500/80 bg-pink-500/5 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+                        : "border-white/5 hover:border-pink-500/25 bg-[#111827] hover:bg-[#111827]/85"
                     )}
                   >
                     <div className="flex items-center gap-3">
                       {/* Color swatch */}
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-sm"
-                        style={{ backgroundColor: `${tpl.color}15`, border: `2px solid ${tpl.color}40` }}
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-inner"
+                        style={{ backgroundColor: `${tpl.color}20`, border: `1px solid ${tpl.color}35` }}
                       >
                         {tpl.emoji}
                       </div>
@@ -157,14 +157,14 @@ export const CheckoutCustomizationSidebar: React.FC<
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors">
                             {tpl.name}
                           </span>
                           {isActive && (
-                            <CheckCircle2 className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-pink-500 flex-shrink-0 animate-scale-in" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-400 group-hover:text-gray-300 truncate transition-colors">
                           {tpl.description}
                         </p>
                       </div>
@@ -173,8 +173,8 @@ export const CheckoutCustomizationSidebar: React.FC<
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {isLive && (
                           <div className="relative flex-shrink-0" title="Ativo em produção">
-                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                            <div className="absolute inset-0 rounded-full bg-green-400 opacity-50 scale-150" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                            <div className="absolute inset-0 rounded-full bg-green-400 opacity-50 scale-150 animate-ping" />
                           </div>
                         )}
                       </div>
@@ -183,8 +183,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     {/* Preview strip — barra de cor */}
                     {isActive && (
                       <div
-                        className="mt-2 h-1 rounded-full"
-                        style={{ backgroundColor: tpl.color }}
+                        className="mt-2.5 h-1 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-pink-500 animate-fade-in"
                       />
                     )}
                   </button>
@@ -194,7 +193,7 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
-      // ── SEÇÕES ──────────────────────────────────────────────────
+      // ── CABECALHO ──────────────────────────────────────────────────────
       case "CABECALHO":
         return (
           <div className="space-y-4">
@@ -208,15 +207,15 @@ export const CheckoutCustomizationSidebar: React.FC<
               maxSizeMB={2}
             />
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              <Label className="text-xs font-semibold text-gray-300">
                 Alinhamento do logo
               </Label>
               <Select
                 value={config.header.logoAlign}
                 onValueChange={(v) => update({ header: { logoAlign: v as 'left'|'center'|'right' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="left">Esquerda</SelectItem>
                   <SelectItem value="center">Centro</SelectItem>
                   <SelectItem value="right">Direita</SelectItem>
@@ -224,17 +223,17 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome da loja</Label>
+              <Label className="text-xs font-semibold text-gray-300">Nome da loja</Label>
               <Input
-                className="mt-2"
+                className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
                 value={config.header.storeName}
                 onChange={(e) => update({ header: { storeName: e.target.value } })}
                 placeholder="Minha Loja"
               />
-              <p className="text-[10px] text-gray-500 mt-1">Exibido quando não há logo cadastrada</p>
+              <p className="text-[10px] text-gray-400 mt-1">Exibido quando não há logo cadastrada</p>
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">
                 Exibir badge Pagamento Seguro
               </Label>
               <Switch
@@ -265,11 +264,12 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
+      // ── BARRA DE AVISOS ────────────────────────────────────────────────
       case "BARRA_DE_AVISOS":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">
                 Ativar barra de avisos
               </Label>
               <Switch
@@ -278,12 +278,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               />
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mensagem</Label>
+              <Label className="text-xs font-semibold text-gray-300">Mensagem</Label>
               <Textarea
                 value={config.noticeBar.message}
                 onChange={(e) => update({ noticeBar: { message: e.target.value } })}
                 placeholder="🎉 FRETE GRÁTIS para todo o Brasil em compras acima de R$ 199!"
-                className="mt-2 resize-none"
+                className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600 resize-none"
                 rows={3}
               />
             </div>
@@ -298,13 +298,13 @@ export const CheckoutCustomizationSidebar: React.FC<
               onChange={(c) => update({ noticeBar: { textColor: c } })}
             />
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Estilo</Label>
+              <Label className="text-xs font-semibold text-gray-300">Estilo</Label>
               <Select
                 value={config.noticeBar.style}
                 onValueChange={(v) => update({ noticeBar: { style: v as 'normal'|'highlight'|'urgent' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="highlight">Destaque</SelectItem>
                   <SelectItem value="urgent">Urgência</SelectItem>
@@ -312,34 +312,34 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Posição</Label>
+              <Label className="text-xs font-semibold text-gray-300">Posição</Label>
               <Select
                 value={config.noticeBar.position}
                 onValueChange={(v) => update({ noticeBar: { position: v as 'top'|'bottom' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="top">Topo</SelectItem>
                   <SelectItem value="bottom">Rodapé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Animação</Label>
+              <Label className="text-xs font-semibold text-gray-300">Animação</Label>
               <Select
                 value={config.noticeBar.animation}
                 onValueChange={(v) => update({ noticeBar: { animation: v as 'slide'|'fade'|'scale'|'none' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="slide">Deslizar</SelectItem>
                   <SelectItem value="fade">Fade In/Out</SelectItem>
                   <SelectItem value="scale">Escala</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Permitir fechar a barra</Label>
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">Permitir fechar a barra</Label>
               <Switch
                 checked={config.noticeBar.closeable}
                 onCheckedChange={(v) => update({ noticeBar: { closeable: v } })}
@@ -348,11 +348,12 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
+      // ── BANNER ─────────────────────────────────────────────────────────
       case "BANNER":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">
                 Ativar banner no checkout
               </Label>
               <Switch
@@ -381,17 +382,18 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
+      // ── CARRINHO ───────────────────────────────────────────────────────
       case "CARRINHO":
         return (
           <div className="space-y-4">
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Exibir carrinho</Label>
+              <Label className="text-xs font-semibold text-gray-300">Exibir carrinho</Label>
               <Select
                 value={config.cart.display}
                 onValueChange={(v) => update({ cart: { display: v as 'open'|'closed'|'drawer' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="open">Aberto</SelectItem>
                   <SelectItem value="closed">Pré-fechado</SelectItem>
                   <SelectItem value="drawer">Drawer</SelectItem>
@@ -413,204 +415,220 @@ export const CheckoutCustomizationSidebar: React.FC<
               value={config.cart.quantityTextColor}
               onChange={(c) => update({ cart: { quantityTextColor: c } })}
             />
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mostrar ícone do carrinho sempre</Label>
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">Mostrar ícone do carrinho sempre</Label>
               <Switch checked={config.cart.showIcon} onCheckedChange={(v) => update({ cart: { showIcon: v } })} />
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Permitir editar cupom de desconto</Label>
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">Permitir editar cupom de desconto</Label>
               <Switch checked={config.cart.couponEnabled} onCheckedChange={(v) => update({ cart: { couponEnabled: v } })} />
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mostrar lembrete do carrinho</Label>
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">Mostrar lembrete do carrinho</Label>
               <Switch checked={config.cart.showCartReminder} onCheckedChange={(v) => update({ cart: { showCartReminder: v } })} />
             </div>
           </div>
         );
 
+      // ── CONTEUDO ───────────────────────────────────────────────────────
       case "CONTEUDO":
         return (
           <div className="space-y-4">
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Visual do botão</Label>
+              <Label className="text-xs font-semibold text-gray-300">Visual do botão</Label>
               <Select
                 value={config.buttons.nextStepStyle}
                 onValueChange={(v) => update({ buttons: { nextStepStyle: v as 'rounded'|'rectangular'|'oval' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="rectangular">Retangular</SelectItem>
                   <SelectItem value="rounded">Arredondado</SelectItem>
                   <SelectItem value="oval">Oval</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Botão Primário (Próximo)</p>
+            <div className="p-3.5 bg-[#111827]/40 border border-white/5 rounded-xl space-y-3 shadow-inner">
+              <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase">Botão Primário (Próximo)</p>
               <ModernColorPicker label="Cor do texto" value={config.buttons.primaryText} onChange={(c) => update({ buttons: { primaryText: c } })} />
               <ModernColorPicker label="Cor de fundo" value={config.buttons.primaryBg} onChange={(c) => update({ buttons: { primaryBg: c } })} />
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito hover</Label>
+              <div className="flex items-center justify-between pt-1">
+                <Label className="text-xs font-semibold text-gray-300">Efeito hover</Label>
                 <Switch checked={config.buttons.primaryHover} onCheckedChange={(v) => update({ buttons: { primaryHover: v } })} />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito fluir</Label>
+                <Label className="text-xs font-semibold text-gray-300">Efeito fluir</Label>
                 <Switch checked={config.buttons.primaryFlow} onCheckedChange={(v) => update({ buttons: { primaryFlow: v } })} />
               </div>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Botão Checkout (Finalizar)</p>
+            <div className="p-3.5 bg-[#111827]/40 border border-white/5 rounded-xl space-y-3 shadow-inner">
+              <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase">Botão Checkout (Finalizar)</p>
               <ModernColorPicker label="Cor do texto" value={config.buttons.checkoutText} onChange={(c) => update({ buttons: { checkoutText: c } })} />
               <ModernColorPicker label="Cor de fundo" value={config.buttons.checkoutBg} onChange={(c) => update({ buttons: { checkoutBg: c } })} />
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito hover</Label>
+              <div className="flex items-center justify-between pt-1">
+                <Label className="text-xs font-semibold text-gray-300">Efeito hover</Label>
                 <Switch checked={config.buttons.checkoutHover} onCheckedChange={(v) => update({ buttons: { checkoutHover: v } })} />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Efeito pulsante</Label>
+                <Label className="text-xs font-semibold text-gray-300">Efeito pulsante</Label>
                 <Switch checked={config.buttons.pulse} onCheckedChange={(v) => update({ buttons: { pulse: v } })} />
               </div>
             </div>
           </div>
         );
 
+      // ── RODAPE ─────────────────────────────────────────────────────────
       case "RODAPE":
         return (
           <div className="space-y-4">
             <ModernColorPicker label="Cor de fundo" value={config.footer.bgColor} onChange={(c) => update({ footer: { bgColor: c } })} />
             <ModernColorPicker label="Cor do texto" value={config.footer.textColor} onChange={(c) => update({ footer: { textColor: c } })} />
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Informações a exibir</p>
+              <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase">Informações a exibir</p>
 
               {/* Nome da loja */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Nome da loja</Label>
+              <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <Label className="text-xs font-semibold text-gray-300">Nome da loja</Label>
                 <Switch checked={config.footer.showStoreName} onCheckedChange={(v) => update({ footer: { showStoreName: v } })} />
               </div>
 
               {/* Formas de pagamento */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Formas de pagamento</Label>
+              <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <Label className="text-xs font-semibold text-gray-300">Formas de pagamento</Label>
                 <Switch checked={config.footer.showPaymentMethods} onCheckedChange={(v) => update({ footer: { showPaymentMethods: v } })} />
               </div>
 
               {/* CNPJ/CPF */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">CNPJ/CPF</Label>
-                <Switch checked={config.footer.showCnpj} onCheckedChange={(v) => update({ footer: { showCnpj: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">CNPJ/CPF</Label>
+                  <Switch checked={config.footer.showCnpj} onCheckedChange={(v) => update({ footer: { showCnpj: v } })} />
+                </div>
+                {config.footer.showCnpj && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    value={config.footer.cnpjValue || ''}
+                    onChange={(e) => update({ footer: { cnpjValue: e.target.value } })}
+                    placeholder="00.000.000/0001-00"
+                  />
+                )}
               </div>
-              {config.footer.showCnpj && (
-                <Input
-                  className="mt-1 text-xs"
-                  value={config.footer.cnpjValue || ''}
-                  onChange={(e) => update({ footer: { cnpjValue: e.target.value } })}
-                  placeholder="00.000.000/0001-00"
-                />
-              )}
 
               {/* E-mail de contato */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">E-mail de contato</Label>
-                <Switch checked={config.footer.showContactEmail} onCheckedChange={(v) => update({ footer: { showContactEmail: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">E-mail de contato</Label>
+                  <Switch checked={config.footer.showContactEmail} onCheckedChange={(v) => update({ footer: { showContactEmail: v } })} />
+                </div>
+                {config.footer.showContactEmail && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    type="email"
+                    value={config.footer.contactEmail || ''}
+                    onChange={(e) => update({ footer: { contactEmail: e.target.value } })}
+                    placeholder="contato@sualooja.com.br"
+                  />
+                )}
               </div>
-              {config.footer.showContactEmail && (
-                <Input
-                  className="mt-1 text-xs"
-                  type="email"
-                  value={config.footer.contactEmail || ''}
-                  onChange={(e) => update({ footer: { contactEmail: e.target.value } })}
-                  placeholder="contato@sualooja.com.br"
-                />
-              )}
 
               {/* Endereço */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Endereço</Label>
-                <Switch checked={config.footer.showAddress} onCheckedChange={(v) => update({ footer: { showAddress: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">Endereço</Label>
+                  <Switch checked={config.footer.showAddress} onCheckedChange={(v) => update({ footer: { showAddress: v } })} />
+                </div>
+                {config.footer.showAddress && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    value={config.footer.address || ''}
+                    onChange={(e) => update({ footer: { address: e.target.value } })}
+                    placeholder="Rua Exemplo, 123 — São Paulo, SP"
+                  />
+                )}
               </div>
-              {config.footer.showAddress && (
-                <Input
-                  className="mt-1 text-xs"
-                  value={config.footer.address || ''}
-                  onChange={(e) => update({ footer: { address: e.target.value } })}
-                  placeholder="Rua Exemplo, 123 — São Paulo, SP"
-                />
-              )}
 
               {/* Telefone */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Telefone</Label>
-                <Switch checked={config.footer.showPhone} onCheckedChange={(v) => update({ footer: { showPhone: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">Telefone</Label>
+                  <Switch checked={config.footer.showPhone} onCheckedChange={(v) => update({ footer: { showPhone: v } })} />
+                </div>
+                {config.footer.showPhone && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    type="tel"
+                    value={config.footer.phone || ''}
+                    onChange={(e) => update({ footer: { phone: e.target.value } })}
+                    placeholder="(11) 99999-9999"
+                  />
+                )}
               </div>
-              {config.footer.showPhone && (
-                <Input
-                  className="mt-1 text-xs"
-                  type="tel"
-                  value={config.footer.phone || ''}
-                  onChange={(e) => update({ footer: { phone: e.target.value } })}
-                  placeholder="(11) 99999-9999"
-                />
-              )}
 
               {/* Política de privacidade */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Política de privacidade</Label>
-                <Switch checked={config.footer.showPrivacyPolicy} onCheckedChange={(v) => update({ footer: { showPrivacyPolicy: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">Política de privacidade</Label>
+                  <Switch checked={config.footer.showPrivacyPolicy} onCheckedChange={(v) => update({ footer: { showPrivacyPolicy: v } })} />
+                </div>
+                {config.footer.showPrivacyPolicy && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    type="url"
+                    value={config.footer.privacyPolicyUrl || ''}
+                    onChange={(e) => update({ footer: { privacyPolicyUrl: e.target.value } })}
+                    placeholder="https://sualooja.com/privacidade"
+                  />
+                )}
               </div>
-              {config.footer.showPrivacyPolicy && (
-                <Input
-                  className="mt-1 text-xs"
-                  type="url"
-                  value={config.footer.privacyPolicyUrl || ''}
-                  onChange={(e) => update({ footer: { privacyPolicyUrl: e.target.value } })}
-                  placeholder="https://sualooja.com/privacidade"
-                />
-              )}
 
               {/* Termos e condições */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Termos e condições</Label>
-                <Switch checked={config.footer.showTermsConditions} onCheckedChange={(v) => update({ footer: { showTermsConditions: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">Termos e condições</Label>
+                  <Switch checked={config.footer.showTermsConditions} onCheckedChange={(v) => update({ footer: { showTermsConditions: v } })} />
+                </div>
+                {config.footer.showTermsConditions && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    type="url"
+                    value={config.footer.termsConditionsUrl || ''}
+                    onChange={(e) => update({ footer: { termsConditionsUrl: e.target.value } })}
+                    placeholder="https://sualooja.com/termos"
+                  />
+                )}
               </div>
-              {config.footer.showTermsConditions && (
-                <Input
-                  className="mt-1 text-xs"
-                  type="url"
-                  value={config.footer.termsConditionsUrl || ''}
-                  onChange={(e) => update({ footer: { termsConditionsUrl: e.target.value } })}
-                  placeholder="https://sualooja.com/termos"
-                />
-              )}
 
               {/* Trocas e devoluções */}
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Trocas e devoluções</Label>
-                <Switch checked={config.footer.showReturns} onCheckedChange={(v) => update({ footer: { showReturns: v } })} />
+              <div className="flex flex-col gap-2 p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-300">Trocas e devoluções</Label>
+                  <Switch checked={config.footer.showReturns} onCheckedChange={(v) => update({ footer: { showReturns: v } })} />
+                </div>
+                {config.footer.showReturns && (
+                  <Input
+                    className="mt-1 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                    type="url"
+                    value={config.footer.returnsUrl || ''}
+                    onChange={(e) => update({ footer: { returnsUrl: e.target.value } })}
+                    placeholder="https://sualooja.com/trocas"
+                  />
+                )}
               </div>
-              {config.footer.showReturns && (
-                <Input
-                  className="mt-1 text-xs"
-                  type="url"
-                  value={config.footer.returnsUrl || ''}
-                  onChange={(e) => update({ footer: { returnsUrl: e.target.value } })}
-                  placeholder="https://sualooja.com/trocas"
-                />
-              )}
             </div>
           </div>
         );
 
-
+      // ── ESCASSEZ ───────────────────────────────────────────────────────
       case "ESCASSEZ":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-center justify-between p-3.5 bg-red-500/5 border border-red-500/20 rounded-xl">
               <div>
-                <Label className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-red-500" />
+                <Label className="text-sm font-bold text-red-400 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-red-400" />
                   Ativar Gatilho de Escassez
                 </Label>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Countdown timer para criar urgência</p>
+                <p className="text-xs text-gray-400 mt-0.5">Countdown timer para criar urgência</p>
               </div>
               <Switch
                 checked={config.scarcity.enabled}
@@ -618,9 +636,9 @@ export const CheckoutCustomizationSidebar: React.FC<
               />
             </div>
             {config.scarcity.enabled && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
-                  <Zap className="h-3 w-3 mt-0.5 flex-shrink-0" />
+              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                <p className="text-xs text-amber-300 flex items-start gap-2">
+                  <Zap className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-400 animate-pulse" />
                   <span><strong>Dica:</strong> Timers de 10-15 minutos têm maior taxa de conversão.</span>
                 </p>
               </div>
@@ -628,11 +646,11 @@ export const CheckoutCustomizationSidebar: React.FC<
             <ModernColorPicker label="Cor da barra" value={config.scarcity.bgColor} onChange={(c) => update({ scarcity: { bgColor: c } })} />
             <ModernColorPicker label="Cor do texto" value={config.scarcity.textColor} onChange={(c) => update({ scarcity: { textColor: c } })} />
             <div>
-              <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+              <Label className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
                 Duração (minutos)
               </Label>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">Quanto tempo o usuário tem para finalizar a compra</p>
+              <p className="text-[10px] text-gray-400 mb-2">Quanto tempo o usuário tem para finalizar a compra</p>
               <Input
                 type="number"
                 value={config.scarcity.durationMinutes}
@@ -640,28 +658,30 @@ export const CheckoutCustomizationSidebar: React.FC<
                 placeholder="15"
                 min="1"
                 max="120"
+                className="bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
               />
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Mensagem customizada</Label>
+              <Label className="text-xs font-semibold text-gray-300">Mensagem customizada</Label>
               <Textarea
                 value={config.scarcity.customMessage || ''}
                 onChange={(e) => update({ scarcity: { customMessage: e.target.value || null } })}
                 placeholder="Oferta termina em: (automático se vazio)"
-                className="mt-2 resize-none"
+                className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600 resize-none"
                 rows={2}
               />
             </div>
           </div>
         );
 
+      // ── ORDER BUMP ─────────────────────────────────────────────────────
       case "ORDER_BUMP":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-violet-50 dark:bg-violet-950/20 rounded-lg border border-violet-200 dark:border-violet-800">
+            <div className="flex items-center justify-between p-3.5 bg-indigo-500/5 border border-indigo-500/20 rounded-xl">
               <div>
-                <Label className="text-sm font-semibold text-gray-900 dark:text-white">Ativar Order Bump</Label>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Exibir ofertas adicionais no checkout</p>
+                <Label className="text-sm font-bold text-indigo-400">Ativar Order Bump</Label>
+                <p className="text-xs text-gray-400 mt-0.5">Exibir ofertas adicionais no checkout</p>
               </div>
               <Switch checked={config.orderBump.enabled} onCheckedChange={(v) => update({ orderBump: { enabled: v } })} />
             </div>
@@ -674,11 +694,12 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
+      // ── BARRA PIX ──────────────────────────────────────────────────────
       case "BARRA_PIX":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+              <Label className="text-xs font-semibold text-gray-300">
                 Ativar barra do PIX
               </Label>
               <Switch
@@ -688,25 +709,25 @@ export const CheckoutCustomizationSidebar: React.FC<
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Minutos</Label>
+                <Label className="text-xs font-semibold text-gray-300">Minutos</Label>
                 <Input
                   type="number"
                   min="0"
                   max="59"
                   value={config.pixBar?.durationMinutes ?? 20}
                   onChange={(e) => update({ pixBar: { durationMinutes: parseInt(e.target.value) || 0 } })}
-                  className="mt-2"
+                  className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
                 />
               </div>
               <div>
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Segundos</Label>
+                <Label className="text-xs font-semibold text-gray-300">Segundos</Label>
                 <Input
                   type="number"
                   min="0"
                   max="59"
                   value={config.pixBar?.durationSeconds ?? 0}
                   onChange={(e) => update({ pixBar: { durationSeconds: parseInt(e.target.value) || 0 } })}
-                  className="mt-2"
+                  className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
                 />
               </div>
             </div>
@@ -731,26 +752,26 @@ export const CheckoutCustomizationSidebar: React.FC<
               onChange={(c) => update({ pixBar: { iconColor: c } })}
             />
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Estilo da letra</Label>
+              <Label className="text-xs font-semibold text-gray-300">Estilo da letra</Label>
               <Select
                 value={config.pixBar?.fontStyle ?? "normal"}
                 onValueChange={(v) => update({ pixBar: { fontStyle: v as 'normal'|'italic' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="italic">Itálico</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tamanho da letra</Label>
+              <Label className="text-xs font-semibold text-gray-300">Tamanho da letra</Label>
               <Select
                 value={config.pixBar?.fontSize ?? "text-xs"}
                 onValueChange={(v) => update({ pixBar: { fontSize: v } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="text-[10px]">Muito Pequeno (10px)</SelectItem>
                   <SelectItem value="text-xs">Pequeno (12px)</SelectItem>
                   <SelectItem value="text-sm">Médio (14px)</SelectItem>
@@ -761,17 +782,18 @@ export const CheckoutCustomizationSidebar: React.FC<
           </div>
         );
 
+      // ── CONFIGURACOES ──────────────────────────────────────────────────
       case "CONFIGURACOES":
         return (
           <div className="space-y-4">
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Etapas de navegação</Label>
+              <Label className="text-xs font-semibold text-gray-300">Etapas de navegação</Label>
               <Select
                 value={String(config.form.navigationSteps)}
                 onValueChange={(v) => update({ form: { navigationSteps: parseInt(v) as 1|2|3 } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="1">1 etapa</SelectItem>
                   <SelectItem value="2">2 etapas</SelectItem>
                   <SelectItem value="3">3 etapas</SelectItem>
@@ -779,13 +801,13 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Fonte do checkout</Label>
+              <Label className="text-xs font-semibold text-gray-300">Fonte do checkout</Label>
               <Select
                 value={config.typography.fontFamily}
                 onValueChange={(v) => update({ typography: { fontFamily: v } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="'Inter', system-ui, sans-serif">Inter</SelectItem>
                   <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
                   <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
@@ -796,13 +818,13 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Idioma</Label>
+              <Label className="text-xs font-semibold text-gray-300">Idioma</Label>
               <Select
                 value={config.form.language}
                 onValueChange={(v) => update({ form: { language: v as 'pt'|'en'|'es' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="pt">Português (BR)</SelectItem>
                   <SelectItem value="en">English (US)</SelectItem>
                   <SelectItem value="es">Español</SelectItem>
@@ -810,13 +832,13 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Moeda</Label>
+              <Label className="text-xs font-semibold text-gray-300">Moeda</Label>
               <Select
                 value={config.form.currency}
                 onValueChange={(v) => update({ form: { currency: v as 'BRL'|'USD'|'EUR' } })}
               >
-                <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="mt-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200">
                   <SelectItem value="BRL">Real (R$)</SelectItem>
                   <SelectItem value="USD">Dólar ($)</SelectItem>
                   <SelectItem value="EUR">Euro (€)</SelectItem>
@@ -824,22 +846,22 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Opções extras</p>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar CPF apenas no pagamento</Label>
+              <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase">Opções extras</p>
+              <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <Label className="text-xs text-gray-300 font-semibold">Solicitar CPF apenas no pagamento</Label>
                 <Switch checked={config.form.requestCpfOnlyAtPayment} onCheckedChange={(v) => update({ form: { requestCpfOnlyAtPayment: v } })} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar data de nascimento</Label>
+              <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <Label className="text-xs text-gray-300 font-semibold">Solicitar data de nascimento</Label>
                 <Switch checked={config.form.requestBirthDate} onCheckedChange={(v) => update({ form: { requestBirthDate: v } })} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-gray-700 dark:text-gray-300">Solicitar gênero</Label>
+              <div className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                <Label className="text-xs text-gray-300 font-semibold">Solicitar gênero</Label>
                 <Switch checked={config.form.requestGender} onCheckedChange={(v) => update({ form: { requestGender: v } })} />
               </div>
             </div>
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Métodos de pagamento aceitos</p>
+              <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase">Métodos de pagamento aceitos</p>
               {(['PIX', 'CREDIT_CARD', 'BOLETO'] as const).map((method) => {
                 const labels: Record<string, string> = {
                   PIX: 'PIX',
@@ -848,8 +870,8 @@ export const CheckoutCustomizationSidebar: React.FC<
                 };
                 const isEnabled = config.form.paymentMethods.includes(method);
                 return (
-                  <div key={method} className="flex items-center justify-between">
-                    <Label className="text-xs text-gray-700 dark:text-gray-300">{labels[method]}</Label>
+                  <div key={method} className="flex items-center justify-between p-2.5 bg-[#111827]/40 border border-white/5 rounded-xl">
+                    <Label className="text-xs text-gray-300 font-semibold">{labels[method]}</Label>
                     <Switch
                       checked={isEnabled}
                       onCheckedChange={(v) => {
@@ -879,28 +901,31 @@ export const CheckoutCustomizationSidebar: React.FC<
   };
 
   return (
-    <div className="w-80 bg-gradient-to-b from-white/95 to-gray-50/95 dark:from-gray-900/95 dark:to-gray-800/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 flex flex-col overflow-hidden shadow-2xl">
+    <div className="w-80 bg-[#070b13] border-r border-white/5 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar - Logo e Branding */}
-      <div className="px-4 py-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30">
+      <div className="px-4 py-4 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-md">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-pink-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              SyncAds AI
+            <h1 className="text-base font-black text-white flex items-center gap-1.5">
+              SyncAds
+              <span className="text-[9px] tracking-wider uppercase font-bold px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30">
+                AI
+              </span>
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-2 pl-1">
-          <div className="p-1 rounded bg-violet-500/20">
-            <Palette className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+        <div className="flex items-center gap-2.5 pl-0.5">
+          <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <Palette className="h-3.5 w-3.5 text-blue-400" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-900 dark:text-white">
+            <p className="text-xs font-semibold text-gray-200">
               Personalização
             </p>
-            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+            <p className="text-[10px] text-gray-400">
               Configure o visual do checkout
             </p>
           </div>
@@ -916,18 +941,18 @@ export const CheckoutCustomizationSidebar: React.FC<
           return (
             <motion.div
               key={section.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="border-b border-gray-200/50 dark:border-gray-700/50"
+              transition={{ duration: 0.25, delay: index * 0.03 }}
+              className="border-b border-white/5"
             >
               <button
                 onClick={() => onToggleSection(section.id)}
                 className={cn(
                   "w-full px-4 py-3.5 flex items-center justify-between text-sm font-medium transition-all duration-200 group",
                   isExpanded
-                    ? "bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-700 dark:text-violet-300"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
+                    ? "bg-gradient-to-r from-blue-500/5 to-pink-500/5 border-l-[3px] border-pink-500 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-white/5",
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -935,25 +960,25 @@ export const CheckoutCustomizationSidebar: React.FC<
                     className={cn(
                       "p-1.5 rounded-lg transition-all duration-200",
                       isExpanded
-                        ? "bg-violet-500/20"
-                        : "bg-gray-200/50 dark:bg-gray-700/50 group-hover:bg-violet-500/10",
+                        ? "bg-pink-500/20"
+                        : "bg-white/5 group-hover:bg-white/10",
                     )}
                   >
                     <Icon
                       className={cn(
                         "h-4 w-4 transition-colors",
                         isExpanded
-                          ? "text-violet-600 dark:text-violet-400"
-                          : "text-gray-600 dark:text-gray-400",
+                          ? "text-pink-400"
+                          : "text-gray-400 group-hover:text-gray-200",
                       )}
                     />
                   </div>
                   <span>{section.label}</span>
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <ChevronUp className="h-4 w-4 text-pink-400" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown className="h-4 w-4 text-gray-500 group-hover:text-gray-350" />
                 )}
               </button>
 
@@ -966,7 +991,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-4 bg-white/50 dark:bg-gray-900/50">
+                    <div className="p-4 bg-[#070b13]/40 border-t border-white/5">
                       {renderSectionContent(section.id)}
                     </div>
                   </motion.div>
@@ -978,9 +1003,9 @@ export const CheckoutCustomizationSidebar: React.FC<
       </div>
 
       {/* Footer Info */}
-      <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-violet-500/5 to-purple-500/5">
-        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+      <div className="p-4 border-t border-white/5 bg-[#0b0f19]/20">
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
           <span>Alterações automáticas no preview</span>
         </div>
       </div>
