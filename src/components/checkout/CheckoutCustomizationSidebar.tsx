@@ -111,8 +111,6 @@ export const CheckoutCustomizationSidebar: React.FC<
     },
   ];
 
-  const currentTemplateSlug = config.templateSlug || 'minimal';
-
   const handleSelectTemplate = (slug: string, version: number) => {
     update({ templateSlug: slug });
     onSelectTemplate?.(slug, version);
@@ -123,13 +121,13 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── MODELOS ────────────────────────────────────────────────────────
       case "MODELOS":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <p className="text-[10px] text-gray-400 leading-normal">
               Escolha um modelo para o seu checkout. Cada modelo tem layout,
               cores e funcionalidades únicas para maximizar suas conversões.
             </p>
 
-            <div className="grid grid-cols-1 gap-1">
+            <div className="grid grid-cols-1 gap-1.5">
               {AVAILABLE_TEMPLATES.map((tpl) => {
                 const isActive = currentTemplateSlug === tpl.slug;
                 const isLive = (activeTemplateSlug || currentTemplateSlug) === tpl.slug;
@@ -139,7 +137,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     type="button"
                     onClick={() => handleSelectTemplate(tpl.slug, tpl.version)}
                     className={cn(
-                      "w-full text-left p-1.5 rounded-lg border transition-all duration-200 group relative overflow-hidden",
+                      "w-full text-left p-2 rounded-lg border transition-all duration-200 group relative overflow-hidden",
                       isActive
                         ? "border-pink-500/80 bg-pink-500/5 shadow-[0_0_10px_rgba(236,72,153,0.1)]"
                         : "border-white/5 hover:border-pink-500/20 bg-[#111827] hover:bg-[#111827]/85"
@@ -148,7 +146,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     <div className="flex items-center gap-2">
                       {/* Color swatch compact */}
                       <div
-                        className="w-5.5 h-5.5 rounded flex items-center justify-center text-xs flex-shrink-0 shadow-inner"
+                        className="w-7 h-7 rounded flex items-center justify-center text-sm flex-shrink-0 shadow-inner"
                         style={{ backgroundColor: `${tpl.color}15`, border: `1px solid ${tpl.color}25` }}
                       >
                         {tpl.emoji}
@@ -156,24 +154,24 @@ export const CheckoutCustomizationSidebar: React.FC<
 
                       {/* Info compact */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10.5px] font-semibold text-gray-250 group-hover:text-white transition-colors">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-gray-250 group-hover:text-white transition-colors">
                             {tpl.name}
                           </span>
                           {isActive && (
-                            <CheckCircle2 className="w-2.5 h-2.5 text-pink-500 flex-shrink-0 animate-scale-in" />
+                            <CheckCircle2 className="w-3 h-3 text-pink-500 flex-shrink-0 animate-scale-in" />
                           )}
                         </div>
-                        <p className="text-[9px] text-gray-400 group-hover:text-gray-350 truncate transition-colors">
+                        <p className="text-[10px] text-gray-400 group-hover:text-gray-350 truncate transition-colors">
                           {tpl.description}
                         </p>
                       </div>
 
                       {/* Direita: bolinha verde compacta */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         {isLive && (
                           <div className="relative flex-shrink-0" title="Ativo em produção">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                             <div className="absolute inset-0 rounded-full bg-green-400 opacity-50 scale-150 animate-ping" />
                           </div>
                         )}
@@ -183,7 +181,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     {/* Preview strip compact */}
                     {isActive && (
                       <div
-                        className="mt-1 h-0.5 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-pink-500 animate-fade-in"
+                        className="mt-1.5 h-0.5 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-pink-500 animate-fade-in"
                       />
                     )}
                   </button>
@@ -196,7 +194,7 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── CABECALHO ──────────────────────────────────────────────────────
       case "CABECALHO":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <ImageUploadField
               label="Logo"
               description="Tamanho recomendado: 300px x 80px"
@@ -207,14 +205,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               maxSizeMB={2}
             />
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">
+              <Label className="text-[11px] font-semibold text-gray-300">
                 Alinhamento do logo
               </Label>
               <Select
                 value={config.header.logoAlign}
                 onValueChange={(v) => update({ header: { logoAlign: v as 'left'|'center'|'right' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="left">Esquerda</SelectItem>
                   <SelectItem value="center">Centro</SelectItem>
@@ -223,21 +221,21 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Nome da loja</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Nome da loja</Label>
               <Input
-                className="mt-1 h-7 text-[10.5px] py-0.5 px-2 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
+                className="mt-1.5 h-8 text-xs py-1 px-2.5 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600"
                 value={config.header.storeName}
                 onChange={(e) => update({ header: { storeName: e.target.value } })}
                 placeholder="Minha Loja"
               />
-              <p className="text-[8.5px] text-gray-500 mt-0.5">Exibido quando não há logo cadastrada</p>
+              <p className="text-[9px] text-gray-500 mt-0.5">Exibido quando não há logo cadastrada</p>
             </div>
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">
                 Exibir badge Pagamento Seguro
               </Label>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.header.showSecurityBadge}
                 onCheckedChange={(v) => update({ header: { showSecurityBadge: v } })}
               />
@@ -268,25 +266,25 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── BARRA DE AVISOS ────────────────────────────────────────────────
       case "BARRA_DE_AVISOS":
         return (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">
                 Ativar barra de avisos
               </Label>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.noticeBar.enabled}
                 onCheckedChange={(v) => update({ noticeBar: { enabled: v } })}
               />
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Mensagem</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Mensagem</Label>
               <Textarea
                 value={config.noticeBar.message}
                 onChange={(e) => update({ noticeBar: { message: e.target.value } })}
                 placeholder="🎉 FRETE GRÁTIS!"
-                className="mt-1 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600 resize-none text-[10.5px] p-1.5"
-                rows={1.5 as any}
+                className="mt-1.5 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-600 resize-none text-xs p-2"
+                rows={2}
               />
             </div>
             <ModernColorPicker
@@ -300,12 +298,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               onChange={(c) => update({ noticeBar: { textColor: c } })}
             />
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Estilo</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Estilo</Label>
               <Select
                 value={config.noticeBar.style}
                 onValueChange={(v) => update({ noticeBar: { style: v as 'normal'|'highlight'|'urgent' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="highlight">Destaque</SelectItem>
@@ -314,12 +312,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Posição</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Posição</Label>
               <Select
                 value={config.noticeBar.position}
                 onValueChange={(v) => update({ noticeBar: { position: v as 'top'|'bottom' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-205 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="top">Topo</SelectItem>
                   <SelectItem value="bottom">Rodapé</SelectItem>
@@ -327,12 +325,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Animação</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Animação</Label>
               <Select
                 value={config.noticeBar.animation}
                 onValueChange={(v) => update({ noticeBar: { animation: v as 'slide'|'fade'|'scale'|'none' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="slide">Deslizar</SelectItem>
                   <SelectItem value="fade">Fade In/Out</SelectItem>
@@ -340,10 +338,10 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">Permitir fechar a barra</Label>
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">Permitir fechar a barra</Label>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.noticeBar.closeable}
                 onCheckedChange={(v) => update({ noticeBar: { closeable: v } })}
               />
@@ -354,13 +352,13 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── BANNER ─────────────────────────────────────────────────────────
       case "BANNER":
         return (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">
                 Ativar banner no checkout
               </Label>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.banner.enabled}
                 onCheckedChange={(v) => update({ banner: { enabled: v } })}
               />
@@ -389,14 +387,14 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── CARRINHO ───────────────────────────────────────────────────────
       case "CARRINHO":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Exibir carrinho</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Exibir carrinho</Label>
               <Select
                 value={config.cart.display}
                 onValueChange={(v) => update({ cart: { display: v as 'open'|'closed'|'drawer' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="open">Aberto</SelectItem>
                   <SelectItem value="closed">Pré-fechado</SelectItem>
@@ -419,17 +417,17 @@ export const CheckoutCustomizationSidebar: React.FC<
               value={config.cart.quantityTextColor}
               onChange={(c) => update({ cart: { quantityTextColor: c } })}
             />
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">Mostrar ícone do carrinho</Label>
-              <Switch className="scale-75" checked={config.cart.showIcon} onCheckedChange={(v) => update({ cart: { showIcon: v } })} />
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">Mostrar ícone do carrinho</Label>
+              <Switch className="scale-90" checked={config.cart.showIcon} onCheckedChange={(v) => update({ cart: { showIcon: v } })} />
             </div>
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">Permitir cupom de desconto</Label>
-              <Switch className="scale-75" checked={config.cart.couponEnabled} onCheckedChange={(v) => update({ cart: { couponEnabled: v } })} />
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">Permitir cupom de desconto</Label>
+              <Switch className="scale-90" checked={config.cart.couponEnabled} onCheckedChange={(v) => update({ cart: { couponEnabled: v } })} />
             </div>
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">Lembrete do carrinho</Label>
-              <Switch className="scale-75" checked={config.cart.showCartReminder} onCheckedChange={(v) => update({ cart: { showCartReminder: v } })} />
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">Lembrete do carrinho</Label>
+              <Switch className="scale-90" checked={config.cart.showCartReminder} onCheckedChange={(v) => update({ cart: { showCartReminder: v } })} />
             </div>
           </div>
         );
@@ -437,14 +435,14 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── CONTEUDO ───────────────────────────────────────────────────────
       case "CONTEUDO":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Visual do botão</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Visual do botão</Label>
               <Select
                 value={config.buttons.nextStepStyle}
                 onValueChange={(v) => update({ buttons: { nextStepStyle: v as 'rounded'|'rectangular'|'oval' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="rectangular">Retangular</SelectItem>
                   <SelectItem value="rounded">Arredondado</SelectItem>
@@ -452,30 +450,30 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-            <div className="p-2 bg-[#111827]/30 border border-white/5 rounded-lg space-y-1.5 shadow-inner">
-              <p className="text-[9px] font-bold text-pink-400/90 tracking-wide uppercase">Botão Primário (Próximo)</p>
+            <div className="p-2.5 bg-[#111827]/30 border border-white/5 rounded-lg space-y-2 shadow-inner">
+              <p className="text-[10px] font-bold text-pink-400/90 tracking-wide uppercase">Botão Primário (Próximo)</p>
               <ModernColorPicker label="Cor do texto" value={config.buttons.primaryText} onChange={(c) => update({ buttons: { primaryText: c } })} />
               <ModernColorPicker label="Cor de fundo" value={config.buttons.primaryBg} onChange={(c) => update({ buttons: { primaryBg: c } })} />
               <div className="flex items-center justify-between pt-0.5">
-                <Label className="text-[10px] font-semibold text-gray-305">Efeito hover</Label>
-                <Switch className="scale-75" checked={config.buttons.primaryHover} onCheckedChange={(v) => update({ buttons: { primaryHover: v } })} />
+                <Label className="text-[11px] font-semibold text-gray-305">Efeito hover</Label>
+                <Switch className="scale-90" checked={config.buttons.primaryHover} onCheckedChange={(v) => update({ buttons: { primaryHover: v } })} />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] font-semibold text-gray-305">Efeito fluir</Label>
-                <Switch className="scale-75" checked={config.buttons.primaryFlow} onCheckedChange={(v) => update({ buttons: { primaryFlow: v } })} />
+                <Label className="text-[11px] font-semibold text-gray-305">Efeito fluir</Label>
+                <Switch className="scale-90" checked={config.buttons.primaryFlow} onCheckedChange={(v) => update({ buttons: { primaryFlow: v } })} />
               </div>
             </div>
-            <div className="p-2 bg-[#111827]/30 border border-white/5 rounded-lg space-y-1.5 shadow-inner">
-              <p className="text-[9px] font-bold text-pink-400/90 tracking-wide uppercase">Botão Finalizar</p>
+            <div className="p-2.5 bg-[#111827]/30 border border-white/5 rounded-lg space-y-2 shadow-inner">
+              <p className="text-[10px] font-bold text-pink-400/90 tracking-wide uppercase">Botão Finalizar</p>
               <ModernColorPicker label="Cor do texto" value={config.buttons.checkoutText} onChange={(c) => update({ buttons: { checkoutText: c } })} />
               <ModernColorPicker label="Cor de fundo" value={config.buttons.checkoutBg} onChange={(c) => update({ buttons: { checkoutBg: c } })} />
               <div className="flex items-center justify-between pt-0.5">
-                <Label className="text-[10px] font-semibold text-gray-305">Efeito hover</Label>
-                <Switch className="scale-75" checked={config.buttons.checkoutHover} onCheckedChange={(v) => update({ buttons: { checkoutHover: v } })} />
+                <Label className="text-[11px] font-semibold text-gray-305">Efeito hover</Label>
+                <Switch className="scale-90" checked={config.buttons.checkoutHover} onCheckedChange={(v) => update({ buttons: { checkoutHover: v } })} />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] font-semibold text-gray-305">Efeito pulsante</Label>
-                <Switch className="scale-75" checked={config.buttons.pulse} onCheckedChange={(v) => update({ buttons: { pulse: v } })} />
+                <Label className="text-[11px] font-semibold text-gray-305">Efeito pulsante</Label>
+                <Switch className="scale-90" checked={config.buttons.pulse} onCheckedChange={(v) => update({ buttons: { pulse: v } })} />
               </div>
             </div>
           </div>
@@ -484,33 +482,33 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── RODAPE ─────────────────────────────────────────────────────────
       case "RODAPE":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <ModernColorPicker label="Cor de fundo" value={config.footer.bgColor} onChange={(c) => update({ footer: { bgColor: c } })} />
             <ModernColorPicker label="Cor do texto" value={config.footer.textColor} onChange={(c) => update({ footer: { textColor: c } })} />
-            <div className="space-y-1.5 pt-0.5">
-              <p className="text-[9px] font-bold text-pink-400/90 tracking-wide uppercase">Informações a exibir</p>
+            <div className="space-y-2.5 pt-1">
+              <p className="text-[10px] font-bold text-pink-400/90 tracking-wide uppercase">Informações a exibir</p>
 
               {/* Nome da loja */}
-              <div className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                <Label className="text-[10px] font-semibold text-gray-300">Nome da loja</Label>
-                <Switch className="scale-75" checked={config.footer.showStoreName} onCheckedChange={(v) => update({ footer: { showStoreName: v } })} />
+              <div className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                <Label className="text-[11px] font-semibold text-gray-300">Nome da loja</Label>
+                <Switch className="scale-90" checked={config.footer.showStoreName} onCheckedChange={(v) => update({ footer: { showStoreName: v } })} />
               </div>
 
               {/* Formas de pagamento */}
-              <div className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                <Label className="text-[10px] font-semibold text-gray-300">Formas de pagamento</Label>
-                <Switch className="scale-75" checked={config.footer.showPaymentMethods} onCheckedChange={(v) => update({ footer: { showPaymentMethods: v } })} />
+              <div className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                <Label className="text-[11px] font-semibold text-gray-300">Formas de pagamento</Label>
+                <Switch className="scale-90" checked={config.footer.showPaymentMethods} onCheckedChange={(v) => update({ footer: { showPaymentMethods: v } })} />
               </div>
 
               {/* CNPJ/CPF */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">CNPJ/CPF</Label>
-                  <Switch className="scale-75" checked={config.footer.showCnpj} onCheckedChange={(v) => update({ footer: { showCnpj: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">CNPJ/CPF</Label>
+                  <Switch className="scale-90" checked={config.footer.showCnpj} onCheckedChange={(v) => update({ footer: { showCnpj: v } })} />
                 </div>
                 {config.footer.showCnpj && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-650"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     value={config.footer.cnpjValue || ''}
                     onChange={(e) => update({ footer: { cnpjValue: e.target.value } })}
                     placeholder="00.000.000/0001-00"
@@ -519,14 +517,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               </div>
 
               {/* E-mail de contato */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">E-mail de contato</Label>
-                  <Switch className="scale-75" checked={config.footer.showContactEmail} onCheckedChange={(v) => update({ footer: { showContactEmail: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">E-mail de contato</Label>
+                  <Switch className="scale-90" checked={config.footer.showContactEmail} onCheckedChange={(v) => update({ footer: { showContactEmail: v } })} />
                 </div>
                 {config.footer.showContactEmail && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     type="email"
                     value={config.footer.contactEmail || ''}
                     onChange={(e) => update({ footer: { contactEmail: e.target.value } })}
@@ -536,14 +534,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               </div>
 
               {/* Endereço */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">Endereço</Label>
-                  <Switch className="scale-75" checked={config.footer.showAddress} onCheckedChange={(v) => update({ footer: { showAddress: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">Endereço</Label>
+                  <Switch className="scale-90" checked={config.footer.showAddress} onCheckedChange={(v) => update({ footer: { showAddress: v } })} />
                 </div>
                 {config.footer.showAddress && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     value={config.footer.address || ''}
                     onChange={(e) => update({ footer: { address: e.target.value } })}
                     placeholder="Rua Exemplo, 123"
@@ -552,14 +550,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               </div>
 
               {/* Telefone */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">Telefone</Label>
-                  <Switch className="scale-75" checked={config.footer.showPhone} onCheckedChange={(v) => update({ footer: { showPhone: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">Telefone</Label>
+                  <Switch className="scale-90" checked={config.footer.showPhone} onCheckedChange={(v) => update({ footer: { showPhone: v } })} />
                 </div>
                 {config.footer.showPhone && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     type="tel"
                     value={config.footer.phone || ''}
                     onChange={(e) => update({ footer: { phone: e.target.value } })}
@@ -569,14 +567,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               </div>
 
               {/* Política de privacidade */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">Privacidade</Label>
-                  <Switch className="scale-75" checked={config.footer.showPrivacyPolicy} onCheckedChange={(v) => update({ footer: { showPrivacyPolicy: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">Privacidade</Label>
+                  <Switch className="scale-90" checked={config.footer.showPrivacyPolicy} onCheckedChange={(v) => update({ footer: { showPrivacyPolicy: v } })} />
                 </div>
                 {config.footer.showPrivacyPolicy && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     type="url"
                     value={config.footer.privacyPolicyUrl || ''}
                     onChange={(e) => update({ footer: { privacyPolicyUrl: e.target.value } })}
@@ -586,14 +584,14 @@ export const CheckoutCustomizationSidebar: React.FC<
               </div>
 
               {/* Termos e condições */}
-              <div className="flex flex-col gap-1 p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
+              <div className="flex flex-col gap-1.5 p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold text-gray-300">Termos</Label>
-                  <Switch className="scale-75" checked={config.footer.showTermsConditions} onCheckedChange={(v) => update({ footer: { showTermsConditions: v } })} />
+                  <Label className="text-[11px] font-semibold text-gray-300">Termos</Label>
+                  <Switch className="scale-90" checked={config.footer.showTermsConditions} onCheckedChange={(v) => update({ footer: { showTermsConditions: v } })} />
                 </div>
                 {config.footer.showTermsConditions && (
                   <Input
-                    className="mt-0.5 h-6.5 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                    className="mt-1 h-7 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                     type="url"
                     value={config.footer.termsConditionsUrl || ''}
                     onChange={(e) => update({ footer: { termsConditionsUrl: e.target.value } })}
@@ -608,25 +606,25 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── ESCASSEZ ───────────────────────────────────────────────────────
       case "ESCASSEZ":
         return (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-1.5 bg-red-500/5 border border-red-500/20 rounded-lg">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2.5 bg-red-500/5 border border-red-500/20 rounded-lg">
               <div>
-                <Label className="text-[11px] font-bold text-red-400 flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-red-400" />
+                <Label className="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-red-400" />
                   Gatilho de Escassez
                 </Label>
-                <p className="text-[9px] text-gray-400 mt-0.5">Countdown timer ativo</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Countdown timer ativo</p>
               </div>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.scarcity.enabled}
                 onCheckedChange={(v) => update({ scarcity: { enabled: v } })}
               />
             </div>
             {config.scarcity.enabled && (
-              <div className="p-1.5 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                <p className="text-[9px] text-amber-300 flex items-start gap-1">
-                  <Zap className="h-2.5 w-2.5 mt-0.5 flex-shrink-0 text-amber-400 animate-pulse" />
+              <div className="p-2 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                <p className="text-[10px] text-amber-300 flex items-start gap-1.5">
+                  <Zap className="h-3 w-3 mt-0.5 flex-shrink-0 text-amber-400 animate-pulse" />
                   <span>Use de 10 a 15 minutos para melhor resultado.</span>
                 </p>
               </div>
@@ -634,8 +632,8 @@ export const CheckoutCustomizationSidebar: React.FC<
             <ModernColorPicker label="Cor da barra" value={config.scarcity.bgColor} onChange={(c) => update({ scarcity: { bgColor: c } })} />
             <ModernColorPicker label="Cor do texto" value={config.scarcity.textColor} onChange={(c) => update({ scarcity: { textColor: c } })} />
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300 flex items-center gap-1">
-                <Clock className="h-2.5 w-2.5" />
+              <Label className="text-[11px] font-semibold text-gray-300 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
                 Duração (minutos)
               </Label>
               <Input
@@ -645,17 +643,17 @@ export const CheckoutCustomizationSidebar: React.FC<
                 placeholder="15"
                 min="1"
                 max="120"
-                className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
               />
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Mensagem customizada</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Mensagem customizada</Label>
               <Textarea
                 value={config.scarcity.customMessage || ''}
                 onChange={(e) => update({ scarcity: { customMessage: e.target.value || null } })}
                 placeholder="Oferta termina em: (automático se vazio)"
-                className="mt-1 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655 resize-none text-[10.5px] p-1.5"
-                rows={1.5 as any}
+                className="mt-1.5 bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655 resize-none text-xs p-2"
+                rows={2}
               />
             </div>
           </div>
@@ -664,13 +662,13 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── ORDER BUMP ─────────────────────────────────────────────────────
       case "ORDER_BUMP":
         return (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-1.5 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2.5 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
               <div>
-                <Label className="text-[11px] font-bold text-indigo-400">Ativar Order Bump</Label>
-                <p className="text-[9px] text-gray-400 mt-0.5">Exibir ofertas adicionais</p>
+                <Label className="text-xs font-bold text-indigo-400">Ativar Order Bump</Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Exibir ofertas adicionais</p>
               </div>
-              <Switch className="scale-75" checked={config.orderBump.enabled} onCheckedChange={(v) => update({ orderBump: { enabled: v } })} />
+              <Switch className="scale-90" checked={config.orderBump.enabled} onCheckedChange={(v) => update({ orderBump: { enabled: v } })} />
             </div>
             <ModernColorPicker label="Cor do texto" value={config.orderBump.textColor} onChange={(c) => update({ orderBump: { textColor: c } })} />
             <ModernColorPicker label="Cor de fundo" value={config.orderBump.bgColor} onChange={(c) => update({ orderBump: { bgColor: c } })} />
@@ -684,38 +682,38 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── BARRA PIX ──────────────────────────────────────────────────────
       case "BARRA_PIX":
         return (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-1.5 bg-[#111827]/40 border border-white/5 rounded-lg">
-              <Label className="text-[10px] font-semibold text-gray-300">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-2 bg-[#111827]/40 border border-white/5 rounded-lg">
+              <Label className="text-[11px] font-semibold text-gray-300">
                 Ativar barra do PIX
               </Label>
               <Switch
-                className="scale-75"
+                className="scale-90"
                 checked={config.pixBar?.enabled ?? true}
                 onCheckedChange={(v) => update({ pixBar: { enabled: v } })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[10px] font-semibold text-gray-300">Minutos</Label>
+                <Label className="text-[11px] font-semibold text-gray-300">Minutos</Label>
                 <Input
                   type="number"
                   min="0"
                   max="59"
                   value={config.pixBar?.durationMinutes ?? 20}
                   onChange={(e) => update({ pixBar: { durationMinutes: parseInt(e.target.value) || 0 } })}
-                  className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                  className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                 />
               </div>
               <div>
-                <Label className="text-[10px] font-semibold text-gray-300">Segundos</Label>
+                <Label className="text-[11px] font-semibold text-gray-300">Segundos</Label>
                 <Input
                   type="number"
                   min="0"
                   max="59"
                   value={config.pixBar?.durationSeconds ?? 0}
                   onChange={(e) => update({ pixBar: { durationSeconds: parseInt(e.target.value) || 0 } })}
-                  className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
+                  className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus-visible:ring-pink-500/50 focus-visible:ring-offset-0 placeholder:text-gray-655"
                 />
               </div>
             </div>
@@ -740,12 +738,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               onChange={(c) => update({ pixBar: { iconColor: c } })}
             />
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Estilo da letra</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Estilo da letra</Label>
               <Select
                 value={config.pixBar?.fontStyle ?? "normal"}
                 onValueChange={(v) => update({ pixBar: { fontStyle: v as 'normal'|'italic' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="italic">Itálico</SelectItem>
@@ -753,12 +751,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Tamanho da letra</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Tamanho da letra</Label>
               <Select
                 value={config.pixBar?.fontSize ?? "text-xs"}
                 onValueChange={(v) => update({ pixBar: { fontSize: v } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="text-[10px]">Muito Pequeno (10px)</SelectItem>
                   <SelectItem value="text-xs">Pequeno (12px)</SelectItem>
@@ -773,14 +771,14 @@ export const CheckoutCustomizationSidebar: React.FC<
       // ── CONFIGURACOES ──────────────────────────────────────────────────
       case "CONFIGURACOES":
         return (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Etapas de navegação</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Etapas de navegação</Label>
               <Select
                 value={String(config.form.navigationSteps)}
                 onValueChange={(v) => update({ form: { navigationSteps: parseInt(v) as 1|2|3 } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="1">1 etapa</SelectItem>
                   <SelectItem value="2">2 etapas</SelectItem>
@@ -789,12 +787,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Fonte do checkout</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Fonte do checkout</Label>
               <Select
                 value={config.typography.fontFamily}
                 onValueChange={(v) => update({ typography: { fontFamily: v } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="'Inter', system-ui, sans-serif">Inter</SelectItem>
                   <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
@@ -806,12 +804,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Idioma</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Idioma</Label>
               <Select
                 value={config.form.language}
                 onValueChange={(v) => update({ form: { language: v as 'pt'|'en'|'es' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="pt">Português (BR)</SelectItem>
                   <SelectItem value="en">English (US)</SelectItem>
@@ -820,12 +818,12 @@ export const CheckoutCustomizationSidebar: React.FC<
               </Select>
             </div>
             <div>
-              <Label className="text-[10px] font-semibold text-gray-300">Moeda</Label>
+              <Label className="text-[11px] font-semibold text-gray-300">Moeda</Label>
               <Select
                 value={config.form.currency}
                 onValueChange={(v) => update({ form: { currency: v as 'BRL'|'USD'|'EUR' } })}
               >
-                <SelectTrigger className="mt-1 h-7 text-[10.5px] bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8 text-xs bg-[#111827] border-white/5 hover:border-white/10 text-gray-200 focus:ring-pink-500/50 focus:ring-offset-0"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0b0f19] border-white/10 text-gray-200 text-xs">
                   <SelectItem value="BRL">Real (R$)</SelectItem>
                   <SelectItem value="USD">Dólar ($)</SelectItem>
@@ -833,23 +831,23 @@ export const CheckoutCustomizationSidebar: React.FC<
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5 pt-0.5">
-              <p className="text-[9px] font-bold text-pink-400/90 tracking-wide uppercase">Opções extras</p>
-              <div className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                <Label className="text-[10px] text-gray-300 font-semibold">CPF apenas no pagamento</Label>
-                <Switch className="scale-75" checked={config.form.requestCpfOnlyAtPayment} onCheckedChange={(v) => update({ form: { requestCpfOnlyAtPayment: v } })} />
+            <div className="space-y-2 pt-1">
+              <p className="text-[10px] font-bold text-pink-400/90 tracking-wide uppercase">Opções extras</p>
+              <div className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                <Label className="text-[11px] text-gray-300 font-semibold">CPF apenas no pagamento</Label>
+                <Switch className="scale-90" checked={config.form.requestCpfOnlyAtPayment} onCheckedChange={(v) => update({ form: { requestCpfOnlyAtPayment: v } })} />
               </div>
-              <div className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                <Label className="text-[10px] text-gray-300 font-semibold">Solicitar data de nascimento</Label>
-                <Switch className="scale-75" checked={config.form.requestBirthDate} onCheckedChange={(v) => update({ form: { requestBirthDate: v } })} />
+              <div className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                <Label className="text-[11px] text-gray-300 font-semibold">Solicitar data de nascimento</Label>
+                <Switch className="scale-90" checked={config.form.requestBirthDate} onCheckedChange={(v) => update({ form: { requestBirthDate: v } })} />
               </div>
-              <div className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                <Label className="text-[10px] text-gray-300 font-semibold">Solicitar gênero</Label>
-                <Switch className="scale-75" checked={config.form.requestGender} onCheckedChange={(v) => update({ form: { requestGender: v } })} />
+              <div className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                <Label className="text-[11px] text-gray-300 font-semibold">Solicitar gênero</Label>
+                <Switch className="scale-90" checked={config.form.requestGender} onCheckedChange={(v) => update({ form: { requestGender: v } })} />
               </div>
             </div>
-            <div className="space-y-1.5 pt-0.5">
-              <p className="text-[9px] font-bold text-pink-400/90 tracking-wide uppercase">Métodos aceitos</p>
+            <div className="space-y-2 pt-1">
+              <p className="text-[10px] font-bold text-pink-400/90 tracking-wide uppercase">Métodos aceitos</p>
               {(['PIX', 'CREDIT_CARD', 'BOLETO'] as const).map((method) => {
                 const labels: Record<string, string> = {
                   PIX: 'PIX',
@@ -858,10 +856,10 @@ export const CheckoutCustomizationSidebar: React.FC<
                 };
                 const isEnabled = config.form.paymentMethods.includes(method);
                 return (
-                  <div key={method} className="flex items-center justify-between p-1.5 bg-[#111827]/30 border border-white/5 rounded-lg">
-                    <Label className="text-[10px] text-gray-300 font-semibold">{labels[method]}</Label>
+                  <div key={method} className="flex items-center justify-between p-2 bg-[#111827]/30 border border-white/5 rounded-lg">
+                    <Label className="text-[11px] text-gray-305 font-semibold">{labels[method]}</Label>
                     <Switch
-                      className="scale-75"
+                      className="scale-90"
                       checked={isEnabled}
                       onCheckedChange={(v) => {
                         const current = config.form.paymentMethods;
@@ -892,29 +890,29 @@ export const CheckoutCustomizationSidebar: React.FC<
   return (
     <div className="w-80 bg-[#070b13] border-r border-white/5 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar - Logo e Branding */}
-      <div className="px-3.5 py-2.5 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <div className="p-1 rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-pink-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-            <Sparkles className="h-3.5 w-3.5 text-white" />
+      <div className="px-4 py-4 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-pink-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-black text-white flex items-center gap-1">
+            <h1 className="text-base font-black text-white flex items-center gap-1.5">
               SyncAds
-              <span className="text-[8px] tracking-wider uppercase font-bold px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30">
+              <span className="text-[9px] tracking-wider uppercase font-bold px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30">
                 AI
               </span>
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 pl-0.5">
-          <div className="p-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <Palette className="h-3 w-3 text-blue-400" />
+        <div className="flex items-center gap-2.5 pl-0.5">
+          <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <Palette className="h-3.5 w-3.5 text-blue-400" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-gray-200">
+            <p className="text-xs font-semibold text-gray-200">
               Personalização
             </p>
-            <p className="text-[9px] text-gray-400">
+            <p className="text-[10px] text-gray-400">
               Configure o visual do checkout
             </p>
           </div>
@@ -938,16 +936,16 @@ export const CheckoutCustomizationSidebar: React.FC<
               <button
                 onClick={() => onToggleSection(section.id)}
                 className={cn(
-                  "w-full px-3 py-2 flex items-center justify-between text-xs font-semibold transition-all duration-200 group",
+                  "w-full px-4 py-3.5 flex items-center justify-between text-sm font-medium transition-all duration-200 group",
                   isExpanded
                     ? "bg-gradient-to-r from-blue-500/5 to-pink-500/5 border-l-[3px] border-pink-500 text-white"
                     : "text-gray-400 hover:text-white hover:bg-white/5",
                 )}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div
                     className={cn(
-                      "p-1 rounded-lg transition-all duration-200",
+                      "p-1.5 rounded-lg transition-all duration-200",
                       isExpanded
                         ? "bg-pink-500/20"
                         : "bg-white/5 group-hover:bg-white/10",
@@ -955,7 +953,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                   >
                     <Icon
                       className={cn(
-                        "h-3.5 w-3.5 transition-colors",
+                        "h-4 w-4 transition-colors",
                         isExpanded
                           ? "text-pink-400"
                           : "text-gray-400 group-hover:text-gray-200",
@@ -965,9 +963,9 @@ export const CheckoutCustomizationSidebar: React.FC<
                   <span>{section.label}</span>
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="h-3.5 w-3.5 text-pink-400" />
+                  <ChevronUp className="h-4 w-4 text-pink-400" />
                 ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-gray-500 group-hover:text-gray-350" />
+                  <ChevronDown className="h-4 w-4 text-gray-500 group-hover:text-gray-350" />
                 )}
               </button>
 
@@ -980,7 +978,7 @@ export const CheckoutCustomizationSidebar: React.FC<
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-2.5 bg-[#070b13]/40 border-t border-white/5">
+                    <div className="p-4 bg-[#070b13]/40 border-t border-white/5">
                       {renderSectionContent(section.id)}
                     </div>
                   </motion.div>
@@ -992,9 +990,9 @@ export const CheckoutCustomizationSidebar: React.FC<
       </div>
 
       {/* Footer Info */}
-      <div className="p-2.5 border-t border-white/5 bg-[#0b0f19]/20">
-        <div className="flex items-center gap-2 text-[10px] text-gray-400">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
+      <div className="p-4 border-t border-white/5 bg-[#0b0f19]/20">
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
           <span>Alterações automáticas no preview</span>
         </div>
       </div>
