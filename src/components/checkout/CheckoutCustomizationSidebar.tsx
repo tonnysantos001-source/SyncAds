@@ -890,8 +890,8 @@ export const CheckoutCustomizationSidebar: React.FC<
   return (
     <div className="w-80 bg-[#070b13] border-r border-white/5 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar - Logo e Branding */}
-      <div className="px-4 pt-6 pb-16 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="px-4 py-4 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
+        <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-pink-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
@@ -902,19 +902,6 @@ export const CheckoutCustomizationSidebar: React.FC<
                 AI
               </span>
             </h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2.5 pl-0.5">
-          <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <Palette className="h-3.5 w-3.5 text-blue-400" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-200">
-              Personalização
-            </p>
-            <p className="text-[10px] text-gray-400">
-              Configure o visual do checkout
-            </p>
           </div>
         </div>
       </div>
