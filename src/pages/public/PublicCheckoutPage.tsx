@@ -1147,6 +1147,29 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
   const finalTotalWithBumps = Math.max(0, totalBeforeCashback - cashbackDiscount);
 
+  const calculatePotentialCashback = () => {
+    if (!activeCashbackRule) return 0;
+    
+    const orderValue = finalTotalWithBumps;
+    
+    if (activeCashbackRule.minOrderValue && orderValue < activeCashbackRule.minOrderValue) {
+      return 0;
+    }
+    
+    let potential = 0;
+    if (activeCashbackRule.type === "PERCENTAGE") {
+      potential = (orderValue * activeCashbackRule.value) / 100;
+    } else {
+      potential = activeCashbackRule.value;
+    }
+    
+    if (activeCashbackRule.maxCashbackAmount && potential > activeCashbackRule.maxCashbackAmount) {
+      potential = activeCashbackRule.maxCashbackAmount;
+    }
+    
+    return potential;
+  };
+
   const handleApplyCoupon = async (code: string) => {
     if (!code) {
       setCouponError("Insira um código de cupom");
