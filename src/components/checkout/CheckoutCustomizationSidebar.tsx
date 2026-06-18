@@ -129,8 +129,8 @@ export const CheckoutCustomizationSidebar: React.FC<
 
             <div className="grid grid-cols-1 gap-1.5">
               {AVAILABLE_TEMPLATES.map((tpl) => {
-                const isActive = currentTemplateSlug === tpl.slug;
-                const isLive = (activeTemplateSlug || currentTemplateSlug) === tpl.slug;
+                const isActive = config.templateSlug === tpl.slug;
+                const isLive = (activeTemplateSlug || config.templateSlug) === tpl.slug;
                 return (
                   <button
                     key={tpl.slug}

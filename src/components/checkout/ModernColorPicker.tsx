@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { HexColorPicker, HexColorInput } from "react-colorful";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Check, Pipette } from "lucide-react";
+import { Check, Pipette, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -19,310 +18,217 @@ interface ModernColorPickerProps {
   className?: string;
 }
 
-// Paletas modernas 2025 - Cores vibrantes e profissionais
-const MODERN_COLOR_PRESETS = {
-  vibrant: {
-    name: "Vibrante",
-    colors: [
-      "#8b5cf6", // Violet
-      "#a855f7", // Purple
-      "#ec4899", // Pink
-      "#f43f5e", // Rose
-      "#ef4444", // Red
-      "#f97316", // Orange
-      "#f59e0b", // Amber
-      "#eab308", // Yellow
-    ],
-  },
-  professional: {
-    name: "Profissional",
-    colors: [
-      "#0ea5e9", // Sky
-      "#06b6d4", // Cyan
-      "#14b8a6", // Teal
-      "#10b981", // Emerald
-      "#22c55e", // Green
-      "#84cc16", // Lime
-      "#6366f1", // Indigo
-      "#8b5cf6", // Violet
-    ],
-  },
-  warm: {
-    name: "Tons Quentes",
-    colors: [
-      "#fef3c7", // Amber 100
-      "#fde68a", // Amber 200
-      "#fcd34d", // Amber 300
-      "#fbbf24", // Amber 400
-      "#f59e0b", // Amber 500
-      "#d97706", // Amber 600
-      "#b45309", // Amber 700
-      "#92400e", // Amber 800
-    ],
-  },
-  cool: {
-    name: "Tons Frios",
-    colors: [
-      "#dbeafe", // Blue 100
-      "#bfdbfe", // Blue 200
-      "#93c5fd", // Blue 300
-      "#60a5fa", // Blue 400
-      "#3b82f6", // Blue 500
-      "#2563eb", // Blue 600
-      "#1d4ed8", // Blue 700
-      "#1e40af", // Blue 800
-    ],
-  },
-  grayscale: {
-    name: "Escala de Cinza",
-    colors: [
-      "#ffffff", // White
-      "#f9fafb", // Gray 50
-      "#f3f4f6", // Gray 100
-      "#e5e7eb", // Gray 200
-      "#d1d5db", // Gray 300
-      "#9ca3af", // Gray 400
-      "#6b7280", // Gray 500
-      "#4b5563", // Gray 600
-      "#374151", // Gray 700
-      "#1f2937", // Gray 800
-      "#111827", // Gray 900
-      "#000000", // Black
-    ],
-  },
-};
-
-interface ColorSwatchProps {
-  color: string;
-  isSelected: boolean;
-  onClick: () => void;
-  showTooltip?: boolean;
-}
-
-const ColorSwatch: React.FC<ColorSwatchProps> = ({
-  color,
-  isSelected,
-  onClick,
-  showTooltip = true,
-}) => {
-  const [showHex, setShowHex] = useState(false);
-
-  return (
-    <div className="relative">
-      <motion.button
-        type="button"
-        whileHover={{ scale: 1.15, zIndex: 10 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-        onMouseEnter={() => setShowHex(true)}
-        onMouseLeave={() => setShowHex(false)}
-        className={cn(
-          "relative w-10 h-10 rounded-lg shadow-md transition-all cursor-pointer overflow-hidden",
-          isSelected
-            ? "ring-2 ring-pink-500 ring-offset-2 ring-offset-[#0b0f19]"
-            : "hover:shadow-lg hover:scale-105",
-        )}
-        style={{ backgroundColor: color }}
-      >
-        {isSelected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/20"
-          >
-            <Check
-              className="h-5 w-5 text-white drop-shadow-lg"
-              strokeWidth={3}
-            />
-          </motion.div>
-        )}
-      </motion.button>
-
-      {/* Tooltip com código HEX */}
-      <AnimatePresence>
-        {showTooltip && showHex && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            className="absolute left-1/2 -translate-x-1/2 -top-10 z-50 pointer-events-none"
-          >
-            <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-mono px-2 py-1 rounded shadow-lg whitespace-nowrap">
-              {color.toUpperCase()}
-              <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
+// 23 presets de cores de alta conversão + 1 espaço para a pipeta personalizada
+const COMPACT_PRESETS = [
+  "#FFFFFF", "#E5E7EB", "#9CA3AF", "#4B5563", "#1F2937", "#000000",
+  "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#22C55E",
+  "#10B981", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6",
+  "#7C3AED", "#A855F7", "#EC4899", "#F43F5E", "#E91E8C"
+];
 
 export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
   label,
   value,
   onChange,
-  showPresets = true,
   className,
 }) => {
   const [open, setOpen] = useState(false);
-  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [hexInput, setHexInput] = useState(value);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  
+  // Controle de estado para preview temporário (hover) e confirmação
+  const originalColorRef = useRef(value);
+  const hasConfirmedRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Guard defensivo — evita crash quando value é undefined/null (localStorage corrompido)
   const safeValue = (value && typeof value === 'string' && value.startsWith('#')) ? value : '#000000';
 
-  const handleColorSelect = (color: string) => {
+  // Sincronizar input de texto com o valor real
+  useEffect(() => {
+    setHexInput(safeValue);
+  }, [safeValue]);
+
+  // Limpar timeout no desmonte
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      originalColorRef.current = safeValue;
+      hasConfirmedRef.current = false;
+    } else {
+      // Se fechar e não tiver confirmado, restaura a cor original
+      if (!hasConfirmedRef.current) {
+        onChange(originalColorRef.current);
+      }
+    }
+    setOpen(isOpen);
+  };
+
+  const handleColorHover = (color: string) => {
+    onChange(color.toUpperCase());
+  };
+
+  const handleColorSelect = (color: string, confirm = false) => {
     const upperColor = color.toUpperCase();
     onChange(upperColor);
+    setHexInput(upperColor);
+    
+    if (confirm) {
+      hasConfirmedRef.current = true;
+      setOpen(false);
+    }
+  };
 
-    // Adicionar às cores recentes
-    setRecentColors((prev) => {
-      const filtered = prev.filter((c) => c.toUpperCase() !== upperColor);
-      return [upperColor, ...filtered].slice(0, 8);
-    });
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let input = e.target.value;
+    if (!input.startsWith("#") && input.length > 0) {
+      input = "#" + input;
+    }
+    setHexInput(input);
+
+    // Se for um hex válido (3 ou 6 dígitos + #), atualiza e confirma temporariamente
+    const hexRegex = /^#([0-9A-F]{3}){1,2}$/i;
+    if (hexRegex.test(input)) {
+      onChange(input.toUpperCase());
+      hasConfirmedRef.current = true; // Permite confirmar ao digitar hex válido e clicar fora
+    }
+  };
+
+  // Funções de Hover para abrir/fechar com delay suave
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (!open) {
+      originalColorRef.current = safeValue;
+      hasConfirmedRef.current = false;
+      setOpen(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setOpen(false);
+    }, 200); // 200ms de delay para transição suave do mouse
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div 
+      className={cn("space-y-1.5", className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {label && (
-        <Label className="text-xs font-semibold text-gray-300">
+        <Label className="text-[11px] font-semibold text-gray-300">
           {label}
         </Label>
       )}
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2 h-8 px-2.5 bg-[#111827] border-white/5 hover:border-pink-500/20 hover:bg-[#111827] text-white hover:text-white transition-all duration-200 group"
+      <div className="relative">
+        {/* Seletor nativo oculto para Pipeta/Custom Color */}
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={safeValue}
+          onChange={(e) => handleColorSelect(e.target.value, true)}
+          className="sr-only"
+        />
+
+        <Popover open={open} onOpenChange={handleOpenChange}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full justify-start gap-1.5 h-8 px-2 bg-[#111827] border-white/5 hover:border-pink-500/20 hover:bg-[#111827]/90 text-white transition-all duration-200 group"
+              onClick={() => setOpen(!open)}
+            >
+              <div
+                className="w-4 h-4 rounded border border-white/10 shadow-sm transition-transform group-hover:scale-105 flex-shrink-0"
+                style={{ backgroundColor: safeValue }}
+              />
+              <span className="text-[10px] font-mono font-bold flex-1 text-left text-gray-250 group-hover:text-white truncate">
+                {safeValue.toUpperCase()}
+              </span>
+              <Pipette className="h-3 w-3 text-gray-400 group-hover:text-pink-400 transition-colors flex-shrink-0" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            className="w-[184px] p-2 border border-white/10 shadow-xl rounded-lg bg-[#0b0f19] select-none"
+            align="start"
+            sideOffset={4}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
-            <div
-              className="w-4.5 h-4.5 rounded border border-white/10 shadow-sm transition-transform group-hover:scale-110"
-              style={{ backgroundColor: safeValue }}
-            />
-            <span className="text-xs font-mono font-semibold flex-1 text-left text-gray-200 group-hover:text-white">
-              {safeValue.toUpperCase()}
-            </span>
-            <Pipette className="h-3.5 w-3.5 text-gray-400 group-hover:text-pink-400 transition-colors" />
-          </Button>
-        </PopoverTrigger>
+            <div className="space-y-2">
+              {/* Grade de cores compacta (6 colunas) */}
+              <div className="grid grid-cols-6 gap-1">
+                {COMPACT_PRESETS.map((color) => {
+                  const isSelected = safeValue.toUpperCase() === color.toUpperCase();
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onMouseEnter={() => handleColorHover(color)}
+                      onClick={() => handleColorSelect(color, true)}
+                      className={cn(
+                        "w-6 h-6 rounded-full border border-white/5 transition-transform hover:scale-115 active:scale-95 flex items-center justify-center relative flex-shrink-0 cursor-pointer shadow-sm"
+                      )}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {isSelected && (
+                        <Check className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" strokeWidth={3} />
+                      )}
+                    </button>
+                  );
+                })}
 
-        <PopoverContent
-          className="w-80 p-0 border border-white/10 shadow-2xl rounded-xl overflow-hidden"
-          align="start"
-          sideOffset={8}
-        >
-          <div className="bg-[#0b0f19] rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="p-4 border-b border-white/5 bg-[#070b13]/80 backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Pipette className="h-4 w-4 text-pink-500 animate-pulse" />
-                Seletor de Cores
-              </h3>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Color Picker Principal */}
-              <div className="space-y-3">
-                <HexColorPicker
-                  color={safeValue}
-                  onChange={handleColorSelect}
-                  style={{
-                    width: "100%",
-                    height: "180px",
+                {/* 24º item: Botão Arco-íris / Pipeta Personalizada */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    hasConfirmedRef.current = true;
+                    colorInputRef.current?.click();
                   }}
-                />
-
-                {/* Input HEX */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-gray-500">
-                        #
-                      </span>
-                      <HexColorInput
-                        color={safeValue}
-                        onChange={handleColorSelect}
-                        prefixed
-                        className="w-full pl-7 pr-3 py-2 border border-white/10 rounded-lg text-sm font-mono font-semibold bg-[#111827] text-white focus:ring-1 focus:ring-pink-500 focus:border-transparent outline-none transition-all placeholder:text-gray-600"
-                        placeholder="000000"
-                      />
-                    </div>
-                  </div>
-                  <div
-                    className="w-12 h-10 rounded-lg border border-white/10 shadow-inner"
-                    style={{ backgroundColor: safeValue }}
-                  />
-                </div>
+                  className="w-6 h-6 rounded-full border border-white/10 hover:scale-115 active:scale-95 flex items-center justify-center relative flex-shrink-0 cursor-pointer bg-gradient-to-tr from-red-500 via-green-500 via-blue-500 to-yellow-400 shadow-md group/picker"
+                  title="Cor personalizada (conta-gotas)"
+                >
+                  <Pipette className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] group-hover/picker:animate-pulse" strokeWidth={2.5} />
+                </button>
               </div>
 
-              {showPresets && (
-                <>
-                  {/* Cores Recentes */}
-                  {recentColors.length > 0 && (
-                    <div>
-                      <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase mb-2">
-                        Cores Recentes
-                      </p>
-                      <div className="grid grid-cols-8 gap-2">
-                        {recentColors.map((color) => (
-                          <ColorSwatch
-                            key={color}
-                            color={color}
-                            isSelected={safeValue.toUpperCase() === color}
-                            onClick={() => handleColorSelect(color)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* Input Hex Manual & Restaurar */}
+              <div className="flex items-center gap-1 pt-1 border-t border-white/5">
+                <div className="relative flex-1">
+                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-gray-500">
+                    #
+                  </span>
+                  <input
+                    type="text"
+                    value={hexInput.replace("#", "")}
+                    onChange={handleHexInputChange}
+                    className="w-full pl-3.5 pr-1 py-0.5 h-5.5 rounded bg-[#111827] border border-white/5 text-[9px] font-mono font-bold text-white outline-none focus:border-pink-500/50 uppercase placeholder:text-gray-600"
+                    placeholder="000000"
+                  />
+                </div>
 
-                  {/* Paletas Modernas */}
-                  <div className="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-                    {Object.entries(MODERN_COLOR_PRESETS).map(
-                      ([key, palette]) => (
-                        <div key={key}>
-                          <p className="text-xs font-bold text-pink-400/90 tracking-wide uppercase mb-2">
-                            {palette.name}
-                          </p>
-                          <div
-                            className={cn(
-                              "grid gap-2",
-                              palette.colors.length > 8
-                                ? "grid-cols-6"
-                                : "grid-cols-8",
-                            )}
-                          >
-                            {palette.colors.map((color) => (
-                              <ColorSwatch
-                                key={color}
-                                color={color}
-                                isSelected={
-                                  safeValue.toUpperCase() === color.toUpperCase()
-                                }
-                                onClick={() => handleColorSelect(color)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </>
-              )}
+                {/* Reset para Cor Inicial */}
+                <button
+                  type="button"
+                  onClick={() => handleColorSelect(originalColorRef.current, false)}
+                  className="p-1 h-5.5 rounded border border-white/5 bg-[#111827] text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                  title="Desfazer alterações"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </button>
+              </div>
             </div>
-
-            {/* Footer com dica */}
-            <div className="px-4 py-3 bg-gradient-to-r from-blue-500/5 to-pink-500/5 border-t border-white/5">
-              <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />
-                Passe o mouse sobre as cores para ver o código
-              </p>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 };
-
