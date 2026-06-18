@@ -1608,8 +1608,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
       // Redirecionar conforme método
       await trackBannerConversions();
+      const finalTxId = paymentResponse?.transactionId || transaction.id;
       if (paymentMethod === "PIX") {
-        navigate(`/pix/${orderId}/${transaction.id}`);
+        navigate(`/pix/${orderId}/${finalTxId}`);
       } else {
         // Para cartão/boleto: disparar Purchase antes de redirecionar
         if (pixelsInitialized && !previewMode && !pixelPurchaseFired.current) {
@@ -1629,7 +1630,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
             }
           );
         }
-        navigate(`/checkout/success/${transaction.id}`);
+        navigate(`/checkout/success/${finalTxId}`);
       }
 
     } catch (error: any) {

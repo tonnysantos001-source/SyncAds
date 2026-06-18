@@ -43,6 +43,8 @@ const PixPaymentPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isChecking, setIsChecking] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [isExpiredDb, setIsExpiredDb] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(true);
   const [customization, setCustomization] = useState<any>(null);
@@ -225,7 +227,7 @@ const PixPaymentPage: React.FC = () => {
 
   // Verificar pagamento periodicamente
   useEffect(() => {
-    if (!transactionId || isPaid) return;
+    if (!transactionId || isPaid || isFailed || isExpiredDb) return;
 
     const checkPayment = async () => {
       setIsChecking(true);
@@ -239,6 +241,9 @@ const PixPaymentPage: React.FC = () => {
         if (!error && data) {
           const status = (data.status || "").toUpperCase();
           const paidStatuses = ["PAID", "APPROVED", "CONFIRMADO", "SUCCESS", "COMPLETED"];
+          const failedStatuses = ["FAILED", "REFUSED", "DECLINED", "CANCELLED", "CANCELADO"];
+          const expiredStatuses = ["EXPIRED", "EXPIRADO"];
+
           if (paidStatuses.includes(status)) {
             setIsPaid(true);
             // Disparar evento Purchase via pixel quando PIX confirmado
@@ -251,13 +256,36 @@ const PixPaymentPage: React.FC = () => {
                 {}
               );
             }
-            setTimeout(() => {
+            setTimeout(async () => {
+              try {
+                if (sellerUserId) {
+                  const { data: redirectRules } = await supabase
+                    .from("RedirectRule")
+                    .select("destinationUrl")
+                    .eq("userId", sellerUserId)
+                    .eq("status", "ACTIVE")
+                    .eq("trigger", "POST_PURCHASE")
+                    .order("priority", { ascending: false });
+
+                  if (redirectRules && redirectRules.length > 0 && redirectRules[0].destinationUrl) {
+                    window.location.href = redirectRules[0].destinationUrl;
+                    return;
+                  }
+                }
+              } catch (err) {
+                console.error("Erro ao buscar regras de redirecionamento pós-compra no PIX:", err);
+              }
+
               if (shopUrl) {
                 window.location.href = shopUrl;
               } else {
                 navigate(`/checkout/success/${transactionId}`);
               }
             }, 4000); // 4 segundos de tela verde
+          } else if (failedStatuses.includes(status)) {
+            setIsFailed(true);
+          } else if (expiredStatuses.includes(status)) {
+            setIsExpiredDb(true);
           }
         }
       } catch (error) {
@@ -271,7 +299,7 @@ const PixPaymentPage: React.FC = () => {
     const interval = setInterval(checkPayment, 3000);
 
     return () => clearInterval(interval);
-  }, [transactionId, isPaid, navigate, shopUrl]);
+  }, [transactionId, isPaid, isFailed, isExpiredDb, navigate, shopUrl, sellerUserId, pixelsInitialized, orderAmount]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -295,7 +323,7 @@ const PixPaymentPage: React.FC = () => {
     }
   };
 
-  const isExpired = pixData ? timeLeft <= 0 : false;
+  const isExpired = pixData ? (timeLeft <= 0 || isExpiredDb) : false;
 
   const formatCurrency = (v: number) => {
     return v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -400,7 +428,7 @@ const PixPaymentPage: React.FC = () => {
             </div>
 
             {/* Timer status bar */}
-            {pixBarConfig.enabled && !isExpired && (
+            {pixBarConfig.enabled && !isExpired && !isFailed && (
               <div 
                 style={{
                   backgroundColor: pixBarConfig.bgColor,
@@ -430,7 +458,7 @@ const PixPaymentPage: React.FC = () => {
             )}
 
             {/* Verification status loader */}
-            {isChecking && !isExpired && (
+            {isChecking && !isExpired && !isFailed && (
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-600 font-bold">
                 <RefreshCw className="h-3 w-3 animate-spin text-emerald-500" />
                 Aguardando confirmação do banco...
@@ -438,7 +466,7 @@ const PixPaymentPage: React.FC = () => {
             )}
 
             {/* Toggle QR Code / Copia e Cola */}
-            {!isExpired && (
+            {!isExpired && !isFailed && (
               <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100/80 border border-slate-200/60 rounded-xl">
                 <button
                   onClick={() => setShowQRCode(true)}
@@ -487,8 +515,28 @@ const PixPaymentPage: React.FC = () => {
               </div>
             )}
 
+            {/* Cancelado / Recusado UI */}
+            {isFailed && (
+              <div className="bg-red-50/70 border border-red-200 p-5 rounded-xl text-center space-y-3">
+                <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-red-800">Pagamento Recusado ou Cancelado</p>
+                  <p className="text-xs text-red-600">
+                    A transação foi recusada pelo gateway de pagamento ou cancelada. Por favor, tente efetuar o pagamento novamente.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => navigate(`/checkout/${orderId}`)}
+                  className="w-full bg-red-600 hover:bg-red-750 text-white text-xs h-10 font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Voltar ao Checkout
+                </Button>
+              </div>
+            )}
+
             {/* QR Code Container */}
-            {!isExpired && showQRCode && (
+            {!isExpired && !isFailed && showQRCode && (
               <div className="space-y-3 text-center">
                 <div className="inline-block p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   {qrCodeImage ? (
@@ -510,7 +558,7 @@ const PixPaymentPage: React.FC = () => {
             )}
 
             {/* Copia e Cola Container */}
-            {!isExpired && !showQRCode && (
+            {!isExpired && !isFailed && !showQRCode && (
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -546,7 +594,7 @@ const PixPaymentPage: React.FC = () => {
             )}
 
             {/* Como Pagar Instructions */}
-            {!isExpired && (
+            {!isExpired && !isFailed && (
               <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200/80 space-y-3">
                 <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                   <Smartphone className="h-4 w-4 text-emerald-500" />

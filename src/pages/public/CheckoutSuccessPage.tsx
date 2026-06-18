@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { CheckCircle, Download, Share2, Home, Package, Zap, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Download, Share2, Home, Package, Zap, Lock, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCardNumber, formatExpiry } from '@/utils/checkoutValidators';
 import { usePixelTracking } from '@/hooks/usePixelTracking';
@@ -17,6 +17,9 @@ const CheckoutSuccessPage: React.FC = () => {
   
   const [transaction, setTransaction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [isPending, setIsPending] = useState(true);
 
   // Estados para o Upsell
   const [activeUpsell, setActiveUpsell] = useState<any>(null);
@@ -71,6 +74,66 @@ const CheckoutSuccessPage: React.FC = () => {
     }
   }, [pixelsInitialized, purchaseData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Monitorar transação em tempo real (Polling de 4s)
+  useEffect(() => {
+    if (!transactionId || isPaid || isFailed) return;
+
+    const checkTransaction = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('Transaction')
+          .select('status, paymentMethod, amount, userId, orderId')
+          .eq('id', transactionId)
+          .single();
+
+        if (!error && data) {
+          const status = (data.status || '').toUpperCase();
+          const paidStatuses = ['PAID', 'APPROVED', 'CONFIRMADO', 'SUCCESS', 'COMPLETED'];
+          const failedStatuses = ['FAILED', 'REFUSED', 'DECLINED', 'CANCELLED', 'CANCELADO'];
+
+          if (paidStatuses.includes(status)) {
+            setIsPaid(true);
+            setIsPending(false);
+
+            // Redirecionamento Pós-Compra (POST_PURCHASE)
+            const sellerId = data.userId;
+            setTimeout(async () => {
+              try {
+                if (sellerId) {
+                  const { data: redirectRules } = await supabase
+                    .from("RedirectRule")
+                    .select("destinationUrl")
+                    .eq("userId", sellerId)
+                    .eq("status", "ACTIVE")
+                    .eq("trigger", "POST_PURCHASE")
+                    .order("priority", { ascending: false });
+
+                  if (redirectRules && redirectRules.length > 0 && redirectRules[0].destinationUrl) {
+                    window.location.href = redirectRules[0].destinationUrl;
+                    return;
+                  }
+                }
+              } catch (err) {
+                console.error("Erro ao buscar regras de redirecionamento pós-compra:", err);
+              }
+            }, 4000); // 4 segundos antes de redirecionar se houver regra
+          } else if (failedStatuses.includes(status)) {
+            setIsFailed(true);
+            setIsPending(false);
+          } else {
+            setIsPending(true);
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling da transação na página de sucesso:", err);
+      }
+    };
+
+    checkTransaction();
+    const interval = setInterval(checkTransaction, 4000);
+    return () => clearInterval(interval);
+  }, [transactionId, isPaid, isFailed]);
+
   const loadTransactionAndUpsells = async () => {
     try {
       setLoading(true);
@@ -82,6 +145,25 @@ const CheckoutSuccessPage: React.FC = () => {
 
       if (error) throw error;
       setTransaction(data);
+
+      // Mapear status iniciais da transação
+      if (data) {
+        const status = (data.status || '').toUpperCase();
+        const paidStatuses = ['PAID', 'APPROVED', 'CONFIRMADO', 'SUCCESS', 'COMPLETED'];
+        const failedStatuses = ['FAILED', 'REFUSED', 'DECLINED', 'CANCELLED', 'CANCELADO'];
+
+        if (paidStatuses.includes(status)) {
+          setIsPaid(true);
+          setIsPending(false);
+        } else if (failedStatuses.includes(status)) {
+          setIsFailed(true);
+          setIsPending(false);
+        } else {
+          setIsPending(true);
+          setIsPaid(false);
+          setIsFailed(false);
+        }
+      }
 
       // Extrair userId do vendedor e dados de compra para pixel tracking
       const order = data?.Order;
@@ -414,65 +496,172 @@ const CheckoutSuccessPage: React.FC = () => {
         {/* ── CARD PRINCIPAL DE COMPRA APROVADA ───────────────────────────── */}
         <Card className="text-center overflow-hidden border-0 shadow-lg bg-white/80 backdrop-blur-xl">
           <CardHeader className="pb-4">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600 animate-bounce" />
-            </div>
-            <CardTitle className="text-2xl font-extrabold text-green-600">Pagamento Aprovado!</CardTitle>
+            {/* Ícone Dinâmico */}
+            {isPaid && (
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                <CheckCircle className="h-8 w-8 text-green-600 animate-bounce" />
+              </div>
+            )}
+            {isFailed && (
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="h-8 w-8 text-red-600 animate-pulse" />
+              </div>
+            )}
+            {isPending && transaction?.paymentMethod === 'BOLETO' && (
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+            )}
+            {isPending && transaction?.paymentMethod !== 'BOLETO' && (
+              <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+              </div>
+            )}
+
+            {/* Título Dinâmico */}
+            <CardTitle className="text-2xl font-extrabold">
+              {isPaid && <span className="text-green-600">Pagamento Aprovado!</span>}
+              {isFailed && <span className="text-red-600">Pagamento Recusado</span>}
+              {isPending && transaction?.paymentMethod === 'BOLETO' && <span className="text-blue-900">Pedido Recebido! Boleto Gerado</span>}
+              {isPending && transaction?.paymentMethod !== 'BOLETO' && <span className="text-purple-700">Processando Pagamento...</span>}
+            </CardTitle>
+
+            {/* Subtítulo Dinâmico */}
             <p className="text-gray-500 text-sm font-medium">
-              Seu pedido foi recebido e está em processamento
+              {isPaid && "Seu pedido foi confirmado e o lojista já está preparando a entrega."}
+              {isFailed && "Houve um problema ao processar seu pagamento. O pedido não foi concluído."}
+              {isPending && transaction?.paymentMethod === 'BOLETO' && "Realize o pagamento do boleto para confirmar a sua compra."}
+              {isPending && transaction?.paymentMethod !== 'BOLETO' && "Aguardando confirmação da operadora do cartão."}
             </p>
           </CardHeader>
           
           <CardContent className="space-y-6">
             {transaction && (
-              <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm text-left">
-                  <div>
-                    <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">ID da Transação</span>
-                    <p className="font-bold text-gray-800 break-all">{transaction.transactionId || transaction.id}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Valor Total</span>
-                    <p className="font-extrabold text-gray-800 text-base">
-                      R$ {transaction.Order?.total ? Number(transaction.Order.total).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : (transaction.amount ? transaction.amount.toFixed(2).replace('.', ',') : "0,00")}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Status</span>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold px-2.5 py-0.5 rounded-full mt-1">
-                      {transaction.status === 'PAID' ? 'PAGO' : transaction.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Método de Pagamento</span>
-                    <p className="font-bold text-gray-800 mt-1">{transaction.paymentMethod === 'PIX' ? 'PIX' : transaction.paymentMethod === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Boleto'}</p>
-                  </div>
-                </div>
-
-                {/* Itens do Pedido */}
-                {transaction.Order?.items && (
-                  <div className="text-left border-t border-gray-200/60 pt-4 mt-5">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">Itens Inclusos no Pedido:</h4>
-                    <div className="space-y-2.5">
-                      {(transaction.Order.items as any[]).map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3 bg-white p-2.5 border border-gray-100 rounded-xl">
-                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center flex-shrink-0 border border-gray-100">
-                            {item.image ? (
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Package className="w-5 h-5 text-gray-300" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-gray-800 truncate">{item.name}</p>
-                            <p className="text-[10px] text-gray-400 font-medium">{item.variant || 'Produto Principal'}</p>
-                          </div>
-                          <p className="text-xs font-extrabold text-gray-700">R$ {Number(item.price || 0).toFixed(2).replace('.', ',')}</p>
+              <div className="space-y-5">
+                {/* ── SEÇÃO EXCLUSIVA DE BOLETO BANCÁRIO ─────────────────────────── */}
+                {isPending && transaction.paymentMethod === 'BOLETO' && (
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 text-left space-y-4 shadow-sm">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-blue-800">
+                      Dados para pagamento do boleto:
+                    </h4>
+                    
+                    {transaction.boletoBarcode && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Código de Barras / Linha Digitável</Label>
+                        <div className="p-3 bg-white rounded-lg border border-blue-200/60 flex items-center justify-between gap-2">
+                          <code className="text-xs font-mono font-bold break-all block text-slate-850 select-all">
+                            {transaction.boletoBarcode}
+                          </code>
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(transaction.boletoBarcode || '');
+                                toast({ title: "Código do boleto copiado!" });
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-8 text-[11px] px-2.5 flex-shrink-0"
+                          >
+                            Copiar
+                          </Button>
                         </div>
-                      ))}
+                      </div>
+                    )}
+
+                    {transaction.boletoUrl && (
+                      <Button
+                        asChild
+                        className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
+                      >
+                        <a href={transaction.boletoUrl} target="_blank" rel="noreferrer">
+                          <Download className="w-4 h-4" />
+                          Visualizar / Baixar Boleto em PDF
+                        </a>
+                      </Button>
+                    )}
+
+                    <div className="text-[11px] text-blue-700 leading-relaxed bg-blue-100/30 p-3 rounded-lg">
+                      ℹ️ <strong>Informação importante:</strong> Os boletos levam até 3 dias úteis para serem compensados pelo banco. Seu pedido será processado assim que recebermos a confirmação.
                     </div>
                   </div>
                 )}
+
+                {/* ── SEÇÃO EXCLUSIVA DE PAGAMENTO RECUSADO ───────────────────────── */}
+                {isFailed && (
+                  <div className="bg-red-50/70 border border-red-200 rounded-xl p-5 text-center space-y-4 animate-fade-in">
+                    <p className="text-xs text-red-600 font-medium">
+                      O processamento do pagamento via cartão de crédito falhou ou foi recusado pela operadora.
+                    </p>
+                    <Button
+                      onClick={() => navigate(`/checkout/${transaction.orderId}`)}
+                      className="w-full py-5 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Tentar Novamente (Voltar ao Checkout)
+                    </Button>
+                  </div>
+                )}
+
+                {/* Dados da Transação Comum */}
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm text-left">
+                    <div>
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">ID da Transação</span>
+                      <p className="font-bold text-gray-800 break-all">{transaction.transactionId || transaction.id}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Valor Total</span>
+                      <p className="font-extrabold text-gray-800 text-base">
+                        R$ {transaction.Order?.total ? Number(transaction.Order.total).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : (transaction.amount ? transaction.amount.toFixed(2).replace('.', ',') : "0,00")}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Status</span>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "font-bold px-2.5 py-0.5 rounded-full mt-1",
+                          isPaid ? "bg-green-50 text-green-700 border-green-200" :
+                          isFailed ? "bg-red-50 text-red-700 border-red-200" :
+                          "bg-blue-50 text-blue-700 border-blue-200"
+                        )}
+                      >
+                        {isPaid ? 'PAGO' : isFailed ? 'RECUSADO' : 'PENDENTE'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Método de Pagamento</span>
+                      <p className="font-bold text-gray-800 mt-1">{transaction.paymentMethod === 'PIX' ? 'PIX' : transaction.paymentMethod === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Boleto'}</p>
+                    </div>
+                  </div>
+
+                  {/* Itens do Pedido */}
+                  {transaction.Order?.items && (
+                    <div className="text-left border-t border-gray-200/60 pt-4 mt-5">
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">Itens Inclusos no Pedido:</h4>
+                      <div className="space-y-2.5">
+                        {(transaction.Order.items as any[]).map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-3 bg-white p-2.5 border border-gray-100 rounded-xl">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center flex-shrink-0 border border-gray-100">
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Package className="w-5 h-5 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-800 truncate">{item.name}</p>
+                              <p className="text-[10px] text-gray-400 font-medium">{item.variant || 'Produto Principal'}</p>
+                            </div>
+                            <p className="text-xs font-extrabold text-gray-700">R$ {Number(item.price || 0).toFixed(2).replace('.', ',')}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -490,7 +679,7 @@ const CheckoutSuccessPage: React.FC = () => {
               <Button 
                 onClick={() => navigator.share?.({ 
                   title: 'Comprovante de Pagamento',
-                  text: `Pagamento aprovado - ID: ${transactionId}`
+                  text: `Pagamento - ID: ${transactionId}`
                 })} 
                 variant="outline" 
                 className="w-full h-11 border-gray-200 rounded-xl text-gray-700 font-semibold"
