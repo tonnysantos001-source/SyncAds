@@ -194,16 +194,16 @@ export const ModernColorPicker: React.FC<ModernColorPickerProps> = ({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-start gap-3 h-11 px-3 bg-[#111827] border-white/5 hover:border-pink-500/20 hover:bg-[#111827] text-white hover:text-white transition-all duration-200 group"
+            className="w-full justify-start gap-2 h-8 px-2.5 bg-[#111827] border-white/5 hover:border-pink-500/20 hover:bg-[#111827] text-white hover:text-white transition-all duration-200 group"
           >
             <div
-              className="w-7 h-7 rounded-md border border-white/10 shadow-sm transition-transform group-hover:scale-110"
+              className="w-4.5 h-4.5 rounded border border-white/10 shadow-sm transition-transform group-hover:scale-110"
               style={{ backgroundColor: safeValue }}
             />
-            <span className="text-sm font-mono font-semibold flex-1 text-left text-gray-200 group-hover:text-white">
+            <span className="text-xs font-mono font-semibold flex-1 text-left text-gray-200 group-hover:text-white">
               {safeValue.toUpperCase()}
             </span>
-            <Pipette className="h-4 w-4 text-gray-400 group-hover:text-pink-400 transition-colors" />
+            <Pipette className="h-3.5 w-3.5 text-gray-400 group-hover:text-pink-400 transition-colors" />
           </Button>
         </PopoverTrigger>
 

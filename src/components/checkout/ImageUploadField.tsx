@@ -183,18 +183,18 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1.5", className)}>
       {label && (
-        <Label className="text-xs font-semibold text-gray-300 flex items-center gap-2">
-          <div className="p-1 rounded bg-gradient-to-br from-blue-500 to-pink-500">
-            <ImageIcon className="h-3 w-3 text-white" />
+        <Label className="text-[11px] font-semibold text-gray-300 flex items-center gap-1.5">
+          <div className="p-0.5 rounded bg-gradient-to-br from-blue-500 to-pink-500">
+            <ImageIcon className="h-2.5 w-2.5 text-white" />
           </div>
           {label}
         </Label>
       )}
       {description && (
-        <p className="text-[10px] text-gray-400 flex items-center gap-1">
-          <Sparkles className="h-3 w-3 text-pink-500" />
+        <p className="text-[9px] text-gray-400 flex items-center gap-1">
+          <Sparkles className="h-2.5 w-2.5 text-pink-500" />
           {description}
         </p>
       )}
@@ -218,9 +218,9 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative group"
             >
-              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#111827] p-1.5 shadow-md">
-                {/* Container de imagem com altura fixa */}
-                <div className="relative w-full h-12 rounded-lg overflow-hidden bg-[#070b13] border border-white/5">
+              <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[#111827] p-1 shadow-md">
+                {/* Container de imagem com altura fixa menor */}
+                <div className="relative w-full h-8 rounded overflow-hidden bg-[#070b13] border border-white/5">
                   <img
                     src={preview}
                     alt="Preview"
@@ -228,16 +228,16 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                   />
                 </div>
 
-                {/* Overlay com ações */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center p-1.5 gap-1">
+                {/* Overlay compactado com ações */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center p-1 gap-1">
                   <Button
                     size="sm"
                     variant="secondary"
                     onClick={handleClick}
                     disabled={uploading}
-                    className="h-6 text-[10px] px-2 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-sm shadow-md"
+                    className="h-5 text-[9px] px-1.5 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-sm shadow-md"
                   >
-                    <Upload className="h-2.5 w-2.5 mr-1" />
+                    <Upload className="h-2.5 w-2.5 mr-0.5" />
                     Alterar
                   </Button>
                   <Button
@@ -245,10 +245,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     variant="destructive"
                     onClick={handleRemove}
                     disabled={uploading}
-                    className="h-6 text-[10px] px-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm shadow-md"
+                    className="h-5 text-[9px] px-1.5 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm shadow-md"
                   >
-                    <X className="h-2.5 w-2.5 mr-1" />
-                    Remover
+                    <X className="h-2.5 w-2.5 mr-0.5" />
+                    Apagar
                   </Button>
                 </div>
 
@@ -257,10 +257,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute top-2 right-2"
+                    className="absolute top-1.5 right-1.5"
                   >
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-1 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]">
-                      <Check className="h-2.5 w-2.5" />
+                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-0.5 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]">
+                      <Check className="h-2 w-2" />
                     </div>
                   </motion.div>
                 )}
@@ -278,36 +278,36 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               onDrop={handleDrop}
               onClick={handleClick}
               className={cn(
-                "relative border border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300",
+                "relative border border-dashed rounded-lg p-2.5 text-center cursor-pointer transition-all duration-300",
                 dragActive
-                  ? "border-pink-500 bg-pink-500/5 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+                  ? "border-pink-500 bg-pink-500/5 shadow-[0_0_10px_rgba(236,72,153,0.15)]"
                   : "border-white/10 hover:border-pink-500/25 bg-[#111827]/40 hover:bg-[#111827]/60",
                 uploading && "pointer-events-none opacity-60",
               )}
             >
               {uploading ? (
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="flex flex-col items-center gap-1">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full blur-lg opacity-50 animate-pulse" />
-                    <Loader2 className="relative h-6 w-6 text-pink-500 animate-spin" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse" />
+                    <Loader2 className="relative h-4 w-4 text-pink-500 animate-spin" />
                   </div>
-                  <p className="text-xs font-semibold text-gray-400">
+                  <p className="text-[10px] font-semibold text-gray-400">
                     Enviando...
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-1">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full blur-lg opacity-30" />
-                    <div className="relative p-2 rounded-lg bg-gradient-to-br from-blue-500 to-pink-500 shadow-md">
-                      <ImageIcon className="h-4 w-4 text-white" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full blur-md opacity-30" />
+                    <div className="relative p-1 rounded bg-gradient-to-br from-blue-500 to-pink-500 shadow-md">
+                      <ImageIcon className="h-3 w-3 text-white" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-200 mb-0.5">
+                    <p className="text-[10px] font-semibold text-gray-200">
                       Clique ou arraste
                     </p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-[8px] text-gray-500">
                       {acceptedFormats
                         .map((f) => f.split("/")[1].toUpperCase())
                         .join(", ")}{" "}
@@ -318,14 +318,14 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="mt-0.5 h-7 text-xs border-white/5 bg-[#111827] text-gray-300 hover:bg-[#111827]/80 hover:text-white transition-all"
+                    className="h-5.5 text-[9px] py-0 px-2 border-white/5 bg-[#111827] text-gray-300 hover:bg-[#111827]/80 hover:text-white transition-all mt-0.5"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClick();
                     }}
                   >
-                    <Upload className="h-3 w-3 mr-1.5" />
-                    Escolher arquivo
+                    <Upload className="h-2.5 w-2.5 mr-1" />
+                    Escolher
                   </Button>
                 </div>
               )}
