@@ -469,19 +469,22 @@ const RedirectPage = () => {
 
       {/* Dialog Criar/Editar */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRule ? "Editar Regra" : "Nova Regra de Redirecionamento"}
+        <DialogContent className="max-w-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
+          <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-800">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
+                <Target className="h-5 w-5 text-white animate-pulse" />
+              </div>
+              {editingRule ? "Editar Regra de Redirecionamento" : "Nova Regra de Redirecionamento"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Configure quando e para onde redirecionar seus usuários
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nome da Regra *</Label>
+          <div className="grid gap-4 py-4 mt-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="name" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Nome da Regra *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -489,11 +492,12 @@ const RedirectPage = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="Ex: Upsell pós-compra"
+                className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="description">Descrição</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="description" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Descrição</Label>
               <Textarea
                 id="description"
                 value={formData.description || ""}
@@ -502,19 +506,20 @@ const RedirectPage = () => {
                 }
                 placeholder="Descrição opcional"
                 rows={2}
+                className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="trigger">Trigger *</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="trigger" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Trigger *</Label>
                 <Select
                   value={formData.trigger}
                   onValueChange={(value: RedirectTrigger) =>
                     setFormData({ ...formData, trigger: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -538,8 +543,8 @@ const RedirectPage = () => {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Prioridade</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="priority" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Prioridade</Label>
                 <Input
                   id="priority"
                   type="number"
@@ -551,14 +556,15 @@ const RedirectPage = () => {
                     })
                   }
                   placeholder="1"
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
                 />
               </div>
             </div>
 
             {/* Trigger específico: TIME_DELAY */}
             {formData.trigger === "TIME_DELAY" && (
-              <div className="grid gap-2">
-                <Label htmlFor="triggerDelay">Delay (segundos)</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="triggerDelay" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Delay (segundos)</Label>
                 <Input
                   id="triggerDelay"
                   type="number"
@@ -570,14 +576,15 @@ const RedirectPage = () => {
                     })
                   }
                   placeholder="30"
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
                 />
               </div>
             )}
 
             {/* Trigger específico: SCROLL_PERCENTAGE */}
             {formData.trigger === "SCROLL_PERCENTAGE" && (
-              <div className="grid gap-2">
-                <Label htmlFor="triggerScrollPercentage">
+              <div className="grid gap-1.5">
+                <Label htmlFor="triggerScrollPercentage" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                   Porcentagem de Rolagem (%)
                 </Label>
                 <Input
@@ -593,14 +600,15 @@ const RedirectPage = () => {
                     })
                   }
                   placeholder="75"
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
                 />
               </div>
             )}
 
             {/* Trigger específico: IDLE */}
             {formData.trigger === "IDLE" && (
-              <div className="grid gap-2">
-                <Label htmlFor="triggerIdleTime">
+              <div className="grid gap-1.5">
+                <Label htmlFor="triggerIdleTime" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                   Tempo de Inatividade (segundos)
                 </Label>
                 <Input
@@ -614,12 +622,13 @@ const RedirectPage = () => {
                     })
                   }
                   placeholder="60"
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
                 />
               </div>
             )}
 
-            <div className="grid gap-2">
-              <Label htmlFor="destinationUrl">URL de Destino *</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="destinationUrl" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">URL de Destino *</Label>
               <Input
                 id="destinationUrl"
                 type="url"
@@ -628,18 +637,19 @@ const RedirectPage = () => {
                   setFormData({ ...formData, destinationUrl: e.target.value })
                 }
                 placeholder="https://example.com/oferta"
+                className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10"
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="status" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Status</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value: RedirectStatus) =>
                   setFormData({ ...formData, status: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -650,8 +660,17 @@ const RedirectPage = () => {
               </Select>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
+            {/* Configurações Adicionais (Switches) em Container Moderno */}
+            <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/60 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <Label htmlFor="openInNewTab" className="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Abrir em nova aba
+                  </Label>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-normal">
+                    O redirecionamento abrirá em uma nova guia do navegador.
+                  </p>
+                </div>
                 <Switch
                   id="openInNewTab"
                   checked={formData.openInNewTab}
@@ -659,12 +678,17 @@ const RedirectPage = () => {
                     setFormData({ ...formData, openInNewTab: checked })
                   }
                 />
-                <Label htmlFor="openInNewTab" className="cursor-pointer">
-                  Abrir em nova aba
-                </Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800/60 pt-3">
+                <div className="space-y-0.5 pr-4">
+                  <Label htmlFor="showConfirmation" className="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Mostrar confirmação antes de redirecionar
+                  </Label>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-normal">
+                    Exibe um pop-up de confirmação para o usuário antes de enviá-lo para a URL.
+                  </p>
+                </div>
                 <Switch
                   id="showConfirmation"
                   checked={formData.showConfirmation}
@@ -672,15 +696,12 @@ const RedirectPage = () => {
                     setFormData({ ...formData, showConfirmation: checked })
                   }
                 />
-                <Label htmlFor="showConfirmation" className="cursor-pointer">
-                  Mostrar confirmação antes de redirecionar
-                </Label>
               </div>
             </div>
 
             {formData.showConfirmation && (
-              <div className="grid gap-2">
-                <Label htmlFor="confirmationMessage">
+              <div className="grid gap-1.5">
+                <Label htmlFor="confirmationMessage" className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                   Mensagem de Confirmação
                 </Label>
                 <Textarea
@@ -694,13 +715,14 @@ const RedirectPage = () => {
                   }
                   placeholder="Deseja ser redirecionado para nossa oferta especial?"
                   rows={2}
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800/80 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
             )}
 
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="bg-blue-50/40 dark:bg-blue-950/10 border-blue-100/50 dark:border-blue-900/30 text-blue-800 dark:text-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-xs leading-normal">
                 Esta regra será acionada quando o trigger{" "}
                 <strong>
                   {getTriggerLabel(formData.trigger || "POST_PURCHASE")}
@@ -713,7 +735,7 @@ const RedirectPage = () => {
             </Alert>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-2 justify-end">
             <Button
               variant="outline"
               onClick={() => {
@@ -721,10 +743,16 @@ const RedirectPage = () => {
                 setEditingRule(null);
                 resetForm();
               }}
+              className="border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/50 h-10 px-4"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button 
+              onClick={handleSave}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-md transition-all duration-300 h-10 px-4"
+            >
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
