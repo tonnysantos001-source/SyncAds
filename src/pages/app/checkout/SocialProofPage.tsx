@@ -736,127 +736,127 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                 Criar Prova Social
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl p-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
                   <MessageSquare className="h-5 w-5 text-white" />
                 </div>
                 {editingProof ? "Editar Prova Social" : "Nova Prova Social"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <div className="p-1 rounded bg-gradient-to-br from-purple-500 to-pink-600">
-                    <Target className="h-3 w-3 text-white" />
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <Target className="h-3.5 w-3.5 text-purple-500" />
+                    Tipo *
+                  </Label>
+                  <select
+                    className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-gray-800/50 focus:ring-2 focus:ring-purple-500/50 transition-all text-sm h-9"
+                    value={formData.type}
+                    onChange={(e: any) =>
+                      setFormData({ ...formData, type: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="RECENT_PURCHASE">Compra Recente</option>
+                    <option value="VISITOR_COUNT">Contador de Visitantes</option>
+                    <option value="REVIEW">Avaliação</option>
+                  </select>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 italic">
+                    {formData.type === "RECENT_PURCHASE" && 'Ex: "João de SP comprou..."'}
+                    {formData.type === "VISITOR_COUNT" && 'Ex: "23 pessoas visualizando..."'}
+                    {formData.type === "REVIEW" && 'Ex: "★★★★★ Produto excelente!"'}
                   </div>
-                  Tipo *
-                </Label>
-                <select
-                  className="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-purple-500/50 transition-all"
-                  value={formData.type}
-                  onChange={(e: any) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
-                  required
-                >
-                  <option value="RECENT_PURCHASE">Compra Recente</option>
-                  <option value="VISITOR_COUNT">Contador de Visitantes</option>
-                  <option value="REVIEW">Avaliação</option>
-                </select>
-                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200/50 dark:border-blue-800/50">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    {formData.type === "RECENT_PURCHASE" &&
-                      'Ex: "João acabou de comprar há 5 minutos"'}
-                    {formData.type === "VISITOR_COUNT" &&
-                      'Ex: "23 pessoas estão visualizando este produto"'}
-                    {formData.type === "REVIEW" &&
-                      'Ex: "★★★★★ Produto excelente! - Maria S."'}
-                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <Eye className="h-3.5 w-3.5 text-green-500" />
+                    Exibição (seg) *
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={formData.displayDuration}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        displayDuration: parseInt(e.target.value),
+                      })
+                    }
+                    className="bg-white/50 dark:bg-gray-800/50 text-sm p-2 h-9"
+                    required
+                  />
                 </div>
               </div>
 
               {formData.type === "REVIEW" && (
-                <div className="space-y-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                        Nome do Autor *
-                      </Label>
+                <div className="space-y-3.5 p-3.5 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800/50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400">Nome do Autor *</Label>
                       <Input
                         value={formData.authorName}
                         onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
                         placeholder="Ex: Maria Silva"
                         required={formData.type === "REVIEW"}
-                        className="bg-white dark:bg-gray-800"
+                        className="bg-white dark:bg-gray-800 text-sm p-2 h-9"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                        Tempo Relativo
-                      </Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400">Tempo Relativo</Label>
                       <Input
                         value={formData.relativeTime}
                         onChange={(e) => setFormData({ ...formData, relativeTime: e.target.value })}
-                        placeholder="Ex: Há 2 horas, Há 3 dias"
-                        className="bg-white dark:bg-gray-800"
+                        placeholder="Ex: Há 2 horas"
+                        className="bg-white dark:bg-gray-800 text-sm p-2 h-9"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                      Avaliação (Estrelas)
-                    </Label>
-                    <select
-                      className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
-                      value={formData.rating}
-                      onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
-                    >
-                      <option value="5">★★★★★ (5 Estrelas)</option>
-                      <option value="4">★★★★☆ (4 Estrelas)</option>
-                      <option value="3">★★★☆☆ (3 Estrelas)</option>
-                      <option value="2">★★☆☆☆ (2 Estrelas)</option>
-                      <option value="1">★☆☆☆☆ (1 Estrela)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
-                      Gênero do Autor (Define avatar automático)
-                    </Label>
-                    <div className="flex gap-4 mt-1">
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer font-normal">
-                        <input
-                          type="radio"
-                          name="gender"
-                          value="female"
-                          checked={formData.gender === "female"}
-                          onChange={() => handleGenderChange("female")}
-                          className="text-purple-600 focus:ring-purple-500"
-                        />
-                        Feminino
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer font-normal">
-                        <input
-                          type="radio"
-                          name="gender"
-                          value="male"
-                          checked={formData.gender === "male"}
-                          onChange={() => handleGenderChange("male")}
-                          className="text-purple-600 focus:ring-purple-500"
-                        />
-                        Masculino
-                      </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400">Avaliação (Estrelas)</Label>
+                      <select
+                        className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/50 transition-all text-xs h-9"
+                        value={formData.rating}
+                        onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
+                      >
+                        <option value="5">★★★★★ (5 Estrelas)</option>
+                        <option value="4">★★★★☆ (4 Estrelas)</option>
+                        <option value="3">★★★☆☆ (3 Estrelas)</option>
+                        <option value="2">★★☆☆☆ (2 Estrelas)</option>
+                        <option value="1">★☆☆☆☆ (1 Estrela)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400">Gênero do Autor</Label>
+                      <div className="flex gap-2 h-9 items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleGenderChange("female")}
+                          className={`flex-1 h-full px-2 text-xs rounded-md border font-medium transition-all ${formData.gender === "female" ? "bg-purple-500/10 border-purple-500 text-purple-600 dark:text-purple-400 shadow-sm" : "border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                        >
+                          Feminino
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenderChange("male")}
+                          className={`flex-1 h-full px-2 text-xs rounded-md border font-medium transition-all ${formData.gender === "male" ? "bg-purple-500/10 border-purple-500 text-purple-600 dark:text-purple-400 shadow-sm" : "border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                        >
+                          Masculino
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="pt-1.5">
                     <ImageUploadField
                       label="Foto / Avatar do Cliente"
-                      description="Envie a foto de perfil do cliente para o depoimento"
+                      description="Envie a foto de perfil do cliente (opcional)"
                       value={formData.avatarUrl}
                       onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
                     />
@@ -864,11 +864,9 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <div className="p-1 rounded bg-gradient-to-br from-blue-500 to-cyan-600">
-                    <MessageSquare className="h-3 w-3 text-white" />
-                  </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5 text-blue-500" />
                   Mensagem *
                 </Label>
                 <Textarea
@@ -877,64 +875,46 @@ Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de re
                     setFormData({ ...formData, message: e.target.value })
                   }
                   placeholder="Digite a mensagem que será exibida..."
-                  rows={3}
-                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
+                  rows={2}
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all resize-none text-sm p-2.5 h-16"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <div className="p-1 rounded bg-gradient-to-br from-green-500 to-emerald-600">
-                    <Eye className="h-3 w-3 text-white" />
-                  </div>
-                  Duração de Exibição (segundos)
-                </Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={formData.displayDuration}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      displayDuration: parseInt(e.target.value),
-                    })
-                  }
-                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-green-500/50 transition-all"
-                  required
-                />
+
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800/60 pt-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isActiveForm"
+                    checked={formData.isActive}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isActive: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2 cursor-pointer"
+                  />
+                  <Label htmlFor="isActiveForm" className="text-xs font-semibold cursor-pointer flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                    <Zap className="h-3.5 w-3.5 text-purple-600" />
+                    Ativo
+                  </Label>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 h-9 text-xs px-3"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-md hover:shadow-lg transition-all duration-300 h-9 text-xs px-4"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    {editingProof ? "Salvar" : "Criar"}
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
-                  }
-                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2"
-                />
-                <Label className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-purple-600" />
-                  Ativo
-                </Label>
-              </div>
-              <DialogFooter className="gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  {editingProof ? "Atualizar" : "Criar"}
-                </Button>
-              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
