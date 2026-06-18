@@ -34,12 +34,14 @@ import {
   Zap,
   Target,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadField } from "@/components/checkout/ImageUploadField";
+import chatService from "@/lib/api/chatService";
 
 const FEMALE_AVATARS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
@@ -56,6 +58,86 @@ const MALE_AVATARS = [
   "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&h=150&q=80",
   "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80",
 ];
+
+const LOCAL_REVIEW_TEMPLATES = [
+  "Comprei o [Produto] e achei maravilhoso! Chegou super rápido e a qualidade é sensacional. Recomendadíssimo! 😍✨",
+  "O [Produto] superou todas as minhas expectativas! A entrega foi super ágil e o produto é de excelente qualidade. Nota 10/10!",
+  "Estou usando o [Produto] há alguns dias e estou amando o resultado. Podem comprar sem medo!",
+  "Melhor compra que fiz este ano. O [Produto] é prático, de ótima qualidade e funciona perfeitamente.",
+  "Chegou tudo certinho e muito bem embalado. O [Produto] realmente cumpre o que promete. Vendedor de parabéns! 👏👏",
+  "O custo-benefício do [Produto] é sensacional. Já indiquei para várias amigas!",
+  "Simplesmente apaixonada por esse [Produto]! A qualidade é incrível e chegou antes do prazo.",
+  "Comprei o [Produto] e gostei muito. Excelente atendimento e envio ultra rápido.",
+  "Fiquei com receio no início, mas o [Produto] é fantástico e de extrema utilidade. Muito satisfeito!",
+  "Produto de alta qualidade e acabamento impecável. Com certeza comprarei mais vezes."
+];
+
+const FEMALE_NAMES = [
+  "Mariana Costa", "Camila Rodrigues", "Juliana Souza", "Amanda Lima", "Larissa Ferreira",
+  "Fernanda Santos", "Patricia Gomes", "Aline Martins", "Beatriz Rocha", "Gabriela Silva",
+  "Letícia Oliveira", "Bruna Albuquerque", "Vanessa Dias", "Carolina Mendes", "Renata Carvalho"
+];
+
+const MALE_NAMES = [
+  "Carlos Eduardo", "Lucas Silva", "Thiago Oliveira", "Felipe Santos", "Gustavo Costa",
+  "Rodrigo Souza", "Bruno Lima", "Rafael Ferreira", "Daniel Alves", "André Ribeiro",
+  "Mateus Cardoso", "Diego Neves", "Marcelo Vieira", "Leonardo Souza", "Gabriel Martins"
+];
+
+const generateLocally = (productName: string, quantity: number, gender: "female" | "male" | "both") => {
+  const generated = [];
+  const templates = [...LOCAL_REVIEW_TEMPLATES];
+  const femaleNames = [...FEMALE_NAMES];
+  const maleNames = [...MALE_NAMES];
+  
+  // Shuffle to randomize selection
+  templates.sort(() => Math.random() - 0.5);
+  femaleNames.sort(() => Math.random() - 0.5);
+  maleNames.sort(() => Math.random() - 0.5);
+
+  const relativeTimes = [
+    "há 5 minutos",
+    "há 20 minutos",
+    "há 1 hora",
+    "há 2 horas",
+    "há 5 horas",
+    "há 1 dia",
+    "há 2 dias",
+    "há 3 dias"
+  ];
+
+  for (let i = 0; i < quantity; i++) {
+    const currentGender = gender === "both" 
+      ? (Math.random() > 0.5 ? "female" : "male") 
+      : gender;
+    
+    const nameList = currentGender === "female" ? femaleNames : maleNames;
+    const name = nameList[i % nameList.length];
+
+    const avatarList = currentGender === "female" ? FEMALE_AVATARS : MALE_AVATARS;
+    const avatar = avatarList[i % avatarList.length];
+
+    const template = templates[i % templates.length];
+    const message = template.replace("[Produto]", productName);
+    const relativeTime = relativeTimes[Math.floor(Math.random() * relativeTimes.length)];
+
+    generated.push({
+      type: "REVIEWS",
+      message: message,
+      displayDuration: 5,
+      isActive: false,
+      display: {
+        authorName: name,
+        rating: 5,
+        avatarUrl: avatar,
+        relativeTime: relativeTime,
+        gender: currentGender
+      }
+    });
+  }
+
+  return generated;
+};
 
 interface MetricCardProps {
   title: string;
@@ -154,6 +236,126 @@ const SocialProofPage = () => {
       gender,
       avatarUrl: randomAvatar,
     });
+  };
+
+  const [isGenDialogOpen, setIsGenDialogOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genFormData, setGenFormData] = useState({
+    productName: "",
+    quantity: 5,
+    gender: "both" as "female" | "male" | "both",
+  });
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!genFormData.productName.trim()) {
+      toast({
+        title: "Nome do produto obrigatório",
+        description: "Por favor, insira o nome do produto para gerar depoimentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      if (!user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      let proofsToInsert: any[] = [];
+
+      try {
+        const prompt = `Gere ${genFormData.quantity} depoimentos de clientes (avaliações) em português do Brasil para o produto "${genFormData.productName}".
+O gênero dos autores deve ser ${genFormData.gender === 'both' ? 'misto (masculino e feminino)' : genFormData.gender === 'female' ? 'feminino' : 'masculino'}.
+Retorne APENAS um array JSON válido, sem explicações, markdown ou blocos de código.
+Cada objeto do array deve ter exatamente este formato:
+[
+  {
+    "authorName": "Nome do Autor",
+    "message": "Mensagem curta, realista e natural sobre o produto",
+    "rating": 5,
+    "relativeTime": "há 2 horas",
+    "gender": "female" // ou "male"
+  }
+]
+Os depoimentos devem ser curtos, realistas, naturais e informais (típicos de redes sociais e e-commerce).`;
+
+        console.log("🤖 [AI Generator] Enviando prompt para IA...");
+        const uuid = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const aiResponse = await chatService.sendMessage(prompt, uuid);
+        console.log("🤖 [AI Generator] Resposta recebida da IA:", aiResponse);
+        
+        let jsonStr = aiResponse.trim();
+        if (jsonStr.includes("```")) {
+          const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) jsonStr = match[1];
+        }
+
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) {
+          proofsToInsert = parsed.map((item) => {
+            const currentGender = item.gender === 'male' || item.gender === 'female' ? item.gender : 'female';
+            const avatars = currentGender === 'female' ? FEMALE_AVATARS : MALE_AVATARS;
+            const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+            
+            return {
+              userId: user.id,
+              type: "REVIEWS",
+              message: item.message || `Ótimo produto, super indico!`,
+              displayDuration: 5,
+              isActive: false,
+              display: {
+                authorName: item.authorName || (currentGender === 'female' ? "Cliente" : "Cliente"),
+                rating: Number(item.rating || 5),
+                avatarUrl: item.avatarUrl || randomAvatar,
+                relativeTime: item.relativeTime || "há 2 horas",
+                gender: currentGender
+              }
+            };
+          });
+          console.log(`🤖 [AI Generator] Sucesso! ${proofsToInsert.length} depoimentos gerados via IA.`);
+        }
+      } catch (aiError) {
+        console.warn("⚠️ [AI Generator] Falha ao gerar com IA, usando gerador local de fallback:", aiError);
+      }
+
+      if (proofsToInsert.length === 0) {
+        console.log("📝 [AI Generator] Usando gerador de backup local...");
+        const localProofs = generateLocally(genFormData.productName, genFormData.quantity, genFormData.gender);
+        proofsToInsert = localProofs.map(p => ({ ...p, userId: user.id }));
+        console.log(`📝 [AI Generator] Sucesso! ${proofsToInsert.length} depoimentos gerados localmente.`);
+      }
+
+      const { error: insertError } = await supabase
+        .from("SocialProof")
+        .insert(proofsToInsert);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Geração concluída!",
+        description: `${proofsToInsert.length} depoimentos foram gerados como inativos com sucesso.`,
+      });
+
+      setIsGenDialogOpen(false);
+      setGenFormData({
+        productName: "",
+        quantity: 5,
+        gender: "both",
+      });
+      loadSocialProofs();
+
+    } catch (err: any) {
+      console.error("❌ [AI Generator] Erro geral na geração:", err);
+      toast({
+        title: "Erro na geração",
+        description: err.message || "Não foi possível gerar os depoimentos.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -419,18 +621,122 @@ const SocialProofPage = () => {
             Notificações em tempo real para aumentar confiança e conversões
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={resetForm}
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Criar Prova Social
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
+        <div className="flex gap-3">
+          <Dialog open={isGenDialogOpen} onOpenChange={setIsGenDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="lg"
+                className="shadow-md hover:shadow-lg transition-all border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900 dark:text-purple-400 dark:hover:bg-purple-950 font-medium"
+              >
+                <Sparkles className="mr-2 h-5 w-5 text-purple-600" />
+                Gerador de Depoimentos
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent">
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  Gerador de Depoimentos com IA
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleGenerate} className="space-y-5 mt-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    Nome do Produto *
+                  </Label>
+                  <Input
+                    value={genFormData.productName}
+                    onChange={(e) => setGenFormData({ ...genFormData, productName: e.target.value })}
+                    placeholder="Ex: Fone Bluetooth JBL"
+                    required
+                    disabled={isGenerating}
+                    className="bg-white/50 dark:bg-gray-800/50"
+                  />
+                  <p className="text-xs text-gray-500">
+                    A inteligência artificial ou o gerador criará opiniões reais específicas sobre este produto.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">
+                      Quantidade
+                    </Label>
+                    <select
+                      className="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-gray-800/50 focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
+                      value={genFormData.quantity}
+                      onChange={(e) => setGenFormData({ ...genFormData, quantity: parseInt(e.target.value) })}
+                      disabled={isGenerating}
+                    >
+                      <option value="3">3 Depoimentos</option>
+                      <option value="5">5 Depoimentos</option>
+                      <option value="8">8 Depoimentos</option>
+                      <option value="10">10 Depoimentos</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">
+                      Gênero do Autor
+                    </Label>
+                    <select
+                      className="w-full p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-gray-800/50 focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
+                      value={genFormData.gender}
+                      onChange={(e: any) => setGenFormData({ ...genFormData, gender: e.target.value })}
+                      disabled={isGenerating}
+                    >
+                      <option value="both">Ambos (Misto)</option>
+                      <option value="female">Feminino</option>
+                      <option value="male">Masculino</option>
+                    </select>
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsGenDialogOpen(false)}
+                    disabled={isGenerating}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isGenerating}
+                    className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 min-w-[140px]"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Gerar
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={resetForm}
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Criar Prova Social
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-none shadow-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-md">
@@ -632,7 +938,8 @@ const SocialProofPage = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </motion.div>
+      </div>
+    </motion.div>
 
       {/* Métricas com animação */}
       <div className="grid gap-6 md:grid-cols-3">
