@@ -196,6 +196,13 @@ Implementamos e sincronizamos por completo os descontos automáticos baseados na
 
 ---
 
+## Correções Adicionais - Hotfix do Preview de Templates (Customize)
+- **Problema:** A página de personalização de templates (`/checkout/customize`) exibia uma tela preta de erro com `ReferenceError: calculatePotentialCashback is not defined` ao tentar carregar o preview em tempo real de qualquer template (Minimalista, Estilo TikTok, Estilo Shopify Pay). Isso ocorria porque a função era chamada no render JSX mas sua definição estava ausente no arquivo do checkout público.
+- **Solução:** Implementamos a função `calculatePotentialCashback` síncrona dentro de `PublicCheckoutPage.tsx` para avaliar dinamicamente o retorno com base no total do carrinho (`finalTotalWithBumps`) e na regra de cashback ativa do banco (`activeCashbackRule`).
+- **Resultado:** O preview do customizador de templates agora renderiza e atualiza perfeitamente de forma reativa e sem travar.
+
+---
+
 ## Compilação e Validação (Sucesso)
 - Executado `npm run build` na raiz do projeto com sucesso completo. O bundle foi gerado perfeitamente sem nenhuma falha de compilação ou tipo no TypeScript nos arquivos criados ou modificados.
 
