@@ -890,20 +890,20 @@ export const CheckoutCustomizationSidebar: React.FC<
   return (
     <div className="w-80 bg-[#070b13] border-r border-white/5 flex flex-col overflow-hidden shadow-2xl">
       {/* Header da Sidebar - Logo e Branding */}
-      <div className="px-4 pt-5 pb-12 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
+      <div className="px-5 pt-6 pb-12 border-b border-white/5 bg-[#0b0f19]/50 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
             <img
               src="/syncads-logo.svg"
               alt="SyncAds Logo"
-              className="h-10 w-10 object-contain"
+              className="h-12 w-12 object-contain"
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-lg font-black leading-tight text-white tracking-tight">
+            <h1 className="text-xl font-black leading-tight text-white tracking-tight">
               SyncAds
             </h1>
-            <p className="text-[9.5px] font-bold tracking-wider text-blue-400 -mt-0.5">
+            <p className="text-[11px] font-bold tracking-wider text-blue-400 -mt-0.5">
               MARKETING AI
             </p>
           </div>
