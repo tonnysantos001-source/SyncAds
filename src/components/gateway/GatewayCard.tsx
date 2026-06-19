@@ -1,11 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import GatewayLogo from "./GatewayLogo";
-import { CheckCircle2, Globe2, MapPin, Zap, TrendingUp } from "lucide-react";
+import { CheckCircle2, Globe2, MapPin, Zap, TrendingUp, ChevronRight } from "lucide-react";
 
 interface GatewayCardProps {
   id: string;
@@ -19,6 +19,7 @@ interface GatewayCardProps {
   isActive?: boolean;
   isPopular?: boolean;
   isNew?: boolean;
+  description?: string;
   onClick?: () => void;
   delay?: number;
   connectionStatus?: "connected" | "configured_without_test" | "failed" | "not_configured";
@@ -36,6 +37,7 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
   isActive,
   isPopular = false,
   isNew = false,
+  description,
   onClick,
   delay = 0,
   connectionStatus,
@@ -52,175 +54,122 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.4, delay }}
+      whileHover={{ y: -2 }}
     >
       <Card
         className={cn(
-          "relative cursor-pointer overflow-hidden group",
-          "border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl",
-          "shadow-lg hover:shadow-2xl transition-all duration-300",
-          isActive && "ring-2 ring-green-500/50 dark:ring-green-500/30",
+          "relative cursor-pointer overflow-hidden p-5 flex items-center justify-between gap-4 border",
+          "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800/80",
+          "shadow-sm hover:shadow-md transition-all duration-200 group",
+          isActive && "border-green-500/30 bg-green-50/10 dark:bg-green-950/5"
         )}
         onClick={handleClick}
       >
-        {/* Gradient Blob Background */}
-        <div
-          className={cn(
-            "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
-            isActive
-              ? "bg-gradient-to-br from-green-500 to-emerald-600"
-              : "bg-gradient-to-br from-blue-500 to-purple-600",
-          )}
-        />
+        {/* Left Side: Logo + Information */}
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          {/* Logo container */}
+          <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 overflow-hidden transition-all duration-200 group-hover:scale-105">
+            <GatewayLogo
+              name={name}
+              logo={logo}
+              slug={slug}
+              size="md"
+              className="border-0 bg-transparent rounded-none"
+            />
+          </div>
 
-        {/* Status Indicator Bar */}
-        {isActive && (
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 animate-pulse" />
-        )}
+          {/* Info panel */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                {name}
+              </h3>
+              
+              {/* Type Badge */}
+              {type === "nacional" && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-50/50 text-green-700 dark:bg-green-950/20 dark:text-green-400 border-green-200/50 dark:border-green-800/30 text-[10px] px-1.5 py-0 font-medium rounded-md"
+                >
+                  Nacional
+                </Badge>
+              )}
+              {type === "global" && (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50/50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/30 text-[10px] px-1.5 py-0 font-medium rounded-md"
+                >
+                  Global
+                </Badge>
+              )}
+              {type === "both" && (
+                <Badge
+                  variant="outline"
+                  className="bg-purple-50/50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400 border-purple-200/50 dark:border-purple-800/30 text-[10px] px-1.5 py-0 font-medium rounded-md"
+                >
+                  Híbrido
+                </Badge>
+              )}
 
-        <CardContent className="p-6">
-          {/* Header: Logo + Badges */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start gap-4">
-              {/* Logo */}
-              <GatewayLogo
-                name={name}
-                logo={logo}
-                slug={slug}
-                size="lg"
-                className="group-hover:scale-110 transition-transform duration-300"
-              />
-
-              {/* Name and Status */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text transition-all duration-300">
-                    {name}
-                  </h3>
-                </div>
-
-                {/* Type Badges */}
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {(type === "nacional" || type === "both") && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 text-green-700 dark:text-green-400 text-xs border-0 backdrop-blur-sm"
-                    >
-                      <MapPin className="w-3 h-3 mr-1" />
-                      Nacional
-                    </Badge>
-                  )}
-                  {(type === "global" || type === "both") && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-700 dark:text-blue-400 text-xs border-0 backdrop-blur-sm"
-                    >
-                      <Globe2 className="w-3 h-3 mr-1" />
-                      Global
-                    </Badge>
-                  )}
-                  {connectionStatus === "connected" && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-500/10 text-green-700 dark:text-green-400 text-xs border border-green-500/20 backdrop-blur-sm"
-                    >
-                      🟢 Conectado
-                    </Badge>
-                  )}
-                  {connectionStatus === "configured_without_test" && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 text-xs border border-yellow-500/20 backdrop-blur-sm"
-                    >
-                      🟡 Configurado sem teste
-                    </Badge>
-                  )}
-                  {connectionStatus === "failed" && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-red-500/10 text-red-700 dark:text-red-400 text-xs border border-red-500/20 backdrop-blur-sm"
-                    >
-                      🔴 Falha na conexão
-                    </Badge>
-                  )}
-                  {connectionStatus === "not_configured" && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-gray-500/10 text-gray-700 dark:text-gray-400 text-xs border border-gray-500/20 backdrop-blur-sm"
-                    >
-                      ⚪ Não configurado
-                    </Badge>
-                  )}
-                </div>
-              </div>
+              {/* Status indicator badge (if active) */}
+              {isActive ? (
+                <span className="flex items-center gap-1 text-[11px] font-medium text-green-700 dark:text-green-400 bg-green-500/10 dark:bg-green-500/5 px-2 py-0.5 rounded-full border border-green-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Ativo
+                </span>
+              ) : (
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                  Inativo
+                </span>
+              )}
             </div>
 
-            {/* Active Indicator */}
+            {/* Description */}
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+              {description || "Integração de pagamentos para sua loja"}
+            </p>
+
+            {/* Connection status tag */}
             {isActive && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="flex-shrink-0"
-              >
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                    Ativo
+              <div className="mt-1 flex items-center gap-1.5">
+                {connectionStatus === "connected" && (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                    Conectado e testado
                   </span>
-                </div>
-              </motion.div>
+                )}
+                {connectionStatus === "configured_without_test" && (
+                  <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-yellow-500" />
+                    Configurado sem teste
+                  </span>
+                )}
+                {connectionStatus === "failed" && (
+                  <span className="text-[10px] text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-red-500" />
+                    Falha na última sincronização
+                  </span>
+                )}
+              </div>
             )}
           </div>
+        </div>
 
-          {/* Special Badges Row */}
-          {(isPopular || isNew || isVerified) && (
-            <div className="flex gap-2 mb-3">
-              {isPopular && (
-                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 text-xs">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Popular
-                </Badge>
-              )}
-              {isNew && (
-                <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs">
-                  <Zap className="w-3 h-3 mr-1" />
-                  Novo
-                </Badge>
-              )}
-              {isVerified && (
-                <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Verificado
-                </Badge>
-              )}
-            </div>
+        {/* Right Side: Chevron Link Arrow */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isPopular && (
+            <Badge className="bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/10 hover:to-red-500/10 text-orange-700 dark:text-orange-400 border border-orange-200/30 text-[10px] px-1.5 py-0 font-medium rounded-md">
+              Popular
+            </Badge>
           )}
-
-          {/* Hover Action Indicator */}
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-              Configurar
-              <motion.div
-                animate={{ x: [0, 4, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-              >
-                →
-              </motion.div>
-            </div>
-          </div>
-        </CardContent>
-
-        {/* Bottom Gradient Line */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all duration-200" />
+        </div>
       </Card>
     </motion.div>
   );
 };
 
 export default GatewayCard;
-

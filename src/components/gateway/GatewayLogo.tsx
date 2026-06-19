@@ -61,7 +61,16 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     className,
   );
 
-  // Nível 1: PRIORIDADE MÁXIMA - Logo oficial local (SVG/PNG transparente)
+  // Nível 1: PRIORIDADE MÁXIMA - Logo customizado SVG em React (alta fidelidade)
+  if (CustomLogo) {
+    return (
+      <div className={baseClasses}>
+        <CustomLogo className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  // Nível 2: Logo oficial local (SVG/PNG transparente)
   if (localLogo && hasLocal) {
     return (
       <div className={baseClasses}>
@@ -74,7 +83,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 2: Se tiver ícone do react-pay-icons, usar ele
+  // Nível 3: Se tiver ícone do react-pay-icons, usar ele
   if (IconComponent && !imageError) {
     return (
       <div className={baseClasses}>
@@ -86,7 +95,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 3: Se tiver URL de logo oficial externa e não houver erro, usar ela
+  // Nível 4: Se tiver URL de logo oficial externa e não houver erro, usar ela
   if (logo && !imageError) {
     return (
       <div className={baseClasses}>
@@ -105,15 +114,6 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
         />
-      </div>
-    );
-  }
-
-  // Nível 4: Se tiver logo customizado SVG, usar ele (fallback se URL falhar)
-  if (CustomLogo) {
-    return (
-      <div className={baseClasses}>
-        <CustomLogo className="w-full h-full object-contain" />
       </div>
     );
   }
