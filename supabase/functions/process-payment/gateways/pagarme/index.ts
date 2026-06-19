@@ -46,7 +46,7 @@ export class PagarmeGateway extends BaseGateway {
 
   endpoints = {
     production: "https://api.pagar.me/core/v5",
-    sandbox: "https://api.pagar.me/core/v5", // Usa mesma URL mas com chave de teste
+    sandbox: "https://api.pagar.me/core/v5", // v5 usa mesma URL com chave de teste
   };
 
   /**
@@ -70,7 +70,6 @@ export class PagarmeGateway extends BaseGateway {
         };
       }
 
-      // Validar formato das chaves
       if (!credentials.apiKey.startsWith("sk_")) {
         return {
           isValid: false,
@@ -78,7 +77,6 @@ export class PagarmeGateway extends BaseGateway {
         };
       }
 
-      // Testar credenciais fazendo uma chamada à API
       try {
         const response = await fetch(`${this.endpoints.production}/customers?page=1&size=1`, {
           method: "GET",
@@ -99,13 +97,13 @@ export class PagarmeGateway extends BaseGateway {
         if (response.status === 401) {
           return {
             isValid: false,
-            message: "Invalid API Key",
+            message: "Invalid API Key - unauthorized",
           };
         }
 
         return {
           isValid: true,
-          message: "Credentials accepted (could not fully validate)",
+          message: "Credentials accepted (validation incomplete)",
         };
       } catch (error: any) {
         this.log("warn", "Could not validate credentials online, accepting them");
@@ -124,12 +122,27 @@ export class PagarmeGateway extends BaseGateway {
   }
 
   /**
+   * Health Check do gateway (botão Testar Conexão)
+   */
+  async healthCheck(config: GatewayConfig): Promise<CredentialValidationResult> {
+    const creds = await this.resolveCredentials(config);
+    return this.validateCredentials(creds);
+  }
+
+  /**
    * Processa um pagamento
    */
   async processPayment(
     request: PaymentRequest,
     config: GatewayConfig
   ): Promise<PaymentResponse> {
+    const startTime = Date.now();
+    let responseData: any = null;
+    let statusCode: number | null = null;
+    let statusText = "failed";
+    let errorMsg: string | undefined = undefined;
+    let payloadEnv: any = null;
+
     try {
       this.validatePaymentRequest(request);
 
@@ -139,30 +152,204 @@ export class PagarmeGateway extends BaseGateway {
         method: request.paymentMethod,
       });
 
-      const endpoint = this.getEndpoint(config);
+      const credentials = await this.resolveCredentials(config);
+      const endpoint = this.endpoints.production;
 
       // PIX
       if (request.paymentMethod === PaymentMethod.PIX) {
-        return await this.processPIX(request, config, endpoint);
+        payloadEnv = this.buildPIXPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${btoa(credentials.apiKey + ":")}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || "Pagar.me PIX creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+        const lastTransaction = charge?.last_transaction;
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: this.normalizePagarmeStatus(charge?.status || "pending"),
+          qrCode: lastTransaction?.qr_code,
+          qrCodeBase64: lastTransaction?.qr_code_url,
+          expiresAt: lastTransaction?.expires_at,
+          message: "PIX created successfully via Pagar.me",
+        });
       }
 
       // Cartão de Crédito
       if (request.paymentMethod === PaymentMethod.CREDIT_CARD) {
-        return await this.processCreditCard(request, config, endpoint);
+        payloadEnv = this.buildCreditCardPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${btoa(credentials.apiKey + ":")}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || "Pagar.me Card creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+        const lastTransaction = charge?.last_transaction;
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: this.normalizePagarmeStatus(charge?.status || "pending"),
+          authorizationCode: lastTransaction?.acquirer_auth_code,
+          nsu: lastTransaction?.acquirer_nsu,
+          tid: lastTransaction?.acquirer_tid,
+          message: "Credit card payment processed successfully via Pagar.me",
+        });
       }
 
       // Cartão de Débito
       if (request.paymentMethod === PaymentMethod.DEBIT_CARD) {
-        return await this.processDebitCard(request, config, endpoint);
+        payloadEnv = this.buildDebitCardPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${btoa(credentials.apiKey + ":")}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || "Pagar.me Debit Card creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+        const lastTransaction = charge?.last_transaction;
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: PaymentStatus.PENDING,
+          redirectUrl: lastTransaction?.url,
+          message: "Debit card payment initiated via Pagar.me",
+        });
       }
 
       // Boleto
       if (request.paymentMethod === PaymentMethod.BOLETO) {
-        return await this.processBoleto(request, config, endpoint);
+        payloadEnv = this.buildBoletoPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${btoa(credentials.apiKey + ":")}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || "Pagar.me Boleto creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+        const lastTransaction = charge?.last_transaction;
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: PaymentStatus.PENDING,
+          paymentUrl: lastTransaction?.url,
+          barcodeNumber: lastTransaction?.barcode,
+          digitableLine: lastTransaction?.line,
+          expiresAt: lastTransaction?.due_at,
+          message: "Boleto created successfully via Pagar.me",
+        });
       }
 
       throw new Error(`Payment method ${request.paymentMethod} not supported`);
     } catch (error: any) {
+      errorMsg = error.message;
+      // Gravar log enriquecido de erro
+      await this.saveGatewayLog({
+        userId: request.userId,
+        environment: config.environment || "production",
+        transactionId: request.metadata?.transactionId,
+        request: payloadEnv || { orderId: request.orderId, method: request.paymentMethod },
+        response: { error: error.toString() },
+        status: "failed",
+        statusCode: statusCode || 500,
+        executionTime: Date.now() - startTime,
+        errorMessage: errorMsg,
+      });
+
       return this.createErrorResponse(
         error,
         "Failed to process payment via Pagar.me"
@@ -170,15 +357,10 @@ export class PagarmeGateway extends BaseGateway {
     }
   }
 
-  /**
-   * Processa pagamento PIX
-   */
-  private async processPIX(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const orderData = {
+  // ===== AUXILIARES DE CONSTRUÇÃO DE PAYLOAD =====
+
+  private buildPIXPayload(request: PaymentRequest) {
+    return {
       code: request.orderId,
       customer: {
         name: request.customer.name,
@@ -205,47 +387,15 @@ export class PagarmeGateway extends BaseGateway {
         {
           payment_method: "pix",
           pix: {
-            expires_in: 3600, // 1 hora
+            expires_in: 3600,
           },
         },
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${btoa(config.credentials.apiKey + ":")}`,
-        },
-        body: JSON.stringify(orderData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-    const lastTransaction = charge?.last_transaction;
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: this.normalizePagarmeStatus(charge?.status || "pending"),
-      qrCode: lastTransaction?.qr_code,
-      qrCodeBase64: lastTransaction?.qr_code_url,
-      expiresAt: lastTransaction?.expires_at,
-      message: "PIX created successfully via Pagar.me",
-    });
   }
 
-  /**
-   * Processa pagamento com Cartão de Crédito
-   */
-  private async processCreditCard(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const orderData = {
+  private buildCreditCardPayload(request: PaymentRequest) {
+    return {
       code: request.orderId,
       customer: {
         name: request.customer.name,
@@ -272,7 +422,7 @@ export class PagarmeGateway extends BaseGateway {
         {
           payment_method: "credit_card",
           credit_card: {
-            installments: 1,
+            installments: request.metadata?.installments || 1,
             statement_descriptor: "SYNCADS",
             card: {
               number: request.card?.number.replace(/\s/g, ""),
@@ -293,42 +443,10 @@ export class PagarmeGateway extends BaseGateway {
         },
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${btoa(config.credentials.apiKey + ":")}`,
-        },
-        body: JSON.stringify(orderData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-    const lastTransaction = charge?.last_transaction;
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: this.normalizePagarmeStatus(charge?.status || "pending"),
-      authorizationCode: lastTransaction?.acquirer_auth_code,
-      nsu: lastTransaction?.acquirer_nsu,
-      tid: lastTransaction?.acquirer_tid,
-      message: "Credit card payment processed successfully via Pagar.me",
-    });
   }
 
-  /**
-   * Processa pagamento com Cartão de Débito
-   */
-  private async processDebitCard(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const orderData = {
+  private buildDebitCardPayload(request: PaymentRequest) {
+    return {
       code: request.orderId,
       customer: {
         name: request.customer.name,
@@ -359,43 +477,13 @@ export class PagarmeGateway extends BaseGateway {
         },
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${btoa(config.credentials.apiKey + ":")}`,
-        },
-        body: JSON.stringify(orderData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-    const lastTransaction = charge?.last_transaction;
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: PaymentStatus.PENDING,
-      redirectUrl: lastTransaction?.url,
-      message: "Debit card payment initiated via Pagar.me",
-    });
   }
 
-  /**
-   * Processa pagamento com Boleto
-   */
-  private async processBoleto(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
+  private buildBoletoPayload(request: PaymentRequest) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
 
-    const orderData = {
+    return {
       code: request.orderId,
       customer: {
         name: request.customer.name,
@@ -430,39 +518,13 @@ export class PagarmeGateway extends BaseGateway {
         {
           payment_method: "boleto",
           boleto: {
-            bank: "001", // Banco do Brasil
+            bank: "001",
             instructions: "Pagar até o vencimento",
             due_at: dueDate.toISOString(),
           },
         },
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${btoa(config.credentials.apiKey + ":")}`,
-        },
-        body: JSON.stringify(orderData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-    const lastTransaction = charge?.last_transaction;
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: PaymentStatus.PENDING,
-      paymentUrl: lastTransaction?.url,
-      barcodeNumber: lastTransaction?.barcode,
-      digitableLine: lastTransaction?.line,
-      expiresAt: lastTransaction?.due_at,
-      message: "Boleto created successfully via Pagar.me",
-    });
   }
 
   /**
@@ -478,16 +540,13 @@ export class PagarmeGateway extends BaseGateway {
         id: payload.id,
       });
 
-      // Pagar.me envia eventos como: charge.paid, charge.refunded, etc
       if (payload.type && payload.data) {
         const data = payload.data;
-        const status = this.normalizePagarmeStatus(data.status);
-
         return {
           success: true,
           processed: true,
-          transactionId: data.id || data.order_id,
-          message: "Pagar.me webhook processed successfully",
+          gatewayTransactionId: data.id || data.order_id,
+          message: `Pagar.me webhook ${payload.type} received`,
         };
       }
 
@@ -516,31 +575,35 @@ export class PagarmeGateway extends BaseGateway {
     try {
       this.log("info", "Getting Pagar.me payment status", { gatewayTransactionId });
 
-      const endpoint = this.getEndpoint(config);
+      const credentials = await this.resolveCredentials(config);
+      const endpoint = this.endpoints.production;
 
-      const response = await this.makeRequest<any>(
-        `${endpoint}/orders/${gatewayTransactionId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${btoa(config.credentials.apiKey + ":")}`,
-          },
-        }
-      );
+      const response = await fetch(`${endpoint}/orders/${gatewayTransactionId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${btoa(credentials.apiKey + ":")}`,
+        },
+      });
 
-      const charge = response.charges?.[0];
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch status from Pagar.me");
+      }
+
+      const data = await response.json();
+      const charge = data.charges?.[0];
 
       return {
         transactionId: gatewayTransactionId,
-        gatewayTransactionId: response.id,
+        gatewayTransactionId: data.id,
         status: this.normalizePagarmeStatus(charge?.status || "pending"),
-        amount: (response.amount || 0) / 100,
+        amount: (data.amount || 0) / 100,
         currency: "BRL",
         paymentMethod: this.mapPagarmePaymentMethod(charge?.payment_method),
-        createdAt: response.created_at,
-        updatedAt: charge?.updated_at || response.created_at,
-        paidAt: charge?.paid_at,
+        createdAt: data.created_at,
+        updatedAt: charge?.updated_at || data.created_at,
+        paidAt: charge?.paid_at || undefined,
       };
     } catch (error: any) {
       throw new GatewayError(

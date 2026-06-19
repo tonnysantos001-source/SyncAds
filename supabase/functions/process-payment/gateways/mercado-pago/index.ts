@@ -63,7 +63,7 @@ export class MercadoPagoGateway extends BaseGateway {
         };
       }
 
-      // Tentar fazer uma chamada de teste à API
+      // Tentar fazer uma chamada de teste à API do Mercado Pago
       try {
         const endpoint = this.endpoints.production;
 
@@ -112,12 +112,27 @@ export class MercadoPagoGateway extends BaseGateway {
   }
 
   /**
+   * Health Check do gateway (botão Testar Conexão)
+   */
+  async healthCheck(config: GatewayConfig): Promise<CredentialValidationResult> {
+    const creds = await this.resolveCredentials(config);
+    return this.validateCredentials(creds);
+  }
+
+  /**
    * Processa um pagamento
    */
   async processPayment(
     request: PaymentRequest,
     config: GatewayConfig
   ): Promise<PaymentResponse> {
+    const startTime = Date.now();
+    let responseData: any = null;
+    let statusCode: number | null = null;
+    let statusText = "failed";
+    let errorMsg: string | undefined = undefined;
+    let payloadEnv: any = null;
+
     try {
       this.validatePaymentRequest(request);
 
@@ -127,7 +142,9 @@ export class MercadoPagoGateway extends BaseGateway {
         method: request.paymentMethod,
       });
 
+      const credentials = await this.resolveCredentials(config);
       const endpoint = this.endpoints.production;
+      const accessToken = credentials.accessToken;
 
       // Configurar por método de pagamento
       switch (request.paymentMethod) {
@@ -151,38 +168,57 @@ export class MercadoPagoGateway extends BaseGateway {
               order_id: request.orderId,
             },
           };
+          payloadEnv = pixPayment;
 
-          const pixResponse = await this.makeRequest<any>(
-            `${endpoint}/payments`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${config.credentials.accessToken}`,
-                "X-Idempotency-Key": request.orderId,
-              },
-              body: JSON.stringify(pixPayment),
-            }
-          );
+          const response = await fetch(`${endpoint}/payments`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+              "X-Idempotency-Key": request.orderId,
+            },
+            body: JSON.stringify(pixPayment),
+          });
+
+          statusCode = response.status;
+          responseData = await response.json();
+
+          if (!response.ok) {
+            throw new Error(responseData.message || responseData.error || "Mercado Pago PIX creation failed");
+          }
+
+          statusText = "success";
+
+          // Gravar log enriquecido
+          await this.saveGatewayLog({
+            userId: request.userId,
+            environment: config.environment || "production",
+            transactionId: request.metadata?.transactionId,
+            request: pixPayment,
+            response: responseData,
+            status: "success",
+            statusCode: statusCode || 200,
+            executionTime: Date.now() - startTime,
+          });
 
           return this.createSuccessResponse({
             transactionId: request.orderId,
-            gatewayTransactionId: pixResponse.id?.toString(),
-            status: this.normalizeMercadoPagoStatus(pixResponse.status),
-            paymentUrl: pixResponse.point_of_interaction?.transaction_data?.ticket_url,
-            qrCode: pixResponse.point_of_interaction?.transaction_data?.qr_code,
-            qrCodeBase64: pixResponse.point_of_interaction?.transaction_data?.qr_code_base64,
-            expiresAt: pixResponse.date_of_expiration,
+            gatewayTransactionId: responseData.id?.toString(),
+            status: this.normalizeMercadoPagoStatus(responseData.status),
+            paymentUrl: responseData.point_of_interaction?.transaction_data?.ticket_url,
+            qrCode: responseData.point_of_interaction?.transaction_data?.qr_code,
+            qrCodeBase64: responseData.point_of_interaction?.transaction_data?.qr_code_base64,
+            expiresAt: responseData.date_of_expiration,
             message: "Mercado Pago PIX payment created successfully",
           });
         }
 
         case PaymentMethod.CREDIT_CARD: {
-          const cardPayment = {
+          const cardPayment: any = {
             transaction_amount: request.amount,
             description: `Pedido #${request.orderId}`,
-            payment_method_id: "visa", // Será ajustado baseado no token do cartão
-            installments: request.paymentDetails?.installments || 1,
+            payment_method_id: request.card?.brand?.toLowerCase() || "visa",
+            installments: request.metadata?.installments || 1,
             external_reference: request.orderId,
             payer: {
               email: request.customer.email,
@@ -199,30 +235,50 @@ export class MercadoPagoGateway extends BaseGateway {
             },
           };
 
-          // Se tiver dados do cartão, adicionar token
-          if (request.paymentDetails?.card) {
-            // Nota: Na prática, o token do cartão deve ser gerado no frontend usando o SDK do MP
-            // Aqui assumimos que será enviado um cardToken já gerado
-            (cardPayment as any).token = request.paymentDetails.cardToken;
+          // Se tiver token de cartão pré-gerado, adicionar
+          if (request.metadata?.cardToken) {
+            cardPayment.token = request.metadata.cardToken;
+          } else if (request.card) {
+            // Em ambiente sandbox, podemos tentar simular ou criar sem token
+            cardPayment.token = "sandbox-token";
+          }
+          payloadEnv = cardPayment;
+
+          const response = await fetch(`${endpoint}/payments`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+              "X-Idempotency-Key": request.orderId,
+            },
+            body: JSON.stringify(cardPayment),
+          });
+
+          statusCode = response.status;
+          responseData = await response.json();
+
+          if (!response.ok) {
+            throw new Error(responseData.message || responseData.error || "Mercado Pago Card creation failed");
           }
 
-          const cardResponse = await this.makeRequest<any>(
-            `${endpoint}/payments`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${config.credentials.accessToken}`,
-                "X-Idempotency-Key": request.orderId,
-              },
-              body: JSON.stringify(cardPayment),
-            }
-          );
+          statusText = "success";
+
+          // Gravar log enriquecido
+          await this.saveGatewayLog({
+            userId: request.userId,
+            environment: config.environment || "production",
+            transactionId: request.metadata?.transactionId,
+            request: cardPayment,
+            response: responseData,
+            status: "success",
+            statusCode: statusCode || 200,
+            executionTime: Date.now() - startTime,
+          });
 
           return this.createSuccessResponse({
             transactionId: request.orderId,
-            gatewayTransactionId: cardResponse.id?.toString(),
-            status: this.normalizeMercadoPagoStatus(cardResponse.status),
+            gatewayTransactionId: responseData.id?.toString(),
+            status: this.normalizeMercadoPagoStatus(responseData.status),
             message: "Mercado Pago card payment created successfully",
           });
         }
@@ -243,12 +299,12 @@ export class MercadoPagoGateway extends BaseGateway {
                 number: this.formatDocument(request.customer.document).replace(/\D/g, ""),
               },
               address: {
-                zip_code: request.customer.address?.zipCode?.replace(/\D/g, "") || "01000000",
-                street_name: request.customer.address?.street || "Rua Exemplo",
-                street_number: request.customer.address?.number || "100",
-                neighborhood: request.customer.address?.district || "Centro",
-                city: request.customer.address?.city || "São Paulo",
-                federal_unit: request.customer.address?.state || "SP",
+                zip_code: request.billingAddress?.zipCode?.replace(/\D/g, "") || "01000000",
+                street_name: request.billingAddress?.street || "Rua Exemplo",
+                street_number: request.billingAddress?.number || "100",
+                neighborhood: request.billingAddress?.neighborhood || "Centro",
+                city: request.billingAddress?.city || "São Paulo",
+                federal_unit: request.billingAddress?.state || "SP",
               },
             },
             notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook/mercado-pago`,
@@ -256,27 +312,46 @@ export class MercadoPagoGateway extends BaseGateway {
               order_id: request.orderId,
             },
           };
+          payloadEnv = boletoPayment;
 
-          const boletoResponse = await this.makeRequest<any>(
-            `${endpoint}/payments`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${config.credentials.accessToken}`,
-                "X-Idempotency-Key": request.orderId,
-              },
-              body: JSON.stringify(boletoPayment),
-            }
-          );
+          const response = await fetch(`${endpoint}/payments`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+              "X-Idempotency-Key": request.orderId,
+            },
+            body: JSON.stringify(boletoPayment),
+          });
+
+          statusCode = response.status;
+          responseData = await response.json();
+
+          if (!response.ok) {
+            throw new Error(responseData.message || responseData.error || "Mercado Pago Boleto creation failed");
+          }
+
+          statusText = "success";
+
+          // Gravar log enriquecido
+          await this.saveGatewayLog({
+            userId: request.userId,
+            environment: config.environment || "production",
+            transactionId: request.metadata?.transactionId,
+            request: boletoPayment,
+            response: responseData,
+            status: "success",
+            statusCode: statusCode || 200,
+            executionTime: Date.now() - startTime,
+          });
 
           return this.createSuccessResponse({
             transactionId: request.orderId,
-            gatewayTransactionId: boletoResponse.id?.toString(),
-            status: this.normalizeMercadoPagoStatus(boletoResponse.status),
-            boletoUrl: boletoResponse.transaction_details?.external_resource_url,
-            boletoBarcode: boletoResponse.barcode?.content,
-            expiresAt: boletoResponse.date_of_expiration,
+            gatewayTransactionId: responseData.id?.toString(),
+            status: this.normalizeMercadoPagoStatus(responseData.status),
+            boletoUrl: responseData.transaction_details?.external_resource_url,
+            boletoBarcode: responseData.barcode?.content,
+            expiresAt: responseData.date_of_expiration,
             message: "Mercado Pago boleto payment created successfully",
           });
         }
@@ -289,6 +364,20 @@ export class MercadoPagoGateway extends BaseGateway {
           );
       }
     } catch (error: any) {
+      errorMsg = error.message;
+      // Gravar log enriquecido de erro
+      await this.saveGatewayLog({
+        userId: request.userId,
+        environment: config.environment || "production",
+        transactionId: request.metadata?.transactionId,
+        request: payloadEnv || { orderId: request.orderId, method: request.paymentMethod },
+        response: { error: error.toString() },
+        status: "failed",
+        statusCode: statusCode || 500,
+        executionTime: Date.now() - startTime,
+        errorMessage: errorMsg,
+      });
+
       return this.createErrorResponse(
         error,
         "Failed to process payment via Mercado Pago"
@@ -306,15 +395,12 @@ export class MercadoPagoGateway extends BaseGateway {
     try {
       this.log("info", "Processing Mercado Pago webhook", { payload });
 
-      // Mercado Pago envia notificações no formato:
-      // { id, live_mode, type, date_created, application_id, user_id, version, api_version, action, data: { id } }
-
       if (payload.type === "payment" && payload.data?.id) {
         return {
           success: true,
           processed: true,
           gatewayTransactionId: payload.data.id.toString(),
-          message: "Mercado Pago webhook received, needs status check",
+          message: "Mercado Pago webhook received, status check needed",
         };
       }
 
@@ -343,29 +429,35 @@ export class MercadoPagoGateway extends BaseGateway {
     try {
       this.log("info", "Getting Mercado Pago payment status", { gatewayTransactionId });
 
+      const credentials = await this.resolveCredentials(config);
       const endpoint = this.endpoints.production;
+      const accessToken = credentials.accessToken;
 
-      const response = await this.makeRequest<any>(
-        `${endpoint}/payments/${gatewayTransactionId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.credentials.accessToken}`,
-          },
-        }
-      );
+      const response = await fetch(`${endpoint}/payments/${gatewayTransactionId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch payment status from Mercado Pago");
+      }
+
+      const data = await response.json();
 
       return {
-        transactionId: response.external_reference || response.metadata?.order_id,
-        gatewayTransactionId: response.id?.toString(),
-        status: this.normalizeMercadoPagoStatus(response.status),
-        amount: response.transaction_amount || 0,
-        currency: response.currency_id || "BRL",
-        paymentMethod: this.normalizePaymentMethod(response.payment_method_id),
-        createdAt: response.date_created || new Date().toISOString(),
-        updatedAt: response.date_last_updated || new Date().toISOString(),
-        paidAt: response.status === "approved" ? response.date_approved : undefined,
+        transactionId: data.external_reference || data.metadata?.order_id,
+        gatewayTransactionId: data.id?.toString(),
+        status: this.normalizeMercadoPagoStatus(data.status),
+        amount: data.transaction_amount || 0,
+        currency: data.currency_id || "BRL",
+        paymentMethod: this.normalizePaymentMethod(data.payment_method_id),
+        createdAt: data.date_created || new Date().toISOString(),
+        updatedAt: data.date_last_updated || new Date().toISOString(),
+        paidAt: data.status === "approved" ? data.date_approved : undefined,
       };
     } catch (error: any) {
       throw new GatewayError(
@@ -387,21 +479,25 @@ export class MercadoPagoGateway extends BaseGateway {
     try {
       this.log("info", "Canceling Mercado Pago payment", { gatewayTransactionId });
 
+      const credentials = await this.resolveCredentials(config);
       const endpoint = this.endpoints.production;
+      const accessToken = credentials.accessToken;
 
-      await this.makeRequest<any>(
-        `${endpoint}/payments/${gatewayTransactionId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.credentials.accessToken}`,
-          },
-          body: JSON.stringify({
-            status: "cancelled",
-          }),
-        }
-      );
+      const response = await fetch(`${endpoint}/payments/${gatewayTransactionId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          status: "cancelled",
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "Failed to cancel payment in Mercado Pago");
+      }
 
       return this.createSuccessResponse({
         transactionId: gatewayTransactionId,

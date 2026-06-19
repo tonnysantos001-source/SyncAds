@@ -29,6 +29,7 @@ export interface GatewayConfig {
   }[];
   apiDocs: string;
   testMode: boolean;
+  implemented?: boolean;
 }
 
 // ============================================
@@ -1826,6 +1827,12 @@ export const gatewaysList: GatewayConfig[] = [
     testMode: true,
   },
 ];
+
+// Map implemented flag dynamically for Sprint 1
+const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme"];
+gatewaysList.forEach((g) => {
+  g.implemented = IMPLEMENTED_SLUGS.includes(g.slug);
+});
 
 // ============================================
 // HELPER FUNCTIONS

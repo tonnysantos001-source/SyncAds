@@ -290,7 +290,7 @@ export interface PaymentValidationResult {
  * }
  * ```
  */
-export interface GatewayProcessor {
+export interface PaymentGateway {
   /** Nome do gateway */
   name: string;
 
@@ -301,70 +301,74 @@ export interface GatewayProcessor {
   supportedMethods: PaymentMethod[];
 
   /**
-   * Valida as credenciais do gateway
-   * Faz uma chamada de teste à API para verificar se as credenciais são válidas
-   */
-  validateCredentials(
-    credentials: GatewayCredentials,
-  ): Promise<CredentialValidationResult>;
-
-  /**
-   * Processa um pagamento
+   * Processa um pagamento (antigo processPayment)
    * Este é o método principal que cria a transação no gateway
    */
-  processPayment(
+  createPayment(
     request: PaymentRequest,
     config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
   /**
-   * Processa webhooks do gateway
-   * Recebe notificações de mudança de status de pagamento
-   */
-  handleWebhook(payload: any, signature?: string): Promise<WebhookResponse>;
-
-  /**
-   * Consulta o status de um pagamento
+   * Consulta o status de um pagamento (antigo getPaymentStatus)
    * Útil para sincronizar o status quando não houver webhook
    */
-  getPaymentStatus(
+  getPayment(
     gatewayTransactionId: string,
     config: GatewayConfig,
   ): Promise<PaymentStatusResponse>;
 
   /**
-   * Reembolsa um pagamento (opcional)
+   * Reembolsa um pagamento
    * Nem todos os gateways suportam reembolso via API
    */
-  refundPayment?(
+  refundPayment(
     request: RefundRequest,
     config: GatewayConfig,
   ): Promise<RefundResponse>;
 
   /**
-   * Cancela um pagamento pendente (opcional)
+   * Cancela um pagamento pendente
    */
-  cancelPayment?(
+  cancelPayment(
     gatewayTransactionId: string,
     config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
   /**
-   * Valida assinatura do webhook (opcional mas recomendado)
+   * Valida assinatura e processa webhooks do gateway
+   * Recebe notificações de mudança de status de pagamento
    */
-  validateWebhookSignature?(
+  validateWebhook(
     payload: any,
-    signature: string,
-    secret: string,
-  ): WebhookValidationResult;
+    signature?: string,
+    secret?: string,
+  ): Promise<WebhookValidationResult>;
+
+  /**
+   * Verifica se as credenciais do gateway são válidas (antigo validateCredentials)
+   * Faz uma chamada de teste de conexão (Health Check)
+   */
+  healthCheck(
+    config: GatewayConfig,
+  ): Promise<CredentialValidationResult>;
+}
+
+// ===== RETROCOMPATIBILITY ALIASES =====
+export interface GatewayProcessor extends PaymentGateway {
+  // Mantemos compatibilidade com assinaturas antigas se necessário
+  validateCredentials(credentials: GatewayCredentials): Promise<CredentialValidationResult>;
+  processPayment(request: PaymentRequest, config: GatewayConfig): Promise<PaymentResponse>;
+  handleWebhook(payload: any, signature?: string): Promise<WebhookResponse>;
+  getPaymentStatus(gatewayTransactionId: string, config: GatewayConfig): Promise<PaymentStatusResponse>;
 }
 
 // ===== HELPER TYPES =====
 
-export type GatewayFactory = () => GatewayProcessor;
+export type GatewayFactory = () => PaymentGateway;
 
 export interface GatewayRegistry {
-  [slug: string]: GatewayProcessor;
+  [slug: string]: PaymentGateway;
 }
 
 export interface PaymentMethodCapabilities {

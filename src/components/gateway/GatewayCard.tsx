@@ -21,6 +21,7 @@ interface GatewayCardProps {
   isNew?: boolean;
   onClick?: () => void;
   delay?: number;
+  connectionStatus?: "connected" | "configured_without_test" | "failed" | "not_configured";
 }
 
 export const GatewayCard: React.FC<GatewayCardProps> = ({
@@ -37,6 +38,7 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
   isNew = false,
   onClick,
   delay = 0,
+  connectionStatus,
 }) => {
   const navigate = useNavigate();
 
@@ -119,6 +121,38 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
                     >
                       <Globe2 className="w-3 h-3 mr-1" />
                       Global
+                    </Badge>
+                  )}
+                  {connectionStatus === "connected" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-500/10 text-green-700 dark:text-green-400 text-xs border border-green-500/20 backdrop-blur-sm"
+                    >
+                      🟢 Conectado
+                    </Badge>
+                  )}
+                  {connectionStatus === "configured_without_test" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 text-xs border border-yellow-500/20 backdrop-blur-sm"
+                    >
+                      🟡 Configurado sem teste
+                    </Badge>
+                  )}
+                  {connectionStatus === "failed" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-red-500/10 text-red-700 dark:text-red-400 text-xs border border-red-500/20 backdrop-blur-sm"
+                    >
+                      🔴 Falha na conexão
+                    </Badge>
+                  )}
+                  {connectionStatus === "not_configured" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-gray-500/10 text-gray-700 dark:text-gray-400 text-xs border border-gray-500/20 backdrop-blur-sm"
+                    >
+                      ⚪ Não configurado
                     </Badge>
                   )}
                 </div>

@@ -100,10 +100,16 @@ const GatewaysListPage = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeGatewayIds, setActiveGatewayIds] = useState<string[]>([]);
+  const [gatewayConfigsMap, setGatewayConfigsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const user = useAuthStore((state) => state.user);
 
-  // Buscar gateways ativos (configurados e ativos)
+  // Filtrar apenas gateways realmente implementados
+  const implementedGateways = useMemo(() => {
+    return gatewaysList.filter((g) => g.implemented === true);
+  }, []);
+
+  // Buscar gateways ativos (configurados e ativos) e seus status ricos de conexão
   useEffect(() => {
     const loadActiveGateways = async () => {
       if (!user?.id) {
@@ -113,15 +119,14 @@ const GatewaysListPage = () => {
       }
 
       console.log(
-        "🔍 [GATEWAYS] Buscando gateways ativos para usuário:",
+        "🔍 [GATEWAYS] Buscando gateways ativos e status para usuário:",
         user.id,
       );
 
       const { data: configs, error } = await supabase
         .from("GatewayConfig")
-        .select("gatewayId, Gateway(name, slug)")
-        .eq("userId", user.id)
-        .eq("isActive", true);
+        .select("gatewayId, isActive, status")
+        .eq("userId", user.id);
 
       console.log("📊 [GATEWAYS] Dados retornados do banco:", configs);
 
@@ -132,13 +137,18 @@ const GatewaysListPage = () => {
       }
 
       if (configs && configs.length > 0) {
-        const ids = configs.map((c) => c.gatewayId);
-        console.log("🟢 [GATEWAYS] GATEWAYS ATIVOS:", configs.length);
-        console.table(configs);
-        console.log("🆔 [GATEWAYS] IDs dos gateways ativos:", ids);
-        setActiveGatewayIds(ids);
+        const activeIds = configs.filter((c) => c.isActive).map((c) => c.gatewayId);
+        const configMap: Record<string, any> = {};
+        configs.forEach((c) => {
+          configMap[c.gatewayId] = c;
+        });
+        console.log("🟢 [GATEWAYS] GATEWAYS CONFIGURADOS:", configs.length);
+        setActiveGatewayIds(activeIds);
+        setGatewayConfigsMap(configMap);
       } else {
         console.log("⚪ [GATEWAYS] Nenhum gateway ativo encontrado");
+        setActiveGatewayIds([]);
+        setGatewayConfigsMap({});
       }
 
       setLoading(false);
@@ -158,12 +168,12 @@ const GatewaysListPage = () => {
 
   // Calcular métricas
   const metrics = useMemo(() => {
-    const total = gatewaysList.length;
+    const total = implementedGateways.length;
     const active = activeGatewayIds.length;
-    const nacional = gatewaysList.filter(
+    const nacional = implementedGateways.filter(
       (g) => g.type === "nacional" || g.type === "both",
     ).length;
-    const global = gatewaysList.filter(
+    const global = implementedGateways.filter(
       (g) => g.type === "global" || g.type === "both",
     ).length;
 
@@ -174,11 +184,11 @@ const GatewaysListPage = () => {
       global,
       conversionRate: active > 0 ? ((active / total) * 100).toFixed(1) : "0",
     };
-  }, [activeGatewayIds]);
+  }, [activeGatewayIds, implementedGateways]);
 
   // Filter gateways
   const filteredGateways = useMemo(() => {
-    let filtered = gatewaysList;
+    let filtered = implementedGateways;
 
     // Search filter
     if (searchTerm) {
@@ -403,7 +413,7 @@ const GatewaysListPage = () => {
               </span>{" "}
               de{" "}
               <span className="font-bold text-gray-900 dark:text-white">
-                {gatewaysList.length}
+                {implementedGateways.length}
               </span>{" "}
               gateways
             </>
@@ -462,6 +472,8 @@ const GatewaysListPage = () => {
           {filteredGateways.map((gateway, index) => {
             const isActive = activeGatewayIds.includes(gateway.id);
             const isPopular = popularGateways.includes(gateway.id);
+            const config = gatewayConfigsMap[gateway.id];
+            const connectionStatus = config ? config.status : "not_configured";
 
             return (
               <GatewayCard
@@ -475,6 +487,7 @@ const GatewaysListPage = () => {
                 isVerified={gateway.status === "active" && !gateway.testMode}
                 isActive={isActive}
                 isPopular={isPopular}
+                connectionStatus={connectionStatus}
                 delay={index * 0.05}
               />
             );

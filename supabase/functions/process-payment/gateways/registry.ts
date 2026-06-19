@@ -7,55 +7,37 @@
 //
 // ============================================
 
-import { GatewayProcessor, GatewayRegistry } from "./types.ts";
+import { PaymentGateway, GatewayRegistry } from "./types.ts";
 
-// ===== GATEWAYS ATIVOS (4) =====
-// Apenas gateways testados e funcionais
-
-// Gateway Principal
-import { PagueXGateway } from "./paguex/index.ts";
-
-// Gateways Legados (funcionais)
-// Nota: Stripe, MercadoPago e Asaas são gerenciados via código legado
-// no index.ts, não pelo registry
+// ===== GATEWAYS ATIVOS (Sprint 1) =====
+import { AsaasGateway } from "./asaas/index.ts";
+import { MercadoPagoGateway } from "./mercado-pago/index.ts";
+import { PagSeguroGateway } from "./pagseguro/index.ts";
+import { PagarmeGateway } from "./pagarme/index.ts";
 
 /**
  * Registro de gateways ativos
  *
- * STATUS: 1 gateway ativo (Pague-X)
- *
- * IMPORTANTE:
- * - Apenas gateways totalmente implementados e testados
- * - Gateways legados (Stripe, MercadoPago, Asaas) usam código separado
- * - Novos gateways devem ser adicionados apenas após testes completos
+ * STATUS: 4 gateways ativos (Asaas, Mercado Pago, PagSeguro, Pagar.me)
  */
 export const gatewayRegistry: GatewayRegistry = {
-  // ===== GATEWAY PRINCIPAL =====
-
-  // Pague-X (inpagamentos.com)
-  paguex: new PagueXGateway(),
-
-  // ===== GATEWAYS LEGADOS (DESABILITADOS NO REGISTRY) =====
-  // Estes gateways são processados via código legado no index.ts
-
+  // Gateways da Sprint 1
+  asaas: new AsaasGateway(),
+  "mercado-pago": new MercadoPagoGateway(),
+  mercadopago: new MercadoPagoGateway(), // alias
+  pagseguro: new PagSeguroGateway(),
+  pagarme: new PagarmeGateway(),
+  
+  // Placeholders para gateways inativos nesta sprint (retornam nulo no registry)
   stripe: null as any,
-  mercadopago: null as any,
-  "mercado-pago": null as any,
-  asaas: null as any,
-  pagseguro: null as any,
   paypal: null as any,
-
-  // ===== GATEWAYS FUTUROS (PLACEHOLDER) =====
-  // Adicione novos gateways aqui após implementação completa
-
-  // Exemplo:
-  // "novo-gateway": new NovoGateway(),
+  paguex: null as any,
 };
 
 /**
  * Obtém um gateway pelo slug
  */
-export function getGateway(slug: string): GatewayProcessor | null {
+export function getGateway(slug: string): PaymentGateway | null {
   const gateway = gatewayRegistry[slug];
 
   if (!gateway) {
@@ -70,10 +52,10 @@ export function getGateway(slug: string): GatewayProcessor | null {
 /**
  * Lista todos os gateways disponíveis
  */
-export function listGateways(): GatewayProcessor[] {
+export function listGateways(): PaymentGateway[] {
   return Object.values(gatewayRegistry).filter(
     (gateway) => gateway !== null && gateway !== undefined,
-  ) as GatewayProcessor[];
+  ) as PaymentGateway[];
 }
 
 /**
@@ -176,11 +158,11 @@ export function validateRegistry(): {
         errors.push(`Gateway ${slug}: no supported methods`);
       }
 
-      if (
-        !gateway.processPayment ||
-        typeof gateway.processPayment !== "function"
-      ) {
-        errors.push(`Gateway ${slug}: missing processPayment method`);
+      const hasCreatePayment = gateway.createPayment && typeof gateway.createPayment === "function";
+      const hasProcessPayment = (gateway as any).processPayment && typeof (gateway as any).processPayment === "function";
+
+      if (!hasCreatePayment && !hasProcessPayment) {
+        errors.push(`Gateway ${slug}: missing createPayment or processPayment method`);
       }
 
       gateways.push(slug);

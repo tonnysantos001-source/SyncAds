@@ -39,46 +39,186 @@ import {
  * - Utilitários HTTP
  * - Formatação de dados
  */
-export abstract class BaseGateway implements GatewayProcessor {
+export abstract class BaseGateway implements PaymentGateway {
   abstract name: string;
   abstract slug: string;
   abstract supportedMethods: PaymentMethod[];
   abstract endpoints: GatewayEndpoints;
 
-  /**
-   * Valida credenciais do gateway
-   * Deve ser implementado por cada gateway
-   */
+  // Cache estático em memória para credenciais descriptografadas
+  protected static credentialCache = new Map<string, { credentials: any; expiresAt: number }>();
+
+  // ===== RETROCOMPATIBILIDADE: MÉTODOS ABSTRATOS LEGADOS =====
   abstract validateCredentials(
     credentials: GatewayCredentials,
   ): Promise<CredentialValidationResult>;
 
-  /**
-   * Processa pagamento
-   * Deve ser implementado por cada gateway
-   */
   abstract processPayment(
     request: PaymentRequest,
     config: GatewayConfig,
   ): Promise<PaymentResponse>;
 
-  /**
-   * Processa webhook
-   * Deve ser implementado por cada gateway
-   */
   abstract handleWebhook(
     payload: any,
     signature?: string,
   ): Promise<WebhookResponse>;
 
-  /**
-   * Consulta status de pagamento
-   * Deve ser implementado por cada gateway
-   */
   abstract getPaymentStatus(
     gatewayTransactionId: string,
     config: GatewayConfig,
   ): Promise<PaymentStatusResponse>;
+
+  // ===== IMPLEMENTAÇÃO DA NOVA INTERFACE PaymentGateway =====
+  async createPayment(
+    request: PaymentRequest,
+    config: GatewayConfig,
+  ): Promise<PaymentResponse> {
+    return this.processPayment(request, config);
+  }
+
+  async getPayment(
+    gatewayTransactionId: string,
+    config: GatewayConfig,
+  ): Promise<PaymentStatusResponse> {
+    return this.getPaymentStatus(gatewayTransactionId, config);
+  }
+
+  async validateWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string,
+  ): Promise<WebhookValidationResult> {
+    try {
+      const res = await this.handleWebhook(payload, signature);
+      return {
+        isValid: res.success,
+        error: res.success ? undefined : res.message,
+      };
+    } catch (err: any) {
+      return {
+        isValid: false,
+        error: err.message,
+      };
+    }
+  }
+
+  async healthCheck(
+    config: GatewayConfig,
+  ): Promise<CredentialValidationResult> {
+    const creds = await this.resolveCredentials(config);
+    return this.validateCredentials(creds);
+  }
+
+  // ===== AUXILIARES DE CACHE DE CREDENCIAIS =====
+
+  protected getCachedCredentials(configId: string): any | null {
+    const entry = BaseGateway.credentialCache.get(configId);
+    if (entry && entry.expiresAt > Date.now()) {
+      return entry.credentials;
+    }
+    return null;
+  }
+
+  protected setCachedCredentials(configId: string, credentials: any, ttlMs: number = 300000): void {
+    BaseGateway.credentialCache.set(configId, {
+      credentials,
+      expiresAt: Date.now() + ttlMs
+    });
+  }
+
+  protected async decryptJsonGCM(keyB64: string, cipherB64: string): Promise<any | null> {
+    try {
+      const rawKey = Uint8Array.from(atob(keyB64), (c) => c.charCodeAt(0));
+      const key = await crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["decrypt"]);
+      
+      const bin = atob(cipherB64);
+      const packed = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) packed[i] = bin.charCodeAt(i);
+      
+      const iv = packed.slice(0, 12);
+      const data = packed.slice(12);
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+      const text = new TextDecoder().decode(new Uint8Array(plain));
+      return JSON.parse(text);
+    } catch (error) {
+      this.log("error", `Failed to decrypt credentials: ${error.message}`);
+      return null;
+    }
+  }
+
+  protected async resolveCredentials(config: GatewayConfig): Promise<any> {
+    if (!config) return {};
+    
+    // 1. Tentar ler do cache
+    const cached = this.getCachedCredentials(config.id);
+    if (cached) {
+      return cached;
+    }
+
+    // 2. Se tiver credentials em texto plano, usar
+    if (config.credentials && Object.keys(config.credentials).length > 0 && !config.credentials.apiKey?.includes("****")) {
+      this.setCachedCredentials(config.id, config.credentials);
+      return config.credentials;
+    }
+
+    // 3. Senão, tentar descriptografar
+    const enc = (config as any).credentialsEncrypted;
+    const keyB64 = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
+    if (enc && keyB64) {
+      const decrypted = await this.decryptJsonGCM(keyB64, enc);
+      if (decrypted) {
+        this.setCachedCredentials(config.id, decrypted);
+        return decrypted;
+      }
+    }
+
+    return config.credentials || {};
+  }
+
+  // ===== GRAVAÇÃO DE LOGS ENRIQUECIDOS =====
+
+  public async saveGatewayLog(params: {
+    userId: string;
+    environment: string;
+    transactionId?: string;
+    request: any;
+    response: any;
+    status: string;
+    statusCode?: number;
+    executionTime: number;
+    errorMessage?: string;
+  }): Promise<void> {
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const supabaseServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      
+      if (!supabaseUrl || !supabaseServiceRole) {
+        console.warn("[LOG] Supabase credentials missing, could not persist log to database.");
+        return;
+      }
+      
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const client = createClient(supabaseUrl, supabaseServiceRole);
+      
+      const logEntry = {
+        gateway: this.slug,
+        environment: params.environment || "production",
+        userId: params.userId,
+        transactionId: params.transactionId || null,
+        request: this.sanitizeForLog(params.request),
+        response: this.sanitizeForLog(params.response),
+        status: params.status,
+        statusCode: params.statusCode || null,
+        executionTime: params.executionTime,
+        errorMessage: params.errorMessage || null
+      };
+
+      await client.from("gateway_logs").insert(logEntry);
+      console.log(`[LOG] Saved rico log to database for ${this.slug}`);
+    } catch (err: any) {
+      console.error("[LOG] Failed to save gateway log to database:", err.message);
+    }
+  }
 
   // ===== MÉTODOS AUXILIARES COMUNS =====
 
@@ -610,12 +750,12 @@ export abstract class BaseGateway implements GatewayProcessor {
     }
   }
 
-  // ===== MÉTODOS OPCIONAIS COM IMPLEMENTAÇÃO PADRÃO =====
+  // ===== MÉTODOS COM IMPLEMENTAÇÃO PADRÃO =====
 
   /**
-   * Reembolso (opcional, pode ser sobrescrito)
+   * Reembolso (pode ser sobrescrito)
    */
-  async refundPayment?(
+  async refundPayment(
     request: RefundRequest,
     config: GatewayConfig,
   ): Promise<RefundResponse> {
@@ -623,9 +763,9 @@ export abstract class BaseGateway implements GatewayProcessor {
   }
 
   /**
-   * Cancelamento (opcional, pode ser sobrescrito)
+   * Cancelamento (pode ser sobrescrito)
    */
-  async cancelPayment?(
+  async cancelPayment(
     gatewayTransactionId: string,
     config: GatewayConfig,
   ): Promise<PaymentResponse> {

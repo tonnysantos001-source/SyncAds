@@ -56,6 +56,7 @@ const GatewayConfigPage = () => {
   const [isActive, setIsActive] = useState(false);
 
   const [isVerified, setIsVerified] = useState(false);
+  const [status, setStatus] = useState<string>("not_configured");
   const [environment, setEnvironment] = useState<"production" | "sandbox">(
     "production",
   );
@@ -83,10 +84,10 @@ const GatewayConfigPage = () => {
 
       // Get gateway configuration
       const gatewayConfig = getGatewayBySlug(slug!);
-      if (!gatewayConfig) {
+      if (!gatewayConfig || gatewayConfig.implemented !== true) {
         toast({
-          title: "Gateway não encontrado",
-          description: "O gateway solicitado não existe.",
+          title: "Gateway não disponível",
+          description: "O gateway solicitado não está disponível nesta sprint.",
           variant: "destructive",
         });
         navigate("/checkout/gateways");
@@ -99,7 +100,7 @@ const GatewayConfigPage = () => {
 
       if (user?.id) {
         const { data: dbGateway } = await supabase
-          .from("Gateway")
+          .from("payment_gateways")
           .select("id")
           .eq("slug", gatewayConfig.slug)
           .maybeSingle();
@@ -116,6 +117,7 @@ const GatewayConfigPage = () => {
             setIsActive(data.isActive || false);
 
             setIsVerified(data.isVerified ?? false);
+            setStatus(data.status || "configured_without_test");
             setEnvironment(data.environment ?? "production");
             setVerifiedAt(data.verifiedAt ?? null);
             setConfigId(data.id);
@@ -161,7 +163,7 @@ const GatewayConfigPage = () => {
 
       // Map slug -> gatewayId from DB
       const { data: dbGateway, error: gwErr } = await supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("id, slug, name")
         .eq("slug", gateway.slug)
         .single();
@@ -223,14 +225,12 @@ const GatewayConfigPage = () => {
           .from("GatewayConfig")
           .insert({
             userId: user.id,
-
             gatewayId: dbGateway.id,
-
+            paymentGatewayId: dbGateway.id,
             credentials: credentialsWithMethods,
-
             isActive: isActive,
-
             isDefault: !anyConfig || anyConfig.length === 0,
+            status: "configured_without_test",
           })
           .select("id")
           .single();
@@ -326,6 +326,7 @@ const GatewayConfigPage = () => {
       if (error) throw error;
       if (data?.success) {
         setIsVerified(true);
+        setStatus("connected");
         setVerifiedAt(data.verifiedAt || new Date().toISOString());
         setEnvironment("production");
         toast({
@@ -334,6 +335,7 @@ const GatewayConfigPage = () => {
         });
       } else {
         setIsVerified(false);
+        setStatus("failed");
         toast({
           title: "Falha na verificação",
           description:
@@ -342,6 +344,7 @@ const GatewayConfigPage = () => {
         });
       }
     } catch (e: any) {
+      setStatus("failed");
       toast({
         title: "Erro na verificação",
         description:
@@ -794,9 +797,31 @@ const GatewayConfigPage = () => {
             <Card className="border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300">
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    <h3 className="font-semibold">Verificação</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <h3 className="font-semibold">Verificação</h3>
+                    </div>
+                    {status === "connected" && (
+                      <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 text-xs font-semibold">
+                        🟢 Conectado
+                      </Badge>
+                    )}
+                    {status === "configured_without_test" && (
+                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20 text-xs font-semibold">
+                        🟡 Configurado sem teste
+                      </Badge>
+                    )}
+                    {status === "failed" && (
+                      <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 text-xs font-semibold">
+                        🔴 Falha na conexão
+                      </Badge>
+                    )}
+                    {status === "not_configured" && (
+                      <Badge variant="secondary" className="bg-gray-500/10 text-gray-700 dark:text-gray-400 border border-gray-500/20 text-xs font-semibold">
+                        ⚪ Não configurado
+                      </Badge>
+                    )}
                   </div>
 
                   {isVerified ? (

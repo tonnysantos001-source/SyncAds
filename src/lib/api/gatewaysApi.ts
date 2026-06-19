@@ -93,7 +93,7 @@ export const gatewaysApi = {
   }) {
     try {
       let query = supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("*")
         .eq("isActive", true)
         .order("isPopular", { ascending: false })
@@ -129,7 +129,7 @@ export const gatewaysApi = {
   async getById(id: string) {
     try {
       const { data, error } = await supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("*")
         .eq("id", id)
         .single();
@@ -146,7 +146,7 @@ export const gatewaysApi = {
   async getBySlug(slug: string) {
     try {
       const { data, error } = await supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("*")
         .eq("slug", slug)
         .single();
@@ -163,7 +163,7 @@ export const gatewaysApi = {
   async listPopular() {
     try {
       const { data, error } = await supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("*")
         .eq("isActive", true)
         .eq("isPopular", true)

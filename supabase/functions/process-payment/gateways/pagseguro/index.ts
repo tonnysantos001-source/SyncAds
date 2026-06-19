@@ -70,7 +70,6 @@ export class PagSeguroGateway extends BaseGateway {
         };
       }
 
-      // Testar credenciais fazendo uma chamada simples à API
       const endpoint = credentials.environment === "sandbox"
         ? this.endpoints.sandbox
         : this.endpoints.production;
@@ -79,10 +78,10 @@ export class PagSeguroGateway extends BaseGateway {
         const response = await fetch(`${endpoint}/v2/sessions`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
             Accept: "application/json",
           },
-          body: JSON.stringify({
+          body: new URLSearchParams({
             email: credentials.email,
             token: credentials.token,
           }),
@@ -98,7 +97,7 @@ export class PagSeguroGateway extends BaseGateway {
 
         return {
           isValid: false,
-          message: "Invalid credentials",
+          message: "Invalid credentials (email or token)",
         };
       } catch (error: any) {
         this.log("warn", "Could not validate credentials online, accepting them");
@@ -117,12 +116,27 @@ export class PagSeguroGateway extends BaseGateway {
   }
 
   /**
+   * Health Check do gateway (botão Testar Conexão)
+   */
+  async healthCheck(config: GatewayConfig): Promise<CredentialValidationResult> {
+    const creds = await this.resolveCredentials(config);
+    return this.validateCredentials(creds);
+  }
+
+  /**
    * Processa um pagamento
    */
   async processPayment(
     request: PaymentRequest,
     config: GatewayConfig
   ): Promise<PaymentResponse> {
+    const startTime = Date.now();
+    let responseData: any = null;
+    let statusCode: number | null = null;
+    let statusText = "failed";
+    let errorMsg: string | undefined = undefined;
+    let payloadEnv: any = null;
+
     try {
       this.validatePaymentRequest(request);
 
@@ -132,30 +146,204 @@ export class PagSeguroGateway extends BaseGateway {
         method: request.paymentMethod,
       });
 
-      const endpoint = this.getEndpoint(config);
+      const credentials = await this.resolveCredentials(config);
+      const endpoint = config.environment === "sandbox"
+        ? this.endpoints.sandbox
+        : this.endpoints.production;
 
       // PIX
       if (request.paymentMethod === PaymentMethod.PIX) {
-        return await this.processPIX(request, config, endpoint);
+        payloadEnv = this.buildPIXPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${credentials.token}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error_messages?.[0]?.description || "PagSeguro PIX creation failed");
+        }
+
+        const qrCode = responseData.qr_codes?.[0];
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: responseData.id,
+          status: PaymentStatus.PENDING,
+          qrCode: qrCode?.text,
+          qrCodeBase64: qrCode?.links?.find((l: any) => l.rel === "QRCODE.PNG")?.href || qrCode?.links?.[0]?.href,
+          paymentUrl: responseData.links?.find((l: any) => l.rel === "PAY")?.href,
+          expiresAt: qrCode?.expiration_date,
+          message: "PIX created successfully via PagSeguro",
+        });
       }
 
       // Cartão de Crédito
       if (request.paymentMethod === PaymentMethod.CREDIT_CARD) {
-        return await this.processCreditCard(request, config, endpoint);
+        payloadEnv = this.buildCreditCardPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${credentials.token}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error_messages?.[0]?.description || "PagSeguro Card creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: this.normalizePagSeguroStatus(charge?.status || "WAITING"),
+          authorizationCode: charge?.payment_method?.authorization_code,
+          nsu: charge?.payment_method?.nsu,
+          tid: charge?.payment_method?.tid,
+          message: "Credit card payment processed successfully via PagSeguro",
+        });
       }
 
       // Cartão de Débito
       if (request.paymentMethod === PaymentMethod.DEBIT_CARD) {
-        return await this.processDebitCard(request, config, endpoint);
+        payloadEnv = this.buildDebitCardPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${credentials.token}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error_messages?.[0]?.description || "PagSeguro Debit Card creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: PaymentStatus.PENDING,
+          redirectUrl: charge?.links?.find((l: any) => l.rel === "PAY")?.href,
+          message: "Debit card payment initiated via PagSeguro",
+        });
       }
 
       // Boleto
       if (request.paymentMethod === PaymentMethod.BOLETO) {
-        return await this.processBoleto(request, config, endpoint);
+        payloadEnv = this.buildBoletoPayload(request);
+        const response = await fetch(`${endpoint}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${credentials.token}`,
+          },
+          body: JSON.stringify(payloadEnv),
+        });
+
+        statusCode = response.status;
+        responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error_messages?.[0]?.description || "PagSeguro Boleto creation failed");
+        }
+
+        const charge = responseData.charges?.[0];
+        const boleto = charge?.payment_method?.boleto;
+
+        // Gravar log enriquecido
+        await this.saveGatewayLog({
+          userId: request.userId,
+          environment: config.environment || "production",
+          transactionId: request.metadata?.transactionId,
+          request: payloadEnv,
+          response: responseData,
+          status: "success",
+          statusCode: statusCode || 200,
+          executionTime: Date.now() - startTime,
+        });
+
+        return this.createSuccessResponse({
+          transactionId: responseData.id,
+          gatewayTransactionId: charge?.id || responseData.id,
+          status: PaymentStatus.PENDING,
+          paymentUrl: boleto?.links?.find((l: any) => l.rel === "PAY")?.href || boleto?.links?.[0]?.href,
+          barcodeNumber: boleto?.barcode,
+          digitableLine: boleto?.formatted_barcode,
+          expiresAt: boleto?.due_date,
+          message: "Boleto created successfully via PagSeguro",
+        });
       }
 
       throw new Error(`Payment method ${request.paymentMethod} not supported`);
     } catch (error: any) {
+      errorMsg = error.message;
+      // Gravar log enriquecido de erro
+      await this.saveGatewayLog({
+        userId: request.userId,
+        environment: config.environment || "production",
+        transactionId: request.metadata?.transactionId,
+        request: payloadEnv || { orderId: request.orderId, method: request.paymentMethod },
+        response: { error: error.toString() },
+        status: "failed",
+        statusCode: statusCode || 500,
+        executionTime: Date.now() - startTime,
+        errorMessage: errorMsg,
+      });
+
       return this.createErrorResponse(
         error,
         "Failed to process payment via PagSeguro"
@@ -163,28 +351,15 @@ export class PagSeguroGateway extends BaseGateway {
     }
   }
 
-  /**
-   * Processa pagamento PIX
-   */
-  private async processPIX(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const chargeData = {
+  // ===== AUXILIARES DE CONSTRUÇÃO DE PAYLOAD =====
+
+  private buildPIXPayload(request: PaymentRequest) {
+    return {
       reference_id: request.orderId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
         tax_id: this.formatDocument(request.customer.document),
-        phones: [
-          {
-            country: "55",
-            area: request.customer.phone?.substring(0, 2) || "11",
-            number: request.customer.phone?.substring(2) || "999999999",
-            type: "MOBILE",
-          },
-        ],
       },
       items: [
         {
@@ -206,55 +381,15 @@ export class PagSeguroGateway extends BaseGateway {
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook/pagseguro`,
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.credentials.token}`,
-        },
-        body: JSON.stringify(chargeData),
-      }
-    );
-
-    const qrCode = response.qr_codes?.[0];
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: response.id,
-      status: PaymentStatus.PENDING,
-      qrCode: qrCode?.text,
-      qrCodeBase64: qrCode?.links?.[0]?.href,
-      paymentUrl: response.links?.find((l: any) => l.rel === "PAY")?.href,
-      expiresAt: qrCode?.expiration_date,
-      message: "PIX created successfully via PagSeguro",
-    });
   }
 
-  /**
-   * Processa pagamento com Cartão de Crédito
-   */
-  private async processCreditCard(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const chargeData = {
+  private buildCreditCardPayload(request: PaymentRequest) {
+    return {
       reference_id: request.orderId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
         tax_id: this.formatDocument(request.customer.document),
-        phones: [
-          {
-            country: "55",
-            area: request.customer.phone?.substring(0, 2) || "11",
-            number: request.customer.phone?.substring(2) || "999999999",
-            type: "MOBILE",
-          },
-        ],
       },
       items: [
         {
@@ -274,7 +409,7 @@ export class PagSeguroGateway extends BaseGateway {
           },
           payment_method: {
             type: "CREDIT_CARD",
-            installments: 1,
+            installments: request.metadata?.installments || 1,
             capture: true,
             card: {
               number: request.card?.number.replace(/\s/g, ""),
@@ -293,41 +428,10 @@ export class PagSeguroGateway extends BaseGateway {
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook/pagseguro`,
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.credentials.token}`,
-        },
-        body: JSON.stringify(chargeData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: this.normalizePagSeguroStatus(charge?.status || "WAITING"),
-      authorizationCode: charge?.payment_method?.authorization_code,
-      nsu: charge?.payment_method?.nsu,
-      tid: charge?.payment_method?.tid,
-      message: "Credit card payment processed successfully via PagSeguro",
-    });
   }
 
-  /**
-   * Processa pagamento com Cartão de Débito
-   */
-  private async processDebitCard(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
-    const chargeData = {
+  private buildDebitCardPayload(request: PaymentRequest) {
+    return {
       reference_id: request.orderId,
       customer: {
         name: request.customer.name,
@@ -364,55 +468,18 @@ export class PagSeguroGateway extends BaseGateway {
         },
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.credentials.token}`,
-        },
-        body: JSON.stringify(chargeData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: PaymentStatus.PENDING,
-      redirectUrl: charge?.links?.find((l: any) => l.rel === "PAY")?.href,
-      message: "Debit card payment initiated via PagSeguro",
-    });
   }
 
-  /**
-   * Processa pagamento com Boleto
-   */
-  private async processBoleto(
-    request: PaymentRequest,
-    config: GatewayConfig,
-    endpoint: string
-  ): Promise<PaymentResponse> {
+  private buildBoletoPayload(request: PaymentRequest) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
 
-    const chargeData = {
+    return {
       reference_id: request.orderId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
         tax_id: this.formatDocument(request.customer.document),
-        phones: [
-          {
-            country: "55",
-            area: request.customer.phone?.substring(0, 2) || "11",
-            number: request.customer.phone?.substring(2) || "999999999",
-            type: "MOBILE",
-          },
-        ],
       },
       items: [
         {
@@ -435,7 +502,7 @@ export class PagSeguroGateway extends BaseGateway {
             boleto: {
               due_date: dueDate.toISOString().split("T")[0],
               instruction_lines: {
-                line_1: "Pagamento processado para DESC Fatura",
+                line_1: "Pagamento processado via checkout",
                 line_2: "Via PagSeguro",
               },
               holder: {
@@ -445,7 +512,7 @@ export class PagSeguroGateway extends BaseGateway {
                 address: request.billingAddress ? {
                   street: request.billingAddress.street,
                   number: request.billingAddress.number,
-                  complement: request.billingAddress.complement,
+                  complement: request.billingAddress.complement || "",
                   locality: request.billingAddress.neighborhood,
                   city: request.billingAddress.city,
                   region_code: request.billingAddress.state,
@@ -461,32 +528,6 @@ export class PagSeguroGateway extends BaseGateway {
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook/pagseguro`,
       ],
     };
-
-    const response = await this.makeRequest<any>(
-      `${endpoint}/orders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.credentials.token}`,
-        },
-        body: JSON.stringify(chargeData),
-      }
-    );
-
-    const charge = response.charges?.[0];
-    const boleto = charge?.payment_method?.boleto;
-
-    return this.createSuccessResponse({
-      transactionId: response.id,
-      gatewayTransactionId: charge?.id || response.id,
-      status: PaymentStatus.PENDING,
-      paymentUrl: boleto?.links?.[0]?.href,
-      barcodeNumber: boleto?.barcode,
-      digitableLine: boleto?.formatted_barcode,
-      expiresAt: boleto?.due_date,
-      message: "Boleto created successfully via PagSeguro",
-    });
   }
 
   /**
@@ -499,31 +540,24 @@ export class PagSeguroGateway extends BaseGateway {
     try {
       this.log("info", "Processing PagSeguro webhook", {
         notificationCode: payload.notificationCode,
-        notificationType: payload.notificationType
+        id: payload.id
       });
 
-      // PagSeguro envia notificationCode, precisamos consultar a transação
       if (payload.notificationCode) {
-        const transactionId = payload.notificationCode;
-
         return {
           success: true,
           processed: true,
-          transactionId: transactionId,
-          message: "PagSeguro webhook received, transaction should be queried",
+          gatewayTransactionId: payload.notificationCode,
+          message: "PagSeguro webhook notificationCode received",
         };
       }
 
-      // Webhook direto com dados da transação
       if (payload.charges && payload.charges.length > 0) {
-        const charge = payload.charges[0];
-        const status = this.normalizePagSeguroStatus(charge.status);
-
         return {
           success: true,
           processed: true,
-          transactionId: payload.id,
-          message: "PagSeguro webhook processed successfully",
+          gatewayTransactionId: payload.id,
+          message: "PagSeguro webhook order processed",
         };
       }
 
@@ -552,31 +586,37 @@ export class PagSeguroGateway extends BaseGateway {
     try {
       this.log("info", "Getting PagSeguro payment status", { gatewayTransactionId });
 
-      const endpoint = this.getEndpoint(config);
+      const credentials = await this.resolveCredentials(config);
+      const endpoint = config.environment === "sandbox"
+        ? this.endpoints.sandbox
+        : this.endpoints.production;
 
-      const response = await this.makeRequest<any>(
-        `${endpoint}/orders/${gatewayTransactionId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.credentials.token}`,
-          },
-        }
-      );
+      const response = await fetch(`${endpoint}/orders/${gatewayTransactionId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${credentials.token}`,
+        },
+      });
 
-      const charge = response.charges?.[0];
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error_messages?.[0]?.description || "Failed to fetch status from PagSeguro");
+      }
+
+      const data = await response.json();
+      const charge = data.charges?.[0];
 
       return {
         transactionId: gatewayTransactionId,
-        gatewayTransactionId: response.id,
+        gatewayTransactionId: data.id,
         status: this.normalizePagSeguroStatus(charge?.status || "WAITING"),
-        amount: (response.items?.[0]?.unit_amount || 0) / 100,
+        amount: (data.items?.[0]?.unit_amount || 0) / 100,
         currency: "BRL",
         paymentMethod: this.mapPagSeguroPaymentMethod(charge?.payment_method?.type),
-        createdAt: response.created_at,
-        updatedAt: charge?.updated_at || response.created_at,
-        paidAt: charge?.paid_at,
+        createdAt: data.created_at,
+        updatedAt: charge?.updated_at || data.created_at,
+        paidAt: charge?.paid_at || undefined,
       };
     } catch (error: any) {
       throw new GatewayError(

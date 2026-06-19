@@ -627,7 +627,7 @@ serve(async (req) => {
     if (configId) {
       const { data, error } = await supabase
         .from("GatewayConfig")
-        .select("*, Gateway(*)")
+        .select("*, Gateway:payment_gateways(*)")
         .eq("id", configId)
         .single();
       if (error || !data) {
@@ -643,7 +643,7 @@ serve(async (req) => {
       gateway = data.Gateway;
     } else if (slugInput) {
       const { data: gw } = await supabase
-        .from("Gateway")
+        .from("payment_gateways")
         .select("id, slug, name")
         .eq("slug", slugInput)
         .single();
@@ -660,7 +660,7 @@ serve(async (req) => {
       }
       const { data: cfg } = await supabase
         .from("GatewayConfig")
-        .select("*, Gateway(*)")
+        .select("*, Gateway:payment_gateways(*)")
         .eq("userId", userId)
         .eq("gatewayId", gw.id)
         .single();
@@ -790,6 +790,7 @@ serve(async (req) => {
       environment: "production",
       isVerified: verifyResult.ok,
       verifiedAt: verifyResult.ok ? new Date().toISOString() : null,
+      status: verifyResult.ok ? "connected" : "failed",
       verificationMetadata: {
         httpStatus: verifyResult.httpStatus,
         message: verifyResult.message,
