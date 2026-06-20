@@ -59,6 +59,7 @@ export interface ProcessPaymentOptions {
   couponCode?: string | null;
   couponDiscount?: number | null;
   discount?: number | null;
+  shipping?: number;
 }
 
 export interface UsePaymentProcessorOptions {
@@ -98,6 +99,7 @@ export function usePaymentProcessor({
       couponCode,
       couponDiscount,
       discount,
+      shipping,
     }: ProcessPaymentOptions) => {
       if (!orderId) {
         setError('ID do pedido não encontrado');
@@ -149,6 +151,7 @@ export function usePaymentProcessor({
             ...(couponCode !== undefined ? { couponCode } : {}),
             ...(couponDiscount !== undefined ? { couponDiscount } : {}),
             ...(discount !== undefined ? { discount } : {}),
+            ...(shipping !== undefined ? { shipping } : {}),
             updatedAt: new Date().toISOString(),
           })
           .eq('id', orderId);

@@ -249,6 +249,11 @@ export interface TemplateRenderProps {
 
   /** Provas sociais (reviews/depoimentos e notificações) */
   socialProofs?: any[];
+
+  /** Métodos de entrega customizados e handlers */
+  shippingMethods?: any[];
+  selectedShippingMethod?: any;
+  onSelectShippingMethod?: (method: any) => void;
 }
 
 // ============================================================

@@ -13,6 +13,7 @@ import {
   HiCreditCard,
   HiPuzzlePiece,
   HiCog6Tooth,
+  HiTruck,
 } from "react-icons/hi2";
 import {
   IoChevronDown,
@@ -143,6 +144,7 @@ const navItems: NavItem[] = [
         icon: IoShieldCheckmark,
       },
       { to: "/checkout/gateways", label: "Gateways", icon: HiCreditCard },
+      { to: "/checkout/shipping", label: "Logística", icon: HiTruck },
       {
         to: "/checkout/redirect",
         label: "Redirecionamento",

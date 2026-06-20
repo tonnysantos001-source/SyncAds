@@ -278,12 +278,68 @@ const DesktopContactCard: React.FC<{ data: ContactState; onChange: (d: ContactSt
     </div>
   </SectionCard>
 );
-
 const DesktopAddressCard: React.FC<{ data: AddressState; onChange: (d: AddressState) => void; errors?: FormErrors }> = ({ data, onChange, errors }) => (
   <SectionCard title="Endereço de Entrega">
     <AddressFields data={data} onChange={onChange} errors={errors} />
   </SectionCard>
 );
+
+const DesktopShippingCard: React.FC<{
+  shippingMethods?: any[];
+  selectedShippingMethod?: any;
+  onSelectShippingMethod?: (method: any) => void;
+  primaryColor: string;
+}> = ({ shippingMethods, selectedShippingMethod, onSelectShippingMethod, primaryColor }) => {
+  if (!shippingMethods || shippingMethods.length === 0) return null;
+
+  return (
+    <SectionCard title="Método de Envio">
+      <div className="flex flex-col gap-2.5">
+        {shippingMethods.map((method) => {
+          const isSelected = selectedShippingMethod?.id === method.id;
+          return (
+            <div
+              key={method.id}
+              onClick={() => onSelectShippingMethod?.(method)}
+              className={cn(
+                "flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer",
+                isSelected
+                  ? "border-[#E91E8C] bg-[#E91E8C]/5"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+              )}
+              style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}08` } : {}}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  checked={isSelected}
+                  onChange={() => onSelectShippingMethod?.(method)}
+                  style={isSelected ? { accentColor: primaryColor } : {}}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{method.name}</p>
+                  {method.description && <p className="text-xs text-gray-400">{method.description}</p>}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-gray-800">
+                  {Number(method.price) === 0 ? 'Grátis' : `R$ ${Number(method.price).toFixed(2).replace('.', ',')}`}
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  {method.estimatedDaysMin && method.estimatedDaysMax
+                    ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
+                    : `${method.estimatedDays || 5} dias`}
+                  {method.isBusinessDays ? ' úteis' : ' corridos'}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </SectionCard>
+  );
+};
 
 const DesktopCpfCard: React.FC<{ value: string; onChange: (v: string) => void; error?: string }> = ({ value, onChange, error }) => (
   <SectionCard title="CPF / CNPJ">
@@ -744,6 +800,7 @@ const DesktopOrderPanel: React.FC<{
       items: products,
       couponCode: appliedCouponCode || null,
       discount: discount,
+      shipping: shipping,
     });
   };
 
@@ -976,7 +1033,10 @@ const MobileContactPaymentCard: React.FC<{
   onToggleCrossSell?: (id: string) => void;
   paymentMethod?: string;
   onPaymentMethodChange?: (method: string) => void;
-}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell, paymentMethod, onPaymentMethodChange }) => {
+  shippingMethods?: any[];
+  selectedShippingMethod?: any;
+  onSelectShippingMethod?: (method: any) => void;
+}> = ({ primaryColor, gradient, checkoutData, theme, isPreview, orderId, onSuccess, address, onAddressChange, cpf, onCpfChange, templateSlug, orderBumps = [], selectedOrderBumps = [], onToggleOrderBump, crossSells = [], selectedCrossSells = [], onToggleCrossSell, paymentMethod, onPaymentMethodChange, shippingMethods, selectedShippingMethod, onSelectShippingMethod }) => {
   const [localPayMethod, setLocalPayMethod] = useState('pix');
   const payMethod = paymentMethod 
     ? (paymentMethod === 'CREDIT_CARD' ? 'credit' : paymentMethod === 'PIX' ? 'pix' : 'boleto') 
@@ -1040,6 +1100,7 @@ const MobileContactPaymentCard: React.FC<{
       } : undefined,
       items: products,
       discount: discount,
+      shipping: shipping,
     });
   };
 
@@ -1079,6 +1140,56 @@ const MobileContactPaymentCard: React.FC<{
         <AddressFields data={address} onChange={onAddressChange} errors={errors} />
         {errors.cep && !errors.street && <p className="text-xs text-red-500 mt-2">{errors.cep}</p>}
       </MobileExpandButton>
+
+      {/* Seleção de Frete (Mobile) */}
+      {shippingMethods && shippingMethods.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden px-5 py-4 space-y-3">
+          <h4 className="text-sm font-semibold text-gray-700">🚚 Método de Envio</h4>
+          <div className="flex flex-col gap-2.5">
+            {shippingMethods.map((method) => {
+              const isSelected = selectedShippingMethod?.id === method.id;
+              return (
+                <div
+                  key={method.id}
+                  onClick={() => onSelectShippingMethod?.(method)}
+                  className={cn(
+                    "flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer",
+                    isSelected
+                      ? "border-[#E91E8C] bg-[#E91E8C]/5"
+                      : "border-gray-100 bg-white hover:border-gray-200"
+                  )}
+                  style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}08` } : {}}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      checked={isSelected}
+                      onChange={() => onSelectShippingMethod?.(method)}
+                      style={isSelected ? { accentColor: primaryColor } : {}}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{method.name}</p>
+                      {method.description && <p className="text-xs text-gray-400">{method.description}</p>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-800">
+                      {Number(method.price) === 0 ? 'Grátis' : `R$ ${Number(method.price).toFixed(2).replace('.', ',')}`}
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      {method.estimatedDaysMin && method.estimatedDaysMax
+                        ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
+                        : `${method.estimatedDays || 5} dias`}
+                      {method.isBusinessDays ? ' úteis' : ' corridos'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* CPF expandable */}
       <MobileExpandButton label="Adicionar CPF" primaryColor={primaryColor}>
@@ -1427,6 +1538,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
   paymentMethod,
   onPaymentMethodChange,
   socialProofs,
+  shippingMethods,
+  selectedShippingMethod,
+  onSelectShippingMethod,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -1581,6 +1695,12 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
               <DropZone imageUrl={bannerLeft} isPreview={isPreview} minHeight={80}
                 label="Solte aqui" recommendedSize="580 × 80px" onImageChange={handleBannerLeftChange} />
               <DesktopAddressCard data={addressData} onChange={setAddressData} errors={formErrors} />
+              <DesktopShippingCard
+                shippingMethods={shippingMethods}
+                selectedShippingMethod={selectedShippingMethod}
+                onSelectShippingMethod={onSelectShippingMethod}
+                primaryColor={primaryColor}
+              />
               <DesktopCpfCard value={cpfData} onChange={setCpfData} error={formErrors.cpf} />
               <DesktopContactCard data={contactData} onChange={setContactData} errors={formErrors} />
               {checkoutConfig?.orderBump?.enabled !== false && orderBumps.map(bump => (
@@ -1671,6 +1791,9 @@ const TikTokTemplate: React.FC<TemplateRenderProps> = ({
             onToggleCrossSell={onToggleCrossSell}
             paymentMethod={paymentMethod}
             onPaymentMethodChange={onPaymentMethodChange}
+            shippingMethods={shippingMethods}
+            selectedShippingMethod={selectedShippingMethod}
+            onSelectShippingMethod={onSelectShippingMethod}
           />
           {/* REAL SOCIAL PROOFS / COMMENTS */}
           <TikTokComments socialProofs={socialProofs} />

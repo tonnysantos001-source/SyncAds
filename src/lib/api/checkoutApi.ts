@@ -522,7 +522,7 @@ export const shippingApi = {
     try {
       // Buscar métodos de frete disponíveis
       const { data: shippingMethods, error } = await supabase
-        .from("Shipping")
+        .from("ShippingMethod")
         .select("*")
         .eq("isActive", true);
 
@@ -539,32 +539,26 @@ export const shippingApi = {
       const availableMethods = shippingMethods
         .filter((method) => {
           // Frete grátis se atingir valor mínimo
-          if (method.type === "FREE" && method.minOrderValue) {
-            return cartTotal >= method.minOrderValue;
+          const minVal = Number(method.minOrderValue || 0);
+          if (minVal > 0) {
+            return cartTotal >= minVal;
           }
           return true;
         })
         .map((method) => {
-          let price = 0;
+          let price = Number(method.price || method.basePrice || 0);
 
-          if (method.type === "FLAT_RATE") {
-            price = method.price || 0;
-          } else if (method.type === "WEIGHT_BASED") {
+          if (method.type === "WEIGHT_BASED" && method.pricePerUnit) {
             // Calcular baseado no peso (R$ por kg)
-            price = (method.price || 0) * weight;
-          } else if (method.type === "PRICE_BASED") {
-            // Calcular baseado no valor do carrinho
-            price = (cartTotal * (method.price || 0)) / 100;
-          } else if (method.type === "FREE") {
-            price = 0;
+            price = price + (Number(method.pricePerUnit || 0) * weight);
           }
 
           return {
             id: method.id,
             name: method.name,
-            carrier: method.carrier,
+            carrier: method.name,
             price: Math.max(0, price),
-            estimatedDays: method.estimatedDays,
+            estimatedDays: method.estimatedDays || method.estimatedDaysMax || 5,
             type: method.type,
           };
         });

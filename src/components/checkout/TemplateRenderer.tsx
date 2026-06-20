@@ -181,6 +181,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   paymentMethod,
   onPaymentMethodChange,
   socialProofs,
+  shippingMethods,
+  selectedShippingMethod,
+  onSelectShippingMethod,
 }) => {
   const isFallingBack = useRef(false);
 
@@ -320,6 +323,9 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
     paymentMethod,
     onPaymentMethodChange,
     socialProofs,
+    shippingMethods,
+    selectedShippingMethod,
+    onSelectShippingMethod,
   };
 
   // ------------------------------------------------------------------

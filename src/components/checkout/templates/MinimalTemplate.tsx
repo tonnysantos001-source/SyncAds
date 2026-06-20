@@ -1015,6 +1015,9 @@ const MinimalTemplate: React.FC<TemplateRenderProps> = ({
                     buttonCfg={buttonCfg}
                     data={addressData}
                     onChange={handleAddressChange}
+                    shippingMethods={shippingMethods}
+                    selectedShippingMethod={selectedShippingMethod}
+                    onSelectShippingMethod={onSelectShippingMethod}
                   />
                 ) : (
                   <div className="flex justify-between items-center py-2 text-sm text-gray-500 font-medium">

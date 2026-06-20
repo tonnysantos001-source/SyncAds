@@ -234,6 +234,10 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   const [customerUuid, setCustomerUuid] = useState<string | null>(null);
   const [activeCashbackRule, setActiveCashbackRule] = useState<any>(null);
 
+  // Estados de Frete
+  const [shippingMethods, setShippingMethods] = useState<any[]>([]);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<any>(null);
+
 
   // ============================================
   // TEMPLATE STATE (multi-template system)
@@ -266,6 +270,56 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
     };
     fetchSocialProofs();
   }, [sellerUserId]);
+
+  // Carregar métodos de frete ativos do lojista
+  useEffect(() => {
+    if (!sellerUserId) return;
+    const fetchShippingMethods = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("ShippingMethod")
+          .select("*")
+          .eq("userId", sellerUserId)
+          .eq("isActive", true);
+        if (error) throw error;
+        if (data) {
+          setShippingMethods(data);
+          const currentShippingVal = checkoutData?.shipping || 0;
+          let matchedMethod = null;
+          if (currentShippingVal > 0) {
+            matchedMethod = data.find((m: any) => Number(m.price || m.basePrice || 0) === currentShippingVal);
+          }
+          const defaultMethod = matchedMethod || data.find((m: any) => m.isDefault) || data[0];
+          if (defaultMethod) {
+            setSelectedShippingMethod(defaultMethod);
+            setCheckoutData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    shipping: Number(defaultMethod.price || defaultMethod.basePrice || 0),
+                  }
+                : null
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar métodos de frete do lojista:", err);
+      }
+    };
+    fetchShippingMethods();
+  }, [sellerUserId]);
+
+  const handleSelectShippingMethod = (method: any) => {
+    setSelectedShippingMethod(method);
+    setCheckoutData((prev) =>
+      prev
+        ? {
+            ...prev,
+            shipping: Number(method.price || method.basePrice || 0),
+          }
+        : null
+    );
+  };
 
   // Responsividade dinâmica para uso público (fora do preview do customizador)
   const [isMobileScreen, setIsMobileScreen] = useState(false);
@@ -1396,6 +1450,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           paymentMethod: paymentMethod,
           couponCode: appliedCouponCode || null,
           couponDiscount: couponDiscount || null,
+          shipping: checkoutData.shipping,
           discount: (checkoutData.discount || 0) + couponDiscount + cashbackDiscount,
           total: finalTotalWithBumps,
           metadata: {
@@ -1780,6 +1835,9 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           paymentMethod={paymentMethod}
           onPaymentMethodChange={setPaymentMethod as any}
           socialProofs={socialProofs}
+          shippingMethods={shippingMethods}
+          selectedShippingMethod={selectedShippingMethod}
+          onSelectShippingMethod={handleSelectShippingMethod}
         />
         {renderPopupBanner()}
         <SocialProofNotifications userId={sellerUserId} />

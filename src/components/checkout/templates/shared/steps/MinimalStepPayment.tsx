@@ -184,6 +184,7 @@ export const MinimalStepPayment: React.FC<MinimalStepPaymentProps> = ({
       items: checkoutData?.products,
       couponCode: appliedCouponCode || null,
       discount: checkoutData?.discount || 0,
+      shipping: checkoutData?.shipping || 0,
     });
   };
 

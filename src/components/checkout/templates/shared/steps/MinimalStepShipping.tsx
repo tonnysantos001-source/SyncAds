@@ -38,6 +38,9 @@ interface MinimalStepShippingProps {
   /** Estado elevado — controlado pelo MinimalTemplate */
   data: AddressData;
   onChange: (field: keyof AddressData, value: string) => void;
+  shippingMethods?: any[];
+  selectedShippingMethod?: any;
+  onSelectShippingMethod?: (method: any) => void;
 }
 
 // ── estilos reutilizáveis ─────────────────────────────────────
@@ -85,6 +88,7 @@ const errorStyle: React.CSSProperties = {
 
 export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
   theme, isPreview, onNext, onBack, primaryColor, buttonCfg, data, onChange,
+  shippingMethods, selectedShippingMethod, onSelectShippingMethod,
 }) => {
   const [errors, setErrors] = useState<Partial<Record<keyof AddressData, string>>>({});
   const [cepFound, setCepFound] = useState(false);
@@ -295,6 +299,66 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
           {errors.state && <div style={errorStyle}><AlertCircle style={{ width: '11px', height: '11px' }} />{errors.state}</div>}
         </div>
       </div>
+
+      {/* Seleção de Frete */}
+      {shippingMethods && shippingMethods.length > 0 && (
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label style={getLabelStyle(theme)}>Método de envio *</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {shippingMethods.map((method) => {
+              const isSelected = selectedShippingMethod?.id === method.id;
+              return (
+                <div
+                  key={method.id}
+                  onClick={() => onSelectShippingMethod?.(method)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: `2px solid ${isSelected ? primaryColor : '#E5E7EB'}`,
+                    backgroundColor: isSelected ? `${primaryColor}08` : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                    <input
+                      type="radio"
+                      checked={isSelected}
+                      onChange={() => onSelectShippingMethod?.(method)}
+                      style={{ accentColor: primaryColor, cursor: 'pointer' }}
+                    />
+                    <div style={{ fontFamily: '"Rubik", sans-serif', minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#111827', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {method.name}
+                      </p>
+                      {method.description && (
+                        <p style={{ margin: 0, fontSize: '11px', color: '#6B7280', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          {method.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontFamily: '"Rubik", sans-serif', flexShrink: 0 }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#111827' }}>
+                      {Number(method.price) === 0 ? 'Grátis' : `R$ ${Number(method.price).toFixed(2).replace('.', ',')}`}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#6B7280' }}>
+                      {method.estimatedDaysMin && method.estimatedDaysMax
+                        ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
+                        : `${method.estimatedDays || 5} dias`}
+                      {method.isBusinessDays ? ' úteis' : ' corridos'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Botões */}
       <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>

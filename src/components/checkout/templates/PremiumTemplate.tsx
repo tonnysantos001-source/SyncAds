@@ -771,6 +771,9 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
   paymentMethod: externalPaymentMethod,
   onPaymentMethodChange,
   socialProofs,
+  shippingMethods,
+  selectedShippingMethod,
+  onSelectShippingMethod,
 }) => {
   // Mapeamento dinâmico das faixas de desconto ativas
   const headerNoticeBarConfig = useMemo(() => {
@@ -1004,6 +1007,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
       items: checkoutData?.products,
       couponCode: appliedCouponCode || null,
       discount: checkoutData?.discount || 0,
+      shipping: checkoutData?.shipping || 0,
     });
   }, [isPreview, validate, paymentMethod, contact, address, card, processPayment, orderId, onPaymentSuccess, templateConfig, checkoutMonitor, checkoutData, appliedCouponCode]);
 
@@ -1063,6 +1067,60 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                   onChange={handleAddressChange}
                   onCepBlur={handleCepBlur}
                 />
+
+                {/* Métodos de Frete */}
+                {shippingMethods && shippingMethods.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-[17px] text-[#222222] mb-3" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                      🚚 Métodos de Envio
+                    </h3>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-200 bg-white">
+                      {shippingMethods.map((method) => {
+                        const isSelected = selectedShippingMethod?.id === method.id;
+                        return (
+                          <label
+                            key={method.id}
+                            className={cn(
+                              "flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-all",
+                              isSelected && "bg-emerald-50/20"
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="radio"
+                                name="premium-shipping"
+                                checked={isSelected}
+                                onChange={() => onSelectShippingMethod?.(method)}
+                                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                              />
+                              <div>
+                                <span className="block text-sm font-medium text-gray-900">
+                                  {method.name}
+                                </span>
+                                {method.description && (
+                                  <span className="block text-xs text-gray-500">
+                                    {method.description}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="block text-sm font-semibold text-gray-900">
+                                {Number(method.price) === 0 ? 'Grátis' : `R$ ${Number(method.price).toFixed(2).replace('.', ',')}`}
+                              </span>
+                              <span className="block text-xs text-gray-500">
+                                {method.estimatedDaysMin && method.estimatedDaysMax
+                                  ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
+                                  : `${method.estimatedDays || 5} dias`}
+                                {method.isBusinessDays ? ' úteis' : ' corridos'}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* ORDER BUMPS */}
                 {checkoutConfig?.orderBump?.enabled !== false && orderBumps && orderBumps.length > 0 && (
