@@ -500,159 +500,113 @@ export default function ShippingPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold text-white tracking-tight">Logística</h1>
         <p className="text-gray-400 text-sm mt-1">
-          Controle fretes, regiões e retirada.
+          Gerencie seus métodos e prazos de frete.
         </p>
       </div>
 
-      {/* Grid: Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 mb-8 items-start">
-        
-        {/* Left Column: Info Cards */}
-        <div className="space-y-6">
-          {/* Card: Frete */}
-          <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl">
-            <CardContent className="p-6">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-4 border border-indigo-500/20">
-                <Truck className="w-5 h-5 text-indigo-400" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Frete</h3>
-              <p className="text-gray-400 text-xs leading-relaxed mb-5">
-                Gerencie métodos de frete, prazos, valores mínimos e pontos de retirada da sua operação.
+      {/* Methods List Card */}
+      <div className="w-full">
+        <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+            <div>
+              <h3 className="text-lg font-bold text-white">Métodos de frete</h3>
+              <p className="text-gray-400 text-xs mt-0.5">
+                Configure prazos, valores e disponibilidade no checkout.
               </p>
+            </div>
+            {methods.length > 0 && (
               <Button
-                variant="outline"
-                className="w-full justify-start text-left border-gray-700 hover:bg-gray-800 text-gray-300 hover:text-white"
+                onClick={() => { resetForm(); setView('create'); }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs"
               >
-                <FileText className="w-4 h-4 mr-2" />
-                Baixar planilha modelo
+                <Plus className="h-4 w-4 mr-1.5" />
+                Novo frete
               </Button>
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
-          {/* Card: Dúvidas */}
-          <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl">
-            <CardContent className="p-6">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-4 border border-indigo-500/20">
-                <HelpCircle className="w-5 h-5 text-indigo-400" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Tem dúvidas?</h3>
-              <p className="text-gray-400 text-xs leading-relaxed mb-4">
-                Veja o guia completo para configurar regras avançadas e integrar com transportadoras.
-              </p>
-              <a
-                href="#"
-                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-              >
-                Como configurar minha logística
-                <ChevronRight className="w-3.5 h-3.5" />
-              </a>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Methods Table/Empty state */}
-        <div className="space-y-6">
-          <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-              <div>
-                <h3 className="text-lg font-bold text-white">Métodos de frete</h3>
-                <p className="text-gray-400 text-xs mt-0.5">
-                  Configure prazos, valores e disponibilidade no checkout.
+          <CardContent className="p-0">
+            {methods.length === 0 ? (
+              /* Empty State */
+              <div className="py-16 px-6 text-center flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-4 text-gray-500 border border-gray-700">
+                  <Truck className="h-8 w-8" />
+                </div>
+                <h4 className="text-base font-bold text-white mb-1">Nenhum frete cadastrado</h4>
+                <p className="text-gray-400 text-xs max-w-sm mx-auto mb-6 leading-relaxed">
+                  Crie seu primeiro método de frete para disponibilizar opções de envio no checkout.
                 </p>
-              </div>
-              {methods.length > 0 && (
                 <Button
                   onClick={() => { resetForm(); setView('create'); }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                 >
                   <Plus className="h-4 w-4 mr-1.5" />
                   Novo frete
                 </Button>
-              )}
-            </div>
-
-            <CardContent className="p-0">
-              {methods.length === 0 ? (
-                /* Empty State */
-                <div className="py-16 px-6 text-center flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-4 text-gray-500 border border-gray-700">
-                    <Truck className="h-8 w-8" />
-                  </div>
-                  <h4 className="text-base font-bold text-white mb-1">Nenhum frete cadastrado</h4>
-                  <p className="text-gray-400 text-xs max-w-sm mx-auto mb-6 leading-relaxed">
-                    Crie seu primeiro método de frete para disponibilizar opções de envio no checkout.
-                  </p>
-                  <Button
-                    onClick={() => { resetForm(); setView('create'); }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                  >
-                    <Plus className="h-4 w-4 mr-1.5" />
-                    Novo frete
-                  </Button>
-                </div>
-              ) : (
-                /* Methods List */
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-800 text-[11px] font-bold text-gray-400 uppercase bg-[#182235]/40">
-                        <th className="py-3 px-6">Nome</th>
-                        <th className="py-3 px-6">Preço</th>
-                        <th className="py-3 px-6">Pedido Mín.</th>
-                        <th className="py-3 px-6">Prazo estimado</th>
-                        <th className="py-3 px-6">Status</th>
-                        <th className="py-3 px-6 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800/80">
-                      {methods.map((method) => {
-                        const price = Number(method.price || method.basePrice || 0);
-                        const minOrder = Number(method.minOrderValue || 0);
-                        return (
-                          <tr key={method.id} className="hover:bg-gray-800/20 transition-colors text-sm text-gray-200">
-                            <td className="py-4 px-6 font-semibold text-white">
-                              <div className="flex flex-col">
-                                <span>{method.name}</span>
-                                {method.isDefault && (
-                                  <span className="text-[10px] text-indigo-400 font-medium mt-0.5">★ Pré-selecionada</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              {price === 0 ? (
-                                <span className="font-semibold text-green-400">Grátis</span>
-                              ) : (
-                                `R$ ${price.toFixed(2).replace('.', ',')}`
+              </div>
+            ) : (
+              /* Methods List */
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-800 text-[11px] font-bold text-gray-400 uppercase bg-[#182235]/40">
+                      <th className="py-3 px-6">Nome</th>
+                      <th className="py-3 px-6">Preço</th>
+                      <th className="py-3 px-6">Pedido Mín.</th>
+                      <th className="py-3 px-6">Prazo estimado</th>
+                      <th className="py-3 px-6">Status</th>
+                      <th className="py-3 px-6 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800/80">
+                    {methods.map((method) => {
+                      const price = Number(method.price || method.basePrice || 0);
+                      const minOrder = Number(method.minOrderValue || 0);
+                      return (
+                        <tr key={method.id} className="hover:bg-gray-800/20 transition-colors text-sm text-gray-200">
+                          <td className="py-4 px-6 font-semibold text-white">
+                            <div className="flex flex-col">
+                              <span>{method.name}</span>
+                              {method.isDefault && (
+                                <span className="text-[10px] text-indigo-400 font-medium mt-0.5">★ Pré-selecionada</span>
                               )}
-                            </td>
-                            <td className="py-4 px-6 text-gray-400">
-                              {minOrder === 0 ? (
-                                'Sem mínimo'
-                              ) : (
-                                `R$ ${minOrder.toFixed(2).replace('.', ',')}`
-                              )}
-                            </td>
-                            <td className="py-4 px-6 text-gray-300">
-                              {method.estimatedDaysMin && method.estimatedDaysMax
-                                ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
-                                : `${method.estimatedDays || 5} dias`}
-                              {method.isBusinessDays ? ' úteis' : ' corridos'}
-                            </td>
-                            <td className="py-4 px-6">
-                              <button
-                                onClick={() => toggleActive(method)}
-                                className={`px-2 py-1 rounded text-xs font-bold transition-all ${
-                                  method.isActive
-                                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                    : 'bg-gray-800 text-gray-400 border border-gray-700'
-                                }`}
-                              >
-                                {method.isActive ? 'Ativo' : 'Inativo'}
-                              </button>
-                            </td>
-                            <td className="py-4 px-6 text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            {price === 0 ? (
+                              <span className="font-semibold text-green-400">Grátis</span>
+                            ) : (
+                              `R$ ${price.toFixed(2).replace('.', ',')}`
+                            )}
+                          </td>
+                          <td className="py-4 px-6 text-gray-400">
+                            {minOrder === 0 ? (
+                              'Sem mínimo'
+                            ) : (
+                              `R$ ${minOrder.toFixed(2).replace('.', ',')}`
+                            )}
+                          </td>
+                          <td className="py-4 px-6 text-gray-300">
+                            {method.estimatedDaysMin && method.estimatedDaysMax
+                              ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`
+                              : `${method.estimatedDays || 5} dias`}
+                            {method.isBusinessDays ? ' úteis' : ' corridos'}
+                          </td>
+                          <td className="py-4 px-6">
+                            <button
+                              onClick={() => toggleActive(method)}
+                              className={`px-2 py-1 rounded text-xs font-bold transition-all ${
+                                method.isActive
+                                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                  : 'bg-gray-800 text-gray-400 border border-gray-700'
+                              }`}
+                            >
+                              {method.isActive ? 'Ativo' : 'Inativo'}
+                            </button>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => startEdit(method)}
@@ -668,66 +622,15 @@ export default function ShippingPage() {
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-      </div>
-
-      {/* Grid: Bottom Static Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card: Entrega por região */}
-        <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                <Globe className="w-5 h-5 text-indigo-400" />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <Badge className="bg-gray-800 text-gray-400 hover:bg-gray-800 border-gray-700">Sem restrições</Badge>
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Entrega por região</h3>
-            <p className="text-gray-400 text-xs leading-relaxed mb-5">
-              Defina regiões bloqueadas ou permitidas no checkout para otimizar sua logística.
-            </p>
-            <Button
-              variant="outline"
-              disabled
-              className="border-gray-700 text-gray-400 bg-transparent cursor-not-allowed opacity-60"
-            >
-              Gerenciar
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Card: Pontos de retirada */}
-        <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                <MapPin className="w-5 h-5 text-indigo-400" />
-              </div>
-              <Badge className="bg-gray-800 text-gray-400 hover:bg-gray-800 border-gray-700">Nenhum ponto</Badge>
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Pontos de retirada</h3>
-            <p className="text-gray-400 text-xs leading-relaxed mb-5">
-              Configure locais de retirada física ou locker para oferecer uma alternativa econômica ao cliente.
-            </p>
-            <Button
-              variant="outline"
-              disabled
-              className="border-gray-700 text-gray-400 bg-transparent cursor-not-allowed opacity-60"
-            >
-              Gerenciar
-            </Button>
+            )}
           </CardContent>
         </Card>
       </div>
