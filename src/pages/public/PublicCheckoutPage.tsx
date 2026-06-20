@@ -282,25 +282,38 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
           .eq("userId", sellerUserId)
           .eq("isActive", true);
         if (error) throw error;
-        if (data) {
-          setShippingMethods(data);
-          const currentShippingVal = checkoutData?.shipping || 0;
-          let matchedMethod = null;
-          if (currentShippingVal > 0) {
-            matchedMethod = data.find((m: any) => Number(m.price || m.basePrice || 0) === currentShippingVal);
-          }
-          const defaultMethod = matchedMethod || data.find((m: any) => m.isDefault) || data[0];
-          if (defaultMethod) {
-            setSelectedShippingMethod(defaultMethod);
-            setCheckoutData((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    shipping: Number(defaultMethod.price || defaultMethod.basePrice || 0),
-                  }
-                : null
-            );
-          }
+        let methodsList = data || [];
+        if (methodsList.length === 0) {
+          methodsList = [{
+            id: "virtual-free-shipping",
+            name: "Frete grátis",
+            description: "Entrega padrão",
+            price: 0,
+            basePrice: 0,
+            estimatedDaysMin: 1,
+            estimatedDaysMax: 5,
+            isBusinessDays: true,
+            isDefault: true,
+            isActive: true
+          }];
+        }
+        setShippingMethods(methodsList);
+        const currentShippingVal = checkoutData?.shipping || 0;
+        let matchedMethod = null;
+        if (currentShippingVal > 0) {
+          matchedMethod = methodsList.find((m: any) => Number(m.price || m.basePrice || 0) === currentShippingVal);
+        }
+        const defaultMethod = matchedMethod || methodsList.find((m: any) => m.isDefault) || methodsList[0];
+        if (defaultMethod) {
+          setSelectedShippingMethod(defaultMethod);
+          setCheckoutData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  shipping: Number(defaultMethod.price || defaultMethod.basePrice || 0),
+                }
+              : null
+          );
         }
       } catch (err) {
         console.error("Erro ao carregar métodos de frete do lojista:", err);

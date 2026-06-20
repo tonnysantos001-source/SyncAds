@@ -28,6 +28,7 @@ import { useCepLookup } from '@/hooks/useCepLookup';
 import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import { CrossSellCard } from '@/components/checkout/CrossSellCard';
+import { ShippingLogo } from '@/components/checkout/ShippingLogo';
 import {
   formatCEP,
   formatCPFCNPJ,
@@ -1093,6 +1094,7 @@ const PremiumTemplate: React.FC<TemplateRenderProps> = ({
                                 onChange={() => onSelectShippingMethod?.(method)}
                                 className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
                               />
+                              <ShippingLogo name={method.name} size={18} />
                               <div>
                                 <span className="block text-sm font-medium text-gray-900">
                                   {method.name}

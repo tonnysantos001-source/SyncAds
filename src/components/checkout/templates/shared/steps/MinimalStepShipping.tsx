@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { Loader2, CheckCircle, ChevronRight, ChevronLeft, AlertCircle } from 'lucide-react';
 import { useCepLookup } from '@/hooks/useCepLookup';
 import { formatCEP, validateCEP } from '@/utils/checkoutValidators';
+import { ShippingLogo } from '@/components/checkout/ShippingLogo';
 import type { ButtonCfg } from './MinimalStepCustomer';
 
 export interface AddressData {
@@ -331,6 +332,7 @@ export const MinimalStepShipping: React.FC<MinimalStepShippingProps> = ({
                       onChange={() => onSelectShippingMethod?.(method)}
                       style={{ accentColor: primaryColor, cursor: 'pointer' }}
                     />
+                    <ShippingLogo name={method.name} size={18} />
                     <div style={{ fontFamily: '"Rubik", sans-serif', minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#111827', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {method.name}

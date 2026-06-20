@@ -35,6 +35,28 @@ export default function ShippingPage() {
   const [methods, setMethods] = useState<ShippingMethod[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Local states for masked text inputs
+  const [priceInput, setPriceInput] = useState('0,00');
+  const [minOrderInput, setMinOrderInput] = useState('0,00');
+
+  // Formatting helpers
+  const formatBRLInput = (value: string | number): string => {
+    if (typeof value === 'number') {
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const cleanValue = value.replace(/\D/g, '');
+    if (!cleanValue) return '0,00';
+    const cents = parseInt(cleanValue, 10);
+    const realValue = cents / 100;
+    return realValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const parseBRLToNumber = (valueStr: string): number => {
+    const cleanValue = valueStr.replace(/\D/g, '');
+    if (!cleanValue) return 0;
+    return parseInt(cleanValue, 10) / 100;
+  };
+
   // Controle de Visualização: 'list' | 'create' | 'edit'
   const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
   const [editingMethod, setEditingMethod] = useState<ShippingMethod | null>(null);
@@ -74,7 +96,35 @@ export default function ShippingPage() {
 
       if (error) throw error;
 
-      setMethods(data || []);
+      let methodsList = data || [];
+      if (methodsList.length === 0) {
+        const defaultMethod = {
+          name: 'Frete grátis',
+          description: 'Entrega padrão',
+          type: 'FIXED',
+          basePrice: 0,
+          price: 0,
+          pricePerUnit: 0,
+          estimatedDays: 5,
+          estimatedDaysMin: 1,
+          estimatedDaysMax: 5,
+          isBusinessDays: true,
+          minOrderValue: 0,
+          isActive: true,
+          isDefault: true,
+          userId: user.id
+        };
+        const { data: insertData, error: insertError } = await supabase
+          .from('ShippingMethod')
+          .insert(defaultMethod)
+          .select();
+        
+        if (!insertError && insertData && insertData.length > 0) {
+          methodsList = insertData;
+        }
+      }
+
+      setMethods(methodsList);
     } catch (error) {
       console.error('Erro ao carregar métodos:', error);
       toast({
@@ -195,26 +245,32 @@ export default function ShippingPage() {
       isActive: true,
       isDefault: false
     });
+    setPriceInput('0,00');
+    setMinOrderInput('0,00');
     setEditingMethod(null);
   };
 
   const startEdit = (method: ShippingMethod) => {
     setEditingMethod(method);
+    const methodPrice = Number(method.price || method.basePrice || 0);
+    const methodMinOrder = Number(method.minOrderValue || 0);
     setFormData({
       name: method.name,
       description: method.description || '',
       type: method.type || 'FIXED',
-      basePrice: Number(method.basePrice || method.price || 0),
-      price: Number(method.price || method.basePrice || 0),
+      basePrice: methodPrice,
+      price: methodPrice,
       pricePerUnit: Number(method.pricePerUnit || 0),
       estimatedDays: method.estimatedDays || 5,
       estimatedDaysMin: method.estimatedDaysMin || 1,
       estimatedDaysMax: method.estimatedDaysMax || 5,
       isBusinessDays: method.isBusinessDays !== false,
-      minOrderValue: Number(method.minOrderValue || 0),
+      minOrderValue: methodMinOrder,
       isActive: method.isActive !== false,
       isDefault: method.isDefault === true
     });
+    setPriceInput(formatBRLInput(methodPrice));
+    setMinOrderInput(formatBRLInput(methodMinOrder));
     setView('edit');
   };
 
@@ -332,11 +388,14 @@ export default function ShippingPage() {
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-gray-400 text-sm">R$</span>
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
                         placeholder="0,00"
-                        value={formData.price || ''}
-                        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                        value={priceInput}
+                        onChange={(e) => {
+                          const formatted = formatBRLInput(e.target.value);
+                          setPriceInput(formatted);
+                          setFormData({ ...formData, price: parseBRLToNumber(formatted) });
+                        }}
                         className="pl-9 bg-[#1F2937] border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500"
                       />
                     </div>
@@ -347,11 +406,14 @@ export default function ShippingPage() {
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-gray-400 text-sm">R$</span>
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
                         placeholder="0,00"
-                        value={formData.minOrderValue || ''}
-                        onChange={(e) => setFormData({ ...formData, minOrderValue: parseFloat(e.target.value) || 0 })}
+                        value={minOrderInput}
+                        onChange={(e) => {
+                          const formatted = formatBRLInput(e.target.value);
+                          setMinOrderInput(formatted);
+                          setFormData({ ...formData, minOrderValue: parseBRLToNumber(formatted) });
+                        }}
                         className="pl-9 bg-[#1F2937] border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500"
                       />
                     </div>
@@ -572,20 +634,20 @@ export default function ShippingPage() {
                               )}
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                            {price === 0 ? (
-                              <span className="font-semibold text-green-400">Grátis</span>
-                            ) : (
-                              `R$ ${price.toFixed(2).replace('.', ',')}`
-                            )}
-                          </td>
-                          <td className="py-4 px-6 text-gray-400">
-                            {minOrder === 0 ? (
-                              'Sem mínimo'
-                            ) : (
-                              `R$ ${minOrder.toFixed(2).replace('.', ',')}`
-                            )}
-                          </td>
+                           <td className="py-4 px-6">
+                             {price === 0 ? (
+                               <span className="font-semibold text-green-400">Grátis</span>
+                             ) : (
+                               `R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                             )}
+                           </td>
+                           <td className="py-4 px-6 text-gray-400">
+                             {minOrder === 0 ? (
+                               'Sem mínimo'
+                             ) : (
+                               `R$ ${minOrder.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                             )}
+                           </td>
                           <td className="py-4 px-6 text-gray-300">
                             {method.estimatedDaysMin && method.estimatedDaysMax
                               ? `${method.estimatedDaysMin} a ${method.estimatedDaysMax} dias`

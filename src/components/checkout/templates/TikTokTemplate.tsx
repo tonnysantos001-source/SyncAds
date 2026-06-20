@@ -29,6 +29,7 @@ import { usePaymentProcessor } from '@/hooks/usePaymentProcessor';
 import { NoticeBar } from '@/components/checkout/NoticeBar';
 import { OrderBumpCard } from '@/components/checkout/OrderBumpCard';
 import { CrossSellCard } from '@/components/checkout/CrossSellCard';
+import { ShippingLogo } from '@/components/checkout/ShippingLogo';
 import {
   fmtBRL, formatCEP, formatCPFCNPJ, formatPhone, formatCardNumber, formatExpiry,
   validateCPFCNPJ, validateEmail, validatePhone, validateCEP,
@@ -317,6 +318,7 @@ const DesktopShippingCard: React.FC<{
                   style={isSelected ? { accentColor: primaryColor } : {}}
                   className="w-4 h-4"
                 />
+                <ShippingLogo name={method.name} size={18} />
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{method.name}</p>
                   {method.description && <p className="text-xs text-gray-400">{method.description}</p>}
@@ -1168,6 +1170,7 @@ const MobileContactPaymentCard: React.FC<{
                       style={isSelected ? { accentColor: primaryColor } : {}}
                       className="w-4 h-4"
                     />
+                    <ShippingLogo name={method.name} size={18} />
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{method.name}</p>
                       {method.description && <p className="text-xs text-gray-400">{method.description}</p>}
