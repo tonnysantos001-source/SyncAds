@@ -1,118 +1,39 @@
 import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Search,
-  Building2,
-  CheckCircle2,
-  TrendingUp,
-  Activity,
-  Globe2,
-  MapPin,
-  Filter,
   Zap,
   ArrowUp,
   ArrowDown,
   ShieldAlert,
   Loader2,
   SlidersHorizontal,
+  Settings,
+  Play,
+  RefreshCw,
 } from "lucide-react";
 import { gatewaysList } from "@/lib/gateways/gatewaysList";
-import GatewayCard from "@/components/gateway/GatewayCard";
 import GatewayLogo from "@/components/gateway/GatewayLogo";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  color: string;
-  delay?: number;
-  subtitle?: string;
-  trend?: number;
-}
-
-const MetricCard = ({
-  title,
-  value,
-  icon: Icon,
-  color,
-  delay = 0,
-  subtitle,
-  trend,
-}: MetricCardProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-    >
-      <Card className="relative overflow-hidden border border-gray-100 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-sm hover:shadow-md transition-all duration-300">
-        <div
-          className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-5 rounded-full blur-2xl`}
-        />
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            {title}
-          </CardTitle>
-          <div className={`p-1.5 rounded-lg ${color} bg-opacity-10 dark:bg-opacity-20`}>
-            <Icon className={`h-4.5 w-4.5 ${color.replace("bg-", "text-")}`} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {value}
-          </div>
-          {subtitle && (
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-              {subtitle}
-            </p>
-          )}
-          {trend !== undefined && (
-            <div className="flex items-center gap-1 mt-1.5">
-              <TrendingUp
-                className={`h-3 w-3 ${trend >= 0 ? "text-green-600" : "text-red-600"}`}
-              />
-              <span
-                className={`text-[11px] font-medium ${trend >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                {trend >= 0 ? "+" : ""}
-                {trend}%
-              </span>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                vs mês anterior
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
 const GatewaysListPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"gateways" | "retentativa">("gateways");
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeGatewayIds, setActiveGatewayIds] = useState<string[]>([]);
   const [gatewayConfigsMap, setGatewayConfigsMap] = useState<Record<string, any>>({});
   const [dbConfigs, setDbConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSequence, setSavingSequence] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
   const { toast } = useToast();
 
@@ -242,262 +163,286 @@ const GatewaysListPage = () => {
     }
   };
 
-  // Gateways populares
-  const popularGateways = [
-    "mercadopago",
-    "stripe",
-    "pagseguro",
-    "asaas",
-    "pagarme",
-  ];
+  // Testar conexão com o gateway
+  const handleTestConnection = async (configId: string, gatewayName: string) => {
+    if (!configId) return;
+    setTestingId(configId);
+    toast({
+      title: "Testando conexão...",
+      description: `Testando gateway ${gatewayName}`,
+    });
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "gateway-config-verify",
+        {
+          body: {
+            configId,
+            persistCredentials: false,
+          },
+        },
+      );
+      if (error) throw error;
+      if (data?.success) {
+        toast({
+          title: "✅ Conexão bem-sucedida",
+          description: data.message || "O gateway respondeu corretamente.",
+        });
+        await loadActiveGateways();
+      } else {
+        toast({
+          title: "❌ Falha na conexão",
+          description: data?.message || "Verifique suas credenciais e tente novamente.",
+          variant: "destructive",
+        });
+        await loadActiveGateways();
+      }
+    } catch (e: any) {
+      toast({
+        title: "❌ Erro ao testar conexão",
+        description: e?.message || "Ocorreu um erro ao testar a conexão com o gateway.",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingId(null);
+    }
+  };
 
-  // Calcular métricas
-  const metrics = useMemo(() => {
-    const total = implementedGateways.length;
-    const active = activeGatewayIds.length;
-    const nacional = implementedGateways.filter(
-      (g) => g.type === "nacional" || g.type === "both",
-    ).length;
-    const global = implementedGateways.filter(
-      (g) => g.type === "global" || g.type === "both",
-    ).length;
-
-    return {
-      total,
-      active,
-      nacional,
-      global,
-    };
-  }, [activeGatewayIds, implementedGateways]);
-
-  // Filtrar gateways para aba principal
+  // Filtrar gateways para aba principal pelo termo de busca
   const filteredGateways = useMemo(() => {
     let filtered = implementedGateways;
 
     if (searchTerm) {
-      filtered = filtered.filter((gateway) =>
-        gateway.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      filtered = filtered.filter((gateway: any) =>
+        gateway.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((gateway) => {
-        if (typeFilter === "nacional") {
-          return gateway.type === "nacional" || gateway.type === "both";
-        }
-        if (typeFilter === "global") {
-          return gateway.type === "global" || gateway.type === "both";
-        }
-        return true;
-      });
-    }
-
-    if (statusFilter !== "all") {
-      if (statusFilter === "active") {
-        filtered = filtered.filter((gateway) =>
-          activeGatewayIds.includes(gateway.id),
-        );
-      } else if (statusFilter === "inactive") {
-        filtered = filtered.filter(
-          (gateway) => !activeGatewayIds.includes(gateway.id),
-        );
-      }
-    }
-
     return filtered;
-  }, [searchTerm, typeFilter, statusFilter, activeGatewayIds, implementedGateways]);
+  }, [searchTerm, implementedGateways]);
+
+  // Função para retornar os detalhes de status mapeados para badges simplificados
+  const getStatusDetails = (status: string) => {
+    switch (status) {
+      case "connected":
+        return {
+          label: "Conectado",
+          color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+          indicator: "bg-emerald-500",
+        };
+      case "failed":
+        return {
+          label: "Erro",
+          color: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+          indicator: "bg-rose-500",
+        };
+      case "pending":
+        return {
+          label: "Não configurado",
+          color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+          indicator: "bg-slate-400",
+        };
+      case "disconnected":
+      default:
+        return {
+          label: "Não configurado",
+          color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+          indicator: "bg-slate-400",
+        };
+    }
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-6">
-      {/* Header com Abas */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-5">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-            Formas de Pagamento
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Gerencie os gateways de pagamento, formas de pagamento e configurações de retentativa.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Header com gradiente idêntico ao de Integrações */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-2"
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-5">
+          <div className="flex items-center gap-3">
+            <motion.div
+              className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-xl border border-blue-500/30"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+            >
+              <SlidersHorizontal className="w-6 h-6 text-blue-500" />
+            </motion.div>
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Gateways de Pagamento
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 font-medium mt-1">
+                Configure seus provedores de pagamento e a sequência de retentativa inteligente
+              </p>
+            </div>
+          </div>
 
-        {/* Tab Selector Capsule */}
-        <div className="inline-flex p-1 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200/30 backdrop-blur-sm">
-          <button
-            onClick={() => setActiveTab("gateways")}
-            className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 font-medium ${
-              activeTab === "gateways"
-                ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Gateways
-          </button>
-          <button
-            onClick={() => setActiveTab("retentativa")}
-            className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 font-medium ${
-              activeTab === "retentativa"
-                ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            Retentativa
-          </button>
+          {/* Tab Selector Capsule */}
+          <div className="inline-flex p-1 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm flex-shrink-0 self-start md:self-auto">
+            <button
+              onClick={() => setActiveTab("gateways")}
+              className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 font-medium ${
+                activeTab === "gateways"
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Gateways
+            </button>
+            <button
+              onClick={() => setActiveTab("retentativa")}
+              className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 font-medium ${
+                activeTab === "retentativa"
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Zap className="w-4 h-4" />
+              Retentativa
+            </button>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {activeTab === "gateways" ? (
         <>
-          {/* Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <MetricCard
-              title="Total Disponível"
-              value={metrics.total}
-              icon={Building2}
-              color="bg-blue-500"
-              subtitle="Gateways cadastrados"
-            />
-            <MetricCard
-              title="Gateways Ativos"
-              value={metrics.active}
-              icon={CheckCircle2}
-              color="bg-green-500"
-              subtitle="Configurados e ativos"
-            />
-            <MetricCard
-              title="Nacionais"
-              value={metrics.nacional}
-              icon={MapPin}
-              color="bg-purple-500"
-              subtitle="Gateways brasileiros"
-            />
-            <MetricCard
-              title="Globais"
-              value={metrics.global}
-              icon={Globe2}
-              color="bg-pink-500"
-              subtitle="Gateways internacionais"
+          {/* Barra de busca simplificada */}
+          <div className="relative max-w-md my-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Input
+              placeholder="Buscar gateway..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="pl-10 h-10 bg-slate-900/30 border-slate-800 text-white rounded-xl placeholder:text-slate-500 focus-visible:ring-blue-500/30"
             />
           </div>
 
-          {/* Filters Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-sm">
-              <CardContent className="p-4 flex flex-col md:flex-row gap-3">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  <Input
-                    placeholder="Buscar gateway..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                  />
-                </div>
-
-                {/* Filters */}
-                <div className="flex gap-3 flex-wrap sm:flex-nowrap">
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-full sm:w-[160px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-                      <Filter className="h-4 w-4 mr-2 text-gray-400" />
-                      <SelectValue placeholder="Tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os tipos</SelectItem>
-                      <SelectItem value="nacional">Nacional</SelectItem>
-                      <SelectItem value="global">Global</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-[160px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-                      <Activity className="h-4 w-4 mr-2 text-gray-400" />
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="active">Ativos</SelectItem>
-                      <SelectItem value="inactive">Inativos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Results Info */}
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Carregando gateways...
-              </span>
-            ) : (
-              <span>
-                Exibindo <span className="font-semibold text-gray-900 dark:text-white">{filteredGateways.length}</span> de{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">{implementedGateways.length}</span> gateways
-              </span>
-            )}
-          </div>
-
-          {/* Gateways Grid */}
+          {/* Grid de Gateways */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[...Array(3)].map((_, i) => (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
                 <Card
                   key={i}
-                  className="border border-gray-100 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 p-5 flex items-center gap-4"
+                  className="border border-slate-800 bg-slate-900/30 p-5 flex flex-col gap-4 animate-pulse h-[180px]"
                 >
-                  <Skeleton className="w-14 h-14 rounded-xl flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-2/3" />
-                    <Skeleton className="h-3 w-1/2" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-20 rounded-full bg-slate-850" />
                   </div>
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="w-12 h-12 rounded-2xl bg-slate-850" />
+                    <Skeleton className="h-5 w-24 bg-slate-850" />
+                  </div>
+                  <Skeleton className="h-3 w-full bg-slate-850" />
+                  <Skeleton className="h-9 w-full rounded-xl bg-slate-850 mt-auto" />
                 </Card>
               ))}
             </div>
           ) : filteredGateways.length === 0 ? (
-            <Card className="border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 p-12 text-center">
-              <Search className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-gray-950 dark:text-white mb-1">
+            <div className="text-center py-16 border border-dashed border-slate-800 rounded-3xl bg-slate-900/10">
+              <h3 className="text-xl font-bold mb-2 text-white">
                 Nenhum gateway encontrado
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Ajuste os filtros ou tente outra busca.
+              <p className="text-slate-400 max-w-sm mx-auto">
+                Ajuste os termos de busca para visualizar os gateways.
               </p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredGateways.map((gateway, index) => {
-                const isActive = activeGatewayIds.includes(gateway.id);
-                const isPopular = popularGateways.includes(gateway.id);
-                const config = gatewayConfigsMap[gateway.id];
-                const connectionStatus = config ? config.status : "not_configured";
-
-                return (
-                  <GatewayCard
-                    key={gateway.id}
-                    id={gateway.id}
-                    name={gateway.name}
-                    slug={gateway.slug}
-                    logo={gateway.logo}
-                    type={gateway.type}
-                    status={gateway.status}
-                    isVerified={gateway.status === "active" && !gateway.testMode}
-                    isActive={isActive}
-                    isPopular={isPopular}
-                    connectionStatus={connectionStatus}
-                    description={gateway.description}
-                    delay={index * 0.03}
-                  />
-                );
-              })}
             </div>
+          ) : (
+            <motion.div
+              layout
+              className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              <AnimatePresence mode="popLayout">
+                {filteredGateways.map((gateway: any) => {
+                  const config = gatewayConfigsMap[gateway.slug];
+                  const statusVal = config ? config.status : "disconnected";
+                  const status = getStatusDetails(statusVal);
+                  const isConnected = statusVal === "connected";
+
+                  return (
+                    <motion.div
+                      layout
+                      key={gateway.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="group"
+                    >
+                      <Card className="relative overflow-hidden border border-slate-800 bg-slate-900/30 group-hover:border-slate-700/50 transition-all duration-300 flex flex-col h-full hover:shadow-2xl hover:shadow-primary/5">
+                        
+                        {/* Status Badge */}
+                        <div className="p-4 flex items-center justify-between pb-2">
+                          <Badge
+                            variant="outline"
+                            className={`flex items-center gap-1.5 px-2 py-0.5 font-semibold text-[11px] rounded-full ${status.color}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${status.indicator}`} />
+                            {status.label}
+                          </Badge>
+                        </div>
+
+                        {/* Logo & Nome */}
+                        <CardHeader className="pt-2 pb-4 flex flex-row items-center gap-4 space-y-0">
+                          <div className="relative w-12 h-12 rounded-2xl bg-slate-950/80 border border-slate-800/80 p-2 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <GatewayLogo
+                              name={gateway.name}
+                              logo={gateway.logo}
+                              slug={gateway.slug}
+                              size="sm"
+                              className="border-0 bg-transparent rounded-none"
+                            />
+                          </div>
+                          <div>
+                            <CardTitle className="text-md font-bold text-white group-hover:text-primary-foreground transition-colors">
+                              {gateway.name}
+                            </CardTitle>
+                          </div>
+                        </CardHeader>
+
+                        {/* Descrição */}
+                        <CardContent className="flex-grow pt-0 pb-4">
+                          <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                            {gateway.description || "Sem descrição disponível."}
+                          </p>
+                        </CardContent>
+
+                        {/* Botões de Ação */}
+                        <div className="p-4 pt-0 border-t border-slate-800/50 mt-auto flex flex-col gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs font-semibold h-9 border-slate-800 bg-slate-900/60 hover:bg-slate-800 hover:text-white"
+                            onClick={() => navigate(`/checkout/gateways/${gateway.slug}`)}
+                          >
+                            <Settings className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                            Configurar
+                          </Button>
+
+                          {isConnected && config && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full text-[11px] h-8 text-slate-400 hover:bg-slate-800/60 hover:text-white"
+                              onClick={() => handleTestConnection(config.id, gateway.name)}
+                              disabled={testingId === config.id}
+                            >
+                              {testingId === config.id ? (
+                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <Play className="w-3 h-3 mr-1" />
+                              )}
+                              Testar Conexão
+                            </Button>
+                          )}
+                        </div>
+
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
           )}
         </>
       ) : (
@@ -509,50 +454,49 @@ const GatewaysListPage = () => {
           className="max-w-2xl mx-auto"
         >
           {loading ? (
-            <Card className="border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 p-6 space-y-4">
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <Card className="border border-slate-800 bg-slate-900/30 p-6 space-y-4">
+              <Skeleton className="h-6 w-1/3 bg-slate-850" />
+              <Skeleton className="h-12 w-full bg-slate-850" />
+              <Skeleton className="h-12 w-full bg-slate-850" />
             </Card>
           ) : sortedConfigs.length === 0 ? (
-            /* Empty State exactly matching user reference (Corvex layout, image 4) */
-            <Card className="border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 p-12 text-center rounded-2xl shadow-sm">
-              <div className="w-14 h-14 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700/50">
-                <ShieldAlert className="w-7 h-7 text-gray-400" />
+            <Card className="border border-slate-800 bg-slate-900/30 p-12 text-center rounded-2xl shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-slate-950 flex items-center justify-center mx-auto mb-4 border border-slate-800">
+                <ShieldAlert className="w-7 h-7 text-slate-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg font-bold text-white mb-2">
                 Nenhum gateway configurado
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+              <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
                 Configure pelo menos um gateway de pagamento antes de definir a sequência de retentativa.
               </p>
             </Card>
           ) : (
             /* List of active gateways to order */
-            <Card className="border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-sm rounded-2xl overflow-hidden">
-              <CardHeader className="border-b border-gray-100 dark:border-gray-800/80 px-6 py-4">
-                <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
+            <Card className="border border-slate-800 bg-slate-900/30 shadow-sm rounded-2xl overflow-hidden">
+              <CardHeader className="border-b border-slate-800/80 px-6 py-4">
+                <CardTitle className="text-base font-semibold text-white">
                   Sequência de Failover dos Gateways
                 </CardTitle>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Ordene a lista na sequência de processamento desejada. Se o primeiro gateway falhar, a cobrança tentará o segundo e assim por diante.
                 </p>
               </CardHeader>
               
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-3">
-                  {sortedConfigs.map((config, index) => {
+                  {sortedConfigs.map((config: any, index: number) => {
                     const gwName = config.Gateway?.name || "Gateway";
                     const gwSlug = config.Gateway?.slug || "";
                     
                     return (
                       <div
                         key={config.id}
-                        className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800/80 bg-white dark:bg-gray-950 shadow-sm"
+                        className="flex items-center justify-between p-4 rounded-xl border border-slate-800/80 bg-slate-900/50"
                       >
                         {/* Gateway identification details */}
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden">
+                          <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-950 border border-slate-800 overflow-hidden">
                             <GatewayLogo
                               name={gwName}
                               slug={gwSlug}
@@ -561,10 +505,10 @@ const GatewaysListPage = () => {
                             />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            <p className="text-sm font-semibold text-white">
                               {gwName}
                             </p>
-                            <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                            <span className="text-[11px] font-medium text-blue-400">
                               {index === 0
                                 ? "1º Gateway (Principal)"
                                 : `${index + 1}º Gateway (Retentativa)`}
@@ -579,7 +523,7 @@ const GatewaysListPage = () => {
                             size="icon"
                             disabled={index === 0}
                             onClick={() => moveConfig(index, "up")}
-                            className="w-8 h-8 rounded-lg border-gray-200 dark:border-gray-800 dark:text-white"
+                            className="w-8 h-8 rounded-lg border-slate-800 bg-slate-900/40 hover:bg-slate-800 text-white"
                           >
                             <ArrowUp className="w-4 h-4" />
                           </Button>
@@ -588,7 +532,7 @@ const GatewaysListPage = () => {
                             size="icon"
                             disabled={index === sortedConfigs.length - 1}
                             onClick={() => moveConfig(index, "down")}
-                            className="w-8 h-8 rounded-lg border-gray-200 dark:border-gray-800 dark:text-white"
+                            className="w-8 h-8 rounded-lg border-slate-800 bg-slate-900/40 hover:bg-slate-800 text-white"
                           >
                             <ArrowDown className="w-4 h-4" />
                           </Button>
@@ -599,7 +543,7 @@ const GatewaysListPage = () => {
                 </div>
 
                 {/* Save Sequence Button */}
-                <div className="pt-4 border-t border-gray-100 dark:border-gray-800/80 flex justify-end">
+                <div className="pt-4 border-t border-slate-800 flex justify-end">
                   <Button
                     onClick={handleSaveSequence}
                     disabled={savingSequence || sortedConfigs.length <= 1}
