@@ -131,7 +131,52 @@ export const useIntegrationsStore = create<IntegrationsState>((set, get) => ({
         integrationsV2Api.getAvailableIntegrations(),
         integrationsV2Api.getUserConfigs(userId),
       ]);
-      set({ dbIntegrations: available, userConfigs: configs, loading: false });
+
+      // Check legacy ShopifyIntegration
+      const { data: shopifyData } = await supabase
+        .from("ShopifyIntegration")
+        .select("*")
+        .eq("userId", userId)
+        .eq("isActive", true)
+        .maybeSingle();
+
+      // Check legacy WooCommerceIntegration
+      const { data: wooData } = await supabase
+        .from("WooCommerceIntegration")
+        .select("*")
+        .eq("userId", userId)
+        .eq("isActive", true)
+        .maybeSingle();
+
+      const mergedConfigs = [...configs];
+
+      if (shopifyData && !mergedConfigs.some(c => c.integration_id === 'shopify')) {
+        mergedConfigs.push({
+          id: shopifyData.id,
+          user_id: userId,
+          integration_id: 'shopify',
+          credentials_encrypted: JSON.stringify({ shopDomain: shopifyData.shopDomain, accessToken: shopifyData.accessToken }),
+          status: 'connected',
+          last_test_at: null,
+          created_at: shopifyData.createdAt,
+          updated_at: shopifyData.updatedAt
+        });
+      }
+
+      if (wooData && !mergedConfigs.some(c => c.integration_id === 'woocommerce')) {
+        mergedConfigs.push({
+          id: wooData.id,
+          user_id: userId,
+          integration_id: 'woocommerce',
+          credentials_encrypted: JSON.stringify({ siteUrl: wooData.siteUrl, consumerKey: wooData.consumerKey, consumerSecret: wooData.consumerSecret }),
+          status: 'connected',
+          last_test_at: null,
+          created_at: wooData.createdAt,
+          updated_at: wooData.updatedAt
+        });
+      }
+
+      set({ dbIntegrations: available, userConfigs: mergedConfigs, loading: false });
     } catch (error) {
       console.error("Load V2 integrations error:", error);
       set({ loading: false });

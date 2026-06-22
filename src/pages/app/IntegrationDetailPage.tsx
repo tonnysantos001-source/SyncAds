@@ -38,6 +38,9 @@ import {
   ChevronDown,
   ChevronUp,
   Lock,
+  Truck,
+  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 
 interface IntegrationField {
@@ -160,13 +163,164 @@ const INTEGRATIONS_CONFIG: Record<string, IntegrationConfig> = {
       },
     ],
   },
+  "melhor-envio": {
+    id: "melhor-envio",
+    name: "Melhor Envio",
+    icon: Truck,
+    description: "Calcule fretes, gere etiquetas de envio e rastreie encomendas.",
+    longDescription:
+      "A integração com o Melhor Envio permite que você calcule fretes dinâmicos em tempo real no checkout e emita etiquetas com desconto dos Correios, Jadlog, Latam Cargo e muito mais.",
+    fields: [
+      {
+        id: "token",
+        label: "API Token (Token de Acesso)",
+        placeholder: "Bearer eyJhbGciOi...",
+        type: "password",
+        required: true,
+        helpText: "Insira o token gerado no painel do Melhor Envio",
+      },
+    ],
+    manual: [
+      {
+        step: 1,
+        title: "Acesse Gerenciamento de Tokens",
+        description: "No painel do Melhor Envio, vá em Gerenciar > Tokens",
+      },
+      {
+        step: 2,
+        title: "Gere um Novo Token",
+        description: "Dê um nome ao token, dê as permissões de cálculo e geração e clique em Salvar",
+      },
+    ],
+  },
+  superfrete: {
+    id: "superfrete",
+    name: "SuperFrete",
+    icon: Truck,
+    description: "Calcule fretes e emita etiquetas com descontos de até 60%.",
+    longDescription:
+      "Com a SuperFrete você pode calcular fretes automáticos no seu checkout e emitir etiquetas de envio com até 60% de desconto diretamente do painel do SyncAds.",
+    fields: [
+      {
+        id: "token",
+        label: "API Token (Token do Desenvolvedor)",
+        placeholder: "eyJhbGciOi...",
+        type: "password",
+        required: true,
+        helpText: "Insira a chave de integração API Token gerada na SuperFrete",
+      },
+    ],
+    manual: [
+      {
+        step: 1,
+        title: "Acesse a Conta SuperFrete",
+        description: "Faça login na sua conta SuperFrete pelo navegador ou aplicativo",
+      },
+      {
+        step: 2,
+        title: "Copie a Chave de Integração",
+        description: "Vá em Integrações > APIs e copie a chave do desenvolvedor para colar aqui",
+      },
+    ],
+  },
+  reportana: {
+    id: "reportana",
+    name: "Reportana",
+    icon: MessageSquare,
+    description: "Recupere carrinhos abandonados e automatize a comunicação pós-venda.",
+    longDescription:
+      "Conecte a Reportana para recuperar carrinhos abandonados por WhatsApp, SMS ou e-mail de forma 100% automatizada a partir do fluxo de vendas do SyncAds.",
+    fields: [
+      {
+        id: "apiKey",
+        label: "API Key (Chave da API)",
+        placeholder: "rep_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        type: "password",
+        required: true,
+        helpText: "Insira a chave secreta de API da Reportana",
+      },
+    ],
+    manual: [
+      {
+        step: 1,
+        title: "Acesse Configurações da API",
+        description: "No painel administrativo da Reportana, vá em Configurações > API / Integrações",
+      },
+      {
+        step: 2,
+        title: "Gere a API Key",
+        description: "Clique em 'Gerar Token de Acesso' ou utilize um existente",
+      },
+    ],
+  },
+  utmify: {
+    id: "utmify",
+    name: "UTMify",
+    icon: TrendingUp,
+    description: "Rastreie suas vendas em tempo real e analise o ROI de tráfego pago.",
+    longDescription:
+      "A UTMify permite que você rastreie e atribua parâmetros UTM em tempo real aos seus clientes, dando a você relatórios detalhados de qual campanha ou anúncio gerou as vendas.",
+    fields: [
+      {
+        id: "token",
+        label: "Token de Acesso (API Token)",
+        placeholder: "utm_xxxxxxxxxxxxxxxx",
+        type: "password",
+        required: true,
+        helpText: "Insira seu Token de Integração do UTMify",
+      },
+    ],
+    manual: [
+      {
+        step: 1,
+        title: "Acesse Integrações da UTMify",
+        description: "No painel da UTMify, vá em Configurações de API > Chaves de Integração",
+      },
+      {
+        step: 2,
+        title: "Copie o Token",
+        description: "Copie a chave ativa e cole no campo acima para estabelecer a comunicação",
+      },
+    ],
+  },
+  "syncads-automation": {
+    id: "syncads-automation",
+    name: "SyncAds Automação",
+    icon: Zap,
+    description: "Automações exclusivas e personalizadas para escalar a sua operação.",
+    longDescription:
+      "Ative a automação nativa do SyncAds para processar webhooks de vendas, disparar notificações internas e automatizar e-mails transacionais imediatamente.",
+    fields: [
+      {
+        id: "apiKey",
+        label: "Chave de Automação",
+        placeholder: "sa_auto_xxxxxxxxxxxx",
+        type: "text",
+        required: true,
+        helpText: "Esta chave é gerada automaticamente ou fornecida pelo seu suporte SyncAds",
+      },
+    ],
+    manual: [
+      {
+        step: 1,
+        title: "Configuração Rápida",
+        description: "Preencha com sua chave de automação nativa fornecida por nossa equipe.",
+      },
+    ],
+  },
 };
 
 const IntegrationDetailPage: React.FC = () => {
   const { integrationId } = useParams<{ integrationId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { isIntegrationConnected, loadIntegrations } = useIntegrationsStore();
+  const { 
+    isIntegrationConnected, 
+    loadIntegrations,
+    connectV2Integration,
+    disconnectV2Integration,
+    loadV2Integrations
+  } = useIntegrationsStore();
   const { toast } = useToast();
 
   const [isConnected, setIsConnected] = useState(false);
@@ -178,6 +332,12 @@ const IntegrationDetailPage: React.FC = () => {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   const config = integrationId ? INTEGRATIONS_CONFIG[integrationId] : null;
+
+  useEffect(() => {
+    if (user) {
+      loadV2Integrations(user.id);
+    }
+  }, [user, loadV2Integrations]);
 
   useEffect(() => {
     if (integrationId) {
@@ -281,14 +441,18 @@ const IntegrationDetailPage: React.FC = () => {
           formData.apiSecret,
         );
       }
-
       // WooCommerce
-      if (config.id === "woocommerce") {
+      else if (config.id === "woocommerce") {
         result = await woocommerceIntegrationApi.connect(
           formData.siteUrl,
           formData.consumerKey,
           formData.consumerSecret,
         );
+      }
+      // V2 Integrations
+      else {
+        await connectV2Integration(user.id, config.id, formData);
+        result = { success: true };
       }
 
       if (result && result.success) {
@@ -322,6 +486,8 @@ const IntegrationDetailPage: React.FC = () => {
         await shopifyIntegrationApi.disconnect();
       } else if (config.id === "woocommerce") {
         await woocommerceIntegrationApi.disconnect();
+      } else {
+        await disconnectV2Integration(user.id, config.id);
       }
 
       setIsConnected(false);
