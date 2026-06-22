@@ -4,24 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
 import { useIntegrationsStore } from "@/store/integrationsStore";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Settings,
-  Search,
   Zap,
   CheckCircle2,
-  AlertCircle,
   Link2,
-  Grid3x3,
-  List,
-  ArrowUpRight,
   RefreshCw,
   Play,
   Lock,
-  Boxes,
   HelpCircle
 } from "lucide-react";
 
@@ -36,10 +29,8 @@ const IntegrationsPage: React.FC = () => {
     loadV2Integrations,
     testConnectionV2,
     syncV2Integration,
-    loading
   } = useIntegrationsStore();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [testingId, setTestingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -50,7 +41,7 @@ const IntegrationsPage: React.FC = () => {
     }
   }, [user, loadV2Integrations]);
 
-  // Categories
+  // Categories list
   const categories = [
     { id: "all", label: "Todos" },
     { id: "E-commerce", label: "E-commerce" },
@@ -60,21 +51,9 @@ const IntegrationsPage: React.FC = () => {
     { id: "Automação", label: "Automação" }
   ];
 
-  // Stats
-  const totalCount = dbIntegrations.length;
-  const connectedCount = userConfigs.filter(c => c.status === "connected").length;
-  const availableCount = totalCount - connectedCount;
-
-  // Filter
+  // Filter integrations based on category only
   const filteredIntegrations = dbIntegrations.filter((integration) => {
-    const matchesSearch =
-      integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (integration.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "all" || integration.category === selectedCategory;
-
-    return matchesSearch && matchesCategory;
+    return selectedCategory === "all" || integration.category === selectedCategory;
   });
 
   const getStatusDetails = (integration: any) => {
@@ -180,7 +159,7 @@ const IntegrationsPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-2"
       >
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-1">
           <motion.div
             className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-xl border border-blue-500/30"
             whileHover={{ scale: 1.05, rotate: 5 }}
@@ -198,97 +177,8 @@ const IntegrationsPage: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Cards de estatísticas */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="relative overflow-hidden border border-slate-800/80 bg-slate-900/50 hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
-            <CardContent className="relative pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total de Integrações
-                  </p>
-                  <p className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {totalCount}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-xl border border-blue-500/30">
-                  <Grid3x3 className="w-6 h-6 text-blue-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="relative overflow-hidden border border-slate-800/80 bg-slate-900/50 hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5" />
-            <CardContent className="relative pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Conectadas
-                  </p>
-                  <p className="text-3xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                    {connectedCount}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl border border-green-500/30">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="relative overflow-hidden border border-slate-800/80 bg-slate-900/50 hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-yellow-500/5" />
-            <CardContent className="relative pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Disponíveis
-                  </p>
-                  <p className="text-3xl font-black bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                    {availableCount}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 backdrop-blur-xl border border-orange-500/30">
-                  <Boxes className="w-6 h-6 text-orange-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Busca e Barra de Ferramentas */}
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar integrações..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-12 border-slate-800 bg-slate-900/40 focus:border-primary text-white"
-        />
-      </div>
-
-      {/* Conteúdo com Sidebar de Categorias */}
-      <div className="grid grid-cols-12 gap-6">
+      {/* Conteúdo com Sidebar de Categorias e Grid de Integrações */}
+      <div className="grid grid-cols-12 gap-6 pt-2">
         {/* Sidebar */}
         <div className="col-span-12 md:col-span-3 space-y-2">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 mb-3">
@@ -315,14 +205,11 @@ const IntegrationsPage: React.FC = () => {
         <div className="col-span-12 md:col-span-9">
           {filteredIntegrations.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-slate-800 rounded-3xl bg-slate-900/10">
-              <div className="inline-flex p-6 rounded-full bg-slate-900/50 mb-4">
-                <Search className="w-12 h-12 text-muted-foreground" />
-              </div>
               <h3 className="text-xl font-bold mb-2 text-white">
                 Nenhuma integração encontrada
               </h3>
               <p className="text-slate-400 max-w-sm mx-auto">
-                Tente ajustar os filtros ou buscar por outro termo.
+                Selecione outra categoria para visualizar as integrações.
               </p>
             </div>
           ) : (
@@ -331,7 +218,7 @@ const IntegrationsPage: React.FC = () => {
               className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               <AnimatePresence mode="popLayout">
-                {filteredIntegrations.map((integration, index) => {
+                {filteredIntegrations.map((integration) => {
                   const status = getStatusDetails(integration);
                   const isConnected = userConfigs.some(
                     (c) => c.integration_id === integration.id && c.status === "connected"
@@ -372,7 +259,6 @@ const IntegrationsPage: React.FC = () => {
                                 alt={integration.name}
                                 className="w-8 h-8 object-contain"
                                 onError={(e) => {
-                                  // Fallback em caso de erro de carregamento
                                   (e.target as HTMLElement).style.display = "none";
                                 }}
                               />
