@@ -19,3 +19,4 @@ export * from "./utmApi";
 export * from "./cashbackApi";
 export * from "./discountBannerApi";
 export * from "./redirectApi";
+export * from "./integrationsV2";

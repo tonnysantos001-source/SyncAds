@@ -18,10 +18,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useIntegrationsStore } from "@/store/integrationsStore";
 import { useToast } from "@/components/ui/use-toast";
 import { shopifyIntegrationApi } from "@/lib/api/shopifyIntegrationApi";
-import { vtexIntegrationApi } from "@/lib/api/vtexIntegrationApi";
-import { nuvemshopIntegrationApi } from "@/lib/api/nuvemshopIntegrationApi";
 import { woocommerceIntegrationApi } from "@/lib/api/woocommerceIntegrationApi";
-import { mercadolivreIntegrationApi } from "@/lib/api/mercadolivreIntegrationApi";
 import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft,
@@ -115,107 +112,6 @@ const INTEGRATIONS_CONFIG: Record<string, IntegrationConfig> = {
     ],
     manual: [],
   },
-  vtex: {
-    id: "vtex",
-    name: "VTEX",
-    icon: Store,
-    description:
-      "Integre sua loja VTEX para gerenciar produtos e pedidos em tempo real.",
-    longDescription:
-      "A integração VTEX permite que você sincronize automaticamente produtos, pedidos e estoque da sua loja VTEX com o SyncAds.",
-    fields: [
-      {
-        id: "accountName",
-        label: "Account Name",
-        placeholder: "minhaloja",
-        type: "text",
-        required: true,
-        helpText: "Nome da sua conta VTEX",
-      },
-      {
-        id: "appKey",
-        label: "App Key",
-        placeholder: "vtexappkey-xxxxx",
-        type: "text",
-        required: true,
-        helpText: "Chave de aplicação VTEX",
-      },
-      {
-        id: "appToken",
-        label: "App Token",
-        placeholder: "xxxxxxxxxxxxx",
-        type: "password",
-        required: true,
-        helpText: "Token de acesso da aplicação",
-      },
-    ],
-    manual: [
-      {
-        step: 1,
-        title: "Acesse o Admin VTEX",
-        description: "Entre no painel administrativo da sua loja VTEX",
-      },
-      {
-        step: 2,
-        title: "Gere App Key e App Token",
-        description:
-          'Vá em "Configurações da Conta" > "Chaves de aplicação" > "Gerenciar minhas chaves"',
-      },
-      {
-        step: 3,
-        title: "Configure Permissões",
-        description:
-          "Crie uma nova chave com permissões de Catalog, Orders e OMS",
-      },
-    ],
-  },
-  nuvemshop: {
-    id: "nuvemshop",
-    name: "Nuvemshop",
-    icon: Package,
-    description:
-      "Conecte sua loja Nuvemshop para sincronização automática de dados.",
-    longDescription:
-      "Sincronize produtos, pedidos e clientes da sua Nuvemshop automaticamente.",
-    fields: [
-      {
-        id: "storeId",
-        label: "Store ID",
-        placeholder: "123456",
-        type: "text",
-        required: true,
-        helpText: "ID da sua loja Nuvemshop",
-      },
-      {
-        id: "storeName",
-        label: "Nome da Loja",
-        placeholder: "Minha Loja",
-        type: "text",
-        required: false,
-        helpText: "Nome da sua loja (opcional)",
-      },
-      {
-        id: "accessToken",
-        label: "Access Token",
-        placeholder: "xxxxxxxxxxxxx",
-        type: "password",
-        required: true,
-        helpText: "Token de acesso gerado no admin",
-      },
-    ],
-    manual: [
-      {
-        step: 1,
-        title: "Acesse Aplicativos",
-        description: "No admin da Nuvemshop, vá em 'Meus aplicativos'",
-      },
-      {
-        step: 2,
-        title: "Gere Access Token",
-        description: "Crie um novo aplicativo e copie o Access Token gerado",
-      },
-    ],
-  },
   woocommerce: {
     id: "woocommerce",
     name: "WooCommerce",
@@ -261,23 +157,6 @@ const INTEGRATIONS_CONFIG: Record<string, IntegrationConfig> = {
         title: "Crie Chaves API",
         description:
           "Clique em 'Adicionar chave' e gere Consumer Key e Consumer Secret",
-      },
-    ],
-  },
-  "mercado-livre": {
-    id: "mercado-livre",
-    name: "Mercado Livre",
-    icon: ShoppingBag,
-    description: "Conecte sua conta do Mercado Livre.",
-    longDescription:
-      "Integração OAuth com Mercado Livre para gerenciar anúncios e vendas.",
-    fields: [],
-    manual: [
-      {
-        step: 1,
-        title: "Conectar via OAuth",
-        description:
-          "Clique em 'Conectar' para autorizar via OAuth do Mercado Livre",
       },
     ],
   },
@@ -403,24 +282,6 @@ const IntegrationDetailPage: React.FC = () => {
         );
       }
 
-      // VTEX
-      if (config.id === "vtex") {
-        result = await vtexIntegrationApi.connect(
-          formData.accountName,
-          formData.appKey,
-          formData.appToken,
-        );
-      }
-
-      // Nuvemshop
-      if (config.id === "nuvemshop") {
-        result = await nuvemshopIntegrationApi.connect(
-          formData.storeId,
-          formData.storeName || "Minha Loja",
-          formData.accessToken,
-        );
-      }
-
       // WooCommerce
       if (config.id === "woocommerce") {
         result = await woocommerceIntegrationApi.connect(
@@ -428,15 +289,6 @@ const IntegrationDetailPage: React.FC = () => {
           formData.consumerKey,
           formData.consumerSecret,
         );
-      }
-
-      // Mercado Livre OAuth
-      if (config.id === "mercado-livre") {
-        result = await mercadolivreIntegrationApi.startOAuth();
-        if (result.success && result.authUrl) {
-          window.location.href = result.authUrl;
-          return;
-        }
       }
 
       if (result && result.success) {
@@ -468,6 +320,8 @@ const IntegrationDetailPage: React.FC = () => {
     try {
       if (config.id === "shopify") {
         await shopifyIntegrationApi.disconnect();
+      } else if (config.id === "woocommerce") {
+        await woocommerceIntegrationApi.disconnect();
       }
 
       setIsConnected(false);

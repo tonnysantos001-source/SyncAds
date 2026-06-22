@@ -133,3 +133,16 @@ export const INTEGRATIONS_CONFIG: Record<IntegrationSlug, IntegrationConfig> = {
     tokenUrl: 'https://open-api.tiktok.com/oauth/access_token/',
   },
 };
+
+export type IntegrationStatus = 'connected' | 'disconnected' | 'pending' | 'failed';
+
+export interface IntegrationProvider {
+  slug: string;
+  name: string;
+  connect(userId: string, credentials?: any): Promise<any>;
+  disconnect(userId: string): Promise<void>;
+  validate(credentials: any): Promise<boolean>;
+  sync(userId: string): Promise<any>;
+  healthCheck(userId: string): Promise<boolean>;
+}
+
