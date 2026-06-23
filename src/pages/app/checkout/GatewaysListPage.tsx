@@ -223,23 +223,25 @@ const GatewaysListPage = () => {
   // Função para retornar os detalhes de status mapeados para badges simplificados
   const getStatusDetails = (status: string) => {
     switch (status) {
+      case "active":
       case "connected":
         return {
-          label: "Conectado",
+          label: "Ativo",
           color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
           indicator: "bg-emerald-500",
+        };
+      case "inactive":
+      case "configured_without_test":
+        return {
+          label: "Inativo",
+          color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+          indicator: "bg-slate-400",
         };
       case "failed":
         return {
           label: "Erro",
           color: "bg-rose-500/10 text-rose-400 border-rose-500/20",
           indicator: "bg-rose-500",
-        };
-      case "pending":
-        return {
-          label: "Não configurado",
-          color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-          indicator: "bg-slate-400",
         };
       case "disconnected":
       default:
@@ -355,9 +357,13 @@ const GatewaysListPage = () => {
               <AnimatePresence mode="popLayout">
                 {filteredGateways.map((gateway: any) => {
                   const config = gatewayConfigsMap[gateway.slug];
-                  const statusVal = config ? config.status : "disconnected";
+                  const isConfigured = !!config;
+                  const isActive = config ? config.isActive : false;
+                  const statusVal = config 
+                    ? (config.isActive ? "active" : config.status || "inactive")
+                    : "disconnected";
                   const status = getStatusDetails(statusVal);
-                  const isConnected = statusVal === "connected";
+                  const isConnected = isConfigured;
 
                   return (
                     <motion.div
@@ -397,6 +403,35 @@ const GatewaysListPage = () => {
                             <CardTitle className="text-md font-bold text-white group-hover:text-primary-foreground transition-colors">
                               {gateway.name}
                             </CardTitle>
+                            
+                            {/* Sub-badges de tipo e atividade do gateway */}
+                            <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[9px] font-bold px-1.5 py-0 rounded border-0 uppercase tracking-wider",
+                                  gateway.type === "both" 
+                                    ? "bg-violet-500/10 text-violet-400" 
+                                    : gateway.type === "nacional" 
+                                    ? "bg-blue-500/10 text-blue-400" 
+                                    : "bg-pink-500/10 text-pink-400"
+                                )}
+                              >
+                                {gateway.type === "both" ? "Híbrido" : gateway.type === "nacional" ? "Nacional" : "Global"}
+                              </Badge>
+
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[9px] font-bold px-1.5 py-0 rounded border-0 uppercase tracking-wider",
+                                  isActive 
+                                    ? "bg-emerald-500/10 text-emerald-450" 
+                                    : "bg-slate-500/10 text-slate-400"
+                                )}
+                              >
+                                {isActive ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </div>
                           </div>
                         </CardHeader>
 

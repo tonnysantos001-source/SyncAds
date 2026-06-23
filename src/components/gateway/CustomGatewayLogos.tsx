@@ -672,34 +672,34 @@ export const AstonPayLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Mercado Pago - Logo oficial estilizado
-// Mercado Pago - Logo oficial estilizado (aperto de mão em círculo branco)
+// Mercado Pago - Logo oficial estilizado (aperto de mão em alta fidelidade do vetor oficial)
 export const MercadoPagoLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
   <svg
-    viewBox="0 0 100 100"
+    viewBox="120 110 300 200"
     className={className}
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="22" fill="#009EE3" />
-    <circle cx="50" cy="50" r="28" fill="white" />
-    {/* Ícone de aperto de mãos oficial */}
+    <rect x="120" y="110" width="300" height="200" rx="40" fill="#009EE3" />
+    {/* Aperto de mão oficial */}
     <path
-      d="M36 49C36 46 39 44 42 45C44.5 45.8 46 48.5 48 49C50 49.5 53 47 55 45.5C57 44 60 44.5 62 47.5C63.5 49.8 63 52.8 61 54.5C59 56.2 56 54.5 54 53.5C52 52.5 49.5 53.5 47.5 54.5C45.5 55.5 42 55.5 40 53.5C38 51.5 36 51 36 49Z"
-      fill="#009EE3"
+      fill="#FFFFFF"
+      d="m228.53,179.22c-.07.14-1.45,1.56-.55,2.71,2.18,2.78,8.91,4.38,15.72,2.85,4.05-.91,9.25-5.04,14.28-9.03,5.45-4.33,10.86-8.67,16.3-10.39,5.76-1.83,9.45-1.05,11.89-.31,2.67.8,5.82,2.56,10.84,6.32,9.45,7.1,47.43,40.26,54,45.99,5.28-2.39,30.47-12.56,62.39-19.6-2.78-17.02-13.01-33.25-28.72-45.99-21.89,9.19-50.42,14.7-76.58,1.93-.13-.05-14.29-6.75-28.25-6.42-20.75.48-29.74,9.46-39.25,18.97l-12.05,12.99Z"
     />
     <path
-      d="M48 49C48 49 50.5 46.5 52.5 47.5C54.5 48.5 58 46.5 59.5 45C61 43.5 63.5 43.8 64.5 46C65.5 48 65 50.5 63.5 52.2C62 53.8 59.5 52.5 57.5 51.5L53.5 53.5"
-      stroke="#009EE3"
-      strokeWidth="2.5"
-      strokeLinecap="round"
+      fill="#FFFFFF"
+      d="m349.44,220.97c-.45-.4-44.67-39.09-54.69-46.62-5.8-4.35-9.02-5.46-12.41-5.89-1.76-.23-4.2.1-5.9.57-4.66,1.27-10.75,5.34-16.16,9.63-5.6,4.46-10.88,8.66-15.79,9.76-6.26,1.4-13.91-.25-17.4-2.61-1.41-.95-2.41-2.05-2.89-3.16-1.29-2.99,1.09-5.38,1.48-5.78l12.2-13.2c1.42-1.41,2.85-2.83,4.31-4.23-3.94.51-7.58,1.52-11.12,2.5-4.42,1.24-8.68,2.42-12.98,2.42-1.8,0-11.42-1.58-13.25-2.07-11.05-3.02-23.56-5.97-38.04-12.73-17.35,12.91-28.65,28.77-32,46.56,2.49.66,9.02,2.15,10.71,2.52,39.26,8.73,51.49,17.72,53.71,19.6,2.4-2.67,5.87-4.36,9.73-4.36,4.35,0,8.26,2.19,10.64,5.56,2.25-1.78,5.35-3.3,9.36-3.29,1.82,0,3.71.34,5.62.98,4.43,1.52,6.72,4.47,7.9,7.14,1.48-.67,3.31-1.17,5.46-1.16,2.12,0,4.32.48,6.53,1.44,7.24,3.11,8.36,10.22,7.71,15.58.52-.06,1.04-.08,1.56-.08,8.58,0,15.56,6.98,15.56,15.57,0,2.66-.68,5.16-1.86,7.35,2.34,1.31,8.29,4.28,13.52,3.62,4.17-.53,5.76-1.95,6.32-2.76.39-.55.8-1.2.42-1.66l-11.08-12.3s-1.82-1.73-1.22-2.39c.62-.68,1.75.3,2.55.96,5.64,4.71,12.52,11.81,12.52,11.81.12.08.57.98,3.12,1.43,2.19.39,6.07.17,8.76-2.04.67-.56,1.35-1.25,1.93-1.97-.05.04-.09.08-.13.1,2.84-3.63-.32-7.29-.32-7.29l-12.93-14.52s-1.85-1.71-1.22-2.4c.56-.6,1.75.3,2.56.98,4.09,3.42,9.88,9.23,15.42,14.66,1.09.79,5.96,3.8,12.41-.43,3.92-2.57,4.7-5.73,4.59-8.1-.27-3.15-2.73-5.4-2.73-5.4l-17.66-17.76s-1.87-1.59-1.21-2.4c.54-.68,1.75.3,2.55.96,5.62,4.71,20.86,18.68,20.86,18.68.22.15,5.48,3.9,11.99-.24,2.33-1.49,3.81-3.73,3.94-6.34.22-4.52-2.96-7.2-2.96-7.2Z"
+    />
+    <path
+      fill="#FFFFFF"
+      d="m263.76,243.48c-2.74-.03-5.74,1.6-6.13,1.36-.22-.14.17-1.24.42-1.88.27-.63,3.87-11.48-4.92-15.25-6.73-2.89-10.85.36-12.26,1.83-.37.38-.54.35-.58-.13-.14-1.96-1.01-7.24-6.82-9.02-8.3-2.54-13.64,3.25-14.99,5.35-.61-4.73-4.61-8.4-9.5-8.41-5.32,0-9.64,4.3-9.65,9.63,0,5.32,4.31,9.64,9.64,9.64,2.59,0,4.93-1.03,6.66-2.69.06.05.08.14.05.32-.41,2.39-1.15,11.04,7.92,14.57,3.64,1.41,6.73.36,9.29-1.43.76-.54.89-.31.78.41-.33,2.23.09,6.99,6.77,9.7,5.08,2.07,8.09-.04,10.07-1.87.86-.78,1.09-.65,1.14.56.24,6.44,5.59,11.56,12.09,11.57,6.7,0,12.13-5.41,12.13-12.1,0-6.7-5.42-12.06-12.12-12.13Z"
     />
   </svg>
 );
 
-// PagSeguro - Logo oficial estilizado (círculo com faixas verde e amarela)
+// PagSeguro - Logo oficial estilizado (anéis secantes verde e amarelo do PagBank)
 export const PagSeguroLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -709,21 +709,18 @@ export const PagSeguroLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="22" fill="#E2F5E5" /> {/* Fundo verde claro oficial */}
-    <circle cx="50" cy="50" r="28" fill="#143A27" /> {/* Círculo interno verde escuro */}
-    {/* Faixa amarela/dourada */}
+    <rect width="100" height="100" rx="22" fill="#E2F5E5" />
+    <circle cx="50" cy="50" r="28" fill="#143A27" />
+    {/* Anéis olímpicos PagBank: Amarelo (esquerda) e Verde (direita) */}
+    <circle cx="44" cy="50" r="13" stroke="#FACC15" strokeWidth="5.5" fill="none" />
+    <circle cx="56" cy="50" r="13" stroke="#4ADE80" strokeWidth="5.5" fill="none" />
+    {/* Efeito de entrelaçamento */}
     <path
-      d="M50 28C62.15 28 72 37.85 72 50C72 55.3 70.1 60.15 67 64L58 55C59.25 53.65 60 51.9 60 50C60 44.5 55.5 40 50 40V28Z"
-      fill="#FACC15"
+      d="M44 37A13 13 0 0 1 50 44"
+      stroke="#FACC15"
+      strokeWidth="5.5"
+      fill="none"
     />
-    {/* Faixa verde claro */}
-    <path
-      d="M50 28V40C44.5 40 40 44.5 40 50C40 51.9 40.75 53.65 42 55L33 64C29.9 60.15 28 55.3 28 50C28 37.85 37.85 28 50 28Z"
-      fill="#4ADE80"
-    />
-    {/* Círculo central vazado */}
-    <circle cx="50" cy="58" r="7" fill="#FACC15" />
-    <circle cx="50" cy="58" r="4" fill="#143A27" />
   </svg>
 );
 
@@ -745,7 +742,7 @@ export const StripeLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Asaas - Logo oficial estilizado (asas brancas no fundo azul)
+// Asaas - Logo oficial estilizado (letra 'a' clássica em círculo branco)
 export const AsaasLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -756,15 +753,10 @@ export const AsaasLogo: React.FC<GatewayLogoProps> = ({
     xmlns="http://www.w3.org/2000/svg"
   >
     <rect width="100" height="100" rx="22" fill="#0066FF" />
-    {/* Asas estilizadas do Asaas */}
+    {/* Letra 'a' oficial do Asaas */}
     <path
-      d="M50 64C48 58 40 40 28 36C26 35 24 37 25 39C28 48 38 60 50 68C62 60 72 48 75 39C76 37 74 35 72 36C60 40 52 58 50 64Z"
+      d="M50 28C40.6 28 33 35.6 33 45C33 54.4 40.6 62 50 62H58V68C58 70.2 59.8 72 62 72C64.2 72 66 70.2 66 68V45C66 35.6 58.4 28 50 28ZM50 53C45.6 53 42 49.4 42 45C42 40.6 45.6 37 50 37C54.4 37 58 40.6 58 45V53H50Z"
       fill="white"
-    />
-    <path
-      d="M50 56C49 52 43 40 34 38C33 37 32 39 33 40C35 46 42 54 50 60C58 54 65 46 67 40C68 39 67 37 66 38C57 40 51 52 50 56Z"
-      fill="white"
-      opacity="0.85"
     />
   </svg>
 );
@@ -797,7 +789,7 @@ export const CieloLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Pagar.me - Logo oficial estilizado (letra P em fundo verde)
+// Pagar.me - Logo oficial estilizado (letra 'P' oficial em verde)
 export const PagarMeLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -807,10 +799,10 @@ export const PagarMeLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="22" fill="#E8F8EE" /> {/* Fundo verde claro */}
-    {/* Letra P estilizada do Pagar.me em verde escuro */}
+    <rect width="100" height="100" rx="22" fill="#E8F8EE" />
+    {/* Letra P estilizada oficial do Pagar.me */}
     <path
-      d="M36 28C36 25.79 37.79 24 40 24H56C64.84 24 72 31.16 72 40C72 48.84 64.84 56 56 56H46V72C46 74.21 44.21 76 42 76C39.79 76 38 74.21 38 72V28ZM46 34V46H56C59.31 46 62 43.31 62 40C62 36.69 59.31 34 56 34H46Z"
+      d="M34.9 25.3c0-4.1 3.4-7.5 7.5-7.5h15.4c10 0 18.2 8.2 18.2 18.2s-8.2 18.2-18.2 18.2h-15c0 0-0.4 0-0.4 0.4v20c0 4.1-3.4 7.5-7.5 7.5s-7.5-3.4-7.5-7.5V25.3z"
       fill="#1E7A53"
     />
   </svg>
