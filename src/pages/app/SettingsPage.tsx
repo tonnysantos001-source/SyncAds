@@ -15,15 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Loader2,
   Sparkles,
   Lock,
   Mail,
   Key,
-  ShieldCheck,
-  Bell,
 } from "lucide-react";
 
 export const SettingsPage: React.FC = () => {
@@ -348,42 +345,42 @@ export const SettingsPage: React.FC = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
+        staggerChildren: 0.04,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 8 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.25 },
+      transition: { duration: 0.2 },
     },
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-5 w-full">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+        <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
           Configurações
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 font-medium">
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
           Gerencie as preferências da sua conta, segurança e informações da loja
         </p>
       </div>
 
       {isLoadingDbData ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm animate-pulse">
+          <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+          <p className="text-gray-500 dark:text-gray-400 text-xs animate-pulse">
             Carregando suas informações...
           </p>
         </div>
       ) : (
         <motion.div
-          className="space-y-6"
+          className="space-y-4"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -391,35 +388,39 @@ export const SettingsPage: React.FC = () => {
           {/* CARD 1: Informações da Loja */}
           <motion.div variants={itemVariants}>
             <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 pb-2 gap-3">
                 <div>
-                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                  <CardTitle className="text-sm font-bold text-gray-900 dark:text-white">
                     Informações da loja
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs">
                     Nome exibido no dashboard e em comunicações da loja.
                   </CardDescription>
                 </div>
                 <Button
                   onClick={handleSaveStore}
                   loading={isSavingStore}
-                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-9 px-4 shrink-0"
+                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-8 text-xs px-3.5 shrink-0"
                 >
                   Salvar
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-4 pb-6">
-                <div className="space-y-2 max-w-md">
-                  <Label htmlFor="store-name" className="text-sm font-semibold text-gray-900 dark:text-white">
+              <CardContent className="p-4 pt-1 pb-4">
+                <div className="space-y-1.5 max-w-sm">
+                  <Label htmlFor="store-name" className="text-xs font-semibold text-gray-950 dark:text-gray-300">
                     Nome da loja
                   </Label>
                   <Input
                     id="store-name"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
-                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-9 text-xs"
                     placeholder="Ex: Minha Loja Sync"
                   />
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-purple-500" />
+                    O nome da loja será atualizado automaticamente em todos os seus checkouts.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -428,78 +429,78 @@ export const SettingsPage: React.FC = () => {
           {/* CARD 2: Dados do Proprietário */}
           <motion.div variants={itemVariants}>
             <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 pb-2 gap-3">
                 <div>
-                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                  <CardTitle className="text-sm font-bold text-gray-900 dark:text-white">
                     Dados do proprietário
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs">
                     Nome editável. E-mail e documento são fixos por segurança e conformidade fiscal.
                   </CardDescription>
                 </div>
                 <Button
                   onClick={handleSaveOwner}
                   loading={isSavingOwner}
-                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-9 px-4 shrink-0"
+                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-8 text-xs px-3.5 shrink-0"
                 >
                   Salvar
                 </Button>
               </CardHeader>
-              <CardContent className="pb-6">
+              <CardContent className="p-4 pt-1 pb-4">
                 {/* Inputs Grid - 4 Columns */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {/* Name field (Editable) */}
-                  <div className="space-y-2">
-                    <Label htmlFor="owner-name" className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="owner-name" className="text-xs font-semibold text-gray-950 dark:text-gray-300">
                       Nome completo
                     </Label>
                     <Input
                       id="owner-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                      className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-9 text-xs"
                       placeholder="Nome completo do proprietário"
                     />
-                    <p className="text-[11px] text-green-600 dark:text-green-400 mt-1 font-medium">Editável</p>
+                    <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">Editável</p>
                   </div>
 
                   {/* Email field */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-950 dark:text-gray-300">
                       E-mail
                     </Label>
                     <Input
                       value={user?.email || ""}
                       readOnly
-                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-9 text-xs"
                     />
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Não pode ser alterado</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Não pode ser alterado</p>
                   </div>
 
                   {/* CPF field */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-950 dark:text-gray-300">
                       CPF
                     </Label>
                     <Input
                       value={maskCpf(cpf)}
                       readOnly
-                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-9 text-xs"
                     />
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Dado fiscal da conta</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Dado fiscal da conta</p>
                   </div>
 
                   {/* Birth Date field */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-950 dark:text-gray-300">
                       Data de Nascimento
                     </Label>
                     <Input
                       value={formatDate(birthDate)}
                       readOnly
-                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-9 text-xs"
                     />
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Data vinculada à conta</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Data vinculada à conta</p>
                   </div>
                 </div>
               </CardContent>
@@ -509,24 +510,24 @@ export const SettingsPage: React.FC = () => {
           {/* CARD 3: Segurança */}
           <motion.div variants={itemVariants}>
             <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-bold text-gray-900 dark:text-white">
                   Segurança
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Proteja o acesso à sua conta gerenciando suas credenciais de login.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pb-6">
+              <CardContent className="p-4 pt-1 space-y-4 pb-4">
                 {/* Seção 1: Alterar E-mail */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2">
-                    <Mail className="h-4 w-4 text-primary" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-1">
+                    <Mail className="h-3.5 w-3.5 text-primary" />
                     Alterar E-mail de Acesso
                   </div>
-                  <div className="flex flex-col md:flex-row gap-4 items-end max-w-2xl">
-                    <div className="flex-1 w-full space-y-2">
-                      <Label htmlFor="new-email" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col md:flex-row gap-3 items-end max-w-xl">
+                    <div className="flex-1 w-full space-y-1">
+                      <Label htmlFor="new-email" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
                         Novo endereço de e-mail
                       </Label>
                       <Input
@@ -534,7 +535,7 @@ export const SettingsPage: React.FC = () => {
                         type="email"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-9 text-xs"
                         placeholder="Digite o novo e-mail"
                       />
                     </div>
@@ -542,7 +543,7 @@ export const SettingsPage: React.FC = () => {
                       onClick={handleChangeEmail}
                       loading={isSavingEmail}
                       variant="outline"
-                      className="border-primary/20 hover:bg-primary/10 text-primary font-bold rounded-lg h-11 px-6 transition-all shrink-0 w-full md:w-auto"
+                      className="border-primary/20 hover:bg-primary/10 text-primary font-bold rounded-lg h-9 text-xs px-4 transition-all shrink-0 w-full md:w-auto"
                     >
                       Atualizar E-mail
                     </Button>
@@ -550,14 +551,14 @@ export const SettingsPage: React.FC = () => {
                 </div>
 
                 {/* Seção 2: Alterar Senha */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2">
-                    <Key className="h-4 w-4 text-primary" />
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-1">
+                    <Key className="h-3.5 w-3.5 text-primary" />
                     Alterar Senha de Segurança
                   </div>
-                  <div className="flex flex-col md:flex-row gap-4 items-end max-w-3xl">
-                    <div className="flex-1 w-full space-y-2">
-                      <Label htmlFor="new-password-input" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col md:flex-row gap-3 items-end max-w-2xl">
+                    <div className="flex-1 w-full space-y-1">
+                      <Label htmlFor="new-password-input" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
                         Nova senha (mínimo 8 caracteres)
                       </Label>
                       <Input
@@ -565,12 +566,12 @@ export const SettingsPage: React.FC = () => {
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-9 text-xs"
                         placeholder="Nova senha"
                       />
                     </div>
-                    <div className="flex-1 w-full space-y-2">
-                      <Label htmlFor="confirm-password-input" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    <div className="flex-1 w-full space-y-1">
+                      <Label htmlFor="confirm-password-input" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
                         Confirmar nova senha
                       </Label>
                       <Input
@@ -578,14 +579,14 @@ export const SettingsPage: React.FC = () => {
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-9 text-xs"
                         placeholder="Confirmar senha"
                       />
                     </div>
                     <Button
                       onClick={handleChangePassword}
                       loading={isSavingPassword}
-                      className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-bold h-11 px-6 transition-all shrink-0 w-full md:w-auto"
+                      className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-bold h-9 text-xs px-4 transition-all shrink-0 w-full md:w-auto"
                     >
                       Atualizar Senha
                     </Button>
@@ -598,65 +599,65 @@ export const SettingsPage: React.FC = () => {
           {/* CARD 4: Notificações */}
           <motion.div variants={itemVariants}>
             <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-bold text-gray-900 dark:text-white">
                   Notificações
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Selecione quais eventos de vendas você deseja notificar no sistema.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pb-6">
+              <CardContent className="p-4 pt-1 pb-4">
                 {/* Toggles - Horizontal 3 columns grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Toggle 1: Novo pedido criado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/40 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800/80">
                     <div className="space-y-0.5 pr-2">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      <Label className="text-xs font-bold text-gray-900 dark:text-white cursor-pointer select-none">
                         Novo pedido criado
                       </Label>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
                         Notificar ao iniciar ou gerar um pedido
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.newOrderCreated}
                       onCheckedChange={(val) => handleToggleNotification("newOrderCreated", val)}
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-primary h-5 w-9 [&>span]:h-4 [&>span]:w-4 [&>span]:data-[state=checked]:translate-x-4"
                     />
                   </div>
 
                   {/* Toggle 2: Pagamento confirmado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/40 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800/80">
                     <div className="space-y-0.5 pr-2">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      <Label className="text-xs font-bold text-gray-900 dark:text-white cursor-pointer select-none">
                         Pagamento confirmado
                       </Label>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
                         Notificar ao processar pagamento
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.paymentConfirmed}
                       onCheckedChange={(val) => handleToggleNotification("paymentConfirmed", val)}
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-primary h-5 w-9 [&>span]:h-4 [&>span]:w-4 [&>span]:data-[state=checked]:translate-x-4"
                     />
                   </div>
 
                   {/* Toggle 3: Pedido gerado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/40 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-800/80">
                     <div className="space-y-0.5 pr-2">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      <Label className="text-xs font-bold text-gray-900 dark:text-white cursor-pointer select-none">
                         Pedido gerado (Pix/Boleto)
                       </Label>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
                         Notificar ao gerar Pix ou boleto
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.orderGenerated}
                       onCheckedChange={(val) => handleToggleNotification("orderGenerated", val)}
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-primary h-5 w-9 [&>span]:h-4 [&>span]:w-4 [&>span]:data-[state=checked]:translate-x-4"
                     />
                   </div>
                 </div>
