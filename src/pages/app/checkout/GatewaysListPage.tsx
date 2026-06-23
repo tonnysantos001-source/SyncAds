@@ -22,6 +22,7 @@ import GatewayLogo from "@/components/gateway/GatewayLogo";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 const GatewaysListPage = () => {
