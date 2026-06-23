@@ -673,6 +673,7 @@ export const AstonPayLogo: React.FC<GatewayLogoProps> = ({
 );
 
 // Mercado Pago - Logo oficial estilizado
+// Mercado Pago - Logo oficial estilizado (aperto de mão em círculo branco)
 export const MercadoPagoLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -682,20 +683,23 @@ export const MercadoPagoLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="#009EE3" />
+    <rect width="100" height="100" rx="22" fill="#009EE3" />
+    <circle cx="50" cy="50" r="28" fill="white" />
+    {/* Ícone de aperto de mãos oficial */}
     <path
-      d="M35 35C35 30 39 26 44 26C49 26 53 30 53 35V50H44C39 50 35 46 35 41V35Z"
-      fill="white"
+      d="M36 49C36 46 39 44 42 45C44.5 45.8 46 48.5 48 49C50 49.5 53 47 55 45.5C57 44 60 44.5 62 47.5C63.5 49.8 63 52.8 61 54.5C59 56.2 56 54.5 54 53.5C52 52.5 49.5 53.5 47.5 54.5C45.5 55.5 42 55.5 40 53.5C38 51.5 36 51 36 49Z"
+      fill="#009EE3"
     />
     <path
-      d="M47 50V65C47 70 51 74 56 74C61 74 65 70 65 65V50H56H47Z"
-      fill="#FFE600"
+      d="M48 49C48 49 50.5 46.5 52.5 47.5C54.5 48.5 58 46.5 59.5 45C61 43.5 63.5 43.8 64.5 46C65.5 48 65 50.5 63.5 52.2C62 53.8 59.5 52.5 57.5 51.5L53.5 53.5"
+      stroke="#009EE3"
+      strokeWidth="2.5"
+      strokeLinecap="round"
     />
-    <circle cx="56" cy="35" r="9" fill="white" />
   </svg>
 );
 
-// PagSeguro - Logo oficial estilizado
+// PagSeguro - Logo oficial estilizado (círculo com faixas verde e amarela)
 export const PagSeguroLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -705,23 +709,21 @@ export const PagSeguroLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="url(#pagseguro-gradient)" />
+    <rect width="100" height="100" rx="22" fill="#E2F5E5" /> {/* Fundo verde claro oficial */}
+    <circle cx="50" cy="50" r="28" fill="#143A27" /> {/* Círculo interno verde escuro */}
+    {/* Faixa amarela/dourada */}
     <path
-      d="M40 35H55C62 35 67 40 67 47C67 54 62 59 55 59H40V35Z"
-      fill="white"
+      d="M50 28C62.15 28 72 37.85 72 50C72 55.3 70.1 60.15 67 64L58 55C59.25 53.65 60 51.9 60 50C60 44.5 55.5 40 50 40V28Z"
+      fill="#FACC15"
     />
+    {/* Faixa verde claro */}
     <path
-      d="M40 59H50C55 59 59 63 59 68V68C59 70 57 72 55 72H40V59Z"
-      fill="white"
-      opacity="0.8"
+      d="M50 28V40C44.5 40 40 44.5 40 50C40 51.9 40.75 53.65 42 55L33 64C29.9 60.15 28 55.3 28 50C28 37.85 37.85 28 50 28Z"
+      fill="#4ADE80"
     />
-    <rect x="33" y="35" width="7" height="37" rx="1" fill="white" />
-    <defs>
-      <linearGradient id="pagseguro-gradient" x1="0" y1="0" x2="100" y2="100">
-        <stop offset="0%" stopColor="#62B246" />
-        <stop offset="100%" stopColor="#459D3C" />
-      </linearGradient>
-    </defs>
+    {/* Círculo central vazado */}
+    <circle cx="50" cy="58" r="7" fill="#FACC15" />
+    <circle cx="50" cy="58" r="4" fill="#143A27" />
   </svg>
 );
 
@@ -735,7 +737,7 @@ export const StripeLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="#635BFF" />
+    <rect width="100" height="100" rx="22" fill="#635BFF" />
     <path
       d="M50 35C45 35 42 37 42 41C42 48 58 46 58 56C58 62 54 66 47 66C42 66 38 64 35 61L37 56C40 58 43 60 47 60C51 60 53 58 53 55C53 48 37 50 37 40C37 34 41 30 49 30C53 30 56 31 59 33L57 38C55 37 52 35 50 35Z"
       fill="white"
@@ -743,7 +745,7 @@ export const StripeLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Asaas - Logo oficial estilizado (identidade visual oficial: azul #0B4EAD)
+// Asaas - Logo oficial estilizado (asas brancas no fundo azul)
 export const AsaasLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -753,18 +755,19 @@ export const AsaasLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="#0B4EAD" />
-    {/* Letra A estilizada - identidade Asaas */}
+    <rect width="100" height="100" rx="22" fill="#0066FF" />
+    {/* Asas estilizadas do Asaas */}
     <path
-      d="M50 22L72 72H60L55 58H45L40 72H28L50 22Z"
+      d="M50 64C48 58 40 40 28 36C26 35 24 37 25 39C28 48 38 60 50 68C62 60 72 48 75 39C76 37 74 35 72 36C60 40 52 58 50 64Z"
       fill="white"
     />
-    <rect x="43" y="50" width="14" height="5" fill="#0B4EAD" />
-    {/* Ponto decorativo topo - elemento característico Asaas */}
-    <circle cx="50" cy="16" r="5" fill="#4DA6FF" />
+    <path
+      d="M50 56C49 52 43 40 34 38C33 37 32 39 33 40C35 46 42 54 50 60C58 54 65 46 67 40C68 39 67 37 66 38C57 40 51 52 50 56Z"
+      fill="white"
+      opacity="0.85"
+    />
   </svg>
 );
-
 
 // Cielo - Logo oficial estilizado
 export const CieloLogo: React.FC<GatewayLogoProps> = ({
@@ -776,7 +779,7 @@ export const CieloLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="url(#cielo-gradient)" />
+    <rect width="100" height="100" rx="22" fill="url(#cielo-gradient)" />
     <circle cx="50" cy="45" r="18" stroke="white" strokeWidth="4" fill="none" />
     <path
       d="M32 45C32 35 40 27 50 27"
@@ -794,7 +797,7 @@ export const CieloLogo: React.FC<GatewayLogoProps> = ({
   </svg>
 );
 
-// Pagar.me - Logo oficial estilizado (verde)
+// Pagar.me - Logo oficial estilizado (letra P em fundo verde)
 export const PagarMeLogo: React.FC<GatewayLogoProps> = ({
   className = "w-full h-full",
 }) => (
@@ -804,12 +807,12 @@ export const PagarMeLogo: React.FC<GatewayLogoProps> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="100" height="100" rx="20" fill="#3FAD7C" />
+    <rect width="100" height="100" rx="22" fill="#E8F8EE" /> {/* Fundo verde claro */}
+    {/* Letra P estilizada do Pagar.me em verde escuro */}
     <path
-      d="M35 30H55C63 30 70 37 70 45C70 53 63 60 55 60H45V75H35V30Z"
-      fill="white"
+      d="M36 28C36 25.79 37.79 24 40 24H56C64.84 24 72 31.16 72 40C72 48.84 64.84 56 56 56H46V72C46 74.21 44.21 76 42 76C39.79 76 38 74.21 38 72V28ZM46 34V46H56C59.31 46 62 43.31 62 40C62 36.69 59.31 34 56 34H46Z"
+      fill="#1E7A53"
     />
-    <circle cx="50" cy="45" r="7" fill="#3FAD7C" />
   </svg>
 );
 

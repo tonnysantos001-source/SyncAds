@@ -384,13 +384,13 @@ const GatewaysListPage = () => {
 
                         {/* Logo & Nome */}
                         <CardHeader className="pt-2 pb-4 flex flex-row items-center gap-4 space-y-0">
-                          <div className="relative w-12 h-12 rounded-2xl bg-slate-950/80 border border-slate-800/80 p-2 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <div className="relative w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-100 dark:border-slate-850">
                             <GatewayLogo
                               name={gateway.name}
                               logo={gateway.logo}
                               slug={gateway.slug}
-                              size="sm"
-                              className="border-0 bg-transparent rounded-none"
+                              size="md"
+                              className="w-full h-full object-cover border-0 rounded-none bg-transparent"
                             />
                           </div>
                           <div>
@@ -496,12 +496,12 @@ const GatewaysListPage = () => {
                       >
                         {/* Gateway identification details */}
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-950 border border-slate-800 overflow-hidden">
+                          <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
                             <GatewayLogo
                               name={gwName}
                               slug={gwSlug}
-                              size="sm"
-                              className="border-0 bg-transparent rounded-none"
+                              size="md"
+                              className="w-full h-full object-cover border-0 rounded-none bg-transparent"
                             />
                           </div>
                           <div>

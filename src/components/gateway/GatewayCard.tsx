@@ -71,13 +71,13 @@ export const GatewayCard: React.FC<GatewayCardProps> = ({
         {/* Left Side: Logo + Information */}
         <div className="flex items-center gap-4 min-w-0 flex-1">
           {/* Logo container */}
-          <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 overflow-hidden transition-all duration-200 group-hover:scale-105">
+          <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-200 group-hover:scale-105">
             <GatewayLogo
               name={name}
               logo={logo}
               slug={slug}
               size="md"
-              className="border-0 bg-transparent rounded-none"
+              className="w-full h-full object-cover border-0 rounded-none bg-transparent"
             />
           </div>
 
