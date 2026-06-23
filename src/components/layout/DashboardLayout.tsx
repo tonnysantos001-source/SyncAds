@@ -3,7 +3,11 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { SyncAdsWatermarkBg } from "@/components/backgrounds/SyncAdsWatermarkBg";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, CheckCircle, Info, X } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,6 +18,101 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const location = useLocation();
+  const [activePopup, setActivePopup] = useState<any>(null);
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Conexão Supabase Realtime para capturar novas notificações do usuário
+    const channel = supabase
+      .channel(`dashboard-notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Notification",
+          filter: `userId=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotif = payload.new as any;
+          console.log("🔔 [REALTIME POPUP] Nova notificação recebida:", newNotif);
+
+          // Tocar som de caixa registradora se for sucesso/pedido pago
+          if (
+            newNotif.type === "SUCCESS" ||
+            newNotif.title?.toLowerCase().includes("pago")
+          ) {
+            playChaChing();
+          }
+
+          setActivePopup(newNotif);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activePopup) {
+      const timer = setTimeout(() => {
+        setActivePopup(null);
+      }, 5500);
+      return () => clearTimeout(timer);
+    }
+  }, [activePopup]);
+
+  const playChaChing = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+
+      // Chime metálico 1 (moeda pequena)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(1500, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.08);
+      gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.08);
+
+      // Chime metálico 2 (chaching principal de caixa)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(2100, ctx.currentTime + 0.02);
+      gain2.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain2.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.05);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.95);
+
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = "sine";
+      osc3.frequency.setValueAtTime(2600, ctx.currentTime + 0.02);
+      gain3.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain3.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+      gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start();
+      osc3.stop(ctx.currentTime + 0.75);
+    } catch (error) {
+      console.warn("Audio Context blocked:", error);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -138,6 +237,73 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             )}
           </main>
         </div>
+
+        {/* Realtime Notification Popup */}
+        <AnimatePresence>
+          {activePopup && (
+            <motion.div
+              initial={{ opacity: 0, x: 100, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 50, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className={cn(
+                "fixed bottom-6 right-6 z-50 w-96 p-4 rounded-2xl shadow-2xl border",
+                "bg-slate-900/95 dark:bg-slate-950/95 text-white backdrop-blur-xl",
+                activePopup.type === "SUCCESS"
+                  ? "border-emerald-500/40 shadow-emerald-500/10"
+                  : "border-blue-500/40 shadow-blue-500/10"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn(
+                  "p-2 rounded-xl flex-shrink-0",
+                  activePopup.type === "SUCCESS" ? "bg-emerald-500/20 text-emerald-400" : "bg-blue-500/20 text-blue-400"
+                )}>
+                  {activePopup.type === "SUCCESS" ? (
+                    <CheckCircle className="h-5 w-5 animate-bounce" />
+                  ) : (
+                    <Info className="h-5 w-5 animate-pulse" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold tracking-tight text-white mb-0.5">
+                    {activePopup.title}
+                  </p>
+                  <p className="text-xs text-gray-300 leading-normal">
+                    {activePopup.message}
+                  </p>
+                  
+                  {activePopup.metadata && (
+                    <div className="mt-2.5 pt-2 border-t border-white/10 space-y-1 text-[11px] text-gray-400">
+                      {activePopup.metadata.products && (
+                        <p>
+                          <span className="font-semibold text-gray-300">Produto:</span>{" "}
+                          {Array.isArray(activePopup.metadata.products)
+                            ? activePopup.metadata.products.map((p: any) => p.name).join(", ")
+                            : typeof activePopup.metadata.products === 'string'
+                            ? activePopup.metadata.products
+                            : activePopup.metadata.products.name || ""}
+                        </p>
+                      )}
+                      {activePopup.metadata.gateway && (
+                        <p>
+                          <span className="font-semibold text-gray-300">Gateway:</span>{" "}
+                          {activePopup.metadata.gateway}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setActivePopup(null)}
+                  className="text-gray-450 hover:text-white transition-colors p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   } catch (error) {

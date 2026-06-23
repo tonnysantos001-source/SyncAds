@@ -1597,6 +1597,44 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         throw new Error("Erro ao criar transação");
       }
 
+      // Inserir notificação de pedido gerado (PIX/Boleto)
+      try {
+        const productNames = checkoutData?.products?.map((p: any) => p.name || p.title).join(", ") || "Produto";
+        const generateUUID = () => {
+          if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+            return crypto.randomUUID();
+          }
+          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        };
+
+        const methodLabel = paymentMethod === "PIX" ? "PIX" : paymentMethod === "BOLETO" ? "Boleto" : "Cartão";
+        
+        if (paymentMethod === "PIX" || paymentMethod === "BOLETO") {
+          await supabase.from("Notification").insert({
+            id: generateUUID(),
+            userId: orderData.userId,
+            type: "INFO",
+            title: "Novo Pedido Gerado 🛒",
+            message: `Pedido #${orderData.orderNumber || ''} de R$ ${finalTotalWithBumps.toFixed(2)} via ${methodLabel} (${selectedConfig.gateway?.name || 'Gateway'}).`,
+            metadata: {
+              orderId,
+              amount: finalTotalWithBumps,
+              paymentMethod,
+              gateway: selectedConfig.gateway?.name,
+              products: checkoutData?.products?.map((p: any) => ({ name: p.name || p.title, price: p.price }))
+            },
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (notifErr) {
+        console.error("Erro ao criar notificação de pedido gerado:", notifErr);
+      }
+
       // Processar pagamento via Edge Function
       const { data: paymentResponse, error: paymentError } =
         await supabase.functions.invoke("process-payment", {
@@ -1615,6 +1653,42 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         throw new Error(
           paymentResponse?.error || "Erro ao processar pagamento",
         );
+      }
+
+      // Inserir notificação de pedido pago (Cartão de Crédito)
+      if (paymentMethod === "CREDIT_CARD") {
+        try {
+          const productNames = checkoutData?.products?.map((p: any) => p.name || p.title).join(", ") || "Produto";
+          const generateUUID = () => {
+            if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+              return crypto.randomUUID();
+            }
+            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+          };
+
+          await supabase.from("Notification").insert({
+            id: generateUUID(),
+            userId: orderData.userId,
+            type: "SUCCESS",
+            title: "Novo Pedido Pago! 🎉",
+            message: `Pedido #${orderData.orderNumber || ''} de R$ ${finalTotalWithBumps.toFixed(2)} via Cartão (${selectedConfig.gateway?.name || 'Gateway'}).`,
+            metadata: {
+              orderId,
+              amount: finalTotalWithBumps,
+              paymentMethod,
+              gateway: selectedConfig.gateway?.name,
+              products: checkoutData?.products?.map((p: any) => ({ name: p.name || p.title, price: p.price }))
+            },
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          });
+        } catch (notifErr) {
+          console.error("Erro ao criar notificação de pedido pago (Cartão):", notifErr);
+        }
       }
 
       // Consumir saldo de cashback se aplicável

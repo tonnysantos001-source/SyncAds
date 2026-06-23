@@ -1,15 +1,174 @@
-import React from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Menu,
+  Moon,
+  Sun,
+  Bell,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Megaphone,
+} from "lucide-react";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 
 interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
+interface Notification {
+  id: string;
+  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "CAMPAIGN_STARTED";
+  title: string;
+  message: string;
+  createdAt: string;
+  isRead: boolean;
+  userId: string;
+  readAt?: string;
+  actionUrl?: string;
+  metadata?: any;
+}
+
+const getNotificationIcon = (type: string) => {
+  switch (type.toUpperCase()) {
+    case "SUCCESS":
+      return CheckCircle;
+    case "WARNING":
+    case "ERROR":
+      return AlertTriangle;
+    case "CAMPAIGN_STARTED":
+      return Megaphone;
+    default:
+      return Info;
+  }
+};
+
+const getTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMins = Math.floor(diffInMs / 60000);
+
+  if (diffInMins < 1) return "Agora";
+  if (diffInMins < 60) return `${diffInMins} min atrás`;
+
+  const diffInHours = Math.floor(diffInMins / 60);
+  if (diffInHours < 24) return `${diffInHours}h atrás`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Ontem";
+  if (diffInDays < 7) return `${diffInDays} dias atrás`;
+
+  return date.toLocaleDateString("pt-BR");
+};
+
+const NotificationItem: React.FC<{ notification: Notification }> = ({
+  notification,
+}) => {
+  const Icon = getNotificationIcon(notification.type);
+  return (
+    <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg">
+      {!notification.isRead && (
+        <div className="h-2 w-2 mt-1.5 rounded-full bg-primary" />
+      )}
+      <Icon
+        className={cn(
+          "h-5 w-5 mt-1 flex-shrink-0",
+          notification.isRead ? "text-muted-foreground" : "text-primary",
+        )}
+      />
+      <div className="flex-1">
+        <p className="text-sm font-medium">{notification.title}</p>
+        <p className="text-sm text-muted-foreground">{notification.message}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {getTimeAgo(notification.createdAt)}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
   const { theme, toggleTheme } = useDarkMode();
+  const user = useAuthStore((state) => state.user);
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    loadNotifications();
+
+    // Sincronização em tempo real das notificações no Header
+    const channel = supabase
+      .channel(`header-notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "Notification",
+          filter: `userId=eq.${user.id}`,
+        },
+        () => {
+          console.log("🔔 [HEADER] Notificações alteradas no banco, recarregando...");
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  const loadNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+
+      const { data, error } = await supabase
+        .from("Notification")
+        .select("*")
+        .eq("userId", user?.id)
+        .order("createdAt", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar notificações no Header:", error);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from("Notification")
+        .update({ isRead: true })
+        .eq("userId", user?.id)
+        .eq("isRead", false);
+      if (error) throw error;
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Erro ao marcar notificações como lidas:", err);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <header
@@ -72,6 +231,61 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
             {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
           </span>
         </button>
+
+        {/* Notificações (Sininho) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "relative hover:bg-gray-100 dark:hover:bg-gray-800/50",
+                "transition-all duration-200 hover:scale-110",
+              )}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <>
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-pink-600 text-[10px] font-bold text-white shadow-lg shadow-red-500/50 animate-pulse">
+                    {unreadCount}
+                  </span>
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                </>
+              )}
+              <span className="sr-only">Notificações</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 md:w-96 p-0">
+            <Card className="border-0 shadow-none">
+              <CardHeader className="border-b p-4">
+                <CardTitle className="text-base font-bold">Notificações</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-96 overflow-y-auto">
+                {loadingNotifications ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <p>Carregando notificações...</p>
+                  </div>
+                ) : notifications.length > 0 ? (
+                  notifications.map((notif) => (
+                    <NotificationItem key={notif.id} notification={notif} />
+                  ))
+                ) : (
+                  <p className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhuma notificação nova.
+                  </p>
+                )}
+              </CardContent>
+              <CardFooter className="p-2 border-t flex justify-center">
+                <button
+                  onClick={markAllAsRead}
+                  className="w-full text-center text-xs text-blue-600 dark:text-blue-400 py-2 hover:underline font-semibold"
+                >
+                  Marcar todas como lidas
+                </button>
+              </CardFooter>
+            </Card>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

@@ -388,6 +388,93 @@ const PixPaymentPage: React.FC = () => {
     );
   }
 
+  const handleSimulatePayment = async () => {
+    if (!transactionId || !sellerUserId) return;
+
+    try {
+      setIsChecking(true);
+      // 1. Atualizar transação para PAID
+      const { error: updateError } = await supabase
+        .from("Transaction")
+        .update({ status: "PAID" })
+        .eq("id", transactionId);
+
+      if (updateError) throw updateError;
+
+      // 2. Inserir notificação de Pedido Pago
+      const generateUUID = () => {
+        if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+          return crypto.randomUUID();
+        }
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === "x" ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      };
+
+      // Buscar detalhes no metadata da transação
+      const { data: txData } = await supabase
+        .from("Transaction")
+        .select("amount, metadata, paymentMethod")
+        .eq("id", transactionId)
+        .single();
+
+      const amount = txData?.amount || orderAmount || 0;
+      const gatewayName = "PIX"; 
+
+      // Buscar número do pedido e produtos
+      let orderNumberStr = "";
+      let productsMeta: any[] = [];
+      if (orderId) {
+        const { data: orderData } = await supabase
+          .from("Order")
+          .select("orderNumber, items")
+          .eq("id", orderId)
+          .single();
+        if (orderData) {
+          orderNumberStr = orderData.orderNumber ? ` #${orderData.orderNumber}` : "";
+          if (Array.isArray(orderData.items)) {
+            productsMeta = orderData.items.map((p: any) => ({ name: p.name || p.title || "Produto", price: p.price }));
+          }
+        }
+      }
+
+      await supabase.from("Notification").insert({
+        id: generateUUID(),
+        userId: sellerUserId,
+        type: "SUCCESS",
+        title: "Novo Pedido Pago! 🎉",
+        message: `Pedido${orderNumberStr} de R$ ${amount.toFixed(2)} via PIX (${gatewayName}).`,
+        metadata: {
+          orderId,
+          amount,
+          paymentMethod: "PIX",
+          gateway: gatewayName,
+          products: productsMeta
+        },
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      toast({
+        title: "Sucesso!",
+        description: "Pagamento confirmado. O painel receberá o alerta em segundos!",
+      });
+
+      setIsPaid(true);
+    } catch (err: any) {
+      console.error("Erro ao simular pagamento:", err);
+      toast({
+        title: "Erro ao confirmar",
+        description: err.message || "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-start py-6 px-4 w-full overflow-y-auto">
       <div className="w-full max-w-[420px] space-y-4">
@@ -627,6 +714,17 @@ const PixPaymentPage: React.FC = () => {
                   </li>
                 </ol>
               </div>
+            )}
+            {/* Botão de Simulação de Pagamento para Testes */}
+            {!isExpired && !isFailed && !isPaid && (
+              <Button
+                onClick={handleSimulatePayment}
+                disabled={isChecking}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-11 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 border border-blue-400/30"
+              >
+                <Check className="h-4 w-4" />
+                Simular Confirmação de Pagamento (Teste)
+              </Button>
             )}
 
           </CardContent>
