@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +36,29 @@ import {
   IoMail,
 } from "react-icons/io5";
 import { Badge } from "../ui/badge";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  User,
+  Settings,
+  LogOut,
+  Bell,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Megaphone,
+  Globe,
+} from "lucide-react";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -220,8 +243,85 @@ const SubMenuItem = React.memo<{
 
 SubMenuItem.displayName = "SubMenuItem";
 
+interface Notification {
+  id: string;
+  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "CAMPAIGN_STARTED";
+  title: string;
+  message: string;
+  createdAt: string;
+  isRead: boolean;
+  userId: string;
+  readAt?: string;
+  actionUrl?: string;
+  metadata?: any;
+}
+
+const getNotificationIcon = (type: string) => {
+  switch (type.toUpperCase()) {
+    case "SUCCESS":
+      return CheckCircle;
+    case "WARNING":
+    case "ERROR":
+      return AlertTriangle;
+    case "CAMPAIGN_STARTED":
+      return Megaphone;
+    default:
+      return Info;
+  }
+};
+
+const getTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMins = Math.floor(diffInMs / 60000);
+
+  if (diffInMins < 1) return "Agora";
+  if (diffInMins < 60) return `${diffInMins} min atrás`;
+
+  const diffInHours = Math.floor(diffInMins / 60);
+  if (diffInHours < 24) return `${diffInHours}h atrás`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Ontem";
+  if (diffInDays < 7) return `${diffInDays} dias atrás`;
+
+  return date.toLocaleDateString("pt-BR");
+};
+
+const NotificationItem: React.FC<{ notification: Notification }> = ({
+  notification,
+}) => {
+  const Icon = getNotificationIcon(notification.type);
+  return (
+    <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg">
+      {!notification.isRead && (
+        <div className="h-2 w-2 mt-1.5 rounded-full bg-primary" />
+      )}
+      <Icon
+        className={cn(
+          "h-5 w-5 mt-1 flex-shrink-0",
+          notification.isRead ? "text-muted-foreground" : "text-primary",
+        )}
+      />
+      <div className="flex-1">
+        <p className="text-sm font-medium">{notification.title}</p>
+        <p className="text-sm text-muted-foreground">{notification.message}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {getTimeAgo(notification.createdAt)}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // Estado para controlar menu expandido (apenas 1 por vez - accordion)
   const [expandedMenu, setExpandedMenu] = useState<string | null>(() => {
@@ -230,6 +330,55 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
     );
     return activeMenu?.label || null;
   });
+
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications();
+    }
+  }, [user?.id]);
+
+  const loadNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+
+      const { data, error } = await supabase
+        .from("Notification")
+        .select("*")
+        .eq("userId", user?.id)
+        .order("createdAt", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar notificações:", error);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from("Notification")
+        .update({ isRead: true })
+        .eq("userId", user?.id)
+        .eq("isRead", false);
+      if (error) throw error;
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Erro ao marcar notificações como lidas:", err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/login-v2";
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Memoizar função de toggle para evitar recriação
   const toggleMenu = useCallback((label: string, element?: HTMLElement) => {
@@ -405,9 +554,116 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
           ))}
         </nav>
 
+        {/* User profile & Notifications Footer */}
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800/80 bg-gray-50/40 dark:bg-gray-900/10 flex items-center justify-between gap-1.5">
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-105 dark:hover:bg-gray-800/50 text-left flex-1 min-w-0 transition-all duration-200 group">
+                <div className="relative flex-shrink-0">
+                  <Avatar className="h-9 w-9 ring-2 ring-gray-100 dark:ring-gray-800 transition-all duration-200 group-hover:scale-105">
+                    <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-sm">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-950" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-200 truncate leading-none mb-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {user?.name || "Usuário"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate leading-none">
+                    {user?.email}
+                  </p>
+                </div>
+                <IoChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors flex-shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="start" side="top" sideOffset={12}>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold leading-none">{user?.name}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a
+                  href="https://status.syncads.com.br"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center w-full"
+                >
+                  <Globe className="mr-2 h-4 w-4" /> <span>Status do Sistema</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="flex items-center w-full">
+                  <Settings className="mr-2 h-4 w-4" /> <span>Configurações</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Notifications Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 flex-shrink-0 hover:scale-105">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-pink-600 text-[9px] font-bold text-white shadow-lg shadow-red-500/50 animate-pulse">
+                      {unreadCount}
+                    </span>
+                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 animate-ping opacity-75" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80 p-0" align="end" side="top" sideOffset={12}>
+              <Card className="border-0 shadow-none">
+                <CardHeader className="p-4 border-b">
+                  <CardTitle className="text-sm font-bold">Notificações</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 max-h-80 overflow-y-auto">
+                  {loadingNotifications ? (
+                    <div className="p-6 text-center text-muted-foreground text-xs">
+                      Carregando notificações...
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <NotificationItem key={notif.id} notification={notif} />
+                    ))
+                  ) : (
+                    <p className="p-4 text-center text-xs text-muted-foreground">
+                      Nenhuma notificação nova.
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter className="p-2 border-t flex justify-center">
+                  <button
+                    onClick={markAllAsRead}
+                    className="w-full text-center text-xs text-blue-600 dark:text-blue-400 py-1 hover:underline font-medium"
+                  >
+                    Marcar todas como lidas
+                  </button>
+                </CardFooter>
+              </Card>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     ),
-    [expandedMenu],
+    [expandedMenu, user, notifications, loadingNotifications, unreadCount],
   );
 
   return (
