@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,16 +17,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
-  User,
-  Store,
-  ShieldCheck,
-  Bell,
-  Mail,
-  Lock,
-  Key,
-  Check,
   Loader2,
   Sparkles,
+  Lock,
+  Mail,
+  Key,
+  ShieldCheck,
+  Bell,
 } from "lucide-react";
 
 export const SettingsPage: React.FC = () => {
@@ -352,22 +348,22 @@ export const SettingsPage: React.FC = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
+        staggerChildren: 0.05,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.3 },
+      transition: { duration: 0.25 },
     },
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div>
         <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
@@ -392,115 +388,28 @@ export const SettingsPage: React.FC = () => {
           initial="hidden"
           animate="visible"
         >
-          {/* CARD 1: Dados do Proprietário */}
+          {/* CARD 1: Informações da Loja */}
           <motion.div variants={itemVariants}>
-            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-lg transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2.5 text-lg font-bold text-gray-900 dark:text-white">
-                  <User className="h-5 w-5 text-blue-500" />
-                  Dados do Proprietário
-                </CardTitle>
-                <CardDescription>
-                  Informações pessoais registradas no seu cadastro. Os campos bloqueados não podem ser editados.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Name field (Editable) */}
-                <div className="space-y-2">
-                  <Label htmlFor="owner-name" className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Nome completo
-                  </Label>
-                  <Input
-                    id="owner-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white rounded-xl"
-                    placeholder="Nome completo do proprietário"
-                  />
+            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
+                <div>
+                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                    Informações da loja
+                  </CardTitle>
+                  <CardDescription>
+                    Nome exibido no dashboard e em comunicações da loja.
+                  </CardDescription>
                 </div>
-
-                {/* Readonly Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Email field */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
-                        E-mail
-                      </Label>
-                      <span className="text-[10px] bg-gray-100 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
-                        Alterar abaixo
-                      </span>
-                    </div>
-                    <Input
-                      value={user?.email || ""}
-                      readOnly
-                      className="bg-gray-100/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-xl"
-                    />
-                  </div>
-
-                  {/* CPF field */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
-                        CPF
-                      </Label>
-                      <span className="text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-2 py-0.5 rounded-full border border-red-500/20 font-medium">
-                        Bloqueado
-                      </span>
-                    </div>
-                    <Input
-                      value={maskCpf(cpf)}
-                      readOnly
-                      className="bg-gray-100/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-xl"
-                    />
-                  </div>
-
-                  {/* Birth Date field */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Data de Nascimento
-                      </Label>
-                      <span className="text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-2 py-0.5 rounded-full border border-red-500/20 font-medium">
-                        Bloqueado
-                      </span>
-                    </div>
-                    <Input
-                      value={formatDate(birthDate)}
-                      readOnly
-                      className="bg-gray-100/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-xl"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t border-gray-100 dark:border-gray-800/80 bg-gray-50/30 dark:bg-gray-900/20 px-6 py-4 flex justify-end">
                 <Button
-                  onClick={handleSaveOwner}
-                  loading={isSavingOwner}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-none shadow-md transition-all duration-300 rounded-xl font-bold"
+                  onClick={handleSaveStore}
+                  loading={isSavingStore}
+                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-9 px-4 shrink-0"
                 >
-                  <Check className="h-4 w-4 mr-2" />
-                  Salvar Proprietário
+                  Salvar
                 </Button>
-              </CardFooter>
-            </Card>
-          </motion.div>
-
-          {/* CARD 2: Informações da Loja */}
-          <motion.div variants={itemVariants}>
-            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-lg transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2.5 text-lg font-bold text-gray-900 dark:text-white">
-                  <Store className="h-5 w-5 text-purple-500" />
-                  Informações da Loja
-                </CardTitle>
-                <CardDescription>
-                  Configure os dados principais da sua loja. O nome será sincronizado automaticamente com todos os templates de checkout.
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Store Name field */}
-                <div className="space-y-2">
+              <CardContent className="space-y-4 pb-6">
+                <div className="space-y-2 max-w-md">
                   <Label htmlFor="store-name" className="text-sm font-semibold text-gray-900 dark:text-white">
                     Nome da loja
                   </Label>
@@ -508,49 +417,115 @@ export const SettingsPage: React.FC = () => {
                     id="store-name"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
-                    className="bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500/50 transition-all font-medium text-gray-900 dark:text-white rounded-xl"
+                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
                     placeholder="Ex: Minha Loja Sync"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 pt-1">
-                    <Sparkles className="h-3.5 w-3.5 text-purple-500 animate-pulse" />
-                    O nome da loja será atualizado automaticamente em todos os seus templates de checkout.
-                  </p>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-gray-100 dark:border-gray-800/80 bg-gray-50/30 dark:bg-gray-900/20 px-6 py-4 flex justify-end">
-                <Button
-                  onClick={handleSaveStore}
-                  loading={isSavingStore}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-none shadow-md transition-all duration-300 rounded-xl font-bold"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Salvar Loja
-                </Button>
-              </CardFooter>
             </Card>
           </motion.div>
 
-          {/* CARD 3: Segurança da Conta */}
+          {/* CARD 2: Dados do Proprietário */}
           <motion.div variants={itemVariants}>
-            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-lg transition-all duration-300 rounded-2xl overflow-hidden">
+            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
+                <div>
+                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                    Dados do proprietário
+                  </CardTitle>
+                  <CardDescription>
+                    Nome editável. E-mail e documento são fixos por segurança e conformidade fiscal.
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleSaveOwner}
+                  loading={isSavingOwner}
+                  className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-semibold h-9 px-4 shrink-0"
+                >
+                  Salvar
+                </Button>
+              </CardHeader>
+              <CardContent className="pb-6">
+                {/* Inputs Grid - 4 Columns */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Name field (Editable) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-name" className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Nome completo
+                    </Label>
+                    <Input
+                      id="owner-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
+                      placeholder="Nome completo do proprietário"
+                    />
+                    <p className="text-[11px] text-green-600 dark:text-green-400 mt-1 font-medium">Editável</p>
+                  </div>
+
+                  {/* Email field */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      E-mail
+                    </Label>
+                    <Input
+                      value={user?.email || ""}
+                      readOnly
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                    />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Não pode ser alterado</p>
+                  </div>
+
+                  {/* CPF field */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      CPF
+                    </Label>
+                    <Input
+                      value={maskCpf(cpf)}
+                      readOnly
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                    />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Dado fiscal da conta</p>
+                  </div>
+
+                  {/* Birth Date field */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Data de Nascimento
+                    </Label>
+                    <Input
+                      value={formatDate(birthDate)}
+                      readOnly
+                      className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-75 font-medium text-gray-500 dark:text-gray-400 rounded-lg h-11 text-sm"
+                    />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Data vinculada à conta</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* CARD 3: Segurança */}
+          <motion.div variants={itemVariants}>
+            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2.5 text-lg font-bold text-gray-900 dark:text-white">
-                  <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                  Segurança da Conta
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                  Segurança
                 </CardTitle>
                 <CardDescription>
-                  Gerencie o e-mail de acesso e senha de segurança da sua conta.
+                  Proteja o acesso à sua conta gerenciando suas credenciais de login.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 pb-6">
                 {/* Seção 1: Alterar E-mail */}
-                <div className="space-y-3 p-4 rounded-xl bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
-                    <Mail className="h-4 w-4 text-emerald-500" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2">
+                    <Mail className="h-4 w-4 text-primary" />
                     Alterar E-mail de Acesso
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="md:col-span-2 space-y-2">
+                  <div className="flex flex-col md:flex-row gap-4 items-end max-w-2xl">
+                    <div className="flex-1 w-full space-y-2">
                       <Label htmlFor="new-email" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         Novo endereço de e-mail
                       </Label>
@@ -559,7 +534,7 @@ export const SettingsPage: React.FC = () => {
                         type="email"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium text-gray-900 dark:text-white rounded-xl"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
                         placeholder="Digite o novo e-mail"
                       />
                     </div>
@@ -567,7 +542,7 @@ export const SettingsPage: React.FC = () => {
                       onClick={handleChangeEmail}
                       loading={isSavingEmail}
                       variant="outline"
-                      className="border-emerald-500/20 hover:bg-emerald-500/10 text-emerald-500 font-bold rounded-xl h-10 transition-all"
+                      className="border-primary/20 hover:bg-primary/10 text-primary font-bold rounded-lg h-11 px-6 transition-all shrink-0 w-full md:w-auto"
                     >
                       Atualizar E-mail
                     </Button>
@@ -575,13 +550,13 @@ export const SettingsPage: React.FC = () => {
                 </div>
 
                 {/* Seção 2: Alterar Senha */}
-                <div className="space-y-4 p-4 rounded-xl bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
-                    <Lock className="h-4 w-4 text-emerald-500" />
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2">
+                    <Key className="h-4 w-4 text-primary" />
                     Alterar Senha de Segurança
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="flex flex-col md:flex-row gap-4 items-end max-w-3xl">
+                    <div className="flex-1 w-full space-y-2">
                       <Label htmlFor="new-password-input" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         Nova senha (mínimo 8 caracteres)
                       </Label>
@@ -590,11 +565,11 @@ export const SettingsPage: React.FC = () => {
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium text-gray-900 dark:text-white rounded-xl"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
                         placeholder="Nova senha"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="flex-1 w-full space-y-2">
                       <Label htmlFor="confirm-password-input" className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         Confirmar nova senha
                       </Label>
@@ -603,18 +578,15 @@ export const SettingsPage: React.FC = () => {
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium text-gray-900 dark:text-white rounded-xl"
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 transition-all font-medium text-gray-900 dark:text-white rounded-lg h-11 text-sm"
                         placeholder="Confirmar senha"
                       />
                     </div>
-                  </div>
-                  <div className="flex justify-end pt-2">
                     <Button
                       onClick={handleChangePassword}
                       loading={isSavingPassword}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-none shadow-md transition-all duration-300 rounded-xl font-bold"
+                      className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-bold h-11 px-6 transition-all shrink-0 w-full md:w-auto"
                     >
-                      <Key className="h-4 w-4 mr-2" />
                       Atualizar Senha
                     </Button>
                   </div>
@@ -623,69 +595,68 @@ export const SettingsPage: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* CARD 4: Notificações de Vendas */}
+          {/* CARD 4: Notificações */}
           <motion.div variants={itemVariants}>
-            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-lg transition-all duration-300 rounded-2xl overflow-hidden">
+            <Card className="border border-gray-100 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-xl overflow-hidden">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2.5 text-lg font-bold text-gray-900 dark:text-white">
-                  <Bell className="h-5 w-5 text-pink-500" />
-                  Notificações de Vendas
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                  Notificações
                 </CardTitle>
                 <CardDescription>
                   Selecione quais eventos de vendas você deseja notificar no sistema.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Toggles */}
-                <div className="grid grid-cols-1 gap-3.5">
+              <CardContent className="pb-6">
+                {/* Toggles - Horizontal 3 columns grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Toggle 1: Novo pedido criado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80">
-                    <div className="space-y-0.5">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                    <div className="space-y-0.5 pr-2">
                       <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                         Novo pedido criado
                       </Label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Notificar quando o cliente inicia ou gera um novo pedido
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                        Notificar ao iniciar ou gerar um pedido
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.newOrderCreated}
                       onCheckedChange={(val) => handleToggleNotification("newOrderCreated", val)}
-                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-600 data-[state=checked]:to-purple-600"
+                      className="data-[state=checked]:bg-primary"
                     />
                   </div>
 
                   {/* Toggle 2: Pagamento confirmado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80">
-                    <div className="space-y-0.5">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                    <div className="space-y-0.5 pr-2">
                       <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                         Pagamento confirmado
                       </Label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Notificar assim que o pagamento do pedido for processado e confirmado
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                        Notificar ao processar pagamento
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.paymentConfirmed}
                       onCheckedChange={(val) => handleToggleNotification("paymentConfirmed", val)}
-                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-600 data-[state=checked]:to-purple-600"
+                      className="data-[state=checked]:bg-primary"
                     />
                   </div>
 
                   {/* Toggle 3: Pedido gerado */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80">
-                    <div className="space-y-0.5">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-850">
+                    <div className="space-y-0.5 pr-2">
                       <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                         Pedido gerado (Pix/Boleto)
                       </Label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Notificar quando um Pix ou boleto de compra é gerado
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                        Notificar ao gerar Pix ou boleto
                       </p>
                     </div>
                     <Switch
                       checked={notificationSettings.orderGenerated}
                       onCheckedChange={(val) => handleToggleNotification("orderGenerated", val)}
-                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-600 data-[state=checked]:to-purple-600"
+                      className="data-[state=checked]:bg-primary"
                     />
                   </div>
                 </div>
