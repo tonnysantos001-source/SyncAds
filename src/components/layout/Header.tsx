@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
-  Search,
   LogOut,
   User,
   Settings,
@@ -28,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useAuthStore } from "@/store/authStore";
-import { useStore } from "@/store/useStore";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import {
@@ -119,8 +117,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
   const { theme, toggleTheme } = useDarkMode();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const searchTerm = useStore((state) => state.searchTerm);
-  const setSearchTerm = useStore((state) => state.setSearchTerm);
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -186,22 +182,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
         <span className="sr-only">Toggle Menu</span>
       </Button>
 
-      <div className="relative flex-1 md:grow-0">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="search"
-          placeholder="Buscar..."
-          className={cn(
-            "w-full rounded-xl pl-9 pr-4 py-2 md:w-[200px] lg:w-[320px]",
-            "bg-gray-100 dark:bg-gray-800/50 border-0",
-            "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-            "placeholder:text-gray-400 transition-all duration-200",
-            "hover:bg-gray-200 dark:hover:bg-gray-800",
-          )}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+
 
       <div className="ml-auto flex items-center gap-3">
         {/* Seletor de Checkout */}

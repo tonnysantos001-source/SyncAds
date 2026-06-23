@@ -280,13 +280,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* Status */}
-        <div className="px-6 py-4 border-t border-gray-700/50">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span>Sistema Online</span>
-          </div>
-        </div>
 
         {/* User Info */}
         <div className="p-4 border-t border-gray-700/50 bg-gray-800/30">
