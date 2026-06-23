@@ -918,13 +918,13 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         try {
           const { data: userData, error: userError } = await supabase
             .from("User")
-            .select("name, email, phone, cnpj, cpf, address")
+            .select("name, storeName, email, phone, cnpj, cpf, address")
             .eq("id", order.userId)
             .single();
 
           if (!userError && userData) {
             setStoreData({
-              name: userData?.name || "Minha Loja",
+              name: userData?.storeName || userData?.name || "Minha Loja",
               email: userData?.email || "contato@loja.com",
               phone: userData?.phone || "(11) 99999-9999",
               cnpj: userData?.cnpj || "",

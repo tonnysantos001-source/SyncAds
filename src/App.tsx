@@ -493,7 +493,7 @@ function App() {
                 path="/integrations/:integrationId"
                 element={<IntegrationDetailPage />}
               />
-              <Route path="/settings/*" element={<SettingsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route
                 path="/settings/email-verification"
                 element={<EmailVerificationPage />}

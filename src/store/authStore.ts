@@ -10,6 +10,7 @@ export interface User {
   avatar?: string | null;
   plan: "Free" | "Pro" | "Enterprise";
   isSuperAdmin?: boolean;
+  storeName?: string | null;
 }
 
 interface AuthState {
@@ -63,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
                       ? "Free"
                       : "Enterprise",
                 isSuperAdmin: Boolean(userData.isSuperAdmin),
+                storeName: userData.storeName,
               },
               isInitialized: true, // Sempre true quando há usuário
             });
@@ -118,6 +120,7 @@ export const useAuthStore = create<AuthState>()(
                         ? "Free"
                         : "Enterprise",
                   isSuperAdmin: Boolean(userData.isSuperAdmin),
+                  storeName: userData.storeName,
                 },
               });
               console.log(

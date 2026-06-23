@@ -8,6 +8,9 @@ export interface NotificationSettings {
   pushMentions: boolean;
   pushIntegrations: boolean;
   pushSuggestions: boolean;
+  newOrderCreated: boolean;
+  paymentConfirmed: boolean;
+  orderGenerated: boolean;
 }
 
 const initialNotificationSettings: NotificationSettings = {
@@ -17,6 +20,9 @@ const initialNotificationSettings: NotificationSettings = {
   pushMentions: true,
   pushIntegrations: false,
   pushSuggestions: true,
+  newOrderCreated: true,
+  paymentConfirmed: true,
+  orderGenerated: true,
 };
 
 interface SettingsState {
