@@ -56,10 +56,7 @@ import { SocialProofNotifications } from "@/components/checkout/SocialProofNotif
 // ============================================
 const USE_NEW_CHECKOUT = import.meta.env.VITE_USE_NEW_CHECKOUT !== 'false';
 
-// Lazy import — só carrega o bundle se a flag estiver ativa
-const TemplateRenderer = USE_NEW_CHECKOUT
-  ? React.lazy(() => import('@/components/checkout/TemplateRenderer'))
-  : null;
+import TemplateRenderer from "@/components/checkout/TemplateRenderer";
 
 // ============================================
 // INTERFACES
