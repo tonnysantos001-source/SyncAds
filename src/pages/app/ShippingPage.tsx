@@ -35,6 +35,11 @@ export default function ShippingPage() {
   const [methods, setMethods] = useState<ShippingMethod[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Estados para configuração do CEP de Origem e Cálculo Automático
+  const [originCep, setOriginCep] = useState('');
+  const [calculateAutomatically, setCalculateAutomatically] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Local states for masked text inputs
   const [priceInput, setPriceInput] = useState('0,00');
   const [minOrderInput, setMinOrderInput] = useState('0,00');
@@ -80,7 +85,78 @@ export default function ShippingPage() {
 
   useEffect(() => {
     loadMethods();
+    loadUserSettings();
   }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('User')
+        .select('originCep, calculateAutomatically')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        setOriginCep(data.originCep || '');
+        setCalculateAutomatically(data.calculateAutomatically || false);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações de frete do usuário:', error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const cleanCep = originCep.replace(/\D/g, '');
+      if (calculateAutomatically && cleanCep.length !== 8) {
+        toast({
+          title: 'CEP de origem inválido',
+          description: 'Por favor, informe um CEP com 8 dígitos para ativar o cálculo automático.',
+          variant: 'destructive',
+        });
+        setSavingSettings(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('User')
+        .update({
+          originCep: cleanCep || null,
+          calculateAutomatically,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Atualizar localmente no store
+      const { useAuthStore } = await import('@/store/authStore');
+      useAuthStore.getState().updateUser({
+        originCep: cleanCep || null,
+        calculateAutomatically,
+      });
+
+      toast({
+        title: 'Configurações salvas!',
+        description: 'CEP de origem e preferências de frete foram salvos com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar configurações de frete:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Ocorreu um erro ao salvar as configurações.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const loadMethods = async () => {
     setLoading(true);
@@ -565,6 +641,68 @@ export default function ShippingPage() {
           Gerencie seus métodos e prazos de frete.
         </p>
       </div>
+
+      {/* Card: Cálculo Automático de Frete */}
+      <Card className="bg-[#111827] border-gray-800 shadow-xl rounded-xl overflow-hidden mb-6">
+        <div className="px-6 py-5 border-b border-gray-800 bg-gray-900/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Truck className="w-5 h-5 text-indigo-400" />
+              Cálculo Automático de Frete (Correios & Jadlog)
+            </h3>
+            <p className="text-gray-400 text-xs mt-0.5">
+              Calcule automaticamente o valor do frete do PAC, SEDEX e Jadlog com base no CEP do cliente.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 sm:self-center">
+            <span className="text-xs text-gray-400">Ativar cálculo automático:</span>
+            <Switch
+              checked={calculateAutomatically}
+              onCheckedChange={setCalculateAutomatically}
+            />
+          </div>
+        </div>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2 w-full max-w-sm">
+              <Label className="text-sm font-semibold text-gray-300" htmlFor="origin-cep">CEP de Origem *</Label>
+              <Input
+                id="origin-cep"
+                placeholder="00000-000"
+                maxLength={9}
+                value={originCep}
+                onChange={(e) => {
+                  const clean = e.target.value.replace(/\D/g, '');
+                  if (clean.length <= 5) {
+                    setOriginCep(clean);
+                  } else {
+                    setOriginCep(`${clean.slice(0, 5)}-${clean.slice(5, 8)}`);
+                  }
+                }}
+                className="bg-[#1F2937] border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500 h-10"
+              />
+              <p className="text-[11px] text-gray-400">
+                CEP de onde os seus produtos serão despachados.
+              </p>
+            </div>
+            
+            <Button
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs h-10 px-6 self-start md:self-auto"
+            >
+              {savingSettings ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar Configurações'
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Methods List Card */}
       <div className="w-full">

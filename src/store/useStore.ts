@@ -19,6 +19,9 @@ interface User {
   avatar?: string | null;
   plan: "Free" | "Pro" | "Enterprise";
   isSuperAdmin?: boolean;
+  storeName?: string | null;
+  originCep?: string | null;
+  calculateAutomatically?: boolean;
 }
 
 export interface NotificationSettings {

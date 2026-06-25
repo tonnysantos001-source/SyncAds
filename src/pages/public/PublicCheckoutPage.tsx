@@ -237,6 +237,8 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   // Estados de Frete
   const [shippingMethods, setShippingMethods] = useState<any[]>([]);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<any>(null);
+  const [originCep, setOriginCep] = useState<string | null>(null);
+  const [calculateAutomatically, setCalculateAutomatically] = useState<boolean>(false);
 
 
   // ============================================
@@ -273,7 +275,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
   // Carregar métodos de frete ativos do lojista
   useEffect(() => {
-    if (!sellerUserId) return;
+    if (!sellerUserId || calculateAutomatically) return;
     const fetchShippingMethods = async () => {
       try {
         const { data, error } = await supabase
@@ -320,7 +322,87 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
       }
     };
     fetchShippingMethods();
-  }, [sellerUserId]);
+  }, [sellerUserId, calculateAutomatically]);
+
+  // Monitorar CEP de destino para cálculo automático
+  useEffect(() => {
+    if (!calculateAutomatically || !originCep) return;
+
+    const cleanDestCep = addressData.zipCode.replace(/\D/g, "");
+    if (cleanDestCep.length !== 8) {
+      setShippingMethods([{
+        id: "awaiting-cep",
+        name: "Digite seu CEP",
+        description: "Aguardando preenchimento do endereço",
+        price: 0,
+        basePrice: 0,
+        estimatedDaysMin: 0,
+        estimatedDaysMax: 0,
+        isBusinessDays: true,
+        isDefault: true,
+        isActive: true
+      }]);
+      return;
+    }
+
+    const firstDigitOrigin = originCep.replace(/\D/g, "")[0];
+    const firstDigitDest = cleanDestCep[0];
+    const isSameRegion = firstDigitOrigin === firstDigitDest;
+
+    const computedMethods = [
+      {
+        id: "auto-pac",
+        name: "PAC Correios",
+        description: "Entrega econômica pelos Correios",
+        price: isSameRegion ? 14.90 : 24.90,
+        basePrice: isSameRegion ? 14.90 : 24.90,
+        estimatedDaysMin: isSameRegion ? 5 : 8,
+        estimatedDaysMax: isSameRegion ? 8 : 12,
+        isBusinessDays: true,
+        isDefault: true,
+        isActive: true
+      },
+      {
+        id: "auto-sedex",
+        name: "SEDEX Correios",
+        description: "Entrega expressa rápida pelos Correios",
+        price: isSameRegion ? 22.50 : 42.90,
+        basePrice: isSameRegion ? 22.50 : 42.90,
+        estimatedDaysMin: isSameRegion ? 1 : 3,
+        estimatedDaysMax: isSameRegion ? 3 : 5,
+        isBusinessDays: true,
+        isDefault: false,
+        isActive: true
+      },
+      {
+        id: "auto-jadlog",
+        name: "Jadlog Express",
+        description: "Envio rápido via transportadora privada",
+        price: isSameRegion ? 18.90 : 34.90,
+        basePrice: isSameRegion ? 18.90 : 34.90,
+        estimatedDaysMin: isSameRegion ? 3 : 4,
+        estimatedDaysMax: isSameRegion ? 5 : 7,
+        isBusinessDays: true,
+        isDefault: false,
+        isActive: true
+      }
+    ];
+
+    setShippingMethods(computedMethods);
+
+    // Selecionar o método atualizado
+    const defaultMethod = computedMethods.find(m => m.isDefault) || computedMethods[0];
+    setSelectedShippingMethod(defaultMethod);
+    setCheckoutData((prev) =>
+      prev
+        ? {
+            ...prev,
+            shipping: defaultMethod.price,
+          }
+        : null
+    );
+  }, [addressData.zipCode, calculateAutomatically, originCep]);
+
 
   const handleSelectShippingMethod = (method: any) => {
     setSelectedShippingMethod(method);
@@ -918,7 +1000,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
         try {
           const { data: userData, error: userError } = await supabase
             .from("User")
-            .select("name, storeName, email, phone, cnpj, cpf, address")
+            .select("name, storeName, email, phone, cnpj, cpf, address, originCep, calculateAutomatically")
             .eq("id", order.userId)
             .single();
 
@@ -931,6 +1013,22 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
               cpf: userData?.cpf || "",
               address: userData?.address || "São Paulo, SP - Brasil",
             });
+            setOriginCep(userData?.originCep || null);
+            setCalculateAutomatically(userData?.calculateAutomatically === true);
+            if (userData?.calculateAutomatically === true) {
+              setShippingMethods([{
+                id: "awaiting-cep",
+                name: "Digite seu CEP",
+                description: "Aguardando preenchimento do endereço",
+                price: 0,
+                basePrice: 0,
+                estimatedDaysMin: 0,
+                estimatedDaysMax: 0,
+                isBusinessDays: true,
+                isDefault: true,
+                isActive: true
+              }]);
+            }
           }
         } catch (e) {
           console.log("Erro ao carregar dados da loja:", e);
