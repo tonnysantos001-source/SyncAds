@@ -50,13 +50,13 @@ import { NoticeBar } from "@/components/checkout/NoticeBar";
 import { SecurityBadges } from "@/components/checkout/SecurityBadges";
 import { PaymentMethodIcons } from "@/components/checkout/PaymentMethodIcons";
 import { SocialProofNotifications } from "@/components/checkout/SocialProofNotifications";
+import TemplateRenderer from "@/components/checkout/TemplateRenderer";
 
 // ============================================
 // MULTI-TEMPLATE SYSTEM (feature flag)
 // ============================================
 const USE_NEW_CHECKOUT = import.meta.env.VITE_USE_NEW_CHECKOUT !== 'false';
 
-import TemplateRenderer from "@/components/checkout/TemplateRenderer";
 
 // ============================================
 // INTERFACES
