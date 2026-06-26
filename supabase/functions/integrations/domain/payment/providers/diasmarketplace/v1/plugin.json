@@ -1,0 +1,34 @@
+{
+  "name": "Dias Marketplace",
+  "slug": "diasmarketplace",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://cdn-icons-png.flaticon.com/512/5968/5968204.png",
+  "description": "Integração oficial do Dias Marketplace para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API",
+      "type": "password",
+      "required": true,
+      "placeholder": "Dias Marketplace API Key"
+    },
+    {
+      "name": "storeId",
+      "label": "Store ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID da Loja Dias Marketplace"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

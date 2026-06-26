@@ -1,0 +1,34 @@
+{
+  "name": "SafetyPay",
+  "slug": "safetypay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do SafetyPay para processamento de pagamentos globais.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: sp_live_..."
+    },
+    {
+      "name": "signatureKey",
+      "label": "Chave de Assinatura (Signature Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: sig_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Fast Pay",
+  "slug": "fastpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2099/2099058.png",
+  "description": "Integração oficial da Fast Pay para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Chave de API gerada no painel da Fast Pay"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

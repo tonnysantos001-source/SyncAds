@@ -1,0 +1,34 @@
+{
+  "name": "PagSeguro",
+  "slug": "pagseguro",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://assets.pagseguro.com.br/ps-public-assets/brand/logo-pagseguro.svg",
+  "description": "Integração oficial de PagSeguro v3 para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "email",
+      "label": "E-mail da Conta PagSeguro",
+      "type": "text",
+      "required": true,
+      "placeholder": "email@exemplo.com"
+    },
+    {
+      "name": "token",
+      "label": "Token de API PagSeguro",
+      "type": "password",
+      "required": true,
+      "placeholder": "32 caracteres"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": true,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

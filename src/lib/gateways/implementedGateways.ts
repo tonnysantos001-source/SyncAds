@@ -79,6 +79,14 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     notes: "Gateway integrado Pagou.ai",
   },
 
+  hypercash: {
+    slug: "hypercash",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado HyperCash",
+  },
+
   picpay: {
     slug: "picpay",
     status: "implemented",
@@ -213,9 +221,10 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     slug: "appmax",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
-    notes: "Implementado",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Appmax",
   },
+
 
   asset: {
     slug: "asset",
@@ -269,16 +278,16 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     slug: "bestfy",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
-    notes: "Implementado",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Bestfy",
   },
 
   blackcat: {
     slug: "blackcat",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
-    notes: "Implementado",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Blackcat",
   },
 
   "bravos-pay": {
@@ -297,13 +306,22 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     notes: "Implementado",
   },
 
+  brazapay: {
+    slug: "brazapay",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Braza Pay",
+  },
+
   bynet: {
     slug: "bynet",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
-    notes: "Implementado",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Bynet",
   },
+
 
   carthero: {
     slug: "carthero",
@@ -373,8 +391,16 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     slug: "dom-pagamentos",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
+    supportedMethods: ["pix", "credit_card", "boleto"],
     notes: "Implementado",
+  },
+
+  dompagamentos: {
+    slug: "dompagamentos",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Dom Pagamentos",
   },
 
   dorapag: {
@@ -397,9 +423,18 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     slug: "ever-pay",
     status: "implemented",
     version: "1.0",
-    supportedMethods: ["pix", "credit_card"],
-    notes: "Implementado",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Ever Pay",
   },
+
+  everpay: {
+    slug: "everpay",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Ever Pay",
+  },
+
 
   "fast-pay": {
     slug: "fast-pay",
@@ -408,6 +443,15 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     supportedMethods: ["pix", "credit_card"],
     notes: "Implementado",
   },
+
+  fastpay: {
+    slug: "fastpay",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Fast Pay",
+  },
+
 
   "fire-pag": {
     slug: "fire-pag",

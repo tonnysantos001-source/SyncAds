@@ -1,0 +1,34 @@
+{
+  "name": "Rede",
+  "slug": "rede",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial da Rede para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "pv",
+      "label": "PV (Código do Estabelecimento)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: 12345678"
+    },
+    {
+      "name": "token",
+      "label": "Token de Autenticação",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: a1b2c3d4..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

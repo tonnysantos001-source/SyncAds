@@ -1,0 +1,34 @@
+{
+  "name": "PayPal",
+  "slug": "paypal",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do PayPal para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "clientId",
+      "label": "Client ID do PayPal",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: Aef... (Chave Pública)"
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret do PayPal",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: EGk... (Chave Privada)"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": false,
+    "supportsCreditCard": true,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

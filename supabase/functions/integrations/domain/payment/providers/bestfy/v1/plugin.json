@@ -1,0 +1,27 @@
+{
+  "name": "Bestfy",
+  "slug": "bestfy",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936719.png",
+  "description": "Integração oficial da Bestfy para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "token",
+      "label": "Token de API (SECRET_KEY)",
+      "type": "password",
+      "required": true,
+      "placeholder": "bf_sk_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

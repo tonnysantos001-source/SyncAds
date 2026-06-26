@@ -1,0 +1,34 @@
+{
+  "name": "PicPay",
+  "slug": "picpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do PicPay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "picpayToken",
+      "label": "Token do PicPay (x-picpay-token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: 555008cef7f321d00ef236333"
+    },
+    {
+      "name": "sellerToken",
+      "label": "Token do Vendedor (x-seller-token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: 9eb9-4081-9b16-52c676451e03"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": false,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

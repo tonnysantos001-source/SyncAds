@@ -1,0 +1,27 @@
+{
+  "name": "Dom Pagamentos",
+  "slug": "dompagamentos",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://cdn-icons-png.flaticon.com/512/10149/10149458.png",
+  "description": "Integração oficial da Dom Pagamentos para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "token",
+      "label": "Token de API",
+      "type": "password",
+      "required": true,
+      "placeholder": "Token gerado no painel da Dom Pagamentos"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

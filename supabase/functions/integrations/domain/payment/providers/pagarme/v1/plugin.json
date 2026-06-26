@@ -1,0 +1,34 @@
+{
+  "name": "Pagar.me",
+  "slug": "pagarme",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://docs.pagar.me/images/pagarme-logo.png",
+  "description": "Integração oficial de Pagar.me v5 para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave Secreta de API (apiKey)",
+      "type": "password",
+      "required": true,
+      "placeholder": "sk_..."
+    },
+    {
+      "name": "encryptionKey",
+      "label": "Chave de Criptografia (encryptionKey)",
+      "type": "password",
+      "required": true,
+      "placeholder": "ek_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": true,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

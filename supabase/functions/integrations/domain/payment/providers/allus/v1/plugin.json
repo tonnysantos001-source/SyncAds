@@ -1,0 +1,34 @@
+{
+  "name": "Allus",
+  "slug": "allus",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Allus para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: allus_live_..."
+    },
+    {
+      "name": "merchantId",
+      "label": "Merchant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: merch_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

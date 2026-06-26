@@ -1,0 +1,27 @@
+{
+  "name": "Bynet",
+  "slug": "bynet",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial de Bynet para processamento de pagamentos.",
+  "status": "beta",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave Secreta de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "sk_live_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

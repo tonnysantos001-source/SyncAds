@@ -1,0 +1,34 @@
+{
+  "name": "Alphacash",
+  "slug": "alphacash",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Alphacash para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: alpha_live_..."
+    },
+    {
+      "name": "secretKey",
+      "label": "Chave Secreta (Secret Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: sec_key_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": false,
+    "supportsCreditCard": true,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

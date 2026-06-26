@@ -1,0 +1,34 @@
+{
+  "name": "Iugu",
+  "slug": "iugu",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://iugu.com/assets/images/logo.svg",
+  "description": "Integração oficial da Iugu para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiToken",
+      "label": "API Token",
+      "type": "password",
+      "required": true,
+      "placeholder": "Iugu API Token"
+    },
+    {
+      "name": "accountId",
+      "label": "Account ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID da Conta Iugu"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": true,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Asaas",
+  "slug": "asaas",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://asaas.com/packs/media/img/asaas-v2-logo-a6e8c94e50b47f5a3a1d.svg",
+  "description": "Integração oficial de Asaas para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Token de API Asaas",
+      "type": "password",
+      "required": true,
+      "placeholder": "$aact_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": true,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

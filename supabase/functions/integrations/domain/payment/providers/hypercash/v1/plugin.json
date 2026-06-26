@@ -1,0 +1,27 @@
+{
+  "name": "HyperCash",
+  "slug": "hypercash",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936719.png",
+  "description": "Integração oficial da HyperCash para processamento de Pix, Cartão e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "secretKey",
+      "label": "Chave Secreta de API (Secret Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "hc_sk_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

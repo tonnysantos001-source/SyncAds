@@ -1386,17 +1386,10 @@ export const gatewaysList: GatewayConfig[] = [
     configFields: [
       {
         name: "token",
-        label: "Token",
+        label: "Token de API",
         type: "password",
         required: true,
-        placeholder: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      },
-      {
-        name: "merchantId",
-        label: "Merchant ID",
-        type: "text",
-        required: true,
-        placeholder: "merchant_xxx",
+        placeholder: "Token gerado no painel da Dom Pagamentos",
       },
     ],
     apiDocs: "https://dompagamentos.com.br/developers",
@@ -1542,29 +1535,22 @@ export const gatewaysList: GatewayConfig[] = [
     id: "fastpay",
     name: "Fast Pay",
     slug: "fastpay",
-    logo: "https://cdn-icons-png.flaticon.com/512/5968/5968292.png",
-    type: "global",
+    logo: "https://cdn-icons-png.flaticon.com/512/2099/2099058.png",
+    type: "nacional",
     status: "active",
-    description: "Pagamentos rápidos globais",
-    features: ["Cartão", "Wire Transfer", "Digital Wallet"],
-    paymentMethods: ["credit_card", "debit_card", "wallet"],
+    description: "Integração oficial da Fast Pay para processamento de Pix, Cartão e Boleto.",
+    features: ["Pix", "Cartão", "Boleto"],
+    paymentMethods: ["pix", "credit_card", "boleto"],
     configFields: [
       {
         name: "apiKey",
-        label: "API Key",
+        label: "Chave de API (API Key)",
         type: "password",
         required: true,
-        placeholder: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      },
-      {
-        name: "merchantId",
-        label: "Merchant ID",
-        type: "text",
-        required: true,
-        placeholder: "merchant_xxx",
+        placeholder: "Chave de API gerada no painel da Fast Pay",
       },
     ],
-    apiDocs: "https://fastpay.io/docs",
+    apiDocs: "https://fastpaybrasil.com",
     testMode: true,
   },
 
@@ -1850,13 +1836,39 @@ export const gatewaysList: GatewayConfig[] = [
     apiDocs: "https://developer.pagou.ai",
     testMode: true,
   },
+  // 55. HYPERCASH
+  {
+    id: "hypercash",
+    name: "HyperCash",
+    slug: "hypercash",
+    logo: "https://cdn-icons-png.flaticon.com/512/2936/2936719.png",
+    type: "nacional",
+    status: "active",
+    description: "Integração oficial de HyperCash para processamento de pagamentos Pix, Cartão e Boleto.",
+    features: ["Pix", "Cartão de Crédito", "Boleto"],
+    paymentMethods: ["pix", "credit_card", "boleto"],
+    configFields: [
+      {
+        name: "secretKey",
+        label: "Chave Secreta de API (Secret Key)",
+        type: "password",
+        required: true,
+        placeholder: "hc_sk_...",
+      },
+    ],
+    apiDocs: "https://api.hypercashbrasil.com.br",
+    testMode: true,
+  },
 ];
 
 // Map implemented flag dynamically for Sprint 1
-const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme", "pagouai"];
+const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme", "pagouai", "hypercash", "bestfy", "blackcat", "efi", "dompagamentos", "fastpay", "appmax", "everpay", "bynet", "brazapay", "diasmarketplace", "iugu", "vindi", "cielo", "stone", "picpay", "paypal", "rede", "getnet", "wirecard", "safetypay", "azcend", "paguex", "allus", "alpa", "alphacash"];
 gatewaysList.forEach((g) => {
   g.implemented = IMPLEMENTED_SLUGS.includes(g.slug);
 });
+
+
+
 
 // ============================================
 // HELPER FUNCTIONS

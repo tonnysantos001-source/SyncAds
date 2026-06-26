@@ -1,0 +1,34 @@
+{
+  "name": "Wirecard (Moip)",
+  "slug": "wirecard-moip",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Wirecard (Moip) para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "token",
+      "label": "Token de Autenticação",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: 01020304050607080910111213141516"
+    },
+    {
+      "name": "key",
+      "label": "Chave de Produção/Acesso (Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: a1b2c3d4..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}
