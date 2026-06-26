@@ -202,6 +202,39 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
   // Estados
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+
+  // Dados do formulário
+  const [customerData, setCustomerData] = useState<CustomerData>({
+    name: "",
+    email: "",
+    phone: "",
+    document: "",
+  });
+
+  const [addressData, setAddressData] = useState<AddressData>({
+    zipCode: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+  });
+
+  const [paymentMethod, setPaymentMethod] = useState<
+    "PIX" | "CREDIT_CARD" | "BOLETO"
+  >("PIX");
+  const [cardData, setCardData] = useState<CardData>({
+    number: "",
+    holderName: "",
+    expiryMonth: "",
+    expiryYear: "",
+    cvv: "",
+  });
+
+  // Campos extras
+  const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState("");
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
   const [sellerUserId, setSellerUserId] = useState<string | null>(null);
@@ -428,38 +461,7 @@ const PublicCheckoutPageNovo: React.FC<PublicCheckoutPageProps> = ({
 
   const isMobile = previewMode ? isMobileProp : isMobileScreen;
 
-  // Dados do formulário
-  const [customerData, setCustomerData] = useState<CustomerData>({
-    name: "",
-    email: "",
-    phone: "",
-    document: "",
-  });
 
-  const [addressData, setAddressData] = useState<AddressData>({
-    zipCode: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    city: "",
-    state: "",
-  });
-
-  const [paymentMethod, setPaymentMethod] = useState<
-    "PIX" | "CREDIT_CARD" | "BOLETO"
-  >("PIX");
-  const [cardData, setCardData] = useState<CardData>({
-    number: "",
-    holderName: "",
-    expiryMonth: "",
-    expiryYear: "",
-    cvv: "",
-  });
-
-  // Campos extras
-  const [birthDate, setBirthDate] = useState("");
-  const [gender, setGender] = useState("");
 
   const navigationSteps = theme.navigationSteps || 3;
 
