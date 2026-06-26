@@ -71,6 +71,14 @@ export const implementedGateways: Record<string, ImplementedGateway> = {
     notes: "Gateway brasileiro",
   },
 
+  pagouai: {
+    slug: "pagouai",
+    status: "implemented",
+    version: "1.0",
+    supportedMethods: ["pix", "credit_card", "boleto"],
+    notes: "Gateway integrado Pagou.ai",
+  },
+
   picpay: {
     slug: "picpay",
     status: "implemented",

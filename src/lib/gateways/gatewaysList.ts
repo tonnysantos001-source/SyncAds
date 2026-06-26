@@ -1826,10 +1826,34 @@ export const gatewaysList: GatewayConfig[] = [
     apiDocs: "https://app.inpagamentos.com/docs/intro/first-steps",
     testMode: true,
   },
+  // 54. PAGOU.AI
+  {
+    id: "pagouai",
+    name: "Pagou.ai",
+    slug: "pagouai",
+    logo: "https://images.pagou.ai/brand/logo.png",
+    type: "nacional",
+    status: "active",
+    description:
+      "Integração oficial de Pagou.ai para processamento de pagamentos Pix, Cartão de Crédito e Boleto (Voucher).",
+    features: ["Pix", "Cartão de Crédito", "Boleto"],
+    paymentMethods: ["pix", "credit_card", "boleto"],
+    configFields: [
+      {
+        name: "apiKey",
+        label: "Chave Secreta de API (API Key / Token)",
+        type: "password",
+        required: true,
+        placeholder: "pg_sk_...",
+      },
+    ],
+    apiDocs: "https://developer.pagou.ai",
+    testMode: true,
+  },
 ];
 
 // Map implemented flag dynamically for Sprint 1
-const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme"];
+const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme", "pagouai"];
 gatewaysList.forEach((g) => {
   g.implemented = IMPLEMENTED_SLUGS.includes(g.slug);
 });

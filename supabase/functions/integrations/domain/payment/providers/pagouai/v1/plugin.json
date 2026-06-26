@@ -1,0 +1,27 @@
+{
+  "name": "Pagou.ai",
+  "slug": "pagouai",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.pagou.ai/brand/logo.png",
+  "description": "Integração oficial de Pagou.ai para processamento de pagamentos Pix, Cartão de Crédito e Boleto (Voucher).",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave Secreta de API (API Key / Token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "pg_sk_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}
