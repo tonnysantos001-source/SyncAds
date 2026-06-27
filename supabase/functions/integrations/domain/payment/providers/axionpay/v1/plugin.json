@@ -3,32 +3,27 @@
   "slug": "axionpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Axion Pay para processamento de pagamentos.",
+  "logoUrl": "https://axiopay.com.br/logo.png",
+  "description": "Gateway brasileiro Axiopay de alta velocidade para processamento de Pix instantâneo, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
-      "name": "clientId",
-      "label": "Client ID",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: client_..."
-    },
-    {
-      "name": "clientSecret",
-      "label": "Client Secret",
+      "name": "apiKey",
+      "label": "Chave Secreta de API (Secret Key)",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: secret_..."
+      "placeholder": "sk_live_... ou sk_test_..."
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://axiopay.com.br",
+  "supportEmail": "suporte@axiopay.com.br"
 }

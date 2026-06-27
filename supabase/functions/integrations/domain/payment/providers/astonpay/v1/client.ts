@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreateChargePayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -16,16 +16,17 @@ export class Client {
   private getHeaders(): HeadersInit {
     return {
       "Content-Type": "application/json",
-      "X-API-Key": this.credentials.merchantCode,
+      "Authorization": `Bearer ${this.credentials.apiKey}`,
+      "X-Merchant-Code": this.credentials.merchantCode,
     };
   }
 
   /**
-   * Valida a conexão com a API do Aston Pay
+   * Verifica credenciais (API Key e Merchant Code).
+   * Faz requisição para listar charges ou endpoint equivalente de status.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/health`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/charges?limit=1`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -33,11 +34,11 @@ export class Client {
   }
 
   /**
-   * Cria uma cobrança no Aston Pay
+   * Cria uma nova cobrança.
+   * POST /charges
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    return await this.http.request(url, {
+  async createCharge(payload: CreateChargePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/charges`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -46,13 +47,27 @@ export class Client {
   }
 
   /**
-   * Consulta os detalhes de um pagamento no Aston Pay
+   * Obtém detalhes de uma cobrança específica.
+   * GET /charges/{id}
    */
-  async getPayment(transactionId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${transactionId}`;
-    return await this.http.request(url, {
+  async getCharge(chargeId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/charges/${chargeId}`, {
       method: "GET",
       headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Cancela ou estorna uma cobrança.
+   * POST /charges/{id}/refund
+   */
+  async refundCharge(chargeId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/charges/${chargeId}/refund`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

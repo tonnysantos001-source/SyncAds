@@ -1,25 +1,54 @@
-// Tipos específicos para a API do Atlas Pay
+// Tipos específicos para a API Atlas Pay
+// Documentação: https://www.atlaspay.com.br
+
 export interface Credentials {
-  apiId: string;
-  apiSecret: string;
+  apiId: string;     // ID da API fornecido no painel da Atlas Pay
+  apiSecret: string; // Chave secreta de autenticação
 }
 
-export interface PaymentRequestPayload {
-  transaction_id: string;
-  amount: number;
-  currency: string;
-  payment_method: string;
+export interface CreatePaymentPayload {
+  amount: number;       // Valor em centavos (ex: 5000 = R$50,00)
+  currency: "BRL";
+  payment_method: "credit_card" | "pix" | "boleto";
+  reference_id: string; // ID interno do pedido (orderId)
+  description?: string;
   customer: {
     name: string;
     email: string;
-    document: string;
+    document: string;   // CPF/CNPJ limpo (só números)
+    phone?: string;
   };
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month: string;
+    expiration_year: string;
+    cvv: string;
+  };
+  installments?: number;
+  notification_url?: string;
 }
 
-export interface PaymentResponsePayload {
-  transaction_id: string;
-  status: string;
-  payment_url?: string;
-  qr_code?: string;
-  expires_at?: string;
+export interface PaymentResponse {
+  id?: string;
+  reference_id?: string;
+  amount?: number;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled"
+  payment_method?: string;
+  authorization_code?: string;
+  pix?: {
+    qr_code?: string;
+    qr_code_url?: string;
+    expires_at?: string;
+  };
+  boleto?: {
+    digitable_line?: string;
+    pdf_url?: string;
+    expires_at?: string;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+  created_at?: string;
 }

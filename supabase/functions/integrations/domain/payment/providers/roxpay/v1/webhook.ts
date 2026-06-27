@@ -11,7 +11,8 @@ export class WebhookHandler {
   }
 
   /**
-   * Processa o webhook da Aston Pay.
+   * Processa webhook enviado pela RoxPay.
+   * Payload: { id, status, reference_id, amount }
    */
   static handle(payload: any): WebhookResponse {
     try {
@@ -23,7 +24,7 @@ export class WebhookHandler {
         return {
           success: false,
           processed: false,
-          message: "Webhook Aston Pay inválido: id ausente.",
+          message: "Webhook RoxPay inválido: id ausente.",
         };
       }
 
@@ -31,7 +32,7 @@ export class WebhookHandler {
         return {
           success: false,
           processed: false,
-          message: "Webhook Aston Pay inválido: status ausente.",
+          message: "Webhook RoxPay inválido: status ausente.",
         };
       }
 
@@ -42,14 +43,14 @@ export class WebhookHandler {
         processed: true,
         transactionId: referenceId || chargeId,
         status: normalizedStatus,
-        message: `Webhook Aston Pay: ${status} → ${normalizedStatus}`,
+        message: `Webhook RoxPay: ${status} → ${normalizedStatus}`,
         raw: payload,
       };
     } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: `Erro webhook Aston Pay: ${err.message}`,
+        message: `Erro webhook RoxPay: ${err.message}`,
       };
     }
   }

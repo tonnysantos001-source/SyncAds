@@ -1,41 +1,44 @@
 import { PaymentRequest } from "../../../../../types.ts";
 
 export class Validator {
-  /**
-   * Valida o formato e integridade das credenciais informadas pelo usuário
-   */
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!credentials.apiId) {
-      errors.push("API ID (apiId) é obrigatório para o Atlas Pay.");
+    if (!credentials.apiId || credentials.apiId.trim() === "") {
+      errors.push("apiId é obrigatório. Obtenha no painel da Atlas Pay.");
     }
-    if (!credentials.apiSecret) {
-      errors.push("API Secret (apiSecret) é obrigatório para o Atlas Pay.");
+    if (!credentials.apiSecret || credentials.apiSecret.trim() === "") {
+      errors.push("apiSecret é obrigatório. Obtenha no painel da Atlas Pay.");
     }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Valida se os dados da transação contêm todos os campos requeridos
-   */
   static validatePaymentRequest(request: PaymentRequest): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!request.orderId) {
+    if (!request.orderId || request.orderId.trim() === "") {
       errors.push("ID do pedido (orderId) é obrigatório.");
     }
-    if (!request.customer?.email) {
-      errors.push("Email do cliente é obrigatório.");
-    }
     if (!request.amount || request.amount <= 0) {
-      errors.push("Valor do pagamento inválido.");
+      errors.push("Valor do pagamento deve ser maior que zero.");
+    }
+    if (!request.customer?.name || request.customer.name.trim() === "") {
+      errors.push("Nome do cliente é obrigatório.");
+    }
+    if (!request.customer?.email || !request.customer.email.includes("@")) {
+      errors.push("E-mail do cliente inválido.");
+    }
+    if (!request.customer?.document || request.customer.document.replace(/\D/g, "").length < 11) {
+      errors.push("CPF/CNPJ do cliente é obrigatório.");
     }
 
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    const method = request.paymentMethod;
+    if (method === "credit_card" || method === "debit_card") {
+      if (!request.card?.number) errors.push("Número do cartão é obrigatório.");
+      if (!request.card?.expMonth) errors.push("Mês de expiração do cartão é obrigatório.");
+      if (!request.card?.expYear) errors.push("Ano de expiração do cartão é obrigatório.");
+      if (!request.card?.cvv) errors.push("CVV do cartão é obrigatório.");
+      if (!request.card?.holderName) errors.push("Nome do titular do cartão é obrigatório.");
+    }
+
+    return { isValid: errors.length === 0, errors };
   }
 }

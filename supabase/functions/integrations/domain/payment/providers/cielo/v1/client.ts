@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreateSalePayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -14,24 +14,25 @@ export class Client {
   }
 
   private getQueryUrl(): string {
-    return this.isTestMode ? config.queryEndpoints.sandbox : config.queryEndpoints.production;
+    return this.isTestMode ? config.endpoints.sandboxQuery : config.endpoints.productionQuery;
   }
 
   private getHeaders(): HeadersInit {
     return {
+      "Content-Type": "application/json",
       "MerchantId": this.credentials.merchantId,
       "MerchantKey": this.credentials.merchantKey,
-      "Content-Type": "application/json",
-      "User-Agent": "SyncAds Integration Client v1.0",
+      "RequestId": crypto.randomUUID(),
     };
   }
 
   /**
-   * Faz uma chamada real de ping/teste de conexão na API
+   * Verifica credenciais realizando uma busca de transação inexistente.
+   * Retorna 404 para credenciais válidas mas ID inexistente.
+   * Retorna 401 para credenciais inválidas.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getQueryUrl()}/1/sales/00000000-0000-0000-0000-000000000000`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getQueryUrl()}/1/sales/PING_TEST_ID_000`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -39,11 +40,11 @@ export class Client {
   }
 
   /**
-   * Cria uma venda na Cielo
+   * Cria uma transação de venda (cartão de crédito, débito, boleto ou Pix)
+   * POST /1/sales
    */
-  async createSale(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/1/sales`;
-    return await this.http.request(url, {
+  async createSale(payload: CreateSalePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/1/sales`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -52,12 +53,25 @@ export class Client {
   }
 
   /**
-   * Consulta os detalhes de uma venda na Cielo
+   * Consulta uma transação pelo paymentId
+   * GET /1/sales/{paymentId}
    */
-  async getSale(paymentId: string): Promise<Response> {
-    const url = `${this.getQueryUrl()}/1/sales/${paymentId}`;
-    return await this.http.request(url, {
+  async querySale(paymentId: string): Promise<Response> {
+    return await this.http.request(`${this.getQueryUrl()}/1/sales/${paymentId}`, {
       method: "GET",
+      headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Cancela/estorna uma transação pelo paymentId
+   * PUT /1/sales/{paymentId}/void
+   */
+  async voidSale(paymentId: string, amount?: number): Promise<Response> {
+    const queryParam = amount ? `?amount=${Math.round(amount * 100)}` : "";
+    return await this.http.request(`${this.getBaseUrl()}/1/sales/${paymentId}/void${queryParam}`, {
+      method: "PUT",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
     });

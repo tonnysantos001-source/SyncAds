@@ -4,10 +4,10 @@ export class Validator {
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
     if (!credentials.clientId || credentials.clientId.trim() === "") {
-      errors.push("clientId é obrigatório. Obtenha no painel da Axelpay.");
+      errors.push("clientId é obrigatório. Obtenha no painel de desenvolvedores RoxPay.");
     }
     if (!credentials.clientSecret || credentials.clientSecret.trim() === "") {
-      errors.push("clientSecret é obrigatório. Obtenha no painel da Axelpay.");
+      errors.push("clientSecret é obrigatório. Obtenha no painel de desenvolvedores RoxPay.");
     }
     return { isValid: errors.length === 0, errors };
   }

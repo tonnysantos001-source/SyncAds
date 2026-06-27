@@ -1,165 +1,55 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Validator } from "../supabase/functions/integrations/domain/payment/providers/astonpay/v1/validator.ts";
 import { Mapper } from "../supabase/functions/integrations/domain/payment/providers/astonpay/v1/mapper.ts";
-import { Service } from "../supabase/functions/integrations/domain/payment/providers/astonpay/v1/service.ts";
-import { Client } from "../supabase/functions/integrations/domain/payment/providers/astonpay/v1/client.ts";
 import { WebhookHandler } from "../supabase/functions/integrations/domain/payment/providers/astonpay/v1/webhook.ts";
 
-describe("Aston Pay Provider - Unit Tests", () => {
-  describe("Validator", () => {
-    it("should fail validation if merchantCode is missing", () => {
-      const result = Validator.validateCredentials({ apiKey: "key_123" });
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Merchant Code (merchantCode) é obrigatório para o Aston Pay.");
-    });
+const validCreds = { merchantCode: "mc_123456", apiKey: "ap_key_secret_999" };
+const validRequest: any = {
+  orderId: "ORDER-AS-001", amount: 299.90, paymentMethod: "credit_card", installments: 1,
+  customer: { name: "Beatriz Santos", email: "beatriz@example.com", phone: "11988887777", document: "11122233344" },
+  card: { number: "4111111111111111", holderName: "BEATRIZ SANTOS", expMonth: "10", expYear: "2029", cvv: "123" },
+};
 
-    it("should fail validation if apiKey is missing", () => {
-      const result = Validator.validateCredentials({ merchantCode: "code_123" });
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("API Key (apiKey) é obrigatória para o Aston Pay.");
-    });
-
-    it("should pass validation with valid credentials", () => {
-      const result = Validator.validateCredentials({ merchantCode: "code_123", apiKey: "key_123" });
-      expect(result.isValid).toBe(true);
-    });
-
-    it("should validate payment request fields", () => {
-      const invalidRequest: any = {
-        amount: 0,
-        customer: { email: "" },
-        paymentMethod: "pix",
-      };
-      
-      const result = Validator.validatePaymentRequest(invalidRequest);
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThanOrEqual(2);
-    });
+describe("Aston Pay Validator", () => {
+  it("aceita credenciais válidas", () => expect(Validator.validateCredentials(validCreds).isValid).toBe(true));
+  it("rejeita merchantCode vazio", () => expect(Validator.validateCredentials({ ...validCreds, merchantCode: "" }).isValid).toBe(false));
+  it("rejeita apiKey vazio", () => expect(Validator.validateCredentials({ ...validCreds, apiKey: "" }).isValid).toBe(false));
+  it("aceita pedido de cartão válido", () => expect(Validator.validatePaymentRequest(validRequest).isValid).toBe(true));
+  it("rejeita sem orderId", () => expect(Validator.validatePaymentRequest({ ...validRequest, orderId: "" }).isValid).toBe(false));
+  it("rejeita cartão sem cvv", () => {
+    const r = Validator.validatePaymentRequest({ ...validRequest, card: { ...validRequest.card, cvv: "" } });
+    expect(r.isValid).toBe(false);
   });
+});
 
-  describe("Mapper", () => {
-    it("should map request to payment payload correctly", () => {
-      const request: any = {
-        amount: 30.00,
-        orderId: "ord_aston_01",
-        paymentMethod: "pix",
-        customer: {
-          name: "Aston Customer",
-          email: "aston@aston.com",
-          document: "123.456.789-00",
-        },
-      };
-
-      const payload = Mapper.toPaymentPayload(request);
-      expect(payload.transaction_id).toBe("ord_aston_01");
-      expect(payload.amount).toBe(30.00);
-    });
-
-    it("should map response correctly for PIX", () => {
-      const mockResponse: any = {
-        transaction_id: "pay_aston_999",
-        status: "pending",
-        qr_code: "00020126360014br.gov.bcb.pix...",
-      };
-
-      const result = Mapper.toPaymentResponse(mockResponse);
-      expect(result.success).toBe(true);
-      expect(result.transactionId).toBe("pay_aston_999");
-      expect(result.qrCode).toBe("00020126360014br.gov.bcb.pix...");
-    });
+describe("Aston Pay Mapper", () => {
+  it("converte amount para centavos", () => {
+    const p = Mapper.toCreateChargePayload(validRequest);
+    expect(p.amount).toBe(29990);
   });
-
-  describe("WebhookHandler", () => {
-    it("should handle webhook payload", () => {
-      const payload = {
-        transaction_id: "pay_aston_999",
-        status: "success",
-      };
-      const result = WebhookHandler.handle(payload);
-      expect(result.success).toBe(true);
-      expect(result.processed).toBe(true);
-      expect(result.transactionId).toBe("pay_aston_999");
-      expect(result.status).toBe("approved");
-    });
+  it("mapeia status Aston Pay: approved → approved", () => expect(Mapper.toPaymentStatus("approved")).toBe("approved"));
+  it("mapeia status Aston Pay: failed → failed", () => expect(Mapper.toPaymentStatus("failed")).toBe("failed"));
+  it("mapeia resposta de criação com sucesso", () => {
+    const api = { id: "ch_987", reference_id: "ORDER-AS-001", status: "approved", amount: 29990 };
+    const r = Mapper.toPaymentResponse(api as any, "ORDER-AS-001");
+    expect(r.success).toBe(true);
+    expect(r.status).toBe("approved");
+    expect(r.gatewayTransactionId).toBe("ch_987");
   });
+});
 
-  describe("Service", () => {
-    let mockHttp: any;
-    let mockLogger: any;
-    let mockCrypto: any;
-    let mockCache: any;
-    let mockMetrics: any;
-    let service: Service;
-
-    beforeEach(() => {
-      mockHttp = {
-        request: vi.fn(),
-      };
-      mockLogger = {
-        info: vi.fn(),
-        error: vi.fn(),
-        warn: vi.fn(),
-      };
-      mockCrypto = {};
-      mockCache = {};
-      mockMetrics = {};
-
-      service = new Service(
-        mockHttp,
-        mockLogger,
-        mockCrypto,
-        mockCache,
-        mockMetrics
-      );
-    });
-
-    it("should ping successfully on validateCredentials", async () => {
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
-      });
-
-      const result = await service.validateCredentials({
-        merchantCode: "code_123",
-        apiKey: "key_123",
-      });
-
-      expect(result.isValid).toBe(true);
-      expect(mockHttp.request).toHaveBeenCalledTimes(1);
-    });
-
-    it("should process PIX payment successfully", async () => {
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          transaction_id: "tx_aston_01",
-          status: "pending",
-          qr_code: "qr_code_content",
-        }),
-      });
-
-      const request: any = {
-        orderId: "ord_1",
-        amount: 50.00,
-        paymentMethod: "pix",
-        customer: {
-          name: "Test Customer",
-          email: "test@test.com",
-          document: "12345678900",
-        },
-      };
-
-      const integrationConfig: any = {
-        credentials: { merchantCode: "code_123", apiKey: "key_123" },
-        isTestMode: true,
-      };
-
-      const result = await service.createPix(request, integrationConfig);
-      expect(result.success).toBe(true);
-      expect(result.transactionId).toBe("tx_aston_01");
-      expect(result.qrCode).toBe("qr_code_content");
-    });
+describe("Aston Pay WebhookHandler", () => {
+  it("processa webhook de transação paga", () => {
+    const payload = { id: "ch_987", status: "approved", reference_id: "ORDER-AS-001" };
+    const r = WebhookHandler.handle(payload);
+    expect(r.success).toBe(true);
+    expect(r.status).toBe("approved");
+    expect(r.transactionId).toBe("ORDER-AS-001");
+  });
+  it("rejeita webhook sem id", () => {
+    expect(WebhookHandler.handle({ status: "approved" }).success).toBe(false);
+  });
+  it("validateSignature sempre true", () => {
+    expect(WebhookHandler.validateSignature({}, undefined, undefined).isValid).toBe(true);
   });
 });

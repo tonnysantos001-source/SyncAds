@@ -15,15 +15,15 @@ import { Mapper } from "./mapper.ts";
 import { WebhookHandler } from "./webhook.ts";
 
 export class Service extends BaseGateway {
-  readonly name = "Aston Pay";
-  readonly slug = "astonpay";
+  readonly name = "RoxPay";
+  readonly slug = "roxpay";
 
   private getClient(config: IntegrationConfig): Client {
     return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
   /**
-   * Valida as credenciais da Aston Pay.
+   * Valida credenciais da RoxPay. Tenta autenticar no endpoint de token.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -38,13 +38,13 @@ export class Service extends BaseGateway {
       if (res.status === 401 || res.status === 403) {
         return {
           isValid: false,
-          message: "Credenciais Aston Pay inválidas. Verifique o merchantCode e apiKey.",
+          message: "Credenciais RoxPay inválidas. Verifique o clientId e clientSecret.",
         };
       }
 
       return {
         isValid: true,
-        message: "Credenciais Aston Pay validadas com sucesso.",
+        message: "Credenciais RoxPay validadas com sucesso.",
       };
     } catch (err: any) {
       return {
@@ -55,7 +55,7 @@ export class Service extends BaseGateway {
   }
 
   /**
-   * Processa pagamentos via Aston Pay.
+   * Cria uma transação (cartão de crédito, débito, boleto ou Pix)
    */
   async processPayment(
     request: PaymentRequest,
@@ -81,7 +81,7 @@ export class Service extends BaseGateway {
         return {
           success: false,
           status: "failed",
-          message: `Aston Pay rejeitou a transação (${res.status}): ${body?.error?.message || "Erro desconhecido"}`,
+          message: `RoxPay rejeitou a transação (${res.status}): ${body?.error?.message || "Erro desconhecido"}`,
           errorCode: String(res.status),
           raw: body,
         };
@@ -92,13 +92,13 @@ export class Service extends BaseGateway {
       return {
         success: false,
         status: "failed",
-        message: `Erro de comunicação com Aston Pay: ${err.message}`,
+        message: `Erro de comunicação com RoxPay: ${err.message}`,
       };
     }
   }
 
   /**
-   * Consulta o status de um pagamento na Aston Pay.
+   * Consulta status de um pagamento na RoxPay.
    */
   async consultPayment(
     gatewayTransactionId: string,
@@ -114,16 +114,16 @@ export class Service extends BaseGateway {
         return Mapper.toPaymentStatusResponse(body);
       } else {
         throw new Error(
-          `Erro ao consultar Aston Pay (${res.status}): ${body?.error?.message || "Erro desconhecido"}`
+          `Erro ao consultar RoxPay (${res.status}): ${body?.error?.message || "Erro desconhecido"}`
         );
       }
     } catch (err: any) {
-      throw new Error(`Falha ao consultar pagamento Aston Pay: ${err.message}`);
+      throw new Error(`Falha ao consultar pagamento RoxPay: ${err.message}`);
     }
   }
 
   /**
-   * Estorna/reembolsa um pagamento na Aston Pay.
+   * Estorna/reembolsa um pagamento na RoxPay.
    */
   async refundPayment(
     request: RefundRequest,
@@ -142,14 +142,14 @@ export class Service extends BaseGateway {
           gatewayRefundId: request.gatewayTransactionId,
           amount: request.amount || 0,
           status: "approved",
-          message: "Estorno Aston Pay processado com sucesso.",
+          message: "Estorno RoxPay processado com sucesso.",
         };
       } else {
         return {
           success: false,
           amount: request.amount || 0,
           status: "failed",
-          message: `Aston Pay rejeitou o estorno (${res.status}): ${body?.error?.message || "Erro desconhecido"}`,
+          message: `RoxPay rejeitou o estorno (${res.status}): ${body?.error?.message || "Erro desconhecido"}`,
         };
       }
     } catch (err: any) {
@@ -157,13 +157,13 @@ export class Service extends BaseGateway {
         success: false,
         amount: request.amount || 0,
         status: "failed",
-        message: `Falha ao solicitar estorno na Aston Pay: ${err.message}`,
+        message: `Falha ao solicitar estorno na RoxPay: ${err.message}`,
       };
     }
   }
 
   /**
-   * Processa webhook recebido da Aston Pay.
+   * Processa webhook recebido da RoxPay.
    */
   async handleWebhook(
     payload: any,

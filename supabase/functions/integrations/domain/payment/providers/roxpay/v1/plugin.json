@@ -1,0 +1,43 @@
+{
+  "name": "RoxPay",
+  "slug": "roxpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.roxpay.eu/assets/images/logo.svg",
+  "description": "Gateway europeu/brasileiro de pagamentos online. Processamento seguro de cartões, Pix dinâmico e boletos com autenticação OAuth 2.0 e conformidade PCI-DSS.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "clientId",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Crie no painel de desenvolvedores RoxPay"
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret",
+      "type": "password",
+      "required": true,
+      "placeholder": "Crie no painel de desenvolvedores RoxPay"
+    },
+    {
+      "name": "companyId",
+      "label": "Company ID (Opcional)",
+      "type": "text",
+      "required": false,
+      "placeholder": "Para parceiros / sub-contas"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
+    }
+  ],
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://app.roxpay.eu/apidocs/",
+  "supportEmail": "suporte@roxpay.eu"
+}

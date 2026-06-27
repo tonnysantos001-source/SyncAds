@@ -1,34 +1,36 @@
 {
-  "name": "Cielo",
+  "name": "Cielo E-commerce 3.0",
   "slug": "cielo",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://developercielo.github.io/manual/images/cielo-logo.png",
-  "description": "Integração oficial de Cielo e-commerce para processamento de pagamentos.",
+  "logoUrl": "https://www.cielo.com.br/assets/images/logo-cielo.svg",
+  "description": "Gateway oficial da Cielo (API 3.0). Processa cartões de crédito e débito de todas as principais bandeiras, Pix dinâmico e boletos com segurança PCI-DSS.",
   "status": "active",
   "configFields": [
     {
       "name": "merchantId",
-      "label": "Merchant ID Cielo",
+      "label": "Merchant ID (GUID)",
       "type": "text",
       "required": true,
       "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     },
     {
       "name": "merchantKey",
-      "label": "Merchant Key Cielo",
+      "label": "Merchant Key",
       "type": "password",
       "required": true,
-      "placeholder": "Chave de 40 caracteres"
+      "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": true,
-    "supportsSplit": true,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developercielo.github.io/manual/cielo-ecommerce",
+  "supportEmail": "cielodevelopers@cielo.com.br"
 }

@@ -1,105 +1,137 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreateChargePayload, ChargeResponse } from "./types.ts";
 
 export class Mapper {
-  private static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
-  private static formatPhone(phone: string): string {
-    return phone.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do Bravos Pay
+   * Converte PaymentRequest no payload da Bravos Pay.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    return {
-      transaction_id: request.orderId,
-      amount: request.amount,
-      currency: "BRL",
-      payment_method: request.paymentMethod,
+  static toCreateChargePayload(request: PaymentRequest, webhookUrl?: string): CreateChargePayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    const payload: CreateChargePayload = {
+      amount: Math.round(request.amount * 100),
+      payment_method,
+      description: `Pedido ${request.orderId}`,
+      reference_id: request.orderId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: this.formatDocument(request.customer.document),
-        phone: this.formatPhone(request.customer.phone || ""),
+        document: docClean,
+        phone: phoneClean || undefined,
       },
-      metadata: {
-        order_id: request.orderId,
-      },
-    };
-  }
-
-  /**
-   * Converte a resposta da API do Bravos Pay para o formato padronizado do SyncAds
-   */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const rawStatus = response.status || "pending";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["success", "approved", "paid", "pending", "processing"].includes(rawStatus.toLowerCase());
-
-    const result: PaymentResponse = {
-      success,
-      transactionId: response.transaction_id,
-      gatewayTransactionId: response.id || response.transaction_id,
-      status,
-      message: response.message || `Transação processada com status: ${rawStatus}`,
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    const paymentUrl = response.payment_url || response.boleto_url;
-    if (paymentUrl) {
-      result.paymentUrl = paymentUrl;
-      result.redirectUrl = paymentUrl;
-    }
-
-    const qrCode = response.qr_code || response.pix_qr_code;
-    if (qrCode) {
-      result.qrCode = qrCode;
-      result.pixData = {
-        qrCode,
-        amount: 0,
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiration_month: String(request.card.expMonth).padStart(2, "0"),
+        expiration_year: String(request.card.expYear),
+        cvv: request.card.cvv,
       };
     }
 
-    return result;
+    return payload;
   }
 
   /**
-   * Converte a resposta de status da API do Bravos Pay para resposta de status do SyncAds
+   * Converte resposta da Bravos Pay para o padrão interno.
    */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
+  static toPaymentResponse(
+    apiResponse: ChargeResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || !apiResponse.id) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || "Bravos Pay recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "CHARGE_ERROR",
+        raw: apiResponse,
+      };
+    }
+
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id,
+      status: statusVal,
+      authCode: apiResponse.authorization_code,
+      message: `Bravos Pay status: ${apiResponse.status}`,
+      raw: apiResponse,
+    };
+
+    if (apiResponse.pix) {
+      response.qrCode = apiResponse.pix.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.pix.qr_code || "",
+        qrCodeImage: apiResponse.pix.qr_code_url,
+        amount: (apiResponse.amount || 0) / 100,
+      };
+      response.expiresAt = apiResponse.pix.expires_at;
+    }
+
+    if (apiResponse.boleto) {
+      response.paymentUrl = apiResponse.boleto.pdf_url;
+      response.redirectUrl = apiResponse.boleto.pdf_url;
+      response.barcodeNumber = apiResponse.boleto.digitable_line;
+      response.digitableLine = apiResponse.boleto.digitable_line;
+      response.expiresAt = apiResponse.boleto.expires_at;
+    }
+
+    return response;
+  }
+
+  /**
+   * Converte resposta de consulta para PaymentStatusResponse.
+   */
+  static toPaymentStatusResponse(apiResponse: ChargeResponse): PaymentStatusResponse {
     return {
-      transactionId: response.transaction_id || response.id,
-      gatewayTransactionId: response.id || response.transaction_id,
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount || 0,
-      currency: response.currency || "BRL",
-      paymentMethod: response.payment_method || "pix",
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
+      transactionId: apiResponse.reference_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Bravos Pay.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
-      success: "approved",
       approved: "approved",
       paid: "approved",
-      completed: "approved",
+      captured: "approved",
+      succeeded: "approved",
+      pending: "pending",
+      waiting: "pending",
+      processing: "processing",
       failed: "failed",
       declined: "failed",
-      error: "failed",
-      cancelled: "cancelled",
       canceled: "cancelled",
+      cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

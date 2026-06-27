@@ -3,8 +3,8 @@
   "slug": "astonpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Aston Pay para processamento de pagamentos.",
+  "logoUrl": "https://astonpay.com/logo.png",
+  "description": "Gateway brasileiro de alta performance para processamento de Pix, Cartão de Crédito e Boleto Bancário com split inteligente de vendas.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Código do Estabelecimento (Merchant Code)",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: Code..."
+      "placeholder": "Disponível no painel administrativo Aston Pay"
     },
     {
       "name": "apiKey",
-      "label": "Chave Secreta de API (API Key)",
+      "label": "API Key / Secret Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: Key..."
+      "placeholder": "Gerada na aba de desenvolvedores Aston Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://astonpay.com/developers",
+  "supportEmail": "suporte@astonpay.com"
 }

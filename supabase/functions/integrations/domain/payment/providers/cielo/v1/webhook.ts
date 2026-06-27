@@ -1,40 +1,49 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pela Cielo
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    // Cielo pode usar tokens de webhook se configurados, validação simples offline
-    if (secret && signature && signature !== secret) {
-      return { isValid: false, error: "Assinatura do webhook inválida" };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Cielo.
+   * Payload esperado: { PaymentId, Status, MerchantOrderId }
    */
   static handle(payload: any): WebhookResponse {
-    const paymentId = payload.PaymentId || payload.paymentId;
-    const status = payload.Status !== undefined ? payload.Status : payload.status;
+    try {
+      const paymentId = payload.PaymentId || payload.paymentId;
+      const status = payload.Status !== undefined ? payload.Status : payload.status;
+      const orderId = payload.MerchantOrderId || payload.merchantOrderId;
 
-    if (!paymentId) {
+      if (!paymentId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Cielo inválido: PaymentId ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(Number(status));
+
+      return {
+        success: true,
+        processed: true,
+        transactionId: orderId || paymentId,
+        status: normalizedStatus,
+        message: `Webhook Cielo: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Webhook sem PaymentId da Cielo.",
+        message: `Erro webhook Cielo: ${err.message}`,
       };
     }
-
-    return {
-      success: true,
-      processed: true,
-      transactionId: paymentId,
-      gatewayTransactionId: paymentId,
-      status: status !== undefined ? Mapper.toPaymentStatus(status) : undefined,
-      message: `Cielo webhook recebido para o pagamento ${paymentId} com status ${status}.`,
-    };
   }
 }

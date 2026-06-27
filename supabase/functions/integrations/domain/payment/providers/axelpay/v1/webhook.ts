@@ -1,37 +1,56 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo Axelpay
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Axelpay.
    */
   static handle(payload: any): WebhookResponse {
-    const transactionId = payload.transaction_id || payload.id;
-    if (!transactionId) {
+    try {
+      const paymentId = payload.id;
+      const status = payload.status;
+      const referenceId = payload.reference_id;
+
+      if (!paymentId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Axelpay inválido: id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Axelpay inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId: referenceId || paymentId,
+        status: normalizedStatus,
+        message: `Webhook Axelpay: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Missing transaction_id or id in webhook payload",
+        message: `Erro webhook Axelpay: ${err.message}`,
       };
     }
-
-    const rawStatus = payload.status || "paid";
-    const status = Mapper.toPaymentStatus(rawStatus);
-
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook do Axelpay processado com sucesso.",
-    };
   }
 }

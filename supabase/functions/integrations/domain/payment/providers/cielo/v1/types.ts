@@ -1,85 +1,71 @@
-// Tipos específicos para a API da Cielo
+// Tipos específicos para a API Cielo E-commerce 3.0
+// Documentação: https://developercielo.github.io/manual/cielo-ecommerce
+
 export interface Credentials {
-  merchantId: string;
-  merchantKey: string;
+  merchantId: string;   // GUID do comerciante
+  merchantKey: string;  // Chave de segurança do comerciante
 }
 
-export interface PaymentRequestPayload {
-  MerchantOrderId: string;
-  Customer: {
-    Name: string;
-    Email: string;
-    Identity: string;
-    IdentityType: "CPF" | "CNPJ";
-    Address?: {
-      Street: string;
-      Number: string;
-      Complement?: string;
-      District: string;
-      City: string;
-      State: string;
-      Country: string;
-      ZipCode: string;
-    };
+export interface CreditCardData {
+  cardNumber: string;
+  holder: string;
+  expirationDate: string; // Formato: "MM/YYYY"
+  securityCode: string;
+  brand: string;          // Visa, Master, Elo, Amex etc.
+}
+
+export interface CreateSalePayload {
+  merchantOrderId: string; // Referência interna da transação (orderId)
+  customer: {
+    name: string;
+    email?: string;
+    identity?: string;     // CPF ou CNPJ
+    identityType?: "CPF" | "CNPJ";
   };
-  Payment: {
-    Type: "Pix" | "CreditCard" | "DebitCard" | "Boleto";
-    Amount: number;
-    Currency?: string;
-    Country?: string;
-    QrCodeExpiration?: number;
-    Installments?: number;
-    Capture?: boolean;
-    SoftDescriptor?: string;
-    Authenticate?: boolean;
-    ReturnUrl?: string;
-    CreditCard?: {
-      CardNumber: string;
-      Holder: string;
-      ExpirationDate: string;
-      SecurityCode: string;
-      Brand: string;
-    };
-    DebitCard?: {
-      CardNumber: string;
-      Holder: string;
-      ExpirationDate: string;
-      SecurityCode: string;
-      Brand: string;
-    };
-    Boleto?: {
-      Provider: string;
-      BoletoNumber?: string;
-      Assignor?: string;
-      Demonstrative?: string;
-      ExpirationDate?: string;
-      Instruction?: string;
-    };
+  payment: {
+    type: "CreditCard" | "DebitCard" | "Boleto" | "Pix";
+    amount: number;        // Valor em centavos (ex: 1000 = R$10,00)
+    installments: number;  // Quantidade de parcelas
+    softDescriptor?: string; // Nome que aparece na fatura (máx 13 chars)
+    capture?: boolean;     // Captura automática
+    creditCard?: CreditCardData;
   };
 }
 
-export interface PaymentResponsePayload {
-  MerchantOrderId: string;
-  Customer: {
-    Name: string;
-    Identity: string;
+export interface CreateSaleResponse {
+  merchantOrderId?: string;
+  customer?: {
+    name: string;
   };
-  Payment: {
-    PaymentId: string;
-    Type: string;
-    Amount: number;
-    Status: number;
-    QrCodeString?: string;
-    QrCodeBase64Image?: string;
-    Url?: string;
-    BarCodeNumber?: string;
-    DigitableLine?: string;
-    ExpirationDate?: string;
-    AuthorizationCode?: string;
-    ProofOfSale?: string;
-    Tid?: string;
-    AuthenticationUrl?: string;
-    ReturnMessage?: string;
-    BoletoNumber?: string;
+  payment?: {
+    paymentId: string;
+    type: string;
+    amount: number;
+    status: number;        // 1 = Autorizado, 2 = Pago, 3 = Negado, 10 = Pendente, 12 = Pendente de Consulta
+    returnCode?: string;
+    returnMessage?: string;
+    authorizationCode?: string;
+    proofOfSale?: string;  // NSU
+    links?: Array<{ rel: string; href: string; method: string }>;
+    qrCode?: string;       // Imagem em Base64
+    qrCodeString?: string; // Payload do PIX (EMV)
+  };
+}
+
+export interface QuerySaleResponse {
+  merchantOrderId?: string;
+  customer?: {
+    name: string;
+  };
+  payment?: {
+    paymentId: string;
+    type: string;
+    amount: number;
+    status: number;
+    returnCode?: string;
+    returnMessage?: string;
+    authorizationCode?: string;
+    proofOfSale?: string;
+    links?: Array<{ rel: string; href: string; method: string }>;
   };
 }

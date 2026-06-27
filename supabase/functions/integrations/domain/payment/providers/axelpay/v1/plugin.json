@@ -3,32 +3,34 @@
   "slug": "axelpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Axelpay para processamento de pagamentos.",
+  "logoUrl": "https://www.axelpay.com/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto com alta taxa de aprovação.",
   "status": "active",
   "configFields": [
     {
-      "name": "storeId",
-      "label": "ID da Loja (Store ID)",
+      "name": "clientId",
+      "label": "Client ID / API ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: store_..."
+      "placeholder": "Fornecido na aba de desenvolvedores do painel Axelpay"
     },
     {
-      "name": "token",
-      "label": "Token de API",
+      "name": "clientSecret",
+      "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: axel_..."
+      "placeholder": "Chave secreta obtida no painel Axelpay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.axelpay.com",
+  "supportEmail": "suporte@axelpay.com"
 }

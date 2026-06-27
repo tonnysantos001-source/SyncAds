@@ -1,40 +1,38 @@
 import { PaymentRequest } from "../../../../../types.ts";
 
 export class Validator {
-  /**
-   * Valida o formato e integridade das credenciais informadas pelo usuário
-   */
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!credentials.merchantId) {
-      errors.push("Merchant ID (merchantId) é obrigatório.");
+    if (!credentials.merchantId || credentials.merchantId.trim() === "") {
+      errors.push("Merchant ID é obrigatório. Obtenha no portal Cielo E-commerce.");
     }
-    if (!credentials.merchantKey) {
-      errors.push("Merchant Key (merchantKey) é obrigatória.");
+    if (!credentials.merchantKey || credentials.merchantKey.trim() === "") {
+      errors.push("Merchant Key é obrigatória. Obtenha no portal Cielo E-commerce.");
     }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Valida se os dados da transação contêm todos os campos requeridos
-   */
   static validatePaymentRequest(request: PaymentRequest): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!request.customer?.email) {
-      errors.push("Email do cliente é obrigatório.");
-    }
-    if (!request.customer?.document) {
-      errors.push("Documento do cliente é obrigatório.");
+    if (!request.orderId || request.orderId.trim() === "") {
+      errors.push("ID do pedido (orderId) é obrigatório.");
     }
     if (!request.amount || request.amount <= 0) {
-      errors.push("Valor do pagamento inválido.");
+      errors.push("Valor do pagamento deve ser maior que zero.");
     }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (!request.customer?.name || request.customer.name.trim() === "") {
+      errors.push("Nome do cliente é obrigatório.");
+    }
+
+    const method = request.paymentMethod;
+    if (method === "credit_card" || method === "debit_card") {
+      if (!request.card?.number) errors.push("Número do cartão é obrigatório.");
+      if (!request.card?.expMonth) errors.push("Mês de expiração do cartão é obrigatório.");
+      if (!request.card?.expYear) errors.push("Ano de expiração do cartão é obrigatório.");
+      if (!request.card?.cvv) errors.push("CVV do cartão é obrigatório.");
+      if (!request.card?.holderName) errors.push("Nome impresso no cartão é obrigatório.");
+    }
+
+    return { isValid: errors.length === 0, errors };
   }
 }

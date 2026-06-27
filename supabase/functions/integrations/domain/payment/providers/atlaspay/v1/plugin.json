@@ -3,8 +3,8 @@
   "slug": "atlaspay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Atlas Pay para processamento de pagamentos.",
+  "logoUrl": "https://www.atlaspay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em processamento rápido de Pix, Cartão de Crédito e Boleto com alta taxa de aprovação.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "API ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: api_..."
+      "placeholder": "Fornecido na aba de desenvolvedores do painel Atlas Pay"
     },
     {
       "name": "apiSecret",
       "label": "API Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: secret_..."
+      "placeholder": "Chave secreta obtida no painel Atlas Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.atlaspay.com.br",
+  "supportEmail": "suporte@atlaspay.com.br"
 }

@@ -3,32 +3,27 @@
   "slug": "bravospay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Bravos Pay para processamento de pagamentos.",
+  "logoUrl": "https://www.bravospay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em checkout transparente de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "merchantId",
-      "label": "ID do Estabelecimento (Merchant ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: merch_..."
-    },
-    {
-      "name": "apiToken",
-      "label": "Token de API (API Token)",
+      "name": "apiKey",
+      "label": "API Key / Token",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Chave gerada nas configurações do painel Bravos Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.bravospay.com.br",
+  "supportEmail": "suporte@bravospay.com.br"
 }

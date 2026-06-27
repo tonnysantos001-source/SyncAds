@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreateChargePayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -14,19 +14,17 @@ export class Client {
   }
 
   private getHeaders(): HeadersInit {
-    // Bravos Pay usa o merchantId como Bearer token no cabeçalho Authorization seguindo a lógica legada
     return {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${this.credentials.merchantId}`,
+      "Authorization": `Bearer ${this.credentials.apiKey}`,
     };
   }
 
   /**
-   * Valida a conexão com a API do Bravos Pay
+   * Valida credenciais.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/health`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/charges?limit=1`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -34,11 +32,11 @@ export class Client {
   }
 
   /**
-   * Cria uma cobrança no Bravos Pay
+   * Cria uma cobrança.
+   * POST /charges
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    return await this.http.request(url, {
+  async createCharge(payload: CreateChargePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/charges`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -47,13 +45,27 @@ export class Client {
   }
 
   /**
-   * Consulta os detalhes de um pagamento no Bravos Pay
+   * Obtém detalhes de uma cobrança.
+   * GET /charges/{id}
    */
-  async getPayment(transactionId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${transactionId}`;
-    return await this.http.request(url, {
+  async getCharge(chargeId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/charges/${chargeId}`, {
       method: "GET",
       headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Reembolsa/estorna uma cobrança.
+   * POST /charges/{id}/refund
+   */
+  async refundCharge(chargeId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/charges/${chargeId}/refund`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

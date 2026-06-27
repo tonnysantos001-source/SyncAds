@@ -8,12 +8,14 @@ import { CreateChargePayload, ChargeResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte PaymentRequest no payload da Aston Pay.
+   * Converte PaymentRequest no payload da RoxPay.
+   * Valores de amount e items em CENTAVOS.
    */
   static toCreateChargePayload(request: PaymentRequest, webhookUrl?: string): CreateChargePayload {
     const docClean = (request.customer.document || "").replace(/\D/g, "");
     const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
+    // Mapear o paymentMethod
     let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
     if (request.paymentMethod === "pix") payment_method = "pix";
     else if (request.paymentMethod === "boleto") payment_method = "boleto";
@@ -48,7 +50,7 @@ export class Mapper {
   }
 
   /**
-   * Converte resposta da Aston Pay para o padrão interno.
+   * Converte a resposta de criação de cobrança da RoxPay para o padrão interno.
    */
   static toPaymentResponse(
     apiResponse: ChargeResponse,
@@ -58,7 +60,7 @@ export class Mapper {
       return {
         success: false,
         status: "failed",
-        message: apiResponse.error?.message || "Aston Pay recusou a transação.",
+        message: apiResponse.error?.message || "RoxPay recusou o pagamento.",
         errorCode: apiResponse.error?.code || "CHARGE_ERROR",
         raw: apiResponse,
       };
@@ -72,10 +74,11 @@ export class Mapper {
       gatewayTransactionId: apiResponse.id,
       status: statusVal,
       authCode: apiResponse.authorization_code,
-      message: `Aston Pay status: ${apiResponse.status}`,
+      message: `RoxPay status: ${apiResponse.status}`,
       raw: apiResponse,
     };
 
+    // Caso seja PIX
     if (apiResponse.pix) {
       response.qrCode = apiResponse.pix.qr_code;
       response.pixData = {
@@ -86,6 +89,7 @@ export class Mapper {
       response.expiresAt = apiResponse.pix.expires_at;
     }
 
+    // Caso seja Boleto
     if (apiResponse.boleto) {
       response.paymentUrl = apiResponse.boleto.pdf_url;
       response.redirectUrl = apiResponse.boleto.pdf_url;
@@ -106,7 +110,7 @@ export class Mapper {
       gatewayTransactionId: apiResponse.id || "",
       status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
       amount: (apiResponse.amount || 0) / 100,
-      currency: "BRL",
+      currency: apiResponse.currency || "BRL",
       paymentMethod: apiResponse.payment_method || "unknown",
       createdAt: apiResponse.created_at || new Date().toISOString(),
       updatedAt: apiResponse.created_at || new Date().toISOString(),
@@ -114,7 +118,8 @@ export class Mapper {
   }
 
   /**
-   * Normaliza os códigos de status da Aston Pay.
+   * Normaliza os códigos de status da RoxPay para o padrão interno.
+   * Status RoxPay: "approved" | "pending" | "failed" | "cancelled" | "refunded"
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
