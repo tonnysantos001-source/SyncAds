@@ -1,37 +1,18 @@
 import { PaymentRequest } from "../../../../../types.ts";
 
 export class Validator {
-  /**
-   * Valida credenciais da Vindi
-   */
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!credentials.apiKey) {
-      errors.push("Chave de API (apiKey) é obrigatória.");
-    }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (!credentials.apiKey?.trim()) errors.push("apiKey é obrigatória. Obtida em Configurações > API no painel Vindi.");
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Valida se os dados da transação contêm todos os campos requeridos
-   */
   static validatePaymentRequest(request: PaymentRequest): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!request.customer?.email) {
-      errors.push("Email do cliente é obrigatório.");
-    }
-    if (!request.customer?.document) {
-      errors.push("CPF/CNPJ do cliente é obrigatório.");
-    }
-    if (!request.amount || request.amount <= 0) {
-      errors.push("Valor do pagamento inválido.");
-    }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (!request.orderId?.trim()) errors.push("orderId é obrigatório.");
+    if (!request.amount || request.amount <= 0) errors.push("Valor deve ser maior que zero.");
+    if (!request.customer?.name?.trim()) errors.push("Nome do cliente é obrigatório.");
+    if (!request.customer?.email?.includes("@")) errors.push("E-mail do cliente inválido.");
+    return { isValid: errors.length === 0, errors };
   }
 }

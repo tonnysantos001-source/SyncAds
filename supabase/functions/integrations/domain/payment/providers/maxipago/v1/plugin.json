@@ -1,0 +1,18 @@
+{
+  "name": "MaxiPago!",
+  "slug": "maxipago",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.maxipago.com/wp-content/themes/maxipago/images/logo.png",
+  "description": "Gateway de pagamento brasileiro via XML. Suporta cartão de crédito com múltiplos adquirentes (Rede, Cielo), parcelamento e tokenização.",
+  "status": "active",
+  "configFields": [
+    { "name": "merchantId", "label": "Merchant ID", "type": "text", "required": true, "placeholder": "Fornecido pela MaxiPago! ao configurar sua conta" },
+    { "name": "merchantKey", "label": "Merchant Key", "type": "password", "required": true, "placeholder": "Fornecido pela MaxiPago! ao configurar sua conta" },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.maxipago.com/developers/apidocs/"
+}

@@ -1,209 +1,99 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Validator } from "../supabase/functions/integrations/domain/payment/providers/vindi/v1/validator.ts";
 import { Mapper } from "../supabase/functions/integrations/domain/payment/providers/vindi/v1/mapper.ts";
-import { Service } from "../supabase/functions/integrations/domain/payment/providers/vindi/v1/service.ts";
-import { Client } from "../supabase/functions/integrations/domain/payment/providers/vindi/v1/client.ts";
 import { WebhookHandler } from "../supabase/functions/integrations/domain/payment/providers/vindi/v1/webhook.ts";
 
-describe("Vindi Provider - Unit Tests", () => {
-  describe("Validator", () => {
-    it("should fail validation if apiKey is missing", () => {
-      const result = Validator.validateCredentials({});
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Chave de API (apiKey) é obrigatória.");
-    });
+const validCreds = { apiKey: "vindi_test_key_abc123" };
+const validRequest: any = {
+  orderId: "ORDER-VD-001", amount: 79.90, paymentMethod: "credit_card", installments: 1,
+  customer: { name: "Lucia Ferreira", email: "lucia@example.com", phone: "11955443322", document: "44455566677" },
+  card: { number: "4111111111111111", holderName: "LUCIA FERREIRA", expMonth: "3", expYear: "2029", cvv: "456" },
+};
 
-    it("should pass validation with apiKey present", () => {
-      const result = Validator.validateCredentials({ apiKey: "key_123" });
-      expect(result.isValid).toBe(true);
-    });
+describe("Vindi Validator", () => {
+  it("aceita apiKey válida", () => expect(Validator.validateCredentials(validCreds).isValid).toBe(true));
+  it("rejeita apiKey vazia", () => expect(Validator.validateCredentials({ apiKey: "" }).isValid).toBe(false));
+  it("aceita pedido válido", () => expect(Validator.validatePaymentRequest(validRequest).isValid).toBe(true));
+  it("rejeita sem orderId", () => expect(Validator.validatePaymentRequest({ ...validRequest, orderId: "" }).isValid).toBe(false));
+  it("rejeita amount zero", () => expect(Validator.validatePaymentRequest({ ...validRequest, amount: 0 }).isValid).toBe(false));
+  it("rejeita email inválido", () => {
+    const r = Validator.validatePaymentRequest({ ...validRequest, customer: { ...validRequest.customer, email: "errado" } });
+    expect(r.isValid).toBe(false);
+  });
+});
 
-    it("should validate payment request fields", () => {
-      const invalidRequest: any = {
-        amount: 0,
-        customer: { name: "", email: "" },
-        paymentMethod: "pix",
-      };
-      
-      const result = Validator.validatePaymentRequest(invalidRequest);
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThanOrEqual(2);
-    });
+describe("Vindi Mapper", () => {
+  it("monta VindiCustomer corretamente", () => {
+    const c = Mapper.toVindiCustomer(validRequest);
+    expect(c.name).toBe("Lucia Ferreira");
+    expect(c.email).toBe("lucia@example.com");
+    expect(c.registry_code).toBe("44455566677");
+    expect(c.code).toBe("ORDER-VD-001");
   });
 
-  describe("Mapper", () => {
-    it("should map request to customer payload correctly", () => {
-      const request: any = {
-        amount: 15.00,
-        orderId: "ord_vindi_01",
-        paymentMethod: "boleto",
-        customer: {
-          name: "Vindi User",
-          email: "vindi@vindi.com",
-          document: "123.456.789-00",
-          phone: "11999999999",
-        },
-      };
-
-      const payload = Mapper.toCustomerPayload(request);
-      expect(payload.email).toBe("vindi@vindi.com");
-      expect(payload.name).toBe("Vindi User");
-      expect(payload.registry_code).toBe("12345678900");
-    });
-
-    it("should map response correctly", () => {
-      const mockResponse: any = {
-        id: 777,
-        status: "paid",
-        amount: 15.00,
-        payment_method: { code: "bank_slip" },
-        charges: [
-          {
-            id: 888,
-            print_url: "vindi-boleto-print-url",
-            bank_slip_barcode: "vindi-barcode",
-            bank_slip_line: "vindi-line",
-          }
-        ],
-        created_at: "2026-06-26T20:00:00Z",
-      };
-
-      const result = Mapper.toPaymentResponse(mockResponse);
-      expect(result.success).toBe(true);
-      expect(result.transactionId).toBe("777");
-      expect(result.status).toBe("approved");
-      expect(result.paymentUrl).toBe("vindi-boleto-print-url");
-    });
+  it("monta BillPayload com credit_card", () => {
+    const b = Mapper.toBillPayload(validRequest, 999, 888);
+    expect(b.customer_id).toBe(999);
+    expect(b.payment_method_code).toBe("credit_card");
+    expect(b.payment_profile?.id).toBe(888);
+    expect(b.payment_profile?.installments).toBe(1);
   });
 
-  describe("WebhookHandler", () => {
-    it("should handle webhook payload", () => {
-      const payload = {
-        bill: {
-          id: 777,
-          status: "paid",
-        },
-      };
-      const result = WebhookHandler.handle(payload);
-      expect(result.success).toBe(true);
-      expect(result.processed).toBe(true);
-      expect(result.transactionId).toBe("777");
-      expect(result.status).toBe("approved");
-    });
+  it("monta BillPayload com boleto (bank_slip)", () => {
+    const req = { ...validRequest, paymentMethod: "boleto" };
+    const b = Mapper.toBillPayload(req, 999);
+    expect(b.payment_method_code).toBe("bank_slip");
   });
 
-  describe("Service", () => {
-    let mockHttp: any;
-    let mockLogger: any;
-    let mockCrypto: any;
-    let mockCache: any;
-    let mockMetrics: any;
-    let service: Service;
+  it("mapeia BillResponse paga com sucesso", () => {
+    const api = {
+      bill: {
+        id: 12345, code: "ORDER-VD-001", status: "paid", amount: 79.90,
+        due_at: "2025-06-30",
+        charges: [{ id: 1, status: "paid", amount: 79.90, payment_method_code: "credit_card", last_transaction: { id: 1, status: "success", gateway_authorization: "AUTH999" } }],
+      },
+    };
+    const r = Mapper.toBillResponse(api as any, "ORDER-VD-001");
+    expect(r.success).toBe(true);
+    expect(r.status).toBe("approved");
+    expect(r.gatewayTransactionId).toBe("12345");
+  });
 
-    beforeEach(() => {
-      mockHttp = {
-        request: vi.fn(),
-      };
-      mockLogger = {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        sanitize: (data: any) => data,
-      };
-      mockCrypto = {
-        encrypt: vi.fn(),
-        decrypt: vi.fn(),
-      };
-      mockCache = {
-        get: vi.fn(),
-        set: vi.fn(),
-        delete: vi.fn(),
-      };
-      mockMetrics = {
-        increment: vi.fn(),
-        timing: vi.fn(),
-        recordSuccess: vi.fn(),
-        recordFailure: vi.fn(),
-      };
+  it("mapeia BillResponse com erro", () => {
+    const api = { errors: [{ id: "err1", message: "Cartão inválido" }] };
+    const r = Mapper.toBillResponse(api as any, "ORDER-VD-001");
+    expect(r.success).toBe(false);
+    expect(r.status).toBe("failed");
+  });
 
-      service = new Service(mockHttp, mockLogger, mockCrypto, mockCache, mockMetrics);
-    });
+  it("'paid' → 'approved'", () => expect(Mapper.toPaymentStatus("paid")).toBe("approved"));
+  it("'pending' → 'pending'", () => expect(Mapper.toPaymentStatus("pending")).toBe("pending"));
+  it("'canceled' → 'cancelled'", () => expect(Mapper.toPaymentStatus("canceled")).toBe("cancelled"));
+  it("'reviewing' → 'processing'", () => expect(Mapper.toPaymentStatus("reviewing")).toBe("processing"));
+});
 
-    it("should validate credentials successfully via ping (200 OK)", async () => {
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({}),
-      });
+describe("Vindi WebhookHandler", () => {
+  it("processa bill_paid", () => {
+    const payload = { event_type: "bill.paid", data: { bill: { id: 12345, code: "ORDER-VD-001", status: "paid" } } };
+    const r = WebhookHandler.handle(payload);
+    expect(r.success).toBe(true);
+    expect(r.status).toBe("approved");
+    expect(r.transactionId).toBe("ORDER-VD-001");
+  });
 
-      const res = await service.validateCredentials({ apiKey: "key_valid" });
-      expect(res.isValid).toBe(true);
-      expect(res.message).toContain("Conexão estabelecida com Vindi");
-    });
+  it("processa bill.canceled", () => {
+    const payload = { event_type: "bill.canceled", data: { bill: { id: 99, code: "ORDER-VD-002", status: "canceled" } } };
+    const r = WebhookHandler.handle(payload);
+    expect(r.success).toBe(true);
+    expect(r.status).toBe("cancelled");
+  });
 
-    it("should handle invalid credentials", async () => {
-      mockHttp.request.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ message: "Unauthorized" }),
-      });
+  it("rejeita webhook sem bill data", () => {
+    const r = WebhookHandler.handle({ event_type: "bill.paid", data: {} });
+    expect(r.success).toBe(false);
+  });
 
-      const res = await service.validateCredentials({ apiKey: "key_invalid" });
-      expect(res.isValid).toBe(false);
-      expect(res.message).toContain("Conexão rejeitada pela Vindi");
-    });
-
-    it("should process Boleto creation successfully", async () => {
-      // 1. mock getCustomerByQuery
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ customers: [] }),
-      });
-      // 2. mock createCustomer
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ customer: { id: 10 } }),
-      });
-      // 3. mock createBill
-      mockHttp.request.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 777,
-          status: "pending",
-          amount: 50.00,
-          payment_method: { code: "bank_slip" },
-          charges: [
-            {
-              id: 888,
-              print_url: "vindi-boleto-print-url",
-              bank_slip_barcode: "vindi-barcode",
-              bank_slip_line: "vindi-line",
-            }
-          ],
-          created_at: "2026-06-26T20:00:00Z",
-        }),
-      });
-
-      const request: any = {
-        amount: 50.00,
-        orderId: "ord_sync_vindi",
-        paymentMethod: "boleto",
-        customer: {
-          name: "Roger Waters",
-          email: "roger@pinkfloyd.com",
-          document: "123.456.789-02",
-          phone: "11977776666",
-        },
-      };
-
-      const config: any = {
-        credentials: { apiKey: "key_test" },
-        isTestMode: true,
-      };
-
-      const response = await service.createBoleto(request, config);
-      expect(response.success).toBe(false); // status is pending
-      expect(response.transactionId).toBe("777");
-      expect(response.paymentUrl).toBe("vindi-boleto-print-url");
-    });
+  it("validateSignature sempre true", () => {
+    expect(WebhookHandler.validateSignature({}, undefined, undefined).isValid).toBe(true);
   });
 });

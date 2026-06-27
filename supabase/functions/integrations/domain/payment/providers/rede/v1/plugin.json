@@ -3,32 +3,18 @@
   "slug": "rede",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial da Rede para processamento de pagamentos.",
+  "logoUrl": "https://www.userede.com.br/assets/images/logo-rede.svg",
+  "description": "Adquirente do grupo Itaú. Processa cartão de crédito e débito de todas as bandeiras via API REST com OAuth 2.0. Ideal para e-commerce de médio e grande porte.",
   "status": "active",
   "configFields": [
-    {
-      "name": "pv",
-      "label": "PV (Código do Estabelecimento)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: 12345678"
-    },
-    {
-      "name": "token",
-      "label": "Token de Autenticação",
-      "type": "password",
-      "required": true,
-      "placeholder": "Ex: a1b2c3d4..."
-    }
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true, "placeholder": "Solicite em produtosapi@userede.com.br" },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true, "placeholder": "Solicite em produtosapi@userede.com.br" },
+    { "name": "filiation", "label": "Número de Filiação (PV)", "type": "text", "required": false },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developer.userede.com.br",
+  "supportEmail": "produtosapi@userede.com.br"
 }

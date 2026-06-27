@@ -1,37 +1,21 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pela Rede
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
+  static validateSignature(_p: any, _s: any, _sec: any): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
-  /**
-   * Normaliza o payload do webhook recebido
-   */
   static handle(payload: any): WebhookResponse {
-    const transactionId = payload.tid;
-    if (!transactionId) {
-      return {
-        success: false,
-        processed: false,
-        message: "Missing tid in webhook payload",
-      };
+    try {
+      const tid = payload.tid || payload.nsu;
+      const reference = payload.reference;
+      const transactionId = reference || tid;
+      if (!transactionId) return { success: false, processed: false, message: "Webhook Rede: reference/tid ausente." };
+      const status = Mapper.toPaymentStatus(payload.status || "");
+      return { success: true, processed: true, transactionId, status, message: `Webhook Rede: ${payload.status} → ${status}`, raw: payload };
+    } catch (err: any) {
+      return { success: false, processed: false, message: `Erro webhook Rede: ${err.message}` };
     }
-
-    const rawStatus = payload.returnCode || payload.status || "00";
-    const status = Mapper.toPaymentStatus(rawStatus);
-
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook da Rede processado com sucesso.",
-    };
   }
 }

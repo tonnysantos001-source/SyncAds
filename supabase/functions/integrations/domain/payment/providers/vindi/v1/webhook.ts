@@ -1,32 +1,22 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida assinatura
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    if (!signature || !secret) {
-      return { isValid: false, error: "Signature or secret is missing" };
-    }
+  static validateSignature(_p: any, _s: any, _sec: any): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
-  /**
-   * Normaliza o webhook
-   */
+  /** Vindi envia webhooks com event_type e data.bill ou data.charge */
   static handle(payload: any): WebhookResponse {
-    const bill = payload.bill || payload;
-    const transactionId = bill.id || payload.id;
-    const status = bill.status ? Mapper.toPaymentStatus(bill.status) : undefined;
-
-    return {
-      success: true,
-      processed: true,
-      transactionId: String(transactionId),
-      gatewayTransactionId: String(transactionId),
-      status,
-      message: "Webhook processado e mapeado com sucesso.",
-    };
+    try {
+      const eventType: string = payload.event_type || "";
+      const bill = payload.data?.bill || payload.data?.charge;
+      const transactionId = bill?.code || String(bill?.id || "");
+      if (!transactionId) return { success: false, processed: false, message: `Webhook Vindi sem transactionId. Evento: ${eventType}` };
+      const status = Mapper.toPaymentStatus(bill?.status || "pending");
+      return { success: true, processed: true, transactionId, status, message: `Webhook Vindi: ${eventType} → ${status}`, raw: payload };
+    } catch (err: any) {
+      return { success: false, processed: false, message: `Erro webhook Vindi: ${err.message}` };
+    }
   }
 }

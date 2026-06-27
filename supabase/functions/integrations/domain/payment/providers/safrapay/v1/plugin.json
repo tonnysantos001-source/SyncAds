@@ -1,0 +1,20 @@
+{
+  "name": "SafraPay",
+  "slug": "safrapay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.safrapay.com.br/assets/logo-safrapay.svg",
+  "description": "Gateway de pagamento do Banco Safra. Suporta cartão de crédito, débito e PIX com autenticação OAuth 2.0, tokenização e autenticação 3DS.",
+  "status": "active",
+  "configFields": [
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true, "placeholder": "Obtido no Portal do Lojista SafraPay" },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true, "placeholder": "Obtido no Portal do Lojista SafraPay" },
+    { "name": "merchantId", "label": "Merchant ID", "type": "text", "required": false, "placeholder": "ID da sua loja (opcional)" },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.safrapay.com.br/desenvolvedor",
+  "supportEmail": "integracao.ecommerce@safra.com.br"
+}

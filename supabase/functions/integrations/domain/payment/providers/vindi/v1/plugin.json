@@ -3,25 +3,15 @@
   "slug": "vindi",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://vindi.com.br/wp-content/uploads/2021/10/logo-vindi.svg",
-  "description": "Integração oficial da Vindi para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://vindi.com.br/wp-content/uploads/2022/03/vindi-logo.svg",
+  "description": "Plataforma de pagamentos recorrentes e faturas do Brasil. Suporta cartão de crédito, boleto e PIX com gestão de assinantes, cobranças automáticas e retentativas inteligentes.",
   "status": "active",
   "configFields": [
-    {
-      "name": "apiKey",
-      "label": "API Key",
-      "type": "password",
-      "required": true,
-      "placeholder": "Vindi API Key"
-    }
+    { "name": "apiKey", "label": "API Key", "type": "password", "required": true, "placeholder": "Obtida em Configurações > API no painel Vindi" },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": true,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "boleto", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://app.vindi.com.br/api/v1/docs"
 }

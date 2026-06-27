@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, VindiCustomer, PaymentProfilePayload, CreateBillPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -13,87 +13,70 @@ export class Client {
     return this.isTestMode ? config.endpoints.sandbox : config.endpoints.production;
   }
 
+  /**
+   * Vindi usa Basic Auth: Base64(API_KEY:) — a senha é vazia
+   */
   private getHeaders(): HeadersInit {
-    const apiKey = this.credentials.apiKey || "";
-    const base64Auth = btoa(`${apiKey}:`);
-
+    const encoded = btoa(`${this.credentials.apiKey}:`);
     return {
-      "Authorization": `Basic ${base64Auth}`,
       "Content-Type": "application/json",
-      "User-Agent": "SyncAds AI Integration Client (Vindi v1)",
+      "Accept": "application/json",
+      "Authorization": `Basic ${encoded}`,
     };
   }
 
-  /**
-   * Faz teste de conexão (ping)
-   */
+  /** Verifica conectividade com GET /payment_methods */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/merchant`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/payment_methods`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
     });
   }
 
-  /**
-   * Cria ou busca cliente
-   */
-  async createCustomer(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/customers`;
-    return await this.http.request(url, {
+  /** Cria um cliente na Vindi — necessário antes de criar cobrança */
+  async createCustomer(customer: VindiCustomer): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/customers`, {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ customer }),
       timeoutMs: config.timeoutMs,
     });
   }
 
-  /**
-   * Consulta cliente por query (documento)
-   */
-  async getCustomerByQuery(query: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/customers?query=${encodeURIComponent(query)}`;
-    return await this.http.request(url, {
+  /** Cria um perfil de pagamento (tokeniza cartão) */
+  async createPaymentProfile(profile: PaymentProfilePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payment_profiles`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ payment_profile: profile }),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /** Cria uma fatura/cobrança */
+  async createBill(bill: CreateBillPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/bills`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ bill }),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /** Consulta uma fatura pelo ID */
+  async getBill(billId: number): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/bills/${billId}`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
     });
   }
 
-  /**
-   * Cria um perfil de pagamento (Payment Profile)
-   */
-  async createPaymentProfile(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payment_profiles`;
-    return await this.http.request(url, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-      timeoutMs: config.timeoutMs,
-    });
-  }
-
-  /**
-   * Cria uma fatura (Bill)
-   */
-  async createBill(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/bills`;
-    return await this.http.request(url, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-      timeoutMs: config.timeoutMs,
-    });
-  }
-
-  /**
-   * Consulta uma fatura
-   */
-  async getBill(billId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/bills/${billId}`;
-    return await this.http.request(url, {
-      method: "GET",
+  /** Cancela uma fatura */
+  async cancelBill(billId: number): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/bills/${billId}`, {
+      method: "DELETE",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
     });

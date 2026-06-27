@@ -1,52 +1,47 @@
-// Tipos específicos para a API da Rede
+// Tipos específicos para a API Rede (e.Rede)
+// Documentação: https://developer.userede.com.br
+
 export interface Credentials {
-  pv: string;
-  token: string;
+  clientId: string;     // Client ID OAuth 2.0 — fornecido pela Rede
+  clientSecret: string; // Client Secret OAuth 2.0 — fornecido pela Rede
+  filiation?: string;   // Número de filiação/afiliação junto à Rede (PV)
 }
 
-export interface PaymentRequestPayload {
-  capture: boolean;
-  kind: "pix" | "credit" | "debit" | "boleto";
-  reference: string;
-  amount: number; // Em centavos
-  installments?: number;
-  cardHolderName?: string;
-  cardNumber?: string;
-  expirationMonth?: string;
-  expirationYear?: string;
-  securityCode?: string;
-  pix?: {
-    expirationTime: number;
-  };
-  boleto?: {
-    expirationDate: string;
-    instructions?: string;
-  };
-  urls?: Array<{
-    kind: "callback";
-    url: string;
-  }>;
+export interface OAuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
 }
 
-export interface PaymentResponsePayload {
-  tid: string;
-  reference: string;
-  status: string;
-  returnCode: string;
+export interface CreateTransactionPayload {
+  kind: "credit" | "debit";           // Tipo de transação
+  reference: string;                   // Referência do pedido (orderId)
+  amount: number;                      // Valor em centavos
+  installments?: number;               // Parcelas (1–12)
+  softDescriptor?: string;             // Nome na fatura do cartão
+  capture?: boolean;                   // true = captura imediata
+  card?: {
+    number: string;
+    expirationMonth: string;           // "MM"
+    expirationYear: string;            // "YYYY"
+    securityCode: string;
+    holderName: string;
+  };
+  threeDSecure?: { embedded: boolean };
+  urls?: Array<{ kind: "three-ds-callback" | "notification"; url: string }>;
+}
+
+export interface TransactionResponse {
+  returnCode?: string;         // "00" = aprovado
   returnMessage?: string;
+  tid?: string;                // Transaction ID
+  nsu?: string;                // Número de série único
   authorizationCode?: string;
-  nsu?: string;
-  amount?: number;
   kind?: string;
-  dateTime?: string;
-  pix?: {
-    qrCode: string;
-    qrCodeBase64: string;
-  };
-  boleto?: {
-    url: string;
-    barcode: string;
-    digitableLine: string;
-    expirationDate: string;
-  };
+  reference?: string;
+  amount?: number;
+  status?: string;             // "approved" | "canceled" | "denied" | "pending"
+  installments?: number;
+  createdAt?: string;
 }

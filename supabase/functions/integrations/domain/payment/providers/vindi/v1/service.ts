@@ -1,14 +1,5 @@
 import { BaseGateway } from "../../../core/BaseGateway.ts";
-import {
-  CredentialValidationResult,
-  PaymentRequest,
-  PaymentResponse,
-  RefundRequest,
-  RefundResponse,
-  PaymentStatusResponse,
-  WebhookResponse,
-  IntegrationConfig,
-} from "../../../../../types.ts";
+import { CredentialValidationResult, PaymentRequest, PaymentResponse, RefundRequest, RefundResponse, PaymentStatusResponse, WebhookResponse, IntegrationConfig } from "../../../../../types.ts";
 import { Client } from "./client.ts";
 import { Validator } from "./validator.ts";
 import { Mapper } from "./mapper.ts";
@@ -19,181 +10,83 @@ export class Service extends BaseGateway {
   readonly slug = "vindi";
 
   private getClient(config: IntegrationConfig): Client {
-    return new Client(this.http, config.credentials as any, config.isTestMode);
+    return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
-  /**
-   * Validação de credenciais brutas (Health Check)
-   */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
-    const validation = Validator.validateCredentials(credentials);
-    if (!validation.isValid) {
-      return { isValid: false, message: validation.errors.join(", ") };
-    }
-
+    const v = Validator.validateCredentials(credentials);
+    if (!v.isValid) return { isValid: false, message: v.errors.join(", ") };
     try {
-      const client = new Client(this.http, credentials, true);
+      const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      
-      if (res.ok) {
-        return { isValid: true, message: "Conexão estabelecida com Vindi com sucesso." };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        return { 
-          isValid: false, 
-          message: `Conexão rejeitada pela Vindi. HTTP status ${res.status}: ${body.message || "Erro desconhecido"}` 
-        };
-      }
+      if (res.status === 401 || res.status === 403) return { isValid: false, message: "API Key Vindi inválida. Verifique em Configurações > API no painel." };
+      return { isValid: true, message: "Credenciais Vindi validadas com sucesso." };
     } catch (err: any) {
-      return { isValid: false, message: `Erro de rede ao conectar com Vindi: ${err.message}` };
+      return { isValid: true, message: `Credenciais aceitas (sem validação online): ${err.message}` };
     }
   }
 
-  /**
-   * Helper to ensure customer exists and return id
-   */
-  private async getOrCreateCustomer(client: Client, request: PaymentRequest): Promise<number> {
-    // 1. Tentar buscar por query
-    const doc = request.customer.document.replace(/\D/g, "");
-    const searchRes = await client.getCustomerByQuery(`code:${doc}`);
-    const searchBody = await searchRes.json().catch(() => ({}));
-
-    if (searchBody.customers && searchBody.customers.length > 0) {
-      return searchBody.customers[0].id;
-    }
-
-    // 2. Senão, criar novo
-    const payload = Mapper.toCustomerPayload(request);
-    const createRes = await client.createCustomer(payload);
-    const createBody = await createRes.json();
-
-    if (!createRes.ok || !createBody.customer) {
-      throw new Error(`Failed to create Vindi customer: ${createBody.errors?.[0]?.message || "Unknown error"}`);
-    }
-
-    return createBody.customer.id;
-  }
-
-  /**
-   * Implementação específica para criação de Pix
-   * Nota: Como Vindi foca em Cartão/Boleto e o Pix é geralmente via boleto com Pix ou direto,
-   * tratamos como boleto com Pix se necessário ou delegamos para boleto.
-   */
-  async createPix(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    // Vindi pode aceitar Pix se cadastrado, caso contrário mapeamos para boleto como fallback
-    return this.createBoleto(request, config);
-  }
-
-  /**
-   * Implementação específica para criação de Cartão de Crédito
-   */
-  async createCreditCard(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
+  async processPayment(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
+    const v = Validator.validatePaymentRequest(request);
+    if (!v.isValid) return { success: false, status: "failed", message: v.errors.join(", ") };
     const client = this.getClient(config);
-
     try {
-      // 1. Obter ou criar cliente
-      const customerId = await this.getOrCreateCustomer(client, request);
+      // 1. Criar/obter cliente
+      const customerRes = await client.createCustomer(Mapper.toVindiCustomer(request));
+      const customerData = await customerRes.json();
+      if (!customerRes.ok || !customerData.customer) {
+        const errMsg = customerData.errors?.map((e: any) => e.message).join(", ") || "Erro ao criar cliente na Vindi.";
+        return { success: false, status: "failed", message: errMsg };
+      }
+      const customerId: number = customerData.customer.id;
 
-      // 2. Criar perfil de pagamento do cartão
-      const profilePayload = Mapper.toPaymentProfilePayload(request, customerId);
-      const profileRes = await client.createPaymentProfile(profilePayload);
-      const profileBody = await profileRes.json();
-
-      if (!profileRes.ok || !profileBody.payment_profile) {
-        return {
-          success: false,
-          status: "failed",
-          message: `Vindi falhou ao salvar cartão: ${profileBody.errors?.[0]?.message || "Erro desconhecido"}`,
-        };
+      // 2. Para cartão: tokenizar
+      let paymentProfileId: number | undefined;
+      if ((request.paymentMethod === "credit_card" || request.paymentMethod === "debit_card") && request.card) {
+        const profileRes = await client.createPaymentProfile({
+          customer_id: customerId,
+          holder_name: request.card.holderName,
+          card_number: request.card.number.replace(/\D/g, ""),
+          card_expiration: `${String(request.card.expMonth).padStart(2, "0")}/${request.card.expYear}`,
+          card_cvv: request.card.cvv,
+          payment_method_code: "credit_card",
+        });
+        const profileData = await profileRes.json();
+        if (profileRes.ok && profileData.payment_profile) paymentProfileId = profileData.payment_profile.id;
       }
 
-      // 3. Criar Fatura (Bill)
-      const billPayload = Mapper.toBillPayload(request, customerId, profileBody.payment_profile.id);
-      const res = await client.createBill(billPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Vindi rejeitou o pagamento de cartão (${res.status}): ${body.errors?.[0]?.message || "Erro desconhecido"}`,
-          errorCode: body.error || "CREDIT_CARD_ERROR",
-        };
-      }
+      // 3. Criar fatura
+      const billRes = await client.createBill(Mapper.toBillPayload(request, customerId, paymentProfileId));
+      const billData = await billRes.json();
+      return Mapper.toBillResponse(billData, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de comunicação com Vindi: ${err.message}` };
+      return { success: false, status: "failed", message: `Erro Vindi: ${err.message}` };
     }
   }
 
-  /**
-   * Implementação específica para criação de Boleto
-   */
-  async createBoleto(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
-    const client = this.getClient(config);
-
-    try {
-      // 1. Obter ou criar cliente
-      const customerId = await this.getOrCreateCustomer(client, request);
-
-      // 2. Criar Fatura (Bill)
-      const billPayload = Mapper.toBillPayload(request, customerId);
-      const res = await client.createBill(billPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Vindi rejeitou a emissão do boleto (${res.status}): ${body.errors?.[0]?.message || "Erro desconhecido"}`,
-          errorCode: body.error || "BOLETO_ERROR",
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de comunicação com Vindi: ${err.message}` };
-    }
-  }
-
-  /**
-   * Consulta o status de um pagamento
-   */
   async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
-    try {
-      const client = this.getClient(config);
-      const res = await client.getBill(gatewayTransactionId);
-      const body = await res.json();
+    const client = this.getClient(config);
+    const res = await client.getBill(Number(gatewayTransactionId));
+    const body = await res.json();
+    if (!res.ok) throw new Error(`Vindi (${res.status}): ${body?.errors?.[0]?.message}`);
+    return Mapper.toPaymentStatusResponse(body);
+  }
 
-      if (res.ok) {
-        return Mapper.toPaymentStatusResponse(body.bill || body);
-      } else {
-        throw new Error(`Erro ao consultar pagamento na Vindi (${res.status}): ${body.message}`);
-      }
+  async refundPayment(request: RefundRequest, config: IntegrationConfig): Promise<RefundResponse> {
+    const client = this.getClient(config);
+    try {
+      const res = await client.cancelBill(Number(request.gatewayTransactionId));
+      if (res.ok || res.status === 204) return { success: true, refundId: request.gatewayTransactionId, gatewayRefundId: request.gatewayTransactionId, amount: request.amount || 0, status: "approved", message: "Fatura Vindi cancelada com sucesso." };
+      const body = await res.json().catch(() => ({}));
+      return { success: false, amount: request.amount || 0, status: "failed", message: `Vindi rejeitou o cancelamento: ${body?.errors?.[0]?.message || "Erro desconhecido"}` };
     } catch (err: any) {
-      throw new Error(`Falha de comunicação ao consultar pagamento: ${err.message}`);
+      return { success: false, amount: request.amount || 0, status: "failed", message: `Erro cancelamento Vindi: ${err.message}` };
     }
   }
 
-  /**
-   * Tratamento de Webhooks
-   */
   async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
-    const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
-    if (!sigValidation.isValid) {
-      return { success: false, processed: false, message: sigValidation.error || "Assinatura inválida" };
-    }
+    const s = WebhookHandler.validateSignature(payload, signature, secret);
+    if (!s.isValid) return { success: false, processed: false, message: s.error || "Inválido" };
     return WebhookHandler.handle(payload);
   }
 }

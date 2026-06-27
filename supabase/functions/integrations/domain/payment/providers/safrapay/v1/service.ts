@@ -6,8 +6,8 @@ import { Mapper } from "./mapper.ts";
 import { WebhookHandler } from "./webhook.ts";
 
 export class Service extends BaseGateway {
-  readonly name = "Rede";
-  readonly slug = "rede";
+  readonly name = "SafraPay";
+  readonly slug = "safrapay";
 
   private getClient(config: IntegrationConfig): Client {
     return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
@@ -19,8 +19,8 @@ export class Service extends BaseGateway {
     try {
       const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      if (res.status === 401 || res.status === 403) return { isValid: false, message: "Credenciais Rede inválidas. Verifique o clientId e clientSecret." };
-      return { isValid: true, message: "Credenciais Rede validadas com sucesso." };
+      if (res.status === 401 || res.status === 403) return { isValid: false, message: "Credenciais SafraPay inválidas. Verifique o clientId e clientSecret." };
+      return { isValid: true, message: "Credenciais SafraPay validadas com sucesso." };
     } catch (err: any) {
       return { isValid: true, message: `Credenciais aceitas (sem validação online): ${err.message}` };
     }
@@ -30,35 +30,35 @@ export class Service extends BaseGateway {
     const v = Validator.validatePaymentRequest(request);
     if (!v.isValid) return { success: false, status: "failed", message: v.errors.join(", ") };
     const client = this.getClient(config);
-    const payload = Mapper.toTransactionPayload(request);
+    const creds = config.credentials as any;
+    const payload = Mapper.toPaymentPayload(request, creds.merchantId, config.webhookUrl);
     try {
-      const res = await client.createTransaction(payload);
+      const res = await client.createPayment(payload);
       const body = await res.json();
-      if (!res.ok) return { success: false, status: "failed", message: `Rede ${res.status}: ${body?.returnMessage || "Erro desconhecido"}`, errorCode: body?.returnCode };
+      if (!res.ok) return { success: false, status: "failed", message: `SafraPay ${res.status}: ${body?.error?.message || "Erro desconhecido"}`, errorCode: String(res.status) };
       return Mapper.toPaymentResponse(body, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro Rede: ${err.message}` };
+      return { success: false, status: "failed", message: `Erro SafraPay: ${err.message}` };
     }
   }
 
   async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
     const client = this.getClient(config);
-    const res = await client.getTransaction(gatewayTransactionId);
+    const res = await client.getPayment(gatewayTransactionId);
     const body = await res.json();
-    if (!res.ok) throw new Error(`Rede (${res.status}): ${body?.returnMessage}`);
+    if (!res.ok) throw new Error(`SafraPay (${res.status}): ${body?.error?.message}`);
     return Mapper.toPaymentStatusResponse(body);
   }
 
   async refundPayment(request: RefundRequest, config: IntegrationConfig): Promise<RefundResponse> {
     const client = this.getClient(config);
     try {
-      const amount = Math.round((request.amount || 0) * 100);
-      const res = await client.cancelTransaction(request.gatewayTransactionId, amount);
+      const res = await client.cancelPayment(request.gatewayTransactionId, request.amount ? Math.round(request.amount * 100) : undefined);
       const body = await res.json();
-      if (res.ok && body?.returnCode === "00") return { success: true, refundId: request.gatewayTransactionId, gatewayRefundId: request.gatewayTransactionId, amount: request.amount || 0, status: "approved", message: "Cancelamento Rede aprovado." };
-      return { success: false, amount: request.amount || 0, status: "failed", message: body?.returnMessage || "Rede rejeitou o cancelamento." };
+      if (res.ok) return { success: true, refundId: request.gatewayTransactionId, gatewayRefundId: request.gatewayTransactionId, amount: request.amount || 0, status: "approved", message: "Estorno SafraPay aprovado." };
+      return { success: false, amount: request.amount || 0, status: "failed", message: body?.error?.message || "SafraPay rejeitou o estorno." };
     } catch (err: any) {
-      return { success: false, amount: request.amount || 0, status: "failed", message: `Erro cancelamento Rede: ${err.message}` };
+      return { success: false, amount: request.amount || 0, status: "failed", message: `Erro estorno SafraPay: ${err.message}` };
     }
   }
 

@@ -1,0 +1,29 @@
+{
+  "name": "OpenPix",
+  "slug": "openpix",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://developers.woovi.com/img/logo.png",
+  "description": "Gateway PIX brasileiro da Woovi (OpenPix). Geração de cobranças PIX com QR Code, copia-e-cola e notificações em tempo real via webhook.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "appId",
+      "label": "App ID",
+      "type": "password",
+      "required": true,
+      "placeholder": "Crie em app.woovi.com > API/Plugins > Nova Aplicação"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
+    }
+  ],
+  "paymentMethods": ["pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developers.woovi.com",
+  "supportEmail": "suporte@openpix.com.br"
+}
