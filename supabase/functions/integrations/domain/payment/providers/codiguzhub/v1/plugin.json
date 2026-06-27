@@ -1,0 +1,34 @@
+{
+  "name": "Codiguz Hub",
+  "slug": "codiguz-hub",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Codiguz Hub para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "merchantCode",
+      "label": "Código do Estabelecimento (Merchant Code)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: Code..."
+    },
+    {
+      "name": "apiToken",
+      "label": "Token de API (API Token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: token_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "Axion Pay",
+  "slug": "axionpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Axion Pay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "clientId",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: client_..."
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: secret_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

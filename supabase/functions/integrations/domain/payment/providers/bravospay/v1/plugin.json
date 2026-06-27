@@ -1,0 +1,34 @@
+{
+  "name": "Bravos Pay",
+  "slug": "bravospay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Bravos Pay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "merchantId",
+      "label": "ID do Estabelecimento (Merchant ID)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: merch_..."
+    },
+    {
+      "name": "apiToken",
+      "label": "Token de API (API Token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: token_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "Carthero",
+  "slug": "carthero",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Carthero para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "storeId",
+      "label": "ID da Loja (Store ID)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: store_..."
+    },
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: key_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": false,
+    "supportsCreditCard": true,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

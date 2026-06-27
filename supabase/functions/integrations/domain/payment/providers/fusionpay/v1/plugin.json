@@ -1,0 +1,17 @@
+{
+  "name": "FusionPay",
+  "slug": "fusionpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do FusionPay para processamento de pagamentos com múltiplos métodos.",
+  "status": "active",
+  "configFields": [
+    { "name": "apiKey", "label": "API Key", "type": "password", "required": true },
+    { "name": "secretKey", "label": "Secret Key", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Modo de Teste", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto", "wallet"],
+  "webhookSupport": true,
+  "sandboxSupport": true
+}

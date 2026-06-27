@@ -1,0 +1,34 @@
+{
+  "name": "Fly Payments",
+  "slug": "flypayments",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Fly Payments para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "sellerId",
+      "label": "ID do Vendedor (Seller ID)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: seller_..."
+    },
+    {
+      "name": "apiToken",
+      "label": "Token de API (API Token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: token_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

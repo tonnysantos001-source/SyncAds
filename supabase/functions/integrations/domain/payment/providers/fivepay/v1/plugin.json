@@ -1,0 +1,34 @@
+{
+  "name": "Fivepay",
+  "slug": "fivepay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Fivepay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "partnerId",
+      "label": "ID do Parceiro (Partner ID)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: part_..."
+    },
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: key_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

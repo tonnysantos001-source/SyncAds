@@ -1,0 +1,41 @@
+{
+  "name": "Stripe",
+  "slug": "stripe",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Stripe para processamento de pagamentos globais.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "publishableKey",
+      "label": "Publishable Key",
+      "type": "text",
+      "required": true,
+      "placeholder": "pk_live_xxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "secretKey",
+      "label": "Secret Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "sk_live_xxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "webhookSecret",
+      "label": "Webhook Secret",
+      "type": "password",
+      "required": false,
+      "placeholder": "whsec_xxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": true,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "FreePay",
+  "slug": "freepay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do FreePay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "accountId",
+      "label": "ID da Conta (Account ID)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: acc_..."
+    },
+    {
+      "name": "token",
+      "label": "Token de API (API Token)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: token_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "PagHiper",
+  "slug": "paghiper",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.paghiper.com/wp-content/uploads/2023/07/paghiper-logo.svg",
+  "description": "Gateway brasileiro especializado em Boleto Bancário e PIX. Geração de boleto híbrido (Boleto + QR Code PIX), notificações automáticas e baixa automática de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "API Key",
+      "type": "text",
+      "required": true,
+      "placeholder": "apk_xxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "token",
+      "label": "Token",
+      "type": "password",
+      "required": true,
+      "placeholder": "Gerado em Minha Conta > Credenciais"
+    }
+  ],
+  "paymentMethods": ["boleto", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": false,
+  "apiDocsUrl": "https://dev.paghiper.com",
+  "supportEmail": "suporte@paghiper.com"
+}

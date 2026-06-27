@@ -1,0 +1,34 @@
+{
+  "name": "Dorapag",
+  "slug": "dorapag",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Dorapag para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: key_..."
+    },
+    {
+      "name": "secretKey",
+      "label": "Chave Secreta (Secret Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: sec_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": true,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}
