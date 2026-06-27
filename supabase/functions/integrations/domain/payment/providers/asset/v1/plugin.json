@@ -1,0 +1,34 @@
+{
+  "name": "Asset",
+  "slug": "asset",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Asset para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "publicKey",
+      "label": "Chave Pública (Public Key)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: pub_..."
+    },
+    {
+      "name": "privateKey",
+      "label": "Chave Privada (Private Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: priv_..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": false,
+    "supportsCreditCard": true,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}

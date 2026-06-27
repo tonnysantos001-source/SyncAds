@@ -1862,7 +1862,7 @@ export const gatewaysList: GatewayConfig[] = [
 ];
 
 // Map implemented flag dynamically for Sprint 1
-const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme", "pagouai", "hypercash", "bestfy", "blackcat", "efi", "dompagamentos", "fastpay", "appmax", "everpay", "bynet", "brazapay", "diasmarketplace", "iugu", "vindi", "cielo", "stone", "picpay", "paypal", "rede", "getnet", "wirecard", "safetypay", "azcend", "paguex", "allus", "alpa", "alphacash"];
+const IMPLEMENTED_SLUGS = ["asaas", "mercado-pago", "mercadopago", "pagseguro", "pagarme", "pagouai", "hypercash", "bestfy", "blackcat", "efi", "dompagamentos", "fastpay", "appmax", "everpay", "bynet", "brazapay", "diasmarketplace", "iugu", "vindi", "cielo", "stone", "picpay", "paypal", "rede", "getnet", "wirecard", "safetypay", "azcend", "paguex", "allus", "alpa", "alphacash", "anubispay", "asset", "astonpay", "atlaspay"];
 gatewaysList.forEach((g) => {
   g.implemented = IMPLEMENTED_SLUGS.includes(g.slug);
 });

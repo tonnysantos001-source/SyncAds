@@ -1,0 +1,34 @@
+{
+  "name": "Aston Pay",
+  "slug": "astonpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "",
+  "description": "Integração oficial do Aston Pay para processamento de pagamentos.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "merchantCode",
+      "label": "Código do Estabelecimento (Merchant Code)",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ex: Code..."
+    },
+    {
+      "name": "apiKey",
+      "label": "Chave Secreta de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ex: Key..."
+    }
+  ],
+  "capabilities": {
+    "supportsPix": true,
+    "supportsCreditCard": true,
+    "supportsBoleto": false,
+    "supportsSubscription": false,
+    "supportsSplit": false,
+    "supportsRefund": true,
+    "supportsWebhook": true
+  }
+}
