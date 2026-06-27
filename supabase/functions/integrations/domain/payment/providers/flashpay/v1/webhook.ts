@@ -1,37 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo FlashPay
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Flashpay.
    */
   static handle(payload: any): WebhookResponse {
-    const transactionId = payload.transaction_id || payload.id;
-    if (!transactionId) {
+    try {
+      const transactionId = payload.transaction_id || payload.id;
+      const status = payload.status;
+
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Flashpay inválido: transaction_id/id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Flashpay inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId,
+        status: normalizedStatus,
+        message: `Webhook Flashpay: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Missing transaction_id or id in webhook payload",
+        message: `Erro webhook Flashpay: ${err.message}`,
       };
     }
-
-    const rawStatus = payload.status || "paid";
-    const status = Mapper.toPaymentStatus(rawStatus);
-
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook do FlashPay processado com sucesso.",
-    };
   }
 }

@@ -1,34 +1,36 @@
 {
-  "name": "Cupulahub",
+  "name": "Cúpula Hub",
   "slug": "cupulahub",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Cupulahub para processamento de pagamentos.",
+  "logoUrl": "https://cupulahub.com/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "hubId",
-      "label": "ID do Hub (Hub ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: hub_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel Cúpula Hub"
+    },
+    {
+      "name": "hubId",
+      "label": "Hub ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador do Hub de sua conta"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://cupulahub.com",
+  "supportEmail": "suporte@cupulahub.com"
 }

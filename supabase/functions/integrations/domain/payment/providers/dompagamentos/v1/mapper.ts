@@ -1,120 +1,140 @@
 import {
   PaymentRequest,
-  PaymentResponse,
+  PaymentResponse as InternalPaymentResponse,
   PaymentStatus,
   PaymentStatusResponse,
 } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request interna do SyncAds para o formato da API do Dom Pagamentos
+   * Converte PaymentRequest no payload do Dom Pagamentos.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const payload: PaymentRequestPayload = {
-      amount: Math.round(request.amount * 100), // Converte para centavos
-      payment_method: request.paymentMethod as any,
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Dom Pagamentos espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      transaction_id: request.orderId,
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: request.customer.document.replace(/\D/g, ""), // Apenas números
-        phone: request.customer.phone ? request.customer.phone.replace(/\D/g, "") : undefined,
+        document: docClean,
+        phone: phoneClean || undefined,
       },
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    if (request.paymentMethod === "credit_card" && request.card) {
+    if (request.card && payment_method === "credit_card") {
       payload.card = {
-        number: request.card.number.replace(/\s/g, ""),
-        holderName: request.card.holderName,
-        expiryMonth: request.card.expiryMonth,
-        expiryYear: request.card.expiryYear,
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
         cvv: request.card.cvv,
       };
-      payload.installments = request.installments || 1;
-    }
-
-    if (request.metadata?.notifyUrl) {
-      payload.postback_url = request.metadata.notifyUrl;
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API do Dom Pagamentos para o formato padronizado do SyncAds
+   * Converte resposta do Dom Pagamentos para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const status = this.toPaymentStatus(response.status);
-    const success = ["approved", "paid"].includes(response.status.toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Dom Pagamentos recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const paymentResponse: PaymentResponse = {
-      success,
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status,
-      message: `Pagamento processado com status: ${response.status}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Dom Pagamentos status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    // Pix
-    if (response.qr_code) {
-      paymentResponse.qrCode = response.qr_code;
-      paymentResponse.pixKey = response.qr_code;
-      paymentResponse.pixData = {
-        qrCode: response.qr_code,
-        amount: response.amount / 100,
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    // Boleto
-    if (response.payment_url || response.barcode || response.digitable_line) {
-      paymentResponse.paymentUrl = response.payment_url;
-      paymentResponse.barcodeNumber = response.barcode;
-      paymentResponse.digitableLine = response.digitable_line;
-      paymentResponse.boletoData = {
-        boletoUrl: response.payment_url || "",
-        barcode: response.barcode || "",
-        digitableLine: response.digitable_line || "",
-        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 dias de vencimento padrão
-        amount: response.amount / 100,
-      };
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    return paymentResponse;
+    return response;
   }
 
   /**
-   * Converte a resposta da API da Dom Pagamentos para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: PaymentResponsePayload): PaymentStatusResponse {
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount / 100,
-      currency: "BRL",
-      paymentMethod: "pix", // Fallback padrão
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || response.created_at || new Date().toISOString(),
-      paidAt: response.paid_at || undefined,
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Mapeia status da Dom Pagamentos para status interno do SyncAds
+   * Normaliza os códigos de status do Dom Pagamentos.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
       approved: "approved",
       paid: "approved",
+      completed: "approved",
+      success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
-      refused: "failed",
-      rejected: "failed",
+      declined: "failed",
+      error: "failed",
+      canceled: "cancelled",
       cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

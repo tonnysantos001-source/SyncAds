@@ -1,133 +1,140 @@
 import {
   PaymentRequest,
-  PaymentResponse,
+  PaymentResponse as InternalPaymentResponse,
   PaymentStatus,
   PaymentStatusResponse,
 } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request interna do SyncAds para o formato da API do Dias Marketplace
+   * Converte PaymentRequest no payload do Dias Marketplace.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const rawDoc = request.customer.document.replace(/\D/g, "");
-    const docType = rawDoc.length > 11 ? "cnpj" : "cpf";
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    const payload: PaymentRequestPayload = {
-      amount: Math.round(request.amount * 100), // Dias Marketplace espera centavos
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Dias Marketplace espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      transaction_id: request.orderId,
+      amount: Math.round(request.amount * 100),
       currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        phone: request.customer.phone ? request.customer.phone.replace(/\D/g, "") : "",
-        document: {
-          type: docType,
-          id: rawDoc,
-        },
+        document: docClean,
+        phone: phoneClean || undefined,
       },
-      paymentMethod: { type: "pix" }, // Fallback
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    if (request.paymentMethod === "pix") {
-      payload.paymentMethod = { type: "pix" };
-    } else if (request.paymentMethod === "boleto") {
-      payload.paymentMethod = { type: "boleto" };
-    } else if (request.paymentMethod === "credit_card" && request.card) {
-      payload.paymentMethod = {
-        type: "credit_card",
-        number: request.card.number.replace(/\s/g, ""),
-        holderName: request.card.holderName,
-        expirationMonth: request.card.expiryMonth,
-        expirationYear: request.card.expiryYear,
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
         cvv: request.card.cvv,
-        installments: request.installments || 1,
       };
-    }
-
-    if (request.metadata?.notifyUrl) {
-      payload.postbackUrl = request.metadata.notifyUrl;
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API do Dias Marketplace para o formato padronizado do SyncAds
+   * Converte resposta do Dias Marketplace para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const status = this.toPaymentStatus(response.status);
-    const success = ["approved", "paid", "succeeded"].includes(response.status.toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Dias Marketplace recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const paymentResponse: PaymentResponse = {
-      success,
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status,
-      message: `Pagamento processado com status: ${response.status}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Dias Marketplace status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    // Pix
-    if (response.qrCode) {
-      paymentResponse.qrCode = response.qrCode;
-      paymentResponse.pixKey = response.qrCode;
-      paymentResponse.pixData = {
-        qrCode: response.qrCode,
-        amount: response.amount / 100,
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    // Boleto
-    if (response.paymentUrl || response.barcode || response.digitableLine) {
-      paymentResponse.paymentUrl = response.paymentUrl;
-      paymentResponse.barcodeNumber = response.barcode;
-      paymentResponse.digitableLine = response.digitableLine;
-      paymentResponse.boletoData = {
-        boletoUrl: response.paymentUrl || "",
-        barcode: response.barcode || "",
-        digitableLine: response.digitableLine || "",
-        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: response.amount / 100,
-      };
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    return paymentResponse;
+    return response;
   }
 
   /**
-   * Converte a resposta da API do Dias Marketplace para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: PaymentResponsePayload): PaymentStatusResponse {
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount / 100,
-      currency: "BRL",
-      paymentMethod: "pix", // Fallback
-      createdAt: response.createdAt || new Date().toISOString(),
-      updatedAt: response.updatedAt || response.createdAt || new Date().toISOString(),
-      paidAt: response.paidAt || undefined,
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Mapeia status do Dias Marketplace para status interno do SyncAds
+   * Normaliza os códigos de status do Dias Marketplace.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
       approved: "approved",
       paid: "approved",
-      succeeded: "approved",
+      completed: "approved",
+      success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
-      refused: "failed",
-      rejected: "failed",
+      declined: "failed",
+      error: "failed",
+      canceled: "cancelled",
       cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

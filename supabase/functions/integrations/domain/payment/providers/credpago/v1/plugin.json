@@ -1,34 +1,36 @@
 {
-  "name": "CredPago",
+  "name": "Credpago",
   "slug": "credpago",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do CredPago para processamento de pagamentos.",
+  "logoUrl": "https://credpago.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto com alta taxa de conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "partnerId",
-      "label": "ID do Parceiro (Partner ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: part_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel Credpago"
+    },
+    {
+      "name": "partnerId",
+      "label": "Partner ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador de parceiro Credpago"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://credpago.com.br",
+  "supportEmail": "suporte@credpago.com.br"
 }

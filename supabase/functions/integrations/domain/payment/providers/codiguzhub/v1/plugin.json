@@ -1,34 +1,36 @@
 {
   "name": "Codiguz Hub",
-  "slug": "codiguz-hub",
+  "slug": "codiguzhub",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Codiguz Hub para processamento de pagamentos.",
+  "logoUrl": "https://codiguzhub.com/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto de alta performance.",
   "status": "active",
   "configFields": [
     {
-      "name": "merchantCode",
-      "label": "Código do Estabelecimento (Merchant Code)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: Code..."
-    },
-    {
       "name": "apiToken",
-      "label": "Token de API (API Token)",
+      "label": "API Token / Token de Integração",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Chave de API obtida no painel Codiguz Hub"
+    },
+    {
+      "name": "merchantCode",
+      "label": "Merchant Code",
+      "type": "text",
+      "required": true,
+      "placeholder": "Código do estabelecimento de sua conta"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://codiguzhub.com",
+  "supportEmail": "suporte@codiguzhub.com"
 }

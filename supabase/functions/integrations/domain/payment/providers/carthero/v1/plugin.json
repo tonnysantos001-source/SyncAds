@@ -3,32 +3,34 @@
   "slug": "carthero",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Carthero para processamento de pagamentos.",
+  "logoUrl": "https://carthero.com.br/logo.png",
+  "description": "Gateway brasileiro focado em processamento de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "storeId",
-      "label": "ID da Loja (Store ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: store_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel Carthero"
+    },
+    {
+      "name": "storeId",
+      "label": "Store ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID do estabelecimento / loja"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": false,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://carthero.com.br",
+  "supportEmail": "suporte@carthero.com.br"
 }

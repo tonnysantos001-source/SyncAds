@@ -1,36 +1,59 @@
-// Tipos específicos para a API do Bynet
+// Tipos específicos para a API Bynet
+// Documentação: https://api.bynet.com/docs
+
 export interface Credentials {
-  apiKey: string; // Mapeada para x-api-key
+  clientId: string;     // Client ID fornecido pela Bynet
+  clientSecret: string; // Chave secreta de autenticação
 }
 
-export interface PaymentRequestPayload {
-  amount: number; // Em centavos (inteiro) ou decimal
-  paymentMethod: "PIX" | "BOLETO" | "CREDIT_CARD";
+export interface CreatePaymentPayload {
+  transaction_id: string; // ID interno da transação
+  amount: number;         // Valor em centavos
+  currency: "BRL";
+  payment_method: "credit_card" | "pix" | "boleto";
   customer: {
     name: string;
     email: string;
-    document: {
-      number: string;
-      type: "CPF" | "CNPJ";
-    };
+    document: string;     // CPF/CNPJ limpo
     phone?: string;
-    externalRef?: string;
   };
-  items: Array<{
-    title: string;
-    unitPrice: number;
-    quantity: number;
-  }>;
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month?: string; // MM
+    expiration_year?: string;  // YYYY
+    expiry_month?: string;     // Compatibilidade
+    expiry_year?: string;
+    cvv: string;
+  };
+  installments?: number;
+  metadata?: {
+    order_id: string;
+    user_id?: string;
+  };
+  notification_url?: string;
 }
 
-export interface PaymentResponsePayload {
-  id: string;
-  status: string;
-  amount: number;
-  qrCode?: string; // QR code text (copia e cola)
-  checkoutUrl?: string; // payment link
-  pdfUrl?: string; // boleto PDF url
-  digitableLine?: string; // boleto digitable line
+export interface PaymentResponse {
+  id?: string;
+  transaction_id?: string;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled" | "refunded"
+  qr_code?: string;
+  qr_code_base64?: string;
+  payment_url?: string;     // Boleto ou checkout
+  boleto_url?: string;
+  barcode?: string;
+  digitable_line?: string;
+  expires_at?: string;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  amount?: number;
+  currency?: string;
+  payment_method?: string;
   created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
 }
-

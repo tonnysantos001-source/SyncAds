@@ -3,32 +3,34 @@
   "slug": "dubaipay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Dubai Pay para processamento de pagamentos.",
+  "logoUrl": "https://dubaipay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
       "name": "merchantId",
-      "label": "ID do Estabelecimento (Merchant ID)",
+      "label": "Merchant ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: merch_..."
+      "placeholder": "Merchant ID obtido no painel Dubai Pay (Bearer Token)"
     },
     {
       "name": "apiToken",
-      "label": "Token de API (API Token)",
+      "label": "API Token",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Token de API obtido no painel Dubai Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://dubaipay.com.br",
+  "supportEmail": "suporte@dubaipay.com.br"
 }

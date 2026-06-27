@@ -3,32 +3,34 @@
   "slug": "azcend",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Azcend para processamento de pagamentos nacionais.",
+  "logoUrl": "https://www.azcend.com/logo.png",
+  "description": "Gateway brasileiro focado em processamento rápido de Pix, Cartão de Crédito e Boleto com alta taxa de aprovação.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
-      "type": "text",
+      "label": "API Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: az_live_..."
+      "placeholder": "Chave de API obtida no painel Azcend"
     },
     {
       "name": "merchantId",
-      "label": "Merchant ID",
+      "label": "Merchant ID (Opcional)",
       "type": "text",
-      "required": true,
-      "placeholder": "Ex: merch_..."
+      "required": false,
+      "placeholder": "Identificador do estabelecimento"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.azcend.com",
+  "supportEmail": "suporte@azcend.com"
 }

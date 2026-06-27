@@ -3,8 +3,8 @@
   "slug": "cyberhub",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Cyberhub para processamento de pagamentos.",
+  "logoUrl": "https://cyberhub.io/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto com alta taxa de aprovação.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: client_..."
+      "placeholder": "Fornecido nas credenciais do painel Cyberhub"
     },
     {
       "name": "clientSecret",
       "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: secret_..."
+      "placeholder": "Fornecido nas credenciais do painel Cyberhub"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://cyberhub.io",
+  "supportEmail": "suporte@cyberhub.io"
 }

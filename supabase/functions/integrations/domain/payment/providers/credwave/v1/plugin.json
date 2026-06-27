@@ -3,32 +3,34 @@
   "slug": "credwave",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Credwave para processamento de pagamentos.",
+  "logoUrl": "https://credwave.com.br/logo.png",
+  "description": "Gateway brasileiro focado em transações de Pix, Cartão de Crédito e Boleto de alto rendimento.",
   "status": "active",
   "configFields": [
     {
-      "name": "sellerId",
-      "label": "ID do Vendedor (Seller ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: seller_..."
-    },
-    {
       "name": "token",
-      "label": "Token de API",
+      "label": "Token / Chave de API",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: wave_..."
+      "placeholder": "Token de autenticação gerado nas configurações Credwave"
+    },
+    {
+      "name": "sellerId",
+      "label": "Seller ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID da sua conta de vendedor / estabelecimento"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://credwave.com.br",
+  "supportEmail": "suporte@credwave.com.br"
 }

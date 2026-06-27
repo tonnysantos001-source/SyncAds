@@ -1,96 +1,140 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request interna do SyncAds para o formato da API do Bynet
+   * Converte PaymentRequest no payload da Bynet.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const documentNum = request.customer.document.replace(/\D/g, "");
-    const docType = documentNum.length > 11 ? "CNPJ" : "CPF";
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    let phone = request.customer.phone ? request.customer.phone.replace(/\D/g, "") : undefined;
-    if (phone && phone.length === 11 && !phone.startsWith("55")) {
-      phone = "55" + phone;
-    }
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
 
-    let method: "PIX" | "BOLETO" | "CREDIT_CARD" = "PIX";
-    if (request.paymentMethod === "boleto") {
-      method = "BOLETO";
-    } else if (request.paymentMethod === "credit_card") {
-      method = "CREDIT_CARD";
-    }
-
-    return {
+    // Bynet espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      transaction_id: request.orderId,
       amount: Math.round(request.amount * 100),
-      paymentMethod: method,
+      currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: {
-          number: documentNum,
-          type: docType,
-        },
-        phone: phone,
-        externalRef: request.orderId,
+        document: docClean,
+        phone: phoneClean || undefined,
       },
-      items: [
-        {
-          title: "Cobrança SyncAds",
-          unitPrice: Math.round(request.amount * 100),
-          quantity: 1,
-        },
-      ],
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
+
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
+      };
+    }
+
+    return payload;
   }
 
   /**
-   * Converte a resposta da API do Bynet para o formato padronizado do SyncAds
+   * Converte resposta da Bynet para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const isApproved = ["paid", "approved", "completed", "succeeded"].includes(response.status?.toLowerCase());
-    
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Bynet recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
+
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Bynet status: ${apiResponse.status}`,
+      raw: apiResponse,
+    };
+
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
+      };
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    return response;
+  }
+
+  /**
+   * Converte resposta de consulta para PaymentStatusResponse.
+   */
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      success: isApproved,
-      transactionId: response.id,
-      gatewayTransactionId: response.id,
-      status: Mapper.toPaymentStatus(response.status),
-      qrCode: response.qrCode,
-      paymentUrl: response.checkoutUrl || response.pdfUrl,
-      barcodeNumber: response.digitableLine,
-      message: `Pagamento processado com status: ${response.status}`,
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.updated_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Bynet.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      paid: "approved",
       approved: "approved",
+      paid: "approved",
       completed: "approved",
-      succeeded: "approved",
+      success: "approved",
       pending: "pending",
-      created: "pending",
       processing: "processing",
       failed: "failed",
-      rejected: "failed",
+      declined: "failed",
+      error: "failed",
+      canceled: "cancelled",
+      cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
-      reversed: "refunded",
+      expired: "expired",
     };
     return map[status?.toLowerCase()] || "pending";
-  }
-
-  /**
-   * Normaliza a resposta da consulta de status
-   */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
-    const data = response.data || response;
-    return {
-      status: Mapper.toPaymentStatus(data.status),
-      gatewayStatus: data.status,
-      message: `Consulta realizada com sucesso. Status atual: ${data.status}`,
-    };
   }
 }

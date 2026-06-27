@@ -1,34 +1,36 @@
 {
-  "name": "Dias Marketplace",
+  "name": "Diasmarketplace",
   "slug": "diasmarketplace",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/5968/5968204.png",
-  "description": "Integração oficial do Dias Marketplace para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://diasmarketplace.com.br/logo.png",
+  "description": "Gateway brasileiro focado em processamento de Pix, Cartão de Crédito e Boleto com alta estabilidade e checkout transparente.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Dias Marketplace API Key"
+      "placeholder": "Chave de API obtida no painel Dias Marketplace"
     },
     {
       "name": "storeId",
       "label": "Store ID",
       "type": "text",
       "required": true,
-      "placeholder": "ID da Loja Dias Marketplace"
+      "placeholder": "Identificador da loja"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://diasmarketplace.com.br",
+  "supportEmail": "suporte@diasmarketplace.com.br"
 }

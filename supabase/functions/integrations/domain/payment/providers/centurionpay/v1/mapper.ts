@@ -1,105 +1,140 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
-  private static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
-  private static formatPhone(phone: string): string {
-    return phone.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do Centurion Pay
+   * Converte PaymentRequest no payload da Centurion Pay.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    return {
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Centurion Pay espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
       transaction_id: request.orderId,
-      amount: request.amount,
+      amount: Math.round(request.amount * 100),
       currency: "BRL",
-      payment_method: request.paymentMethod,
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: this.formatDocument(request.customer.document),
-        phone: this.formatPhone(request.customer.phone || ""),
+        document: docClean,
+        phone: phoneClean || undefined,
       },
       metadata: {
         order_id: request.orderId,
       },
-    };
-  }
-
-  /**
-   * Converte a resposta da API do Centurion Pay para o formato padronizado do SyncAds
-   */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const rawStatus = response.status || "pending";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["success", "approved", "paid", "pending", "processing"].includes(rawStatus.toLowerCase());
-
-    const result: PaymentResponse = {
-      success,
-      transactionId: response.transaction_id,
-      gatewayTransactionId: response.id || response.transaction_id,
-      status,
-      message: response.message || `Transação processada com status: ${rawStatus}`,
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    const paymentUrl = response.payment_url || response.boleto_url;
-    if (paymentUrl) {
-      result.paymentUrl = paymentUrl;
-      result.redirectUrl = paymentUrl;
-    }
-
-    const qrCode = response.qr_code || response.pix_qr_code;
-    if (qrCode) {
-      result.qrCode = qrCode;
-      result.pixData = {
-        qrCode,
-        amount: 0,
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
       };
     }
 
-    return result;
+    return payload;
   }
 
   /**
-   * Converte a resposta de status da API do Centurion Pay para resposta de status do SyncAds
+   * Converte resposta da Centurion Pay para o padrão interno.
    */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Centurion Pay recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
+
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Centurion Pay status: ${apiResponse.status}`,
+      raw: apiResponse,
+    };
+
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
+      };
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    return response;
+  }
+
+  /**
+   * Converte resposta de consulta para PaymentStatusResponse.
+   */
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: response.transaction_id || response.id,
-      gatewayTransactionId: response.id || response.transaction_id,
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount || 0,
-      currency: response.currency || "BRL",
-      paymentMethod: response.payment_method || "pix",
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.updated_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Centurion Pay.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
-      success: "approved",
       approved: "approved",
       paid: "approved",
       completed: "approved",
+      success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
       declined: "failed",
       error: "failed",
-      cancelled: "cancelled",
       canceled: "cancelled",
+      cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

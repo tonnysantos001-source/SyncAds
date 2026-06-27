@@ -3,32 +3,34 @@
   "slug": "centurionpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Centurion Pay para processamento de pagamentos.",
+  "logoUrl": "https://centurionpay.com/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "merchantId",
-      "label": "ID do Estabelecimento (Merchant ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: merch_..."
-    },
-    {
       "name": "apiToken",
-      "label": "Token de API (API Token)",
+      "label": "API Token / Token de Integração",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Fornecido na aba de desenvolvedores do painel Centurion Pay"
+    },
+    {
+      "name": "merchantId",
+      "label": "Merchant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID da sua conta de estabelecimento"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://centurionpay.com",
+  "supportEmail": "suporte@centurionpay.com"
 }

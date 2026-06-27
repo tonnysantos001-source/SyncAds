@@ -3,32 +3,34 @@
   "slug": "flashpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do FlashPay para processamento de pagamentos.",
+  "logoUrl": "https://flashpay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "merchantId",
-      "label": "ID do Estabelecimento (Merchant ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: merch_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel FlashPay"
+    },
+    {
+      "name": "merchantId",
+      "label": "Merchant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador único da sua conta de comerciante"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://flashpay.com.br",
+  "supportEmail": "suporte@flashpay.com.br"
 }

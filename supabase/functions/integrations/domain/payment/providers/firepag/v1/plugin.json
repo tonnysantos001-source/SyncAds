@@ -3,32 +3,34 @@
   "slug": "firepag",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Fire Pag para processamento de pagamentos.",
+  "logoUrl": "https://firepag.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "storeId",
-      "label": "ID da Loja (Store ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: store_..."
-    },
-    {
       "name": "token",
-      "label": "Token de API (API Token)",
+      "label": "Token / Chave de API",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Token Bearer obtido no painel Fire Pag"
+    },
+    {
+      "name": "storeId",
+      "label": "Store ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador único da loja"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://firepag.com.br",
+  "supportEmail": "suporte@firepag.com.br"
 }

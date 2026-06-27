@@ -3,32 +3,34 @@
   "slug": "dorapag",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Dorapag para processamento de pagamentos.",
+  "logoUrl": "https://dorapag.com/logo.png",
+  "description": "Gateway brasileiro focado em transações de Pix, Cartão de Crédito e Boleto com alta taxa de conversão e aprovação instantânea.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
-      "type": "text",
+      "label": "API Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel Dorapag"
     },
     {
       "name": "secretKey",
-      "label": "Chave Secreta (Secret Key)",
+      "label": "Secret Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: sec_..."
+      "placeholder": "Chave secreta obtida no painel Dorapag"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://dorapag.com",
+  "supportEmail": "suporte@dorapag.com"
 }

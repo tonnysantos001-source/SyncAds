@@ -3,25 +3,34 @@
   "slug": "bynet",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial de Bynet para processamento de pagamentos.",
-  "status": "beta",
+  "logoUrl": "https://bynet.com/logo.png",
+  "description": "Gateway brasileiro focado em transações de Pix, Cartão de Crédito e Boleto de alta performance.",
+  "status": "active",
   "configFields": [
     {
-      "name": "apiKey",
-      "label": "Chave Secreta de API (API Key)",
+      "name": "clientId",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Fornecido nas credenciais do painel Bynet"
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "sk_live_..."
+      "placeholder": "Fornecido nas credenciais do painel Bynet"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://bynet.com",
+  "supportEmail": "suporte@bynet.com"
 }

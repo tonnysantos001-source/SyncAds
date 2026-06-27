@@ -3,32 +3,34 @@
   "slug": "fivepay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Fivepay para processamento de pagamentos.",
+  "logoUrl": "https://fivepay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos de Pix, Cartão de Crédito e Boleto de alta conversão.",
   "status": "active",
   "configFields": [
     {
-      "name": "partnerId",
-      "label": "ID do Parceiro (Partner ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: part_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave de API obtida no painel Fivepay"
+    },
+    {
+      "name": "partnerId",
+      "label": "Partner ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador do parceiro Fivepay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://fivepay.com.br",
+  "supportEmail": "suporte@fivepay.com.br"
 }
