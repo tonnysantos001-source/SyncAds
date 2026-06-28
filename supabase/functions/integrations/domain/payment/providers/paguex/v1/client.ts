@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -14,19 +14,20 @@ export class Client {
   }
 
   private getHeaders(): HeadersInit {
-    const auth = btoa(`${this.credentials.publicKey}:${this.credentials.secretKey}`);
+    const credString = `${this.credentials.publicKey}:${this.credentials.secretKey}`;
+    const base64Cred = btoa(credString);
     return {
       "Content-Type": "application/json",
-      "Authorization": `Basic ${auth}`,
+      "Authorization": `Basic ${base64Cred}`,
     };
   }
 
   /**
-   * Valida a conexão com a API do Pague-X
+   * Verifica credenciais.
+   * GET /transactions?limit=1
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/transactions?limit=1`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/transactions?limit=1`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -34,11 +35,11 @@ export class Client {
   }
 
   /**
-   * Cria uma transação/pagamento no Pague-X
+   * Cria pagamento.
+   * POST /transactions
    */
-  async createTransaction(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/transactions`;
-    return await this.http.request(url, {
+  async createPayment(payload: CreatePaymentPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/transactions`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -47,13 +48,27 @@ export class Client {
   }
 
   /**
-   * Consulta os detalhes de uma transação no Pague-X
+   * Obtém detalhes de um pagamento.
+   * GET /transactions/{id}
    */
-  async getTransaction(transactionId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/transactions/${transactionId}`;
-    return await this.http.request(url, {
+  async getPayment(paymentId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/transactions/${paymentId}`, {
       method: "GET",
       headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Reembolsa/estorna um pagamento.
+   * POST /transactions/{id}/refund
+   */
+  async refundPayment(paymentId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/transactions/${paymentId}/refund`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

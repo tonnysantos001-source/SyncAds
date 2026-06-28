@@ -3,25 +3,27 @@
   "slug": "bestfy",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936719.png",
-  "description": "Integração oficial da Bestfy para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://bestfy.com/logo.png",
+  "description": "Gateway brasileiro focado em processamento ágil de Pix, Cartão de Crédito e Boleto com alta conversão.",
   "status": "active",
   "configFields": [
     {
       "name": "token",
-      "label": "Token de API (SECRET_KEY)",
+      "label": "Token de Acesso / API Token",
       "type": "password",
       "required": true,
-      "placeholder": "bf_sk_..."
+      "placeholder": "API Token obtido no painel Bestfy"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://bestfy.com",
+  "supportEmail": "suporte@bestfy.com"
 }

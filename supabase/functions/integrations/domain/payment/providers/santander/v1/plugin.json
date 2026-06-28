@@ -1,0 +1,33 @@
+{
+  "name": "Santander API",
+  "slug": "santander",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/santander.png",
+  "description": "Integração oficial do Santander API para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "clientId",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Client ID"
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Client Secret"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.santander.com",
+  "supportEmail": "suporte@santander.com"
+}

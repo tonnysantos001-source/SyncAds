@@ -1,57 +1,42 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
-  static formatPhone(phone: string): string {
-    const clean = phone.replace(/\D/g, "");
-    if (clean.length === 11 || clean.length === 10) {
-      return `+55${clean}`;
-    }
-    return clean ? `+${clean}` : "";
-  }
-
-  static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
-  static getDocumentType(doc: string): string {
-    const clean = doc.replace(/\D/g, "");
-    return clean.length > 11 ? "CNPJ" : "CPF";
-  }
-
-  static formatZipCode(zip: string): string {
-    return zip.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do Pague-X
+   * Converte PaymentRequest no payload da Pague-X.
    */
-  static toPaymentPayload(request: PaymentRequest, webhookUrl?: string): PaymentRequestPayload {
-    const paymentMethodMap: Record<string, string> = {
-      pix: "pix",
-      boleto: "boleto",
-      credit_card: "credit_card",
-      debit_card: "credit_card", // Usa credit_card para débito também
-    };
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g);
+    const phoneClean = (request.customer.phone || "").replace(/\D/g);
+    const docType = docClean.length > 11 ? "cnpj" : "cpf";
 
-    const payload: PaymentRequestPayload = {
-      amount: Math.round(request.amount * 100), // Converter para centavos
-      currency: request.currency || "BRL",
-      paymentMethod: paymentMethodMap[request.paymentMethod] || "pix",
+    let paymentMethod: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") paymentMethod = "pix";
+    else if (request.paymentMethod === "boleto") paymentMethod = "boleto";
+
+    // Pague-X espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      paymentMethod,
       installments: request.installments || 1,
       postbackUrl: webhookUrl,
+      externalRef: request.orderId,
       metadata: JSON.stringify({
         orderId: request.orderId,
-        userId: request.userId,
       }),
-      externalRef: request.orderId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        phone: this.formatPhone(request.customer.phone || ""),
+        phone: phoneClean,
         document: {
-          type: this.getDocumentType(request.customer.document).toLowerCase(),
-          number: this.formatDocument(request.customer.document),
+          type: docType,
+          number: docClean,
         },
       },
       items: [
@@ -67,9 +52,9 @@ export class Mapper {
     if (request.billingAddress) {
       payload.customer.address = {
         street: request.billingAddress.street,
-        streetNumber: request.billingAddress.number,
+        streetNumber: String(request.billingAddress.number),
         complement: request.billingAddress.complement || "",
-        zipCode: this.formatZipCode(request.billingAddress.zipCode),
+        zipCode: (request.billingAddress.zipCode || "").replace(/\D/g, ""),
         neighborhood: request.billingAddress.neighborhood,
         city: request.billingAddress.city,
         state: request.billingAddress.state,
@@ -77,93 +62,94 @@ export class Mapper {
       };
     }
 
-    // Adicionar dados de cartão ou cardToken se aplicável
-    if (
-      request.card &&
-      (request.paymentMethod === "credit_card" || request.paymentMethod === "debit_card")
-    ) {
-      if ((request as any).cardToken) {
-        payload.cardToken = (request as any).cardToken;
-      } else {
-        payload.card = {
-          number: request.card.number.replace(/\s/g, ""),
-          holderName: request.card.holderName,
-          expMonth: parseInt(request.card.expiryMonth),
-          expYear: parseInt(request.card.expiryYear),
-          cvv: request.card.cvv,
-        };
-      }
+    if ((request as any).cardToken) {
+      payload.cardToken = (request as any).cardToken;
+    } else if (request.card && paymentMethod === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holderName: request.card.holderName.toUpperCase(),
+        expMonth: Number(request.card.expMonth || request.card.expiryMonth),
+        expYear: Number(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
+      };
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API do Pague-X para o formato padronizado do SyncAds
+   * Converte resposta da Pague-X para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload, amount: number): PaymentResponse {
-    const rawStatus = response.status || "pending";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["approved", "paid", "pending", "waiting_payment"].includes(rawStatus.toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.secureId)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Pague-X recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const result: PaymentResponse = {
-      success,
-      transactionId: response.id?.toString() || response.secureId || "N/A",
-      gatewayTransactionId: response.id?.toString() || response.secureId || "N/A",
-      status,
-      paymentUrl: response.secureUrl,
-      message: `Pagamento processado via Pague-X com status: ${rawStatus}`,
-      metadata: {
-        paidAt: response.paidAt,
-        authorizationCode: response.authorizationCode,
-      },
+    const statusVal = Mapper.toPaymentStatus(String(apiResponse.status || "pending"));
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: String(apiResponse.id || apiResponse.secureId || ""),
+      status: statusVal,
+      message: apiResponse.message || `Pague-X status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    if (response.pix) {
-      result.pixData = {
-        qrCode: response.pix.qrcode,
-        qrCodeBase64: response.pix.qrcodeImage,
-        expiresAt: response.pix.expirationDate,
-        amount,
+    if (apiResponse.pix) {
+      response.qrCode = apiResponse.pix.qrcode;
+      response.pixData = {
+        qrCode: apiResponse.pix.qrcode || "",
+        qrCodeImage: apiResponse.pix.qrcodeImage,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.pix.expirationDate;
     }
 
-    if (response.boleto) {
-      result.boletoData = {
-        boletoUrl: response.boleto.url,
-        barcode: response.boleto.barcode,
-        digitableLine: response.boleto.digitableLine,
-        dueDate: response.boleto.expirationDate,
-        amount,
-      };
+    if (apiResponse.boleto) {
+      response.paymentUrl = apiResponse.boleto.url;
+      response.redirectUrl = apiResponse.boleto.url;
+      response.barcodeNumber = apiResponse.boleto.barcode;
+      response.digitableLine = apiResponse.boleto.digitableLine;
+      response.expiresAt = apiResponse.boleto.expirationDate;
+    } else if (apiResponse.secureUrl) {
+      response.paymentUrl = apiResponse.secureUrl;
+      response.redirectUrl = apiResponse.secureUrl;
     }
 
-    return result;
+    return response;
   }
 
   /**
-   * Converte a resposta de status da API do Pague-X para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: PaymentResponsePayload): PaymentStatusResponse {
-    const amountVal = response.amount ? response.amount / 100 : 0;
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: response.id?.toString() || response.secureId || "N/A",
-      gatewayTransactionId: response.id?.toString() || response.secureId || "N/A",
-      status: this.toPaymentStatus(response.status),
-      amount: amountVal,
-      currency: response.currency || "BRL",
-      paymentMethod: response.pix ? "pix" : (response.boleto ? "boleto" : "credit_card"),
-      createdAt: response.createdAt || new Date().toISOString(),
-      updatedAt: response.updatedAt || new Date().toISOString(),
-      paidAt: response.paidAt,
+      transactionId: String(apiResponse.id || ""),
+      gatewayTransactionId: String(apiResponse.id || ""),
+      status: Mapper.toPaymentStatus(String(apiResponse.status || "pending")),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.paymentMethod || "unknown",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Pague-X.
    */
   static toPaymentStatus(status: string): PaymentStatus {
-    const statusMap: Record<string, PaymentStatus> = {
+    const map: Record<string, PaymentStatus> = {
       waiting_payment: "pending",
       pending: "processing",
       approved: "approved",
@@ -174,7 +160,6 @@ export class Mapper {
       cancelled: "cancelled",
       chargeback: "refunded",
     };
-
-    return statusMap[status?.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

@@ -1,10 +1,10 @@
 // Endpoints e configurações para o provedor Ever Pay
+// Documentação: https://api.ever-pay.com/docs
 export const config = {
   endpoints: {
-    production: "https://api.everpayinc.com/v1",
-    sandbox: "https://api.everpayinc.com/v1",
+    production: "https://api.ever-pay.com/v1",
+    sandbox: "https://sandbox.ever-pay.com/v1",
   },
-  timeoutMs: 8000,
+  timeoutMs: 12000,
   maxRetries: 3,
 };
-

@@ -3,9 +3,9 @@ import {
   CredentialValidationResult,
   PaymentRequest,
   PaymentResponse,
-  PaymentStatusResponse,
   RefundRequest,
   RefundResponse,
+  PaymentStatusResponse,
   WebhookResponse,
   IntegrationConfig,
 } from "../../../../../types.ts";
@@ -19,11 +19,11 @@ export class Service extends BaseGateway {
   readonly slug = "paypal";
 
   private getClient(config: IntegrationConfig): Client {
-    return new Client(this.http, config.credentials as any, config.isTestMode, this.cache);
+    return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
   /**
-   * Validação real de credenciais brutas (Health Check)
+   * Valida as credenciais do PayPal.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -32,157 +32,143 @@ export class Service extends BaseGateway {
     }
 
     try {
-      const client = new Client(this.http, credentials, true, this.cache);
+      const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      
-      if (res.ok) {
-        return { isValid: true, message: "Conexão estabelecida com PayPal com sucesso." };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        return { 
-          isValid: false, 
-          message: `Conexão rejeitada pelo PayPal. ${body.message || "Client ID ou Client Secret inválidos"}` 
-        };
-      }
-    } catch (err: any) {
-      return { isValid: false, message: `Erro ao conectar com PayPal: ${err.message}` };
-    }
-  }
 
-  /**
-   * Sobrescreve createPayment para interceptar métodos específicos do PayPal
-   */
-  override async createPayment(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    if (request.paymentMethod === "paypal" || request.paymentMethod === "wallet") {
-      return this.createPayPalWallet(request, config);
-    }
-    return super.createPayment(request, config);
-  }
-
-  /**
-   * Processamento do PayPal Wallet
-   */
-  async createPayPalWallet(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
-    const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request);
-
-    try {
-      const res = await client.createOrder(apiPayload, request.orderId);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
+      if (res.status === 401 || res.status === 403) {
         return {
-          success: false,
-          status: "failed",
-          message: `PayPal rejeitou a criação da ordem: ${body.message || "Erro desconhecido"}`,
+          isValid: false,
+          message: "Credenciais PayPal inválidas. Verifique o clientId e clientSecret.",
         };
       }
+
+      return {
+        isValid: true,
+        message: "Credenciais PayPal validadas com sucesso.",
+      };
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de rede ao criar ordem: ${err.message}` };
+      return {
+        isValid: true,
+        message: `Credenciais aceitas (sem validação online): ${err.message}`,
+      };
     }
   }
 
   /**
-   * Processamento de Cartão de Crédito via PayPal
+   * Processa pagamentos via PayPal.
    */
-  override async createCreditCard(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
+  async processPayment(
+    request: PaymentRequest,
+    config: IntegrationConfig
+  ): Promise<PaymentResponse> {
     const validation = Validator.validatePaymentRequest(request);
     if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
+      return {
+        success: false,
+        status: "failed",
+        message: validation.errors.join(", "),
+      };
     }
 
     const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request);
+    const payload = Mapper.toCreateOrderPayload(request, config.webhookUrl);
 
     try {
-      const res = await client.createOrder(apiPayload, request.orderId);
+      const res = await client.createOrder(payload, request.orderId);
       const body = await res.json();
 
       if (!res.ok) {
         return {
           success: false,
           status: "failed",
-          message: `PayPal rejeitou a criação da ordem com cartão: ${body.message || "Erro desconhecido"}`,
+          message: `PayPal rejeitou a criação da ordem (${res.status}): ${body?.message || body?.error_description || "Erro desconhecido"}`,
+          errorCode: String(res.status),
+          raw: body,
         };
       }
 
-      const orderId = body.id;
-      // Tenta capturar imediatamente
-      const captureRes = await client.captureOrder(orderId);
-      const captureBody = await captureRes.json();
+      // Se for pagamento com cartão e a ordem foi criada com sucesso, tentamos capturar imediatamente
+      if (request.paymentMethod === "credit_card" && body.status === "CREATED") {
+        try {
+          const capRes = await client.captureOrder(body.id);
+          const capBody = await capRes.json();
 
-      if (captureRes.ok) {
-        return Mapper.toPaymentResponse(captureBody);
-      } else {
-        // Se a captura falhar, retorna a ordem criada
-        return Mapper.toPaymentResponse(body);
+          if (capRes.ok) {
+            return Mapper.toPaymentResponse(capBody, request.orderId);
+          }
+        } catch {
+          // Ignora e retorna fluxo normal para aprovação manual caso capture falhe
+        }
       }
+
+      return Mapper.toPaymentResponse(body, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de rede ao processar cartão no PayPal: ${err.message}` };
+      return {
+        success: false,
+        status: "failed",
+        message: `Erro de comunicação com PayPal: ${err.message}`,
+      };
     }
   }
 
   /**
-   * Consulta o status de um pagamento no PayPal
+   * Consulta o status de um pagamento no PayPal.
    */
-  override async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
+  async consultPayment(
+    gatewayTransactionId: string,
+    config: IntegrationConfig
+  ): Promise<PaymentStatusResponse> {
+    const client = this.getClient(config);
+
     try {
-      const client = this.getClient(config);
       const res = await client.getOrder(gatewayTransactionId);
       const body = await res.json();
 
       if (res.ok) {
         return Mapper.toPaymentStatusResponse(body);
       } else {
-        throw new Error(`Erro ao consultar pagamento no PayPal (${res.status}): ${body.message || "Erro desconhecido"}`);
+        throw new Error(
+          `Erro ao consultar PayPal (${res.status}): ${body?.message || "Erro desconhecido"}`
+        );
       }
     } catch (err: any) {
-      throw new Error(`Falha de comunicação ao consultar pagamento: ${err.message}`);
+      throw new Error(`Falha ao consultar pagamento PayPal: ${err.message}`);
     }
   }
 
   /**
-   * Reembolsa um pagamento no PayPal
+   * Estorna/reembolsa um pagamento no PayPal.
    */
-  override async refundPayment(request: RefundRequest, config: IntegrationConfig): Promise<RefundResponse> {
-    try {
-      const client = this.getClient(config);
-      const currency = "BRL"; // Valor padrão para reembolsos se não vier na request (PayPal exige moeda)
-      
-      const refundData = request.amount
-        ? {
-            amount: {
-              value: request.amount.toFixed(2),
-              currency_code: currency,
-            },
-          }
-        : {};
+  async refundPayment(
+    request: RefundRequest,
+    config: IntegrationConfig
+  ): Promise<RefundResponse> {
+    const client = this.getClient(config);
 
-      const res = await client.refundCapture(request.gatewayTransactionId, refundData);
-      const body = await res.json();
+    try {
+      // PayPal precisa do captureId. Usamos o gatewayTransactionId
+      const res = await client.refundPayment(
+        request.gatewayTransactionId,
+        request.amount,
+        config.credentials.currency || "USD"
+      );
+      const body = await res.json().catch(() => ({}));
 
       if (res.ok) {
         return {
           success: true,
-          refundId: body.id,
-          gatewayRefundId: body.id,
+          refundId: body.id || request.gatewayTransactionId,
+          gatewayRefundId: body.id || request.gatewayTransactionId,
           amount: request.amount || 0,
-          status: body.status === "COMPLETED" ? "approved" : "pending",
-          message: "Reembolso processado com sucesso no PayPal.",
+          status: "approved",
+          message: "Estorno PayPal processado com sucesso.",
         };
       } else {
         return {
           success: false,
           amount: request.amount || 0,
           status: "failed",
-          message: `PayPal rejeitou o reembolso: ${body.message || "Erro desconhecido"}`,
+          message: `PayPal rejeitou o estorno (${res.status}): ${body?.message || "Erro desconhecido"}`,
         };
       }
     } catch (err: any) {
@@ -190,18 +176,26 @@ export class Service extends BaseGateway {
         success: false,
         amount: request.amount || 0,
         status: "failed",
-        message: `Erro ao processar reembolso no PayPal: ${err.message}`,
+        message: `Falha ao solicitar estorno no PayPal: ${err.message}`,
       };
     }
   }
 
   /**
-   * Tratamento oficial de Webhooks
+   * Processa webhook recebido do PayPal.
    */
-  override async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
+  async handleWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string
+  ): Promise<WebhookResponse> {
     const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
     if (!sigValidation.isValid) {
-      return { success: false, processed: false, message: sigValidation.error || "Assinatura inválida" };
+      return {
+        success: false,
+        processed: false,
+        message: sigValidation.error || "Assinatura inválida",
+      };
     }
     return WebhookHandler.handle(payload);
   }

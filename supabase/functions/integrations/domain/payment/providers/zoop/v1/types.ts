@@ -1,0 +1,3 @@
+export interface Credentials { publishableKey: string; marketplaceId: string; }
+export interface ZoopTransactionPayload { amount: number; currency: string; description?: string; payment_type: string; reference_id?: string; on_behalf_of?: string; source: { type: string; usage: string; amount: number; currency: string; card?: { holder_name: string; expiration_month: string; expiration_year: string; security_code: string; card_number: string } } }
+export interface ZoopTransactionResponse { id?: string; status?: string; amount?: number; currency?: string; reference_id?: string; payment_type?: string; error?: { message?: string; type?: string; category?: string } }

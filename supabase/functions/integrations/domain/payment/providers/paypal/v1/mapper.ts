@@ -1,26 +1,20 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreateOrderPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
-  private static getSupabaseUrl(): string {
-    if (typeof Deno !== "undefined") {
-      return Deno.env.get("SUPABASE_URL") || "https://ovskepqggmxlfckxqgbr.supabase.co";
-    }
-    return "https://ovskepqggmxlfckxqgbr.supabase.co";
-  }
-
-  private static formatZipCode(zip: string): string {
-    return zip.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do PayPal
+   * Converte PaymentRequest no payload do PayPal.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const currency = request.currency || "BRL";
-    const supabaseUrl = this.getSupabaseUrl();
+  static toCreateOrderPayload(request: PaymentRequest, callbackUrl?: string): CreateOrderPayload {
+    const currency = request.currency || "USD";
+    const amountVal = request.amount.toFixed(2);
 
-    const payload: PaymentRequestPayload = {
+    const payload: CreateOrderPayload = {
       intent: "CAPTURE",
       purchase_units: [
         {
@@ -30,25 +24,35 @@ export class Mapper {
           soft_descriptor: "SYNCADS",
           amount: {
             currency_code: currency,
-            value: request.amount.toFixed(2),
+            value: amountVal,
             breakdown: {
               item_total: {
                 currency_code: currency,
-                value: request.amount.toFixed(2),
+                value: amountVal,
               },
             },
           },
-          items: [
-            {
-              name: `Pedido ${request.orderId}`,
-              description: `Pagamento do pedido ${request.orderId}`,
-              unit_amount: {
-                currency_code: currency,
-                value: request.amount.toFixed(2),
-              },
-              quantity: "1",
-            },
-          ],
+          items: request.items
+            ? request.items.map((item) => ({
+                name: item.name,
+                description: item.name,
+                unit_amount: {
+                  currency_code: currency,
+                  value: item.unitPrice.toFixed(2),
+                },
+                quantity: item.quantity.toString(),
+              }))
+            : [
+                {
+                  name: `Pedido ${request.orderId}`,
+                  description: `Pagamento do pedido ${request.orderId}`,
+                  unit_amount: {
+                    currency_code: currency,
+                    value: amountVal,
+                  },
+                  quantity: "1",
+                },
+              ],
         },
       ],
       application_context: {
@@ -57,28 +61,31 @@ export class Mapper {
         landing_page: "BILLING",
         shipping_preference: "NO_SHIPPING",
         user_action: "PAY_NOW",
-        return_url: `${supabaseUrl}/functions/v1/payment-webhook/paypal/success`,
-        cancel_url: `${supabaseUrl}/functions/v1/payment-webhook/paypal/cancel`,
+        return_url: callbackUrl || "https://syncads.com.br/success",
+        cancel_url: callbackUrl ? `${callbackUrl}/cancel` : "https://syncads.com.br/cancel",
       },
     };
 
     if (request.paymentMethod === "credit_card" && request.card) {
+      const expMonth = String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0");
+      const expYear = String(request.card.expYear || request.card.expiryYear);
+
       payload.payment_source = {
         card: {
-          number: request.card.number.replace(/\s/g, ""),
-          expiry: `${request.card.expiryYear}-${request.card.expiryMonth.padStart(2, "0")}`,
+          number: request.card.number.replace(/\D/g, ""),
+          expiry: `${expYear}-${expMonth}`,
           security_code: request.card.cvv,
-          name: request.card.holderName,
+          name: request.card.holderName.toUpperCase(),
         },
       };
 
       if (request.billingAddress) {
         payload.payment_source.card.billing_address = {
           address_line_1: `${request.billingAddress.street}, ${request.billingAddress.number}`,
-          address_line_2: request.billingAddress.complement || "",
+          address_line_2: request.billingAddress.complement || undefined,
           admin_area_2: request.billingAddress.city,
           admin_area_1: request.billingAddress.state,
-          postal_code: this.formatZipCode(request.billingAddress.zipCode),
+          postal_code: (request.billingAddress.zipCode || "").replace(/\D/g, ""),
           country_code: request.billingAddress.country || "BR",
         };
       }
@@ -88,62 +95,70 @@ export class Mapper {
   }
 
   /**
-   * Converte a resposta da API do PayPal para o formato padronizado do SyncAds
+   * Converte resposta do PayPal para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const rawStatus = response.status || "CREATED";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["COMPLETED", "APPROVED"].includes(rawStatus);
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error_description || (!apiResponse.id && !apiResponse.purchase_units)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error_description || apiResponse.error?.message || "PayPal recusou o pagamento.",
+        errorCode: apiResponse.error?.name || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const approveLink = response.links?.find((link) => link.rel === "approve");
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "CREATED");
+    const capture = apiResponse.purchase_units?.[0]?.payments?.captures?.[0];
 
-    const result: PaymentResponse = {
-      success: true, // A criação do pedido PayPal em si foi bem sucedida
-      transactionId: response.id,
-      gatewayTransactionId: response.id,
-      status,
-      message: `Pedido PayPal criado com status: ${rawStatus}`,
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending" || statusVal === "processing",
+      transactionId: orderId,
+      gatewayTransactionId: capture?.id || apiResponse.id || "",
+      status: statusVal,
+      message: `PayPal status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
+    if (capture?.id) {
+      response.authorizationCode = capture.id;
+    }
+
+    const approveLink = apiResponse.links?.find((link) => link.rel === "approve");
     if (approveLink) {
-      result.redirectUrl = approveLink.href;
+      response.paymentUrl = approveLink.href;
+      response.redirectUrl = approveLink.href;
     }
 
-    const capture = response.purchase_units?.[0]?.payments?.captures?.[0];
-    if (capture) {
-      result.gatewayTransactionId = capture.id;
-      result.authorizationCode = capture.id;
-      if (capture.status === "COMPLETED") {
-        result.status = "approved";
-      }
-    }
-
-    return result;
+    return response;
   }
 
   /**
-   * Converte a resposta de status da API do PayPal para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
-    const purchaseUnit = response.purchase_units?.[0];
-    const amount = parseFloat(purchaseUnit?.amount?.value || "0");
-    const method = response.payment_source?.card ? "credit_card" : "paypal";
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
+    const purchaseUnit = apiResponse.purchase_units?.[0];
+    const amountVal = parseFloat(purchaseUnit?.amount?.value || "0");
+    const capture = purchaseUnit?.payments?.captures?.[0];
 
     return {
-      transactionId: response.id,
-      gatewayTransactionId: response.id,
-      status: this.toPaymentStatus(response.status),
-      amount: amount,
-      currency: purchaseUnit?.amount?.currency_code || "BRL",
-      paymentMethod: method as any,
-      createdAt: response.create_time || new Date().toISOString(),
-      updatedAt: response.update_time || response.create_time || new Date().toISOString(),
-      paidAt: response.status === "COMPLETED" ? response.update_time : undefined,
+      transactionId: apiResponse.id || "",
+      gatewayTransactionId: capture?.id || apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "CREATED"),
+      amount: amountVal,
+      currency: purchaseUnit?.amount?.currency_code || "USD",
+      paymentMethod: "wallet",
+      createdAt: new Date().toISOString(), // PayPal responde com create_time se consultado completo
+      updatedAt: new Date().toISOString(),
+      paidAt: apiResponse.status === "COMPLETED" ? new Date().toISOString() : undefined,
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status do PayPal.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
@@ -154,6 +169,6 @@ export class Mapper {
       COMPLETED: "approved",
       PAYER_ACTION_REQUIRED: "pending",
     };
-    return map[status] || "pending";
+    return map[status?.toUpperCase()] || "pending";
   }
 }

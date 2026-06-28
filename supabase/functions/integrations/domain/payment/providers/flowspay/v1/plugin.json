@@ -3,8 +3,8 @@
   "slug": "flowspay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Flowspay para processamento de pagamentos.",
+  "logoUrl": "https://flowspay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em alta aprovação de Pix, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: client_..."
+      "placeholder": "Fornecido nas credenciais do painel Flowspay"
     },
     {
       "name": "clientSecret",
       "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: secret_..."
+      "placeholder": "Fornecido nas credenciais do painel Flowspay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://flowspay.com.br",
+  "supportEmail": "suporte@flowspay.com.br"
 }

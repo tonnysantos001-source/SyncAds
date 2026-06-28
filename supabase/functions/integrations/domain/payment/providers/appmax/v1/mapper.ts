@@ -1,143 +1,140 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentResponsePayload } from "./types.ts";
-
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request do SyncAds para os dados do cliente Appmax
+   * Converte PaymentRequest no payload da Appmax.
    */
-  static toCustomerPayload(request: PaymentRequest) {
-    // Limpar caracteres não numéricos do telefone e CPF/CNPJ
-    const document = request.customer.document.replace(/\D/g, "");
-    
-    // Garantir telefone no formato correto (DDI + DDD + Número)
-    let phone = request.customer.phone.replace(/\D/g, "");
-    if (phone.length === 11 && !phone.startsWith("55")) {
-      phone = "55" + phone;
-    } else if (phone.length === 9) {
-      phone = "5511" + phone; // DDD padrão fictício se vier apenas número
-    }
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    return {
-      name: request.customer.name,
-      email: request.customer.email,
-      document_number: document,
-      phone: phone,
+    let payment_method: "credit_card" | "pix" | "boleto" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Appmax espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      transaction_id: request.orderId,
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      payment_method,
+      customer: {
+        name: request.customer.name,
+        email: request.customer.email,
+        document: docClean,
+        phone: phoneClean || undefined,
+      },
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
-  }
 
-  /**
-   * Converte a request do SyncAds para a lista de produtos do pedido Appmax
-   */
-  static toOrderPayload(request: PaymentRequest) {
-    return {
-      products: [
-        {
-          sku: request.orderId || "product_1",
-          name: "Cobrança SyncAds",
-          qty: 1,
-          price: request.amount, // Valor decimal
-          digital_product: 1, // Produto digital por padrão
-        },
-      ],
-    };
-  }
-
-  /**
-   * Retorna os dados do método de pagamento específico para a Appmax
-   */
-  static toPaymentPayload(request: PaymentRequest, cardToken?: string): any {
-    const document = request.customer.document.replace(/\D/g, "");
-    const method = request.paymentMethod;
-
-    if (method === "pix") {
-      return {
-        Pix: {
-          document_number: document,
-        },
-      };
-    } else if (method === "boleto") {
-      return {
-        Boleto: {
-          document_number: document,
-        },
-      };
-    } else if (method === "credit_card" && request.card) {
-      return {
-        CreditCard: {
-          token: cardToken || "dummy_token",
-          document_number: document,
-          installments: request.installments || 1,
-          soft_descriptor: "SYNCADS",
-        },
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
       };
     }
 
-    throw new Error(`Método de pagamento não suportado pela Appmax: ${method}`);
+    return payload;
   }
 
   /**
-   * Converte a resposta da API da Appmax para o formato padronizado do SyncAds
+   * Converte resposta da Appmax para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const data = response.data;
-    if (!data) {
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
       return {
         success: false,
         status: "failed",
-        message: "Resposta da Appmax não contém dados da transação.",
+        message: apiResponse.error?.message || apiResponse.message || "Appmax recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
       };
     }
 
-    const isApproved = ["approved", "paid", "autorizado"].includes(data.status?.toLowerCase());
-    
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Appmax status: ${apiResponse.status}`,
+      raw: apiResponse,
+    };
+
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
+      };
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    return response;
+  }
+
+  /**
+   * Converte resposta de consulta para PaymentStatusResponse.
+   */
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      success: isApproved,
-      transactionId: String(data.id),
-      gatewayTransactionId: String(data.id),
-      status: Mapper.toPaymentStatus(data.status),
-      qrCode: data.pix_code,
-      paymentUrl: data.pdf_url,
-      barcodeNumber: data.digitable_line,
-      message: `Pagamento processado com status: ${data.status}`,
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status de pagamento da Appmax
+   * Normaliza os códigos de status da Appmax.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
       approved: "approved",
       paid: "approved",
-      autorizado: "approved",
+      completed: "approved",
+      success: "approved",
       pending: "pending",
       processing: "processing",
-      aguardando_pagamento: "pending",
-      processamento: "processing",
-      boleto_gerado: "pending",
-      pix_gerado: "pending",
-      rejected: "failed",
       failed: "failed",
-      recusado: "failed",
+      declined: "failed",
+      error: "failed",
+      canceled: "cancelled",
+      cancelled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
-      estornado: "refunded",
-      devolvido: "refunded",
+      expired: "expired",
     };
     return map[status?.toLowerCase()] || "pending";
   }
-
-  /**
-   * Normaliza a resposta da consulta de pagamento
-   */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
-    const data = response.data || response;
-    return {
-      status: Mapper.toPaymentStatus(data.status),
-      gatewayStatus: data.status,
-      message: `Consulta realizada com sucesso. Status atual: ${data.status}`,
-    };
-  }
 }
-
-

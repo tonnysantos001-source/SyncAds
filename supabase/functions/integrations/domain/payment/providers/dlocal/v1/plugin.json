@@ -1,0 +1,20 @@
+{
+  "name": "dLocal",
+  "slug": "dlocal",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://dlocal.com/wp-content/uploads/2022/04/dlocal-logo-dark.svg",
+  "description": "Gateway de pagamentos para mercados emergentes na América Latina, África e Ásia. Aceita Pix, boleto e cartões no Brasil com conformidade local garantida.",
+  "status": "active",
+  "configFields": [
+    { "name": "xLogin", "label": "X-Login (API Key)", "type": "text", "required": true },
+    { "name": "xTransKey", "label": "X-Trans-Key (Secret)", "type": "password", "required": true },
+    { "name": "secretKey", "label": "Secret Key (HMAC)", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.dlocal.com",
+  "supportEmail": "integrations@dlocal.com"
+}

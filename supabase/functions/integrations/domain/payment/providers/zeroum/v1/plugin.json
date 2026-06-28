@@ -1,0 +1,33 @@
+{
+  "name": "Zeroum",
+  "slug": "zeroum",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/zeroum.png",
+  "description": "Integração oficial do Zeroum para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Chave de API (API Key)"
+    },
+    {
+      "name": "token",
+      "label": "Token",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Token"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.zeroum.com",
+  "supportEmail": "suporte@zeroum.com"
+}

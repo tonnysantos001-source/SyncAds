@@ -1,0 +1,19 @@
+{
+  "name": "Adyen",
+  "slug": "adyen",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.adyen.com/dam/jcr:3a90d5a2-33be-47f2-8b2f-eed81c47e1b4/adyen-logo.svg",
+  "description": "Gateway global líder de pagamentos. Aceita mais de 200 métodos de pagamento em 150+ moedas, incluindo Pix, cartão e boleto no Brasil.",
+  "status": "active",
+  "configFields": [
+    { "name": "apiKey", "label": "API Key", "type": "password", "required": true, "placeholder": "AQE...key gerada no Customer Area" },
+    { "name": "merchantAccount", "label": "Merchant Account", "type": "text", "required": true, "placeholder": "Ex: SuaEmpresaBR" },
+    { "name": "isTestMode", "label": "Modo Test (Test Environment)", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.adyen.com",
+  "supportEmail": "support@adyen.com"
+}

@@ -3,8 +3,8 @@
   "slug": "alpa",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Alpa para processamento de pagamentos.",
+  "logoUrl": "https://alpa.com.br/logo.png",
+  "description": "Gateway brasileiro Alpa para transações online simplificadas via Pix, Boleto e Cartão de Crédito.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: client_..."
+      "placeholder": "Chave Client ID obtida no painel Alpa"
     },
     {
       "name": "clientSecret",
       "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: secret_..."
+      "placeholder": "Chave Client Secret obtida no painel Alpa"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://alpa.com.br",
+  "supportEmail": "suporte@alpa.com.br"
 }

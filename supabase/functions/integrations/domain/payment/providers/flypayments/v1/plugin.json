@@ -3,32 +3,34 @@
   "slug": "flypayments",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Fly Payments para processamento de pagamentos.",
+  "logoUrl": "https://flypayments.com.br/logo.png",
+  "description": "Gateway brasileiro focado em processamento ágil de Pix, Cartão de Crédito e Boleto Bancário com alta aprovação.",
   "status": "active",
   "configFields": [
     {
-      "name": "sellerId",
-      "label": "ID do Vendedor (Seller ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: seller_..."
-    },
-    {
       "name": "apiToken",
-      "label": "Token de API (API Token)",
+      "label": "API Token / Chave de API",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "API Token obtido no painel Fly Payments"
+    },
+    {
+      "name": "sellerId",
+      "label": "Seller ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "ID da sua conta de vendedor / estabelecimento"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://flypayments.com.br",
+  "supportEmail": "suporte@flypayments.com.br"
 }

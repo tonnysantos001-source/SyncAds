@@ -3,32 +3,34 @@
   "slug": "brazapay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/5968/5968292.png",
-  "description": "Integração oficial da Braza Pay para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://braza-pay.com.br/logo.png",
+  "description": "Gateway de pagamento brasileiro especializado em Pix, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Braza Pay API Key"
+      "placeholder": "Chave secreta obtida no painel Braza Pay"
     },
     {
       "name": "accountId",
       "label": "Account ID",
       "type": "text",
       "required": true,
-      "placeholder": "ID da Conta Braza Pay"
+      "placeholder": "Identificador da conta obtido no painel Braza Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://braza-pay.com.br",
+  "supportEmail": "suporte@braza-pay.com.br"
 }

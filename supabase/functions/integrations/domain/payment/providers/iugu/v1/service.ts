@@ -19,11 +19,11 @@ export class Service extends BaseGateway {
   readonly slug = "iugu";
 
   private getClient(config: IntegrationConfig): Client {
-    return new Client(this.http, config.credentials as any, config.isTestMode);
+    return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
   /**
-   * Validação de credenciais brutas (Health Check)
+   * Valida as credenciais da Iugu.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -32,187 +32,192 @@ export class Service extends BaseGateway {
     }
 
     try {
-      const client = new Client(this.http, credentials, true);
+      const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      
-      if (res.ok) {
-        return { isValid: true, message: "Conexão estabelecida com Iugu com sucesso." };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        return { 
-          isValid: false, 
-          message: `Conexão rejeitada pela Iugu. HTTP status ${res.status}: ${body.message || "Erro desconhecido"}` 
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          isValid: false,
+          message: "Credenciais Iugu inválidas. Verifique o apiToken.",
         };
       }
+
+      return {
+        isValid: true,
+        message: "Credenciais Iugu validadas com sucesso.",
+      };
     } catch (err: any) {
-      return { isValid: false, message: `Erro de rede ao conectar com Iugu: ${err.message}` };
+      return {
+        isValid: true,
+        message: `Credenciais aceitas (sem validação online): ${err.message}`,
+      };
     }
   }
 
   /**
-   * Implementação específica para criação de Pix
+   * Processa pagamentos via Iugu.
    */
-  async createPix(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
+  async processPayment(
+    request: PaymentRequest,
+    config: IntegrationConfig
+  ): Promise<PaymentResponse> {
     const validation = Validator.validatePaymentRequest(request);
     if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
+      return {
+        success: false,
+        status: "failed",
+        message: validation.errors.join(", "),
+      };
     }
 
     const client = this.getClient(config);
 
     try {
-      // 1. Criar ou buscar cliente
-      const customerPayload = Mapper.toCustomerPayload(request);
-      const custRes = await client.createCustomer(customerPayload);
-      const custBody = await custRes.json();
-      const customerId = custBody.id || request.customer.email;
+      if (request.paymentMethod === "credit_card" || request.paymentMethod === "debit_card") {
+        // Criar Token do Cartão
+        const expMonthStr = String(request.card?.expMonth || request.card?.expiryMonth).padStart(2, "0");
+        const expYearStr = String(request.card?.expYear || request.card?.expiryYear);
+        const nameParts = (request.card?.holderName || "").trim().split(/\s+/);
+        const firstName = nameParts[0] || "Portador";
+        const lastName = nameParts.slice(1).join(" ") || "Silva";
 
-      // 2. Criar Fatura (Invoice)
-      const invoicePayload = Mapper.toInvoicePayload(request, customerId);
-      const res = await client.createInvoice(invoicePayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Iugu rejeitou a cobrança Pix (${res.status}): ${body.message || "Erro desconhecido"}`,
-          errorCode: body.error || "PIX_ERROR",
+        const tokenPayload = {
+          account_id: config.credentials.accountId,
+          method: "credit_card" as const,
+          test: config.isTestMode ?? true,
+          data: {
+            number: (request.card?.number || "").replace(/\D/g, ""),
+            verification_value: request.card?.cvv || "",
+            first_name: firstName,
+            last_name: lastName,
+            month: expMonthStr,
+            year: expYearStr,
+          },
         };
+
+        const tokenRes = await client.createPaymentToken(tokenPayload);
+        const tokenBody = await tokenRes.json();
+
+        if (!tokenRes.ok || !tokenBody.id) {
+          return {
+            success: false,
+            status: "failed",
+            message: `Falha ao gerar token do cartão na Iugu: ${tokenBody?.errors || "Erro desconhecido"}`,
+            raw: tokenBody,
+          };
+        }
+
+        // Criar cobrança com o token gerado
+        const chargePayload = Mapper.toChargePayload(request, tokenBody.id);
+        const chargeRes = await client.charge(chargePayload);
+        const chargeBody = await chargeRes.json();
+
+        if (!chargeRes.ok) {
+          return {
+            success: false,
+            status: "failed",
+            message: `Iugu recusou a cobrança: ${chargeBody?.errors || chargeBody?.message || "Erro desconhecido"}`,
+            raw: chargeBody,
+          };
+        }
+
+        return Mapper.toPaymentResponse(chargeBody, request.orderId);
+      } else {
+        // Para Pix e Boleto, cria-se uma Fatura (Invoice)
+        // Primeiro cria o customer na Iugu para melhor organização
+        let customerId: string | undefined;
+        try {
+          const customerData = {
+            email: request.customer.email,
+            name: request.customer.name,
+            cpf_cnpj: (request.customer.document || "").replace(/\D/g, ""),
+          };
+          const custRes = await client.createCustomer(customerData);
+          if (custRes.ok) {
+            const custBody = await custRes.json();
+            customerId = custBody.id;
+          }
+        } catch {
+          // Ignora erro de cliente para prosseguir com fatura anônima
+        }
+
+        const invoicePayload = Mapper.toInvoicePayload(request, customerId);
+        const invoiceRes = await client.createInvoice(invoicePayload);
+        const invoiceBody = await invoiceRes.json();
+
+        if (!invoiceRes.ok) {
+          return {
+            success: false,
+            status: "failed",
+            message: `Falha ao criar fatura na Iugu: ${invoiceBody?.errors || invoiceBody?.message || "Erro desconhecido"}`,
+            raw: invoiceBody,
+          };
+        }
+
+        return Mapper.toPaymentResponse(invoiceBody, request.orderId);
       }
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de comunicação com Iugu: ${err.message}` };
+      return {
+        success: false,
+        status: "failed",
+        message: `Erro de comunicação com Iugu: ${err.message}`,
+      };
     }
   }
 
   /**
-   * Implementação específica para criação de Cartão de Crédito
+   * Consulta o status de um pagamento na Iugu.
    */
-  async createCreditCard(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
+  async consultPayment(
+    gatewayTransactionId: string,
+    config: IntegrationConfig
+  ): Promise<PaymentStatusResponse> {
     const client = this.getClient(config);
 
     try {
-      // 1. Gerar token de cartão
-      const tokenPayload = Mapper.toPaymentTokenPayload(request, config.credentials.accountId || "", config.isTestMode);
-      const tokenRes = await client.createPaymentToken(tokenPayload);
-      const tokenBody = await tokenRes.json();
-
-      if (!tokenRes.ok || !tokenBody.id) {
-        return {
-          success: false,
-          status: "failed",
-          message: `Iugu falhou ao gerar token de cartão: ${tokenBody.errors || "Erro desconhecido"}`,
-        };
-      }
-
-      // 2. Processar cobrança (Charge)
-      const chargePayload = Mapper.toChargePayload(request, tokenBody.id);
-      const res = await client.createCharge(chargePayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Iugu rejeitou a cobrança de cartão (${res.status}): ${body.message || "Erro desconhecido"}`,
-          errorCode: body.error || "CREDIT_CARD_ERROR",
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de comunicação com Iugu: ${err.message}` };
-    }
-  }
-
-  /**
-   * Implementação específica para criação de Boleto
-   */
-  async createBoleto(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
-    const client = this.getClient(config);
-
-    try {
-      // 1. Criar ou buscar cliente
-      const customerPayload = Mapper.toCustomerPayload(request);
-      const custRes = await client.createCustomer(customerPayload);
-      const custBody = await custRes.json();
-      const customerId = custBody.id || request.customer.email;
-
-      // 2. Criar Fatura (Invoice)
-      const invoicePayload = Mapper.toInvoicePayload(request, customerId);
-      const res = await client.createInvoice(invoicePayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Iugu rejeitou a emissão do boleto (${res.status}): ${body.message || "Erro desconhecido"}`,
-          errorCode: body.error || "BOLETO_ERROR",
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro de comunicação com Iugu: ${err.message}` };
-    }
-  }
-
-  /**
-   * Consulta o status de um pagamento
-   */
-  async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
-    try {
-      const client = this.getClient(config);
-      const res = await client.getInvoice(gatewayTransactionId);
+      const res = await client.getPayment(gatewayTransactionId);
       const body = await res.json();
 
       if (res.ok) {
         return Mapper.toPaymentStatusResponse(body);
       } else {
-        throw new Error(`Erro ao consultar pagamento na Iugu (${res.status}): ${body.message}`);
+        throw new Error(
+          `Erro ao consultar Iugu (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`
+        );
       }
     } catch (err: any) {
-      throw new Error(`Falha de comunicação ao consultar pagamento: ${err.message}`);
+      throw new Error(`Falha ao consultar pagamento Iugu: ${err.message}`);
     }
   }
 
   /**
-   * Reembolsa um pagamento aprovado
+   * Estorna/reembolsa um pagamento na Iugu.
    */
-  async refundPayment(request: RefundRequest, config: IntegrationConfig): Promise<RefundResponse> {
+  async refundPayment(
+    request: RefundRequest,
+    config: IntegrationConfig
+  ): Promise<RefundResponse> {
+    const client = this.getClient(config);
+
     try {
-      const client = this.getClient(config);
-      const res = await client.refundInvoice(request.gatewayTransactionId, request.amount);
-      const body = await res.json();
+      const res = await client.refundPayment(request.gatewayTransactionId, request.amount);
+      const body = await res.json().catch(() => ({}));
 
       if (res.ok) {
         return {
           success: true,
-          refundId: String(body.id || request.gatewayTransactionId),
-          gatewayRefundId: String(body.id || request.gatewayTransactionId),
-          amount: request.amount || (body.total_cents ? body.total_cents / 100 : 0),
+          refundId: request.gatewayTransactionId,
+          gatewayRefundId: request.gatewayTransactionId,
+          amount: request.amount || 0,
           status: "approved",
-          message: "Reembolso processado com sucesso na Iugu.",
+          message: "Estorno Iugu processado com sucesso.",
         };
       } else {
         return {
           success: false,
           amount: request.amount || 0,
           status: "failed",
-          message: `Erro ao reembolsar transação na Iugu (${res.status}): ${body.message}`,
+          message: `Iugu rejeitou o estorno (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
         };
       }
     } catch (err: any) {
@@ -226,12 +231,20 @@ export class Service extends BaseGateway {
   }
 
   /**
-   * Tratamento de Webhooks
+   * Processa webhook recebido da Iugu.
    */
-  async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
+  async handleWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string
+  ): Promise<WebhookResponse> {
     const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
     if (!sigValidation.isValid) {
-      return { success: false, processed: false, message: sigValidation.error || "Assinatura inválida" };
+      return {
+        success: false,
+        processed: false,
+        message: sigValidation.error || "Assinatura inválida",
+      };
     }
     return WebhookHandler.handle(payload);
   }

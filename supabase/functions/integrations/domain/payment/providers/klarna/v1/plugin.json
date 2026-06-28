@@ -1,0 +1,19 @@
+{
+  "name": "Klarna",
+  "slug": "klarna",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://x.klarnacdn.net/payment-methodology/assets/badges/generic/klarna/dark/standard/badge.svg",
+  "description": "Líder global em BNPL (Compre Agora, Pague Depois). Permite parcelamento sem juros, pagamento em 30 dias e financiamento flexível para seus clientes.",
+  "status": "active",
+  "configFields": [
+    { "name": "username", "label": "Username (UID)", "type": "text", "required": true, "placeholder": "Obtido no Merchant Portal da Klarna" },
+    { "name": "password", "label": "Password", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Sandbox (Playground)", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "installment"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.klarna.com",
+  "supportEmail": "developer@klarna.com"
+}

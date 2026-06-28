@@ -1,0 +1,1 @@
+export const config = { endpoints: { production: "https://api.payulatam.com/payments-api/4.0/service.cgi", sandbox: "https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi" }, timeoutMs: 15000, maxRetries: 3 };

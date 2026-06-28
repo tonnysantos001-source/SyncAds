@@ -170,7 +170,7 @@ export interface PaymentRequest {
   customer: {
     name: string;
     email: string;
-    document: string; -- CPF/CNPJ/Passport
+    document: string; // CPF/CNPJ/Passport
     phone?: string;
     birthDate?: string;
   };
@@ -251,7 +251,7 @@ export interface PaymentStatusResponse {
 export interface RefundRequest {
   transactionId: string;
   gatewayTransactionId: string;
-  amount?: number; -- Opcional (se null, estorno total)
+  amount?: number; // Opcional (se null, estorno total)
   reason?: string;
 }
 

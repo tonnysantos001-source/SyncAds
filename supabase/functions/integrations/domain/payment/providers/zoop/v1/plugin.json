@@ -1,0 +1,19 @@
+{
+  "name": "Zoop",
+  "slug": "zoop",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://zoop.com.br/wp-content/themes/zoop-2021/img/logo-zoop.svg",
+  "description": "Gateway de pagamentos brasileiro focado em marketplaces e plataformas. Aceita cartão de crédito, débito, boleto e Pix com split de pagamentos nativo.",
+  "status": "active",
+  "configFields": [
+    { "name": "publishableKey", "label": "Publishable Key", "type": "password", "required": true },
+    { "name": "marketplaceId", "label": "Marketplace ID", "type": "text", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "boleto", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.zoop.com.br",
+  "supportEmail": "suporte@zoop.com.br"
+}

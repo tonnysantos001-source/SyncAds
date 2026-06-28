@@ -3,32 +3,34 @@
   "slug": "stone",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://docs.stone.com.br/images/logo.png",
-  "description": "Integração oficial da Stone para processamento de pagamentos.",
+  "logoUrl": "https://stone.com.br/logo.png",
+  "description": "Gateway e adquirente brasileiro Stone para processamento completo de Pix, Boleto, Crédito e Débito.",
   "status": "active",
   "configFields": [
     {
       "name": "merchantId",
-      "label": "Merchant ID Stone",
+      "label": "Merchant ID",
       "type": "text",
       "required": true,
-      "placeholder": "ID da loja na Stone"
+      "placeholder": "ID do estabelecimento comercial obtido na Stone"
     },
     {
       "name": "apiKey",
-      "label": "API Key / Token Stone",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Chave de autenticação"
+      "placeholder": "Chave de autenticação API obtida na Stone"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox (Test)",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": true,
-    "supportsSplit": true,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://stone.com.br",
+  "supportEmail": "suporte@stone.com.br"
 }

@@ -1,10 +1,10 @@
 {
-  "name": "Getnet",
+  "name": "GetNet",
   "slug": "getnet",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Getnet para processamento de pagamentos.",
+  "logoUrl": "https://getnet.com.br/logo.png",
+  "description": "Adquirente e Gateway de pagamentos GetNet (grupo Santander) para transações Pix, Boleto, Crédito e Débito.",
   "status": "active",
   "configFields": [
     {
@@ -12,30 +12,32 @@
       "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: 9eb9-4081-9b16-52c676451e03"
+      "placeholder": "Chave Client ID obtida no painel GetNet"
     },
     {
       "name": "clientSecret",
       "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: a1b2c3d4..."
+      "placeholder": "Chave Client Secret obtida no painel GetNet"
     },
     {
       "name": "sellerId",
       "label": "Seller ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: 12345678-1234-1234-1234-123456789012"
+      "placeholder": "ID do Seller / Estabelecimento comercial GetNet"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://getnet.com.br",
+  "supportEmail": "suporte@getnet.com.br"
 }

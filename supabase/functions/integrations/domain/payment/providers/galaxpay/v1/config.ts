@@ -1,0 +1,1 @@
+export const config = { endpoints: { production: "https://api.fbits.net/api", sandbox: "https://sandbox.fbits.net/api" }, tokenEndpoint: { production: "https://api.fbits.net/token", sandbox: "https://sandbox.fbits.net/token" }, timeoutMs: 12000, maxRetries: 3 };

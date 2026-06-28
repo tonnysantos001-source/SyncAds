@@ -1,0 +1,39 @@
+{
+  "name": "Nuvei",
+  "slug": "nuvei",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/nuvei.png",
+  "description": "Integração oficial do Nuvei para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "merchantId",
+      "label": "Merchant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Merchant ID"
+    },
+    {
+      "name": "merchantSiteId",
+      "label": "Merchant Site ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Merchant Site ID"
+    },
+    {
+      "name": "secretKey",
+      "label": "Secret Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Secret Key"
+    }
+  ],
+  "paymentMethods": [
+    "credit_card"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.nuvei.com",
+  "supportEmail": "suporte@nuvei.com"
+}

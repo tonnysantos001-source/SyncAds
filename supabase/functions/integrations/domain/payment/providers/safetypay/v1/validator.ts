@@ -1,41 +1,34 @@
 import { PaymentRequest } from "../../../../../types.ts";
 
 export class Validator {
-  /**
-   * Valida o formato e integridade das credenciais informadas pelo usuário
-   */
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!credentials.apiKey) {
-      errors.push("API Key (apiKey) é obrigatório.");
+    if (!credentials.apiKey || credentials.apiKey.trim() === "") {
+      errors.push("apiKey é obrigatório. Obtenha no painel do SafetyPay.");
     }
-    if (!credentials.signatureKey) {
-      errors.push("Signature Key (signatureKey) é obrigatório.");
+    if (!credentials.signatureKey || credentials.signatureKey.trim() === "") {
+      errors.push("signatureKey é obrigatório. Obtenha no painel do SafetyPay.");
     }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Valida se os dados da transação contêm todos os campos requeridos
-   */
   static validatePaymentRequest(request: PaymentRequest): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!request.orderId) {
+    if (!request.orderId || request.orderId.trim() === "") {
       errors.push("ID do pedido (orderId) é obrigatório.");
     }
-    if (!request.customer?.email) {
-      errors.push("Email do cliente é obrigatório.");
-    }
     if (!request.amount || request.amount <= 0) {
-      errors.push("Valor do pagamento inválido.");
+      errors.push("Valor do pagamento deve ser maior que zero.");
     }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (!request.customer?.name || request.customer.name.trim() === "") {
+      errors.push("Nome do cliente é obrigatório.");
+    }
+    if (!request.customer?.email || !request.customer.email.includes("@")) {
+      errors.push("E-mail do cliente inválido ou ausente.");
+    }
+    if (!request.customer?.document || request.customer.document.replace(/\D/g, "").length < 11) {
+      errors.push("CPF/CNPJ do cliente é obrigatório.");
+    }
+    return { isValid: errors.length === 0, errors };
   }
 }

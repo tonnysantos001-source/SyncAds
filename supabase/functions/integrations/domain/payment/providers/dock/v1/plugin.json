@@ -1,0 +1,19 @@
+{
+  "name": "Dock",
+  "slug": "dock",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://dock.tech/wp-content/themes/dock/dist/images/logo-dock.svg",
+  "description": "Uma das maiores plataformas de Banking-as-a-Service e processamento de cartões na América Latina. Oferece soluções completas de conta digital, emissão de Pix, boletos e cartões private label.",
+  "status": "active",
+  "configFields": [
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.dock.tech",
+  "supportEmail": "suporte@dock.tech"
+}

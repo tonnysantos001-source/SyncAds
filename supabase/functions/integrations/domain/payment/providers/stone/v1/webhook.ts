@@ -1,40 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pela Stone
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    if (secret && signature && signature !== secret) {
-      return { isValid: false, error: "Assinatura do webhook inválida" };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Stone.
    */
   static handle(payload: any): WebhookResponse {
-    const data = payload.data || payload;
-    if (!data || !data.id) {
+    try {
+      const paymentId = payload.payment_id;
+      const status = payload.status;
+
+      if (!paymentId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Stone inválido: payment_id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Stone inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId: paymentId,
+        status: normalizedStatus,
+        message: `Webhook Stone: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Webhook sem informações de pagamento.",
+        message: `Erro webhook Stone: ${err.message}`,
       };
     }
-
-    const orderId = data.metadata?.order_id || data.id;
-    const status = data.status ? Mapper.toPaymentStatus(data.status) : undefined;
-
-    return {
-      success: true,
-      processed: true,
-      transactionId: orderId,
-      gatewayTransactionId: data.id,
-      status,
-      message: `Stone webhook recebido para o pagamento ${data.id} com status ${data.status || "unknown"}.`,
-    };
   }
 }

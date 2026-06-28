@@ -1,57 +1,65 @@
-import { WebhookResponse, WebhookValidationResult, PaymentStatus } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
+import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo PayPal
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
-    // PayPal usa verificação via endpoint da API deles ou chaves públicas.
-    // Retornamos true por padrão para validação offline/teste.
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook do PayPal.
    */
   static handle(payload: any): WebhookResponse {
-    const eventType = payload.event_type;
-    const resource = payload.resource || {};
-    const transactionId = resource.id || payload.id;
+    try {
+      const eventType = payload.event_type;
+      const resource = payload.resource || {};
+      const transactionId = resource.id;
 
-    if (!eventType) {
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook PayPal inválido: resource.id ausente.",
+        };
+      }
+
+      if (eventType === "PAYMENT.CAPTURE.COMPLETED" || eventType === "CHECKOUT.ORDER.APPROVED") {
+        return {
+          success: true,
+          processed: true,
+          transactionId,
+          status: "approved",
+          message: `Webhook PayPal [${eventType}]: approved`,
+          raw: payload,
+        };
+      }
+
+      if (eventType === "PAYMENT.CAPTURE.REFUNDED") {
+        return {
+          success: true,
+          processed: true,
+          transactionId,
+          status: "refunded",
+          message: `Webhook PayPal [${eventType}]: refunded`,
+          raw: payload,
+        };
+      }
+
+      return {
+        success: true,
+        processed: false,
+        message: `Webhook PayPal de tipo ${eventType} recebido e ignorado.`,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Missing event_type in webhook payload",
+        message: `Erro webhook PayPal: ${err.message}`,
       };
     }
-
-    let status: PaymentStatus | undefined = undefined;
-    let processed = false;
-
-    if (eventType === "PAYMENT.CAPTURE.COMPLETED") {
-      status = "approved";
-      processed = true;
-    } else if (eventType === "CHECKOUT.ORDER.APPROVED") {
-      status = "processing";
-      processed = true;
-    } else if (eventType === "PAYMENT.CAPTURE.REFUNDED") {
-      status = "refunded";
-      processed = true;
-    } else if (eventType === "PAYMENT.CAPTURE.DENIED" || eventType === "PAYMENT.CAPTURE.REVERSED") {
-      status = "failed";
-      processed = true;
-    }
-
-    return {
-      success: true,
-      processed,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: processed 
-        ? `Webhook do PayPal do tipo ${eventType} processado.` 
-        : `Webhook do PayPal do tipo ${eventType} recebido mas não processado.`,
-    };
   }
 }

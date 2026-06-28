@@ -1,203 +1,140 @@
 import {
   PaymentRequest,
-  PaymentResponse,
+  PaymentResponse as InternalPaymentResponse,
   PaymentStatus,
   PaymentStatusResponse,
 } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request do SyncAds para payload da API da Bestfy
+   * Converte PaymentRequest no payload da Bestfy.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const cleanDoc = (request.customer.document || "").replace(/\D/g, "");
-    const docType = cleanDoc.length > 11 ? "cnpj" : "cpf";
-    const amountInCents = Math.round(request.amount * 100);
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    let paymentMethod: "pix" | "boleto" | "credit_card";
-    switch (request.paymentMethod.toLowerCase()) {
-      case "pix":
-        paymentMethod = "pix";
-        break;
-      case "boleto":
-        paymentMethod = "boleto";
-        break;
-      case "credit_card":
-        paymentMethod = "credit_card";
-        break;
-      default:
-        paymentMethod = "pix";
-    }
+    let payment_method: "credit_card" | "pix" | "boleto" | "debit_card" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
 
-    // Bestfy exige a lista de itens. Se não houver, criamos um item padrão correspondente ao valor total
-    const items = request.items && request.items.length > 0
-      ? request.items.map((item) => ({
-          title: item.name,
-          unitPrice: Math.round(item.price * 100),
-          quantity: item.quantity || 1,
-          tangible: false,
-        }))
-      : [
-          {
-            title: `Pedido SyncAds AI #${request.orderId}`,
-            unitPrice: amountInCents,
-            quantity: 1,
-            tangible: false,
-          },
-        ];
-
-    const payload: PaymentRequestPayload = {
-      amount: amountInCents,
-      paymentMethod,
+    // Bestfy espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
+      transaction_id: request.orderId,
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: {
-          type: docType as "cpf" | "cnpj",
-          number: cleanDoc,
-        },
+        document: docClean,
+        phone: phoneClean || undefined,
       },
-      items,
-      metadata: request.orderId,
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    if (request.customer.phone) {
-      payload.customer.phone = request.customer.phone.replace(/\D/g, "");
-    }
-
-    // Mapear dados do cartão se for credit_card
-    if (paymentMethod === "credit_card") {
-      payload.installments = request.installments || 1;
-      
-      const token = request.metadata?.token || request.metadata?.hash;
-      
-      if (token) {
-        payload.card = {
-          hash: token,
-        };
-      } else if (request.card) {
-        payload.card = {
-          number: request.card.number.replace(/\D/g, ""),
-          holderName: request.card.holder,
-          expirationMonth: parseInt(request.card.expirationMonth, 10),
-          expirationYear: parseInt(request.card.expirationYear, 10),
-          cvv: request.card.cvv,
-        };
-      } else if (request.metadata) {
-        payload.card = {
-          number: (request.metadata.cardNumber || "").replace(/\D/g, ""),
-          holderName: request.metadata.cardHolder || "",
-          expirationMonth: parseInt(request.metadata.cardExpirationMonth || "0", 10),
-          expirationYear: parseInt(request.metadata.cardExpirationYear || "0", 10),
-          cvv: request.metadata.cardCvv || "",
-        };
-      }
-    }
-
-    // Webhook URL
-    if (request.metadata?.notifyUrl) {
-      payload.postbackUrl = request.metadata.notifyUrl;
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
+      };
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API da Bestfy para o formato padronizado do SyncAds
+   * Converte resposta da Bestfy para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const status = this.toPaymentStatus(response.status);
-    const success = ["approved", "paid"].includes(response.status.toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Bestfy recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const paymentResponse: PaymentResponse = {
-      success,
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status,
-      message: `Pagamento processado com status: ${response.status}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Bestfy status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    if (response.secureUrl) {
-      paymentResponse.paymentUrl = response.secureUrl;
-    }
-
-    // Pix
-    if (response.paymentMethod === "pix" && response.pix) {
-      paymentResponse.qrCode = response.pix.qrcode;
-      paymentResponse.pixKey = response.pix.qrcode;
-      paymentResponse.expiresAt = response.pix.expirationDate;
-      paymentResponse.pixData = {
-        qrCode: response.pix.qrcode,
-        amount: response.amount / 100,
-        expiresAt: response.pix.expirationDate,
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    // Boleto
-    if (response.paymentMethod === "boleto" && response.boleto) {
-      paymentResponse.paymentUrl = response.boleto.url;
-      paymentResponse.barcodeNumber = response.boleto.barcode;
-      paymentResponse.digitableLine = response.boleto.digitableLine;
-      paymentResponse.expiresAt = response.boleto.expirationDate;
-      paymentResponse.boletoData = {
-        boletoUrl: response.boleto.url,
-        barcode: response.boleto.barcode,
-        digitableLine: response.boleto.digitableLine,
-        dueDate: response.boleto.expirationDate,
-        amount: response.amount / 100,
-      };
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    // Cartão
-    if (response.paymentMethod === "credit_card" && response.card) {
-      paymentResponse.metadata = {
-        brand: response.card.brand,
-        lastFour: response.card.lastDigits,
-      };
-    }
-
-    return paymentResponse;
+    return response;
   }
 
   /**
-   * Converte a resposta da API da Bestfy para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: PaymentResponsePayload): PaymentStatusResponse {
-    let internalMethodMap: Record<string, string> = {
-      pix: "pix",
-      boleto: "boleto",
-      credit_card: "credit_card",
-    };
-
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount / 100,
-      currency: "BRL",
-      paymentMethod: internalMethodMap[response.paymentMethod] || "pix",
-      createdAt: response.createdAt || new Date().toISOString(),
-      updatedAt: response.updatedAt || new Date().toISOString(),
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Mapeia status da Bestfy para status interno do SyncAds
+   * Normaliza os códigos de status da Bestfy.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
       approved: "approved",
       paid: "approved",
+      completed: "approved",
+      success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
-      refused: "failed",
-      rejected: "failed",
+      declined: "failed",
+      error: "failed",
       cancelled: "cancelled",
+      canceled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

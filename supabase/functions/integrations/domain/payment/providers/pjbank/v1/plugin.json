@@ -1,0 +1,19 @@
+{
+  "name": "PJBank",
+  "slug": "pjbank",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://pjbank.com.br/wp-content/themes/pjbank/img/logo.png",
+  "description": "Gateway brasileiro especializado em serviços bancários via API. Oferece emissão ágil de boletos bancários com baixa automática, Pix e processamento de cartões.",
+  "status": "active",
+  "configFields": [
+    { "name": "credencial", "label": "Credencial (Conta)", "type": "text", "required": true, "placeholder": "Ex: 27ab5d... (obtida no credenciamento)" },
+    { "name": "chave", "label": "Chave de Acesso (X-CHAVE)", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Modo Sandbox (Credenciais de Teste)", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "boleto", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.pjbank.com.br",
+  "supportEmail": "suporte@pjbank.com.br"
+}

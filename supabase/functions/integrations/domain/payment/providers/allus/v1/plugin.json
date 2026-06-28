@@ -3,32 +3,34 @@
   "slug": "allus",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Allus para processamento de pagamentos.",
+  "logoUrl": "https://allus.com/logo.png",
+  "description": "Gateway brasileiro Allus focado em conversão inteligente de pagamentos via Pix, Boleto e Cartão.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
-      "type": "text",
+      "label": "API Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: allus_live_..."
+      "placeholder": "Chave API Key fornecida pelo painel da Allus"
     },
     {
       "name": "merchantId",
       "label": "Merchant ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: merch_..."
+      "placeholder": "Identificador único da sua conta Allus"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://allus.com",
+  "supportEmail": "suporte@allus.com"
 }

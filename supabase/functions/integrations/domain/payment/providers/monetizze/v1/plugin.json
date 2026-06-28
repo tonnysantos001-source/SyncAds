@@ -1,0 +1,34 @@
+{
+  "name": "Monetizze",
+  "slug": "monetizze",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/monetizze.png",
+  "description": "Integração oficial do Monetizze para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "consumerKey",
+      "label": "Consumer Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Consumer Key"
+    },
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Chave de API (API Key)"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.monetizze.com",
+  "supportEmail": "suporte@monetizze.com"
+}

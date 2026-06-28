@@ -3,32 +3,34 @@
   "slug": "freepay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do FreePay para processamento de pagamentos.",
+  "logoUrl": "https://freepay.com.br/logo.png",
+  "description": "Gateway brasileiro para pagamentos via Pix, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
-      "name": "accountId",
-      "label": "ID da Conta (Account ID)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: acc_..."
-    },
-    {
       "name": "token",
-      "label": "Token de API (API Token)",
+      "label": "Token de Autenticação",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Chave de Token obtida no painel FreePay"
+    },
+    {
+      "name": "accountId",
+      "label": "Account ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador da sua conta no painel FreePay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://freepay.com.br",
+  "supportEmail": "suporte@freepay.com.br"
 }

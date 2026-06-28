@@ -1,13 +1,15 @@
-import { HttpClientInterface, CacheInterface } from "../../../../../types.ts";
+import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
+  // Cache estático para o token por instância
+  private static tokenCache: { token: string; expiresAt: number } | null = null;
+
   constructor(
     private http: HttpClientInterface,
     private credentials: Credentials,
-    private isTestMode: boolean,
-    private cache: CacheInterface
+    private isTestMode: boolean
   ) {}
 
   private getBaseUrl(): string {
@@ -15,132 +17,157 @@ export class Client {
   }
 
   /**
-   * Obtém o token de acesso OAuth2 usando HTTP Basic Auth
+   * Obtém o Token OAuth2 da GetNet.
    */
   async getAccessToken(): Promise<string> {
-    const cacheKey = `getnet_token_${this.credentials.clientId}_${this.isTestMode ? "sandbox" : "prod"}`;
-    const cachedToken = await this.cache.get<string>(cacheKey);
-    if (cachedToken) {
-      return cachedToken;
+    if (Client.tokenCache && Client.tokenCache.expiresAt > Date.now()) {
+      return Client.tokenCache.token;
     }
 
-    const url = `${this.getBaseUrl()}/auth/oauth/v2/token`;
-    const basicAuth = btoa(`${this.credentials.clientId}:${this.credentials.clientSecret}`);
+    const authString = `${this.credentials.clientId}:${this.credentials.clientSecret}`;
+    const base64Auth = btoa(authString);
 
-    const res = await this.http.request(url, {
+    const res = await this.http.request(`${this.getBaseUrl()}/auth/oauth/v2/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Basic ${basicAuth}`,
+        "Authorization": `Basic ${base64Auth}`,
       },
       body: "scope=oob&grant_type=client_credentials",
       timeoutMs: config.timeoutMs,
     });
 
     if (!res.ok) {
-      const errorBody = await res.json().catch(() => ({}));
-      throw new Error(errorBody.error_description || `Failed to authenticate with Getnet. Status: ${res.status}`);
+      throw new Error(`Falha ao obter token GetNet: Status ${res.status}`);
     }
 
     const data = await res.json();
-    const token = data.access_token;
-    
-    // Cache token (usa 90% do expires_in, padrão 3600s)
-    const expiresSeconds = Math.floor((data.expires_in || 3600) * 0.9);
-    await this.cache.set(cacheKey, token, expiresSeconds);
-
-    return token;
-  }
-
-  private async getHeaders(): Promise<HeadersInit> {
-    const token = await this.getAccessToken();
-    return {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-      "seller_id": this.credentials.sellerId,
+    Client.tokenCache = {
+      token: data.access_token,
+      expiresAt: Date.now() + (data.expires_in || 3600) * 1000 * 0.9,
     };
+
+    return data.access_token;
   }
 
   /**
-   * Testa a conexão obtendo o token de acesso
+   * Verifica credenciais.
    */
   async ping(): Promise<Response> {
     try {
       const token = await this.getAccessToken();
       if (token) {
-        return new Response(JSON.stringify({ success: true }), { status: 200 });
+        return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
       }
-      return new Response(JSON.stringify({ success: false }), { status: 400 });
+      return new Response(JSON.stringify({ error: "No token returned" }), { status: 401 });
     } catch (err: any) {
-      return new Response(JSON.stringify({ success: false, message: err.message }), { status: 401 });
+      return new Response(JSON.stringify({ error: err.message }), { status: 401 });
     }
   }
 
   /**
-   * Cria pagamento via PIX
+   * Cria pagamento Pix.
+   * POST /v1/payments/qrcode/pix
    */
-  async createPix(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/qrcode/pix`;
-    const headers = await this.getHeaders();
-    return await this.http.request(url, {
+  async createPix(payload: CreatePaymentPayload): Promise<Response> {
+    const token = await this.getAccessToken();
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/qrcode/pix`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
       body: JSON.stringify(payload),
       timeoutMs: config.timeoutMs,
     });
   }
 
   /**
-   * Cria pagamento via Cartão de Crédito
+   * Cria pagamento Cartão de Crédito.
+   * POST /v1/payments/credit
    */
-  async createCreditCard(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/credit`;
-    const headers = await this.getHeaders();
-    return await this.http.request(url, {
+  async createCreditCard(payload: CreatePaymentPayload): Promise<Response> {
+    const token = await this.getAccessToken();
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/credit`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
       body: JSON.stringify(payload),
       timeoutMs: config.timeoutMs,
     });
   }
 
   /**
-   * Cria pagamento via Cartão de Débito
+   * Cria pagamento Cartão de Débito.
+   * POST /v1/payments/debit
    */
-  async createDebitCard(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/debit`;
-    const headers = await this.getHeaders();
-    return await this.http.request(url, {
+  async createDebitCard(payload: CreatePaymentPayload): Promise<Response> {
+    const token = await this.getAccessToken();
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/debit`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
       body: JSON.stringify(payload),
       timeoutMs: config.timeoutMs,
     });
   }
 
   /**
-   * Cria pagamento via Boleto
+   * Cria pagamento Boleto.
+   * POST /v1/payments/boleto
    */
-  async createBoleto(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/boleto`;
-    const headers = await this.getHeaders();
-    return await this.http.request(url, {
+  async createBoleto(payload: CreatePaymentPayload): Promise<Response> {
+    const token = await this.getAccessToken();
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/boleto`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
       body: JSON.stringify(payload),
       timeoutMs: config.timeoutMs,
     });
   }
 
   /**
-   * Obtém detalhes de um pagamento
+   * Obtém detalhes de um pagamento.
+   * GET /v1/payments/{id}
    */
   async getPayment(paymentId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/${paymentId}`;
-    const headers = await this.getHeaders();
-    return await this.http.request(url, {
+    const token = await this.getAccessToken();
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/${paymentId}`, {
       method: "GET",
-      headers,
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Reembolsa/estorna um pagamento.
+   * POST /v1/payments/{id}/refund
+   */
+  async refundPayment(paymentId: string, amount?: number): Promise<Response> {
+    const token = await this.getAccessToken();
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/${paymentId}/refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "seller_id": this.credentials.sellerId,
+      },
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

@@ -1,0 +1,27 @@
+{
+  "name": "MundiPagg",
+  "slug": "mundipagg",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/mundipagg.png",
+  "description": "Integração oficial do MundiPagg para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "secretKey",
+      "label": "Secret Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Secret Key"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.mundipagg.com",
+  "supportEmail": "suporte@mundipagg.com"
+}

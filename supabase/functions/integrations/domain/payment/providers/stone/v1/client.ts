@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -15,18 +15,17 @@ export class Client {
 
   private getHeaders(): HeadersInit {
     return {
-      "Authorization": `Bearer ${this.credentials.apiKey}`,
       "Content-Type": "application/json",
-      "User-Agent": "SyncAds Integration Client v1.0",
+      "Authorization": `Bearer ${this.credentials.apiKey}`,
     };
   }
 
   /**
-   * Faz uma chamada real de ping/teste de conexão na API
+   * Verifica credenciais.
+   * GET /v1/merchants/{merchant_id}
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/merchants/${this.credentials.merchantId}`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/v1/merchants/${this.credentials.merchantId}`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -34,11 +33,11 @@ export class Client {
   }
 
   /**
-   * Cria pagamento na Stone
+   * Cria transação na Stone.
+   * POST /v1/payments
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments`;
-    return await this.http.request(url, {
+  async createPayment(payload: CreatePaymentPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -47,13 +46,27 @@ export class Client {
   }
 
   /**
-   * Obtém detalhes de um pagamento
+   * Consulta pagamento.
+   * GET /v1/payments/{id}
    */
   async getPayment(paymentId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/v1/payments/${paymentId}`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/${paymentId}`, {
       method: "GET",
       headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Cancela/estorna transação.
+   * POST /v1/payments/{id}/refunds
+   */
+  async refundPayment(paymentId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/v1/payments/${paymentId}/refunds`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

@@ -1,0 +1,20 @@
+{
+  "name": "PayU",
+  "slug": "payu",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.payu.com/images/logo-payu.svg",
+  "description": "Gateway global de pagamentos com forte presença na América Latina. Aceita cartão, Pix, boleto e mais de 250 métodos de pagamento locais em 50 países.",
+  "status": "active",
+  "configFields": [
+    { "name": "apiKey", "label": "API Key", "type": "password", "required": true },
+    { "name": "apiLogin", "label": "API Login", "type": "text", "required": true },
+    { "name": "merchantId", "label": "Merchant ID", "type": "text", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developers.payulatam.com",
+  "supportEmail": "tecnico.br@payu.com"
+}

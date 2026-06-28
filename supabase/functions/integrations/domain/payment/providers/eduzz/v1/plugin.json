@@ -1,0 +1,34 @@
+{
+  "name": "Eduzz",
+  "slug": "eduzz",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/eduzz.png",
+  "description": "Integração oficial do Eduzz para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "producerKey",
+      "label": "Producer Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Producer Key"
+    },
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Chave de API (API Key)"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.eduzz.com",
+  "supportEmail": "suporte@eduzz.com"
+}

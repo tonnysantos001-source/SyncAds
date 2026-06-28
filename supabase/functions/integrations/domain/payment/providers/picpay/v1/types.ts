@@ -1,15 +1,17 @@
-// Tipos específicos para a API do PicPay
+// Tipos específicos para a API PicPay
+// Documentação: https://ecommerce.picpay.com/doc/
+
 export interface Credentials {
-  picpayToken: string;
-  sellerToken: string;
+  picpayToken: string;  // x-picpay-token
+  sellerToken: string;  // x-seller-token
 }
 
-export interface PaymentRequestPayload {
+export interface CreatePaymentPayload {
   referenceId: string;
   callbackUrl: string;
   returnUrl?: string;
-  value: number;
-  expiresAt: string;
+  value: number; // ex: 150.00 (decimal)
+  expiresAt?: string;
   buyer: {
     firstName: string;
     lastName: string;
@@ -17,15 +19,24 @@ export interface PaymentRequestPayload {
     email: string;
     phone?: string;
   };
-  channel?: string;
+  channel?: "ecommerce";
 }
 
-export interface PaymentResponsePayload {
-  referenceId: string;
-  paymentUrl: string;
-  expiresAt: string;
+export interface PaymentResponse {
+  referenceId?: string;
+  paymentUrl?: string;
   qrcode?: {
-    content: string;
-    base64: string;
+    content?: string;
+    base64?: string;
+  };
+  expiresAt?: string;
+  status?: string; // "created" | "analysis" | "paid" | "completed" | "refunded" | "expired" | "cancelled"
+  authorizationId?: string;
+  value?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  message?: string;
+  error?: {
+    message?: string;
   };
 }

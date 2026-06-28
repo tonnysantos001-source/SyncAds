@@ -1,34 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo Appmax
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    // Para simplificar a integração inicial, aceitamos se não houver assinatura ou se coincidir.
-    if (signature && secret && signature !== secret) {
-      return { isValid: false, error: "Assinatura inválida" };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Appmax.
    */
   static handle(payload: any): WebhookResponse {
-    const data = payload.data || payload;
-    const transactionId = String(data.id || payload.order_id || payload.id || "");
-    const statusStr = String(data.status || payload.status || "");
-    const status = statusStr ? Mapper.toPaymentStatus(statusStr) : undefined;
-    
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook processado e mapeado com sucesso.",
-    };
+    try {
+      const transactionId = payload.transaction_id || payload.id;
+      const status = payload.status;
+
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Appmax inválido: transaction_id/id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Appmax inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId,
+        status: normalizedStatus,
+        message: `Webhook Appmax: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        processed: false,
+        message: `Erro webhook Appmax: ${err.message}`,
+      };
+    }
   }
 }

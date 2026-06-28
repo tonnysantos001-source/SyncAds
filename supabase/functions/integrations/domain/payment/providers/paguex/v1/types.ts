@@ -1,73 +1,78 @@
-// Tipos específicos para a API do Pague-X
+// Tipos específicos para a API Pague-X
+// Documentação: https://api.inpagamentos.com/docs
+
 export interface Credentials {
-  publicKey: string;
-  secretKey: string;
+  publicKey: string;    // Chave pública Pague-X
+  secretKey: string;    // Chave secreta Pague-X
 }
 
-export interface PaymentRequestPayload {
-  amount: number; // centavos
-  currency: string;
-  paymentMethod: string;
-  installments: number;
+export interface CreatePaymentPayload {
+  amount: number;         // Valor em centavos
+  currency: "BRL";
+  paymentMethod: "credit_card" | "pix" | "boleto";
+  installments?: number;
   postbackUrl?: string;
-  metadata?: string;
   externalRef?: string;
+  metadata?: string;      // JSON stringified
   customer: {
     name: string;
     email: string;
     phone: string;
     document: {
-      type: string;
-      number: string;
+      type: "cpf" | "cnpj";
+      number: string;     // CPF/CNPJ limpo
     };
     address?: {
       street: string;
       streetNumber: string;
-      complement: string;
+      complement?: string;
       zipCode: string;
       neighborhood: string;
       city: string;
       state: string;
-      country: string;
+      country: "BR";
     };
   };
-  items: Array<{
-    title: string;
-    unitPrice: number;
-    quantity: number;
-    tangible: boolean;
-  }>;
-  cardToken?: string;
   card?: {
     number: string;
     holderName: string;
-    expMonth: number;
-    expYear: number;
+    expMonth: number;     // MM (number)
+    expYear: number;      // YYYY (number)
     cvv: string;
   };
+  cardToken?: string;     // Se gerado no frontend
+  items?: Array<{
+    title: string;
+    unitPrice: number;    // Centavos
+    quantity: number;
+    tangible?: boolean;
+  }>;
 }
 
-export interface PaymentResponsePayload {
-  id: number | string;
+export interface PaymentResponse {
+  id?: number | string;
   secureId?: string;
+  status?: string;        // "waiting_payment" | "pending" | "approved" | "refused" | "refunded"
   secureUrl?: string;
-  status: string;
   paidAt?: string;
   authorizationCode?: string;
   pix?: {
-    qrcode: string;
-    qrcodeImage: string;
-    expirationDate: string;
+    qrcode?: string;
+    qrcodeImage?: string;
+    expirationDate?: string;
   };
   boleto?: {
-    url: string;
-    barcode: string;
-    digitableLine: string;
-    expirationDate: string;
+    url?: string;
+    barcode?: string;
+    digitableLine?: string;
+    expirationDate?: string;
   };
-  currency?: string;
+  error?: {
+    message?: string;
+    code?: string;
+  };
+  message?: string;
   amount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  refundedAmount?: number;
+  currency?: string;
+  paymentMethod?: string;
 }

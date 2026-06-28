@@ -1,0 +1,19 @@
+{
+  "name": "Checkout.com",
+  "slug": "checkoutcom",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://checkout.com/images/checkout-logo.svg",
+  "description": "Gateway global de alto desempenho. Aceita mais de 150 métodos de pagamento em 180+ países, incluindo Pix e cartões no Brasil, com análise de risco em tempo real.",
+  "status": "active",
+  "configFields": [
+    { "name": "secretKey", "label": "Secret Key", "type": "password", "required": true, "placeholder": "sk_..." },
+    { "name": "publicKey", "label": "Public Key", "type": "text", "required": true, "placeholder": "pk_..." },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://www.checkout.com/docs",
+  "supportEmail": "support@checkout.com"
+}

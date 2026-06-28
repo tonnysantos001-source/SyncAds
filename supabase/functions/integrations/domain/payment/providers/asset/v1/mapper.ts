@@ -1,89 +1,140 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
-  private static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do Asset
+   * Converte PaymentRequest no payload da Asset.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    return {
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+
+    let payment_method: "credit_card" | "pix" | "boleto" | "debit_card" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Asset espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
       transaction_id: request.orderId,
-      amount: request.amount,
-      currency: request.currency || "BRL",
-      payment_method: request.paymentMethod,
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: this.formatDocument(request.customer.document),
+        document: docClean,
+        phone: phoneClean || undefined,
       },
-    };
-  }
-
-  /**
-   * Converte a resposta da API do Asset para o formato padronizado do SyncAds
-   */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const rawStatus = response.status || "pending";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["success", "approved", "paid", "pending"].includes(rawStatus.toLowerCase());
-
-    const result: PaymentResponse = {
-      success,
-      transactionId: response.transaction_id,
-      gatewayTransactionId: response.transaction_id,
-      status,
-      message: `Transação processada no Asset com status: ${rawStatus}`,
+      metadata: {
+        order_id: request.orderId,
+      },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    if (response.payment_url) {
-      result.paymentUrl = response.payment_url;
-      result.redirectUrl = response.payment_url;
-    }
-
-    if (response.qr_code) {
-      result.qrCode = response.qr_code;
-      result.pixData = {
-        qrCode: response.qr_code,
-        amount: 0,
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
       };
     }
 
-    return result;
+    return payload;
   }
 
   /**
-   * Converte a resposta de status da API do Asset para resposta de status do SyncAds
+   * Converte resposta da Asset para o padrão interno.
    */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Asset recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
+
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Asset status: ${apiResponse.status}`,
+      raw: apiResponse,
+    };
+
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
+      };
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
+    }
+
+    return response;
+  }
+
+  /**
+   * Converte resposta de consulta para PaymentStatusResponse.
+   */
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: response.transaction_id,
-      gatewayTransactionId: response.transaction_id,
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount || 0,
-      currency: response.currency || "BRL",
-      paymentMethod: response.payment_method || "pix",
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Asset.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      success: "approved",
       approved: "approved",
       paid: "approved",
+      completed: "approved",
+      success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
+      declined: "failed",
+      error: "failed",
       cancelled: "cancelled",
+      canceled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
+      expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

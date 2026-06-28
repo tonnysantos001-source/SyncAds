@@ -3,25 +3,34 @@
   "slug": "appmax",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial de Appmax para processamento de pagamentos.",
-  "status": "beta",
+  "logoUrl": "https://appmax.com.br/logo.png",
+  "description": "Gateway brasileiro focado em conversão de pagamentos via Pix, Cartão de Crédito e Boleto Bancário.",
+  "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave Secreta de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "sk_live_..."
+      "placeholder": "Chave secreta obtida no painel Appmax"
+    },
+    {
+      "name": "accountId",
+      "label": "Account ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Código identificador da conta do comerciante Appmax"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://appmax.com.br",
+  "supportEmail": "suporte@appmax.com.br"
 }

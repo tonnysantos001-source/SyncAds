@@ -3,32 +3,34 @@
   "slug": "alphacash",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Alphacash para processamento de pagamentos.",
+  "logoUrl": "https://alphacash.com.br/logo.png",
+  "description": "Gateway brasileiro Alphacash focado em transações seguras de Pix, Boleto e Cartão com altos índices de aprovação.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
-      "type": "text",
+      "label": "API Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: alpha_live_..."
+      "placeholder": "Chave API Key fornecida pelo painel da Alphacash"
     },
     {
       "name": "secretKey",
-      "label": "Chave Secreta (Secret Key)",
+      "label": "Secret Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: sec_key_..."
+      "placeholder": "Assinatura ou chave secreta adicional"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": false,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://alphacash.com.br",
+  "supportEmail": "suporte@alphacash.com.br"
 }

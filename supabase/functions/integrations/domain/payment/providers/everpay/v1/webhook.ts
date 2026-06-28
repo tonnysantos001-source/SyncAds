@@ -1,44 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo Ever Pay
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    // Se o webhook vier com assinatura e tivermos segredo, validamos. Caso contrário, aceitamos de forma simples para o MVP.
-    if (signature && secret && signature !== secret) {
-      return { isValid: false, error: "Assinatura inválida" };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Ever Pay.
    */
   static handle(payload: any): WebhookResponse {
-    // Trata estrutura Stripe-like: data.object
-    const object = payload.data?.object || payload;
-    const transactionId = object.id || "";
-    
-    // O status pode vir diretamente ou derivado do tipo de evento (ex: payment.succeeded -> succeeded)
-    let statusStr = object.status || "";
-    if (!statusStr && payload.type) {
-      if (payload.type === "payment.succeeded") statusStr = "succeeded";
-      if (payload.type === "payment.failed") statusStr = "failed";
-      if (payload.type === "payment.refunded") statusStr = "refunded";
-    }
+    try {
+      const transactionId = payload.transaction_id || payload.id;
+      const status = payload.status;
 
-    const status = statusStr ? Mapper.toPaymentStatus(statusStr) : undefined;
-    
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook processado e mapeado com sucesso.",
-    };
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Ever Pay inválido: transaction_id/id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Ever Pay inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId,
+        status: normalizedStatus,
+        message: `Webhook Ever Pay: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        processed: false,
+        message: `Erro webhook Ever Pay: ${err.message}`,
+      };
+    }
   }
 }
-

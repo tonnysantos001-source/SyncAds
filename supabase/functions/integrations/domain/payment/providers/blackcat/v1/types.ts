@@ -1,47 +1,59 @@
-// Tipos específicos para a API do Blackcat
+// Tipos específicos para a API Blackcat
+// Documentação: https://api.blackcat.com/docs
+
 export interface Credentials {
-  apiKey: string;
-  secretKey: string;
+  apiKey: string;      // Chave de API secreta (X-API-Key)
+  secretKey: string;   // Segunda chave de assinatura ou secreta
 }
 
-export interface Buyer {
-  name: string;
-  email: string;
-  document: string;
-  phone?: string;
-}
-
-export interface CardDetails {
-  number: string;
-  holder_name: string;
-  expiry_month: string;
-  expiry_year: string;
-  cvv: string;
-}
-
-export interface PaymentRequestPayload {
-  transaction_id: string;
-  amount: number;
-  currency: string;
-  payment_method: string;
-  customer: Buyer;
-  card?: CardDetails;
+export interface CreatePaymentPayload {
+  transaction_id: string; // Referência interna do pedido
+  amount: number;         // Valor em centavos
+  currency: "BRL";
+  payment_method: "credit_card" | "pix" | "boleto" | "debit_card";
+  customer: {
+    name: string;
+    email: string;
+    document: string;     // CPF/CNPJ limpo
+    phone?: string;
+  };
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month?: string; // MM
+    expiration_year?: string;  // YYYY
+    expiry_month?: string;     // Compatibilidade
+    expiry_year?: string;
+    cvv: string;
+  };
   installments?: number;
-  metadata?: Record<string, any>;
+  metadata?: {
+    order_id: string;
+    user_id?: string;
+  };
+  notification_url?: string;
 }
 
-export interface PaymentResponsePayload {
+export interface PaymentResponse {
   id?: string;
   transaction_id?: string;
-  status: string;
-  amount: number;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled" | "refunded"
   qr_code?: string;
-  pix_qr_code?: string;
   qr_code_base64?: string;
-  payment_url?: string;
+  payment_url?: string;     // Boleto ou checkout
   boleto_url?: string;
   barcode?: string;
   digitable_line?: string;
   expires_at?: string;
   message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  amount?: number;
+  currency?: string;
+  payment_method?: string;
+  created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
 }

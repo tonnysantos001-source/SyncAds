@@ -3,8 +3,8 @@
   "slug": "blackcat",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2138/2138440.png",
-  "description": "Integração oficial da Blackcat para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://blackcat.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto Bancário de alta conversão.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "API Key da Blackcat"
+      "placeholder": "Chave secreta obtida no painel Blackcat"
     },
     {
       "name": "secretKey",
       "label": "Secret Key",
       "type": "password",
       "required": true,
-      "placeholder": "Secret Key da Blackcat"
+      "placeholder": "Segunda chave secreta ou chave de webhook"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://blackcat.com.br",
+  "supportEmail": "suporte@blackcat.com.br"
 }

@@ -1,0 +1,20 @@
+{
+  "name": "Braintree",
+  "slug": "braintree",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://assets.braintreegateway.com/payment_method_logo/braintree.png",
+  "description": "Gateway global da PayPal. Aceita cartão de crédito, débito e carteiras digitais com tokenização avançada e integração nativa com PayPal.",
+  "status": "active",
+  "configFields": [
+    { "name": "merchantId", "label": "Merchant ID", "type": "text", "required": true },
+    { "name": "publicKey", "label": "Public Key", "type": "text", "required": true },
+    { "name": "privateKey", "label": "Private Key", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developer.paypal.com/braintree/docs",
+  "supportEmail": "support@braintreegateway.com"
+}

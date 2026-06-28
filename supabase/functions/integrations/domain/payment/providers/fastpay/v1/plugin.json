@@ -3,25 +3,34 @@
   "slug": "fastpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/2099/2099058.png",
-  "description": "Integração oficial da Fast Pay para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://fast-pay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Chave de API gerada no painel da Fast Pay"
+      "placeholder": "Chave secreta obtida no painel Fast Pay"
+    },
+    {
+      "name": "merchantId",
+      "label": "Merchant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Código identificador do lojista no painel Fast Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://fast-pay.com.br",
+  "supportEmail": "suporte@fast-pay.com.br"
 }

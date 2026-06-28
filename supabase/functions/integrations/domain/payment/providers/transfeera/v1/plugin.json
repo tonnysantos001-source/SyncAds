@@ -1,0 +1,19 @@
+{
+  "name": "Transfeera",
+  "slug": "transfeera",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://transfeera.com/wp-content/uploads/2020/09/Logo-Transfeera-RGB-Color.png",
+  "description": "Plataforma brasileira focada em facilitar pagamentos em lote, transferências Pix instantâneas e validação cadastral via API de alto desempenho.",
+  "status": "active",
+  "configFields": [
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developers.transfeera.com",
+  "supportEmail": "suporte@transfeera.com"
+}

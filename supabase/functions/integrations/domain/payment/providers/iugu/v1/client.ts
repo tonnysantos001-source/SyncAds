@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, PaymentTokenPayload, InvoicePayload, ChargePayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -10,25 +10,22 @@ export class Client {
   ) {}
 
   private getBaseUrl(): string {
-    return config.endpoints.production; // Iugu usa a mesma URL para sandbox/produção
+    return config.endpoints.production;
   }
 
   private getHeaders(): HeadersInit {
-    const apiToken = this.credentials.apiToken || "";
-
     return {
-      "Authorization": `Bearer ${apiToken}`,
       "Content-Type": "application/json",
-      "User-Agent": "SyncAds AI Integration Client (Iugu v1)",
+      "Authorization": `Bearer ${this.credentials.apiToken}`,
+      "Accept": "application/json",
     };
   }
 
   /**
-   * Faz teste de conexão (ping)
+   * Verifica credenciais.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/accounts`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/accounts`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -36,11 +33,10 @@ export class Client {
   }
 
   /**
-   * Cria um cliente
+   * Cria cliente na Iugu.
    */
   async createCustomer(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/customers`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/customers`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -49,11 +45,10 @@ export class Client {
   }
 
   /**
-   * Cria uma fatura (Invoice) para Pix ou Boleto
+   * Cria token temporário de cartão de crédito.
    */
-  async createInvoice(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/invoices`;
-    return await this.http.request(url, {
+  async createPaymentToken(payload: PaymentTokenPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payment_token`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -62,11 +57,34 @@ export class Client {
   }
 
   /**
-   * Consulta uma fatura
+   * Realiza uma cobrança (charge).
    */
-  async getInvoice(invoiceId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/invoices/${invoiceId}`;
-    return await this.http.request(url, {
+  async charge(payload: ChargePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/charge`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Cria uma fatura (invoice).
+   */
+  async createInvoice(payload: InvoicePayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/invoices`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Obtém detalhes de um pagamento (fatura).
+   */
+  async getPayment(paymentId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/invoices/${paymentId}`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -74,42 +92,14 @@ export class Client {
   }
 
   /**
-   * Reembolsa uma fatura
+   * Reembolsa/estorna um pagamento.
    */
-  async refundInvoice(invoiceId: string, amount?: number): Promise<Response> {
-    const url = `${this.getBaseUrl()}/invoices/${invoiceId}/refund`;
-    const payload = amount ? { amount_cents: Math.round(amount * 100) } : {};
-
-    return await this.http.request(url, {
+  async refundPayment(paymentId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount_cents: Math.round(amount * 100) }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/invoices/${paymentId}/refund`, {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-      timeoutMs: config.timeoutMs,
-    });
-  }
-
-  /**
-   * Cria um token de cartão
-   */
-  async createPaymentToken(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payment_token`;
-    return await this.http.request(url, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-      timeoutMs: config.timeoutMs,
-    });
-  }
-
-  /**
-   * Processa cobrança direta (Cartão de Crédito)
-   */
-  async createCharge(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/charge`;
-    return await this.http.request(url, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

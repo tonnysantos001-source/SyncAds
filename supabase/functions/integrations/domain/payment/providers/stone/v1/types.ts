@@ -1,12 +1,14 @@
-// Tipos específicos para a API do Stone
+// Tipos específicos para a API Stone
+// Documentação: https://docs.stone.com.br
+
 export interface Credentials {
-  apiKey: string;
   merchantId: string;
+  apiKey: string;
 }
 
-export interface PaymentRequestPayload {
-  amount: number;
-  currency: string;
+export interface CreatePaymentPayload {
+  amount: number; // Centavos
+  currency: "BRL";
   payment_method: "pix" | "credit_card" | "debit_card" | "boleto";
   merchant_id: string;
   customer: {
@@ -32,7 +34,7 @@ export interface PaymentRequestPayload {
     };
   };
   pix?: {
-    expiration_seconds: number;
+    expiration_seconds?: number;
   };
   card?: {
     number: string;
@@ -48,27 +50,35 @@ export interface PaymentRequestPayload {
     instructions?: string;
   };
   metadata?: {
-    order_id: string;
+    order_id?: string;
   };
 }
 
-export interface PaymentResponsePayload {
-  id: string;
-  status: string;
-  amount: number;
+export interface PaymentResponse {
+  id?: string;
+  status?: string; // "pending" | "processing" | "authorized" | "paid" | "approved" | "failed" | "declined" | "cancelled" | "refunded"
   authorization_code?: string;
   nsu?: string;
   tid?: string;
-  authentication_url?: string;
+  amount?: number;
+  payment_method?: string;
+  created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
   pix?: {
-    qr_code: string;
-    qr_code_base64: string;
-    expires_at: string;
+    qr_code?: string;
+    qr_code_base64?: string;
+    expires_at?: string;
   };
   boleto?: {
-    url: string;
-    barcode: string;
-    line: string;
-    due_date: string;
+    url?: string;
+    barcode?: string;
+    digitable_line?: string;
+    due_date?: string;
   };
+  authentication_url?: string; // Debit card authentication
+  error?: {
+    message?: string;
+  };
+  message?: string;
 }

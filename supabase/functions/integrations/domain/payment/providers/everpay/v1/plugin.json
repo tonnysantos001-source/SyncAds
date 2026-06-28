@@ -3,25 +3,34 @@
   "slug": "everpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial de Ever Pay para processamento de pagamentos.",
-  "status": "beta",
+  "logoUrl": "https://everpay.com.br/logo.png",
+  "description": "Gateway brasileiro focado em pagamentos rápidos de Pix, Cartão de Crédito e Boleto Bancário de alta conversão.",
+  "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave Secreta de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "sk_live_..."
+      "placeholder": "Chave secreta obtida no painel Ever Pay"
+    },
+    {
+      "name": "accountId",
+      "label": "Account ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Identificador da conta obtido no painel Ever Pay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://everpay.com.br",
+  "supportEmail": "suporte@everpay.com.br"
 }

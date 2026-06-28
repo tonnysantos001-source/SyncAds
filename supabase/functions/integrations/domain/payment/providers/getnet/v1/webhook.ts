@@ -1,37 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo Getnet
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da GetNet.
    */
   static handle(payload: any): WebhookResponse {
-    const transactionId = payload.payment_id;
-    if (!transactionId) {
+    try {
+      const paymentId = payload.payment_id;
+      const status = payload.status;
+
+      if (!paymentId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook GetNet inválido: payment_id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook GetNet inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId: paymentId,
+        status: normalizedStatus,
+        message: `Webhook GetNet: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Missing payment_id in webhook payload",
+        message: `Erro webhook GetNet: ${err.message}`,
       };
     }
-
-    const rawStatus = payload.status || "APPROVED";
-    const status = Mapper.toPaymentStatus(rawStatus);
-
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: "Webhook do Getnet processado com sucesso.",
-    };
   }
 }

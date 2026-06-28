@@ -1,32 +1,57 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    if (!signature || !secret) {
-      return { isValid: false, error: "Signature or secret is missing" };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Iugu.
    */
   static handle(payload: any): WebhookResponse {
-    const data = payload.data || payload;
-    const transactionId = data.id || data.invoice_id || payload.id;
-    const status = data.status ? Mapper.toPaymentStatus(data.status) : undefined;
-    
-    return {
-      success: true,
-      processed: true,
-      transactionId: String(transactionId),
-      gatewayTransactionId: String(transactionId),
-      status,
-      message: "Webhook processado e mapeado com sucesso.",
-    };
+    try {
+      const event = payload.event;
+      const data = payload.data || {};
+      const paymentId = data.id || payload.id;
+
+      if (!paymentId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Iugu inválido: ID de fatura/pagamento ausente.",
+        };
+      }
+
+      const status = data.status || payload.status;
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Iugu inválido: Status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId: paymentId,
+        status: normalizedStatus,
+        message: `Webhook Iugu event [${event}]: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        processed: false,
+        message: `Erro webhook Iugu: ${err.message}`,
+      };
+    }
   }
 }

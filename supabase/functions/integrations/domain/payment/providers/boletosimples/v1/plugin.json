@@ -1,0 +1,19 @@
+{
+  "name": "Boleto Simples",
+  "slug": "boletosimples",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://boletosimples.com.br/assets/logo.svg",
+  "description": "Serviço brasileiro especializado em emissão, gestão e conciliação de boletos bancários com integração direta aos principais bancos.",
+  "status": "active",
+  "configFields": [
+    { "name": "accessToken", "label": "Access Token", "type": "password", "required": true, "placeholder": "Obtido em Configurações > Acesso API" },
+    { "name": "userAgent", "label": "User-Agent (E-mail de contato)", "type": "text", "required": true, "placeholder": "Ex: suporte@sualoja.com.br" },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://boletosimples.com.br/docs/api",
+  "supportEmail": "suporte@boletosimples.com.br"
+}

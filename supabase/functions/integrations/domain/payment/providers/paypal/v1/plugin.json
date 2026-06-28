@@ -3,32 +3,34 @@
   "slug": "paypal",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do PayPal para processamento de pagamentos.",
+  "logoUrl": "https://paypal.com/logo.png",
+  "description": "Gateway e carteira global PayPal para processamento de cartões de crédito e saldo em conta em múltiplas moedas.",
   "status": "active",
   "configFields": [
     {
       "name": "clientId",
-      "label": "Client ID do PayPal",
+      "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: Aef... (Chave Pública)"
+      "placeholder": "PayPal Client ID de API obtido no painel de desenvolvedor"
     },
     {
       "name": "clientSecret",
-      "label": "Client Secret do PayPal",
+      "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: EGk... (Chave Privada)"
+      "placeholder": "PayPal Client Secret obtido no painel de desenvolvedor"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox (Test)",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": false,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://paypal.com",
+  "supportEmail": "suporte@paypal.com"
 }

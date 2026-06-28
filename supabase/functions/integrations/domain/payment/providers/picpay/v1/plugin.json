@@ -3,32 +3,34 @@
   "slug": "picpay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do PicPay para processamento de pagamentos.",
+  "logoUrl": "https://picpay.com/logo.png",
+  "description": "Integração oficial PicPay para transações nativas via Pix ou carteira digital PicPay.",
   "status": "active",
   "configFields": [
     {
       "name": "picpayToken",
-      "label": "Token do PicPay (x-picpay-token)",
+      "label": "PicPay Token",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: 555008cef7f321d00ef236333"
+      "placeholder": "Chave x-picpay-token obtida no painel PicPay"
     },
     {
       "name": "sellerToken",
-      "label": "Token do Vendedor (x-seller-token)",
+      "label": "Seller Token",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: 9eb9-4081-9b16-52c676451e03"
+      "placeholder": "Chave x-seller-token obtida no painel PicPay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox (Test)",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": false,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://picpay.com",
+  "supportEmail": "suporte@picpay.com"
 }

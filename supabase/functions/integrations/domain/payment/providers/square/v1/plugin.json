@@ -1,0 +1,19 @@
+{
+  "name": "Square",
+  "slug": "square",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/2d5q1td6cyxq/5EUqPAiU8jQW5EgMEI7OjQ/c2c50ec46d524b1428e0f5d3ce8b6c24/Square_Logo.svg",
+  "description": "Plataforma de pagamentos global da Square. Procesamento de cartões com terminal virtual, cobranças avulsas e recorrentes.",
+  "status": "active",
+  "configFields": [
+    { "name": "accessToken", "label": "Access Token", "type": "password", "required": true },
+    { "name": "locationId", "label": "Location ID", "type": "text", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developer.squareup.com/docs",
+  "supportEmail": "devsupport@squareup.com"
+}

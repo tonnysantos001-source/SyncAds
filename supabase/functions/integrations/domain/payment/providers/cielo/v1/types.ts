@@ -1,71 +1,85 @@
-// Tipos específicos para a API Cielo E-commerce 3.0
+// Tipos específicos para a API Cielo
 // Documentação: https://developercielo.github.io/manual/cielo-ecommerce
 
 export interface Credentials {
-  merchantId: string;   // GUID do comerciante
-  merchantKey: string;  // Chave de segurança do comerciante
+  merchantId: string;   // ID do estabelecimento comercial Cielo
+  merchantKey: string;  // Chave de autenticação Cielo
 }
 
-export interface CreditCardData {
-  cardNumber: string;
-  holder: string;
-  expirationDate: string; // Formato: "MM/YYYY"
-  securityCode: string;
-  brand: string;          // Visa, Master, Elo, Amex etc.
+export interface CreatePaymentPayload {
+  MerchantOrderId: string;
+  Customer: {
+    Name: string;
+    Email: string;
+    Identity?: string;
+    IdentityType?: string;
+    Address?: {
+      Street: string;
+      Number: string;
+      Complement?: string;
+      District: string;
+      City: string;
+      State: string;
+      Country: "BRA";
+      ZipCode: string;
+    };
+  };
+  Payment: {
+    Type: "CreditCard" | "DebitCard" | "Boleto" | "Pix";
+    Amount: number; // Em centavos
+    Currency?: "BRL";
+    Country?: "BRA";
+    Installments?: number;
+    Capture?: boolean;
+    Authenticate?: boolean;
+    ReturnUrl?: string;
+    SoftDescriptor?: string;
+    Provider?: string;
+    BoletoNumber?: string;
+    Assignor?: string;
+    Demonstrative?: string;
+    ExpirationDate?: string;
+    Identification?: string;
+    Instructions?: string;
+    QrCodeExpiration?: number;
+    CreditCard?: {
+      CardNumber: string;
+      Holder: string;
+      ExpirationDate: string; // MM/YYYY
+      SecurityCode: string;
+      Brand: string;
+    };
+    DebitCard?: {
+      CardNumber: string;
+      Holder: string;
+      ExpirationDate: string;
+      SecurityCode: string;
+      Brand: string;
+    };
+  };
 }
 
-export interface CreateSalePayload {
-  merchantOrderId: string; // Referência interna da transação (orderId)
-  customer: {
-    name: string;
-    email?: string;
-    identity?: string;     // CPF ou CNPJ
-    identityType?: "CPF" | "CNPJ";
-  };
-  payment: {
-    type: "CreditCard" | "DebitCard" | "Boleto" | "Pix";
-    amount: number;        // Valor em centavos (ex: 1000 = R$10,00)
-    installments: number;  // Quantidade de parcelas
-    softDescriptor?: string; // Nome que aparece na fatura (máx 13 chars)
-    capture?: boolean;     // Captura automática
-    creditCard?: CreditCardData;
-  };
-}
-
-export interface CreateSaleResponse {
-  merchantOrderId?: string;
-  customer?: {
-    name: string;
-  };
-  payment?: {
-    paymentId: string;
-    type: string;
-    amount: number;
-    status: number;        // 1 = Autorizado, 2 = Pago, 3 = Negado, 10 = Pendente, 12 = Pendente de Consulta
-    returnCode?: string;
-    returnMessage?: string;
-    authorizationCode?: string;
-    proofOfSale?: string;  // NSU
-    links?: Array<{ rel: string; href: string; method: string }>;
-    qrCode?: string;       // Imagem em Base64
-    qrCodeString?: string; // Payload do PIX (EMV)
-  };
-}
-
-export interface QuerySaleResponse {
-  merchantOrderId?: string;
-  customer?: {
-    name: string;
-  };
-  payment?: {
-    paymentId: string;
-    type: string;
-    amount: number;
-    status: number;
-    returnCode?: string;
-    returnMessage?: string;
-    authorizationCode?: string;
-    proofOfSale?: string;
-    links?: Array<{ rel: string; href: string; method: string }>;
+export interface PaymentResponse {
+  MerchantOrderId?: string;
+  Customer?: any;
+  Payment?: {
+    PaymentId?: string;
+    Type?: string;
+    Amount?: number;
+    ReceivedDate?: string;
+    CapturedDate?: string;
+    Status?: number;
+    ReturnCode?: string;
+    ReturnMessage?: string;
+    QrCodeString?: string;
+    QrCodeBase64Image?: string;
+    AuthenticationUrl?: string;
+    Url?: string; // Boleto url
+    BarCodeNumber?: string;
+    DigitableLine?: string;
+    ExpirationDate?: string;
+    AuthorizationCode?: string;
+    ProofOfSale?: string;
+    Tid?: string;
   };
 }

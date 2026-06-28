@@ -3,32 +3,34 @@
   "slug": "fortrex",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Fortrex para processamento de pagamentos.",
+  "logoUrl": "https://fortrex.com.br/logo.png",
+  "description": "Gateway de pagamento brasileiro integrado para processamento ágil de Pix, Cartão de Crédito e Boleto.",
   "status": "active",
   "configFields": [
     {
-      "name": "merchantCode",
-      "label": "Código do Estabelecimento (Merchant Code)",
-      "type": "text",
-      "required": true,
-      "placeholder": "Ex: merch_..."
-    },
-    {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
+      "label": "API Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: key_..."
+      "placeholder": "Chave secreta de API fornecida pela Fortrex"
+    },
+    {
+      "name": "merchantCode",
+      "label": "Merchant Code / Código de Estabelecimento",
+      "type": "text",
+      "required": true,
+      "placeholder": "Código identificador do lojista no painel Fortrex"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://fortrex.com.br",
+  "supportEmail": "suporte@fortrex.com.br"
 }

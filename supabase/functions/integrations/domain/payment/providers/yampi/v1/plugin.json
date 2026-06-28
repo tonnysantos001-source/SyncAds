@@ -1,0 +1,34 @@
+{
+  "name": "Yampi",
+  "slug": "yampi",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/yampi.png",
+  "description": "Integração oficial do Yampi para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "userToken",
+      "label": "User Token",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu User Token"
+    },
+    {
+      "name": "userKey",
+      "label": "User Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu User Key"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.yampi.com",
+  "supportEmail": "suporte@yampi.com"
+}

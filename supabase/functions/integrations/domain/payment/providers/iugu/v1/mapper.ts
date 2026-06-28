@@ -1,43 +1,25 @@
 import {
   PaymentRequest,
-  PaymentResponse,
+  PaymentResponse as InternalPaymentResponse,
   PaymentStatus,
   PaymentStatusResponse,
 } from "../../../../../types.ts";
-import { InvoiceResponsePayload } from "./types.ts";
+import { PaymentResponse, InvoicePayload, ChargePayload } from "./types.ts";
 
 export class Mapper {
-  private static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
-  private static formatZipCode(zip: string): string {
-    return zip.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request do SyncAds para payload de cliente da Iugu
+   * Converte PaymentRequest no payload de Fatura (invoice) da Iugu para Pix/Boleto.
    */
-  static toCustomerPayload(request: PaymentRequest): any {
-    const doc = this.formatDocument(request.customer.document);
-    return {
-      email: request.customer.email,
-      name: request.customer.name,
-      cpf_cnpj: doc,
-      phone_prefix: request.customer.phone?.substring(0, 2) || "11",
-      phone: request.customer.phone?.substring(2) || "999999999",
-    };
-  }
+  static toInvoicePayload(request: PaymentRequest, customerId?: string): InvoicePayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+    const prefix = phoneClean.substring(0, 2) || "11";
+    const phone = phoneClean.substring(2) || "999999999";
 
-  /**
-   * Converte a request interna do SyncAds para o formato de Invoice da Iugu (Pix/Boleto)
-   */
-  static toInvoicePayload(request: PaymentRequest, customerId: string): any {
-    const doc = this.formatDocument(request.customer.document);
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
 
-    const payload: any = {
+    const payload: InvoicePayload = {
       email: request.customer.email,
       customer_id: customerId,
       due_date: dueDate.toISOString().split("T")[0],
@@ -49,29 +31,24 @@ export class Mapper {
         },
       ],
       payer: {
-        cpf_cnpj: doc,
+        cpf_cnpj: docClean,
         name: request.customer.name,
-        phone_prefix: request.customer.phone?.substring(0, 2) || "11",
-        phone: request.customer.phone?.substring(2) || "999999999",
+        phone_prefix: prefix,
+        phone,
         email: request.customer.email,
       },
       ensure_workday_due_date: false,
+      payable_with: request.paymentMethod === "pix" ? "pix" : "bank_slip",
     };
 
-    if (request.paymentMethod === "pix") {
-      payload.payable_with = "pix";
-    } else if (request.paymentMethod === "boleto") {
-      payload.payable_with = "bank_slip";
-    }
-
     if (request.billingAddress) {
-      payload.payer.address = {
+      payload.payer!.address = {
         street: request.billingAddress.street,
-        number: request.billingAddress.number,
+        number: String(request.billingAddress.number),
         district: request.billingAddress.neighborhood,
         city: request.billingAddress.city,
         state: request.billingAddress.state,
-        zip_code: this.formatZipCode(request.billingAddress.zipCode),
+        zip_code: (request.billingAddress.zipCode || "").replace(/\D/g, ""),
       };
     }
 
@@ -79,33 +56,15 @@ export class Mapper {
   }
 
   /**
-   * Converte a request para Token de Cartão da Iugu
+   * Converte PaymentRequest no payload de Cobrança direta (charge) da Iugu para Cartão.
    */
-  static toPaymentTokenPayload(request: PaymentRequest, accountId: string, isTestMode: boolean): any {
-    if (!request.card) throw new Error("Card details are required for token generation");
+  static toChargePayload(request: PaymentRequest, token: string): ChargePayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
+    const prefix = phoneClean.substring(0, 2) || "11";
+    const phone = phoneClean.substring(2) || "999999999";
 
-    return {
-      account_id: accountId,
-      method: "credit_card",
-      test: isTestMode,
-      data: {
-        number: request.card.number.replace(/\s/g, ""),
-        verification_value: request.card.cvv,
-        first_name: request.card.holderName.split(" ")[0],
-        last_name: request.card.holderName.split(" ").slice(1).join(" ") || "Silva",
-        month: request.card.expiryMonth,
-        year: request.card.expiryYear,
-      },
-    };
-  }
-
-  /**
-   * Converte a request para Cobrança de Cartão da Iugu (Charge)
-   */
-  static toChargePayload(request: PaymentRequest, token: string): any {
-    const doc = this.formatDocument(request.customer.document);
-
-    return {
+    const payload: ChargePayload = {
       token,
       email: request.customer.email,
       months: 1,
@@ -117,95 +76,123 @@ export class Mapper {
         },
       ],
       payer: {
-        cpf_cnpj: doc,
+        cpf_cnpj: docClean,
         name: request.customer.name,
-        phone_prefix: request.customer.phone?.substring(0, 2) || "11",
-        phone: request.customer.phone?.substring(2) || "999999999",
+        phone_prefix: prefix,
+        phone,
         email: request.customer.email,
       },
     };
+
+    if (request.billingAddress) {
+      payload.payer!.address = {
+        street: request.billingAddress.street,
+        number: String(request.billingAddress.number),
+        district: request.billingAddress.neighborhood,
+        city: request.billingAddress.city,
+        state: request.billingAddress.state,
+        zip_code: (request.billingAddress.zipCode || "").replace(/\D/g, ""),
+        country: "Brasil",
+      };
+    }
+
+    return payload;
   }
 
   /**
-   * Converte a resposta da API do Iugu para o formato padronizado do SyncAds
+   * Converte resposta da Iugu para o padrão interno.
    */
-  static toPaymentResponse(response: any): PaymentResponse {
-    // Para boleto/pix, o retorno costuma ser a Invoice
-    // Para cartao, a resposta contem a fatura no campo invoice_id
-    const status = this.toPaymentStatus(response.status || (response.success ? "paid" : "pending"));
-    const success = response.success || ["approved", "paid"].includes(String(response.status).toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.invoice_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Iugu recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const invoiceId = response.invoice_id || response.id;
+    // Se success === false em resposta de charge
+    if (apiResponse.success === false) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.message || "Cobrança via cartão recusada pela Iugu.",
+        raw: apiResponse,
+      };
+    }
 
-    const paymentResponse: PaymentResponse = {
-      success,
-      transactionId: String(invoiceId),
-      gatewayTransactionId: String(invoiceId),
-      status,
-      message: response.message || `Pagamento processado com status: ${response.status}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.invoice_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Iugu status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    // Pix
-    if (response.pix?.qrcode) {
-      paymentResponse.qrCode = response.pix.qrcode;
-      paymentResponse.pixKey = response.pix.qrcode;
-      paymentResponse.pixData = {
-        qrCode: response.pix.qrcode,
-        amount: (response.total_cents || 0) / 100,
+    if (apiResponse.pix) {
+      response.qrCode = apiResponse.pix.qrcode;
+      response.pixData = {
+        qrCode: apiResponse.pix.qrcode || "",
+        qrCodeImage: apiResponse.pix.qrcode_image_url,
+        amount: (apiResponse.total_cents || 0) / 100,
       };
-    } else if (response.pix?.qrcode_image_url) {
-      paymentResponse.qrCodeBase64 = response.pix.qrcode_image_url;
+      response.expiresAt = apiResponse.due_date;
     }
 
-    // Boleto
-    if (response.secure_url && response.payable_with === "bank_slip") {
-      paymentResponse.paymentUrl = response.secure_url;
-      paymentResponse.barcodeNumber = response.bank_slip?.barcode;
-      paymentResponse.digitableLine = response.bank_slip?.digitable_line;
-      paymentResponse.boletoData = {
-        boletoUrl: response.secure_url,
-        barcode: response.bank_slip?.barcode || "",
-        digitableLine: response.bank_slip?.digitable_line || "",
-        dueDate: response.due_date || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: (response.total_cents || 0) / 100,
-      };
+    if (apiResponse.bank_slip) {
+      response.paymentUrl = apiResponse.secure_url;
+      response.redirectUrl = apiResponse.secure_url;
+      response.barcodeNumber = apiResponse.bank_slip.barcode;
+      response.digitableLine = apiResponse.bank_slip.digitable_line;
+      response.expiresAt = apiResponse.due_date;
+    } else if (apiResponse.secure_url) {
+      response.paymentUrl = apiResponse.secure_url;
+      response.redirectUrl = apiResponse.secure_url;
     }
 
-    return paymentResponse;
+    return response;
   }
 
   /**
-   * Converte a resposta da API do Iugu para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: InvoiceResponsePayload): PaymentStatusResponse {
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: String(response.id),
-      gatewayTransactionId: String(response.id),
-      status: this.toPaymentStatus(response.status),
-      amount: (response.total_cents || 0) / 100,
+      transactionId: apiResponse.id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.total_cents || 0) / 100,
       currency: "BRL",
-      paymentMethod: response.bank_slip ? "boleto" : response.pix ? "pix" : "credit_card",
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || response.created_at || new Date().toISOString(),
-      paidAt: response.paid_at || undefined,
+      paymentMethod: apiResponse.payable_with || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.updated_at || new Date().toISOString(),
+      paidAt: apiResponse.paid_at,
     };
   }
 
   /**
-   * Mapeia status do Iugu para status interno do SyncAds
+   * Normaliza os códigos de status da Iugu.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
       pending: "pending",
-      processing: "processing",
-      approved: "approved",
       paid: "approved",
-      failed: "failed",
       canceled: "cancelled",
-      cancelled: "cancelled",
+      partially_paid: "pending",
       refunded: "refunded",
       expired: "expired",
+      in_analysis: "processing",
+      in_protest: "processing",
+      chargeback: "refunded",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

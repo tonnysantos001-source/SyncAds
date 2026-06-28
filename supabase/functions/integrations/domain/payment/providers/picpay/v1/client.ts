@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -22,36 +22,35 @@ export class Client {
   }
 
   /**
-   * Faz uma chamada real de ping/teste de conexão na API enviando uma cobrança de teste
+   * Verifica credenciais enviando um pagamento de teste ou validando a API.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    const testPayment = {
-      referenceId: `test_${Date.now()}`,
-      callbackUrl: "https://example.com/callback",
+    const testPayload: CreatePaymentPayload = {
+      referenceId: `ping_${Date.now()}`,
+      callbackUrl: "https://syncads.com.br/webhook/picpay",
       value: 1.00,
       buyer: {
-        firstName: "Test",
-        lastName: "User",
-        document: "12345678901",
-        email: "test@example.com",
-        phone: "+5511999999999",
+        firstName: "Sync",
+        lastName: "Ads",
+        document: "11122233344",
+        email: "ping@syncads.com.br",
       },
     };
-    return await this.http.request(url, {
+
+    return await this.http.request(`${this.getBaseUrl()}/payments`, {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(testPayment),
+      body: JSON.stringify(testPayload),
       timeoutMs: config.timeoutMs,
     });
   }
 
   /**
-   * Cria cobrança no PicPay
+   * Cria pagamento no PicPay.
+   * POST /payments
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    return await this.http.request(url, {
+  async createPayment(payload: CreatePaymentPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payments`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -60,11 +59,11 @@ export class Client {
   }
 
   /**
-   * Consulta o status de um pagamento no PicPay
+   * Consulta status de pagamento.
+   * GET /payments/{id}/status
    */
-  async getPaymentStatus(referenceId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${referenceId}/status`;
-    return await this.http.request(url, {
+  async getPayment(referenceId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payments/${referenceId}/status`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -72,16 +71,15 @@ export class Client {
   }
 
   /**
-   * Cancela/estorna um pagamento no PicPay
+   * Cancela/estorna pagamento.
+   * POST /payments/{id}/cancellations
    */
-  async cancelPayment(referenceId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${referenceId}/cancellations`;
-    return await this.http.request(url, {
+  async refundPayment(referenceId: string, authorizationId?: string): Promise<Response> {
+    const body = authorizationId ? JSON.stringify({ authorizationId }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/payments/${referenceId}/cancellations`, {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify({
-        authorizationId: referenceId,
-      }),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

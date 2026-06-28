@@ -1,0 +1,19 @@
+{
+  "name": "EBANX",
+  "slug": "ebanx",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.ebanx.com/wp-content/uploads/2022/01/ebanx-logo.svg",
+  "description": "Gateway brasileiro especialista em pagamentos internacionais para a América Latina. Permite que empresas globais aceitem Pix, boleto e cartões locais no Brasil.",
+  "status": "active",
+  "configFields": [
+    { "name": "integrationKey", "label": "Integration Key", "type": "password", "required": true },
+    { "name": "publicIntegrationKey", "label": "Public Integration Key", "type": "text", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developers.ebanx.com",
+  "supportEmail": "integrations@ebanx.com"
+}

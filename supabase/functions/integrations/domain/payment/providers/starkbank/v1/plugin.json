@@ -1,0 +1,19 @@
+{
+  "name": "Stark Bank",
+  "slug": "starkbank",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://starkbank.com/assets/images/logo.svg",
+  "description": "Banco digital brasileiro voltado a empresas de tecnologia e startups. Integração avançada para emissão automatizada de Pix, boletos (invoices) e transferências via API segura.",
+  "status": "active",
+  "configFields": [
+    { "name": "projectId", "label": "Project ID", "type": "text", "required": true, "placeholder": "ID do projeto Stark Bank" },
+    { "name": "privateKey", "label": "Private Key (PEM)", "type": "password", "required": true, "placeholder": "-----BEGIN PUBLIC KEY-----..." },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://starkbank.com/docs",
+  "supportEmail": "suporte@starkbank.com"
+}

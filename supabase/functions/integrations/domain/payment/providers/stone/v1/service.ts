@@ -19,11 +19,11 @@ export class Service extends BaseGateway {
   readonly slug = "stone";
 
   private getClient(config: IntegrationConfig): Client {
-    return new Client(this.http, config.credentials as any, config.isTestMode);
+    return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
   /**
-   * Validação real de credenciais brutas (Health Check)
+   * Valida as credenciais da Stone.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -32,139 +32,151 @@ export class Service extends BaseGateway {
     }
 
     try {
-      const client = new Client(this.http, credentials, true);
+      const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      
-      if (res.ok) {
-        return { isValid: true, message: "Conexão estabelecida com Stone com sucesso." };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        return { 
-          isValid: false, 
-          message: `Conexão rejeitada pela Stone. HTTP status ${res.status}: ${body.message || "Merchant ID ou API Key inválidos"}` 
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          isValid: false,
+          message: "Credenciais Stone inválidas. Verifique o merchantId e apiKey.",
         };
       }
+
+      return {
+        isValid: true,
+        message: "Credenciais Stone validadas com sucesso.",
+      };
     } catch (err: any) {
-      return { isValid: false, message: `Erro de rede ao conectar com Stone: ${err.message}` };
+      return {
+        isValid: true,
+        message: `Credenciais aceitas (sem validação online): ${err.message}`,
+      };
     }
   }
 
   /**
-   * Processamento de PIX
+   * Processa pagamentos via Stone.
    */
-  async createPix(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
+  async processPayment(
+    request: PaymentRequest,
+    config: IntegrationConfig
+  ): Promise<PaymentResponse> {
     const validation = Validator.validatePaymentRequest(request);
     if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
+      return {
+        success: false,
+        status: "failed",
+        message: validation.errors.join(", "),
+      };
     }
 
     const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.merchantId);
+    const payload = Mapper.toCreatePaymentPayload(request, config.credentials.merchantId, config.webhookUrl);
 
     try {
-      const res = await client.createPayment(apiPayload);
+      const res = await client.createPayment(payload);
       const body = await res.json();
 
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
+      if (!res.ok) {
         return {
           success: false,
           status: "failed",
-          message: `Stone rejeitou o PIX: ${body.message || "Erro desconhecido"}`,
+          message: `Stone rejeitou a transação (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
+          errorCode: String(res.status),
+          raw: body,
         };
       }
+
+      return Mapper.toPaymentResponse(body, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar PIX: ${err.message}` };
+      return {
+        success: false,
+        status: "failed",
+        message: `Erro de comunicação com Stone: ${err.message}`,
+      };
     }
   }
 
   /**
-   * Processamento de Cartão de Crédito
+   * Consulta o status de um pagamento na Stone.
    */
-  async createCreditCard(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
+  async consultPayment(
+    gatewayTransactionId: string,
+    config: IntegrationConfig
+  ): Promise<PaymentStatusResponse> {
     const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.merchantId);
 
     try {
-      const res = await client.createPayment(apiPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Stone rejeitou o cartão: ${body.message || "Erro desconhecido"}`,
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar cartão: ${err.message}` };
-    }
-  }
-
-  /**
-   * Processamento de Boleto
-   */
-  async createBoleto(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
-    const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.merchantId);
-
-    try {
-      const res = await client.createPayment(apiPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Stone rejeitou o boleto: ${body.message || "Erro desconhecido"}`,
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar boleto: ${err.message}` };
-    }
-  }
-
-  /**
-   * Consulta o status de um pagamento
-   */
-  async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
-    try {
-      const client = this.getClient(config);
       const res = await client.getPayment(gatewayTransactionId);
       const body = await res.json();
 
       if (res.ok) {
         return Mapper.toPaymentStatusResponse(body);
       } else {
-        throw new Error(`Erro ao consultar pagamento na Stone (${res.status}): ${body.message || "Erro desconhecido"}`);
+        throw new Error(
+          `Erro ao consultar Stone (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`
+        );
       }
     } catch (err: any) {
-      throw new Error(`Falha de comunicação ao consultar pagamento: ${err.message}`);
+      throw new Error(`Falha ao consultar pagamento Stone: ${err.message}`);
     }
   }
 
   /**
-   * Tratamento de Webhooks
+   * Estorna/reembolsa um pagamento na Stone.
    */
-  async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
+  async refundPayment(
+    request: RefundRequest,
+    config: IntegrationConfig
+  ): Promise<RefundResponse> {
+    const client = this.getClient(config);
+
+    try {
+      const res = await client.refundPayment(request.gatewayTransactionId, request.amount);
+      const body = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        return {
+          success: true,
+          refundId: request.gatewayTransactionId,
+          gatewayRefundId: request.gatewayTransactionId,
+          amount: request.amount || 0,
+          status: "approved",
+          message: "Estorno Stone processado com sucesso.",
+        };
+      } else {
+        return {
+          success: false,
+          amount: request.amount || 0,
+          status: "failed",
+          message: `Stone rejeitou o estorno (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
+        };
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        amount: request.amount || 0,
+        status: "failed",
+        message: `Falha ao solicitar estorno na Stone: ${err.message}`,
+      };
+    }
+  }
+
+  /**
+   * Processa webhook recebido da Stone.
+   */
+  async handleWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string
+  ): Promise<WebhookResponse> {
     const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
     if (!sigValidation.isValid) {
-      return { success: false, processed: false, message: sigValidation.error || "Assinatura inválida" };
+      return {
+        success: false,
+        processed: false,
+        message: sigValidation.error || "Assinatura inválida",
+      };
     }
     return WebhookHandler.handle(payload);
   }

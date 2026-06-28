@@ -1,149 +1,140 @@
 import {
   PaymentRequest,
-  PaymentResponse,
+  PaymentResponse as InternalPaymentResponse,
   PaymentStatus,
   PaymentStatusResponse,
 } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
   /**
-   * Converte a request do SyncAds para payload da API do Blackcat
+   * Converte PaymentRequest no payload da Blackcat.
    */
-  static toPaymentPayload(request: PaymentRequest): PaymentRequestPayload {
-    const cleanDoc = (request.customer.document || "").replace(/\D/g, "");
+  static toCreatePaymentPayload(request: PaymentRequest, webhookUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    const payload: PaymentRequestPayload = {
+    let payment_method: "credit_card" | "pix" | "boleto" | "debit_card" = "credit_card";
+    if (request.paymentMethod === "pix") payment_method = "pix";
+    else if (request.paymentMethod === "boleto") payment_method = "boleto";
+
+    // Blackcat espera amount em centavos (padrão APIs brasileiras)
+    const payload: CreatePaymentPayload = {
       transaction_id: request.orderId,
-      amount: request.amount, // Usa o valor direto (como especificado no legado)
-      currency: request.currency || "BRL",
-      payment_method: request.paymentMethod,
+      amount: Math.round(request.amount * 100),
+      currency: "BRL",
+      payment_method,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
-        document: cleanDoc,
+        document: docClean,
+        phone: phoneClean || undefined,
       },
       metadata: {
-        orderId: request.orderId,
-        ...(request.metadata || {}),
+        order_id: request.orderId,
       },
+      installments: request.installments || 1,
+      notification_url: webhookUrl,
     };
 
-    if (request.customer.phone) {
-      payload.customer.phone = request.customer.phone.replace(/\D/g, "");
-    }
-
-    // Mapear dados do cartão
-    if (request.paymentMethod === "credit_card" || request.paymentMethod === "debit_card") {
-      payload.installments = request.installments || 1;
-
-      if (request.card) {
-        payload.card = {
-          number: request.card.number.replace(/\s/g, ""),
-          holder_name: request.card.holder,
-          expiry_month: request.card.expirationMonth,
-          expiry_year: request.card.expirationYear,
-          cvv: request.card.cvv,
-        };
-      } else if (request.metadata) {
-        payload.card = {
-          number: (request.metadata.cardNumber || "").replace(/\s/g, ""),
-          holder_name: request.metadata.cardHolder || "",
-          expiry_month: request.metadata.cardExpirationMonth || "",
-          expiry_year: request.metadata.cardExpirationYear || "",
-          cvv: request.metadata.cardCvv || "",
-        };
-      }
+    if (request.card && payment_method === "credit_card") {
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiry_month: String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0"),
+        expiry_year: String(request.card.expYear || request.card.expiryYear),
+        cvv: request.card.cvv,
+      };
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API do Blackcat para o formato padronizado do SyncAds
+   * Converte resposta da Blackcat para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const status = this.toPaymentStatus(response.status);
-    const success = ["approved", "paid", "completed", "success"].includes(response.status.toLowerCase());
-    const id = response.id || response.transaction_id || "";
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || (!apiResponse.id && !apiResponse.transaction_id)) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Blackcat recusou o pagamento.",
+        errorCode: apiResponse.error?.code || "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const paymentResponse: PaymentResponse = {
-      success,
-      transactionId: id,
-      gatewayTransactionId: id,
-      status,
-      message: response.message || `Pagamento processado com status: ${response.status}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || apiResponse.transaction_id || "",
+      status: statusVal,
+      message: apiResponse.message || `Blackcat status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    // Pix
-    const qrCode = response.qr_code || response.pix_qr_code;
-    if (qrCode) {
-      paymentResponse.qrCode = qrCode;
-      paymentResponse.pixKey = qrCode;
-      paymentResponse.expiresAt = response.expires_at;
-      paymentResponse.pixData = {
-        qrCode,
-        amount: response.amount,
-        expiresAt: response.expires_at,
+    if (apiResponse.qr_code) {
+      response.qrCode = apiResponse.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.qr_code,
+        qrCodeImage: apiResponse.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    // Boleto
-    const boletoUrl = response.payment_url || response.boleto_url;
-    if (boletoUrl || response.barcode) {
-      paymentResponse.paymentUrl = boletoUrl;
-      paymentResponse.barcodeNumber = response.barcode;
-      paymentResponse.digitableLine = response.digitable_line;
-      paymentResponse.expiresAt = response.expires_at;
-      paymentResponse.boletoData = {
-        boletoUrl: boletoUrl || "",
-        barcode: response.barcode || "",
-        digitableLine: response.digitable_line || "",
-        dueDate: response.expires_at || "",
-        amount: response.amount,
-      };
+    if (apiResponse.payment_url || apiResponse.boleto_url) {
+      response.paymentUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.redirectUrl = apiResponse.payment_url || apiResponse.boleto_url;
+      response.barcodeNumber = apiResponse.barcode;
+      response.digitableLine = apiResponse.digitable_line;
+      response.expiresAt = apiResponse.expires_at;
     }
 
-    return paymentResponse;
+    return response;
   }
 
   /**
-   * Converte a resposta da API do Blackcat para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: PaymentResponsePayload): PaymentStatusResponse {
-    const id = response.id || response.transaction_id || "";
-
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: id,
-      gatewayTransactionId: id,
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount,
-      currency: "BRL",
-      paymentMethod: response.payment_url || response.boleto_url ? "boleto" : (response.qr_code || response.pix_qr_code ? "pix" : "credit_card"),
-      createdAt: response.expires_at || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      transactionId: apiResponse.transaction_id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
+      currency: apiResponse.currency || "BRL",
+      paymentMethod: apiResponse.payment_method || "unknown",
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.created_at || new Date().toISOString(),
     };
   }
 
   /**
-   * Mapeia status do Blackcat para status interno do SyncAds
+   * Normaliza os códigos de status da Blackcat.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
-      pending: "pending",
-      processing: "processing",
-      paid: "approved",
       approved: "approved",
+      paid: "approved",
       completed: "approved",
       success: "approved",
+      pending: "pending",
+      processing: "processing",
       failed: "failed",
       declined: "failed",
       error: "failed",
       cancelled: "cancelled",
       canceled: "cancelled",
+      voided: "cancelled",
       refunded: "refunded",
       expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
   }
 }

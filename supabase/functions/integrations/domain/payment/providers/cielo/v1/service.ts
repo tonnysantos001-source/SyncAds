@@ -23,8 +23,7 @@ export class Service extends BaseGateway {
   }
 
   /**
-   * Valida as credenciais da Cielo (merchantId e merchantKey).
-   * Testa a conexão — 404 (ID não encontrado) = credenciais OK, 401 = inválido.
+   * Valida as credenciais da Cielo.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -56,7 +55,7 @@ export class Service extends BaseGateway {
   }
 
   /**
-   * Processa pagamentos via Cielo (Cartão de Crédito, Débito, Boleto ou PIX).
+   * Processa pagamentos via Cielo.
    */
   async processPayment(
     request: PaymentRequest,
@@ -72,17 +71,17 @@ export class Service extends BaseGateway {
     }
 
     const client = this.getClient(config);
-    const payload = Mapper.toCreateSalePayload(request);
+    const payload = Mapper.toCreatePaymentPayload(request, config.webhookUrl);
 
     try {
-      const res = await client.createSale(payload);
+      const res = await client.createPayment(payload);
       const body = await res.json();
 
       if (!res.ok) {
         return {
           success: false,
           status: "failed",
-          message: `Cielo rejeitou a transação (${res.status}): ${body?.message || "Erro desconhecido"}`,
+          message: `Cielo rejeitou a transação (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
           errorCode: String(res.status),
           raw: body,
         };
@@ -108,14 +107,14 @@ export class Service extends BaseGateway {
     const client = this.getClient(config);
 
     try {
-      const res = await client.querySale(gatewayTransactionId);
+      const res = await client.getPayment(gatewayTransactionId);
       const body = await res.json();
 
       if (res.ok) {
         return Mapper.toPaymentStatusResponse(body);
       } else {
         throw new Error(
-          `Erro ao consultar Cielo (${res.status}): ${body?.message || "Erro desconhecido"}`
+          `Erro ao consultar Cielo (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`
         );
       }
     } catch (err: any) {
@@ -124,7 +123,7 @@ export class Service extends BaseGateway {
   }
 
   /**
-   * Cancela/estorna um pagamento na Cielo.
+   * Estorna/reembolsa um pagamento na Cielo.
    */
   async refundPayment(
     request: RefundRequest,
@@ -133,7 +132,7 @@ export class Service extends BaseGateway {
     const client = this.getClient(config);
 
     try {
-      const res = await client.voidSale(request.gatewayTransactionId, request.amount);
+      const res = await client.refundPayment(request.gatewayTransactionId, request.amount);
       const body = await res.json().catch(() => ({}));
 
       if (res.ok) {
@@ -150,7 +149,7 @@ export class Service extends BaseGateway {
           success: false,
           amount: request.amount || 0,
           status: "failed",
-          message: `Cielo rejeitou o estorno (${res.status}): ${body?.message || "Erro desconhecido"}`,
+          message: `Cielo rejeitou o estorno (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
         };
       }
     } catch (err: any) {
@@ -158,13 +157,13 @@ export class Service extends BaseGateway {
         success: false,
         amount: request.amount || 0,
         status: "failed",
-        message: `Falha ao estornar transação Cielo: ${err.message}`,
+        message: `Falha ao solicitar estorno na Cielo: ${err.message}`,
       };
     }
   }
 
   /**
-   * Processa webhooks enviados pela Cielo.
+   * Processa webhook recebido da Cielo.
    */
   async handleWebhook(
     payload: any,

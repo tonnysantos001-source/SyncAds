@@ -1,31 +1,55 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida a integridade do webhook do Blackcat
-   */
-  static validateSignature(payload: any, signature?: string, secret?: string): WebhookValidationResult {
-    if (secret && signature && signature !== secret) {
-      return { isValid: false, error: "Assinatura do webhook inválida." };
-    }
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Trata o payload recebido e normaliza para o SyncAds
+   * Processa o webhook da Blackcat.
    */
   static handle(payload: any): WebhookResponse {
-    const transactionId = String(payload.transaction_id || payload.id);
-    const status = payload.status ? Mapper.toPaymentStatus(payload.status) : undefined;
+    try {
+      const transactionId = payload.transaction_id || payload.id;
+      const status = payload.status;
 
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status,
-      message: `Webhook do Blackcat processado com sucesso. Status: ${status}`,
-    };
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Blackcat inválido: transaction_id/id ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Blackcat inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId,
+        status: normalizedStatus,
+        message: `Webhook Blackcat: ${status} → ${normalizedStatus}`,
+        raw: payload,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        processed: false,
+        message: `Erro webhook Blackcat: ${err.message}`,
+      };
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -21,11 +21,11 @@ export class Client {
   }
 
   /**
-   * Valida a conexão com a API do SafetyPay
+   * Verifica credenciais.
+   * GET /health
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/health`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/health`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -33,11 +33,11 @@ export class Client {
   }
 
   /**
-   * Cria uma cobrança no SafetyPay
+   * Cria pagamento no SafetyPay.
+   * POST /payments
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    return await this.http.request(url, {
+  async createPayment(payload: CreatePaymentPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payments`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -46,13 +46,27 @@ export class Client {
   }
 
   /**
-   * Consulta os detalhes de um pagamento no SafetyPay
+   * Consulta pagamento.
+   * GET /payments/{id}
    */
-  async getPayment(transactionId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${transactionId}`;
-    return await this.http.request(url, {
+  async getPayment(paymentId: string): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payments/${paymentId}`, {
       method: "GET",
       headers: this.getHeaders(),
+      timeoutMs: config.timeoutMs,
+    });
+  }
+
+  /**
+   * Reembolsa pagamento.
+   * POST /payments/{id}/refunds
+   */
+  async refundPayment(paymentId: string, amount?: number): Promise<Response> {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/payments/${paymentId}/refunds`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }

@@ -1,0 +1,20 @@
+{
+  "name": "Shipay",
+  "slug": "shipay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://shipay.com.br/assets/images/logo.svg",
+  "description": "Gateway brasileiro focado na integração rápida de Pix dinâmico e carteiras digitais (como PicPay, Mercado Pago) diretamente nos PDVs e e-commerces.",
+  "status": "active",
+  "configFields": [
+    { "name": "accessKey", "label": "Access Key", "type": "text", "required": true },
+    { "name": "secretKey", "label": "Secret Key", "type": "password", "required": true },
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.shipay.com.br",
+  "supportEmail": "suporte@shipay.com.br"
+}

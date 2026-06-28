@@ -1,47 +1,56 @@
-// Tipos específicos para a API Rede (e.Rede)
-// Documentação: https://developer.userede.com.br
+// Tipos específicos para a API Rede
+// Documentação: https://www.userede.com.br/desenvolvedores
 
 export interface Credentials {
-  clientId: string;     // Client ID OAuth 2.0 — fornecido pela Rede
-  clientSecret: string; // Client Secret OAuth 2.0 — fornecido pela Rede
-  filiation?: string;   // Número de filiação/afiliação junto à Rede (PV)
-}
-
-export interface OAuthTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  scope: string;
+  pv: string;     // Código de afiliação do estabelecimento comercial Rede
+  token: string;  // Token de autorização Bearer
 }
 
 export interface CreateTransactionPayload {
-  kind: "credit" | "debit";           // Tipo de transação
-  reference: string;                   // Referência do pedido (orderId)
-  amount: number;                      // Valor em centavos
-  installments?: number;               // Parcelas (1–12)
-  softDescriptor?: string;             // Nome na fatura do cartão
-  capture?: boolean;                   // true = captura imediata
-  card?: {
-    number: string;
-    expirationMonth: string;           // "MM"
-    expirationYear: string;            // "YYYY"
-    securityCode: string;
-    holderName: string;
+  capture?: boolean;
+  kind: "pix" | "credit" | "debit" | "boleto";
+  reference: string;
+  amount: number; // Centavos
+  installments?: number;
+  cardHolderName?: string;
+  cardNumber?: string;
+  expirationMonth?: string; // MM
+  expirationYear?: string;  // YYYY
+  securityCode?: string;
+  pix?: {
+    expirationTime?: number;
   };
-  threeDSecure?: { embedded: boolean };
-  urls?: Array<{ kind: "three-ds-callback" | "notification"; url: string }>;
+  boleto?: {
+    expirationDate: string;
+    instructions?: string;
+  };
+  urls?: Array<{
+    kind: "callback";
+    url: string;
+  }>;
 }
 
-export interface TransactionResponse {
-  returnCode?: string;         // "00" = aprovado
-  returnMessage?: string;
-  tid?: string;                // Transaction ID
-  nsu?: string;                // Número de série único
+export interface PaymentResponse {
+  tid?: string;
+  nsu?: string;
   authorizationCode?: string;
-  kind?: string;
-  reference?: string;
+  returnCode?: string;
+  status?: string;
   amount?: number;
-  status?: string;             // "approved" | "canceled" | "denied" | "pending"
-  installments?: number;
-  createdAt?: string;
+  kind?: string;
+  dateTime?: string;
+  pix?: {
+    qrCode?: string;
+    qrCodeBase64?: string;
+  };
+  boleto?: {
+    url?: string;
+    barcode?: string;
+    digitableLine?: string;
+    expirationDate?: string;
+  };
+  error?: {
+    message?: string;
+  };
+  message?: string;
 }

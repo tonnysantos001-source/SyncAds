@@ -1,0 +1,40 @@
+{
+  "name": "Banco do Brasil API",
+  "slug": "bancodobrasil",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/bancodobrasil.png",
+  "description": "Integração oficial do Banco do Brasil API para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "developerKey",
+      "label": "Developer Key",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Developer Key"
+    },
+    {
+      "name": "clientId",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Client ID"
+    },
+    {
+      "name": "clientSecret",
+      "label": "Client Secret",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Client Secret"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.bancodobrasil.com",
+  "supportEmail": "suporte@bancodobrasil.com"
+}

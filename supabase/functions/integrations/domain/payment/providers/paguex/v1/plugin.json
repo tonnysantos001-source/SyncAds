@@ -3,32 +3,34 @@
   "slug": "paguex",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Pague-X para processamento de pagamentos.",
+  "logoUrl": "https://inpagamentos.com/logo.png",
+  "description": "Gateway brasileiro Pague-X (antiga InPagamentos) para emissão e conciliação de Pix, Boleto e Cartão.",
   "status": "active",
   "configFields": [
     {
       "name": "publicKey",
-      "label": "Chave Pública (Public Key)",
+      "label": "Public Key",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: pub_key_..."
+      "placeholder": "Chave pública fornecida pela Pague-X"
     },
     {
       "name": "secretKey",
-      "label": "Chave Secreta (Secret Key)",
+      "label": "Secret Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: sec_key_..."
+      "placeholder": "Chave secreta de autenticação API"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://inpagamentos.com",
+  "supportEmail": "suporte@inpagamentos.com"
 }

@@ -1,34 +1,59 @@
-// Tipos específicos para a API do Ever Pay
+// Tipos específicos para a API Ever Pay
+// Documentação: https://api.ever-pay.com/docs
+
 export interface Credentials {
-  apiKey: string;
-  accountId?: string;
+  apiKey: string;     // Chave de API secreta (X-API-Key)
+  accountId: string;  // Identificador da conta Ever Pay
 }
 
-export interface PaymentRequestPayload {
-  amount: number; // Em centavos (inteiro)
-  currency: string; // ex: "brl"
-  payment_method: string;
-  description: string;
+export interface CreatePaymentPayload {
+  transaction_id: string; // Referência interna do pedido
+  amount: number;         // Valor em centavos
+  currency: "BRL";
+  payment_method: "credit_card" | "pix" | "boleto";
   customer: {
     name: string;
     email: string;
-    document: string;
+    document: string;     // CPF/CNPJ limpo
     phone?: string;
   };
-  card_token?: string; // Para pagamentos de cartão de crédito
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month?: string; // MM
+    expiration_year?: string;  // YYYY
+    expiry_month?: string;     // Compatibilidade
+    expiry_year?: string;
+    cvv: string;
+  };
+  installments?: number;
+  metadata?: {
+    order_id: string;
+    user_id?: string;
+  };
+  notification_url?: string;
 }
 
-export interface PaymentResponsePayload {
-  id: string;
-  status: string;
-  amount: number;
-  currency: string;
-  qr_code?: string; // QR code text (copia e cola)
-  pix_code?: string; // QR code alternativo
-  payment_url?: string; // Boleto PDF url
-  pdf_url?: string; // Boleto alternativo
-  barcode?: string; // Boleto barcode
-  digitable_line?: string; // Linha digitável
-  created_at: string;
+export interface PaymentResponse {
+  id?: string;
+  transaction_id?: string;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled" | "refunded"
+  qr_code?: string;
+  qr_code_base64?: string;
+  payment_url?: string;     // Boleto ou checkout
+  boleto_url?: string;
+  barcode?: string;
+  digitable_line?: string;
+  expires_at?: string;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  amount?: number;
+  currency?: string;
+  payment_method?: string;
+  created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
 }
-

@@ -1,56 +1,59 @@
-// Tipos específicos para a API do Fast Pay
+// Tipos específicos para a API Fast Pay
+// Documentação: https://api.fast-pay.com/docs
+
 export interface Credentials {
-  apiKey: string;
+  apiKey: string;     // Chave de API secreta (X-API-Key)
+  merchantId: string; // Código do lojista / Merchant ID
 }
 
-export interface BuyerDocument {
-  type: "cpf" | "cnpj";
-  id: string; // Apenas números
-}
-
-export interface Buyer {
-  name: string;
-  email: string;
-  phone: string;
-  document: BuyerDocument;
-}
-
-export interface CardDetails {
-  type: "credit_card";
-  number: string;
-  holderName: string;
-  expirationMonth: string;
-  expirationYear: string;
-  cvv: string;
-  installments: number;
-}
-
-export interface PixDetails {
-  type: "pix";
-}
-
-export interface BoletoDetails {
-  type: "boleto";
-}
-
-export interface PaymentRequestPayload {
-  amount: number; // valor em float ou inteiro normal (Fast Pay costuma usar float ou float-like, mantemos o padrão)
+export interface CreatePaymentPayload {
+  transaction_id: string; // Referência interna do pedido
+  amount: number;         // Valor em centavos
   currency: "BRL";
-  customer: Buyer;
-  paymentMethod: CardDetails | PixDetails | BoletoDetails;
-  postbackUrl?: string;
-  metadata?: string;
+  payment_method: "credit_card" | "pix" | "boleto" | "debit_card";
+  customer: {
+    name: string;
+    email: string;
+    document: string;     // CPF/CNPJ limpo
+    phone?: string;
+  };
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month?: string; // MM
+    expiration_year?: string;  // YYYY
+    expiry_month?: string;     // Compatibilidade
+    expiry_year?: string;
+    cvv: string;
+  };
+  installments?: number;
+  metadata?: {
+    order_id: string;
+    user_id?: string;
+  };
+  notification_url?: string;
 }
 
-export interface PaymentResponsePayload {
-  id: string;
-  status: string; // paid, pending, failed, refunded, cancelled, etc.
-  amount: number;
-  qrCode?: string;
+export interface PaymentResponse {
+  id?: string;
+  transaction_id?: string;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled" | "refunded"
+  qr_code?: string;
+  qr_code_base64?: string;
+  payment_url?: string;     // Boleto ou checkout
+  boleto_url?: string;
   barcode?: string;
-  digitableLine?: string;
-  paymentUrl?: string;
-  createdAt: string;
-  paidAt?: string;
-  updatedAt?: string;
+  digitable_line?: string;
+  expires_at?: string;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  amount?: number;
+  currency?: string;
+  payment_method?: string;
+  created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
 }

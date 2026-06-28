@@ -1,0 +1,32 @@
+{
+  "name": "Perfect Money",
+  "slug": "perfectmoney",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/perfectmoney.png",
+  "description": "Integração oficial do Perfect Money para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "memberId",
+      "label": "Member ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "Digite seu Member ID"
+    },
+    {
+      "name": "alternatePassphrase",
+      "label": "Alternate Passphrase",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Alternate Passphrase"
+    }
+  ],
+  "paymentMethods": [
+    "credit_card"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.perfectmoney.com",
+  "supportEmail": "suporte@perfectmoney.com"
+}

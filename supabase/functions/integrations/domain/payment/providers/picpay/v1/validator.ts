@@ -1,46 +1,34 @@
 import { PaymentRequest } from "../../../../../types.ts";
 
 export class Validator {
-  /**
-   * Valida o formato e integridade das credenciais informadas pelo usuário
-   */
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!credentials.picpayToken) {
-      errors.push("PicPay Token (picpayToken) é obrigatório.");
+    if (!credentials.picpayToken || credentials.picpayToken.trim() === "") {
+      errors.push("picpayToken (x-picpay-token) é obrigatório. Obtenha no painel do PicPay.");
     }
-    if (!credentials.sellerToken) {
-      errors.push("Seller Token (sellerToken) é obrigatório.");
+    if (!credentials.sellerToken || credentials.sellerToken.trim() === "") {
+      errors.push("sellerToken (x-seller-token) é obrigatório. Obtenha no painel do PicPay.");
     }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Valida se os dados da transação contêm todos os campos requeridos
-   */
   static validatePaymentRequest(request: PaymentRequest): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    if (!request.orderId) {
+    if (!request.orderId || request.orderId.trim() === "") {
       errors.push("ID do pedido (orderId) é obrigatório.");
     }
-    if (!request.customer?.name) {
+    if (!request.amount || request.amount <= 0) {
+      errors.push("Valor do pagamento deve ser maior que zero.");
+    }
+    if (!request.customer?.name || request.customer.name.trim() === "") {
       errors.push("Nome do cliente é obrigatório.");
     }
-    if (!request.customer?.document) {
-      errors.push("Documento do cliente é obrigatório.");
+    if (!request.customer?.email || !request.customer.email.includes("@")) {
+      errors.push("E-mail do cliente inválido ou ausente.");
     }
-    if (!request.customer?.email) {
-      errors.push("Email do cliente é obrigatório.");
+    if (!request.customer?.document || request.customer.document.replace(/\D/g, "").length < 11) {
+      errors.push("CPF/CNPJ do cliente é obrigatório.");
     }
-    if (!request.amount || request.amount <= 0) {
-      errors.push("Valor do pagamento inválido.");
-    }
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 }

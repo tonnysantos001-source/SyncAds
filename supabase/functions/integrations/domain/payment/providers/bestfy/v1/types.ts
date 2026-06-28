@@ -1,97 +1,58 @@
-// Tipos específicos para a API da Bestfy
+// Tipos específicos para a API Bestfy
+// Documentação: https://api.bestfy.com/docs
+
 export interface Credentials {
-  token: string;
+  token: string;       // Token de autenticação Bearer
 }
 
-export interface BuyerDocument {
-  type: "cpf" | "cnpj";
-  number: string;
-}
-
-export interface Buyer {
-  name: string;
-  email: string;
-  document?: BuyerDocument;
-  phone?: string;
-  externalRef?: string;
-}
-
-export interface CardDetails {
-  id?: number;
-  hash?: string;
-  number?: string;
-  holderName?: string;
-  expirationMonth?: number;
-  expirationYear?: number;
-  cvv?: string;
-}
-
-export interface ItemPayload {
-  title: string;
-  unitPrice: number; // centavos
-  quantity: number;
-  tangible: boolean;
-  externalRef?: string;
-}
-
-export interface PaymentRequestPayload {
-  amount: number; // centavos
-  paymentMethod: "credit_card" | "boleto" | "pix";
-  customer: Buyer;
-  items: ItemPayload[];
-  card?: CardDetails;
+export interface CreatePaymentPayload {
+  transaction_id: string; // Referência interna
+  amount: number;         // Valor em centavos
+  currency: "BRL";
+  payment_method: "credit_card" | "pix" | "boleto" | "debit_card";
+  customer: {
+    name: string;
+    email: string;
+    document: string;     // CPF/CNPJ limpo
+    phone?: string;
+  };
+  card?: {
+    number: string;
+    holder_name: string;
+    expiration_month?: string; // MM
+    expiration_year?: string;  // YYYY
+    expiry_month?: string;     // Compatibilidade
+    expiry_year?: string;
+    cvv: string;
+  };
   installments?: number;
-  postbackUrl?: string;
-  metadata?: string;
-  ip?: string;
+  metadata?: {
+    order_id: string;
+    user_id?: string;
+  };
+  notification_url?: string;
 }
 
-export interface PixResponse {
-  qrcode: string;
-  url: string;
-  expirationDate: string;
-  createdAt: string;
-}
-
-export interface BoletoResponse {
-  url: string;
-  barcode: string;
-  digitableLine: string;
-  expirationDate: string;
-  instructions?: string;
-  createdAt: string;
-}
-
-export interface CardResponse {
-  id: number;
-  brand: string;
-  holderName: string;
-  lastDigits: string;
-  expirationMonth: number;
-  expirationYear: number;
-}
-
-export interface PaymentResponsePayload {
-  id: number;
-  amount: number;
-  refundedAmount?: number;
-  installments?: number;
-  paymentMethod: "credit_card" | "boleto" | "pix";
-  status: string; // "paid", "pending", "failed", "refused", "refunded"
-  postbackUrl?: string;
-  metadata?: string;
-  secureId?: string;
-  secureUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  paidAt?: string;
-  customer?: Buyer & { id: number };
-  card?: CardResponse;
-  pix?: PixResponse;
-  boleto?: BoletoResponse;
-}
-
-export interface BalanceResponsePayload {
-  amount: number;
-  recipientId: number;
+export interface PaymentResponse {
+  id?: string;
+  transaction_id?: string;
+  status?: string;          // "approved" | "pending" | "failed" | "cancelled" | "refunded"
+  qr_code?: string;
+  qr_code_base64?: string;
+  payment_url?: string;     // Boleto ou checkout
+  boleto_url?: string;
+  barcode?: string;
+  digitable_line?: string;
+  expires_at?: string;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  amount?: number;
+  currency?: string;
+  payment_method?: string;
+  created_at?: string;
+  updated_at?: string;
+  paid_at?: string;
 }

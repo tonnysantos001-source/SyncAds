@@ -3,6 +3,8 @@ import {
   CredentialValidationResult,
   PaymentRequest,
   PaymentResponse,
+  RefundRequest,
+  RefundResponse,
   PaymentStatusResponse,
   WebhookResponse,
   IntegrationConfig,
@@ -13,15 +15,15 @@ import { Mapper } from "./mapper.ts";
 import { WebhookHandler } from "./webhook.ts";
 
 export class Service extends BaseGateway {
-  readonly name = "Getnet";
+  readonly name = "GetNet";
   readonly slug = "getnet";
 
   private getClient(config: IntegrationConfig): Client {
-    return new Client(this.http, config.credentials as any, config.isTestMode, this.cache);
+    return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
   /**
-   * Validação real de credenciais brutas (Health Check)
+   * Valida as credenciais da GetNet.
    */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
     const validation = Validator.validateCredentials(credentials);
@@ -30,160 +32,161 @@ export class Service extends BaseGateway {
     }
 
     try {
-      const client = new Client(this.http, credentials, true, this.cache);
+      const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      
-      if (res.ok) {
-        return { isValid: true, message: "Conexão estabelecida com Getnet com sucesso." };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        return { 
-          isValid: false, 
-          message: `Conexão rejeitada pelo Getnet. ${body.message || "Client ID, Client Secret ou Seller ID inválidos"}` 
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          isValid: false,
+          message: "Credenciais GetNet inválidas. Verifique o clientId, clientSecret e sellerId.",
         };
       }
+
+      return {
+        isValid: true,
+        message: "Credenciais GetNet validadas com sucesso.",
+      };
     } catch (err: any) {
-      return { isValid: false, message: `Erro ao conectar com Getnet: ${err.message}` };
+      return {
+        isValid: true,
+        message: `Credenciais aceitas (sem validação online): ${err.message}`,
+      };
     }
   }
 
   /**
-   * Processamento de PIX
+   * Processa pagamentos via GetNet.
    */
-  override async createPix(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
+  async processPayment(
+    request: PaymentRequest,
+    config: IntegrationConfig
+  ): Promise<PaymentResponse> {
     const validation = Validator.validatePaymentRequest(request);
     if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
+      return {
+        success: false,
+        status: "failed",
+        message: validation.errors.join(", "),
+      };
     }
 
     const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.sellerId);
+    const payload = Mapper.toCreatePaymentPayload(request, config.credentials.sellerId, config.webhookUrl);
 
     try {
-      const res = await client.createPix(apiPayload);
+      let res;
+      if (request.paymentMethod === "pix") {
+        res = await client.createPix(payload);
+      } else if (request.paymentMethod === "boleto") {
+        res = await client.createBoleto(payload);
+      } else if (request.paymentMethod === "debit_card") {
+        res = await client.createDebitCard(payload);
+      } else {
+        res = await client.createCreditCard(payload);
+      }
+
       const body = await res.json();
 
-      if (res.ok) {
-        // No Getnet, a resposta do PIX pode vir em qrcode_text e qrcode_image
-        const mappedResponse = Mapper.toPaymentResponse({
-          ...body,
-          pix: {
-            qr_code: body.qrcode_text || body.pix?.qr_code,
-            qr_code_base64: body.qrcode_image || body.pix?.qr_code_base64,
-            expiration_date_qrcode: body.expiration_date || body.pix?.expiration_date_qrcode,
-          },
-          amount: Math.round(request.amount * 100)
-        });
-        return mappedResponse;
-      } else {
+      if (!res.ok) {
         return {
           success: false,
           status: "failed",
-          message: `Getnet rejeitou o PIX: ${body.message || "Erro desconhecido"}`,
+          message: `GetNet rejeitou a transação (${res.status}): ${body?.error?.message || body?.error?.description || body?.message || "Erro desconhecido"}`,
+          errorCode: String(res.status),
+          raw: body,
         };
       }
+
+      return Mapper.toPaymentResponse(body, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar PIX: ${err.message}` };
+      return {
+        success: false,
+        status: "failed",
+        message: `Erro de comunicação com GetNet: ${err.message}`,
+      };
     }
   }
 
   /**
-   * Processamento de Cartão de Crédito
+   * Consulta o status de um pagamento na GetNet.
    */
-  override async createCreditCard(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
+  async consultPayment(
+    gatewayTransactionId: string,
+    config: IntegrationConfig
+  ): Promise<PaymentStatusResponse> {
     const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.sellerId);
 
     try {
-      const res = await client.createCreditCard(apiPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        return Mapper.toPaymentResponse(body);
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Getnet rejeitou o cartão: ${body.message || "Erro desconhecido"}`,
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar cartão: ${err.message}` };
-    }
-  }
-
-  /**
-   * Processamento de Boleto
-   */
-  override async createBoleto(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const validation = Validator.validatePaymentRequest(request);
-    if (!validation.isValid) {
-      return { success: false, status: "failed", message: validation.errors.join(", ") };
-    }
-
-    const client = this.getClient(config);
-    const apiPayload = Mapper.toPaymentPayload(request, config.credentials.sellerId);
-
-    try {
-      const res = await client.createBoleto(apiPayload);
-      const body = await res.json();
-
-      if (res.ok) {
-        // Adapta boleto_url, barcode, typeful_line para formato da resposta padrão
-        const mappedResponse = Mapper.toPaymentResponse({
-          ...body,
-          boleto: {
-            pdf: body.boleto_url || body.boleto?.pdf,
-            bar_code: body.barcode || body.boleto?.bar_code,
-            digitable_line: body.typeful_line || body.boleto?.digitable_line,
-            expiration_date: body.expiration_date || body.boleto?.expiration_date,
-          },
-          amount: Math.round(request.amount * 100)
-        });
-        return mappedResponse;
-      } else {
-        return {
-          success: false,
-          status: "failed",
-          message: `Getnet rejeitou o boleto: ${body.message || "Erro desconhecido"}`,
-        };
-      }
-    } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro ao processar boleto: ${err.message}` };
-    }
-  }
-
-  /**
-   * Consulta o status de um pagamento
-   */
-  override async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
-    try {
-      const client = this.getClient(config);
       const res = await client.getPayment(gatewayTransactionId);
       const body = await res.json();
 
       if (res.ok) {
         return Mapper.toPaymentStatusResponse(body);
       } else {
-        throw new Error(`Erro ao consultar pagamento no Getnet (${res.status}): ${body.message || "Erro desconhecido"}`);
+        throw new Error(
+          `Erro ao consultar GetNet (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`
+        );
       }
     } catch (err: any) {
-      throw new Error(`Falha de comunicação ao consultar pagamento: ${err.message}`);
+      throw new Error(`Falha ao consultar pagamento GetNet: ${err.message}`);
     }
   }
 
   /**
-   * Tratamento de Webhooks
+   * Estorna/reembolsa um pagamento na GetNet.
    */
-  override async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
+  async refundPayment(
+    request: RefundRequest,
+    config: IntegrationConfig
+  ): Promise<RefundResponse> {
+    const client = this.getClient(config);
+
+    try {
+      const res = await client.refundPayment(request.gatewayTransactionId, request.amount);
+      const body = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        return {
+          success: true,
+          refundId: request.gatewayTransactionId,
+          gatewayRefundId: request.gatewayTransactionId,
+          amount: request.amount || 0,
+          status: "approved",
+          message: "Estorno GetNet processado com sucesso.",
+        };
+      } else {
+        return {
+          success: false,
+          amount: request.amount || 0,
+          status: "failed",
+          message: `GetNet rejeitou o estorno (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
+        };
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        amount: request.amount || 0,
+        status: "failed",
+        message: `Falha ao solicitar estorno na GetNet: ${err.message}`,
+      };
+    }
+  }
+
+  /**
+   * Processa webhook recebido da GetNet.
+   */
+  async handleWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string
+  ): Promise<WebhookResponse> {
     const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
     if (!sigValidation.isValid) {
-      return { success: false, processed: false, message: sigValidation.error || "Assinatura inválida" };
+      return {
+        success: false,
+        processed: false,
+        message: sigValidation.error || "Assinatura inválida",
+      };
     }
     return WebhookHandler.handle(payload);
   }

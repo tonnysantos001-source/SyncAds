@@ -1,9 +1,10 @@
 // Endpoints e configurações para o provedor Bestfy
+// Documentação: https://api.bestfy.com/docs
 export const config = {
   endpoints: {
-    production: "https://api.bestfybr.com.br/v1",
-    sandbox: "https://api.bestfybr.com.br/v1", // Utiliza a mesma API com tokens de teste
+    production: "https://api.bestfy.com/v1",
+    sandbox: "https://sandbox.bestfy.com/v1",
   },
-  timeoutMs: 10000,
+  timeoutMs: 12000,
   maxRetries: 3,
 };

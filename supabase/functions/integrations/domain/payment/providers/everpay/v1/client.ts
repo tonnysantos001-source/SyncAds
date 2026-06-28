@@ -1,6 +1,6 @@
 import { HttpClientInterface } from "../../../../../types.ts";
 import { config } from "./config.ts";
-import { Credentials } from "./types.ts";
+import { Credentials, CreatePaymentPayload } from "./types.ts";
 
 export class Client {
   constructor(
@@ -14,23 +14,17 @@ export class Client {
   }
 
   private getHeaders(): HeadersInit {
-    const headers: Record<string, string> = {
-      "Authorization": `Bearer ${this.credentials.apiKey}`,
+    return {
       "Content-Type": "application/json",
-      "User-Agent": "SyncAds Integration Client v1.0",
+      "X-API-Key": this.credentials.apiKey,
     };
-    if (this.credentials.accountId) {
-      headers["X-Everpay-Api-Key"] = this.credentials.accountId;
-    }
-    return headers;
   }
 
   /**
-   * Pings the API by retrieving the payments list with limit=1 to verify authentication.
+   * Verifica credenciais.
    */
   async ping(): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments?limit=1`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/health`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -38,11 +32,11 @@ export class Client {
   }
 
   /**
-   * Creates a payment
+   * Cria pagamento.
+   * POST /payments
    */
-  async createPayment(payload: any): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments`;
-    return await this.http.request(url, {
+  async createPayment(payload: CreatePaymentPayload): Promise<Response> {
+    return await this.http.request(`${this.getBaseUrl()}/payments`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
@@ -51,30 +45,11 @@ export class Client {
   }
 
   /**
-   * Tokenizes a card
-   */
-  async tokenizeCard(payload: {
-    number: string;
-    exp_month: number;
-    exp_year: number;
-    cvc: string;
-    name: string;
-  }): Promise<Response> {
-    const url = `${this.getBaseUrl()}/tokens`;
-    return await this.http.request(url, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ card: payload }),
-      timeoutMs: config.timeoutMs,
-    });
-  }
-
-  /**
-   * Retrieves a payment details
+   * Obtém detalhes de um pagamento.
+   * GET /payments/{id}
    */
   async getPayment(paymentId: string): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${paymentId}`;
-    return await this.http.request(url, {
+    return await this.http.request(`${this.getBaseUrl()}/payments/${paymentId}`, {
       method: "GET",
       headers: this.getHeaders(),
       timeoutMs: config.timeoutMs,
@@ -82,20 +57,16 @@ export class Client {
   }
 
   /**
-   * Refunds a payment
+   * Reembolsa/estorna um pagamento.
+   * POST /payments/{id}/refund
    */
   async refundPayment(paymentId: string, amount?: number): Promise<Response> {
-    const url = `${this.getBaseUrl()}/payments/${paymentId}/refund`;
-    const body: Record<string, any> = {};
-    if (amount !== undefined) {
-      body.amount = amount;
-    }
-    return await this.http.request(url, {
+    const body = amount ? JSON.stringify({ amount }) : "{}";
+    return await this.http.request(`${this.getBaseUrl()}/payments/${paymentId}/refund`, {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(body),
+      body,
       timeoutMs: config.timeoutMs,
     });
   }
 }
-

@@ -3,8 +3,8 @@
   "slug": "anubispay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do AnubisPay para processamento de pagamentos.",
+  "logoUrl": "https://anubispay.com/logo.png",
+  "description": "Gateway brasileiro AnubisPay para processamento simplificado de Pix, Boleto e Cartão com foco em taxas baixas.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Merchant ID",
       "type": "text",
       "required": true,
-      "placeholder": "Ex: merch_..."
+      "placeholder": "ID de estabelecimento comercial da AnubisPay"
     },
     {
       "name": "apiToken",
       "label": "API Token",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: token_..."
+      "placeholder": "Chave secreta obtida no painel da AnubisPay"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://anubispay.com",
+  "supportEmail": "suporte@anubispay.com"
 }

@@ -3,32 +3,34 @@
   "slug": "safetypay",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do SafetyPay para processamento de pagamentos globais.",
+  "logoUrl": "https://safetypay.com/logo.png",
+  "description": "Gateway internacional SafetyPay focado em transferências bancárias seguras em tempo real e pagamentos via lotéricas.",
   "status": "active",
   "configFields": [
     {
       "name": "apiKey",
-      "label": "Chave de API (API Key)",
-      "type": "text",
+      "label": "API Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: sp_live_..."
+      "placeholder": "Chave pública X-API-Key fornecida pela SafetyPay"
     },
     {
       "name": "signatureKey",
-      "label": "Chave de Assinatura (Signature Key)",
+      "label": "Signature Key / Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: sig_..."
+      "placeholder": "Chave para assinatura / validação criptográfica"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox (Test)",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["pix", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://safetypay.com",
+  "supportEmail": "suporte@safetypay.com"
 }

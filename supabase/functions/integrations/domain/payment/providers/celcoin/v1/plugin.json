@@ -1,0 +1,19 @@
+{
+  "name": "Celcoin",
+  "slug": "celcoin",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.celcoin.com.br/assets/images/logo.svg",
+  "description": "Líder em Open Finance no Brasil. Permite o recebimento via Pix dinâmico, boletos híbridos e pagamentos de contas via API de forma rápida e segura.",
+  "status": "active",
+  "configFields": [
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true, "placeholder": "Obtido no Portal do Desenvolvedor Celcoin" },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.celcoin.com.br",
+  "supportEmail": "suporte@celcoin.com.br"
+}

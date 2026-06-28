@@ -1,10 +1,10 @@
 // Endpoints e configurações para o provedor Appmax
+// Documentação: https://api.appmax.com/docs
 export const config = {
   endpoints: {
-    production: "https://admin.appmax.com.br/api/v3",
-    sandbox: "https://admin.appmax.com.br/api/v3",
+    production: "https://api.appmax.com/v1",
+    sandbox: "https://sandbox.appmax.com/v1",
   },
-  timeoutMs: 10000,
+  timeoutMs: 12000,
   maxRetries: 3,
 };
-

@@ -3,32 +3,34 @@
   "slug": "asset",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "",
-  "description": "Integração oficial do Asset para processamento de pagamentos.",
+  "logoUrl": "https://asset.com.br/logo.png",
+  "description": "Gateway brasileiro Asset focado em alto desempenho para Pix, Boleto e Cartão de Crédito.",
   "status": "active",
   "configFields": [
     {
       "name": "publicKey",
-      "label": "Chave Pública (Public Key)",
-      "type": "text",
+      "label": "Public Key",
+      "type": "password",
       "required": true,
-      "placeholder": "Ex: pub_..."
+      "placeholder": "Chave pública de API obtida no painel da Asset"
     },
     {
       "name": "privateKey",
-      "label": "Chave Privada (Private Key)",
+      "label": "Private Key",
       "type": "password",
       "required": true,
-      "placeholder": "Ex: priv_..."
+      "placeholder": "Chave privada / secreta adicional"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": false,
-    "supportsCreditCard": true,
-    "supportsBoleto": false,
-    "supportsSubscription": false,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://asset.com.br",
+  "supportEmail": "suporte@asset.com.br"
 }

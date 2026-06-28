@@ -3,8 +3,8 @@
   "slug": "efi",
   "version": "v1",
   "category": "payment",
-  "logoUrl": "https://cdn-icons-png.flaticon.com/512/891/891462.png",
-  "description": "Integração oficial da Efí (antiga Gerencianet) para processamento de Pix, Cartão e Boleto.",
+  "logoUrl": "https://efi.com.br/logo.png",
+  "description": "Gateway brasileiro Efí (antiga Gerencianet) para emissão de Pix, Cartão de Crédito e Boleto Bancário.",
   "status": "active",
   "configFields": [
     {
@@ -12,23 +12,25 @@
       "label": "Client ID",
       "type": "text",
       "required": true,
-      "placeholder": "Client ID da Efí"
+      "placeholder": "Chave Client ID obtida no painel da Efí"
     },
     {
       "name": "clientSecret",
       "label": "Client Secret",
       "type": "password",
       "required": true,
-      "placeholder": "Client Secret da Efí"
+      "placeholder": "Chave Client Secret obtida no painel da Efí"
+    },
+    {
+      "name": "isTestMode",
+      "label": "Modo Sandbox",
+      "type": "checkbox",
+      "required": false
     }
   ],
-  "capabilities": {
-    "supportsPix": true,
-    "supportsCreditCard": true,
-    "supportsBoleto": true,
-    "supportsSubscription": true,
-    "supportsSplit": false,
-    "supportsRefund": true,
-    "supportsWebhook": true
-  }
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://efi.com.br",
+  "supportEmail": "suporte@efi.com.br"
 }

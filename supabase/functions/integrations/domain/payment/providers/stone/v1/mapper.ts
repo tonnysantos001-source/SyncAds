@@ -1,48 +1,41 @@
-import { PaymentRequest, PaymentResponse, PaymentStatus, PaymentStatusResponse } from "../../../../../types.ts";
-import { PaymentRequestPayload, PaymentResponsePayload } from "./types.ts";
+import {
+  PaymentRequest,
+  PaymentResponse as InternalPaymentResponse,
+  PaymentStatus,
+  PaymentStatusResponse,
+  PaymentMethod,
+} from "../../../../../types.ts";
+import { CreatePaymentPayload, PaymentResponse } from "./types.ts";
 
 export class Mapper {
-  private static formatDocument(doc: string): string {
-    return doc.replace(/\D/g, "");
-  }
-
-  private static getDocumentType(doc: string): "CPF" | "CNPJ" {
-    const cleanDoc = doc.replace(/\D/g, "");
-    return cleanDoc.length <= 11 ? "CPF" : "CNPJ";
-  }
-
-  private static formatZipCode(zip: string): string {
-    return zip.replace(/\D/g, "");
-  }
-
   /**
-   * Converte a request interna do SyncAds para o formato da API do Stone
+   * Converte PaymentRequest no DTO da Stone.
    */
-  static toPaymentPayload(request: PaymentRequest, merchantId: string): PaymentRequestPayload {
-    const cleanDoc = this.formatDocument(request.customer.document);
-    const docType = this.getDocumentType(request.customer.document);
-    const centsAmount = Math.round(request.amount * 100);
+  static toCreatePaymentPayload(request: PaymentRequest, merchantId: string, callbackUrl?: string): CreatePaymentPayload {
+    const docClean = (request.customer.document || "").replace(/\D/g, "");
+    const docType = docClean.length > 11 ? "CNPJ" : "CPF";
+    const phoneClean = (request.customer.phone || "").replace(/\D/g, "");
 
-    let paymentMethod: "pix" | "credit_card" | "debit_card" | "boleto" = "pix";
-    if (request.paymentMethod === "credit_card") {
-      paymentMethod = "credit_card";
-    } else if (request.paymentMethod === "debit_card") {
-      paymentMethod = "debit_card";
-    } else if (request.paymentMethod === "boleto") {
-      paymentMethod = "boleto";
-    }
+    const paymentTypeMap: Record<string, "pix" | "credit_card" | "debit_card" | "boleto"> = {
+      pix: "pix",
+      boleto: "boleto",
+      credit_card: "credit_card",
+      debit_card: "debit_card",
+    };
 
-    const payload: PaymentRequestPayload = {
-      amount: centsAmount,
+    const type = paymentTypeMap[request.paymentMethod] || "credit_card";
+
+    const payload: CreatePaymentPayload = {
+      amount: Math.round(request.amount * 100),
       currency: "BRL",
-      payment_method: paymentMethod,
+      payment_method: type,
       merchant_id: merchantId,
       customer: {
         name: request.customer.name,
         email: request.customer.email,
         document: {
           type: docType,
-          number: cleanDoc,
+          number: docClean,
         },
       },
       metadata: {
@@ -50,150 +43,157 @@ export class Mapper {
       },
     };
 
-    if (request.customer.phone) {
-      const cleanPhone = request.customer.phone.replace(/\D/g, "");
+    if (phoneClean && phoneClean.length >= 10) {
       payload.customer.phone = {
         country_code: "55",
-        area_code: cleanPhone.substring(0, 2) || "11",
-        number: cleanPhone.substring(2) || "999999999",
+        area_code: phoneClean.substring(0, 2),
+        number: phoneClean.substring(2),
       };
     }
 
-    if (paymentMethod === "pix") {
+    if (request.billingAddress) {
+      payload.customer.address = {
+        street: request.billingAddress.street,
+        number: String(request.billingAddress.number),
+        complement: request.billingAddress.complement || undefined,
+        neighborhood: request.billingAddress.neighborhood,
+        city: request.billingAddress.city,
+        state: request.billingAddress.state,
+        zip_code: (request.billingAddress.zipCode || "").replace(/\D/g, ""),
+      };
+    }
+
+    if (type === "pix") {
       payload.pix = {
         expiration_seconds: 3600,
       };
-    } else if (paymentMethod === "credit_card" && request.card) {
-      payload.installments = request.installments || 1;
-      payload.capture = true;
-      payload.card = {
-        number: request.card.number.replace(/\s/g, ""),
-        holder_name: request.card.holderName,
-        expiration_month: request.card.expiryMonth.padStart(2, "0"),
-        expiration_year: request.card.expiryYear.toString().slice(-2),
-        cvv: request.card.cvv,
-      };
-    } else if (paymentMethod === "debit_card" && request.card) {
-      payload.card = {
-        number: request.card.number.replace(/\s/g, ""),
-        holder_name: request.card.holderName,
-        expiration_month: request.card.expiryMonth.padStart(2, "0"),
-        expiration_year: request.card.expiryYear.toString().slice(-2),
-        cvv: request.card.cvv,
-      };
-    } else if (paymentMethod === "boleto") {
+    } else if (type === "boleto") {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 3);
-
       payload.boleto = {
         due_date: dueDate.toISOString().split("T")[0],
         instructions: "Pagamento processado via Stone",
       };
+    } else if ((type === "credit_card" || type === "debit_card") && request.card) {
+      const expMonth = String(request.card.expMonth || request.card.expiryMonth).padStart(2, "0");
+      const expYear = String(request.card.expYear || request.card.expiryYear);
 
-      if (request.billingAddress) {
-        payload.customer.address = {
-          street: request.billingAddress.street,
-          number: request.billingAddress.number,
-          complement: request.billingAddress.complement || "",
-          neighborhood: request.billingAddress.neighborhood,
-          city: request.billingAddress.city,
-          state: request.billingAddress.state,
-          zip_code: this.formatZipCode(request.billingAddress.zipCode),
-        };
-      }
+      payload.card = {
+        number: request.card.number.replace(/\D/g, ""),
+        holder_name: request.card.holderName.toUpperCase(),
+        expiration_month: expMonth,
+        expiration_year: expYear,
+        cvv: request.card.cvv,
+      };
+      payload.installments = request.installments || 1;
+      payload.capture = true;
     }
 
     return payload;
   }
 
   /**
-   * Converte a resposta da API do Stone para o formato padronizado do SyncAds
+   * Converte resposta da Stone para o padrão interno.
    */
-  static toPaymentResponse(response: PaymentResponsePayload): PaymentResponse {
-    const rawStatus = response.status || "pending";
-    const status = this.toPaymentStatus(rawStatus);
-    const success = ["paid", "approved", "confirmed", "succeeded"].includes(rawStatus.toLowerCase());
+  static toPaymentResponse(
+    apiResponse: PaymentResponse,
+    orderId: string
+  ): InternalPaymentResponse {
+    if (apiResponse.error || !apiResponse.id) {
+      return {
+        success: false,
+        status: "failed",
+        message: apiResponse.error?.message || apiResponse.message || "Stone recusou o pagamento.",
+        errorCode: "PAYMENT_ERROR",
+        raw: apiResponse,
+      };
+    }
 
-    const result: PaymentResponse = {
-      success,
-      transactionId: response.metadata?.order_id || response.id,
-      gatewayTransactionId: response.id,
-      status,
-      message: `Transação processada com status: ${rawStatus}`,
+    const statusVal = Mapper.toPaymentStatus(apiResponse.status || "pending");
+
+    const response: InternalPaymentResponse = {
+      success: statusVal === "approved" || statusVal === "pending" || statusVal === "processing",
+      transactionId: orderId,
+      gatewayTransactionId: apiResponse.id || "",
+      status: statusVal,
+      message: apiResponse.message || `Stone status: ${apiResponse.status}`,
+      raw: apiResponse,
     };
 
-    if (response.authorization_code) result.authorizationCode = response.authorization_code;
-    if (response.nsu) result.nsu = response.nsu;
-    if (response.tid) result.tid = response.tid;
-    if (response.authentication_url) result.redirectUrl = response.authentication_url;
+    if (apiResponse.authorization_code) response.authorizationCode = apiResponse.authorization_code;
+    if (apiResponse.nsu) response.nsu = apiResponse.nsu;
+    if (apiResponse.tid) response.tid = apiResponse.tid;
 
-    // Pix
-    if (response.pix) {
-      result.qrCode = response.pix.qr_code;
-      result.qrCodeBase64 = response.pix.qr_code_base64;
-      result.expiresAt = response.pix.expires_at;
-      result.pixData = {
-        qrCode: response.pix.qr_code,
-        qrCodeBase64: response.pix.qr_code_base64,
-        expiresAt: response.pix.expires_at,
-        amount: response.amount / 100,
+    if (apiResponse.pix?.qr_code) {
+      response.qrCode = apiResponse.pix.qr_code;
+      response.pixData = {
+        qrCode: apiResponse.pix.qr_code,
+        qrCodeImage: apiResponse.pix.qr_code_base64,
+        amount: (apiResponse.amount || 0) / 100,
       };
+      response.expiresAt = apiResponse.pix.expires_at;
     }
 
-    // Boleto
-    if (response.boleto) {
-      result.paymentUrl = response.boleto.url;
-      result.barcodeNumber = response.boleto.barcode;
-      result.digitableLine = response.boleto.line;
-      result.boletoData = {
-        boletoUrl: response.boleto.url,
-        barcode: response.boleto.barcode || "",
-        digitableLine: response.boleto.line || "",
-        dueDate: response.boleto.due_date || "",
-        amount: response.amount / 100,
-      };
+    if (apiResponse.boleto?.url) {
+      response.paymentUrl = apiResponse.boleto.url;
+      response.redirectUrl = apiResponse.boleto.url;
+      response.barcodeNumber = apiResponse.boleto.barcode;
+      response.digitableLine = apiResponse.boleto.digitable_line;
+      response.expiresAt = apiResponse.boleto.due_date;
+    } else if (apiResponse.authentication_url) {
+      response.paymentUrl = apiResponse.authentication_url;
+      response.redirectUrl = apiResponse.authentication_url;
     }
 
-    return result;
+    return response;
   }
 
   /**
-   * Converte a resposta da API do Stone para resposta de status do SyncAds
+   * Converte resposta de consulta para PaymentStatusResponse.
    */
-  static toPaymentStatusResponse(response: any): PaymentStatusResponse {
-    let method: "pix" | "credit_card" | "debit_card" | "boleto" = "pix";
-    if (response.payment_method === "credit_card") method = "credit_card";
-    else if (response.payment_method === "debit_card") method = "debit_card";
-    else if (response.payment_method === "boleto") method = "boleto";
-
+  static toPaymentStatusResponse(apiResponse: PaymentResponse): PaymentStatusResponse {
     return {
-      transactionId: response.metadata?.order_id || response.id,
-      gatewayTransactionId: response.id,
-      status: this.toPaymentStatus(response.status),
-      amount: response.amount / 100,
+      transactionId: apiResponse.id || "",
+      gatewayTransactionId: apiResponse.id || "",
+      status: Mapper.toPaymentStatus(apiResponse.status || "pending"),
+      amount: (apiResponse.amount || 0) / 100,
       currency: "BRL",
-      paymentMethod: method,
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || response.created_at || new Date().toISOString(),
+      paymentMethod: Mapper.mapStonePaymentMethod(apiResponse.payment_method || ""),
+      createdAt: apiResponse.created_at || new Date().toISOString(),
+      updatedAt: apiResponse.updated_at || new Date().toISOString(),
+      paidAt: apiResponse.paid_at,
     };
   }
 
   /**
-   * Normaliza status
+   * Normaliza os códigos de status da Stone.
    */
   static toPaymentStatus(status: string): PaymentStatus {
     const map: Record<string, PaymentStatus> = {
       pending: "pending",
+      processing: "processing",
+      authorized: "approved",
       paid: "approved",
       approved: "approved",
-      confirmed: "approved",
-      succeeded: "approved",
       failed: "failed",
       declined: "failed",
-      canceled: "cancelled",
       cancelled: "cancelled",
       refunded: "refunded",
+      expired: "expired",
     };
-    return map[status.toLowerCase()] || "pending";
+    return map[status?.toLowerCase()] || "pending";
+  }
+
+  /**
+   * Mapeia tipo de pagamento da Stone.
+   */
+  private static mapStonePaymentMethod(method: string): PaymentMethod {
+    const map: Record<string, PaymentMethod> = {
+      pix: PaymentMethod.PIX,
+      credit_card: PaymentMethod.CREDIT_CARD,
+      debit_card: PaymentMethod.DEBIT_CARD,
+      boleto: PaymentMethod.BOLETO,
+    };
+    return map[method?.toLowerCase()] || PaymentMethod.CREDIT_CARD;
   }
 }

@@ -1,5 +1,14 @@
 import { BaseGateway } from "../../../core/BaseGateway.ts";
-import { CredentialValidationResult, PaymentRequest, PaymentResponse, RefundRequest, RefundResponse, PaymentStatusResponse, WebhookResponse, IntegrationConfig } from "../../../../../types.ts";
+import {
+  CredentialValidationResult,
+  PaymentRequest,
+  PaymentResponse,
+  RefundRequest,
+  RefundResponse,
+  PaymentStatusResponse,
+  WebhookResponse,
+  IntegrationConfig,
+} from "../../../../../types.ts";
 import { Client } from "./client.ts";
 import { Validator } from "./validator.ts";
 import { Mapper } from "./mapper.ts";
@@ -13,58 +22,162 @@ export class Service extends BaseGateway {
     return new Client(this.http, config.credentials as any, config.isTestMode ?? false);
   }
 
+  /**
+   * Valida as credenciais da Rede.
+   */
   async validateCredentials(credentials: any): Promise<CredentialValidationResult> {
-    const v = Validator.validateCredentials(credentials);
-    if (!v.isValid) return { isValid: false, message: v.errors.join(", ") };
+    const validation = Validator.validateCredentials(credentials);
+    if (!validation.isValid) {
+      return { isValid: false, message: validation.errors.join(", ") };
+    }
+
     try {
       const client = new Client(this.http, credentials, credentials.isTestMode ?? false);
       const res = await client.ping();
-      if (res.status === 401 || res.status === 403) return { isValid: false, message: "Credenciais Rede inválidas. Verifique o clientId e clientSecret." };
-      return { isValid: true, message: "Credenciais Rede validadas com sucesso." };
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          isValid: false,
+          message: "Credenciais Rede inválidas. Verifique o pv e token.",
+        };
+      }
+
+      return {
+        isValid: true,
+        message: "Credenciais Rede validadas com sucesso.",
+      };
     } catch (err: any) {
-      return { isValid: true, message: `Credenciais aceitas (sem validação online): ${err.message}` };
+      return {
+        isValid: true,
+        message: `Credenciais aceitas (sem validação online): ${err.message}`,
+      };
     }
   }
 
-  async processPayment(request: PaymentRequest, config: IntegrationConfig): Promise<PaymentResponse> {
-    const v = Validator.validatePaymentRequest(request);
-    if (!v.isValid) return { success: false, status: "failed", message: v.errors.join(", ") };
+  /**
+   * Processa pagamentos via Rede.
+   */
+  async processPayment(
+    request: PaymentRequest,
+    config: IntegrationConfig
+  ): Promise<PaymentResponse> {
+    const validation = Validator.validatePaymentRequest(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        status: "failed",
+        message: validation.errors.join(", "),
+      };
+    }
+
     const client = this.getClient(config);
-    const payload = Mapper.toTransactionPayload(request);
+    const payload = Mapper.toCreateTransactionPayload(request, config.webhookUrl);
+
     try {
       const res = await client.createTransaction(payload);
       const body = await res.json();
-      if (!res.ok) return { success: false, status: "failed", message: `Rede ${res.status}: ${body?.returnMessage || "Erro desconhecido"}`, errorCode: body?.returnCode };
+
+      if (!res.ok) {
+        return {
+          success: false,
+          status: "failed",
+          message: `Rede rejeitou a transação (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
+          errorCode: String(res.status),
+          raw: body,
+        };
+      }
+
       return Mapper.toPaymentResponse(body, request.orderId);
     } catch (err: any) {
-      return { success: false, status: "failed", message: `Erro Rede: ${err.message}` };
+      return {
+        success: false,
+        status: "failed",
+        message: `Erro de comunicação com Rede: ${err.message}`,
+      };
     }
   }
 
-  async consultPayment(gatewayTransactionId: string, config: IntegrationConfig): Promise<PaymentStatusResponse> {
+  /**
+   * Consulta o status de um pagamento na Rede.
+   */
+  async consultPayment(
+    gatewayTransactionId: string,
+    config: IntegrationConfig
+  ): Promise<PaymentStatusResponse> {
     const client = this.getClient(config);
-    const res = await client.getTransaction(gatewayTransactionId);
-    const body = await res.json();
-    if (!res.ok) throw new Error(`Rede (${res.status}): ${body?.returnMessage}`);
-    return Mapper.toPaymentStatusResponse(body);
-  }
 
-  async refundPayment(request: RefundRequest, config: IntegrationConfig): Promise<RefundResponse> {
-    const client = this.getClient(config);
     try {
-      const amount = Math.round((request.amount || 0) * 100);
-      const res = await client.cancelTransaction(request.gatewayTransactionId, amount);
+      const res = await client.getTransaction(gatewayTransactionId);
       const body = await res.json();
-      if (res.ok && body?.returnCode === "00") return { success: true, refundId: request.gatewayTransactionId, gatewayRefundId: request.gatewayTransactionId, amount: request.amount || 0, status: "approved", message: "Cancelamento Rede aprovado." };
-      return { success: false, amount: request.amount || 0, status: "failed", message: body?.returnMessage || "Rede rejeitou o cancelamento." };
+
+      if (res.ok) {
+        return Mapper.toPaymentStatusResponse(body);
+      } else {
+        throw new Error(
+          `Erro ao consultar Rede (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`
+        );
+      }
     } catch (err: any) {
-      return { success: false, amount: request.amount || 0, status: "failed", message: `Erro cancelamento Rede: ${err.message}` };
+      throw new Error(`Falha ao consultar pagamento Rede: ${err.message}`);
     }
   }
 
-  async handleWebhook(payload: any, signature?: string, secret?: string): Promise<WebhookResponse> {
-    const s = WebhookHandler.validateSignature(payload, signature, secret);
-    if (!s.isValid) return { success: false, processed: false, message: s.error || "Inválido" };
+  /**
+   * Estorna/reembolsa um pagamento na Rede.
+   */
+  async refundPayment(
+    request: RefundRequest,
+    config: IntegrationConfig
+  ): Promise<RefundResponse> {
+    const client = this.getClient(config);
+
+    try {
+      const res = await client.refundTransaction(request.gatewayTransactionId, request.amount);
+      const body = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        return {
+          success: true,
+          refundId: request.gatewayTransactionId,
+          gatewayRefundId: request.gatewayTransactionId,
+          amount: request.amount || 0,
+          status: "approved",
+          message: "Estorno Rede processado com sucesso.",
+        };
+      } else {
+        return {
+          success: false,
+          amount: request.amount || 0,
+          status: "failed",
+          message: `Rede rejeitou o estorno (${res.status}): ${body?.error?.message || body?.message || "Erro desconhecido"}`,
+        };
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        amount: request.amount || 0,
+        status: "failed",
+        message: `Falha ao solicitar estorno na Rede: ${err.message}`,
+      };
+    }
+  }
+
+  /**
+   * Processa webhook recebido da Rede.
+   */
+  async handleWebhook(
+    payload: any,
+    signature?: string,
+    secret?: string
+  ): Promise<WebhookResponse> {
+    const sigValidation = WebhookHandler.validateSignature(payload, signature, secret);
+    if (!sigValidation.isValid) {
+      return {
+        success: false,
+        processed: false,
+        message: sigValidation.error || "Assinatura inválida",
+      };
+    }
     return WebhookHandler.handle(payload);
   }
 }

@@ -4,10 +4,10 @@ export class Validator {
   static validateCredentials(credentials: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
     if (!credentials.merchantId || credentials.merchantId.trim() === "") {
-      errors.push("Merchant ID é obrigatório. Obtenha no portal Cielo E-commerce.");
+      errors.push("merchantId é obrigatório. Obtenha no painel da Cielo.");
     }
     if (!credentials.merchantKey || credentials.merchantKey.trim() === "") {
-      errors.push("Merchant Key é obrigatória. Obtenha no portal Cielo E-commerce.");
+      errors.push("merchantKey é obrigatória. Obtenha no painel da Cielo.");
     }
     return { isValid: errors.length === 0, errors };
   }
@@ -23,14 +23,24 @@ export class Validator {
     if (!request.customer?.name || request.customer.name.trim() === "") {
       errors.push("Nome do cliente é obrigatório.");
     }
+    if (!request.customer?.email || !request.customer.email.includes("@")) {
+      errors.push("E-mail do cliente inválido ou ausente.");
+    }
+    if (!request.customer?.document || request.customer.document.replace(/\D/g, "").length < 11) {
+      errors.push("CPF/CNPJ do cliente é obrigatório.");
+    }
 
     const method = request.paymentMethod;
     if (method === "credit_card" || method === "debit_card") {
       if (!request.card?.number) errors.push("Número do cartão é obrigatório.");
-      if (!request.card?.expMonth) errors.push("Mês de expiração do cartão é obrigatório.");
-      if (!request.card?.expYear) errors.push("Ano de expiração do cartão é obrigatório.");
+      if (!request.card?.expMonth && !request.card?.expiryMonth) {
+        errors.push("Mês de expiração do cartão é obrigatório.");
+      }
+      if (!request.card?.expYear && !request.card?.expiryYear) {
+        errors.push("Ano de expiração do cartão é obrigatório.");
+      }
       if (!request.card?.cvv) errors.push("CVV do cartão é obrigatório.");
-      if (!request.card?.holderName) errors.push("Nome impresso no cartão é obrigatório.");
+      if (!request.card?.holderName) errors.push("Nome do titular do cartão é obrigatório.");
     }
 
     return { isValid: errors.length === 0, errors };

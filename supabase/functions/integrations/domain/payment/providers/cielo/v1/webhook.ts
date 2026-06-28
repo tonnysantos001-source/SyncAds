@@ -12,13 +12,11 @@ export class WebhookHandler {
 
   /**
    * Processa o webhook da Cielo.
-   * Payload esperado: { PaymentId, Status, MerchantOrderId }
    */
   static handle(payload: any): WebhookResponse {
     try {
-      const paymentId = payload.PaymentId || payload.paymentId;
-      const status = payload.Status !== undefined ? payload.Status : payload.status;
-      const orderId = payload.MerchantOrderId || payload.merchantOrderId;
+      const paymentId = payload.PaymentId;
+      const status = payload.Payment?.Status;
 
       if (!paymentId) {
         return {
@@ -28,12 +26,20 @@ export class WebhookHandler {
         };
       }
 
-      const normalizedStatus = Mapper.toPaymentStatus(Number(status));
+      if (status === undefined) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Cielo inválido: Status de pagamento ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
 
       return {
         success: true,
         processed: true,
-        transactionId: orderId || paymentId,
+        transactionId: paymentId,
         status: normalizedStatus,
         message: `Webhook Cielo: ${status} → ${normalizedStatus}`,
         raw: payload,

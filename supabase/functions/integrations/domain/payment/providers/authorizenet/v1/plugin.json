@@ -1,0 +1,19 @@
+{
+  "name": "Authorize.Net",
+  "slug": "authorizenet",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://www.authorize.net/content/dam/authorize/images/authorizedotnet-logo.svg",
+  "description": "Um dos gateways mais estabelecidos dos EUA (Visa company). Processa cartões de crédito, débito e e-cheques com antifraude integrado.",
+  "status": "active",
+  "configFields": [
+    { "name": "loginId", "label": "API Login ID", "type": "text", "required": true },
+    { "name": "transactionKey", "label": "Transaction Key", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "debit_card"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://developer.authorize.net",
+  "supportEmail": "developer@authorize.net"
+}

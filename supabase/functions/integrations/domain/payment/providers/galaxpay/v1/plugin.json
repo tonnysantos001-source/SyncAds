@@ -1,0 +1,19 @@
+{
+  "name": "GalaxPay",
+  "slug": "galaxpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://galaxpay.com.br/static/images/galaxpay-logo.svg",
+  "description": "Gateway brasileiro especializado em recorrência e cobranças recorrentes. Oferece soluções completas de boleto, Pix e cartão de crédito.",
+  "status": "active",
+  "configFields": [
+    { "name": "galaxId", "label": "Galax ID", "type": "text", "required": true, "placeholder": "ID da sua conta GalaxPay" },
+    { "name": "galaxHash", "label": "Galax Hash", "type": "password", "required": true, "placeholder": "Hash obtido em Configurações > API" },
+    { "name": "isTestMode", "label": "Modo Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "pix", "boleto"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.galaxpay.com.br",
+  "supportEmail": "suporte@galaxpay.com.br"
+}

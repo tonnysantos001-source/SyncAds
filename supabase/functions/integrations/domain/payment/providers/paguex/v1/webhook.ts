@@ -1,45 +1,62 @@
-import { WebhookResponse, WebhookValidationResult } from "../../../../../types.ts";
+import { WebhookResponse } from "../../../../../types.ts";
 import { Mapper } from "./mapper.ts";
 
 export class WebhookHandler {
-  /**
-   * Valida integridade da assinatura enviada pelo Pague-X
-   */
-  static validateSignature(_payload: any, _signature?: string, _secret?: string): WebhookValidationResult {
+  static validateSignature(
+    _payload: any,
+    _signature: string | undefined,
+    _secret: string | undefined
+  ): { isValid: boolean; error?: string } {
     return { isValid: true };
   }
 
   /**
-   * Normaliza o payload do webhook recebido
+   * Processa o webhook da Pague-X.
    */
   static handle(payload: any): WebhookResponse {
-    const data = payload.data;
-    const transactionId = data?.id?.toString() || payload.objectId;
-    const status = data?.status;
+    try {
+      const data = payload.data;
+      const transactionId = data?.id?.toString() || payload.objectId;
+      const status = data?.status || payload.status;
 
-    if (!transactionId || !status) {
+      if (!transactionId) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Pague-X inválido: transaction_id/id/objectId ausente.",
+        };
+      }
+
+      if (!status) {
+        return {
+          success: false,
+          processed: false,
+          message: "Webhook Pague-X inválido: status ausente.",
+        };
+      }
+
+      const normalizedStatus = Mapper.toPaymentStatus(status);
+
+      return {
+        success: true,
+        processed: true,
+        transactionId,
+        status: normalizedStatus,
+        message: `Webhook Pague-X: ${status} → ${normalizedStatus}`,
+        raw: payload,
+        metadata: {
+          type: payload.type,
+          paymentMethod: data?.paymentMethod,
+          amount: data?.amount,
+          paidAt: data?.paidAt,
+        },
+      };
+    } catch (err: any) {
       return {
         success: false,
         processed: false,
-        message: "Missing transaction ID or status in webhook payload",
+        message: `Erro webhook Pague-X: ${err.message}`,
       };
     }
-
-    const normalizedStatus = Mapper.toPaymentStatus(status);
-
-    return {
-      success: true,
-      processed: true,
-      transactionId,
-      gatewayTransactionId: transactionId,
-      status: normalizedStatus,
-      message: "Webhook do Pague-X processado com sucesso.",
-      metadata: {
-        type: payload.type,
-        paymentMethod: data?.paymentMethod,
-        amount: data?.amount,
-        paidAt: data?.paidAt,
-      },
-    };
   }
 }

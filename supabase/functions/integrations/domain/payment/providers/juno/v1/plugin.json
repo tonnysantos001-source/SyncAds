@@ -1,0 +1,20 @@
+{
+  "name": "Juno",
+  "slug": "juno",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://juno.com.br/static/images/juno-logo.svg",
+  "description": "Gateway brasileiro da Dock. Aceita boleto bancário, Pix e cartão de crédito com links de pagamento, split de pagamentos e antifraude integrado.",
+  "status": "active",
+  "configFields": [
+    { "name": "clientId", "label": "Client ID", "type": "text", "required": true },
+    { "name": "clientSecret", "label": "Client Secret", "type": "password", "required": true },
+    { "name": "resourceToken", "label": "Resource Token (X-Resource-Token)", "type": "password", "required": true },
+    { "name": "isTestMode", "label": "Sandbox", "type": "checkbox", "required": false }
+  ],
+  "paymentMethods": ["credit_card", "boleto", "pix"],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://dev.juno.com.br",
+  "supportEmail": "suporte@juno.com.br"
+}

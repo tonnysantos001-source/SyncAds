@@ -1,0 +1,27 @@
+{
+  "name": "PerfectPay",
+  "slug": "perfectpay",
+  "version": "v1",
+  "category": "payment",
+  "logoUrl": "https://images.ctfassets.net/perfectpay.png",
+  "description": "Integração oficial do PerfectPay para o SyncAds AI, suportando Pix, Cartão de Crédito e Boleto.",
+  "status": "active",
+  "configFields": [
+    {
+      "name": "apiKey",
+      "label": "Chave de API (API Key)",
+      "type": "password",
+      "required": true,
+      "placeholder": "Digite seu Chave de API (API Key)"
+    }
+  ],
+  "paymentMethods": [
+    "pix",
+    "credit_card",
+    "boleto"
+  ],
+  "webhookSupport": true,
+  "sandboxSupport": true,
+  "apiDocsUrl": "https://docs.perfectpay.com",
+  "supportEmail": "suporte@perfectpay.com"
+}
