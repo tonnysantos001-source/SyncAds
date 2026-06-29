@@ -61,16 +61,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     className,
   );
 
-  // Nível 1: PRIORIDADE MÁXIMA - Logo customizado SVG em React (alta fidelidade)
-  if (CustomLogo) {
-    return (
-      <div className={baseClasses}>
-        <CustomLogo className="w-full h-full object-contain" />
-      </div>
-    );
-  }
-
-  // Nível 2: Logo oficial local (SVG/PNG transparente)
+  // Nível 1: PRIORIDADE MÁXIMA - Logo oficial local (SVG/PNG transparente)
   if (localLogo && hasLocal) {
     return (
       <div className={baseClasses}>
@@ -79,6 +70,15 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
           alt={`${name} logo`}
           className="w-full h-full object-contain p-2"
         />
+      </div>
+    );
+  }
+
+  // Nível 2: Logo customizado SVG em React (alta fidelidade)
+  if (CustomLogo) {
+    return (
+      <div className={baseClasses}>
+        <CustomLogo className="w-full h-full object-contain" />
       </div>
     );
   }

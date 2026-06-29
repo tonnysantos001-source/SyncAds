@@ -41,6 +41,9 @@ import pagbrasilLogo from "@/assets/logos/pagbrasil.svg";
 import nuvemshopLogo from "@/assets/logos/nuvemshop.svg";
 import yapayLogo from "@/assets/logos/yapay.svg";
 import worldpayLogo from "@/assets/logos/worldpay.svg";
+import blackcatLogo from "@/assets/logos/blackcat.png";
+import appmaxLogo from "@/assets/logos/appmax.png";
+import bestfyLogo from "@/assets/logos/bestfy.png";
 
 // Mapeamento de slugs para logos locais
 export const localGatewayLogos: Record<string, string> = {
@@ -89,6 +92,9 @@ export const localGatewayLogos: Record<string, string> = {
   yapay: yapayLogo,
   loovi: yapayLogo, // Loovi é marca da Yapay
   worldpay: worldpayLogo,
+  blackcat: blackcatLogo,
+  appmax: appmaxLogo,
+  bestfy: bestfyLogo,
 };
 
 // Lista de gateways com logos oficiais locais
