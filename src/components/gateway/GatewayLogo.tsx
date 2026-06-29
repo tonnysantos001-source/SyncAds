@@ -54,8 +54,8 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
   // Classes base
   const baseClasses = cn(
     SIZES[size],
-    "rounded-lg border border-gray-200 dark:border-gray-700",
-    "bg-white dark:bg-gray-800",
+    "rounded-xl",
+    "bg-white",
     "flex items-center justify-center overflow-hidden",
     "transition-all duration-300",
     className,
