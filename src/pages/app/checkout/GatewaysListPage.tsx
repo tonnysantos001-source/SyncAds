@@ -383,18 +383,16 @@ const GatewaysListPage = () => {
                       >
                         <CardHeader className="p-5 flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
                           <div className="flex items-center gap-4">
-                            {/* Logo Container - White background, rounded-xl, no borders, no padding to fill space */}
-                            <div className="relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white p-0 shadow-sm overflow-hidden">
-                              <GatewayLogo
-                                name={gateway.name}
-                                logo={gateway.logo}
-                                slug={gateway.slug}
-                                size="md"
-                                className="w-full h-full object-cover bg-transparent border-none rounded-none p-0"
-                              />
-                            </div>
+                            {/* Logo Container - Single component wrapper to prevent pixel bleed and double outline borders */}
+                            <GatewayLogo
+                              name={gateway.name}
+                              logo={gateway.logo}
+                              slug={gateway.slug}
+                              size="md"
+                              className="flex-shrink-0 shadow-sm"
+                            />
                             <div>
-                              <CardTitle className="text-md font-bold text-white flex items-center gap-2">
+                              <CardTitle className="text-md font-bold text-white flex items-center gap-2 tracking-tight antialiased">
                                 {gateway.name}
                                 {isActive && (
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -406,7 +404,7 @@ const GatewaysListPage = () => {
                                 <Badge 
                                   variant="outline" 
                                   className={cn(
-                                    "text-[9px] font-bold px-1.5 py-0.5 rounded border-0 uppercase tracking-wider",
+                                    "text-[9px] font-bold px-1.5 py-0.5 rounded border-0 uppercase tracking-wider antialiased",
                                     gateway.type === "both" 
                                       ? "bg-violet-500/10 text-violet-400" 
                                       : gateway.type === "nacional" 
@@ -420,7 +418,7 @@ const GatewaysListPage = () => {
                                 {isActive && (
                                   <Badge 
                                     variant="outline" 
-                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded border-0 uppercase tracking-wider bg-emerald-500/10 text-emerald-400"
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded border-0 uppercase tracking-wider bg-emerald-500/10 text-emerald-400 antialiased"
                                   >
                                     Ativo
                                   </Badge>
@@ -435,7 +433,7 @@ const GatewaysListPage = () => {
 
                         {/* Descrição */}
                         <CardContent className="flex-grow px-5 pt-0 pb-5">
-                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-slate-400/90 line-clamp-2 leading-relaxed tracking-wide antialiased font-normal">
                             {gateway.description || "Sem descrição disponível."}
                           </p>
                         </CardContent>

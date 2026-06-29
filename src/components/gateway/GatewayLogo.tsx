@@ -51,20 +51,19 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
   // Nível 3: Tentar usar logo customizado SVG
   const CustomLogo = slug ? customGatewayLogos[slug.toLowerCase()] : null;
 
-  // Classes base
+  // Classes base (sem cor de fundo fixa para evitar bordas e pixel bleed em logotipos customizados/fallbacks)
   const baseClasses = cn(
     SIZES[size],
     "rounded-xl",
-    "bg-white",
     "flex items-center justify-center overflow-hidden",
     "transition-all duration-300",
     className,
   );
 
-  // Nível 1: PRIORIDADE MÁXIMA - Logo oficial local (SVG/PNG transparente)
+  // Nível 1: PRIORIDADE MÁXIMA - Logo oficial local (SVG/PNG transparente) - Ganha bg-white para contraste
   if (localLogo && hasLocal) {
     return (
-      <div className={baseClasses}>
+      <div className={cn(baseClasses, "bg-white")}>
         <img
           src={localLogo}
           alt={`${name} logo`}
@@ -74,19 +73,19 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 2: Logo customizado SVG em React (alta fidelidade)
+  // Nível 2: Logo customizado SVG em React (alta fidelidade) - Ganha fundo escuro/neutro elegante
   if (CustomLogo) {
     return (
-      <div className={baseClasses}>
+      <div className={cn(baseClasses, "bg-slate-950/40 border border-slate-800/40")}>
         <CustomLogo className="w-full h-full object-cover" />
       </div>
     );
   }
 
-  // Nível 3: Se tiver ícone do react-pay-icons, usar ele
+  // Nível 3: Se tiver ícone do react-pay-icons, usar ele - Ganha bg-white
   if (IconComponent && !imageError) {
     return (
-      <div className={baseClasses}>
+      <div className={cn(baseClasses, "bg-white")}>
         <IconComponent
           className="w-full h-full object-cover"
           style={{ maxWidth: "100%", maxHeight: "100%" }}
@@ -95,10 +94,10 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     );
   }
 
-  // Nível 4: Se tiver URL de logo oficial externa e não houver erro, usar ela
+  // Nível 4: Se tiver URL de logo oficial externa e não houver erro, usar ela - Ganha bg-white
   if (logo && !imageError) {
     return (
-      <div className={baseClasses}>
+      <div className={cn(baseClasses, "bg-white")}>
         {!imageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
