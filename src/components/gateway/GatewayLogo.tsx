@@ -68,7 +68,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
         <img
           src={localLogo}
           alt={`${name} logo`}
-          className="w-full h-full object-contain p-2"
+          className="w-full h-full object-cover"
         />
       </div>
     );
@@ -78,7 +78,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
   if (CustomLogo) {
     return (
       <div className={baseClasses}>
-        <CustomLogo className="w-full h-full object-contain" />
+        <CustomLogo className="w-full h-full object-cover" />
       </div>
     );
   }
@@ -88,7 +88,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
     return (
       <div className={baseClasses}>
         <IconComponent
-          className="w-full h-full object-contain p-1"
+          className="w-full h-full object-cover"
           style={{ maxWidth: "100%", maxHeight: "100%" }}
         />
       </div>
@@ -108,7 +108,7 @@ const GatewayLogo: React.FC<GatewayLogoProps> = ({
           src={logo}
           alt={`${name} logo`}
           className={cn(
-            "max-w-full max-h-full object-contain p-2 transition-opacity duration-300",
+            "w-full h-full object-cover transition-opacity duration-300",
             imageLoaded ? "opacity-100" : "opacity-0",
           )}
           onLoad={() => setImageLoaded(true)}

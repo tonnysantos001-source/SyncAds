@@ -379,18 +379,18 @@ const GatewaysListPage = () => {
                     >
                       <Card 
                         onClick={() => navigate(`/checkout/gateways/${gateway.slug}`)}
-                        className="relative overflow-hidden border border-slate-800 bg-slate-900/30 group-hover:bg-slate-850/20 group-hover:border-slate-700/60 transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-2xl hover:shadow-primary/5 select-none"
+                        className="relative overflow-hidden border border-slate-800 bg-slate-900/30 group-hover:bg-slate-855/20 group-hover:border-slate-700/60 transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-2xl hover:shadow-primary/5 select-none"
                       >
                         <CardHeader className="p-5 flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
                           <div className="flex items-center gap-4">
-                            {/* Logo Container - White background, rounded-xl, no borders, soft padding */}
-                            <div className="relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white p-2 shadow-sm">
+                            {/* Logo Container - White background, rounded-xl, no borders, no padding to fill space */}
+                            <div className="relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white p-0 shadow-sm overflow-hidden">
                               <GatewayLogo
                                 name={gateway.name}
                                 logo={gateway.logo}
                                 slug={gateway.slug}
                                 size="md"
-                                className="w-full h-full object-contain bg-transparent border-none rounded-none p-0"
+                                className="w-full h-full object-cover bg-transparent border-none rounded-none p-0"
                               />
                             </div>
                             <div>
@@ -438,29 +438,6 @@ const GatewaysListPage = () => {
                           <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
                             {gateway.description || "Sem descrição disponível."}
                           </p>
-
-                          {/* Testar Conexão Button (Only if configured/active, stops card click propagation) */}
-                          {isConnected && config && (
-                            <div className="mt-4 pt-3 border-t border-slate-800/40" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="w-full text-[11px] h-8 text-slate-400 hover:bg-slate-800/60 hover:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTestConnection(config.id, gateway.name);
-                                }}
-                                disabled={testingId === config.id}
-                              >
-                                {testingId === config.id ? (
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                                ) : (
-                                  <Play className="w-3.5 h-3.5 mr-1.5" />
-                                )}
-                                Testar Conexão
-                              </Button>
-                            </div>
-                          )}
                         </CardContent>
 
                       </Card>
